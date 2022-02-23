@@ -28,7 +28,6 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Credentials;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -75,7 +74,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
 
   private String getTableName(TableId tableId) {
     try {
-      return Tables.getTableName(context, tableId);
+      return context.getTableName(tableId);
     } catch (TableNotFoundException e) {
       return "Unknown Table with ID " + tableId;
     }

@@ -236,9 +236,9 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     TabletMetadata tablet = getTabletFiles(nextRange);
 
     while (tablet.getLocation() != null) {
-      if (Tables.getTableState(context, tableId) != TableState.OFFLINE) {
-        Tables.clearCache(context);
-        if (Tables.getTableState(context, tableId) != TableState.OFFLINE) {
+      if (context.getTableState(tableId) != TableState.OFFLINE) {
+        context.clearTableListCache();
+        if (context.getTableState(tableId) != TableState.OFFLINE) {
           throw new AccumuloException("Table is online " + tableId
               + " cannot scan tablet in offline mode " + tablet.getExtent());
         }
@@ -277,7 +277,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       throws TableNotFoundException, AccumuloException, IOException {
 
     // possible race condition here, if table is renamed
-    String tableName = Tables.getTableName(context, tableId);
+    String tableName = context.getTableName(tableId);
     AccumuloConfiguration acuTableConf =
         new ConfigurationCopy(context.tableOperations().getConfiguration(tableName));
 

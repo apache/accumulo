@@ -315,7 +315,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   }
 
   private String getTableInfo() {
-    return Tables.getPrintableTableInfoFromId(context, tableId);
+    return context.getPrintableTableInfoFromId(tableId);
   }
 
   private class QueryTask implements Runnable {
@@ -378,8 +378,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         e.setTableInfo(getTableInfo());
         log.debug("AccumuloSecurityException thrown", e);
 
-        Tables.clearCache(context);
-        if (Tables.exists(context, tableId))
+        context.clearTableListCache();
+        if (context.tableNodeExists(tableId))
           fatalException = e;
         else
           fatalException = new TableDeletedException(tableId.canonical());
@@ -774,7 +774,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       String tableInfo = "?";
       if (e.getExtent() != null) {
         TableId tableId = KeyExtent.fromThrift(e.getExtent()).tableId();
-        tableInfo = Tables.getPrintableTableInfoFromId(context, tableId);
+        tableInfo = context.getPrintableTableInfoFromId(tableId);
       }
       String message = "Table " + tableInfo + " does not have sampling configured or built";
       throw new SampleNotPresentException(message, e);

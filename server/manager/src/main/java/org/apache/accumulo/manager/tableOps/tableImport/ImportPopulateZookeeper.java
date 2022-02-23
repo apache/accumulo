@@ -25,10 +25,10 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -78,11 +78,11 @@ class ImportPopulateZookeeper extends ManagerRepo {
       Utils.checkTableDoesNotExist(env.getContext(), tableInfo.tableName, tableInfo.tableId,
           TableOperation.CREATE);
 
-      String namespace = Tables.qualify(tableInfo.tableName).getFirst();
+      String namespace = TableNameUtil.qualify(tableInfo.tableName).getFirst();
       NamespaceId namespaceId = Namespaces.getNamespaceId(env.getContext(), namespace);
       env.getTableManager().addTable(tableInfo.tableId, namespaceId, tableInfo.tableName);
 
-      Tables.clearCache(env.getContext());
+      env.getContext().clearTableListCache();
     } finally {
       Utils.getTableNameLock().unlock();
     }
@@ -103,6 +103,6 @@ class ImportPopulateZookeeper extends ManagerRepo {
   public void undo(long tid, Manager env) throws Exception {
     env.getTableManager().removeTable(tableInfo.tableId);
     Utils.unreserveTable(env, tableInfo.tableId, tid, true);
-    Tables.clearCache(env.getContext());
+    env.getContext().clearTableListCache();
   }
 }

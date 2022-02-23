@@ -36,7 +36,6 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -97,7 +96,7 @@ public class TablesResource {
     TableManager tableManager = monitor.getContext().getTableManager();
 
     // Add tables to the list
-    for (Map.Entry<String,TableId> entry : Tables.getNameToIdMap(monitor.getContext()).entrySet()) {
+    for (Map.Entry<String,TableId> entry : monitor.getContext().getTableNameToIdMap().entrySet()) {
       String tableName = entry.getKey();
       TableId tableId = entry.getValue();
       TableInfo tableInfo = tableStats.get(tableId);
