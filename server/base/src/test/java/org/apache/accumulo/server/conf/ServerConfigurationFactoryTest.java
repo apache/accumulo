@@ -24,7 +24,6 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.endsWith;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -39,7 +38,6 @@ import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.MockServerContext;
 import org.apache.accumulo.server.ServerContext;
-import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -59,14 +57,11 @@ public class ServerConfigurationFactoryTest {
   public static void setUpClass() {
     zcf = createMock(ZooCacheFactory.class);
     zc = createMock(ZooCache.class);
-    expect(zcf.getZooCache(eq(ZK_HOST), eq(ZK_TIMEOUT), EasyMock.anyObject())).andReturn(zc);
-    expectLastCall().anyTimes();
-    expect(zcf.getZooCache(ZK_HOST, ZK_TIMEOUT)).andReturn(zc);
-    expectLastCall().anyTimes();
+    expect(zcf.getNewZooCache(eq(ZK_HOST), eq(ZK_TIMEOUT))).andReturn(zc).anyTimes();
+    expect(zcf.getZooCache(ZK_HOST, ZK_TIMEOUT)).andReturn(zc).anyTimes();
     replay(zcf);
 
-    expect(zc.getChildren(anyObject(String.class))).andReturn(null);
-    expectLastCall().anyTimes();
+    expect(zc.getChildren(anyObject(String.class))).andReturn(null).anyTimes();
     // CheckServerConfig looks at timeout
     expect(zc.get(endsWith("timeout"))).andReturn(("" + ZK_TIMEOUT + "ms").getBytes(UTF_8));
     replay(zc);

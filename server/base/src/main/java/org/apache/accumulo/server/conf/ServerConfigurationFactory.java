@@ -29,6 +29,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.ServerContext;
 
@@ -105,8 +106,12 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   @Override
   public synchronized AccumuloConfiguration getSystemConfiguration() {
     if (systemConfig == null) {
-      systemConfig =
-          new ZooConfigurationFactory().getInstance(context, zcf, getSiteConfiguration());
+      // Force the creation of a new ZooCache instead of using a shared one.
+      // This is done so that the ZooCache will update less often, causing the
+      // configuration update count to increment more slowly.
+      ZooCache propCache =
+          zcf.getNewZooCache(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
+      systemConfig = new ZooConfiguration(context, propCache, getSiteConfiguration());
     }
     return systemConfig;
   }
