@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -136,8 +136,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     OnlineOpTiming timing1 = task.get();
 
-    log.trace("Online 1 in {} ms",
-        NANOSECONDS.toMillis(timing1.runningTime()));
+    log.trace("Online 1 in {} ms", NANOSECONDS.toMillis(timing1.runningTime()));
 
     assertEquals("verify table is still online", TableState.ONLINE, getTableState(tableName));
 
@@ -152,8 +151,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     OnlineOpTiming timing2 = task.get();
 
-    log.trace("Online 2 in {} ms",
-        NANOSECONDS.toMillis(timing2.runningTime()));
+    log.trace("Online 2 in {} ms", NANOSECONDS.toMillis(timing2.runningTime()));
 
     assertEquals("verify table is back online", TableState.ONLINE, getTableState(tableName));
 
@@ -170,8 +168,8 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     OnlineOpTiming timing3 = task.get();
 
-    assertTrue("online should take less time than expected compaction time", timing3.runningTime()
-        < MILLISECONDS.toNanos(NUM_ROWS * SLOW_SCAN_SLEEP_MS));
+    assertTrue("online should take less time than expected compaction time",
+        timing3.runningTime() < MILLISECONDS.toNanos(NUM_ROWS * SLOW_SCAN_SLEEP_MS));
 
     assertEquals("verify table is still online", TableState.ONLINE, getTableState(tableName));
 
@@ -181,12 +179,9 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     client.tableOperations().cancelCompaction(tableName);
 
     log.debug("Success: Timing results for online commands.");
-    log.debug("Time for unblocked online {} ms",
-        NANOSECONDS.toMillis(timing1.runningTime()));
-    log.debug("Time for online when offline {} ms",
-            NANOSECONDS.toMillis(timing2.runningTime()));
-    log.debug("Time for blocked online {} ms",
-            NANOSECONDS.toMillis(timing3.runningTime()));
+    log.debug("Time for unblocked online {} ms", NANOSECONDS.toMillis(timing1.runningTime()));
+    log.debug("Time for online when offline {} ms", NANOSECONDS.toMillis(timing2.runningTime()));
+    log.debug("Time for blocked online {} ms", NANOSECONDS.toMillis(timing3.runningTime()));
 
     // block if compaction still running
     slowOps.blockWhileCompactionRunning();
@@ -470,8 +465,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       // stop timing
       status.setComplete();
 
-      log.trace("Online completed in {} ms",
-              NANOSECONDS.toMillis(status.runningTime()));
+      log.trace("Online completed in {} ms", NANOSECONDS.toMillis(status.runningTime()));
 
       return status;
     }

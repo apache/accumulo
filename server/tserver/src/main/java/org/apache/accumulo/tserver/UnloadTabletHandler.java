@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.tserver;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import org.apache.accumulo.core.conf.Property;
