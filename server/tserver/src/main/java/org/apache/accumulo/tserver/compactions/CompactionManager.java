@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.tserver.compactions;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.apache.accumulo.core.util.compaction.CompactionServicesConfig.DEFAULT_SERVICE;
 
@@ -103,10 +103,9 @@ public class CompactionManager {
 
     long increment = Math.max(1, maxTimeBetweenChecks / 10);
 
-    var retryFactory = Retry.builder().infiniteRetries()
-        .retryAfter(increment, MILLISECONDS).incrementBy(increment, MILLISECONDS)
-        .maxWait(maxTimeBetweenChecks, MILLISECONDS).backOffFactor(1.07)
-        .logInterval(1, MINUTES).createFactory();
+    var retryFactory = Retry.builder().infiniteRetries().retryAfter(increment, MILLISECONDS)
+        .incrementBy(increment, MILLISECONDS).maxWait(maxTimeBetweenChecks, MILLISECONDS)
+        .backOffFactor(1.07).logInterval(1, MINUTES).createFactory();
     var retry = retryFactory.createRetry();
     Compactable last = null;
 
@@ -128,8 +127,7 @@ public class CompactionManager {
           // still exists
           runningExternalCompactions.keySet().removeAll(runningEcids);
         } else {
-          var compactable =
-              compactablesToCheck.poll(maxTimeBetweenChecks - passed, MILLISECONDS);
+          var compactable = compactablesToCheck.poll(maxTimeBetweenChecks - passed, MILLISECONDS);
           if (compactable != null) {
             last = compactable;
             submitCompaction(compactable);
