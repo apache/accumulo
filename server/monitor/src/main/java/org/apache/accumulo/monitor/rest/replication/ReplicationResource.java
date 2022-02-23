@@ -40,7 +40,6 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -119,7 +118,7 @@ public class ReplicationResource {
     // Number of files per target we have to replicate
     Map<ReplicationTarget,Long> targetCounts = new HashMap<>();
 
-    Map<String,TableId> tableNameToId = Tables.getNameToIdMap(monitor.getContext());
+    Map<String,TableId> tableNameToId = monitor.getContext().getTableNameToIdMap();
     Map<TableId,String> tableIdToName = invert(tableNameToId);
 
     for (String table : tops.list()) {

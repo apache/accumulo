@@ -22,12 +22,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
-import static org.apache.accumulo.core.util.Validators.EXISTING_TABLE_NAME;
 
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
@@ -46,6 +46,7 @@ import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -59,6 +60,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -74,6 +76,7 @@ import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.util.OpTimer;
+import org.apache.accumulo.core.util.tables.TableZooUtil;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
@@ -118,8 +121,8 @@ public class ClientContext implements AccumuloClient {
   private volatile boolean closed = false;
 
   private SecurityOperations secops = null;
-  private TableOperationsImpl tableops = null;
-  private NamespaceOperations namespaceops = null;
+  private final TableOperationsImpl tableops;
+  private final NamespaceOperations namespaceops;
   private InstanceOperations instanceops = null;
   @SuppressWarnings("deprecation")
   private org.apache.accumulo.core.client.admin.ReplicationOperations replicationops = null;
@@ -513,28 +516,82 @@ public class ClientContext implements AccumuloClient {
     return zooCache;
   }
 
-  // this validates the table name for all callers
-  TableId getTableId(String tableName) throws TableNotFoundException {
-    return Tables.getTableId(this, EXISTING_TABLE_NAME.validate(tableName));
+  private TableZooUtil tableZooUtil;
+
+  private synchronized TableZooUtil tableZooUtil() {
+    ensureOpen();
+    if (tableZooUtil == null) {
+      tableZooUtil = new TableZooUtil(this);
+    }
+    return tableZooUtil;
+  }
+
+  public TableId getTableId(String tableName) throws TableNotFoundException {
+    return tableZooUtil().getTableId(tableName);
+  }
+
+  public TableId _getTableIdDetectNamespaceNotFound(String tableName)
+      throws NamespaceNotFoundException, TableNotFoundException {
+    return tableZooUtil()._getTableIdDetectNamespaceNotFound(tableName);
+  }
+
+  public String getTableName(TableId tableId) throws TableNotFoundException {
+    return tableZooUtil().getTableName(tableId);
+  }
+
+  public Map<String,TableId> getTableNameToIdMap() {
+    return tableZooUtil().getTableMap().getNameToIdMap();
+  }
+
+  public Map<TableId,String> getTableIdToNameMap() {
+    return tableZooUtil().getTableMap().getIdtoNameMap();
+  }
+
+  public boolean tableNodeExists(TableId tableId) {
+    return tableZooUtil().tableNodeExists(tableId);
+  }
+
+  public void clearTableListCache() {
+    tableZooUtil().clearTableListCache();
+  }
+
+  public String getPrintableTableInfoFromId(TableId tableId) {
+    return tableZooUtil().getPrintableTableInfoFromId(tableId);
+  }
+
+  public String getPrintableTableInfoFromName(String tableName) {
+    return tableZooUtil().getPrintableTableInfoFromName(tableName);
+  }
+
+  public TableState getTableState(TableId tableId) {
+    return tableZooUtil().getTableState(tableId, false);
+  }
+
+  public TableState getTableState(TableId tableId, boolean clearCachedState) {
+    return tableZooUtil().getTableState(tableId, clearCachedState);
+  }
+
+  public NamespaceId getNamespaceId(TableId tableId) throws TableNotFoundException {
+    return tableZooUtil().getNamespaceId(tableId);
   }
 
   // use cases overlap with requireNotDeleted, but this throws a checked exception
   public TableId requireTableExists(TableId tableId, String tableName)
       throws TableNotFoundException {
-    if (!Tables.exists(this, tableId))
+    if (!tableNodeExists(tableId))
       throw new TableNotFoundException(tableId.canonical(), tableName, "Table no longer exists");
     return tableId;
   }
 
   // use cases overlap with requireTableExists, but this throws a runtime exception
   public TableId requireNotDeleted(TableId tableId) {
-    if (!Tables.exists(this, tableId))
+    if (!tableNodeExists(tableId))
       throw new TableDeletedException(tableId.canonical());
     return tableId;
   }
 
   public TableId requireNotOffline(TableId tableId, String tableName) {
-    if (Tables.getTableState(this, tableId) == TableState.OFFLINE)
+    if (getTableState(tableId) == TableState.OFFLINE)
       throw new TableOfflineException(tableId, tableName);
     return tableId;
   }
@@ -718,6 +775,9 @@ public class ClientContext implements AccumuloClient {
     closed = true;
     if (thriftTransportPool != null) {
       thriftTransportPool.shutdown();
+    }
+    if (tableZooUtil != null) {
+      tableZooUtil.close();
     }
     singletonReservation.close();
   }
@@ -932,4 +992,5 @@ public class ClientContext implements AccumuloClient {
     }
     return thriftTransportPool;
   }
+
 }

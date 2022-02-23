@@ -47,7 +47,6 @@ import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.OfflineScanner;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -290,16 +289,16 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
     LinkedList<InputSplit> splits = new LinkedList<>();
     Map<String,InputTableConfig> tableConfigs =
         InputConfigurator.getInputTableConfigs(callingClass, job);
-    try (AccumuloClient client = createClient(job, callingClass)) {
+    try (AccumuloClient client = createClient(job, callingClass);
+        var context = ((ClientContext) client)) {
       for (Map.Entry<String,InputTableConfig> tableConfigEntry : tableConfigs.entrySet()) {
         String tableName = tableConfigEntry.getKey();
         InputTableConfig tableConfig = tableConfigEntry.getValue();
 
-        ClientContext context = (ClientContext) client;
         TableId tableId;
         // resolve table name to id once, and use id from this point forward
         try {
-          tableId = Tables.getTableId(context, tableName);
+          tableId = context.getTableId(tableName);
         } catch (TableNotFoundException e) {
           throw new IOException(e);
         }

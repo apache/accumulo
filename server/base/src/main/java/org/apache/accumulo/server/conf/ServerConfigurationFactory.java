@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigCheckUtil;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -129,7 +128,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     // Tablet sets will never see updates from ZooKeeper which means that things like constraints
     // and
     // default visibility labels will never be updated in a Tablet until it is reloaded.
-    if (conf == null && Tables.exists(context, tableId)) {
+    if (conf == null && context.tableNodeExists(tableId)) {
       conf = new TableConfiguration(context, tableId, getNamespaceConfigurationForTable(tableId));
       ConfigCheckUtil.validate(conf);
       synchronized (tableConfigs) {
@@ -157,7 +156,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     if (conf == null) {
       NamespaceId namespaceId;
       try {
-        namespaceId = Tables.getNamespaceId(context, tableId);
+        namespaceId = context.getNamespaceId(tableId);
       } catch (TableNotFoundException e) {
         throw new RuntimeException(e);
       }

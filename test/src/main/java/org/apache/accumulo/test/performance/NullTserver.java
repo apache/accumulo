@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.Help;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -334,7 +333,7 @@ public class NullTserver {
 
     HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);
 
-    TableId tableId = Tables.getTableId(context, opts.tableName);
+    TableId tableId = context.getTableId(opts.tableName);
 
     // read the locations for the table
     Range tableRange = new KeyExtent(tableId, null, null).toMetaRange();

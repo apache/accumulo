@@ -41,7 +41,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
@@ -372,7 +371,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       throws TException {
     TableId tableId = JOB_HOLDER.getTableId();
     try {
-      NamespaceId nsId = Tables.getNamespaceId(getContext(), tableId);
+      NamespaceId nsId = getContext().getNamespaceId(tableId);
       if (!security.canCompact(credentials, tableId, nsId)) {
         throw new AccumuloSecurityException(credentials.getPrincipal(),
             SecurityErrorCode.PERMISSION_DENIED).asThriftException();

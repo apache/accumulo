@@ -47,7 +47,6 @@ import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.OfflineScanner;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -319,7 +318,8 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
       throws IOException {
     validateOptions(context, callingClass);
     LinkedList<InputSplit> splits = new LinkedList<>();
-    try (AccumuloClient client = createClient(context, callingClass)) {
+    try (AccumuloClient client = createClient(context, callingClass);
+        var clientContext = ((ClientContext) client)) {
       Map<String,InputTableConfig> tableConfigs =
           InputConfigurator.getInputTableConfigs(callingClass, context.getConfiguration());
       for (Map.Entry<String,InputTableConfig> tableConfigEntry : tableConfigs.entrySet()) {
@@ -327,11 +327,10 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
         String tableName = tableConfigEntry.getKey();
         InputTableConfig tableConfig = tableConfigEntry.getValue();
 
-        ClientContext clientContext = (ClientContext) client;
         TableId tableId;
         // resolve table name to id once, and use id from this point forward
         try {
-          tableId = Tables.getTableId(clientContext, tableName);
+          tableId = clientContext.getTableId(tableName);
         } catch (TableNotFoundException e) {
           throw new IOException(e);
         }

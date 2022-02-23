@@ -58,7 +58,6 @@ import org.apache.accumulo.core.client.admin.TableOperations.ImportMappingOption
 import org.apache.accumulo.core.clientImpl.AccumuloBulkMergeException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.bulk.Bulk.FileInfo;
 import org.apache.accumulo.core.clientImpl.bulk.Bulk.Files;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -129,7 +128,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   public void load()
       throws TableNotFoundException, IOException, AccumuloException, AccumuloSecurityException {
 
-    TableId tableId = Tables.getTableId(context, tableName);
+    TableId tableId = context.getTableId(tableName);
 
     FileSystem fs = VolumeConfiguration.fileSystemForPath(dir, context.getHadoopConf());
 
