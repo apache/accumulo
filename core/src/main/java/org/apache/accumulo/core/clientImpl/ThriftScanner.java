@@ -323,16 +323,16 @@ public class ThriftScanner {
         try (Scope scanLocation = child2.makeCurrent()) {
           results = scan(loc, scanState, context);
         } catch (AccumuloSecurityException e) {
-          Tables.clearCache(context);
+          context.clearTableListCache();
           context.requireNotDeleted(scanState.tableId);
-          e.setTableInfo(Tables.getPrintableTableInfoFromId(context, scanState.tableId));
+          e.setTableInfo(context.getPrintableTableInfoFromId(scanState.tableId));
           TraceUtil.setException(child2, e, true);
           throw e;
         } catch (TApplicationException tae) {
           TraceUtil.setException(child2, tae, true);
           throw new AccumuloServerException(loc.tablet_location, tae);
         } catch (TSampleNotPresentException tsnpe) {
-          String message = "Table " + Tables.getPrintableTableInfoFromId(context, scanState.tableId)
+          String message = "Table " + context.getPrintableTableInfoFromId(scanState.tableId)
               + " does not have sampling configured or built";
           TraceUtil.setException(child2, tsnpe, true);
           throw new SampleNotPresentException(message, tsnpe);

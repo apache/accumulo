@@ -47,7 +47,6 @@ import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -112,7 +111,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
   private void assertTableState(String tableName, AccumuloClient c, TableState expected) {
     String tableId = c.tableOperations().tableIdMap().get(tableName);
-    TableState tableState = Tables.getTableState((ClientContext) c, TableId.of(tableId));
+    TableState tableState = ((ClientContext) c).getTableState(TableId.of(tableId));
     assertEquals(expected, tableState);
   }
 

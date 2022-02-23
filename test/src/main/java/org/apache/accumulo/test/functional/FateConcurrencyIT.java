@@ -41,7 +41,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
@@ -228,7 +227,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       assertEquals("verify table online after created", TableState.ONLINE,
           getTableState(tableName));
 
-      tableId = Tables.getTableId(context, tableName);
+      tableId = context.getTableId(tableName);
 
       log.trace("tid: {}", tableId);
 
@@ -338,7 +337,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     try {
 
-      TableId tableId = Tables.getTableId(context, tableName);
+      TableId tableId = context.getTableId(tableName);
 
       log.trace("tid: {}", tableId);
 
@@ -401,9 +400,9 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
    */
   private TableState getTableState(String tableName) throws TableNotFoundException {
 
-    TableId tableId = Tables.getTableId(context, tableName);
+    TableId tableId = context.getTableId(tableName);
 
-    TableState tstate = Tables.getTableState(context, tableId);
+    TableState tstate = context.getTableState(tableId);
 
     log.trace("tableName: '{}': tableId {}, current state: {}", tableName, tableId, tstate);
 

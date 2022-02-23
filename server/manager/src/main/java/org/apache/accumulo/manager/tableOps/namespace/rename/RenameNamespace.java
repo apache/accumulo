@@ -22,7 +22,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -74,7 +73,7 @@ public class RenameNamespace extends ManagerRepo {
         }
         return newName.getBytes(UTF_8);
       });
-      Tables.clearCache(manager.getContext());
+      manager.getContext().clearTableListCache();
     } finally {
       Utils.getTableNameLock().unlock();
       Utils.unreserveNamespace(manager, namespaceId, id, true);

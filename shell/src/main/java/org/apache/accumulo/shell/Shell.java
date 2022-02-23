@@ -60,7 +60,6 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
@@ -73,6 +72,7 @@ import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.core.util.format.FormatterFactory;
+import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.shell.commands.AboutCommand;
 import org.apache.accumulo.shell.commands.AddAuthsCommand;
 import org.apache.accumulo.shell.commands.AddSplitsCommand;
@@ -1165,7 +1165,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   public void setTableName(String tableName) {
-    this.tableName = (tableName == null || tableName.isEmpty()) ? "" : Tables.qualified(tableName);
+    this.tableName =
+        (tableName == null || tableName.isEmpty()) ? "" : TableNameUtil.qualified(tableName);
   }
 
   public String getTableName() {

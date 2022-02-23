@@ -23,7 +23,6 @@ import java.util.Map;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
@@ -60,7 +59,7 @@ public class ReplicationServicerHandler implements Iface {
     String tableName;
 
     try {
-      tableName = Tables.getTableName(tabletServer.getContext(), tableId);
+      tableName = tabletServer.getContext().getTableName(tableId);
     } catch (TableNotFoundException e) {
       log.error("Could not find table with id {}", tableId);
       throw new RemoteReplicationException(RemoteReplicationErrorCode.TABLE_DOES_NOT_EXIST,

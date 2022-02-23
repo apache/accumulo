@@ -20,7 +20,6 @@ package org.apache.accumulo.manager.tableOps.create;
 
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
@@ -69,7 +68,7 @@ class PopulateZookeeper extends ManagerRepo {
         }
       }
 
-      Tables.clearCache(manager.getContext());
+      manager.getContext().clearTableListCache();
       return new ChooseDir(tableInfo);
     } finally {
       Utils.getTableNameLock().unlock();
@@ -81,7 +80,7 @@ class PopulateZookeeper extends ManagerRepo {
   public void undo(long tid, Manager manager) throws Exception {
     manager.getTableManager().removeTable(tableInfo.getTableId());
     Utils.unreserveTable(manager, tableInfo.getTableId(), tid, true);
-    Tables.clearCache(manager.getContext());
+    manager.getContext().clearTableListCache();
   }
 
 }

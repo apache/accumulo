@@ -593,7 +593,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     } catch (ThriftSecurityException tse) {
       AccumuloSecurityException ase =
           new AccumuloSecurityException(context.getCredentials().getPrincipal(), tse.getCode(),
-              Tables.getPrintableTableInfoFromId(context, tableId), tse);
+              context.getPrintableTableInfoFromId(tableId), tse);
       queueException(location, cmidToCm, ase);
     } catch (TApplicationException tae) {
       queueException(location, cmidToCm, new AccumuloServerException(location.toString(), tae));

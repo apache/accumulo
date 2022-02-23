@@ -504,7 +504,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
     if (!authorizationFailures.isEmpty()) {
 
       // was a table deleted?
-      Tables.clearCache(context);
+      context.clearTableListCache();
       authorizationFailures.keySet().stream().map(KeyExtent::tableId)
           .forEach(context::requireNotDeleted);
 
