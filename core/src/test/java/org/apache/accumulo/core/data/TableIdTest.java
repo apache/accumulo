@@ -81,7 +81,7 @@ public class TableIdTest extends WithTestNames {
   }
 
   @Test
-  @Timeout(30_000)
+  @Timeout(30)
   public void testCacheIncreasesAndDecreasesAfterGC() {
     long initialSize = cacheCount();
     assertTrue(initialSize < 20); // verify initial amount is reasonably low
