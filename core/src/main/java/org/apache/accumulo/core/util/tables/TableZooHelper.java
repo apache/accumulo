@@ -40,15 +40,15 @@ import org.apache.accumulo.fate.zookeeper.ZooCache;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
-public class TableZooUtil implements AutoCloseable {
+public class TableZooHelper implements AutoCloseable {
 
   private final ClientContext context;
   // Per instance cache will expire after 10 minutes in case we
   // encounter an instance not used frequently
-  private final Cache<TableZooUtil,TableMap> instanceToMapCache =
+  private final Cache<TableZooHelper,TableMap> instanceToMapCache =
       CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).build();
 
-  public TableZooUtil(ClientContext context) {
+  public TableZooHelper(ClientContext context) {
     this.context = Objects.requireNonNull(context);
   }
 

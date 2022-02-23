@@ -76,7 +76,7 @@ import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.util.OpTimer;
-import org.apache.accumulo.core.util.tables.TableZooUtil;
+import org.apache.accumulo.core.util.tables.TableZooHelper;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
@@ -516,63 +516,63 @@ public class ClientContext implements AccumuloClient {
     return zooCache;
   }
 
-  private TableZooUtil tableZooUtil;
+  private TableZooHelper tableZooHelper;
 
-  private synchronized TableZooUtil tableZooUtil() {
+  private synchronized TableZooHelper tableZooHelper() {
     ensureOpen();
-    if (tableZooUtil == null) {
-      tableZooUtil = new TableZooUtil(this);
+    if (tableZooHelper == null) {
+      tableZooHelper = new TableZooHelper(this);
     }
-    return tableZooUtil;
+    return tableZooHelper;
   }
 
   public TableId getTableId(String tableName) throws TableNotFoundException {
-    return tableZooUtil().getTableId(tableName);
+    return tableZooHelper().getTableId(tableName);
   }
 
   public TableId _getTableIdDetectNamespaceNotFound(String tableName)
       throws NamespaceNotFoundException, TableNotFoundException {
-    return tableZooUtil()._getTableIdDetectNamespaceNotFound(tableName);
+    return tableZooHelper()._getTableIdDetectNamespaceNotFound(tableName);
   }
 
   public String getTableName(TableId tableId) throws TableNotFoundException {
-    return tableZooUtil().getTableName(tableId);
+    return tableZooHelper().getTableName(tableId);
   }
 
   public Map<String,TableId> getTableNameToIdMap() {
-    return tableZooUtil().getTableMap().getNameToIdMap();
+    return tableZooHelper().getTableMap().getNameToIdMap();
   }
 
   public Map<TableId,String> getTableIdToNameMap() {
-    return tableZooUtil().getTableMap().getIdtoNameMap();
+    return tableZooHelper().getTableMap().getIdtoNameMap();
   }
 
   public boolean tableNodeExists(TableId tableId) {
-    return tableZooUtil().tableNodeExists(tableId);
+    return tableZooHelper().tableNodeExists(tableId);
   }
 
   public void clearTableListCache() {
-    tableZooUtil().clearTableListCache();
+    tableZooHelper().clearTableListCache();
   }
 
   public String getPrintableTableInfoFromId(TableId tableId) {
-    return tableZooUtil().getPrintableTableInfoFromId(tableId);
+    return tableZooHelper().getPrintableTableInfoFromId(tableId);
   }
 
   public String getPrintableTableInfoFromName(String tableName) {
-    return tableZooUtil().getPrintableTableInfoFromName(tableName);
+    return tableZooHelper().getPrintableTableInfoFromName(tableName);
   }
 
   public TableState getTableState(TableId tableId) {
-    return tableZooUtil().getTableState(tableId, false);
+    return tableZooHelper().getTableState(tableId, false);
   }
 
   public TableState getTableState(TableId tableId, boolean clearCachedState) {
-    return tableZooUtil().getTableState(tableId, clearCachedState);
+    return tableZooHelper().getTableState(tableId, clearCachedState);
   }
 
   public NamespaceId getNamespaceId(TableId tableId) throws TableNotFoundException {
-    return tableZooUtil().getNamespaceId(tableId);
+    return tableZooHelper().getNamespaceId(tableId);
   }
 
   // use cases overlap with requireNotDeleted, but this throws a checked exception
@@ -776,8 +776,8 @@ public class ClientContext implements AccumuloClient {
     if (thriftTransportPool != null) {
       thriftTransportPool.shutdown();
     }
-    if (tableZooUtil != null) {
-      tableZooUtil.close();
+    if (tableZooHelper != null) {
+      tableZooHelper.close();
     }
     singletonReservation.close();
   }
