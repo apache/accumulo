@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.spi.balancer;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -44,8 +46,6 @@ import org.apache.accumulo.core.spi.balancer.util.ThrottledBalancerProblemReport
 import org.apache.accumulo.core.spi.balancer.util.ThrottledBalancerProblemReporter.Problem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 /**
  * A simple tablet balancer that attempts to spread tablets out evenly across all available tablet

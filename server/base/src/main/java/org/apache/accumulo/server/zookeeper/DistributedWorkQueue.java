@@ -167,7 +167,8 @@ public class DistributedWorkQueue {
 
   public DistributedWorkQueue(String path, AccumuloConfiguration config, ServerContext context) {
     // Preserve the old delay and period
-    this(path, config, context, random.nextInt(toIntExact(MINUTES.toMillis(1))), MINUTES.toMillis(1));
+    this(path, config, context, random.nextInt(toIntExact(MINUTES.toMillis(1))),
+        MINUTES.toMillis(1));
   }
 
   public DistributedWorkQueue(String path, AccumuloConfiguration config, ServerContext context,

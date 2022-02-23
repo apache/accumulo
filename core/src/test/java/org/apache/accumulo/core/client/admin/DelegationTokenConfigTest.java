@@ -19,8 +19,8 @@
 package org.apache.accumulo.core.client.admin;
 
 import static java.util.concurrent.TimeUnit.DAYS;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -36,8 +36,7 @@ public class DelegationTokenConfigTest {
     config1.setTokenLifetime(1000, MILLISECONDS);
     config2.setTokenLifetime(1, SECONDS);
 
-    assertEquals(config1.getTokenLifetime(MILLISECONDS),
-        config2.getTokenLifetime(MILLISECONDS));
+    assertEquals(config1.getTokenLifetime(MILLISECONDS), config2.getTokenLifetime(MILLISECONDS));
     assertEquals(config1, config2);
     assertEquals(config1.hashCode(), config2.hashCode());
   }

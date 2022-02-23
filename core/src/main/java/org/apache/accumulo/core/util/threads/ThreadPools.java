@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.core.util.threads;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import java.util.OptionalInt;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
@@ -36,9 +39,6 @@ import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public class ThreadPools {
 
@@ -129,8 +129,8 @@ public class ThreadPools {
       case MANAGER_STATUS_THREAD_POOL_SIZE:
         int threads = conf.getCount(p);
         if (threads == 0) {
-          return createThreadPool(0, Integer.MAX_VALUE, 60L, SECONDS,
-              "GatherTableInformation", new SynchronousQueue<>(), emitThreadPoolMetrics);
+          return createThreadPool(0, Integer.MAX_VALUE, 60L, SECONDS, "GatherTableInformation",
+              new SynchronousQueue<>(), emitThreadPoolMetrics);
         } else {
           return createFixedThreadPool(threads, "GatherTableInformation", emitThreadPoolMetrics);
         }
@@ -141,17 +141,17 @@ public class ThreadPools {
         return createFixedThreadPool(conf.getCount(p), 0L, MILLISECONDS, "minor compactor",
             emitThreadPoolMetrics);
       case TSERV_MIGRATE_MAXCONCURRENT:
-        return createFixedThreadPool(conf.getCount(p), 0L, MILLISECONDS,
-            "tablet migration", emitThreadPoolMetrics);
+        return createFixedThreadPool(conf.getCount(p), 0L, MILLISECONDS, "tablet migration",
+            emitThreadPoolMetrics);
       case TSERV_ASSIGNMENT_MAXCONCURRENT:
-        return createFixedThreadPool(conf.getCount(p), 0L, MILLISECONDS,
-            "tablet assignment", emitThreadPoolMetrics);
+        return createFixedThreadPool(conf.getCount(p), 0L, MILLISECONDS, "tablet assignment",
+            emitThreadPoolMetrics);
       case TSERV_SUMMARY_RETRIEVAL_THREADS:
         return createThreadPool(conf.getCount(p), conf.getCount(p), 60, SECONDS,
             "summary file retriever", emitThreadPoolMetrics);
       case TSERV_SUMMARY_REMOTE_THREADS:
-        return createThreadPool(conf.getCount(p), conf.getCount(p), 60, SECONDS,
-            "summary remote", emitThreadPoolMetrics);
+        return createThreadPool(conf.getCount(p), conf.getCount(p), 60, SECONDS, "summary remote",
+            emitThreadPoolMetrics);
       case TSERV_SUMMARY_PARTITION_THREADS:
         return createThreadPool(conf.getCount(p), conf.getCount(p), 60, SECONDS,
             "summary partition", emitThreadPoolMetrics);
@@ -206,8 +206,8 @@ public class ThreadPools {
    */
   public static ThreadPoolExecutor createFixedThreadPool(int numThreads, final String name,
       BlockingQueue<Runnable> queue, boolean emitThreadPoolMetrics) {
-    return createThreadPool(numThreads, numThreads, DEFAULT_TIMEOUT_MILLISECS,
-        MILLISECONDS, name, queue, emitThreadPoolMetrics);
+    return createThreadPool(numThreads, numThreads, DEFAULT_TIMEOUT_MILLISECS, MILLISECONDS, name,
+        queue, emitThreadPoolMetrics);
   }
 
   /**

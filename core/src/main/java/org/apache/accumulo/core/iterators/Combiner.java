@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.iterators;
 
+import static java.util.concurrent.TimeUnit.HOURS;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
@@ -45,8 +47,6 @@ import com.google.common.base.Splitter;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Lists;
-
-import static java.util.concurrent.TimeUnit.HOURS;
 
 /**
  * A SortedKeyValueIterator that combines the Values for different versions (timestamp) of a Key

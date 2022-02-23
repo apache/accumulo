@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -72,8 +74,6 @@ import org.slf4j.LoggerFactory;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
-
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class ThriftScanner {
   private static final Logger log = LoggerFactory.getLogger(ThriftScanner.class);
@@ -517,9 +517,8 @@ public class ThriftScanner {
         if (timer != null) {
           timer.stop();
           log.trace("tid={} Finished scan in {} #results={} scanid={}",
-              Thread.currentThread().getId(),
-              String.format("%.3f secs", timer.scale(SECONDS)), sr.results.size(),
-              scanState.scanID);
+              Thread.currentThread().getId(), String.format("%.3f secs", timer.scale(SECONDS)),
+              sr.results.size(), scanState.scanID);
         }
       } else {
         // log.debug("No more : tab end row = "+loc.tablet_extent.getEndRow()+" range =
@@ -530,8 +529,8 @@ public class ThriftScanner {
           if (timer != null) {
             timer.stop();
             log.trace("tid={} Completely finished scan in {} #results={}",
-                Thread.currentThread().getId(),
-                String.format("%.3f secs", timer.scale(SECONDS)), sr.results.size());
+                Thread.currentThread().getId(), String.format("%.3f secs", timer.scale(SECONDS)),
+                sr.results.size());
           }
 
         } else if (scanState.range.getEndKey() == null || !scanState.range
@@ -542,16 +541,16 @@ public class ThriftScanner {
           if (timer != null) {
             timer.stop();
             log.trace("tid={} Finished scanning tablet in {} #results={}",
-                Thread.currentThread().getId(),
-                String.format("%.3f secs", timer.scale(SECONDS)), sr.results.size());
+                Thread.currentThread().getId(), String.format("%.3f secs", timer.scale(SECONDS)),
+                sr.results.size());
           }
         } else {
           scanState.finished = true;
           if (timer != null) {
             timer.stop();
             log.trace("tid={} Completely finished in {} #results={}",
-                Thread.currentThread().getId(),
-                String.format("%.3f secs", timer.scale(SECONDS)), sr.results.size());
+                Thread.currentThread().getId(), String.format("%.3f secs", timer.scale(SECONDS)),
+                sr.results.size());
           }
         }
       }

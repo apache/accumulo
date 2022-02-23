@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.core.util;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -56,8 +56,7 @@ public class OpTimerTest {
 
     long tValue = timer.now();
 
-    log.debug("Time value before reset {}",
-        String.format("%.3f ms", timer.scale(MILLISECONDS)));
+    log.debug("Time value before reset {}", String.format("%.3f ms", timer.scale(MILLISECONDS)));
 
     timer.reset().start();
 
@@ -76,8 +75,7 @@ public class OpTimerTest {
 
     timer.reset();
 
-    log.debug("Time value after reset {}",
-        String.format("%.3f ms", timer.scale(MILLISECONDS)));
+    log.debug("Time value after reset {}", String.format("%.3f ms", timer.scale(MILLISECONDS)));
 
     assertEquals(0, timer.now());
 

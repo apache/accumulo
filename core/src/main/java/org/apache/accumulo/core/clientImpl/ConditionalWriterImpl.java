@@ -19,8 +19,8 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.nio.ByteBuffer;
@@ -89,8 +89,8 @@ import org.apache.thrift.transport.TTransportException;
 
 class ConditionalWriterImpl implements ConditionalWriter {
 
-  private static ThreadPoolExecutor cleanupThreadPool = ThreadPools.createFixedThreadPool(1, 3,
-      SECONDS, "Conditional Writer Cleanup Thread", true);
+  private static ThreadPoolExecutor cleanupThreadPool =
+      ThreadPools.createFixedThreadPool(1, 3, SECONDS, "Conditional Writer Cleanup Thread", true);
 
   private static final int MAX_SLEEP = 30000;
 

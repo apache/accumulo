@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.master.balancer;
 
+import static java.util.concurrent.TimeUnit.HOURS;
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.SecureRandom;
@@ -59,8 +61,6 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-
-import static java.util.concurrent.TimeUnit.HOURS;
 
 /**
  * This balancer creates groups of tablet servers using user-provided regular expressions over the

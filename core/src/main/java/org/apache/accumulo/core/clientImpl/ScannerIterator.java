@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -42,8 +44,6 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class ScannerIterator implements Iterator<Entry<Key,Value>> {
 

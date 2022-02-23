@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.classloader;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
+
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -32,8 +34,6 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static java.util.concurrent.TimeUnit.MINUTES;
 
 /**
  * The default implementation of ContextClassLoaderFactory. This implementation is subject to change

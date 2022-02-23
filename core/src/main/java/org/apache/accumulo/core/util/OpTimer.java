@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.core.util;
 
-import java.util.concurrent.TimeUnit;
-
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * Provides a stop watch for timing a single type of event. This code is based on the

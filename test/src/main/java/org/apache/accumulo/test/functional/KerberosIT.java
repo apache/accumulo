@@ -616,8 +616,8 @@ public class KerberosIT extends AccumuloITBase {
             log.info("Created client as {}", rootUser.getPrincipal());
             assertEquals(rootUser.getPrincipal(), client.whoami());
 
-            return client.securityOperations().getDelegationToken(
-                new DelegationTokenConfig().setTokenLifetime(5, MINUTES));
+            return client.securityOperations()
+                .getDelegationToken(new DelegationTokenConfig().setTokenLifetime(5, MINUTES));
           }
         });
 

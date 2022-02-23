@@ -65,8 +65,8 @@ public class ManagerTime {
     }
 
     ThreadPools.createGeneralScheduledExecutorService(conf).scheduleWithFixedDelay(
-        Threads.createNamedRunnable("Manager time keeper", () -> run()), 0,
-        SECONDS.toMillis(10), MILLISECONDS);
+        Threads.createNamedRunnable("Manager time keeper", () -> run()), 0, SECONDS.toMillis(10),
+        MILLISECONDS);
   }
 
   /**

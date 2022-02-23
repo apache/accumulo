@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.spi.fs;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.NavigableMap;
@@ -36,8 +38,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 /**
  * A {@link PreferredVolumeChooser} that takes remaining HDFS space into account when making a
@@ -85,8 +85,7 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
           ? Long.parseLong(propertyValue) : defaultComputationCacheDuration;
 
       choiceCache = CacheBuilder.newBuilder()
-          .expireAfterWrite(computationCacheDuration, MILLISECONDS)
-          .build(new CacheLoader<>() {
+          .expireAfterWrite(computationCacheDuration, MILLISECONDS).build(new CacheLoader<>() {
             @Override
             public WeightedRandomCollection load(Set<String> key) {
               return new WeightedRandomCollection(key, env);

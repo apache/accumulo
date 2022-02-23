@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -61,8 +63,6 @@ import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class MetadataLocationObtainer implements TabletLocationObtainer {
   private static final Logger log = LoggerFactory.getLogger(MetadataLocationObtainer.class);
@@ -125,8 +125,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       if (timer != null) {
         timer.stop();
         log.trace("tid={} Got {} results from {} in {}", Thread.currentThread().getId(),
-            results.size(), src.tablet_extent,
-            String.format("%.3f secs", timer.scale(SECONDS)));
+            results.size(), src.tablet_extent, String.format("%.3f secs", timer.scale(SECONDS)));
       }
 
       // if (log.isTraceEnabled()) log.trace("results "+results);

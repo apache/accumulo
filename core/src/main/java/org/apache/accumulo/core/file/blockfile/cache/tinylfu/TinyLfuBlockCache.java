@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache.tinylfu;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,8 +42,6 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Policy;
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
-
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 /**
  * A block cache that is memory bounded using the W-TinyLFU eviction algorithm. This implementation
@@ -71,8 +71,7 @@ public final class TinyLfuBlockCache implements BlockCache {
         }).maximumWeight(conf.getMaxSize(type)).recordStats().build();
     policy = cache.policy().eviction().get();
     maxSize = (int) Math.min(Integer.MAX_VALUE, policy.getMaximum());
-    statsExecutor.scheduleAtFixedRate(this::logStats, STATS_PERIOD_SEC, STATS_PERIOD_SEC,
-        SECONDS);
+    statsExecutor.scheduleAtFixedRate(this::logStats, STATS_PERIOD_SEC, STATS_PERIOD_SEC, SECONDS);
   }
 
   @Override

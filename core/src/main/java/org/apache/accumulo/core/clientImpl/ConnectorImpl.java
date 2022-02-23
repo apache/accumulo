@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
@@ -39,8 +41,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.trace.TraceUtil;
-
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 /**
  * This class now delegates to {@link ClientContext}, except for the methods which were not copied
@@ -91,8 +91,8 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
       int numQueryThreads, long maxMemory, long maxLatency, int maxWriteThreads)
       throws TableNotFoundException {
     return context.createBatchDeleter(tableName, authorizations, numQueryThreads,
-        new BatchWriterConfig().setMaxMemory(maxMemory)
-            .setMaxLatency(maxLatency, MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
+        new BatchWriterConfig().setMaxMemory(maxMemory).setMaxLatency(maxLatency, MILLISECONDS)
+            .setMaxWriteThreads(maxWriteThreads));
   }
 
   @Override

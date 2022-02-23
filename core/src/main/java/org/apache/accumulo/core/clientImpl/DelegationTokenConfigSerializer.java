@@ -18,11 +18,10 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationTokenConfig;
-
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 /**
  * Handles serialization of {@link DelegationTokenConfig}

@@ -188,8 +188,7 @@ public class BatchWriterConfig implements Writable {
   }
 
   public long getMaxLatency(TimeUnit timeUnit) {
-    return timeUnit.convert(maxLatency != null ? maxLatency : DEFAULT_MAX_LATENCY,
-        MILLISECONDS);
+    return timeUnit.convert(maxLatency != null ? maxLatency : DEFAULT_MAX_LATENCY, MILLISECONDS);
   }
 
   public long getTimeout(TimeUnit timeUnit) {

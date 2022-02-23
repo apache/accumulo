@@ -21,9 +21,9 @@ package org.apache.accumulo.core.clientImpl;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
@@ -574,8 +574,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
             if (timer != null) {
               timer.stop();
-              log.trace("Split tablet in {}",
-                  String.format("%.3f secs", timer.scale(SECONDS)));
+              log.trace("Split tablet in {}", String.format("%.3f secs", timer.scale(SECONDS)));
             }
 
           } finally {
