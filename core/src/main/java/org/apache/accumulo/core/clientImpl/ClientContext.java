@@ -21,6 +21,8 @@ package org.apache.accumulo.core.clientImpl;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 
 import java.net.URL;
@@ -30,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -136,7 +137,7 @@ public class ClientContext implements AccumuloClient {
 
   private static <T> Supplier<T> memoizeWithExpiration(Supplier<T> s) {
     // This insanity exists to make modernizer plugin happy. We are living in the future now.
-    return () -> Suppliers.memoizeWithExpiration(s::get, 100, TimeUnit.MILLISECONDS).get();
+    return () -> Suppliers.memoizeWithExpiration(s::get, 100, MILLISECONDS).get();
   }
 
   /**
@@ -300,11 +301,11 @@ public class ClientContext implements AccumuloClient {
     }
     Long maxLatency = ClientProperty.BATCH_WRITER_LATENCY_MAX.getTimeInMillis(props);
     if (maxLatency != null) {
-      batchWriterConfig.setMaxLatency(maxLatency, TimeUnit.SECONDS);
+      batchWriterConfig.setMaxLatency(maxLatency, SECONDS);
     }
     Long timeout = ClientProperty.BATCH_WRITER_TIMEOUT_MAX.getTimeInMillis(props);
     if (timeout != null) {
-      batchWriterConfig.setTimeout(timeout, TimeUnit.SECONDS);
+      batchWriterConfig.setTimeout(timeout, SECONDS);
     }
     Integer maxThreads = ClientProperty.BATCH_WRITER_THREADS_MAX.getInteger(props);
     if (maxThreads != null) {
@@ -330,7 +331,7 @@ public class ClientContext implements AccumuloClient {
 
     Long timeout = ClientProperty.CONDITIONAL_WRITER_TIMEOUT_MAX.getTimeInMillis(props);
     if (timeout != null) {
-      conditionalWriterConfig.setTimeout(timeout, TimeUnit.SECONDS);
+      conditionalWriterConfig.setTimeout(timeout, SECONDS);
     }
     String durability = ClientProperty.CONDITIONAL_WRITER_DURABILITY.getValue(props);
     if (!durability.isEmpty()) {
@@ -389,7 +390,7 @@ public class ClientContext implements AccumuloClient {
     if (timer != null) {
       timer.stop();
       log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(), loc,
-          String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+          String.format("%.3f secs", timer.scale(SECONDS)));
     }
 
     if (loc == null || loc.getType() != LocationType.CURRENT) {
@@ -427,7 +428,7 @@ public class ClientContext implements AccumuloClient {
       timer.stop();
       log.trace("tid={} Found manager at {} in {}", Thread.currentThread().getId(),
           (loc == null ? "null" : new String(loc, UTF_8)),
-          String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+          String.format("%.3f secs", timer.scale(SECONDS)));
     }
 
     if (loc == null) {
@@ -889,9 +890,9 @@ public class ClientContext implements AccumuloClient {
     public ConnectionOptions<T> batchWriterConfig(BatchWriterConfig batchWriterConfig) {
       ClientProperty.BATCH_WRITER_MEMORY_MAX.setBytes(properties, batchWriterConfig.getMaxMemory());
       ClientProperty.BATCH_WRITER_LATENCY_MAX.setTimeInMillis(properties,
-          batchWriterConfig.getMaxLatency(TimeUnit.MILLISECONDS));
+          batchWriterConfig.getMaxLatency(MILLISECONDS));
       ClientProperty.BATCH_WRITER_TIMEOUT_MAX.setTimeInMillis(properties,
-          batchWriterConfig.getTimeout(TimeUnit.MILLISECONDS));
+          batchWriterConfig.getTimeout(MILLISECONDS));
       setProperty(ClientProperty.BATCH_WRITER_THREADS_MAX, batchWriterConfig.getMaxWriteThreads());
       setProperty(ClientProperty.BATCH_WRITER_DURABILITY,
           batchWriterConfig.getDurability().toString());

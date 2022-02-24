@@ -22,6 +22,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
@@ -55,7 +56,6 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -183,7 +183,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     if (timer != null) {
       timer.stop();
       log.trace("tid={} Fetched {} table names in {}", Thread.currentThread().getId(),
-          tableNames.size(), String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+          tableNames.size(), String.format("%.3f secs", timer.scale(SECONDS)));
     }
 
     return tableNames;
@@ -208,7 +208,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     if (timer != null) {
       timer.stop();
       log.trace("tid={} Checked existence of {} in {}", Thread.currentThread().getId(), exists,
-          String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+          String.format("%.3f secs", timer.scale(SECONDS)));
     }
 
     return exists;
@@ -261,11 +261,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
         return client.beginFateOperation(TraceUtil.traceInfo(), context.rpcCreds());
       } catch (TTransportException tte) {
         log.debug("Failed to call beginFateOperation(), retrying ... ", tte);
-        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(100, MILLISECONDS);
       } catch (ThriftNotActiveServiceException e) {
         // Let it loop, fetching a new location
         log.debug("Contacted a Manager which is no longer active, retrying");
-        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(100, MILLISECONDS);
       } finally {
         ManagerClient.close(client, context);
       }
@@ -286,11 +286,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
         return;
       } catch (TTransportException tte) {
         log.debug("Failed to call executeFateOperation(), retrying ... ", tte);
-        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(100, MILLISECONDS);
       } catch (ThriftNotActiveServiceException e) {
         // Let it loop, fetching a new location
         log.debug("Contacted a Manager which is no longer active, retrying");
-        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(100, MILLISECONDS);
       } finally {
         ManagerClient.close(client, context);
       }
@@ -306,11 +306,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
         return client.waitForFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), opid);
       } catch (TTransportException tte) {
         log.debug("Failed to call waitForFateOperation(), retrying ... ", tte);
-        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(100, MILLISECONDS);
       } catch (ThriftNotActiveServiceException e) {
         // Let it loop, fetching a new location
         log.debug("Contacted a Manager which is no longer active, retrying");
-        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(100, MILLISECONDS);
       } finally {
         ManagerClient.close(client, context);
       }
@@ -326,11 +326,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
         break;
       } catch (TTransportException tte) {
         log.debug("Failed to call finishFateOperation(), retrying ... ", tte);
-        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(100, MILLISECONDS);
       } catch (ThriftNotActiveServiceException e) {
         // Let it loop, fetching a new location
         log.debug("Contacted a Manager which is no longer active, retrying");
-        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(100, MILLISECONDS);
       } finally {
         ManagerClient.close(client, context);
       }
@@ -492,7 +492,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       executor.execute(
           new SplitTask(new SplitEnv(tableName, tableId, executor, latch, exception), splits));
 
-      while (!latch.await(100, TimeUnit.MILLISECONDS)) {
+      while (!latch.await(100, MILLISECONDS)) {
         if (exception.get() != null) {
           executor.shutdownNow();
           Throwable excep = exception.get();
@@ -540,7 +540,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       while (!successful) {
 
         if (attempt > 0)
-          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+          sleepUninterruptibly(100, MILLISECONDS);
 
         attempt++;
 
@@ -574,8 +574,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
             if (timer != null) {
               timer.stop();
-              log.trace("Split tablet in {}",
-                  String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+              log.trace("Split tablet in {}", String.format("%.3f secs", timer.scale(SECONDS)));
             }
 
           } finally {
@@ -676,7 +675,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         }
 
         log.info("{} ... retrying ...", e, e);
-        sleepUninterruptibly(3, TimeUnit.SECONDS);
+        sleepUninterruptibly(3, SECONDS);
       }
     }
 
@@ -955,11 +954,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
           break;
         } catch (TTransportException tte) {
           log.debug("Failed to call initiateFlush, retrying ... ", tte);
-          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+          sleepUninterruptibly(100, MILLISECONDS);
         } catch (ThriftNotActiveServiceException e) {
           // Let it loop, fetching a new location
           log.debug("Contacted a Manager which is no longer active, retrying");
-          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+          sleepUninterruptibly(100, MILLISECONDS);
         } finally {
           ManagerClient.close(client, context);
         }
@@ -975,11 +974,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
           break;
         } catch (TTransportException tte) {
           log.debug("Failed to call initiateFlush, retrying ... ", tte);
-          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+          sleepUninterruptibly(100, MILLISECONDS);
         } catch (ThriftNotActiveServiceException e) {
           // Let it loop, fetching a new location
           log.debug("Contacted a Manager which is no longer active, retrying");
-          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+          sleepUninterruptibly(100, MILLISECONDS);
         } finally {
           ManagerClient.close(client, context);
         }
@@ -1172,7 +1171,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
       log.warn("Unable to locate bins for specified range. Retrying.");
       // sleep randomly between 100 and 200ms
-      sleepUninterruptibly(100 + random.nextInt(100), TimeUnit.MILLISECONDS);
+      sleepUninterruptibly(100 + random.nextInt(100), MILLISECONDS);
       binnedRanges.clear();
       tl.invalidateCache();
     }
@@ -1349,7 +1348,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         waitTime = Math.min(5000, waitTime);
         log.trace("Waiting for {}({}) tablets, startRow = {} lastRow = {}, holes={} sleeping:{}ms",
             waitFor, maxPerServer, startRow, lastRow, holes, waitTime);
-        sleepUninterruptibly(waitTime, TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(waitTime, MILLISECONDS);
       } else {
         break;
       }
@@ -1485,7 +1484,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         } else {
           log.debug("Disk usage request failed {}, retrying ... ", pair.getFirst(), e);
         }
-        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(100, MILLISECONDS);
       } catch (TException e) {
         // may be a TApplicationException which indicates error on the server side
         throw new AccumuloException(e);
@@ -1844,7 +1843,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
         .incrementBy(100, MILLISECONDS).maxWait(2, SECONDS).backOffFactor(1.5)
-        .logInterval(3, TimeUnit.MINUTES).createRetry();
+        .logInterval(3, MINUTES).createRetry();
 
     while (!locator.binRanges(context, rangeList, binnedRanges).isEmpty()) {
       context.requireTableExists(tableId, tableName);

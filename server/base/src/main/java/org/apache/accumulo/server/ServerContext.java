@@ -20,6 +20,8 @@ package org.apache.accumulo.server;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.File;
@@ -322,7 +324,7 @@ public class ServerContext extends ClientContext {
         break;
       } catch (InterruptedException | KeeperException ex) {
         log.info("Waiting for accumulo to be initialized");
-        sleepUninterruptibly(1, TimeUnit.SECONDS);
+        sleepUninterruptibly(1, SECONDS);
       }
     }
     log.info("ZooKeeper connected and initialized, attempting to talk to HDFS");
@@ -358,7 +360,7 @@ public class ServerContext extends ClientContext {
       log.info("Backing off due to failure; current sleep period is {} seconds", sleep / 1000.);
       sleepUninterruptibly(sleep, TimeUnit.MILLISECONDS);
       /* Back off to give transient failures more time to clear. */
-      sleep = Math.min(60_000, sleep * 2);
+      sleep = Math.min(MINUTES.toMillis(1), sleep * 2);
     }
     log.info("Connected to HDFS");
   }
@@ -434,7 +436,7 @@ public class ServerContext extends ClientContext {
       } catch (Exception t) {
         log.error("", t);
       }
-    }, 1000, 10 * 60_000, TimeUnit.MILLISECONDS);
+    }, SECONDS.toMillis(1), MINUTES.toMillis(10), TimeUnit.MILLISECONDS);
   }
 
   /**

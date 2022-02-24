@@ -18,9 +18,10 @@
  */
 package org.apache.accumulo.core.classloader;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
+
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -69,7 +70,7 @@ public class DefaultContextClassLoaderFactory implements ContextClassLoaderFacto
               .collect(Collectors.toSet());
           LOG.trace("{}-cleanup thread, contexts in use: {}", className, contextsInUse);
           AccumuloVFSClassLoader.removeUnusedContexts(contextsInUse);
-        }), 60_000, 60_000, TimeUnit.MILLISECONDS);
+        }), 1, 1, MINUTES);
     LOG.debug("Context cleanup timer started at 60s intervals");
   }
 

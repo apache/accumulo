@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.rpc;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.createMockBuilder;
 import static org.easymock.EasyMock.expect;
@@ -75,7 +76,7 @@ public class TTimeoutTransportTest {
 
   @Test
   public void testFailedInputStreamClosesSocket() throws IOException {
-    long timeout = 2 * 60_000; // 2 mins
+    long timeout = MINUTES.toMillis(2);
     SocketAddress addr = createMock(SocketAddress.class);
     Socket s = createMock(Socket.class);
     TTimeoutTransport timeoutTransport = createMockBuilder(TTimeoutTransport.class)
@@ -105,7 +106,7 @@ public class TTimeoutTransportTest {
 
   @Test
   public void testFailedOutputStreamClosesSocket() throws IOException {
-    long timeout = 2 * 60_000; // 2 mins
+    long timeout = MINUTES.toMillis(2);
     SocketAddress addr = createMock(SocketAddress.class);
     Socket s = createMock(Socket.class);
     InputStream is = createMock(InputStream.class);

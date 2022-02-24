@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.client;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -28,7 +29,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -214,8 +214,8 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     smi = new ScannerTranslatorImpl(scanner, scanner.getSamplerConfiguration());
     this.range = scanner.getRange();
     this.size = scanner.getBatchSize();
-    this.timeOut = scanner.getTimeout(TimeUnit.MILLISECONDS);
-    this.batchTimeOut = scanner.getTimeout(TimeUnit.MILLISECONDS);
+    this.timeOut = scanner.getTimeout(MILLISECONDS);
+    this.batchTimeOut = scanner.getTimeout(MILLISECONDS);
     this.readaheadThreshold = scanner.getReadaheadThreshold();
     SamplerConfiguration samplerConfig = scanner.getSamplerConfiguration();
     if (samplerConfig != null)
@@ -232,8 +232,8 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
     smi.scanner.setBatchSize(size);
-    smi.scanner.setTimeout(timeOut, TimeUnit.MILLISECONDS);
-    smi.scanner.setBatchTimeout(batchTimeOut, TimeUnit.MILLISECONDS);
+    smi.scanner.setTimeout(timeOut, MILLISECONDS);
+    smi.scanner.setBatchTimeout(batchTimeOut, MILLISECONDS);
     smi.scanner.setReadaheadThreshold(readaheadThreshold);
     if (isolated)
       smi.scanner.enableIsolation();

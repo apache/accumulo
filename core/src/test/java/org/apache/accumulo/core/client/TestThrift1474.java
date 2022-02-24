@@ -18,13 +18,13 @@
  */
 package org.apache.accumulo.core.client;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTest;
@@ -69,12 +69,12 @@ public class TestThrift1474 {
 
     TThreadPoolServer.Args args = new TThreadPoolServer.Args(serverTransport);
     args.stopTimeoutVal = 10;
-    args.stopTimeoutUnit = TimeUnit.MILLISECONDS;
+    args.stopTimeoutUnit = MILLISECONDS;
     final TServer server = new TThreadPoolServer(args.processor(processor));
     Thread thread = new Thread(server::serve);
     thread.start();
     while (!server.isServing()) {
-      sleepUninterruptibly(10, TimeUnit.MILLISECONDS);
+      sleepUninterruptibly(10, MILLISECONDS);
     }
 
     TTransport transport = new TSocket("localhost", port);

@@ -46,7 +46,6 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
@@ -146,7 +145,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     }
     Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
         .incrementBy(100, MILLISECONDS).maxWait(2, MINUTES).backOffFactor(1.5)
-        .logInterval(3, TimeUnit.MINUTES).createRetry();
+        .logInterval(3, MINUTES).createRetry();
 
     // retry if a merge occurs
     boolean shouldRetry = true;

@@ -19,11 +19,11 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.net.UnknownHostException;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -49,7 +49,7 @@ public class ManagerClient {
       ManagerClientService.Client result = getConnection(context);
       if (result != null)
         return result;
-      sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
+      sleepUninterruptibly(250, MILLISECONDS);
     }
   }
 
@@ -102,7 +102,7 @@ public class ManagerClient {
         return exec.execute(client);
       } catch (TTransportException tte) {
         log.debug("ManagerClient request failed, retrying ... ", tte);
-        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(100, MILLISECONDS);
       } catch (ThriftSecurityException e) {
         throw new AccumuloSecurityException(e.user, e.code, e);
       } catch (AccumuloException e) {
@@ -119,7 +119,7 @@ public class ManagerClient {
       } catch (ThriftNotActiveServiceException e) {
         // Let it loop, fetching a new location
         log.debug("Contacted a Manager which is no longer active, retrying");
-        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(100, MILLISECONDS);
       } catch (Exception e) {
         throw new AccumuloException(e);
       } finally {
@@ -140,7 +140,7 @@ public class ManagerClient {
         break;
       } catch (TTransportException tte) {
         log.debug("ManagerClient request failed, retrying ... ", tte);
-        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(100, MILLISECONDS);
       } catch (ThriftSecurityException e) {
         throw new AccumuloSecurityException(e.user, e.code, e);
       } catch (AccumuloException e) {
