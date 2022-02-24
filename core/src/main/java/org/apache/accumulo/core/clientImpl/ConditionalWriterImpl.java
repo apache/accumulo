@@ -36,6 +36,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -111,6 +112,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
   private Map<String,ServerQueue> serverQueues;
   private DelayQueue<QCMutation> failedMutations = new DelayQueue<>();
   private ScheduledThreadPoolExecutor threadPool;
+  private final ScheduledFuture<?> failureTaskFuture;
 
   private class RQIterator implements Iterator<Result> {
 
@@ -378,11 +380,19 @@ class ConditionalWriterImpl implements ConditionalWriter {
         queue(mutations);
     };
 
-    threadPool.scheduleAtFixedRate(failureHandler, 250, 250, TimeUnit.MILLISECONDS);
+    failureTaskFuture =
+        threadPool.scheduleAtFixedRate(failureHandler, 250, 250, TimeUnit.MILLISECONDS);
   }
 
   @Override
   public Iterator<Result> write(Iterator<ConditionalMutation> mutations) {
+
+    synchronized (failureTaskFuture) {
+      if (failureTaskFuture.isDone()) {
+        // TabletServerBatchWriter throws a MutationsRejectedException.
+        throw new RuntimeException("Background task that re-queues failed mutations has failed.");
+      }
+    }
 
     BlockingQueue<Result> resultQueue = new LinkedBlockingQueue<>();
 

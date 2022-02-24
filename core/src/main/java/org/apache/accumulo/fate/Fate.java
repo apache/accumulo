@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.EnumSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -54,6 +55,7 @@ public class Fate<T> {
   private final TStore<T> store;
   private final T environment;
   private ScheduledThreadPoolExecutor fatePoolWatcher;
+  private ScheduledFuture<?> fatePoolWatcherFuture;
   private ExecutorService executor;
 
   private static final EnumSet<TStatus> FINISHED_STATES =
@@ -66,6 +68,9 @@ public class Fate<T> {
     @Override
     public void run() {
       while (keepRunning.get()) {
+        if (isFatePoolResizerFailed()) {
+          log.warn("FaTE thread pool resizer scheduled task has failed.");
+        }
         long deferTime = 0;
         Long tid = null;
         try {
@@ -235,7 +240,7 @@ public class Fate<T> {
     final ThreadPoolExecutor pool =
         ThreadPools.createExecutorService(conf, Property.MANAGER_FATE_THREADPOOL_SIZE, true);
     fatePoolWatcher = ThreadPools.createGeneralScheduledExecutorService(conf);
-    fatePoolWatcher.schedule(() -> {
+    fatePoolWatcherFuture = fatePoolWatcher.schedule(() -> {
       // resize the pool if the property changed
       ThreadPools.resizePool(pool, conf, Property.MANAGER_FATE_THREADPOOL_SIZE);
       // If the pool grew, then ensure that there is a TransactionRunner for each thread
@@ -264,6 +269,10 @@ public class Fate<T> {
   // get a transaction id back to the requester before doing any work
   public long startTransaction() {
     return store.create();
+  }
+
+  private synchronized boolean isFatePoolResizerFailed() {
+    return fatePoolWatcherFuture.isDone();
   }
 
   // start work in the transaction.. it is safe to call this

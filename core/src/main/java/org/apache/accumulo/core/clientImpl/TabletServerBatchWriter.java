@@ -775,7 +775,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
       for (String server : servers)
         if (!queued.contains(server)) {
-          sendThreadPool.submit(new SendTask(server));
+          sendThreadPool.execute(new SendTask(server));
           queued.add(server);
         }
     }

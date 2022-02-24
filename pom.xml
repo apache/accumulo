@@ -1663,6 +1663,7 @@
                   -Xep:CheckReturnValue:OFF \
                   -Xep:MustBeClosedChecker:OFF \
                   -Xep:ReturnValueIgnored:OFF \
+                  -Xep:FutureReturnValueIgnored:ERROR \
                   -Xep:UnicodeInCode:OFF \
                   <!-- error/warning patterns to specifically check -->
                   -Xep:ExpectedExceptionChecker \
