@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.Collections;
@@ -40,13 +41,10 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
+@Timeout(value = 2, unit = MINUTES)
 public class ServerSideErrorIT extends AccumuloClusterHarness {
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 2 * 60;
-  }
 
   @Test
   public void run() throws Exception {

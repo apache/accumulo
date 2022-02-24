@@ -40,10 +40,12 @@ import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
+@Timeout(60)
 public class DeleteEverythingIT extends AccumuloClusterHarness {
 
   @Override
@@ -51,11 +53,6 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "1s");
     cfg.setSiteConfig(siteConfig);
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
   }
 
   private String majcDelay;

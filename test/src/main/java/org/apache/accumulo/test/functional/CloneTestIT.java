@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
@@ -68,13 +69,10 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Assume;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
+@Timeout(value = 2, unit = MINUTES)
 public class CloneTestIT extends AccumuloClusterHarness {
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 2 * 60;
-  }
 
   @Test
   public void testProps() throws Exception {

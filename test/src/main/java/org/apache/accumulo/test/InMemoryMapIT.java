@@ -56,6 +56,7 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,6 +83,7 @@ import org.slf4j.LoggerFactory;
  * both at the same time.
  */
 @Category(SunnyDayTests.class)
+@Tag("SunnyDayTests")
 public class InMemoryMapIT {
 
   private static final Logger log = LoggerFactory.getLogger(InMemoryMapIT.class);

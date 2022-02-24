@@ -34,13 +34,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
+@Timeout(60)
 public class KeyValueEqualityIT extends AccumuloClusterHarness {
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 60;
-  }
 
   @Test
   public void testEquality() throws Exception {

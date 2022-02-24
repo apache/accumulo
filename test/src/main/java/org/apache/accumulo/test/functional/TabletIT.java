@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static java.util.Collections.singletonMap;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Map;
@@ -40,7 +41,9 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
+@Timeout(value = 2, unit = MINUTES)
 public class TabletIT extends AccumuloClusterHarness {
 
   private static final int N = 1000;
@@ -50,11 +53,6 @@ public class TabletIT extends AccumuloClusterHarness {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "128M");
     cfg.setSiteConfig(siteConfig);
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 2 * 60;
   }
 
   @Test

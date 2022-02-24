@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -39,10 +40,14 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Iterators;
 
 @Category({MiniClusterOnlyTests.class})
+@Tag("MiniClusterOnlyTests")
+@Timeout(value = 4, unit = MINUTES)
 public class DurabilityIT extends ConfigurableMacBase {
 
   @Override
@@ -50,11 +55,6 @@ public class DurabilityIT extends ConfigurableMacBase {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     cfg.setNumTservers(1);
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
   }
 
   static final long N = 100000;

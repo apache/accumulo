@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
@@ -48,7 +49,9 @@ import org.apache.hadoop.fs.Path;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
+@Timeout(value = 2, unit = MINUTES)
 public class ScannerContextIT extends AccumuloClusterHarness {
 
   private static final String CONTEXT = ScannerContextIT.class.getSimpleName();
@@ -62,11 +65,6 @@ public class ScannerContextIT extends AccumuloClusterHarness {
   private static final long WAIT = 7000;
 
   private FileSystem fs;
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 2 * 60;
-  }
 
   @Before
   public void checkCluster() throws Exception {

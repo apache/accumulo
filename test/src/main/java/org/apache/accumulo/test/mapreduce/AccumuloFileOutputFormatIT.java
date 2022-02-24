@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.mapreduce;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -51,6 +52,7 @@ import org.apache.hadoop.util.ToolRunner;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.rules.TemporaryFolder;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -60,6 +62,7 @@ import com.google.common.collect.Multimap;
  * This tests deprecated mapreduce code in core jar
  */
 @Deprecated(since = "2.0.0")
+@Timeout(value = 4, unit = MINUTES)
 public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
   private String PREFIX;
@@ -71,18 +74,13 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
       new SamplerConfiguration(RowSampler.class.getName()).addOption("hasher", "murmur3_32")
           .addOption("modulus", "3");
 
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
-  }
-
   @Rule
   public TemporaryFolder folder =
       new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @Before
   public void setup() throws Exception {
-    PREFIX = testName.getMethodName() + "_";
+    PREFIX = testName() + "_";
     BAD_TABLE = PREFIX + "_mapreduce_bad_table";
     TEST_TABLE = PREFIX + "_mapreduce_test_table";
     EMPTY_TABLE = PREFIX + "_mapreduce_empty_table";
@@ -204,7 +202,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
   }
 
   private void handleWriteTests(boolean content) throws Exception {
-    File f = folder.newFile(testName.getMethodName());
+    File f = folder.newFile(testName());
     assertTrue(f.delete());
     MRTester.main(new String[] {content ? TEST_TABLE : EMPTY_TABLE, f.getAbsolutePath()});
 
@@ -236,7 +234,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
   @Test
   public void writeBadVisibility() throws Exception {
-    File f = folder.newFile(testName.getMethodName());
+    File f = folder.newFile(testName());
     assertTrue(f.delete());
     MRTester.main(new String[] {BAD_TABLE, f.getAbsolutePath()});
     assertTrue(f.exists());

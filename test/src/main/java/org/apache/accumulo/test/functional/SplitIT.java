@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static java.util.Collections.singletonMap;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -54,9 +55,11 @@ import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Timeout(value = 4, unit = MINUTES)
 public class SplitIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(SplitIT.class);
 
@@ -64,11 +67,6 @@ public class SplitIT extends AccumuloClusterHarness {
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.TSERV_MAXMEM, "5K");
     cfg.setProperty(Property.TSERV_MAJC_DELAY, "100ms");
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
   }
 
   private String tservMaxMem, tservMajcDelay;

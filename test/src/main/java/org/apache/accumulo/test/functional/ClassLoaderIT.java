@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -52,16 +53,15 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Timeout;
 
 @Category(MiniClusterOnlyTests.class)
+@Tag("MiniClusterOnlyTests")
+@Timeout(value = 2, unit = MINUTES)
 public class ClassLoaderIT extends AccumuloClusterHarness {
 
   private static final long ZOOKEEPER_PROPAGATION_TIME = 10 * 1000;
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 2 * 60;
-  }
 
   private String rootPath;
 

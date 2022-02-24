@@ -55,9 +55,12 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Timeout;
 import org.junit.rules.TemporaryFolder;
 
 @Category({ZooKeeperTestingServerTests.class})
+@Tag("ZooKeeperTestingServerTests")
 public class FateIT {
 
   public static class TestOperation extends ManagerRepo {
@@ -114,7 +117,8 @@ public class FateIT {
     szk.close();
   }
 
-  @Test(timeout = 30000)
+  @Test
+  @Timeout(30)
   public void testTransactionStatus() throws Exception {
     ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
 

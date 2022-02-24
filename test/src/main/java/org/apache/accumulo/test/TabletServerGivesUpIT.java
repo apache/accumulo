@@ -32,8 +32,10 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 // ACCUMULO-2480
+@Timeout(120)
 public class TabletServerGivesUpIT extends ConfigurableMacBase {
 
   @Override
@@ -44,11 +46,6 @@ public class TabletServerGivesUpIT extends ConfigurableMacBase {
     cfg.setProperty(Property.TSERV_WAL_TOLERATED_CREATION_FAILURES, "10");
     cfg.setProperty(Property.TSERV_WAL_TOLERATED_WAIT_INCREMENT, "0s");
     cfg.setProperty(Property.TSERV_WAL_TOLERATED_MAXIMUM_WAIT_DURATION, "0s");
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 120;
   }
 
   @Test

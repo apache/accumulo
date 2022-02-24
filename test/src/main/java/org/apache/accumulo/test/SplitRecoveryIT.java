@@ -45,9 +45,11 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Iterators;
 
+@Timeout(60)
 public class SplitRecoveryIT extends AccumuloClusterHarness {
 
   private Mutation m(String row) {
@@ -63,11 +65,6 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
       scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
       return Iterators.size(scanner.iterator()) == 0;
     }
-  }
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 60;
   }
 
   @Test

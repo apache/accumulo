@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
@@ -92,6 +93,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,6 +103,9 @@ import com.google.common.collect.Iterators;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Category({StandaloneCapableClusterTests.class, SunnyDayTests.class})
+@Tag("StandaloneCapableClusterTests")
+@Tag("SunnyDayTests")
+@Timeout(value = 6, unit = MINUTES)
 public class ReadWriteIT extends AccumuloClusterHarness {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -111,11 +117,6 @@ public class ReadWriteIT extends AccumuloClusterHarness {
   static final int ROWS = 100000;
   static final int COLS = 1;
   static final String COLF = "colf";
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 6 * 60;
-  }
 
   @Test
   public void invalidInstanceName() {
@@ -231,7 +232,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
   public void multiTableTest() throws Exception {
     // Write to multiple tables
     final ClusterControl control = cluster.getClusterControl();
-    final String prefix = getClass().getSimpleName() + "_" + testName.getMethodName();
+    final String prefix = getClass().getSimpleName() + "_" + testName();
     ExecutorService svc = Executors.newFixedThreadPool(2);
     Future<Integer> p1 = svc.submit(() -> {
       try {

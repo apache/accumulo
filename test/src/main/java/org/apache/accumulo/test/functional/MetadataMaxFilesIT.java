@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.Map.Entry;
@@ -44,7 +45,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
+@Timeout(value = 5, unit = MINUTES)
 public class MetadataMaxFilesIT extends ConfigurableMacBase {
 
   @Override
@@ -53,11 +56,6 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
     cfg.setProperty(Property.TSERV_SCAN_MAX_OPENFILES, "10");
     cfg.setProperty(Property.TSERV_ASSIGNMENT_MAXCONCURRENT, "100");
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 5 * 60;
   }
 
   @Test

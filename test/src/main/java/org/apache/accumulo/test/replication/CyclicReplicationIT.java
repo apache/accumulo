@@ -32,6 +32,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.WithTestNames;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -63,7 +64,7 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.Tag;
 import org.junit.rules.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,8 +75,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Ignore("Replication ITs are not stable and not currently maintained")
 @Category(MiniClusterOnlyTests.class)
+@Tag("MiniClusterOnlyTests")
 @Deprecated
-public class CyclicReplicationIT {
+public class CyclicReplicationIT extends WithTestNames {
   private static final Logger log = LoggerFactory.getLogger(CyclicReplicationIT.class);
 
   @Rule
@@ -90,15 +92,11 @@ public class CyclicReplicationIT {
     return new Timeout(scalingFactor * 10, TimeUnit.MINUTES);
   }
 
-  @Rule
-  public TestName testName = new TestName();
-
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   private File createTestDir(String name) {
     File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
     assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
-    File testDir =
-        new File(baseDir, this.getClass().getName() + "_" + testName.getMethodName() + "_" + name);
+    File testDir = new File(baseDir, this.getClass().getName() + "_" + testName() + "_" + name);
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());
     return testDir;

@@ -49,16 +49,16 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Category({MiniClusterOnlyTests.class, SunnyDayTests.class})
+@Tag("MiniClusterOnlyTests")
+@Tag("SunnyDayTests")
+@Timeout(180)
 public class ShellIT extends SharedMiniClusterBase {
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 180;
-  }
 
   @BeforeClass
   public static void setup() throws Exception {
@@ -363,7 +363,7 @@ public class ShellIT extends SharedMiniClusterBase {
   @Test
   public void userExistsTest() throws IOException {
     Shell.log.debug("Starting user test --------------------------");
-    String user = testName.getMethodName();
+    String user = testName();
     exec("createuser root", false, "user exists");
     exec("createuser " + user, true);
     exec("createuser " + user, false, "user exists");

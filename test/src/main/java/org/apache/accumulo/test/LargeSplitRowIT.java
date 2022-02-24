@@ -19,6 +19,7 @@
 package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -46,9 +47,11 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Timeout(60)
 public class LargeSplitRowIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(LargeSplitRowIT.class);
 
@@ -59,11 +62,6 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
     Map<String,String> siteConfig = new HashMap<>();
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "50ms");
     cfg.setSiteConfig(siteConfig);
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
   }
 
   // User added split
@@ -120,7 +118,8 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
   }
 
   // Test tablet server split with 250 entries with all the same prefix
-  @Test(timeout = 60 * 1000)
+  @Test
+  @Timeout(value = 1, unit = MINUTES)
   public void automaticSplitWith250Same() throws Exception {
     log.info("Automatic with 250 with same prefix");
 
@@ -182,7 +181,8 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
   }
 
   // 10 0's; 10 2's; 10 4's... 10 30's etc
-  @Test(timeout = 60 * 1000)
+  @Test
+  @Timeout(value = 1, unit = MINUTES)
   public void automaticSplitWithGaps() throws Exception {
     log.info("Automatic Split With Gaps");
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
@@ -191,7 +191,8 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
   }
 
   // 10 0's; 10 1's; 10 2's... 10 15's etc
-  @Test(timeout = 60 * 1000)
+  @Test
+  @Timeout(value = 1, unit = MINUTES)
   public void automaticSplitWithoutGaps() throws Exception {
     log.info("Automatic Split Without Gaps");
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
@@ -199,7 +200,8 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
     }
   }
 
-  @Test(timeout = 60 * 1000)
+  @Test
+  @Timeout(value = 1, unit = MINUTES)
   public void automaticSplitLater() throws Exception {
     log.info("Split later");
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {

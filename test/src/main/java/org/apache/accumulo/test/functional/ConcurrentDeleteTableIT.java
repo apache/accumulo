@@ -18,8 +18,9 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -49,17 +50,14 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
+@Timeout(value = 7, unit = MINUTES)
 public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
 
   private final NewTableConfiguration ntc = new NewTableConfiguration().withSplits(createSplits());
   private final int NUM_TABLES = 2;
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 7 * 60;
-  }
 
   @Test
   public void testConcurrentDeleteTablesOps() throws Exception {
@@ -105,8 +103,9 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
           future.get();
         }
 
-        assertThrows("Expected table " + table + " to be gone.", TableNotFoundException.class,
-            () -> c.createScanner(table, Authorizations.EMPTY));
+        assertThrows(TableNotFoundException.class,
+            () -> c.createScanner(table, Authorizations.EMPTY),
+            "Expected table " + table + " to be gone.");
 
         FunctionalTestUtils.assertNoDanglingFateLocks((ClientContext) c, getCluster());
       }
@@ -209,8 +208,9 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
           future.get();
         }
 
-        assertThrows("Expected table " + table + " to be gone.", TableNotFoundException.class,
-            () -> c.createScanner(table, Authorizations.EMPTY));
+        assertThrows(TableNotFoundException.class,
+            () -> c.createScanner(table, Authorizations.EMPTY),
+            "Expected table " + table + " to be gone.");
 
         FunctionalTestUtils.assertNoDanglingFateLocks((ClientContext) c, getCluster());
       }

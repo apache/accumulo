@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
+
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -32,16 +34,13 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Timeout(value = 4, unit = MINUTES)
 public class LogicalTimeIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(LogicalTimeIT.class);
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
-  }
 
   @Test
   public void run() throws Exception {

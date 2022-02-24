@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -60,16 +61,13 @@ import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressWarnings("removal")
+@Timeout(value = 3, unit = MINUTES)
 public class UserCompactionStrategyIT extends AccumuloClusterHarness {
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 3 * 60;
-  }
 
   @After
   public void checkForDanglingFateLocks() {

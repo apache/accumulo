@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
+
 import java.io.IOException;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -36,27 +38,26 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Timeout;
 
 /**
  * Tests Old and New Bulk import
  */
 @Category(SunnyDayTests.class)
+@Tag("SunnyDayTests")
+@Timeout(value = 4, unit = MINUTES)
 public class BulkIT extends AccumuloClusterHarness {
 
   private static final int N = 100000;
   private static final int COUNT = 5;
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
-  }
 
   @Test
   public void test() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       runTest(client, getClientInfo(), getCluster().getFileSystem(),
           getCluster().getTemporaryPath(), getUniqueNames(1)[0], this.getClass().getName(),
-          testName.getMethodName(), false);
+          testName(), false);
     }
   }
 
@@ -65,7 +66,7 @@ public class BulkIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       runTest(client, getClientInfo(), getCluster().getFileSystem(),
           getCluster().getTemporaryPath(), getUniqueNames(1)[0], this.getClass().getName(),
-          testName.getMethodName(), true);
+          testName(), true);
     }
   }
 

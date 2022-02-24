@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test;
 
+// ACCUMULO-3211
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Collections;
@@ -40,10 +42,11 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Iterators;
 
-// ACCUMULO-3211
+@Timeout(value = 4, unit = MINUTES)
 public class MetaRecoveryIT extends ConfigurableMacBase {
 
   @Override
@@ -53,11 +56,6 @@ public class MetaRecoveryIT extends ConfigurableMacBase {
     cfg.setProperty(Property.GC_CYCLE_START, "1s");
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     cfg.setProperty(Property.TSERV_WAL_MAX_SIZE, "1048576");
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
   }
 
   @Test

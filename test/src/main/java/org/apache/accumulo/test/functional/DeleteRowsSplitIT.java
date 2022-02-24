@@ -19,6 +19,8 @@
 package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+// attempt to reproduce ACCUMULO-315
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertTrue;
 
@@ -41,16 +43,12 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// attempt to reproduce ACCUMULO-315
+@Timeout(value = 4, unit = MINUTES)
 public class DeleteRowsSplitIT extends AccumuloClusterHarness {
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
-  }
 
   private static final Logger log = LoggerFactory.getLogger(DeleteRowsSplitIT.class);
 

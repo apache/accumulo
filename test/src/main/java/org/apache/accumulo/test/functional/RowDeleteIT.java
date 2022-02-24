@@ -42,9 +42,11 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Iterators;
 
+@Timeout(60)
 public class RowDeleteIT extends AccumuloClusterHarness {
 
   @Override
@@ -52,11 +54,6 @@ public class RowDeleteIT extends AccumuloClusterHarness {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "50ms");
     cfg.setSiteConfig(siteConfig);
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
   }
 
   @Test

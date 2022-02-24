@@ -33,16 +33,13 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 /**
  * This test recreates issue ACCUMULO-516. Until that issue is fixed this test should time out.
  */
+@Timeout(60)
 public class SparseColumnFamilyIT extends AccumuloClusterHarness {
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
-  }
 
   @Test
   public void sparceColumnFamily() throws Exception {

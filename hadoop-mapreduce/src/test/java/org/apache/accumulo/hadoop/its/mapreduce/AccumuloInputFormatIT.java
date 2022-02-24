@@ -68,6 +68,7 @@ import org.apache.hadoop.util.ToolRunner;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
@@ -77,15 +78,11 @@ import com.google.common.collect.Multimap;
  *
  * @since 2.0
  */
+@Timeout(4 * 60)
 public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
   AccumuloInputFormat inputFormat;
   AccumuloClient client;
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
-  }
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

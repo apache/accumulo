@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
@@ -32,9 +33,11 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Iterators;
 
+@Timeout(value = 4, unit = MINUTES)
 public class BigRootTabletIT extends AccumuloClusterHarness {
   // ACCUMULO-542: A large root tablet will fail to load if it does't fit in the tserver scan
   // buffers
@@ -45,11 +48,6 @@ public class BigRootTabletIT extends AccumuloClusterHarness {
     siteConfig.put(Property.TABLE_SCAN_MAXMEM.getKey(), "1024");
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "60m");
     cfg.setSiteConfig(siteConfig);
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
   }
 
   @Test

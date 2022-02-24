@@ -47,18 +47,15 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Iterables;
 
 /**
  * Tests that Accumulo will flush but not create a file that has 0 entries.
  */
+@Timeout(60)
 public class FlushNoFileIT extends AccumuloClusterHarness {
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
-  }
 
   @Test
   public void test() throws Exception {

@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
@@ -46,17 +47,14 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
+@Timeout(value = 2, unit = MINUTES)
 public class CredentialsIT extends AccumuloClusterHarness {
 
   private boolean saslEnabled;
   private String username;
   private String password;
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 2 * 60;
-  }
 
   @Before
   public void createLocalUser() throws AccumuloException, AccumuloSecurityException {

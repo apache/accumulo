@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Base64;
@@ -46,9 +47,11 @@ import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Timeout(value = 10, unit = MINUTES)
 public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(ManyWriteAheadLogsIT.class);
@@ -70,11 +73,6 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
     cfg.setProperty(Property.TABLE_MINC_COMPACT_IDLETIME, "1h");
     cfg.setNumTservers(1);
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 10 * 60;
   }
 
   @Before

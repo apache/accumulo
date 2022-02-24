@@ -33,20 +33,17 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Tests features of the Ample TabletMetadata class that can't be tested in TabletMetadataTest
  */
+@Timeout(120)
 public class TabletMetadataIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(TabletMetadataIT.class);
   private static final int NUM_TSERVERS = 3;
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 120;
-  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration conf) {

@@ -36,22 +36,19 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 
 // ACCUMULO-3967
+@Timeout(60)
 public class BulkImportSequentialRowsIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(BulkImportSequentialRowsIT.class);
 
   private static final long NR = 24;
   private static final long NV = 42000;
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 60;
-  }
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

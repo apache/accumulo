@@ -42,6 +42,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,6 +63,7 @@ import org.slf4j.LoggerFactory;
  * annotated with the {@link org.junit.AfterClass} JUnit annotation.
  */
 @Category(MiniClusterOnlyTests.class)
+@Tag("MiniClusterOnlyTests")
 public abstract class SharedMiniClusterBase extends AccumuloITBase implements ClusterUsers {
   private static final Logger log = LoggerFactory.getLogger(SharedMiniClusterBase.class);
   public static final String TRUE = Boolean.toString(true);
@@ -188,8 +190,7 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
   @Override
   public ClusterUser getUser(int offset) {
     if (krb == null) {
-      String user =
-          SharedMiniClusterBase.class.getName() + "_" + testName.getMethodName() + "_" + offset;
+      String user = SharedMiniClusterBase.class.getName() + "_" + testName() + "_" + offset;
       // Password is the username
       return new ClusterUser(user, user);
     } else {

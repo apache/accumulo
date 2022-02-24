@@ -58,6 +58,7 @@ import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -69,6 +70,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * installed instance, instead piping everything through stdout and writing to a set location so we
  * have to find the logs and grep the bits we need out.
  */
+@Timeout(60)
 public class AuditMessageIT extends ConfigurableMacBase {
 
   private static final String AUDIT_USER_1 = "AuditUser1";
@@ -78,11 +80,6 @@ public class AuditMessageIT extends ConfigurableMacBase {
   private static final String NEW_TEST_TABLE_NAME = "oranges";
   private static final String THIRD_TEST_TABLE_NAME = "pears";
   private static final Authorizations auths = new Authorizations("private", "public");
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 60;
-  }
 
   @Override
   public void beforeClusterStart(MiniAccumuloConfigImpl cfg) {

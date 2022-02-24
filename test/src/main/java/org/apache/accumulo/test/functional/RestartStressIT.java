@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 
@@ -42,9 +43,11 @@ import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Timeout(value = 10, unit = MINUTES)
 public class RestartStressIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(RestartStressIT.class);
 
@@ -58,11 +61,6 @@ public class RestartStressIT extends AccumuloClusterHarness {
     opts.put(Property.MANAGER_RECOVERY_DELAY.getKey(), "1s");
     cfg.setSiteConfig(opts);
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 10 * 60;
   }
 
   private ExecutorService svc;

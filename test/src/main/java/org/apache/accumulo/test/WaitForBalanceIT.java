@@ -41,17 +41,14 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Iterators;
 
+@Timeout(120)
 public class WaitForBalanceIT extends ConfigurableMacBase {
 
   private static final int NUM_SPLITS = 50;
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 120;
-  }
 
   @Test
   public void test() throws Exception {

@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.mapreduce;
 
 import static java.lang.System.currentTimeMillis;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -65,6 +66,7 @@ import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Level;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
@@ -73,14 +75,10 @@ import com.google.common.collect.Multimap;
  * This tests deprecated mapreduce code in core jar
  */
 @Deprecated(since = "2.0.0")
+@Timeout(value = 4, unit = MINUTES)
 public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
   org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat inputFormat;
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
-  }
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

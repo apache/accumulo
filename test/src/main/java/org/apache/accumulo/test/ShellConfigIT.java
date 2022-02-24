@@ -40,13 +40,10 @@ import org.apache.accumulo.test.ShellServerIT.TestShell;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
+@Timeout(30)
 public class ShellConfigIT extends AccumuloClusterHarness {
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 30;
-  }
 
   private String origPropValue;
 

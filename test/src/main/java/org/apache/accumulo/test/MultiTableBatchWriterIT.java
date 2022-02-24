@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -44,18 +45,15 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Maps;
 
+@Timeout(value = 5, unit = MINUTES)
 public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
 
   private AccumuloClient accumuloClient;
   private MultiTableBatchWriter mtbw;
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 5 * 60;
-  }
 
   @Before
   public void setUpArgs() {

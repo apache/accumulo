@@ -48,6 +48,7 @@ import org.apache.hadoop.fs.Path;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,6 +61,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * {@link AccumuloClusterHarness} instead.
  */
 @Category(MiniClusterOnlyTests.class)
+@Tag("MiniClusterOnlyTests")
 public class ConfigurableMacBase extends AccumuloITBase {
   public static final Logger log = LoggerFactory.getLogger(ConfigurableMacBase.class);
 
@@ -150,7 +152,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   private void createMiniAccumulo() throws Exception {
     // createTestDir will give us a empty directory, we don't need to clean it up ourselves
-    File baseDir = createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName());
+    File baseDir = createTestDir(this.getClass().getName() + "_" + this.testName());
     MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(baseDir, ROOT_PASSWORD);
     File nativePathInDevTree = NativeMapIT.nativeMapLocation();
     File nativePathInMapReduce = new File(System.getProperty("user.dir"));

@@ -51,8 +51,10 @@ import org.apache.hadoop.io.Text;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
 
 @Category(SunnyDayTests.class)
+@Tag("SunnyDayTests")
 public class NativeMapIT {
 
   private Key newKey(int r) {

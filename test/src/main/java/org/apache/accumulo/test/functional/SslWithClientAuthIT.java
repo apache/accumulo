@@ -18,18 +18,22 @@
  */
 package org.apache.accumulo.test.functional;
 
+/**
+ * Run all the same tests as SslIT, but with client auth turned on.
+ *
+ * All the methods are overridden just to make it easier to run individual tests from an IDE.
+ */
+import static java.util.concurrent.TimeUnit.MINUTES;
+
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
-/**
- * Run all the same tests as SslIT, but with client auth turned on.
- *
- * All the methods are overridden just to make it easier to run individual tests from an IDE.
- */
+@Timeout(value = 8, unit = MINUTES)
 public class SslWithClientAuthIT extends SslIT {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -37,11 +41,6 @@ public class SslWithClientAuthIT extends SslIT {
     Map<String,String> site = cfg.getSiteConfig();
     site.put(Property.INSTANCE_RPC_SSL_CLIENT_AUTH.getKey(), "true");
     cfg.setSiteConfig(site);
-  }
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 8 * 60;
   }
 
   @Override

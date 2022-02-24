@@ -76,15 +76,12 @@ import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@Timeout(60)
 public class SplitRecoveryIT extends ConfigurableMacBase {
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
-  }
 
   private KeyExtent nke(String table, String endRow, String prevEndRow) {
     return new KeyExtent(TableId.of(table), endRow == null ? null : new Text(endRow),

@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -58,6 +59,8 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Timeout;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,6 +68,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.util.concurrent.Uninterruptibles;
 
 @Category({ZooKeeperTestingServerTests.class})
+@Tag("ZooKeeperTestingServerTests")
 public class ServiceLockIT {
 
   @ClassRule
@@ -208,7 +212,8 @@ public class ServiceLockIT {
     return new ServiceLockWrapper(zkw, parent, uuid);
   }
 
-  @Test(timeout = 10000)
+  @Test
+  @Timeout(10)
   public void testDeleteParent() throws Exception {
     var parent = ServiceLock
         .path("/zltestDeleteParent-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
@@ -240,7 +245,8 @@ public class ServiceLockIT {
     zl.unlock();
   }
 
-  @Test(timeout = 10000)
+  @Test
+  @Timeout(10)
   public void testNoParent() throws Exception {
     var parent =
         ServiceLock.path("/zltestNoParent-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
@@ -261,7 +267,8 @@ public class ServiceLockIT {
     assertNull(lw.reason);
   }
 
-  @Test(timeout = 10000)
+  @Test
+  @Timeout(10)
   public void testDeleteLock() throws Exception {
     var parent =
         ServiceLock.path("/zltestDeleteLock-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
@@ -293,7 +300,8 @@ public class ServiceLockIT {
 
   }
 
-  @Test(timeout = 15000)
+  @Test
+  @Timeout(15)
   public void testDeleteWaiting() throws Exception {
     var parent = ServiceLock
         .path("/zltestDeleteWaiting-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
@@ -359,7 +367,8 @@ public class ServiceLockIT {
 
   }
 
-  @Test(timeout = 10000)
+  @Test
+  @Timeout(10)
   public void testUnexpectedEvent() throws Exception {
     var parent = ServiceLock
         .path("/zltestUnexpectedEvent-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
@@ -405,7 +414,8 @@ public class ServiceLockIT {
 
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 1, unit = MINUTES)
   public void testLockSerial() throws Exception {
     var parent = ServiceLock.path("/zlretryLockSerial");
 
@@ -570,7 +580,8 @@ public class ServiceLockIT {
     }
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 1, unit = MINUTES)
   public void testLockParallel() throws Exception {
     var parent = ServiceLock.path("/zlParallel");
 
@@ -636,7 +647,8 @@ public class ServiceLockIT {
 
   }
 
-  @Test(timeout = 10000)
+  @Test
+  @Timeout(10)
   public void testTryLock() throws Exception {
     var parent =
         ServiceLock.path("/zltestTryLock-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
@@ -676,7 +688,8 @@ public class ServiceLockIT {
     }
   }
 
-  @Test(timeout = 10000)
+  @Test
+  @Timeout(10)
   public void testChangeData() throws Exception {
     var parent =
         ServiceLock.path("/zltestChangeData-" + this.hashCode() + "-l" + pdCount.incrementAndGet());

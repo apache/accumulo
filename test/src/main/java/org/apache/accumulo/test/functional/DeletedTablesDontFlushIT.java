@@ -32,14 +32,11 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 // ACCUMULO-2880
+@Timeout(60)
 public class DeletedTablesDontFlushIT extends SharedMiniClusterBase {
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 60;
-  }
 
   @BeforeClass
   public static void setup() throws Exception {

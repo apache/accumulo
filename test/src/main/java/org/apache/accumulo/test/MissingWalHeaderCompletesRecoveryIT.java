@@ -19,6 +19,7 @@
 package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -53,21 +54,18 @@ import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 
+@Timeout(value = 2, unit = MINUTES)
 public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
   private static final Logger log =
       LoggerFactory.getLogger(MissingWalHeaderCompletesRecoveryIT.class);
 
   private boolean rootHasWritePermission;
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 2 * 60;
-  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration conf) {

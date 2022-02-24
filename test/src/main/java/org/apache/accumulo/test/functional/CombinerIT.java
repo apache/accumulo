@@ -39,13 +39,10 @@ import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
+@Timeout(60)
 public class CombinerIT extends AccumuloClusterHarness {
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
-  }
 
   private void checkSum(String tableName, AccumuloClient c) throws Exception {
     try (Scanner s = c.createScanner(tableName, Authorizations.EMPTY)) {

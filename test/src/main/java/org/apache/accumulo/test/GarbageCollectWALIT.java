@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertEquals;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -37,9 +38,11 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.fs.RemoteIterator;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Iterators;
 
+@Timeout(value = 3, unit = MINUTES)
 public class GarbageCollectWALIT extends ConfigurableMacBase {
 
   @Override
@@ -49,11 +52,6 @@ public class GarbageCollectWALIT extends ConfigurableMacBase {
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1s");
     cfg.setNumTservers(1);
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 3 * 60;
   }
 
   @Test

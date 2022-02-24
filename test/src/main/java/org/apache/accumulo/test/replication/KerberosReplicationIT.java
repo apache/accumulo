@@ -67,6 +67,8 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,7 +79,9 @@ import com.google.common.collect.Iterators;
  */
 @Ignore("Replication ITs are not stable and not currently maintained")
 @Category(MiniClusterOnlyTests.class)
+@Tag("MiniClusterOnlyTests")
 @Deprecated
+@Timeout(60 * 3)
 public class KerberosReplicationIT extends AccumuloITBase {
   private static final Logger log = LoggerFactory.getLogger(KerberosIT.class);
 
@@ -109,11 +113,6 @@ public class KerberosReplicationIT extends AccumuloITBase {
   private MiniAccumuloClusterImpl primary, peer;
   private String PRIMARY_NAME = "primary", PEER_NAME = "peer";
 
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 3;
-  }
-
   private MiniClusterConfigurationCallback getConfigCallback(final String name) {
     return new MiniClusterConfigurationCallback() {
       @Override
@@ -141,12 +140,12 @@ public class KerberosReplicationIT extends AccumuloITBase {
     MiniClusterHarness harness = new MiniClusterHarness();
 
     // Create a primary and a peer instance, both with the same "root" user
-    primary = harness.create(getClass().getName(), testName.getMethodName(),
-        new PasswordToken("unused"), getConfigCallback(PRIMARY_NAME), kdc);
+    primary = harness.create(getClass().getName(), testName(), new PasswordToken("unused"),
+        getConfigCallback(PRIMARY_NAME), kdc);
     primary.start();
 
-    peer = harness.create(getClass().getName(), testName.getMethodName() + "_peer",
-        new PasswordToken("unused"), getConfigCallback(PEER_NAME), kdc);
+    peer = harness.create(getClass().getName(), testName() + "_peer", new PasswordToken("unused"),
+        getConfigCallback(PEER_NAME), kdc);
     peer.start();
 
     // Enable kerberos auth

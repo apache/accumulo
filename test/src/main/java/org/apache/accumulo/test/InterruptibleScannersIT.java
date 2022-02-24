@@ -33,16 +33,13 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Iterators;
 
 // ACCUMULO-3030
+@Timeout(60)
 public class InterruptibleScannersIT extends AccumuloClusterHarness {
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 60;
-  }
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

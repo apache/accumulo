@@ -44,16 +44,13 @@ import org.apache.accumulo.test.constraints.AlphaNumKeyConstraint;
 import org.apache.accumulo.test.constraints.NumericValueConstraint;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Timeout(60)
 public class ConstraintIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(ConstraintIT.class);
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
-  }
 
   @Test
   public void run() throws Exception {

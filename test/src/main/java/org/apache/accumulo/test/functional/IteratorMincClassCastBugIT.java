@@ -45,11 +45,13 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 /**
  * Tests iterator class hierarchy bug. The failure condition of this test is to hang on the flush
  * due to a class cast exception on the tserver. See https://github.com/apache/accumulo/issues/2341
  */
+@Timeout(60)
 public class IteratorMincClassCastBugIT extends AccumuloClusterHarness {
 
   @Override
@@ -57,11 +59,6 @@ public class IteratorMincClassCastBugIT extends AccumuloClusterHarness {
     // this bug only shows up when not using native maps
     cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, "false");
     cfg.setNumTservers(1);
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
   }
 
   @Test

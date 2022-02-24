@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
@@ -42,13 +43,10 @@ import org.apache.accumulo.core.util.Merge;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
+@Timeout(value = 8, unit = MINUTES)
 public class MergeIT extends AccumuloClusterHarness {
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 8 * 60;
-  }
 
   SortedSet<Text> splits(String[] points) {
     SortedSet<Text> result = new TreeSet<>();

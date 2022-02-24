@@ -51,17 +51,16 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Category(SunnyDayTests.class)
+@Tag("SunnyDayTests")
+@Timeout(60)
 public class ScanIteratorIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(ScanIteratorIT.class);
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
-  }
 
   private AccumuloClient accumuloClient;
   private String tableName;

@@ -51,6 +51,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,14 +64,10 @@ import org.slf4j.LoggerFactory;
  * <p>
  * ACCUMULO-3215
  */
+@Timeout(60)
 public class ImportExportIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(ImportExportIT.class);
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
-  }
 
   @Test
   public void testExportImportThenScan() throws Exception {

@@ -47,6 +47,7 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,6 +57,7 @@ import com.google.common.collect.Iterables;
  * Verify that we have resolved blocking issue by ensuring that we have not lost scan sessions which
  * we know to currently be running
  */
+@Timeout(60)
 public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
   private static final Logger log = LoggerFactory.getLogger(SessionBlockVerifyIT.class);
 
@@ -71,11 +73,6 @@ public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
     siteConfig.put(Property.TSERV_SESSION_MAXIDLE.getKey(), getMaxIdleTimeString());
     siteConfig.put(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getKey(), "11");
     cfg.setSiteConfig(siteConfig);
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
   }
 
   @Override

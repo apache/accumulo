@@ -67,18 +67,15 @@ import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Sets;
 
+@Timeout(90)
 public class TableOperationsIT extends AccumuloClusterHarness {
 
   private AccumuloClient accumuloClient;
   private static final int MAX_TABLE_NAME_LEN = 1024;
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 90;
-  }
 
   @Before
   public void setup() {

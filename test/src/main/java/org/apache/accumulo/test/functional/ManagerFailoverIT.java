@@ -33,7 +33,9 @@ import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
+@Timeout(90)
 public class ManagerFailoverIT extends AccumuloClusterHarness {
 
   @Override
@@ -42,11 +44,6 @@ public class ManagerFailoverIT extends AccumuloClusterHarness {
     siteConfig.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "15s");
     cfg.setSiteConfig(siteConfig);
     cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "15s");
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 90;
   }
 
   @Test

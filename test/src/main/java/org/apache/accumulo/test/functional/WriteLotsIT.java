@@ -32,13 +32,10 @@ import org.apache.accumulo.test.TestIngest.IngestParams;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
+@Timeout(90)
 public class WriteLotsIT extends AccumuloClusterHarness {
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 90;
-  }
 
   @Test
   public void writeLots() throws Exception {

@@ -44,9 +44,11 @@ import org.apache.hadoop.conf.Configuration;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 import io.micrometer.core.instrument.MeterRegistry;
 
+@Timeout(60)
 public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
 
   private static TestStatsDSink sink;
@@ -74,11 +76,6 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     Map<String,String> sysProps = Map.of(TestStatsDRegistryFactory.SERVER_HOST, "127.0.0.1",
         TestStatsDRegistryFactory.SERVER_PORT, Integer.toString(sink.getPort()));
     cfg.setSystemProperties(sysProps);
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
   }
 
   @Test

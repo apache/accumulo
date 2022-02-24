@@ -73,7 +73,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
   public void testMapred() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       // create a table and put some data in it
-      client.tableOperations().create(testName.getMethodName());
+      client.tableOperations().create(testName());
 
       JobConf job = new JobConf();
       BatchWriterConfig batchConfig = new BatchWriterConfig();
@@ -95,7 +95,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
           for (int j = 0; j < 3; j++) {
             m.put("cf1", "cq" + j, i + "_" + j);
           }
-          writer.write(new Text(testName.getMethodName()), m);
+          writer.write(new Text(testName()), m);
         }
 
       } catch (Exception e) {
@@ -103,8 +103,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
         // we don't want the exception to come from write
       }
 
-      client.securityOperations().revokeTablePermission("root", testName.getMethodName(),
-          TablePermission.WRITE);
+      client.securityOperations().revokeTablePermission("root", testName(), TablePermission.WRITE);
 
       var ex = assertThrows(IOException.class, () -> writer.close(null));
       log.info(ex.getMessage(), ex);

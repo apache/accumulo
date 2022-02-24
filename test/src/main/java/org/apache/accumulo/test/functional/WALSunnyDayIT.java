@@ -69,10 +69,12 @@ import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
 
 import com.google.common.collect.Iterators;
 
 @Category(SunnyDayTests.class)
+@Tag("SunnyDayTests")
 public class WALSunnyDayIT extends ConfigurableMacBase {
 
   private static final Text CF = new Text(new byte[0]);

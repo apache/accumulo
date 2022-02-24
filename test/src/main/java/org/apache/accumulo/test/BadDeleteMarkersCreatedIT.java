@@ -52,17 +52,14 @@ import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // Accumulo3047
+@Timeout(120)
 public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(BadDeleteMarkersCreatedIT.class);
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 120;
-  }
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

@@ -55,17 +55,14 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.beust.jcommander.Parameter;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@Timeout(60)
 public class RowHashIT extends ConfigurableMacBase {
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
-  }
 
   public static final String hadoopTmpDirArg =
       "-Dhadoop.tmp.dir=" + System.getProperty("user.dir") + "/target/hadoop-tmp";

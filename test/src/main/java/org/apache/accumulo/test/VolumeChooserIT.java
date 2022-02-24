@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -60,7 +61,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
+@Timeout(value = 2, unit = MINUTES)
 public class VolumeChooserIT extends ConfigurableMacBase {
 
   private static final String TP = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey();
@@ -86,11 +89,6 @@ public class VolumeChooserIT extends ConfigurableMacBase {
   private String namespace1;
   private String namespace2;
   private String systemPreferredVolumes;
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 120;
-  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

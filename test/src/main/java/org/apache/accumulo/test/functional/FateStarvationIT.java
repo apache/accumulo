@@ -18,6 +18,11 @@
  */
 package org.apache.accumulo.test.functional;
 
+/**
+ * See ACCUMULO-779
+ */
+import static java.util.concurrent.TimeUnit.MINUTES;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,16 +35,10 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestIngest.IngestParams;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
-/**
- * See ACCUMULO-779
- */
+@Timeout(value = 2, unit = MINUTES)
 public class FateStarvationIT extends AccumuloClusterHarness {
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 2 * 60;
-  }
 
   @Test
   public void run() throws Exception {

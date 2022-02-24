@@ -18,15 +18,14 @@
  */
 package org.apache.accumulo.harness;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.security.SecureRandom;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.WithTestNames;
 import org.apache.commons.io.FileUtils;
-import org.junit.Rule;
-import org.junit.rules.TestName;
 import org.junit.rules.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,17 +35,26 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 /**
  * Methods, setup and/or infrastructure which are common to any Accumulo integration test.
  */
-public class AccumuloITBase {
+public class AccumuloITBase extends WithTestNames {
   public static final SecureRandom random = new SecureRandom();
   private static final Logger log = LoggerFactory.getLogger(AccumuloITBase.class);
 
-  @Rule
-  public TestName testName = new TestName();
+  public static final int DEFAULT_TIMEOUT = 600;
+
+  // @Rule
+  // public TestName testName = new TestName();
+
+  /*
+   * TODO junit - relies on junit4 TestName - replace with version with TestInfo parameter below
+   * public String[] getUniqueNames(int num) { String[] names = new String[num]; for (int i = 0; i <
+   * num; i++) names[i] = this.getClass().getSimpleName() + "_" + testName() + i; return names; }
+   *
+   */
 
   public String[] getUniqueNames(int num) {
     String[] names = new String[num];
     for (int i = 0; i < num; i++)
-      names[i] = this.getClass().getSimpleName() + "_" + testName.getMethodName() + i;
+      names[i] = this.getClass().getSimpleName() + "_" + testName() + i;
     return names;
   }
 
@@ -97,7 +105,17 @@ public class AccumuloITBase {
    * level timeout is set to 0.
    *
    */
-  @Rule
+
+  /*
+   * @Rule public Timeout testsShouldTimeout() { int waitLonger = 0; try { String timeoutString =
+   * System.getProperty("timeout.factor"); if (timeoutString != null && !timeoutString.isEmpty()) {
+   * waitLonger = Integer.parseInt(timeoutString); } } catch (NumberFormatException exception) {
+   * log.warn("Could not parse timeout.factor, defaulting to no timeout."); }
+   *
+   * return Timeout.builder().withTimeout(waitLonger * defaultTimeoutSeconds(), TimeUnit.SECONDS)
+   * .withLookingForStuckThread(true).build(); }
+   *
+   */
   public Timeout testsShouldTimeout() {
     int waitLonger = 0;
     try {
@@ -109,14 +127,14 @@ public class AccumuloITBase {
       log.warn("Could not parse timeout.factor, defaulting to no timeout.");
     }
 
-    return Timeout.builder().withTimeout(waitLonger * defaultTimeoutSeconds(), TimeUnit.SECONDS)
+    return Timeout.builder().withTimeout(waitLonger * DEFAULT_TIMEOUT, TimeUnit.SECONDS)
         .withLookingForStuckThread(true).build();
   }
 
   /**
    * time to wait per-method before declaring a timeout, in seconds.
    */
-  protected int defaultTimeoutSeconds() {
-    return 600;
-  }
+  /*
+   * protected int defaultTimeoutSeconds() { return 600; }
+   */
 }

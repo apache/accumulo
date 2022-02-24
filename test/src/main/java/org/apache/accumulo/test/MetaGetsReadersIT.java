@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -42,9 +43,11 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.conf.Configuration;
+import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Iterators;
 
+@Timeout(value = 2, unit = MINUTES)
 public class MetaGetsReadersIT extends ConfigurableMacBase {
 
   @Override
@@ -52,11 +55,6 @@ public class MetaGetsReadersIT extends ConfigurableMacBase {
     cfg.setNumTservers(1);
     cfg.setProperty(Property.TSERV_SCAN_MAX_OPENFILES, "2");
     cfg.setProperty(Property.TABLE_BLOCKCACHE_ENABLED, "false");
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 2 * 60;
   }
 
   private static Thread slowScan(final AccumuloClient c, final String tableName,

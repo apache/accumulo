@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.replication;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -69,6 +70,7 @@ import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,16 +81,12 @@ import org.slf4j.LoggerFactory;
  */
 @Ignore("Replication ITs are not stable and not currently maintained")
 @Deprecated
+@Timeout(value = 2, unit = MINUTES)
 public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacBase {
   private static final Logger log =
       LoggerFactory.getLogger(GarbageCollectorCommunicatesWithTServersIT.class);
 
   private final int GC_PERIOD_SECONDS = 1;
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 2 * 60;
-  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration coreSite) {

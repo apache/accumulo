@@ -19,6 +19,11 @@
 package org.apache.accumulo.test.functional;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+/**
+ * Start a new table, create many splits, and offline before they can rebalance. Then try to have a
+ * different table balance
+ */
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
@@ -57,13 +62,11 @@ import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Start a new table, create many splits, and offline before they can rebalance. Then try to have a
- * different table balance
- */
+@Timeout(value = 10, unit = MINUTES)
 public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
   private static Logger log = LoggerFactory.getLogger(BalanceInPresenceOfOfflineTableIT.class);
@@ -78,11 +81,6 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
     if (cfg.getNumTservers() < 2) {
       cfg.setNumTservers(2);
     }
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 10 * 60;
   }
 
   private static final int NUM_SPLITS = 200;

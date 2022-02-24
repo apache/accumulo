@@ -114,6 +114,8 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Timeout;
 import org.junit.rules.TestName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -124,6 +126,9 @@ import com.google.common.collect.Iterators;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Category({MiniClusterOnlyTests.class, SunnyDayTests.class})
+@Tag("MiniClusterOnlyTests")
+@Tag("SunnyDayTests")
+@Timeout(60)
 public class ShellServerIT extends SharedMiniClusterBase {
 
   @SuppressWarnings("removal")
@@ -353,11 +358,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @After
   public void tearDownShell() {
     ts.shell.shutdown();
-  }
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 60;
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")

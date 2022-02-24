@@ -30,13 +30,10 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.manager.Manager;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
+@Timeout(120)
 public class BackupManagerIT extends ConfigurableMacBase {
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 120;
-  }
 
   @Test
   public void test() throws Exception {

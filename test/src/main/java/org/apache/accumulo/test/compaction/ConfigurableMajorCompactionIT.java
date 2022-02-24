@@ -43,16 +43,13 @@ import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
 import org.apache.accumulo.tserver.compaction.WriteParameters;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Iterators;
 
 @SuppressWarnings("removal")
+@Timeout(30)
 public class ConfigurableMajorCompactionIT extends ConfigurableMacBase {
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 30;
-  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

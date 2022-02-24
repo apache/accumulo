@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static java.util.Collections.singletonMap;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertTrue;
 
@@ -49,11 +50,13 @@ import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@Timeout(value = 4, unit = MINUTES)
 public class LargeRowIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(LargeRowIT.class);
 
@@ -64,11 +67,6 @@ public class LargeRowIT extends AccumuloClusterHarness {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "10ms");
     cfg.setSiteConfig(siteConfig);
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
   }
 
   private static final int SEED = 42;

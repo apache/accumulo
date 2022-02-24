@@ -25,19 +25,17 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Timeout(60)
 public class BalanceIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(BalanceIT.class);
 
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 60;
-  }
-
   @Test
+  @Timeout(3)
   public void testBalance() throws Exception {
     String tableName = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {

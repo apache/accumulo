@@ -44,13 +44,10 @@ import org.apache.hadoop.io.Text;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
+@Timeout(30)
 public class NewTableConfigurationIT extends SharedMiniClusterBase {
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 30;
-  }
 
   @BeforeClass
   public static void setup() throws Exception {

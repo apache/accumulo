@@ -16,26 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.functional;
+package org.apache.accumulo;
 
-import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.junit.Test;
-import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
 
-@Timeout(60)
-public class CreateManyScannersIT extends AccumuloClusterHarness {
+// This is only for the unit tests and integration tests in this module
+// It must be copied for use in other modules, because tests in one module
+// don't have dependencies on other modules, and we can't put this in a
+// regular, non-test jar, because we don't want to add a dependency on
+// JUnit in a non-test jar
+public class WithTestNames {
 
-  @Test
-  public void run() throws Exception {
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = getUniqueNames(1)[0];
-      c.tableOperations().create(tableName);
-      for (int i = 0; i < 100000; i++) {
-        c.createScanner(tableName, Authorizations.EMPTY);
-      }
-    }
+  private String testName;
+
+  @BeforeEach
+  public void setTestName(TestInfo info) {
+    testName = info.getTestMethod().get().getName();
   }
+
+  public String testName() {
+    return testName;
+  }
+
 }

@@ -40,20 +40,17 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Iterators;
 
 // Accumulo3010
+@Timeout(180)
 public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterHarness {
 
   @Override
   public boolean canRunTest(ClusterType type) {
     return type == ClusterType.MINI;
-  }
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 180;
   }
 
   @Override

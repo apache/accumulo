@@ -33,20 +33,17 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // ACCUMULO-118/ACCUMULO-2504
+@Timeout(60)
 public class BulkImportVolumeIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(BulkImportVolumeIT.class);
 
   File volDirBase = null;
   Path v1, v2;
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 60;
-  }
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

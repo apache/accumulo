@@ -25,13 +25,10 @@ import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.start.TestMain;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
+@Timeout(30)
 public class StartIT extends AccumuloClusterHarness {
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 30;
-  }
 
   @Test
   public void test() throws Exception {

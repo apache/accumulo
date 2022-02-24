@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test;
 
+// ACCUMULO-3914
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertEquals;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -30,10 +32,11 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Iterators;
 
-// ACCUMULO-3914
+@Timeout(value = 2, unit = MINUTES)
 public class TabletServerHdfsRestartIT extends ConfigurableMacBase {
 
   private static final int N = 1000;
@@ -43,11 +46,6 @@ public class TabletServerHdfsRestartIT extends ConfigurableMacBase {
     cfg.useMiniDFS(true);
     cfg.setNumTservers(1);
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 2 * 60;
   }
 
   @Test

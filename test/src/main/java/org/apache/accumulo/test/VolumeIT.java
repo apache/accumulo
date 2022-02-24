@@ -19,6 +19,7 @@
 package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -82,19 +83,16 @@ import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@Timeout(value = 10, unit = MINUTES)
 public class VolumeIT extends ConfigurableMacBase {
 
   private File volDirBase;
   private Path v1, v2, v3;
   private List<String> expected = new ArrayList<>();
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 10 * 60;
-  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

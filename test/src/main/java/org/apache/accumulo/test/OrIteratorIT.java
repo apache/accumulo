@@ -48,14 +48,11 @@ import org.apache.accumulo.core.iterators.OrIterator;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
+@Timeout(60)
 public class OrIteratorIT extends AccumuloClusterHarness {
   private static final String EMPTY = "";
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 60;
-  }
 
   @Test
   public void testMultipleRowsInTablet() throws Exception {

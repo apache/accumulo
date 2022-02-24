@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test;
 
+// see ACCUMULO-1950
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertTrue;
 
@@ -38,19 +40,15 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
-// see ACCUMULO-1950
+@Timeout(value = 4, unit = MINUTES)
 public class TotalQueuedIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
     cfg.useMiniDFS();
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
   }
 
   private int SMALL_QUEUE_SIZE = 100000;

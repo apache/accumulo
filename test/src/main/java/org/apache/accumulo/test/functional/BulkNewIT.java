@@ -18,6 +18,12 @@
  */
 package org.apache.accumulo.test.functional;
 
+/**
+ * Tests new bulk import technique. For the old technique see {@link BulkOldIT}
+ *
+ * @since 2.0
+ */
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
@@ -80,14 +86,11 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-/**
- * Tests new bulk import technique. For the old technique see {@link BulkOldIT}
- *
- * @since 2.0
- */
+@Timeout(value = 4, unit = MINUTES)
 public class BulkNewIT extends SharedMiniClusterBase {
 
   @BeforeClass
@@ -108,11 +111,6 @@ public class BulkNewIT extends SharedMiniClusterBase {
       // use raw local file system
       conf.set("fs.file.impl", RawLocalFileSystem.class.getName());
     }
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
   }
 
   private String tableName;

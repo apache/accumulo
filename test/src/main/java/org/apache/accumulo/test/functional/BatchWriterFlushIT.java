@@ -50,18 +50,15 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Iterators;
 
+@Timeout(90)
 public class BatchWriterFlushIT extends AccumuloClusterHarness {
 
   private static final int NUM_TO_FLUSH = 100000;
   private static final int NUM_THREADS = 3;
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 90;
-  }
 
   @Test
   public void run() throws Exception {

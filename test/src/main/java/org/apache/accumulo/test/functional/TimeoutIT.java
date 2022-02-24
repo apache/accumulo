@@ -39,13 +39,10 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
+@Timeout(75)
 public class TimeoutIT extends AccumuloClusterHarness {
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 75;
-  }
 
   @Test
   public void run() throws Exception {

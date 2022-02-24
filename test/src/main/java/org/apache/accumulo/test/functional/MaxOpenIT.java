@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -42,12 +44,14 @@ import org.apache.hadoop.conf.Configuration;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 /**
  * A functional test that exercises hitting the max open file limit on a tablet server. This test
  * assumes there are one or two tablet servers.
  */
 @SuppressWarnings("removal")
+@Timeout(value = 3, unit = MINUTES)
 public class MaxOpenIT extends AccumuloClusterHarness {
 
   @Override
@@ -57,11 +61,6 @@ public class MaxOpenIT extends AccumuloClusterHarness {
     conf.put(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), "1");
     conf.put(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey(), "2");
     cfg.setSiteConfig(conf);
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 3 * 60;
   }
 
   private String scanMaxOpenFiles, majcConcurrent, majcThreadMaxOpen;

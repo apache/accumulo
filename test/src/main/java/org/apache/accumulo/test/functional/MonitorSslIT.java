@@ -18,6 +18,10 @@
  */
 package org.apache.accumulo.test.functional;
 
+/**
+ * Check SSL for the Monitor
+ */
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -45,12 +49,11 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-/**
- * Check SSL for the Monitor
- */
+@Timeout(value = 6, unit = MINUTES)
 public class MonitorSslIT extends ConfigurableMacBase {
   @BeforeClass
   public static void initHttps() throws NoSuchAlgorithmException, KeyManagementException {
@@ -86,14 +89,9 @@ public class MonitorSslIT extends ConfigurableMacBase {
   }
 
   @Override
-  public int defaultTimeoutSeconds() {
-    return 6 * 60;
-  }
-
-  @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     super.configure(cfg, hadoopCoreSite);
-    File baseDir = createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName());
+    File baseDir = createTestDir(this.getClass().getName() + "_" + this.testName());
     configureForSsl(cfg, getSslDir(baseDir));
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.MONITOR_SSL_KEYSTORE.getKey(),

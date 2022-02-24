@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -35,20 +36,17 @@ import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.rules.TemporaryFolder;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@Timeout(value = 2, unit = MINUTES)
 public class DumpConfigIT extends ConfigurableMacBase {
 
   @Rule
   public TemporaryFolder tempFolder =
       new TemporaryFolder(new File(System.getProperty("user.dir"), "target"));
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 2 * 60;
-  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

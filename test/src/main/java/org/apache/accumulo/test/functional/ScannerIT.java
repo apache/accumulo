@@ -36,13 +36,10 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
+@Timeout(60)
 public class ScannerIT extends AccumuloClusterHarness {
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
-  }
 
   @Test
   public void testScannerReadaheadConfiguration() throws Exception {

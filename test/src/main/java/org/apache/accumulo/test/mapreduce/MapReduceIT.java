@@ -44,6 +44,7 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -51,12 +52,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * This tests deprecated mapreduce code in core jar
  */
 @Deprecated(since = "2.0.0")
+@Timeout(60)
 public class MapReduceIT extends ConfigurableMacBase {
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
-  }
 
   public static final String hadoopTmpDirArg =
       "-Dhadoop.tmp.dir=" + System.getProperty("user.dir") + "/target/hadoop-tmp";

@@ -45,6 +45,7 @@ import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,6 +56,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * ZK lock.
  */
 @Category({MiniClusterOnlyTests.class})
+@Tag("MiniClusterOnlyTests")
 public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarness {
   private static final Logger LOG =
       LoggerFactory.getLogger(ThriftServerBindsBeforeZooKeeperLockIT.class);

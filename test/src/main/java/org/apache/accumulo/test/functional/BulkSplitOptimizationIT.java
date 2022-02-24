@@ -18,6 +18,11 @@
  */
 package org.apache.accumulo.test.functional;
 
+/**
+ * This test verifies that when a lot of files are bulk imported into a table with one tablet and
+ * then splits that not all map files go to the children tablets.
+ */
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.concurrent.TimeUnit;
@@ -37,21 +42,14 @@ import org.apache.hadoop.fs.Path;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
-/**
- * This test verifies that when a lot of files are bulk imported into a table with one tablet and
- * then splits that not all map files go to the children tablets.
- */
+@Timeout(value = 2, unit = MINUTES)
 public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.TSERV_MAJC_DELAY, "1s");
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 2 * 60;
   }
 
   private String majcDelay;

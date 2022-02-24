@@ -94,7 +94,7 @@ public class WorkMakerIT extends ConfigurableMacBase {
 
   @Test
   public void singleUnitSingleTarget() throws Exception {
-    String table = testName.getMethodName();
+    String table = testName();
     client.tableOperations().create(table);
     TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(table));
     String file = "hdfs://localhost:8020/accumulo/wal/123456-1234-1234-12345678";
@@ -140,7 +140,7 @@ public class WorkMakerIT extends ConfigurableMacBase {
 
   @Test
   public void singleUnitMultipleTargets() throws Exception {
-    String table = testName.getMethodName();
+    String table = testName();
     client.tableOperations().create(table);
 
     TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(table));
@@ -196,7 +196,7 @@ public class WorkMakerIT extends ConfigurableMacBase {
 
   @Test
   public void dontCreateWorkForEntriesWithNothingToReplicate() throws Exception {
-    String table = testName.getMethodName();
+    String table = testName();
     client.tableOperations().create(table);
     String tableId = client.tableOperations().tableIdMap().get(table);
     String file = "hdfs://localhost:8020/accumulo/wal/123456-1234-1234-12345678";

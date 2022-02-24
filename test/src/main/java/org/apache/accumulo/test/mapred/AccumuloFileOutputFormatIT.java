@@ -186,7 +186,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
   }
 
   private void handleWriteTests(boolean content) throws Exception {
-    File f = folder.newFile(testName.getMethodName());
+    File f = folder.newFile(testName());
     if (f.delete()) {
       log.debug("Deleted {}", f);
     }
@@ -223,7 +223,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
         m.put("cf1", "cq2", "A&");
         bw.addMutation(m);
       }
-      File f = folder.newFile(testName.getMethodName());
+      File f = folder.newFile(testName());
       if (f.delete()) {
         log.debug("Deleted {}", f);
       }

@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.replication;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -73,6 +74,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,15 +85,11 @@ import com.google.common.collect.Iterators;
  */
 @Ignore("Replication ITs are not stable and not currently maintained")
 @Deprecated
+@Timeout(value = 15, unit = MINUTES)
 public class MultiInstanceReplicationIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(MultiInstanceReplicationIT.class);
 
   private ExecutorService executor;
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 15 * 60;
-  }
 
   @Before
   public void createExecutor() {
@@ -169,8 +167,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
   @Test
   public void dataWasReplicatedToThePeer() throws Exception {
     MiniAccumuloConfigImpl peerCfg = new MiniAccumuloConfigImpl(
-        createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName() + "_peer"),
-        ROOT_PASSWORD);
+        createTestDir(this.getClass().getName() + "_" + this.testName() + "_peer"), ROOT_PASSWORD);
     peerCfg.setNumTservers(1);
     peerCfg.setInstanceName("peer");
     peerCfg.setProperty(Property.REPLICATION_NAME, "peer");
@@ -348,8 +345,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
   @Test
   public void dataReplicatedToCorrectTable() throws Exception {
     MiniAccumuloConfigImpl peerCfg = new MiniAccumuloConfigImpl(
-        createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName() + "_peer"),
-        ROOT_PASSWORD);
+        createTestDir(this.getClass().getName() + "_" + this.testName() + "_peer"), ROOT_PASSWORD);
     peerCfg.setNumTservers(1);
     peerCfg.setInstanceName("peer");
     peerCfg.setProperty(Property.REPLICATION_NAME, "peer");
@@ -508,8 +504,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
   @Test
   public void dataWasReplicatedToThePeerWithoutDrain() throws Exception {
     MiniAccumuloConfigImpl peerCfg = new MiniAccumuloConfigImpl(
-        createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName() + "_peer"),
-        ROOT_PASSWORD);
+        createTestDir(this.getClass().getName() + "_" + this.testName() + "_peer"), ROOT_PASSWORD);
     peerCfg.setNumTservers(1);
     peerCfg.setInstanceName("peer");
     peerCfg.setProperty(Property.REPLICATION_NAME, "peer");
@@ -627,8 +622,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
   @Test
   public void dataReplicatedToCorrectTableWithoutDrain() throws Exception {
     MiniAccumuloConfigImpl peerCfg = new MiniAccumuloConfigImpl(
-        createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName() + "_peer"),
-        ROOT_PASSWORD);
+        createTestDir(this.getClass().getName() + "_" + this.testName() + "_peer"), ROOT_PASSWORD);
     peerCfg.setNumTservers(1);
     peerCfg.setInstanceName("peer");
     peerCfg.setProperty(Property.REPLICATION_NAME, "peer");

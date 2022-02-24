@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -45,20 +47,17 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 
+@Timeout(value = 2, unit = MINUTES)
 public class RegexGroupBalanceIT extends ConfigurableMacBase {
 
   @Override
   public void beforeClusterStart(MiniAccumuloConfigImpl cfg) {
     cfg.setNumTservers(4);
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 2 * 60;
   }
 
   @Test

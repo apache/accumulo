@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static java.util.Collections.singletonMap;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -42,9 +43,11 @@ import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Iterators;
 
+@Timeout(value = 3, unit = MINUTES)
 public class SessionDurabilityIT extends ConfigurableMacBase {
 
   @Override
@@ -52,11 +55,6 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
     cfg.setNumTservers(1);
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 3 * 60;
   }
 
   @Test

@@ -85,7 +85,7 @@ public class StatusMakerIT extends ConfigurableMacBase {
 
   @Test
   public void statusRecordsCreated() throws Exception {
-    String sourceTable = testName.getMethodName();
+    String sourceTable = testName();
     client.tableOperations().create(sourceTable);
     ReplicationTableUtil.configureMetadataTable(client, sourceTable);
 
@@ -135,7 +135,7 @@ public class StatusMakerIT extends ConfigurableMacBase {
 
   @Test
   public void openMessagesAreNotDeleted() throws Exception {
-    String sourceTable = testName.getMethodName();
+    String sourceTable = testName();
     client.tableOperations().create(sourceTable);
     ReplicationTableUtil.configureMetadataTable(client, sourceTable);
 
@@ -174,7 +174,7 @@ public class StatusMakerIT extends ConfigurableMacBase {
 
   @Test
   public void closedMessagesAreDeleted() throws Exception {
-    String sourceTable = testName.getMethodName();
+    String sourceTable = testName();
     client.tableOperations().create(sourceTable);
     ReplicationTableUtil.configureMetadataTable(client, sourceTable);
 
@@ -221,7 +221,7 @@ public class StatusMakerIT extends ConfigurableMacBase {
 
   @Test
   public void closedMessagesCreateOrderRecords() throws Exception {
-    String sourceTable = testName.getMethodName();
+    String sourceTable = testName();
     client.tableOperations().create(sourceTable);
     ReplicationTableUtil.configureMetadataTable(client, sourceTable);
 
@@ -283,7 +283,7 @@ public class StatusMakerIT extends ConfigurableMacBase {
 
   @Test
   public void orderRecordsCreatedWithNoCreatedTime() throws Exception {
-    String sourceTable = testName.getMethodName();
+    String sourceTable = testName();
     client.tableOperations().create(sourceTable);
     ReplicationTableUtil.configureMetadataTable(client, sourceTable);
 

@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static org.apache.accumulo.test.functional.FateConcurrencyIT.TIMEOUT_MINUTES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -55,6 +57,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,7 +72,10 @@ import org.slf4j.LoggerFactory;
  * (original) and additional method without.</li>
  * </ul>
  */
+@Timeout(value = TIMEOUT_MINUTES, unit = MINUTES)
 public class FateConcurrencyIT extends AccumuloClusterHarness {
+
+  public static final int TIMEOUT_MINUTES = 4;
 
   private static final Logger log = LoggerFactory.getLogger(FateConcurrencyIT.class);
 
@@ -92,7 +98,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     client = Accumulo.newClient().from(getClientProps()).build();
     context = (ClientContext) client;
     secret = cluster.getSiteConfiguration().get(Property.INSTANCE_SECRET);
-    maxWaitMillis = Math.max(60_000, defaultTimeoutSeconds() * 1000 / 2);
+    maxWaitMillis = Math.max(60_000, MINUTES.toMillis(TIMEOUT_MINUTES) / 2);
   }
 
   @After
@@ -103,11 +109,6 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
   @AfterClass
   public static void cleanup() {
     pool.shutdownNow();
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
   }
 
   /**

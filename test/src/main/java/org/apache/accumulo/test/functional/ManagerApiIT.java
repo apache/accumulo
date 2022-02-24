@@ -50,16 +50,13 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.runners.MethodSorters;
 
 // the shutdown test should sort last, so other tests don't break
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
+@Timeout(60)
 public class ManagerApiIT extends SharedMiniClusterBase {
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 60;
-  }
 
   private static Credentials rootUser;
   private static Credentials regularUser;

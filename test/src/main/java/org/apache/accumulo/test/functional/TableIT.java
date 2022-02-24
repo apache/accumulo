@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -45,16 +46,15 @@ import org.apache.hadoop.fs.Path;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Iterators;
 
 @Category(MiniClusterOnlyTests.class)
+@Tag("MiniClusterOnlyTests")
+@Timeout(value = 2, unit = MINUTES)
 public class TableIT extends AccumuloClusterHarness {
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 2 * 60;
-  }
 
   @Test
   public void test() throws Exception {

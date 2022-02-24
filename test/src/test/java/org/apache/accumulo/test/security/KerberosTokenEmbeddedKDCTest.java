@@ -24,6 +24,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 
+import org.apache.accumulo.WithTestNames;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.harness.TestingKdc;
 import org.apache.hadoop.conf.Configuration;
@@ -32,20 +33,15 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class KerberosTokenEmbeddedKDCTest {
+public class KerberosTokenEmbeddedKDCTest extends WithTestNames {
 
   private static final Logger log = LoggerFactory.getLogger(KerberosTokenEmbeddedKDCTest.class);
-
-  @Rule
-  public TestName testName = new TestName();
 
   private static volatile TestingKdc kdc;
 
@@ -72,7 +68,7 @@ public class KerberosTokenEmbeddedKDCTest {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @Test
   public void test() throws Exception {
-    String user = testName.getMethodName();
+    String user = testName();
     File userKeytab = new File(kdc.getKeytabDir(), user + ".keytab");
     if (userKeytab.exists() && !userKeytab.delete()) {
       log.warn("Unable to delete {}", userKeytab);
@@ -96,7 +92,7 @@ public class KerberosTokenEmbeddedKDCTest {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @Test
   public void testDestroy() throws Exception {
-    String user = testName.getMethodName();
+    String user = testName();
     File userKeytab = new File(kdc.getKeytabDir(), user + ".keytab");
     if (userKeytab.exists() && !userKeytab.delete()) {
       log.warn("Unable to delete {}", userKeytab);

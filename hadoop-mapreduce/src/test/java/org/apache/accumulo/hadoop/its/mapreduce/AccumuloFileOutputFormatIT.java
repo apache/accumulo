@@ -53,6 +53,7 @@ import org.apache.hadoop.util.ToolRunner;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.rules.TemporaryFolder;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -61,6 +62,7 @@ import com.google.common.collect.Multimap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not from user input")
+@Timeout(4 * 60)
 public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
   private String PREFIX;
@@ -72,18 +74,13 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
       new SamplerConfiguration(RowSampler.class.getName()).addOption("hasher", "murmur3_32")
           .addOption("modulus", "3");
 
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
-  }
-
   @Rule
   public TemporaryFolder folder =
       new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @Before
   public void setup() throws Exception {
-    PREFIX = testName.getMethodName() + "_";
+    PREFIX = testName() + "_";
     BAD_TABLE = PREFIX + "_mapreduce_bad_table";
     TEST_TABLE = PREFIX + "_mapreduce_test_table";
     EMPTY_TABLE = PREFIX + "_mapreduce_empty_table";
@@ -198,7 +195,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
   }
 
   private void handleWriteTests(boolean content) throws Exception {
-    File f = folder.newFile(testName.getMethodName());
+    File f = folder.newFile(testName());
     assertTrue(f.delete());
     MRTester.main(new String[] {content ? TEST_TABLE : EMPTY_TABLE, f.getAbsolutePath()});
 
@@ -230,7 +227,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
   @Test
   public void writeBadVisibility() throws Exception {
-    File f = folder.newFile(testName.getMethodName());
+    File f = folder.newFile(testName());
     assertTrue(f.delete());
     MRTester.main(new String[] {BAD_TABLE, f.getAbsolutePath()});
     assertTrue(f.exists());

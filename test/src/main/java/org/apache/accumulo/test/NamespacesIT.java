@@ -90,11 +90,15 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.function.ThrowingRunnable;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Timeout;
 
 /**
  * Test different namespace permissions
  */
 @Category(MiniClusterOnlyTests.class)
+@Tag("MiniClusterOnlyTests")
+@Timeout(60)
 public class NamespacesIT extends SharedMiniClusterBase {
 
   private AccumuloClient c;
@@ -109,11 +113,6 @@ public class NamespacesIT extends SharedMiniClusterBase {
   @AfterClass
   public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
-  }
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 60;
   }
 
   @Before

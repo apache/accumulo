@@ -37,11 +37,13 @@ import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
 import org.junit.rules.TemporaryFolder;
 
 import com.google.common.hash.Hashing;
 
 @Category({ZooKeeperTestingServerTests.class})
+@Tag("ZooKeeperTestingServerTests")
 public class ZooMutatorIT {
 
   @Rule

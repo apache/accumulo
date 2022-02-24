@@ -73,6 +73,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,6 +81,7 @@ import com.google.common.collect.Iterators;
 
 @Ignore("Replication ITs are not stable and not currently maintained")
 @Deprecated
+@Timeout(60 * 6)
 public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
   private static final Logger log =
       LoggerFactory.getLogger(UnorderedWorkAssignerReplicationIT.class);
@@ -105,11 +107,6 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
     if (executor != null) {
       executor.shutdownNow();
     }
-  }
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 60 * 6;
   }
 
   @Override
@@ -176,8 +173,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
   @Test
   public void dataWasReplicatedToThePeer() throws Exception {
     MiniAccumuloConfigImpl peerCfg = new MiniAccumuloConfigImpl(
-        createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName() + "_peer"),
-        ROOT_PASSWORD);
+        createTestDir(this.getClass().getName() + "_" + this.testName() + "_peer"), ROOT_PASSWORD);
     peerCfg.setNumTservers(1);
     peerCfg.setInstanceName("peer");
     updatePeerConfigFromPrimary(getCluster().getConfig(), peerCfg);
@@ -345,8 +341,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
   @Test
   public void dataReplicatedToCorrectTable() throws Exception {
     MiniAccumuloConfigImpl peerCfg = new MiniAccumuloConfigImpl(
-        createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName() + "_peer"),
-        ROOT_PASSWORD);
+        createTestDir(this.getClass().getName() + "_" + this.testName() + "_peer"), ROOT_PASSWORD);
     peerCfg.setNumTservers(1);
     peerCfg.setInstanceName("peer");
     updatePeerConfigFromPrimary(getCluster().getConfig(), peerCfg);
@@ -518,8 +513,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
   @Test
   public void dataWasReplicatedToThePeerWithoutDrain() throws Exception {
     MiniAccumuloConfigImpl peerCfg = new MiniAccumuloConfigImpl(
-        createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName() + "_peer"),
-        ROOT_PASSWORD);
+        createTestDir(this.getClass().getName() + "_" + this.testName() + "_peer"), ROOT_PASSWORD);
     peerCfg.setNumTservers(1);
     peerCfg.setInstanceName("peer");
     updatePeerConfigFromPrimary(getCluster().getConfig(), peerCfg);
@@ -633,8 +627,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
   @Test
   public void dataReplicatedToCorrectTableWithoutDrain() throws Exception {
     MiniAccumuloConfigImpl peerCfg = new MiniAccumuloConfigImpl(
-        createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName() + "_peer"),
-        ROOT_PASSWORD);
+        createTestDir(this.getClass().getName() + "_" + this.testName() + "_peer"), ROOT_PASSWORD);
     peerCfg.setNumTservers(1);
     peerCfg.setInstanceName("peer");
     updatePeerConfigFromPrimary(getCluster().getConfig(), peerCfg);

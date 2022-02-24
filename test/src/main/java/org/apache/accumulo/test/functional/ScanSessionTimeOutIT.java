@@ -43,9 +43,11 @@ import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Timeout(60)
 public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(ScanSessionTimeOutIT.class);
 
@@ -54,11 +56,6 @@ public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TSERV_SESSION_MAXIDLE.getKey(), getMaxIdleTimeString());
     cfg.setSiteConfig(siteConfig);
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
   }
 
   private String sessionIdle = null;

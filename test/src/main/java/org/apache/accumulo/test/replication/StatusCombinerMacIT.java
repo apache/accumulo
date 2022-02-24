@@ -51,17 +51,14 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Iterables;
 
 @Ignore("Replication ITs are not stable and not currently maintained")
 @Deprecated
+@Timeout(60)
 public class StatusCombinerMacIT extends SharedMiniClusterBase {
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 60;
-  }
 
   @BeforeClass
   public static void setup() throws Exception {

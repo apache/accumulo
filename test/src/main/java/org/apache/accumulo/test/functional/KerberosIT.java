@@ -80,6 +80,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,6 +95,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * check for Kerberos/SASL testing.
  */
 @Category(MiniClusterOnlyTests.class)
+@Tag("MiniClusterOnlyTests")
+@Timeout(60 * 5)
 public class KerberosIT extends AccumuloITBase {
   private static final Logger log = LoggerFactory.getLogger(KerberosIT.class);
 
@@ -120,11 +124,6 @@ public class KerberosIT extends AccumuloITBase {
       System.setProperty(MiniClusterHarness.USE_KERBEROS_FOR_IT_OPTION, krbEnabledForITs);
     }
     UserGroupInformation.setConfiguration(new Configuration(false));
-  }
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 60 * 5;
   }
 
   private MiniAccumuloClusterImpl mac;
@@ -186,7 +185,7 @@ public class KerberosIT extends AccumuloITBase {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @Test
   public void testNewUser() throws Exception {
-    String newUser = testName.getMethodName();
+    String newUser = testName();
     final File newUserKeytab = new File(kdc.getKeytabDir(), newUser + ".keytab");
     if (newUserKeytab.exists() && !newUserKeytab.delete()) {
       log.warn("Unable to delete {}", newUserKeytab);
@@ -241,7 +240,7 @@ public class KerberosIT extends AccumuloITBase {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @Test
   public void testUserPrivilegesThroughGrant() throws Exception {
-    String user1 = testName.getMethodName();
+    String user1 = testName();
     final File user1Keytab = new File(kdc.getKeytabDir(), user1 + ".keytab");
     if (user1Keytab.exists() && !user1Keytab.delete()) {
       log.warn("Unable to delete {}", user1Keytab);
@@ -286,7 +285,7 @@ public class KerberosIT extends AccumuloITBase {
       AccumuloClient client = mac.createAccumuloClient(qualifiedUser1, new KerberosToken());
 
       // Shouldn't throw an exception since we granted the create table permission
-      final String table = testName.getMethodName() + "_user_table";
+      final String table = testName() + "_user_table";
       client.tableOperations().create(table);
 
       // Make sure we can actually use the table we made
@@ -304,7 +303,7 @@ public class KerberosIT extends AccumuloITBase {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @Test
   public void testUserPrivilegesForTable() throws Exception {
-    String user1 = testName.getMethodName();
+    String user1 = testName();
     final File user1Keytab = new File(kdc.getKeytabDir(), user1 + ".keytab");
     if (user1Keytab.exists() && !user1Keytab.delete()) {
       log.warn("Unable to delete {}", user1Keytab);
@@ -331,7 +330,7 @@ public class KerberosIT extends AccumuloITBase {
       return null;
     });
 
-    final String table = testName.getMethodName() + "_user_table";
+    final String table = testName() + "_user_table";
     final String viz = "viz";
 
     ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(rootUser.getPrincipal(),
@@ -482,7 +481,7 @@ public class KerberosIT extends AccumuloITBase {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @Test
   public void testGetDelegationTokenDenied() throws Exception {
-    String newUser = testName.getMethodName();
+    String newUser = testName();
     final File newUserKeytab = new File(kdc.getKeytabDir(), newUser + ".keytab");
     if (newUserKeytab.exists() && !newUserKeytab.delete()) {
       log.warn("Unable to delete {}", newUserKeytab);
@@ -648,7 +647,7 @@ public class KerberosIT extends AccumuloITBase {
    */
   private void createTableWithDataAndCompact(AccumuloClient client) throws TableNotFoundException,
       AccumuloSecurityException, AccumuloException, TableExistsException {
-    final String table = testName.getMethodName() + "_table";
+    final String table = testName() + "_table";
     client.tableOperations().create(table);
     try (BatchWriter bw = client.createBatchWriter(table)) {
       Mutation m = new Mutation("a");

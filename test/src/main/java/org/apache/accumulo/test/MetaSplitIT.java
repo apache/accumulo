@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
@@ -40,18 +41,15 @@ import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Timeout(value = 3, unit = MINUTES)
 public class MetaSplitIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(MetaSplitIT.class);
 
   private Collection<Text> metadataSplits = null;
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 3 * 60;
-  }
 
   @Before
   public void saveMetadataSplits() throws Exception {
