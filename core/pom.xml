@@ -275,7 +275,6 @@
               <excludes />
               <allows>
                 <allow>io[.]opentelemetry[.]api[.]OpenTelemetry</allow>
-                <allow>org[.]apache[.]hadoop[.]conf[.]Configuration</allow>
                 <allow>org[.]apache[.]hadoop[.]io[.]compress[.]CompressionCodec</allow>
                 <allow>org[.]apache[.]hadoop[.]io[.]compress[.]Decompressor</allow>
                 <allow>org[.]apache[.]hadoop[.]io[.]compress[.]Compressor</allow>

@@ -24,12 +24,12 @@ import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.compress.CodecPool;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionInputStream;
@@ -84,7 +84,7 @@ import com.google.common.collect.Maps;
  * Snappy will use the default Snappy codec with the default buffer size of 64k for the compression
  * stream, but will use a cached codec if the buffer size differs from the default.
  */
-public abstract class Algorithm extends Configured {
+public abstract class Algorithm {
 
   public static class FinishOnFlushCompressionStream extends FilterOutputStream {
 
@@ -128,8 +128,14 @@ public abstract class Algorithm extends Configured {
   // The name of the compression algorithm.
   private final String name;
 
+  private final Configuration conf = new Configuration();
+
   public Algorithm(String name) {
     this.name = name;
+  }
+
+  public void setHadoopConfiguration(Iterable<Map.Entry<String,String>> properties) {
+    properties.forEach((e) -> conf.set(e.getKey(), e.getValue()));
   }
 
   public abstract InputStream createDecompressionStream(InputStream downStream,
@@ -243,11 +249,11 @@ public abstract class Algorithm extends Configured {
   public CompressionCodec createNewCodec(final String codecClazzProp, final String defaultClazz,
       final int bufferSize, final String bufferSizeConfigOpt) {
     String extClazz =
-        (getConf().get(codecClazzProp) == null ? System.getProperty(codecClazzProp) : null);
+        (conf.get(codecClazzProp) == null ? System.getProperty(codecClazzProp) : null);
     String clazz = (extClazz != null) ? extClazz : defaultClazz;
     try {
       LOG.info("Trying to load codec class {} for {}", clazz, codecClazzProp);
-      Configuration config = new Configuration(getConf());
+      Configuration config = new Configuration(conf);
       updateBuffer(config, bufferSizeConfigOpt, bufferSize);
       return (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), config);
     } catch (ClassNotFoundException e) {
@@ -309,7 +315,7 @@ public abstract class Algorithm extends Configured {
    * Updates the value of the specified buffer size opt in the given {@link Configuration} if the
    * new buffer size is greater than 0.
    */
-  public void updateBuffer(final Configuration config, final String bufferSizeOpt,
+  private void updateBuffer(final Configuration config, final String bufferSizeOpt,
       final int bufferSize) {
     // Use the buffersize only if it is greater than 0, otherwise use the default defined within
     // the codec.

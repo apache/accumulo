@@ -333,7 +333,9 @@ public final class Compression {
     @Override
     public CompressionCodec createNewCodec(final int bufferSize) {
       Configuration newConfig = new Configuration(conf);
-      updateBuffer(conf, BUFFER_SIZE_OPT, bufferSize);
+      if (bufferSize > 0) {
+        conf.setInt(BUFFER_SIZE_OPT, bufferSize);
+      }
       DefaultCodec newCodec = new DefaultCodec();
       newCodec.setConf(newConfig);
       return newCodec;
@@ -574,42 +576,42 @@ public final class Compression {
 
     // Add known set of Algorithms
     Algorithm bzip = new Bzip2();
-    bzip.setConf(conf);
+    bzip.setHadoopConfiguration(conf);
     bzip.initializeDefaultCodec();
     CONFIGURED_ALGORITHMS.put(bzip.getName(), bzip);
 
     Algorithm gz = new Gz();
-    gz.setConf(conf);
+    gz.setHadoopConfiguration(conf);
     gz.initializeDefaultCodec();
     CONFIGURED_ALGORITHMS.put(gz.getName(), gz);
 
     Algorithm lz4 = new Lz4();
-    lz4.setConf(conf);
+    lz4.setHadoopConfiguration(conf);
     lz4.initializeDefaultCodec();
     CONFIGURED_ALGORITHMS.put(lz4.getName(), lz4);
 
     Algorithm lzo = new Lzo();
-    lzo.setConf(conf);
+    lzo.setHadoopConfiguration(conf);
     lzo.initializeDefaultCodec();
     CONFIGURED_ALGORITHMS.put(lzo.getName(), lzo);
 
     Algorithm none = new None();
-    none.setConf(conf);
+    none.setHadoopConfiguration(conf);
     none.initializeDefaultCodec();
     CONFIGURED_ALGORITHMS.put(none.getName(), none);
 
     Algorithm snappy = new Snappy();
-    snappy.setConf(conf);
+    snappy.setHadoopConfiguration(conf);
     snappy.initializeDefaultCodec();
     CONFIGURED_ALGORITHMS.put(snappy.getName(), snappy);
 
     Algorithm zstd = new ZStandard();
-    zstd.setConf(conf);
+    zstd.setHadoopConfiguration(conf);
     zstd.initializeDefaultCodec();
     CONFIGURED_ALGORITHMS.put(zstd.getName(), zstd);
 
     CUSTOM_ALGORITHMS.forEach(algo -> {
-      algo.setConf(conf);
+      algo.setHadoopConfiguration(conf);
       algo.initializeDefaultCodec();
       CONFIGURED_ALGORITHMS.put(algo.getName(), algo);
     });
