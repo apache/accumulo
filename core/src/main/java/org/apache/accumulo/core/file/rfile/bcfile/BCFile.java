@@ -47,7 +47,6 @@ import org.apache.accumulo.core.spi.crypto.FileDecrypter;
 import org.apache.accumulo.core.spi.crypto.FileEncrypter;
 import org.apache.accumulo.core.spi.crypto.NoFileDecrypter;
 import org.apache.accumulo.core.spi.crypto.NoFileEncrypter;
-import org.apache.accumulo.core.spi.file.rfile.compression.Algorithm;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -129,7 +128,7 @@ public final class BCFile {
      * Intermediate class that maintain the state of a Writable Compression Block.
      */
     private static final class WBlockState {
-      private final Algorithm compressAlgo;
+      private final DefaultCompressionAlgorithm compressAlgo;
       private Compressor compressor; // !null only if using native
       // Hadoop compression
       private final RateLimitedOutputStream fsOut;
@@ -138,7 +137,7 @@ public final class BCFile {
       private final SimpleBufferedOutputStream fsBufferedOutput;
       private OutputStream out;
 
-      public WBlockState(Algorithm compressionAlgo, RateLimitedOutputStream fsOut,
+      public WBlockState(DefaultCompressionAlgorithm compressionAlgo, RateLimitedOutputStream fsOut,
           BytesWritable fsOutputBuffer, Configuration conf, FileEncrypter encrypter)
           throws IOException {
         this.compressAlgo = compressionAlgo;
@@ -373,11 +372,11 @@ public final class BCFile {
       }
     }
 
-    private Algorithm getDefaultCompressionAlgorithm() {
+    private DefaultCompressionAlgorithm getDefaultCompressionAlgorithm() {
       return dataIndex.getDefaultCompressionAlgorithm();
     }
 
-    private BlockAppender prepareMetaBlock(String name, Algorithm compressAlgo)
+    private BlockAppender prepareMetaBlock(String name, DefaultCompressionAlgorithm compressAlgo)
         throws IOException, MetaBlockAlreadyExists {
       if (blkInProgress) {
         throw new IllegalStateException("Cannot create Meta Block until previous block is closed.");
@@ -439,9 +438,9 @@ public final class BCFile {
      */
     private class MetaBlockRegister {
       private final String name;
-      private final Algorithm compressAlgo;
+      private final DefaultCompressionAlgorithm compressAlgo;
 
-      MetaBlockRegister(String name, Algorithm compressAlgo) {
+      MetaBlockRegister(String name, DefaultCompressionAlgorithm compressAlgo) {
         this.name = name;
         this.compressAlgo = compressAlgo;
       }
@@ -470,15 +469,15 @@ public final class BCFile {
      * Intermediate class that maintain the state of a Readable Compression Block.
      */
     private static final class RBlockState {
-      private final Algorithm compressAlgo;
+      private final DefaultCompressionAlgorithm compressAlgo;
       private Decompressor decompressor;
       private final BlockRegion region;
       private final InputStream in;
       private volatile boolean closed;
 
-      public <InputStreamType extends InputStream & Seekable> RBlockState(Algorithm compressionAlgo,
-          InputStreamType fsin, BlockRegion region, Configuration conf, FileDecrypter decrypter)
-          throws IOException {
+      public <InputStreamType extends InputStream & Seekable> RBlockState(
+          DefaultCompressionAlgorithm compressionAlgo, InputStreamType fsin, BlockRegion region,
+          Configuration conf, FileDecrypter decrypter) throws IOException {
         this.compressAlgo = compressionAlgo;
         this.region = region;
         this.decompressor = compressionAlgo.getDecompressor();
@@ -747,7 +746,7 @@ public final class BCFile {
       return dataIndex.getBlockRegionList().get(blockIndex).getRawSize();
     }
 
-    private BlockReader createReader(Algorithm compressAlgo, BlockRegion region)
+    private BlockReader createReader(DefaultCompressionAlgorithm compressAlgo, BlockRegion region)
         throws IOException {
       RBlockState rbs = new RBlockState(compressAlgo, in, region, conf, decrypter);
       return new BlockReader(rbs);
@@ -799,7 +798,7 @@ public final class BCFile {
    */
   static final class MetaIndexEntry {
     private final String metaName;
-    private final Algorithm compressionAlgorithm;
+    private final DefaultCompressionAlgorithm compressionAlgorithm;
     private static final String defaultPrefix = "data:";
 
     private final BlockRegion region;
@@ -816,7 +815,8 @@ public final class BCFile {
       region = new BlockRegion(in);
     }
 
-    public MetaIndexEntry(String metaName, Algorithm compressionAlgorithm, BlockRegion region) {
+    public MetaIndexEntry(String metaName, DefaultCompressionAlgorithm compressionAlgorithm,
+        BlockRegion region) {
       this.metaName = metaName;
       this.compressionAlgorithm = compressionAlgorithm;
       this.region = region;
@@ -826,7 +826,7 @@ public final class BCFile {
       return metaName;
     }
 
-    public Algorithm getCompressionAlgorithm() {
+    public DefaultCompressionAlgorithm getCompressionAlgorithm() {
       return compressionAlgorithm;
     }
 
@@ -848,7 +848,7 @@ public final class BCFile {
   static class DataIndex {
     static final String BLOCK_NAME = "BCFile.index";
 
-    private final Algorithm defaultCompressionAlgorithm;
+    private final DefaultCompressionAlgorithm defaultCompressionAlgorithm;
 
     // for data blocks, each entry specifies a block's offset, compressed size
     // and raw size
@@ -874,7 +874,7 @@ public final class BCFile {
       listRegions = new ArrayList<>();
     }
 
-    public Algorithm getDefaultCompressionAlgorithm() {
+    public DefaultCompressionAlgorithm getDefaultCompressionAlgorithm() {
       return defaultCompressionAlgorithm;
     }
 

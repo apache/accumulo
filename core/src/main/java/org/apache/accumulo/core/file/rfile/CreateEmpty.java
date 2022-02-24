@@ -27,6 +27,7 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression;
+import org.apache.accumulo.core.spi.file.rfile.compression.None;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -69,7 +70,7 @@ public class CreateEmpty implements KeywordExecutable {
   static class Opts extends Help {
     @Parameter(names = {"-c", "--codec"}, description = "the compression codec to use.",
         validateWith = IsSupportedCompressionAlgorithm.class)
-    String codec = Compression.COMPRESSION_NONE;
+    String codec = new None().getName();
     @Parameter(
         description = " <path> { <path> ... } Each path given is a URL."
             + " Relative paths are resolved according to the default filesystem defined in"
