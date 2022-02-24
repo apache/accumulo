@@ -69,12 +69,8 @@ public class NamespaceConfiguration extends AccumuloConfiguration {
   private ZooCache getZooCache() {
     synchronized (propCaches) {
       PropCacheKey key = new PropCacheKey(context.getInstanceID(), namespaceId.canonical());
-      ZooCache propCache = propCaches.get(key);
-      if (propCache == null) {
-        propCache = zcf.getZooCache(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
-        propCaches.put(key, propCache);
-      }
-      return propCache;
+      return propCaches.computeIfAbsent(key,
+          k -> zcf.getZooCache(context.getZooKeepers(), context.getZooKeepersSessionTimeOut()));
     }
   }
 

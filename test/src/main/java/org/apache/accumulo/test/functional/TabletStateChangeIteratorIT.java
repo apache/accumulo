@@ -46,7 +46,6 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
@@ -60,7 +59,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.manager.state.CurrentState;
@@ -291,10 +289,10 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
   private static class State implements CurrentState {
 
-    final AccumuloClient client;
+    final ClientContext context;
 
     State(AccumuloClient client) {
-      this.client = client;
+      this.context = (ClientContext) client;
     }
 
     private Set<TServerInstance> tservers;
@@ -303,13 +301,11 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     @Override
     public Set<TServerInstance> onlineTabletServers() {
       HashSet<TServerInstance> tservers = new HashSet<>();
-      for (String tserver : client.instanceOperations().getTabletServers()) {
+      for (String tserver : context.instanceOperations().getTabletServers()) {
         try {
-          var zPath = ServiceLock.path(ZooUtil.getRoot(client.instanceOperations().getInstanceId())
+          var zPath = ServiceLock.path(ZooUtil.getRoot(context.instanceOperations().getInstanceId())
               + Constants.ZTSERVERS + "/" + tserver);
-          ClientInfo info = getClientInfo();
-          long sessionId = ServiceLock.getSessionId(
-              new ZooCache(info.getZooKeepers(), info.getZooKeepersSessionTimeOut()), zPath);
+          long sessionId = ServiceLock.getSessionId(context.getZooCache(), zPath);
           tservers.add(new TServerInstance(tserver, sessionId));
         } catch (Exception e) {
           throw new RuntimeException(e);
@@ -321,7 +317,6 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
     @Override
     public Set<TableId> onlineTables() {
-      ClientContext context = (ClientContext) client;
       Set<TableId> onlineTables = context.getTableIdToNameMap().keySet();
       this.onlineTables =
           Sets.filter(onlineTables, tableId -> context.getTableState(tableId) == TableState.ONLINE);
