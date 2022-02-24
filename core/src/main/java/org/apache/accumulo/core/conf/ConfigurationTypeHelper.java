@@ -18,6 +18,12 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static java.util.concurrent.TimeUnit.DAYS;
+import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -114,23 +120,23 @@ public class ConfigurationTypeHelper {
     int unitsLen = 1;
     switch (str.charAt(str.length() - 1)) {
       case 'd':
-        timeUnit = TimeUnit.DAYS;
+        timeUnit = DAYS;
         break;
       case 'h':
-        timeUnit = TimeUnit.HOURS;
+        timeUnit = HOURS;
         break;
       case 'm':
-        timeUnit = TimeUnit.MINUTES;
+        timeUnit = MINUTES;
         break;
       case 's':
-        timeUnit = TimeUnit.SECONDS;
+        timeUnit = SECONDS;
         if (str.endsWith("ms")) {
-          timeUnit = TimeUnit.MILLISECONDS;
+          timeUnit = MILLISECONDS;
           unitsLen = 2;
         }
         break;
       default:
-        timeUnit = TimeUnit.SECONDS;
+        timeUnit = SECONDS;
         unitsLen = 0;
         break;
     }

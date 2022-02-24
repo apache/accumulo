@@ -33,7 +33,6 @@ import java.util.function.Function;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
 import org.apache.accumulo.core.clientImpl.bulk.BulkSerialize;
 import org.apache.accumulo.core.clientImpl.bulk.LoadMappingIterator;
@@ -93,7 +92,7 @@ public class PrepBulkImport extends ManagerRepo {
 
     if (manager.onlineTabletServers().isEmpty())
       return 500;
-    Tables.clearCache(manager.getContext());
+    manager.getContext().clearTableListCache();
 
     return Utils.reserveHdfsDirectory(manager, bulkInfo.sourceDir, tid);
   }
@@ -204,7 +203,7 @@ public class PrepBulkImport extends ManagerRepo {
     // now that table lock is acquired check that all splits in load mapping exists in table
     checkForMerge(tid, manager);
 
-    bulkInfo.tableState = Tables.getTableState(manager.getContext(), bulkInfo.tableId);
+    bulkInfo.tableState = manager.getContext().getTableState(bulkInfo.tableId);
 
     VolumeManager fs = manager.getVolumeManager();
     final UniqueNameAllocator namer = manager.getContext().getUniqueNameAllocator();

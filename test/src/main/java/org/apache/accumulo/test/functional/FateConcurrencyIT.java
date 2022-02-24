@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -29,7 +32,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
@@ -39,7 +41,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
@@ -92,7 +93,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     client = Accumulo.newClient().from(getClientProps()).build();
     context = (ClientContext) client;
     secret = cluster.getSiteConfiguration().get(Property.INSTANCE_SECRET);
-    maxWaitMillis = Math.max(60_000, defaultTimeoutSeconds() * 1000 / 2);
+    maxWaitMillis = Math.max(MINUTES.toMillis(1), defaultTimeoutSeconds() * 1000 / 2);
   }
 
   @After
@@ -134,8 +135,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     OnlineOpTiming timing1 = task.get();
 
-    log.trace("Online 1 in {} ms",
-        TimeUnit.MILLISECONDS.convert(timing1.runningTime(), TimeUnit.NANOSECONDS));
+    log.trace("Online 1 in {} ms", NANOSECONDS.toMillis(timing1.runningTime()));
 
     assertEquals("verify table is still online", TableState.ONLINE, getTableState(tableName));
 
@@ -150,8 +150,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     OnlineOpTiming timing2 = task.get();
 
-    log.trace("Online 2 in {} ms",
-        TimeUnit.MILLISECONDS.convert(timing2.runningTime(), TimeUnit.NANOSECONDS));
+    log.trace("Online 2 in {} ms", NANOSECONDS.toMillis(timing2.runningTime()));
 
     assertEquals("verify table is back online", TableState.ONLINE, getTableState(tableName));
 
@@ -168,8 +167,8 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     OnlineOpTiming timing3 = task.get();
 
-    assertTrue("online should take less time than expected compaction time", timing3.runningTime()
-        < TimeUnit.NANOSECONDS.convert(NUM_ROWS * SLOW_SCAN_SLEEP_MS, TimeUnit.MILLISECONDS));
+    assertTrue("online should take less time than expected compaction time",
+        timing3.runningTime() < MILLISECONDS.toNanos(NUM_ROWS * SLOW_SCAN_SLEEP_MS));
 
     assertEquals("verify table is still online", TableState.ONLINE, getTableState(tableName));
 
@@ -179,12 +178,9 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     client.tableOperations().cancelCompaction(tableName);
 
     log.debug("Success: Timing results for online commands.");
-    log.debug("Time for unblocked online {} ms",
-        TimeUnit.MILLISECONDS.convert(timing1.runningTime(), TimeUnit.NANOSECONDS));
-    log.debug("Time for online when offline {} ms",
-        TimeUnit.MILLISECONDS.convert(timing2.runningTime(), TimeUnit.NANOSECONDS));
-    log.debug("Time for blocked online {} ms",
-        TimeUnit.MILLISECONDS.convert(timing3.runningTime(), TimeUnit.NANOSECONDS));
+    log.debug("Time for unblocked online {} ms", NANOSECONDS.toMillis(timing1.runningTime()));
+    log.debug("Time for online when offline {} ms", NANOSECONDS.toMillis(timing2.runningTime()));
+    log.debug("Time for blocked online {} ms", NANOSECONDS.toMillis(timing3.runningTime()));
 
     // block if compaction still running
     slowOps.blockWhileCompactionRunning();
@@ -231,7 +227,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       assertEquals("verify table online after created", TableState.ONLINE,
           getTableState(tableName));
 
-      tableId = Tables.getTableId(context, tableName);
+      tableId = context.getTableId(tableName);
 
       log.trace("tid: {}", tableId);
 
@@ -341,7 +337,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     try {
 
-      TableId tableId = Tables.getTableId(context, tableName);
+      TableId tableId = context.getTableId(tableName);
 
       log.trace("tid: {}", tableId);
 
@@ -404,9 +400,9 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
    */
   private TableState getTableState(String tableName) throws TableNotFoundException {
 
-    TableId tableId = Tables.getTableId(context, tableName);
+    TableId tableId = context.getTableId(tableName);
 
-    TableState tstate = Tables.getTableState(context, tableId);
+    TableState tstate = context.getTableState(tableId);
 
     log.trace("tableName: '{}': tableId {}, current state: {}", tableName, tableId, tstate);
 
@@ -468,8 +464,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       // stop timing
       status.setComplete();
 
-      log.trace("Online completed in {} ms",
-          TimeUnit.MILLISECONDS.convert(status.runningTime(), TimeUnit.NANOSECONDS));
+      log.trace("Online completed in {} ms", NANOSECONDS.toMillis(status.runningTime()));
 
       return status;
     }

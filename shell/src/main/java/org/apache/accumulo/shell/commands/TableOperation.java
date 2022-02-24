@@ -27,7 +27,6 @@ import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Namespaces;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.shell.Shell;
@@ -61,7 +60,7 @@ public abstract class TableOperation extends Command {
       NamespaceId namespaceId = Namespaces.getNamespaceId(shellState.getContext(),
           cl.getOptionValue(optNamespace.getOpt()));
       for (TableId tableId : Namespaces.getTableIds(shellState.getContext(), namespaceId)) {
-        tableSet.add(Tables.getTableName(shellState.getContext(), tableId));
+        tableSet.add(shellState.getContext().getTableName(tableId));
       }
     } else if (useCommandLine && cl.getArgs().length > 0) {
       Collections.addAll(tableSet, cl.getArgs());

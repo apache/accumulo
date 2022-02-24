@@ -18,7 +18,9 @@
  */
 package org.apache.accumulo.server.zookeeper;
 
+import static java.lang.Math.toIntExact;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MINUTES;
 
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -165,7 +167,8 @@ public class DistributedWorkQueue {
 
   public DistributedWorkQueue(String path, AccumuloConfiguration config, ServerContext context) {
     // Preserve the old delay and period
-    this(path, config, context, random.nextInt(60_000), 60_000);
+    this(path, config, context, random.nextInt(toIntExact(MINUTES.toMillis(1))),
+        MINUTES.toMillis(1));
   }
 
   public DistributedWorkQueue(String path, AccumuloConfiguration config, ServerContext context,

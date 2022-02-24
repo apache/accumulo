@@ -52,7 +52,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.data.Key;
@@ -835,9 +834,9 @@ public class InputConfigurator extends ConfiguratorBase {
       List<Range> ranges, ClientContext context) throws AccumuloException, TableNotFoundException {
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
 
-    if (Tables.getTableState(context, tableId) != TableState.OFFLINE) {
-      Tables.clearCache(context);
-      if (Tables.getTableState(context, tableId) != TableState.OFFLINE) {
+    if (context.getTableState(tableId) != TableState.OFFLINE) {
+      context.clearTableListCache();
+      if (context.getTableState(tableId) != TableState.OFFLINE) {
         throw new AccumuloException(
             "Table is online tableId:" + tableId + " cannot scan table in offline mode ");
       }

@@ -29,7 +29,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -198,7 +197,7 @@ public class RemoveEntriesForMissingFiles {
     } else if (tableName.equals(MetadataTable.NAME)) {
       return checkTable(context, RootTable.NAME, TabletsSection.getRange(), fix);
     } else {
-      TableId tableId = Tables.getTableId(context, tableName);
+      TableId tableId = context.getTableId(tableName);
       Range range = new KeyExtent(tableId, null, null).toMetaRange();
       return checkTable(context, MetadataTable.NAME, range, fix);
     }

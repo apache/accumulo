@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
@@ -39,7 +40,6 @@ import java.util.TreeSet;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -204,9 +204,9 @@ public class TabletServerBatchWriter implements AutoCloseable {
         ThreadPools.createGeneralScheduledExecutorService(this.context.getConfiguration());
     this.failedMutations = new FailedMutations();
     this.maxMem = config.getMaxMemory();
-    this.maxLatency = config.getMaxLatency(TimeUnit.MILLISECONDS) <= 0 ? Long.MAX_VALUE
-        : config.getMaxLatency(TimeUnit.MILLISECONDS);
-    this.timeout = config.getTimeout(TimeUnit.MILLISECONDS);
+    this.maxLatency = config.getMaxLatency(MILLISECONDS) <= 0 ? Long.MAX_VALUE
+        : config.getMaxLatency(MILLISECONDS);
+    this.timeout = config.getTimeout(MILLISECONDS);
     this.mutations = new MutationSet();
     this.lastProcessingStartTime = System.currentTimeMillis();
     this.durability = config.getDurability();
@@ -224,7 +224,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
         } catch (Exception e) {
           updateUnknownErrors("Max latency task failed " + e.getMessage(), e);
         }
-      }), 0, this.maxLatency / 4, TimeUnit.MILLISECONDS);
+      }), 0, this.maxLatency / 4, MILLISECONDS);
     }
   }
 
@@ -504,7 +504,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
     if (!authorizationFailures.isEmpty()) {
 
       // was a table deleted?
-      Tables.clearCache(context);
+      context.clearTableListCache();
       authorizationFailures.keySet().stream().map(KeyExtent::tableId)
           .forEach(context::requireNotDeleted);
 
@@ -580,7 +580,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
     FailedMutations() {
       task =
           Threads.createNamedRunnable("failed mutationBatchWriterLatencyTimers handler", this::run);
-      executor.scheduleWithFixedDelay(task, 0, 500, TimeUnit.MILLISECONDS);
+      executor.scheduleWithFixedDelay(task, 0, 500, MILLISECONDS);
     }
 
     private MutationSet init() {

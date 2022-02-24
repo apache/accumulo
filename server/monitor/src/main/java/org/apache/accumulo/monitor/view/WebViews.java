@@ -46,7 +46,6 @@ import jakarta.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
@@ -302,7 +301,7 @@ public class WebViews {
       @PathParam("tableID") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableID)
       throws TableNotFoundException {
 
-    String tableName = Tables.getTableName(monitor.getContext(), TableId.of(tableID));
+    String tableName = monitor.getContext().getTableName(TableId.of(tableID));
 
     Map<String,Object> model = getModel();
     model.put("title", "Table Status");

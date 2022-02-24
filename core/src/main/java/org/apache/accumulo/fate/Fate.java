@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.fate;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.concurrent.ExecutorService;
@@ -25,7 +28,6 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
@@ -165,7 +167,7 @@ public class Fate<T> {
         while (true) {
           // Nothing is going to work well at this point, so why even try. Just wait for the end,
           // preventing this FATE thread from processing further work and likely failing.
-          UtilWaitThread.sleepUninterruptibly(1, TimeUnit.MINUTES);
+          UtilWaitThread.sleepUninterruptibly(1, MINUTES);
         }
       }
     }
@@ -262,7 +264,7 @@ public class Fate<T> {
           }
         }
       }
-    }, 3, TimeUnit.SECONDS);
+    }, 3, SECONDS);
     executor = pool;
   }
 

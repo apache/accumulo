@@ -19,6 +19,8 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.nio.ByteBuffer;
@@ -88,8 +90,8 @@ import org.apache.thrift.transport.TTransportException;
 
 class ConditionalWriterImpl implements ConditionalWriter {
 
-  private static ThreadPoolExecutor cleanupThreadPool = ThreadPools.createFixedThreadPool(1, 3,
-      TimeUnit.SECONDS, "Conditional Writer Cleanup Thread", true);
+  private static ThreadPoolExecutor cleanupThreadPool =
+      ThreadPools.createFixedThreadPool(1, 3, SECONDS, "Conditional Writer Cleanup Thread", true);
 
   private static final int MAX_SLEEP = 30000;
 
@@ -135,14 +137,14 @@ class ConditionalWriterImpl implements ConditionalWriter {
         throw new NoSuchElementException();
 
       try {
-        Result result = rq.poll(1, TimeUnit.SECONDS);
+        Result result = rq.poll(1, SECONDS);
         while (result == null) {
 
           if (threadPool.isShutdown()) {
             throw new NoSuchElementException("ConditionalWriter closed");
           }
 
-          result = rq.poll(1, TimeUnit.SECONDS);
+          result = rq.poll(1, SECONDS);
         }
         count--;
         return result;
@@ -190,7 +192,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
 
     @Override
     public long getDelay(TimeUnit unit) {
-      return unit.convert(delay - (System.currentTimeMillis() - resetTime), TimeUnit.MILLISECONDS);
+      return unit.convert(delay - (System.currentTimeMillis() - resetTime), MILLISECONDS);
     }
 
     void resetDelay() {
@@ -253,7 +255,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
 
       for (QCMutation qcm : mutations) {
         qcm.resetDelay();
-        if (time + qcm.getDelay(TimeUnit.MILLISECONDS) > qcm.entryTime + timeout) {
+        if (time + qcm.getDelay(MILLISECONDS) > qcm.entryTime + timeout) {
           TimedOutException toe;
           if (server != null)
             toe = new TimedOutException(Collections.singleton(server.toString()));
@@ -369,7 +371,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     this.serverQueues = new HashMap<>();
     this.tableId = tableId;
     this.tableName = tableName;
-    this.timeout = config.getTimeout(TimeUnit.MILLISECONDS);
+    this.timeout = config.getTimeout(MILLISECONDS);
     this.durability = config.getDurability();
     this.classLoaderContext = config.getClassLoaderContext();
 
@@ -380,8 +382,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
         queue(mutations);
     };
 
-    failureTaskFuture =
-        threadPool.scheduleAtFixedRate(failureHandler, 250, 250, TimeUnit.MILLISECONDS);
+    failureTaskFuture = threadPool.scheduleAtFixedRate(failureHandler, 250, 250, MILLISECONDS);
   }
 
   @Override
@@ -601,7 +602,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     } catch (ThriftSecurityException tse) {
       AccumuloSecurityException ase =
           new AccumuloSecurityException(context.getCredentials().getPrincipal(), tse.getCode(),
-              Tables.getPrintableTableInfoFromId(context, tableId), tse);
+              context.getPrintableTableInfoFromId(tableId), tse);
       queueException(location, cmidToCm, ase);
     } catch (TApplicationException tae) {
       queueException(location, cmidToCm, new AccumuloServerException(location.toString(), tae));
@@ -686,7 +687,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       if ((System.currentTimeMillis() - startTime) + sleepTime > timeout)
         throw new TimedOutException(Collections.singleton(location.toString()));
 
-      sleepUninterruptibly(sleepTime, TimeUnit.MILLISECONDS);
+      sleepUninterruptibly(sleepTime, MILLISECONDS);
       sleepTime = Math.min(2 * sleepTime, MAX_SLEEP);
 
     }

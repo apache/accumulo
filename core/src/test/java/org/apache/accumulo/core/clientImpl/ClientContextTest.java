@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -27,7 +29,6 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
@@ -117,18 +118,18 @@ public class ClientContextTest {
         .getTimeInMillis(ClientProperty.BATCH_WRITER_LATENCY_MAX.getDefaultValue());
     if (expectedLatency == 0) {
       expectedLatency = Long.MAX_VALUE;
-      assertEquals(expectedLatency, batchWriterConfig.getMaxLatency(TimeUnit.MILLISECONDS));
+      assertEquals(expectedLatency, batchWriterConfig.getMaxLatency(MILLISECONDS));
     } else {
-      assertEquals(expectedLatency, batchWriterConfig.getMaxLatency(TimeUnit.SECONDS));
+      assertEquals(expectedLatency, batchWriterConfig.getMaxLatency(SECONDS));
     }
 
     long expectedTimeout = ConfigurationTypeHelper
         .getTimeInMillis(ClientProperty.BATCH_WRITER_TIMEOUT_MAX.getDefaultValue());
     if (expectedTimeout == 0) {
       expectedTimeout = Long.MAX_VALUE;
-      assertEquals(expectedTimeout, batchWriterConfig.getTimeout(TimeUnit.MILLISECONDS));
+      assertEquals(expectedTimeout, batchWriterConfig.getTimeout(MILLISECONDS));
     } else {
-      assertEquals(expectedTimeout, batchWriterConfig.getTimeout(TimeUnit.SECONDS));
+      assertEquals(expectedTimeout, batchWriterConfig.getTimeout(SECONDS));
     }
 
     int expectedThreads =
@@ -158,10 +159,10 @@ public class ClientContextTest {
         .getMemoryAsBytes(ClientProperty.BATCH_WRITER_MEMORY_MAX.getValue(props));
     assertEquals(expectedMemory, batchWriterConfig.getMaxMemory());
 
-    assertEquals(Long.MAX_VALUE, batchWriterConfig.getMaxLatency(TimeUnit.MILLISECONDS));
+    assertEquals(Long.MAX_VALUE, batchWriterConfig.getMaxLatency(MILLISECONDS));
 
     // getTimeout returns time in milliseconds, therefore the 15 becomes 15000.
-    assertEquals(15000, batchWriterConfig.getTimeout(TimeUnit.SECONDS));
+    assertEquals(15000, batchWriterConfig.getTimeout(SECONDS));
 
     long expectedThreads = ClientProperty.BATCH_WRITER_THREADS_MAX.getInteger(props);
     assertEquals(expectedThreads, batchWriterConfig.getMaxWriteThreads());
@@ -186,9 +187,9 @@ public class ClientContextTest {
     long expectedTimeout = ConfigurationTypeHelper
         .getTimeInMillis(ClientProperty.CONDITIONAL_WRITER_TIMEOUT_MAX.getDefaultValue());
     if (expectedTimeout == 0) {
-      assertEquals(Long.MAX_VALUE, conditionalWriterConfig.getTimeout(TimeUnit.MILLISECONDS));
+      assertEquals(Long.MAX_VALUE, conditionalWriterConfig.getTimeout(MILLISECONDS));
     } else {
-      assertEquals(expectedTimeout, conditionalWriterConfig.getTimeout(TimeUnit.SECONDS));
+      assertEquals(expectedTimeout, conditionalWriterConfig.getTimeout(SECONDS));
     }
 
     int expectedThreads =
@@ -215,7 +216,7 @@ public class ClientContextTest {
     assertNotNull(conditionalWriterConfig);
 
     // getTimeout returns time in milliseconds, therefore the 17 becomes 17000.
-    assertEquals(17000, conditionalWriterConfig.getTimeout(TimeUnit.SECONDS));
+    assertEquals(17000, conditionalWriterConfig.getTimeout(SECONDS));
 
     long expectedThreads = ClientProperty.CONDITIONAL_WRITER_THREADS_MAX.getInteger(props);
     assertEquals(expectedThreads, conditionalWriterConfig.getMaxWriteThreads());

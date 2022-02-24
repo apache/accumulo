@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.spi.balancer;
 
+import static java.util.concurrent.TimeUnit.HOURS;
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.SecureRandom;
@@ -32,7 +34,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -175,7 +176,6 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     }
   }
 
-  private static final long ONE_HOUR = 60 * 60_000;
   private static final Set<TabletId> EMPTY_MIGRATIONS = Collections.emptySet();
   private volatile long lastOOBCheck = System.currentTimeMillis();
   private Map<String,SortedMap<TabletServerId,TServerStatus>> pools = new HashMap<>();
@@ -326,7 +326,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     this.hrtlbConf = balancerEnvironment.getConfiguration().getDerived(HrtlbConf::new);
 
     tablesRegExCache =
-        CacheBuilder.newBuilder().expireAfterAccess(1, TimeUnit.HOURS).build(new CacheLoader<>() {
+        CacheBuilder.newBuilder().expireAfterAccess(1, HOURS).build(new CacheLoader<>() {
           @Override
           public Supplier<Map<String,String>> load(TableId key) {
             return balancerEnvironment.getConfiguration(key)
@@ -512,7 +512,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
       if (newMigrations.isEmpty()) {
         tableToTimeSinceNoMigrations.remove(tableId);
       } else if (tableToTimeSinceNoMigrations.containsKey(tableId)) {
-        if ((now - tableToTimeSinceNoMigrations.get(tableId)) > ONE_HOUR) {
+        if ((now - tableToTimeSinceNoMigrations.get(tableId)) > HOURS.toMillis(1)) {
           LOG.warn("We have been consistently producing migrations for {}: {}", tableName,
               Iterables.limit(newMigrations, 10));
         }
