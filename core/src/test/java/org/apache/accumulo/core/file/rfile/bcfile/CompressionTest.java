@@ -159,7 +159,7 @@ public class CompressionTest {
   }
 
   @Test
-  @Timeout(60_000)
+  @Timeout(60)
   public void testManyStartNotNull() throws InterruptedException, ExecutionException {
 
     for (final Algorithm al : Algorithm.values()) {
@@ -202,7 +202,7 @@ public class CompressionTest {
 
   // don't start until we have created the codec
   @Test
-  @Timeout(60_000)
+  @Timeout(60)
   public void testManyDontStartUntilThread() throws InterruptedException, ExecutionException {
 
     for (final Algorithm al : Algorithm.values()) {
@@ -239,7 +239,7 @@ public class CompressionTest {
   }
 
   @Test
-  @Timeout(60_000)
+  @Timeout(60)
   public void testThereCanBeOnlyOne() throws InterruptedException, ExecutionException {
 
     for (final Algorithm al : Algorithm.values()) {
