@@ -42,9 +42,9 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Maps;
@@ -55,13 +55,13 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
   private AccumuloClient accumuloClient;
   private MultiTableBatchWriter mtbw;
 
-  @Before
+  @BeforeEach
   public void setUpArgs() {
     accumuloClient = Accumulo.newClient().from(getClientProps()).build();
     mtbw = getMultiTableBatchWriter();
   }
 
-  @After
+  @AfterEach
   public void closeClient() {
     accumuloClient.close();
   }

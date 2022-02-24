@@ -35,7 +35,7 @@ import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestRandomDeletes;
 import org.apache.accumulo.test.VerifyIngest;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 @Timeout(value = 2, unit = MINUTES)

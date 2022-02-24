@@ -106,15 +106,15 @@ import org.jline.reader.LineReaderBuilder;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.DumbTerminal;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
-import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.rules.TestName;
 import org.slf4j.Logger;
@@ -316,7 +316,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     }
   }
 
-  @BeforeClass
+  @BeforeAll
   public static void setupMiniCluster() throws Exception {
     SharedMiniClusterBase.startMiniClusterWithConfig(new ShellServerITConfigCallback());
     rootPath = getMiniClusterDir().getAbsolutePath();
@@ -329,19 +329,19 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   }
 
-  @Before
+  @BeforeEach
   public void setupShell() throws Exception {
     ts = new TestShell(getPrincipal(), getRootPassword(),
         getCluster().getConfig().getInstanceName(), getCluster().getConfig().getZooKeepers(),
         getCluster().getConfig().getClientPropsFile());
   }
 
-  @AfterClass
+  @AfterAll
   public static void tearDownAfterClass() {
     SharedMiniClusterBase.stopMiniCluster();
   }
 
-  @After
+  @AfterEach
   public void deleteTables() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       for (String table : c.tableOperations().list()) {
@@ -355,7 +355,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     }
   }
 
-  @After
+  @AfterEach
   public void tearDownShell() {
     ts.shell.shutdown();
   }

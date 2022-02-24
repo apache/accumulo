@@ -47,7 +47,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.OrIterator;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 @Timeout(60)

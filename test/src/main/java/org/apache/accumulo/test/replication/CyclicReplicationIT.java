@@ -60,11 +60,11 @@ import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.Ignore;
 import org.junit.Rule;
-import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,7 +73,7 @@ import com.google.common.collect.Iterables;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@Ignore("Replication ITs are not stable and not currently maintained")
+@Disabled("Replication ITs are not stable and not currently maintained")
 @Category(MiniClusterOnlyTests.class)
 @Tag("MiniClusterOnlyTests")
 @Deprecated

@@ -45,9 +45,9 @@ import org.apache.accumulo.tserver.memory.NativeMapLoader;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -129,7 +129,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
     cfg.setClientProps(clientProps);
   }
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     createMiniAccumulo();
     Exception lastException = null;
@@ -181,7 +181,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
     beforeClusterStart(cfg);
   }
 
-  @After
+  @AfterEach
   public void tearDown() {
     if (cluster != null) {
       try {

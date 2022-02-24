@@ -25,7 +25,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
 

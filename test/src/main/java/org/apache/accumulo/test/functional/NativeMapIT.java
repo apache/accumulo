@@ -48,10 +48,10 @@ import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.accumulo.tserver.NativeMap;
 import org.apache.accumulo.tserver.memory.NativeMapLoader;
 import org.apache.hadoop.io.Text;
-import org.junit.BeforeClass;
-import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 @Category(SunnyDayTests.class)
 @Tag("SunnyDayTests")
@@ -80,7 +80,7 @@ public class NativeMapIT {
         + "/accumulo-native-" + Constants.VERSION);
   }
 
-  @BeforeClass
+  @BeforeAll
   public static void setUp() {
     NativeMapLoader.loadForTest(List.of(nativeMapLocation()), () -> fail("Can't load native maps"));
   }

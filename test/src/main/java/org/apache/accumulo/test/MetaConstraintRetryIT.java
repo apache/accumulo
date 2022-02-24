@@ -33,7 +33,7 @@ import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.MetadataTableUtil;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 @Timeout(30)

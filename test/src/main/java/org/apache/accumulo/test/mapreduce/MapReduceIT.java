@@ -43,7 +43,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;

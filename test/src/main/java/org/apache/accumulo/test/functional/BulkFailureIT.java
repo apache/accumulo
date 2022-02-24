@@ -75,7 +75,7 @@ import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class BulkFailureIT extends AccumuloClusterHarness {
 

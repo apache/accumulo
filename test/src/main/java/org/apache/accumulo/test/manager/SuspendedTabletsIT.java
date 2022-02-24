@@ -69,10 +69,10 @@ import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,7 +105,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
   }
 
   @Override
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     super.setUp();
 
@@ -331,13 +331,13 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
   private static final AtomicInteger threadCounter = new AtomicInteger(0);
 
-  @BeforeClass
+  @BeforeAll
   public static void init() {
     THREAD_POOL = Executors.newCachedThreadPool(
         r -> new Thread(r, "Scanning deadline thread #" + threadCounter.incrementAndGet()));
   }
 
-  @AfterClass
+  @AfterAll
   public static void cleanup() {
     THREAD_POOL.shutdownNow();
   }

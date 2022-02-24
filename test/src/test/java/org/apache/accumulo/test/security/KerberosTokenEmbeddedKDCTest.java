@@ -30,10 +30,10 @@ import org.apache.accumulo.harness.TestingKdc;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,20 +45,20 @@ public class KerberosTokenEmbeddedKDCTest extends WithTestNames {
 
   private static volatile TestingKdc kdc;
 
-  @BeforeClass
+  @BeforeAll
   public static void startKdc() throws Exception {
     kdc = new TestingKdc();
     kdc.start();
   }
 
-  @AfterClass
+  @AfterAll
   public static void stopKdc() {
     if (null != kdc) {
       kdc.stop();
     }
   }
 
-  @Before
+  @BeforeEach
   public void resetUgiForKrb() {
     Configuration conf = new Configuration(false);
     conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION, "kerberos");

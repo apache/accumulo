@@ -43,14 +43,14 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterables;
 
 public class AccumuloClientIT extends AccumuloClusterHarness {
 
-  @After
+  @AfterEach
   public void deleteUsers() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       Set<String> users = client.securityOperations().listLocalUsers();

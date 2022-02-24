@@ -44,9 +44,9 @@ import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.Assume;
-import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Iterators;

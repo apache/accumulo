@@ -54,21 +54,21 @@ import org.apache.accumulo.test.metrics.TestStatsDRegistryFactory;
 import org.apache.accumulo.test.metrics.TestStatsDSink;
 import org.apache.accumulo.test.metrics.TestStatsDSink.Metric;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class ExternalCompactionMetricsIT extends AccumuloClusterHarness
     implements MiniClusterConfigurationCallback {
 
   private static TestStatsDSink sink;
 
-  @BeforeClass
+  @BeforeAll
   public static void before() throws Exception {
     sink = new TestStatsDSink();
   }
 
-  @AfterClass
+  @AfterAll
   public static void after() throws Exception {
     if (sink != null) {
       sink.close();

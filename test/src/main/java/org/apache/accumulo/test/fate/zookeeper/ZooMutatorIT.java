@@ -35,9 +35,9 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.test.categories.ZooKeeperTestingServerTests;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.junit.Rule;
-import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.TemporaryFolder;
 
 import com.google.common.hash.Hashing;

@@ -41,9 +41,9 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 @Timeout(value = 4, unit = MINUTES)
@@ -58,7 +58,7 @@ public class BinaryStressIT extends AccumuloClusterHarness {
 
   private String majcDelay, maxMem;
 
-  @Before
+  @BeforeEach
   public void alterConfig() throws Exception {
     if (getClusterType() == ClusterType.MINI) {
       return;
@@ -77,7 +77,7 @@ public class BinaryStressIT extends AccumuloClusterHarness {
     }
   }
 
-  @After
+  @AfterEach
   public void resetConfig() throws Exception {
     if (majcDelay != null) {
       try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {

@@ -23,7 +23,7 @@ import static org.junit.Assert.assertNull;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterables;
 

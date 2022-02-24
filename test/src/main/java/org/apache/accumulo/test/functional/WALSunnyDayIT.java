@@ -67,9 +67,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException.NoNodeException;
-import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterators;
 

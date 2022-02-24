@@ -58,14 +58,14 @@ import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterables;
 
-@Ignore("Replication ITs are not stable and not currently maintained")
+@Disabled("Replication ITs are not stable and not currently maintained")
 @Deprecated
 public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
 
@@ -83,7 +83,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
     }
   }
 
-  @Before
+  @BeforeEach
   public void setupInstance() throws Exception {
     client = Accumulo.newClient().from(getClientProperties()).build();
     client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
@@ -93,12 +93,12 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
     ReplicationTable.setOnline(client);
   }
 
-  @After
+  @AfterEach
   public void teardownInstance() {
     client.close();
   }
 
-  @Before
+  @BeforeEach
   public void setupEasyMockStuff() {
     SiteConfiguration siteConfig = EasyMock.createMock(SiteConfiguration.class);
     final AccumuloConfiguration systemConf = new ConfigurationCopy(new HashMap<>());

@@ -74,13 +74,13 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.minikdc.MiniKdc;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,7 +104,7 @@ public class KerberosIT extends AccumuloITBase {
   private static String krbEnabledForITs = null;
   private static ClusterUser rootUser;
 
-  @BeforeClass
+  @BeforeAll
   public static void startKdc() throws Exception {
     kdc = new TestingKdc();
     kdc.start();
@@ -115,7 +115,7 @@ public class KerberosIT extends AccumuloITBase {
     rootUser = kdc.getRootUser();
   }
 
-  @AfterClass
+  @AfterAll
   public static void stopKdc() {
     if (kdc != null) {
       kdc.stop();
@@ -128,7 +128,7 @@ public class KerberosIT extends AccumuloITBase {
 
   private MiniAccumuloClusterImpl mac;
 
-  @Before
+  @BeforeEach
   public void startMac() throws Exception {
     MiniClusterHarness harness = new MiniClusterHarness();
     mac = harness.create(this, new PasswordToken("unused"), kdc,
@@ -151,7 +151,7 @@ public class KerberosIT extends AccumuloITBase {
     UserGroupInformation.setConfiguration(conf);
   }
 
-  @After
+  @AfterEach
   public void stopMac() throws Exception {
     if (mac != null) {
       mac.stop();

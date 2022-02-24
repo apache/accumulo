@@ -61,8 +61,8 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -84,7 +84,7 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
 
   @SuppressFBWarnings(value = "COMMAND_INJECTION",
       justification = "command executed is not from user input")
-  @BeforeClass
+  @BeforeAll
   public static void buildSharedLib() throws IOException, InterruptedException {
     String root = System.getProperty("user.dir");
     String source = root + "/src/test/c/fake_disk_failure.c";

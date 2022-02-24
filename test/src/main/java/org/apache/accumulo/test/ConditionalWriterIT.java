@@ -92,10 +92,10 @@ import org.apache.accumulo.test.functional.BadIterator;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,12 +107,12 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
   private static final Logger log = LoggerFactory.getLogger(ConditionalWriterIT.class);
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() throws Exception {
     SharedMiniClusterBase.startMiniClusterWithConfig(new Callback());
   }
 
-  @AfterClass
+  @AfterAll
   public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
   }
@@ -133,7 +133,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
     return l;
   }
 
-  @Before
+  @BeforeEach
   public void deleteUsers() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       Set<String> users = client.securityOperations().listLocalUsers();

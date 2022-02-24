@@ -47,11 +47,11 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,7 +67,7 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
   private String user;
   private boolean saslEnabled;
 
-  @Before
+  @BeforeEach
   public void setup() throws Exception {
     accumuloClient = Accumulo.newClient().from(getClientProps()).build();
     tableName = getUniqueNames(1)[0];
@@ -94,7 +94,7 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
     accumuloClient.securityOperations().changeUserAuthorizations(user, AuthsIterator.AUTHS);
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws Exception {
     if (user != null) {
       if (saslEnabled) {

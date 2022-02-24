@@ -49,9 +49,9 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,7 +70,7 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
 
   private int timeoutFactor = 1;
 
-  @Before
+  @BeforeEach
   public void getTimeoutFactor() {
     try {
       timeoutFactor = Integer.parseInt(System.getProperty("timeout.factor"));
@@ -83,7 +83,7 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
 
   private String gcCycleDelay, gcCycleStart;
 
-  @Before
+  @BeforeEach
   public void alterConfig() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       InstanceOperations iops = client.instanceOperations();
@@ -128,7 +128,7 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
     }
   }
 
-  @After
+  @AfterEach
   public void restoreConfig() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       InstanceOperations iops = c.instanceOperations();

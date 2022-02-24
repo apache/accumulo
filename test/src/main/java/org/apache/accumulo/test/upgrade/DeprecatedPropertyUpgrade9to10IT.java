@@ -33,7 +33,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.manager.upgrade.Upgrader9to10;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class DeprecatedPropertyUpgrade9to10IT extends ConfigurableMacBase {
   private static final Upgrader9to10 upgrader = new Upgrader9to10();

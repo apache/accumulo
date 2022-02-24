@@ -38,9 +38,9 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +51,7 @@ public class MetaSplitIT extends AccumuloClusterHarness {
 
   private Collection<Text> metadataSplits = null;
 
-  @Before
+  @BeforeEach
   public void saveMetadataSplits() throws Exception {
     if (getClusterType() == ClusterType.STANDALONE) {
       try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
@@ -69,7 +69,7 @@ public class MetaSplitIT extends AccumuloClusterHarness {
     }
   }
 
-  @After
+  @AfterEach
   public void restoreMetadataSplits() throws Exception {
     if (metadataSplits != null) {
       log.info("Restoring split on metadata table");

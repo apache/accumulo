@@ -41,9 +41,9 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestIngest.IngestParams;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 /**
@@ -65,7 +65,7 @@ public class MaxOpenIT extends AccumuloClusterHarness {
 
   private String scanMaxOpenFiles, majcConcurrent, majcThreadMaxOpen;
 
-  @Before
+  @BeforeEach
   public void alterConfig() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       InstanceOperations iops = client.instanceOperations();
@@ -76,7 +76,7 @@ public class MaxOpenIT extends AccumuloClusterHarness {
     }
   }
 
-  @After
+  @AfterEach
   public void restoreConfig() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       InstanceOperations iops = client.instanceOperations();

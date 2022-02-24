@@ -52,11 +52,11 @@ import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.MemKey;
 import org.apache.accumulo.tserver.memory.NativeMapLoader;
 import org.easymock.EasyMock;
-import org.junit.BeforeClass;
 import org.junit.Rule;
-import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,7 +92,7 @@ public class InMemoryMapIT {
   public TemporaryFolder tempFolder =
       new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
-  @BeforeClass
+  @BeforeAll
   public static void ensureNativeLibrary() {
     File nativeMapLocation = NativeMapIT.nativeMapLocation();
     NativeMapLoader.loadForTest(List.of(nativeMapLocation), () -> fail("Can't load native maps"));

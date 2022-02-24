@@ -35,7 +35,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.tserver.compaction.strategies.TooManyDeletesCompactionStrategy;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("removal")
 public class TooManyDeletesIT extends AccumuloClusterHarness {

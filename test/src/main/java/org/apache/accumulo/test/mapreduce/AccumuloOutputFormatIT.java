@@ -47,7 +47,7 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * This tests deprecated mapreduce code in core jar

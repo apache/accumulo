@@ -58,10 +58,10 @@ import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
-import org.junit.After;
 import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,7 +89,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
   private AccumuloClient accumuloClient;
 
-  @Before
+  @BeforeEach
   public void setupTables() throws AccumuloException, AccumuloSecurityException,
       TableExistsException, TableNotFoundException {
     accumuloClient = Accumulo.newClient().from(getClientProps()).build();
@@ -125,7 +125,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
         Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
   }
 
-  @After
+  @AfterEach
   public void closeClient() {
     accumuloClient.close();
   }

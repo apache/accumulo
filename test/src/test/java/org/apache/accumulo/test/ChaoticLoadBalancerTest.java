@@ -46,7 +46,7 @@ import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.spi.balancer.data.TabletStatistics;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ChaoticLoadBalancerTest {
 

@@ -46,10 +46,10 @@ import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.hadoop.io.Text;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.runners.MethodSorters;
 
@@ -62,7 +62,7 @@ public class ManagerApiIT extends SharedMiniClusterBase {
   private static Credentials regularUser;
   private static Credentials privilegedUser;
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() throws Exception {
     // need to pretend to be a server, so we can bypass all of
     // the singleton resource management in this test
@@ -79,7 +79,7 @@ public class ManagerApiIT extends SharedMiniClusterBase {
     }
   }
 
-  @AfterClass
+  @AfterAll
   public static void teardown() throws Exception {
     SharedMiniClusterBase.stopMiniCluster();
   }

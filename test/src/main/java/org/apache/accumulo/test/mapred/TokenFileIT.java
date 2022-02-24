@@ -53,7 +53,7 @@ import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.TemporaryFolder;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;

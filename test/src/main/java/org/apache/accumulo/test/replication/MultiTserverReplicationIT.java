@@ -40,14 +40,14 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 
-@Ignore("Replication ITs are not stable and not currently maintained")
+@Disabled("Replication ITs are not stable and not currently maintained")
 @Deprecated
 public class MultiTserverReplicationIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(MultiTserverReplicationIT.class);

@@ -39,7 +39,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 @Timeout(60)

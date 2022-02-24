@@ -32,7 +32,7 @@ import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CompactionRateLimitingIT extends ConfigurableMacBase {
   public static final long BYTES_TO_WRITE = 10 * 1024 * 1024;

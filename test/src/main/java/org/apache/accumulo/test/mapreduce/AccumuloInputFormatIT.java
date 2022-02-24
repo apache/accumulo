@@ -64,8 +64,8 @@ import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Level;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -85,7 +85,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     cfg.setNumTservers(1);
   }
 
-  @Before
+  @BeforeEach
   public void before() {
     inputFormat = new org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat();
   }

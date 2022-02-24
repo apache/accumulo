@@ -55,13 +55,13 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.easymock.EasyMock;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Ignore("Replication ITs are not stable and not currently maintained")
+@Disabled("Replication ITs are not stable and not currently maintained")
 @Deprecated
 public class ReplicationOperationsImplIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(ReplicationOperationsImplIT.class);
@@ -69,7 +69,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
   private AccumuloClient client;
   private ServerContext context;
 
-  @Before
+  @BeforeEach
   public void configureInstance() throws Exception {
     client = Accumulo.newClient().from(getClientProperties()).build();
     context = getServerContext();

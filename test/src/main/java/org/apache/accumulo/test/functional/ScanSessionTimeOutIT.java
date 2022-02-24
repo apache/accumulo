@@ -40,9 +40,9 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,7 +60,7 @@ public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
 
   private String sessionIdle = null;
 
-  @Before
+  @BeforeEach
   public void reduceSessionIdle() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       InstanceOperations ops = client.instanceOperations();
@@ -81,7 +81,7 @@ public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
     return "3";
   }
 
-  @After
+  @AfterEach
   public void resetSessionIdle() throws Exception {
     if (sessionIdle != null) {
       try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {

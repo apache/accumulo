@@ -40,9 +40,9 @@ import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,12 +65,12 @@ public class RestartStressIT extends AccumuloClusterHarness {
 
   private ExecutorService svc;
 
-  @Before
+  @BeforeEach
   public void setup() {
     svc = Executors.newFixedThreadPool(1);
   }
 
-  @After
+  @AfterEach
   public void teardown() throws Exception {
     if (svc == null) {
       return;

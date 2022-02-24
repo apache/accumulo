@@ -69,17 +69,17 @@ import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
 
-@Ignore("Replication ITs are not stable and not currently maintained")
+@Disabled("Replication ITs are not stable and not currently maintained")
 @Deprecated
 @Timeout(60 * 6)
 public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
@@ -89,7 +89,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
   private ExecutorService executor;
   private int timeoutFactor = 1;
 
-  @Before
+  @BeforeEach
   public void createExecutor() {
     executor = Executors.newSingleThreadExecutor();
 
@@ -102,7 +102,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
     assertTrue("The timeout factor must be a positive, non-zero value", timeoutFactor > 0);
   }
 
-  @After
+  @AfterEach
   public void stopExecutor() {
     if (executor != null) {
       executor.shutdownNow();

@@ -44,9 +44,9 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 @Timeout(value = 2, unit = MINUTES)
@@ -63,12 +63,12 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
     conf.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
-  @Before
+  @BeforeEach
   public void setupInitialSplits() {
     client = Accumulo.newClient().from(getClientProps()).build();
   }
 
-  @After
+  @AfterEach
   public void closeClient() {
     client.close();
   }

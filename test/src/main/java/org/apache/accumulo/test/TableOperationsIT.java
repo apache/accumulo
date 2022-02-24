@@ -64,9 +64,9 @@ import org.apache.accumulo.test.functional.BadIterator;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Sets;
@@ -77,12 +77,12 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   private AccumuloClient accumuloClient;
   private static final int MAX_TABLE_NAME_LEN = 1024;
 
-  @Before
+  @BeforeEach
   public void setup() {
     accumuloClient = Accumulo.newClient().from(getClientProps()).build();
   }
 
-  @After
+  @AfterEach
   public void checkForDanglingFateLocks() {
     if (getClusterType() == ClusterType.MINI) {
       FunctionalTestUtils.assertNoDanglingFateLocks((ClientContext) accumuloClient, getCluster());

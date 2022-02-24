@@ -51,8 +51,8 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.lib.NullOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 /**
  * This tests deprecated mapreduce code in core jar
@@ -70,7 +70,7 @@ public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
   private static AssertionError e1 = null;
   private static AssertionError e2 = null;
 
-  @BeforeClass
+  @BeforeAll
   public static void prepareRows() {
     row1 = new ArrayList<>();
     row1.add(new KeyValue(new Key(ROW1, COLF1, "colq1"), "v1".getBytes()));

@@ -69,10 +69,10 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 import org.bouncycastle.util.Arrays;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class CompactionExecutorIT extends SharedMiniClusterBase {
 
@@ -132,7 +132,7 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
     }
   }
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() throws Exception {
     SharedMiniClusterBase.startMiniClusterWithConfig((miniCfg, coreSite) -> {
       Map<String,String> siteCfg = new HashMap<>();
@@ -168,12 +168,12 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
     });
   }
 
-  @AfterClass
+  @AfterAll
   public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
   }
 
-  @After
+  @AfterEach
   public void cleanup() {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.tableOperations().list().stream()

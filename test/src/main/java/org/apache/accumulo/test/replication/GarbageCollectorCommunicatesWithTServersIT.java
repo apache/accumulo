@@ -68,8 +68,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,7 +79,7 @@ import org.slf4j.LoggerFactory;
  * still continue to use it. Checking that no tablet references a WAL is insufficient to determine
  * if a WAL will never be used in the future.
  */
-@Ignore("Replication ITs are not stable and not currently maintained")
+@Disabled("Replication ITs are not stable and not currently maintained")
 @Deprecated
 @Timeout(value = 2, unit = MINUTES)
 public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacBase {

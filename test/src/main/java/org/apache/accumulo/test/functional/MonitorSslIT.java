@@ -47,15 +47,15 @@ import org.apache.accumulo.core.util.MonitorUtil;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Timeout(value = 6, unit = MINUTES)
 public class MonitorSslIT extends ConfigurableMacBase {
-  @BeforeClass
+  @BeforeAll
   public static void initHttps() throws NoSuchAlgorithmException, KeyManagementException {
     SSLContext ctx = SSLContext.getInstance("TLSv1.2");
     TrustManager[] tm = {new TestTrustManager()};

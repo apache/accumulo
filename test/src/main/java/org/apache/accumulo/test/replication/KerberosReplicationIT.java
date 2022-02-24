@@ -60,14 +60,14 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,7 +77,7 @@ import com.google.common.collect.Iterators;
 /**
  * Ensure that replication occurs using keytabs instead of password (not to mention SASL)
  */
-@Ignore("Replication ITs are not stable and not currently maintained")
+@Disabled("Replication ITs are not stable and not currently maintained")
 @Category(MiniClusterOnlyTests.class)
 @Tag("MiniClusterOnlyTests")
 @Deprecated
@@ -89,7 +89,7 @@ public class KerberosReplicationIT extends AccumuloITBase {
   private static String krbEnabledForITs = null;
   private static ClusterUser rootUser;
 
-  @BeforeClass
+  @BeforeAll
   public static void startKdc() throws Exception {
     kdc = new TestingKdc();
     kdc.start();
@@ -100,7 +100,7 @@ public class KerberosReplicationIT extends AccumuloITBase {
     rootUser = kdc.getRootUser();
   }
 
-  @AfterClass
+  @AfterAll
   public static void stopKdc() {
     if (kdc != null) {
       kdc.stop();
@@ -135,7 +135,7 @@ public class KerberosReplicationIT extends AccumuloITBase {
     };
   }
 
-  @Before
+  @BeforeEach
   public void setup() throws Exception {
     MiniClusterHarness harness = new MiniClusterHarness();
 
@@ -154,7 +154,7 @@ public class KerberosReplicationIT extends AccumuloITBase {
     UserGroupInformation.setConfiguration(conf);
   }
 
-  @After
+  @AfterEach
   public void teardown() throws Exception {
     if (peer != null) {
       peer.stop();

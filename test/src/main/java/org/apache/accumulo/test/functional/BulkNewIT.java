@@ -82,10 +82,10 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.Text;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -93,12 +93,12 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @Timeout(value = 4, unit = MINUTES)
 public class BulkNewIT extends SharedMiniClusterBase {
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() throws Exception {
     SharedMiniClusterBase.startMiniClusterWithConfig(new Callback());
   }
 
-  @AfterClass
+  @AfterAll
   public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
   }
@@ -118,7 +118,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
   private FileSystem fs;
   private String rootPath;
 
-  @Before
+  @BeforeEach
   public void setupBulkTest() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       tableName = getUniqueNames(1)[0];

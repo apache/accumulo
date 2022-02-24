@@ -44,9 +44,9 @@ import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,7 +75,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
-  @Before
+  @BeforeEach
   public void alterConfig() throws Exception {
     if (getClusterType() == ClusterType.MINI) {
       return;
@@ -93,7 +93,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
     }
   }
 
-  @After
+  @AfterEach
   public void resetConfig() throws Exception {
     if (majcDelay != null) {
       try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {

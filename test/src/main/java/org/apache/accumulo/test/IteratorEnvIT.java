@@ -46,9 +46,9 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 /**
@@ -177,12 +177,12 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
       throw new RuntimeException("Test failed - Error getting Table ID");
   }
 
-  @Before
+  @BeforeEach
   public void setup() {
     client = Accumulo.newClient().from(getClientProps()).build();
   }
 
-  @After
+  @AfterEach
   public void finish() {
     if (client != null)
       client.close();

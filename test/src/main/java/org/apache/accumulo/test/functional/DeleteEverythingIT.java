@@ -37,9 +37,9 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Iterables;
@@ -57,7 +57,7 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
 
   private String majcDelay;
 
-  @Before
+  @BeforeEach
   public void updateMajcDelay() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       majcDelay =
@@ -70,7 +70,7 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
     }
   }
 
-  @After
+  @AfterEach
   public void resetMajcDelay() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);

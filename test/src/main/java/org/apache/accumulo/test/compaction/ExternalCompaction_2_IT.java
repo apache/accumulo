@@ -59,9 +59,9 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,12 +76,12 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
 
   private static final Logger LOG = LoggerFactory.getLogger(ExternalCompaction_2_IT.class);
 
-  @BeforeClass
+  @BeforeAll
   public static void beforeTests() throws Exception {
     startMiniClusterWithConfig(new ExternalCompaction2Config());
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws Exception {
     // The ExternalDoNothingCompactor needs to be restarted between tests
     getCluster().getClusterControl().stop(ServerType.COMPACTOR);

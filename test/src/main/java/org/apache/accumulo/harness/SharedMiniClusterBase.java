@@ -42,6 +42,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,8 +61,8 @@ import org.slf4j.LoggerFactory;
  *
  * Implementations of this class must be sure to invoke {@link #startMiniCluster()} or
  * {@link #startMiniClusterWithConfig(MiniClusterConfigurationCallback)} in a method annotated with
- * the {@link org.junit.BeforeClass} JUnit annotation and {@link #stopMiniCluster()} in a method
- * annotated with the {@link org.junit.AfterClass} JUnit annotation.
+ * the {@link BeforeAll} JUnit annotation and {@link #stopMiniCluster()} in a method annotated with
+ * the {@link AfterAll} JUnit annotation.
  */
 @Category(MiniClusterOnlyTests.class)
 @Tag("MiniClusterOnlyTests")

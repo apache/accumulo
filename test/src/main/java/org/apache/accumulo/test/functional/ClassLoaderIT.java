@@ -50,10 +50,10 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 @Category(MiniClusterOnlyTests.class)
@@ -65,7 +65,7 @@ public class ClassLoaderIT extends AccumuloClusterHarness {
 
   private String rootPath;
 
-  @Before
+  @BeforeEach
   public void checkCluster() {
     Assume.assumeTrue(getClusterType() == ClusterType.MINI);
     MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) getCluster();

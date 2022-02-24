@@ -54,12 +54,12 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
@@ -77,13 +77,13 @@ public class ServiceLockIT {
 
   private static ZooKeeperTestingServer szk = null;
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() throws Exception {
     szk = new ZooKeeperTestingServer(TEMP.newFolder());
     szk.initPaths("/accumulo/" + InstanceId.of(UUID.randomUUID()));
   }
 
-  @AfterClass
+  @AfterAll
   public static void teardown() throws Exception {
     szk.close();
   }

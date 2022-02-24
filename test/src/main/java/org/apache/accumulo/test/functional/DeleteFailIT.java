@@ -32,7 +32,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator.Behavior;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class DeleteFailIT extends AccumuloClusterHarness {
 

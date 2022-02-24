@@ -83,14 +83,14 @@ import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.accumulo.test.constraints.NumericValueConstraint;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.function.ThrowingRunnable;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 /**
@@ -105,24 +105,24 @@ public class NamespacesIT extends SharedMiniClusterBase {
   private String namespace;
   private static final int MAX_NAMESPACE_LEN = 1024;
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() throws Exception {
     SharedMiniClusterBase.startMiniCluster();
   }
 
-  @AfterClass
+  @AfterAll
   public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
   }
 
-  @Before
+  @BeforeEach
   public void setupConnectorAndNamespace() {
     // prepare a unique namespace and get a new root client for each test
     c = Accumulo.newClient().from(getClientProps()).build();
     namespace = "ns_" + getUniqueNames(1)[0];
   }
 
-  @After
+  @AfterEach
   public void swingMjölnir() throws Exception {
     if (c == null) {
       return;

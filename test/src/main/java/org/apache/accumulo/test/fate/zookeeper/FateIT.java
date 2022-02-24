@@ -50,12 +50,12 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.categories.ZooKeeperTestingServerTests;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.KeeperException;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.rules.TemporaryFolder;
 
@@ -107,12 +107,12 @@ public class FateIT {
   private static CountDownLatch callStarted;
   private static CountDownLatch finishCall;
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() throws Exception {
     szk = new ZooKeeperTestingServer(TEMP.newFolder());
   }
 
-  @AfterClass
+  @AfterAll
   public static void teardown() throws Exception {
     szk.close();
   }

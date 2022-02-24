@@ -24,7 +24,7 @@ import static org.junit.Assert.assertNotEquals;
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.start.TestMain;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 @Timeout(30)

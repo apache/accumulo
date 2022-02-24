@@ -40,8 +40,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Iterators;
@@ -51,7 +51,7 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
 
   private static NewTableConfiguration ntc;
 
-  @BeforeClass
+  @BeforeAll
   public static void createData() {
     SortedSet<Text> splits = new TreeSet<>();
 

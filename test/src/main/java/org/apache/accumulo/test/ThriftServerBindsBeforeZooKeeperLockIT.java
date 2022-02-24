@@ -43,9 +43,9 @@ import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
-import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

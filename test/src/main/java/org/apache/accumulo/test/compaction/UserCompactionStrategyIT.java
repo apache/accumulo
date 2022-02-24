@@ -58,9 +58,9 @@ import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
 import org.junit.Assume;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -69,7 +69,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @Timeout(value = 3, unit = MINUTES)
 public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
-  @After
+  @AfterEach
   public void checkForDanglingFateLocks() {
     if (getClusterType() == ClusterType.MINI) {
       try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {

@@ -47,8 +47,8 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 @Timeout(value = 2, unit = MINUTES)
@@ -66,7 +66,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
 
   private FileSystem fs;
 
-  @Before
+  @BeforeEach
   public void checkCluster() throws Exception {
     Assume.assumeTrue(getClusterType() == ClusterType.MINI);
     MiniAccumuloClusterImpl.class.cast(getCluster());

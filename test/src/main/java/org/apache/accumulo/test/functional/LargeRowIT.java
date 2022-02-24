@@ -47,9 +47,9 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,7 +80,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
   private int timeoutFactor = 1;
   private String tservMajcDelay;
 
-  @Before
+  @BeforeEach
   public void getTimeoutFactor() throws Exception {
     try {
       timeoutFactor = Integer.parseInt(System.getProperty("timeout.factor"));
@@ -102,7 +102,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
     }
   }
 
-  @After
+  @AfterEach
   public void resetMajcDelay() throws Exception {
     if (tservMajcDelay != null) {
       try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {

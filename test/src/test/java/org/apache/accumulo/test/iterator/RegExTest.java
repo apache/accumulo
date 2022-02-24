@@ -35,14 +35,14 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.hadoop.io.Text;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class RegExTest {
 
   private static TreeMap<Key,Value> data = new TreeMap<>();
 
-  @BeforeClass
+  @BeforeAll
   public static void setupTests() {
 
     ArrayList<Character> chars = new ArrayList<>();

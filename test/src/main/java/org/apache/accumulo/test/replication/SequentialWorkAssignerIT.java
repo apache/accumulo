@@ -46,11 +46,11 @@ import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
-@Ignore("Replication ITs are not stable and not currently maintained")
+@Disabled("Replication ITs are not stable and not currently maintained")
 @Deprecated
 public class SequentialWorkAssignerIT extends ConfigurableMacBase {
 
@@ -100,7 +100,7 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
 
   }
 
-  @Before
+  @BeforeEach
   public void init() throws Exception {
     client = Accumulo.newClient().from(getClientProperties()).build();
     assigner = new MockSequentialWorkAssigner(client);

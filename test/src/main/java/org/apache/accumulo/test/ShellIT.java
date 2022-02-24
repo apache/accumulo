@@ -43,13 +43,13 @@ import org.jline.reader.LineReaderBuilder;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.DumbTerminal;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,12 +60,12 @@ import org.slf4j.LoggerFactory;
 @Timeout(180)
 public class ShellIT extends SharedMiniClusterBase {
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() throws Exception {
     SharedMiniClusterBase.startMiniCluster();
   }
 
-  @AfterClass
+  @AfterAll
   public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
   }
@@ -158,7 +158,7 @@ public class ShellIT extends SharedMiniClusterBase {
     }
   }
 
-  @Before
+  @BeforeEach
   public void setupShell() throws IOException {
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
     output = new TestOutputStream();
@@ -173,7 +173,7 @@ public class ShellIT extends SharedMiniClusterBase {
         getCluster().getInstanceName(), "-zh", getCluster().getZooKeepers());
   }
 
-  @After
+  @AfterEach
   public void teardownShell() {
     if (config.exists()) {
       if (!config.delete()) {

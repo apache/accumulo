@@ -53,10 +53,10 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.util.SlowOps;
 import org.apache.zookeeper.KeeperException;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,7 +93,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
   private SlowOps slowOps;
 
-  @Before
+  @BeforeEach
   public void setup() {
     client = Accumulo.newClient().from(getClientProps()).build();
     context = (ClientContext) client;
@@ -101,12 +101,12 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     maxWaitMillis = Math.max(60_000, MINUTES.toMillis(TIMEOUT_MINUTES) / 2);
   }
 
-  @After
+  @AfterEach
   public void closeClient() {
     client.close();
   }
 
-  @AfterClass
+  @AfterAll
   public static void cleanup() {
     pool.shutdownNow();
   }

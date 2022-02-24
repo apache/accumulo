@@ -28,11 +28,11 @@ import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.accumulo.test.rpc.thrift.SimpleThriftService;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 @Category(SunnyDayTests.class)
@@ -47,7 +47,7 @@ public class ThriftBehaviorIT extends WithTestNames {
 
   private static final String KITTY_MSG = "🐈 Kitty! 🐈";
 
-  @Before
+  @BeforeEach
   public void createClientAndServer() {
     String threadName = ThriftBehaviorIT.class.getSimpleName() + "." + testName();
     serviceRunner = new SimpleThriftServiceRunner(threadName);
@@ -66,7 +66,7 @@ public class ThriftBehaviorIT extends WithTestNames {
     assertEquals("-", System.getProperty(propName));
   }
 
-  @After
+  @AfterEach
   public void shutdownServer() {
     serviceRunner.stopService();
 

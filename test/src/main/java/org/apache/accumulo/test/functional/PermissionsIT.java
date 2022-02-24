@@ -56,10 +56,10 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.hadoop.io.Text;
 import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,7 +74,7 @@ import org.slf4j.LoggerFactory;
 public class PermissionsIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(PermissionsIT.class);
 
-  @Before
+  @BeforeEach
   public void limitToMini() throws Exception {
     Assume.assumeTrue(getClusterType() == ClusterType.MINI);
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {

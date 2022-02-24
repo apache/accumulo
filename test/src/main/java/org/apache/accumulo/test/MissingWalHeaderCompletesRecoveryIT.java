@@ -51,9 +51,9 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,7 +76,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     conf.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
-  @Before
+  @BeforeEach
   public void setupMetadataPermission() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       rootHasWritePermission = client.securityOperations().hasTablePermission("root",
@@ -90,7 +90,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     }
   }
 
-  @After
+  @AfterEach
   public void resetMetadataPermission() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       // Final state doesn't match the original

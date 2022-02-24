@@ -31,8 +31,8 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.commons.io.FileUtils;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -44,7 +44,7 @@ public class ZooCacheIT extends ConfigurableMacBase {
   private static File testDir;
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
-  @BeforeClass
+  @BeforeAll
   public static void createTestDirectory() {
     testDir = new File(createTestDir(ZooCacheIT.class.getName()), pathName);
     FileUtils.deleteQuietly(testDir);

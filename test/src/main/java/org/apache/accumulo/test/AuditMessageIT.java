@@ -55,9 +55,9 @@ import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -160,7 +160,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
     }
   }
 
-  @Before
+  @BeforeEach
   public void resetInstance() throws Exception {
     client = Accumulo.newClient().from(getClientProperties()).build();
 
@@ -170,7 +170,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
     getAuditMessages("setup");
   }
 
-  @After
+  @AfterEach
   public void cleanUp() throws Exception {
     removeUsersAndTables();
     client.close();

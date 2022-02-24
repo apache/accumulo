@@ -30,7 +30,7 @@ import java.security.SignatureException;
 import java.security.cert.Certificate;
 
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.TemporaryFolder;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;

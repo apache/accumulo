@@ -49,9 +49,9 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.rules.TemporaryFolder;
 
@@ -78,7 +78,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
   public TemporaryFolder folder =
       new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
-  @Before
+  @BeforeEach
   public void setup() throws Exception {
     PREFIX = testName() + "_";
     BAD_TABLE = PREFIX + "_mapreduce_bad_table";

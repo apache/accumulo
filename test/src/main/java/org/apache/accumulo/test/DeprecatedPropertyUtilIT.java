@@ -31,9 +31,9 @@ import org.apache.accumulo.core.conf.DeprecatedPropertyUtil.PropertyRenamer;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.util.SystemPropUtil;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class DeprecatedPropertyUtilIT extends ConfigurableMacBase {
   private static final String OLD_SYSTEM_PREFIX = "old.system.custom.";
@@ -51,13 +51,13 @@ public class DeprecatedPropertyUtilIT extends ConfigurableMacBase {
     }
   }
 
-  @Before
+  @BeforeEach
   public void setUpRenamers() throws Exception {
     super.setUp();
     TestPropertyUtil.registerTestRenamer();
   }
 
-  @After
+  @AfterEach
   public void tearDownRenamers() {
     super.tearDown();
     TestPropertyUtil.removeTestRenamer();

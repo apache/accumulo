@@ -105,8 +105,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -124,7 +124,7 @@ import com.google.protobuf.TextFormat;
  * MockReplicaSystem is used to "fake" the peer instance that we're replicating to. This lets us
  * test replication in a functional way without having to worry about two real systems.
  */
-@Ignore("Replication ITs are not stable and not currently maintained")
+@Disabled("Replication ITs are not stable and not currently maintained")
 @Deprecated
 @Timeout(60 * 10)
 public class ReplicationIT extends ConfigurableMacBase {

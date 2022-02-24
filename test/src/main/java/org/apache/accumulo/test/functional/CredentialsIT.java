@@ -44,9 +44,9 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 @Timeout(value = 2, unit = MINUTES)
@@ -56,7 +56,7 @@ public class CredentialsIT extends AccumuloClusterHarness {
   private String username;
   private String password;
 
-  @Before
+  @BeforeEach
   public void createLocalUser() throws AccumuloException, AccumuloSecurityException {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       ClusterUser user = getUser(0);
@@ -75,7 +75,7 @@ public class CredentialsIT extends AccumuloClusterHarness {
     }
   }
 
-  @After
+  @AfterEach
   public void deleteLocalUser() throws Exception {
     if (saslEnabled) {
       ClusterUser root = getAdminUser();

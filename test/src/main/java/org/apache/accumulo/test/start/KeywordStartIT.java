@@ -66,9 +66,9 @@ import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.accumulo.tserver.TServerExecutable;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.logger.LogReader;
-import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -41,9 +41,9 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.metrics.TestStatsDSink.Metric;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import io.micrometer.core.instrument.MeterRegistry;
@@ -53,12 +53,12 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
 
   private static TestStatsDSink sink;
 
-  @BeforeClass
+  @BeforeAll
   public static void before() throws Exception {
     sink = new TestStatsDSink();
   }
 
-  @AfterClass
+  @AfterAll
   public static void after() throws Exception {
     sink.close();
   }

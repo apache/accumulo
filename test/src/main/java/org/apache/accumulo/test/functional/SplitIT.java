@@ -51,10 +51,10 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.After;
 import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,7 +71,7 @@ public class SplitIT extends AccumuloClusterHarness {
 
   private String tservMaxMem, tservMajcDelay;
 
-  @Before
+  @BeforeEach
   public void alterConfig() throws Exception {
     Assume.assumeTrue(getClusterType() == ClusterType.MINI);
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
@@ -103,7 +103,7 @@ public class SplitIT extends AccumuloClusterHarness {
     }
   }
 
-  @After
+  @AfterEach
   public void resetConfig() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       if (tservMaxMem != null) {

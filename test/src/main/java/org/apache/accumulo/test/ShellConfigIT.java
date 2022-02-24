@@ -37,9 +37,9 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.harness.conf.StandaloneAccumuloClusterConfiguration;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.test.ShellServerIT.TestShell;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 @Timeout(30)
@@ -47,7 +47,7 @@ public class ShellConfigIT extends AccumuloClusterHarness {
 
   private String origPropValue;
 
-  @Before
+  @BeforeEach
   public void checkProperty() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       // TABLE_VOLUME_CHOOSER is a valid property that can be updated in ZK, whereas the crypto
@@ -61,7 +61,7 @@ public class ShellConfigIT extends AccumuloClusterHarness {
     }
   }
 
-  @After
+  @AfterEach
   public void resetProperty() throws Exception {
     if (origPropValue != null) {
       try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
