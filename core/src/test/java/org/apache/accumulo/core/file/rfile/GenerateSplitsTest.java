@@ -51,7 +51,7 @@ public class GenerateSplitsTest {
   private static final Logger log = LoggerFactory.getLogger(GenerateSplitsTest.class);
 
   @TempDir
-  public static final File tempFolder = new File(System.getProperty("user.dir") + "/target",
+  private static File tempFolder = new File(System.getProperty("user.dir") + "/target",
       GenerateSplitsTest.class.getSimpleName() + "/");
 
   private static final RFileTest.TestRFile trf = new RFileTest.TestRFile(null);
@@ -75,6 +75,7 @@ public class GenerateSplitsTest {
     trf.closeWriter();
 
     File file = new File(tempFolder, "testGenerateSplits.rf");
+    assertTrue(file.createNewFile(), "Failed to create file: " + file);
     try (var fileOutputStream = new FileOutputStream(file)) {
       fileOutputStream.write(trf.baos.toByteArray());
     }
@@ -82,6 +83,7 @@ public class GenerateSplitsTest {
     log.info("Wrote to file {}", rfilePath);
 
     File splitsFile = new File(tempFolder, "testSplitsFile");
+    assertTrue(splitsFile.createNewFile(), "Failed to create file: " + splitsFile);
     splitsFilePath = splitsFile.getAbsolutePath();
   }
 

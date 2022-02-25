@@ -129,7 +129,7 @@ public class RFileTest {
   private static final Configuration hadoopConf = new Configuration();
 
   @TempDir
-  private static final File tempFolder =
+  private final File tempFolder =
       new File(System.getProperty("user.dir") + "/target", RFileTest.class.getSimpleName() + "/");
 
   @BeforeAll
