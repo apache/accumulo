@@ -28,6 +28,7 @@ import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
@@ -160,8 +161,9 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
     } else {
       this.evictionThread = null;
     }
-    this.scheduleThreadPool.scheduleAtFixedRate(new StatisticsThread(this), statThreadPeriod,
-        statThreadPeriod, SECONDS);
+    @SuppressWarnings("unused") // don't care if stat logging fails
+    ScheduledFuture<?> unused = this.scheduleThreadPool.scheduleAtFixedRate(
+        new StatisticsThread(this), statThreadPeriod, statThreadPeriod, SECONDS);
   }
 
   public long getOverhead() {

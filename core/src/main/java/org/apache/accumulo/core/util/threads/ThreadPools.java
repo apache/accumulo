@@ -21,9 +21,13 @@ package org.apache.accumulo.core.util.threads;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import java.util.Iterator;
 import java.util.OptionalInt;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledFuture;
@@ -46,6 +50,70 @@ public class ThreadPools {
 
   // the number of seconds before we allow a thread to terminate with non-use.
   public static final long DEFAULT_TIMEOUT_MILLISECS = 180000L;
+
+  private static final ThreadPoolExecutor SCHEDULED_FUTURE_CHECKER_POOL =
+      createFixedThreadPool(1, "Scheduled Future Checker", false);
+
+  private static final ConcurrentLinkedQueue<ScheduledFuture<?>> CRITICAL_RUNNING_TASKS =
+      new ConcurrentLinkedQueue<>();
+
+  private static Runnable CRITICAL_TASK_CHECKER = new Runnable() {
+    @Override
+    public void run() {
+      while (true) {
+        Iterator<ScheduledFuture<?>> futures = CRITICAL_RUNNING_TASKS.iterator();
+        while (futures.hasNext()) {
+          ScheduledFuture<?> criticalTask = futures.next();
+          // Calling get() on a ScheduledFuture will block unless that scheduled task has
+          // completed. We call isDone() here instead. If the scheduled task is done then
+          // either it was a one-shot task, cancelled or an exception was thrown.
+          if (criticalTask.isDone()) {
+            // Now call get() to see if we get an exception.
+            try {
+              criticalTask.get();
+              // If we get here, then a scheduled task exited but did not throw an error
+              // or get canceled. This was likely a one-shot scheduled task.
+              if (!CRITICAL_RUNNING_TASKS.remove(criticalTask)) {
+                LOG.warn("Unable to remove task from list of watched critical tasks");
+              }
+            } catch (ExecutionException ee) {
+              // An exception was thrown in the critical task. Throw the error here, which
+              // will then be caught by the AccumuloUncaughtExceptionHandler which will
+              // log the error and terminate the VM.
+              throw new RuntimeException("Critical scheduled task failed.", ee.getCause());
+            } catch (CancellationException ce) {
+              // do nothing here as it appears that the task was canceled. Remove it from
+              // the list of critical tasks
+              if (!CRITICAL_RUNNING_TASKS.remove(criticalTask)) {
+                LOG.warn("Unable to remove task from list of watched critical tasks");
+              }
+            } catch (InterruptedException ie) {
+              // current thread was interrupted waiting for get to return, which in theory,
+              // shouldn't happen since the task is done.
+              LOG.info("Interrupted while waiting to check on scheduled task.");
+              // Reset the interrupt state on this thread
+              Thread.interrupted();
+            }
+          }
+        }
+        try {
+          TimeUnit.MINUTES.sleep(1);
+        } catch (InterruptedException ie) {
+          // This thread was interrupted by something while sleeping. We don't want to exit
+          // this thread, so reset the interrupt state on this thread and keep going.
+          Thread.interrupted();
+        }
+      }
+    }
+  };
+
+  static {
+    SCHEDULED_FUTURE_CHECKER_POOL.execute(CRITICAL_TASK_CHECKER);
+  }
+
+  public static void watchCriticalScheduledTask(ScheduledFuture<?> future) {
+    CRITICAL_RUNNING_TASKS.add(future);
+  }
 
   /**
    * Resize ThreadPoolExecutor based on current value of maxThreads

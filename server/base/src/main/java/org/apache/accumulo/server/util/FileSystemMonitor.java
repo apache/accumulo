@@ -117,20 +117,20 @@ public class FileSystemMonitor {
 
     // Create a task to check each mount periodically to see if its state has changed.
     for (Mount mount : mounts) {
-      ThreadPools.createGeneralScheduledExecutorService(conf).scheduleWithFixedDelay(
-          Threads.createNamedRunnable(mount.mountPoint + "filesystem monitor", () -> {
-            try {
-              checkMount(mount);
-            } catch (final Exception e) {
-              Halt.halt(-42, new Runnable() {
-                @Override
-                public void run() {
-                  log.error("Exception while checking mount points, halting process", e);
+      ThreadPools.watchCriticalScheduledTask(
+          ThreadPools.createGeneralScheduledExecutorService(conf).scheduleWithFixedDelay(
+              Threads.createNamedRunnable(mount.mountPoint + "filesystem monitor", () -> {
+                try {
+                  checkMount(mount);
+                } catch (final Exception e) {
+                  Halt.halt(-42, new Runnable() {
+                    @Override
+                    public void run() {
+                      log.error("Exception while checking mount points, halting process", e);
+                    }
+                  });
                 }
-              });
-            }
-          }), period, period, TimeUnit.MILLISECONDS);
-
+              }), period, period, TimeUnit.MILLISECONDS));
     }
 
   }

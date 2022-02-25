@@ -28,6 +28,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -162,12 +163,16 @@ public class CompactionCoordinator extends AbstractServer
   }
 
   protected void startGCLogger(ScheduledThreadPoolExecutor schedExecutor) {
-    schedExecutor.scheduleWithFixedDelay(() -> gcLogger.logGCInfo(getConfiguration()), 0,
-        TIME_BETWEEN_GC_CHECKS, TimeUnit.MILLISECONDS);
+    @SuppressWarnings("unused")
+    ScheduledFuture<?> unused =
+        schedExecutor.scheduleWithFixedDelay(() -> gcLogger.logGCInfo(getConfiguration()), 0,
+            TIME_BETWEEN_GC_CHECKS, TimeUnit.MILLISECONDS);
   }
 
   protected void startCompactionCleaner(ScheduledThreadPoolExecutor schedExecutor) {
-    schedExecutor.scheduleWithFixedDelay(() -> cleanUpCompactors(), 0, 5, TimeUnit.MINUTES);
+    @SuppressWarnings("unused")
+    ScheduledFuture<?> unused =
+        schedExecutor.scheduleWithFixedDelay(() -> cleanUpCompactors(), 0, 5, TimeUnit.MINUTES);
   }
 
   protected void printStartupMsg() {

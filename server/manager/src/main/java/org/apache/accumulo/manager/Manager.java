@@ -41,6 +41,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -252,7 +253,8 @@ public class Manager extends AbstractServer
     if (newState == ManagerState.STOP) {
       // Give the server a little time before shutdown so the client
       // thread requesting the stop can return
-      getContext().getScheduledExecutor().scheduleWithFixedDelay(() -> {
+      @SuppressWarnings("unused")
+      ScheduledFuture<?> future = getContext().getScheduledExecutor().scheduleWithFixedDelay(() -> {
         // This frees the main thread and will cause the manager to exit
         clientService.stop();
         Manager.this.nextEvent.event("stopped event loop");
@@ -930,7 +932,7 @@ public class Manager extends AbstractServer
         // unresponsive tservers.
         sleepUninterruptibly(Math.max(1, rpcTimeout / 120_000), TimeUnit.MILLISECONDS);
       }
-      tp.submit(() -> {
+      tp.execute(() -> {
         try {
           Thread t = Thread.currentThread();
           String oldName = t.getName();
@@ -1150,8 +1152,8 @@ public class Manager extends AbstractServer
       fate = new Fate<>(this, store, TraceRepo::toLogString);
       fate.startTransactionRunners(getConfiguration());
 
-      context.getScheduledExecutor().scheduleWithFixedDelay(store::ageOff, 63000, 63000,
-          TimeUnit.MILLISECONDS);
+      ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
+          .scheduleWithFixedDelay(store::ageOff, 63000, 63000, TimeUnit.MILLISECONDS));
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
     }
@@ -1198,7 +1200,8 @@ public class Manager extends AbstractServer
 
     // if the replication name is ever set, then start replication services
     final AtomicReference<TServer> replServer = new AtomicReference<>();
-    context.getScheduledExecutor().scheduleWithFixedDelay(() -> {
+    @SuppressWarnings("unused")
+    ScheduledFuture<?> future = context.getScheduledExecutor().scheduleWithFixedDelay(() -> {
       try {
         @SuppressWarnings("deprecation")
         Property p = Property.REPLICATION_NAME;

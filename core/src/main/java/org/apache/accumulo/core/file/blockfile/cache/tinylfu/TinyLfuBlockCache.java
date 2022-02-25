@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.file.blockfile.cache.impl.ClassSize;
@@ -71,7 +72,9 @@ public final class TinyLfuBlockCache implements BlockCache {
         }).maximumWeight(conf.getMaxSize(type)).recordStats().build();
     policy = cache.policy().eviction().get();
     maxSize = (int) Math.min(Integer.MAX_VALUE, policy.getMaximum());
-    statsExecutor.scheduleAtFixedRate(this::logStats, STATS_PERIOD_SEC, STATS_PERIOD_SEC, SECONDS);
+    @SuppressWarnings("unused") // don't care if stat logging fails
+    ScheduledFuture<?> unused = statsExecutor.scheduleAtFixedRate(this::logStats, STATS_PERIOD_SEC,
+        STATS_PERIOD_SEC, SECONDS);
   }
 
   @Override

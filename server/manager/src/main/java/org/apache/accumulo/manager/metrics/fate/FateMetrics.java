@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.metrics.fate;
 
 import java.util.Map.Entry;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -155,7 +156,8 @@ public class FateMetrics implements MetricsProducer {
         ThreadPools.createScheduledExecutorService(1, "fateMetricsPoller", false);
     Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdownNow));
 
-    scheduler.scheduleAtFixedRate(() -> {
+    @SuppressWarnings("unused")
+    ScheduledFuture<?> future = scheduler.scheduleAtFixedRate(() -> {
       try {
         update();
       } catch (Exception ex) {

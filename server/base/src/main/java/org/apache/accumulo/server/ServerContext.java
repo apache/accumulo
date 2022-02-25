@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -419,7 +420,8 @@ public class ServerContext extends ClientContext {
   }
 
   private void monitorSwappiness() {
-    getScheduledExecutor().scheduleWithFixedDelay(() -> {
+    @SuppressWarnings("unused")
+    ScheduledFuture<?> unused = getScheduledExecutor().scheduleWithFixedDelay(() -> {
       try {
         String procFile = "/proc/sys/vm/swappiness";
         File swappiness = new File(procFile);

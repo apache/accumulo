@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -126,6 +127,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
   // latency timers
   private final ScheduledThreadPoolExecutor executor;
+  private ScheduledFuture<?> latencyTimerFuture;
   private final Map<String,TimeoutTracker> timeoutTrackers =
       Collections.synchronizedMap(new HashMap<>());
 
@@ -214,17 +216,18 @@ public class TabletServerBatchWriter implements AutoCloseable {
     this.writer = new MutationWriter(config.getMaxWriteThreads());
 
     if (this.maxLatency != Long.MAX_VALUE) {
-      executor.scheduleWithFixedDelay(Threads.createNamedRunnable("BatchWriterLatencyTimer", () -> {
-        try {
-          synchronized (TabletServerBatchWriter.this) {
-            if ((System.currentTimeMillis() - lastProcessingStartTime)
-                > TabletServerBatchWriter.this.maxLatency)
-              startProcessing();
-          }
-        } catch (Exception e) {
-          updateUnknownErrors("Max latency task failed " + e.getMessage(), e);
-        }
-      }), 0, this.maxLatency / 4, MILLISECONDS);
+      latencyTimerFuture = executor
+          .scheduleWithFixedDelay(Threads.createNamedRunnable("BatchWriterLatencyTimer", () -> {
+            try {
+              synchronized (TabletServerBatchWriter.this) {
+                if ((System.currentTimeMillis() - lastProcessingStartTime)
+                    > TabletServerBatchWriter.this.maxLatency)
+                  startProcessing();
+              }
+            } catch (Exception e) {
+              updateUnknownErrors("Max latency task failed " + e.getMessage(), e);
+            }
+          }), 0, this.maxLatency / 4, MILLISECONDS);
     }
   }
 
@@ -248,6 +251,10 @@ public class TabletServerBatchWriter implements AutoCloseable {
       throw new IllegalStateException("Closed");
     if (m.size() == 0)
       throw new IllegalArgumentException("Can not add empty mutations");
+    if (this.latencyTimerFuture != null && this.latencyTimerFuture.isDone()) {
+      throw new RuntimeException(
+          "Latency timer thread has exited, cannot guarantee latency target");
+    }
 
     checkForFailures();
 
@@ -576,14 +583,18 @@ public class TabletServerBatchWriter implements AutoCloseable {
     private MutationSet recentFailures = null;
     private long initTime;
     private final Runnable task;
+    private final ScheduledFuture<?> future;
 
     FailedMutations() {
       task =
           Threads.createNamedRunnable("failed mutationBatchWriterLatencyTimers handler", this::run);
-      executor.scheduleWithFixedDelay(task, 0, 500, MILLISECONDS);
+      future = executor.scheduleWithFixedDelay(task, 0, 500, MILLISECONDS);
     }
 
     private MutationSet init() {
+      if (future.isDone()) {
+        throw new RuntimeException("Background task that re-queues failed mutations has exited.");
+      }
       if (recentFailures == null) {
         recentFailures = new MutationSet();
         initTime = System.currentTimeMillis();

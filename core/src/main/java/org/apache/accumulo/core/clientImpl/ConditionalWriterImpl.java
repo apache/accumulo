@@ -388,11 +388,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
   @Override
   public Iterator<Result> write(Iterator<ConditionalMutation> mutations) {
 
-    synchronized (failureTaskFuture) {
-      if (failureTaskFuture.isDone()) {
-        // TabletServerBatchWriter throws a MutationsRejectedException.
-        throw new RuntimeException("Background task that re-queues failed mutations has failed.");
-      }
+    if (failureTaskFuture.isDone()) {
+      throw new RuntimeException("Background task that re-queues failed mutations has exited.");
     }
 
     BlockingQueue<Result> resultQueue = new LinkedBlockingQueue<>();

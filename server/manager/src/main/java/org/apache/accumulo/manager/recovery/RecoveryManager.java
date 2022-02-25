@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
@@ -105,7 +106,8 @@ public class RecoveryManager {
             manager.getVolumeManager(), new Path(source));
 
         if (time > 0) {
-          executor.schedule(this, time, TimeUnit.MILLISECONDS);
+          @SuppressWarnings("unused")
+          ScheduledFuture<?> future = executor.schedule(this, time, TimeUnit.MILLISECONDS);
           rescheduled = true;
         } else {
           initiateSort(sortId, source, destination);
@@ -210,8 +212,9 @@ public class RecoveryManager {
             log.info("Starting recovery of {} (in : {}s), tablet {} holds a reference", filename,
                 (delay / 1000), extent);
 
-            executor.schedule(new LogSortTask(closer, filename, dest, sortId), delay,
-                TimeUnit.MILLISECONDS);
+            @SuppressWarnings("unused")
+            ScheduledFuture<?> future = executor.schedule(
+                new LogSortTask(closer, filename, dest, sortId), delay, TimeUnit.MILLISECONDS);
             closeTasksQueued.add(sortId);
             recoveryDelay.put(sortId, delay);
           }

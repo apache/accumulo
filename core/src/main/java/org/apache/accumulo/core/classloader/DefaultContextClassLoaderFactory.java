@@ -22,6 +22,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -62,7 +63,8 @@ public class DefaultContextClassLoaderFactory implements ContextClassLoaderFacto
 
   private static void startCleanupThread(final AccumuloConfiguration conf,
       final Supplier<Map<String,String>> contextConfigSupplier) {
-    ThreadPools.createGeneralScheduledExecutorService(conf)
+    @SuppressWarnings("unused") // don't care if classloader cleanup thread fails
+    ScheduledFuture<?> unused = ThreadPools.createGeneralScheduledExecutorService(conf)
         .scheduleWithFixedDelay(Threads.createNamedRunnable(className + "-cleanup", () -> {
           LOG.trace("{}-cleanup thread, properties: {}", className, conf);
           Set<String> contextsInUse = contextConfigSupplier.get().keySet().stream()
