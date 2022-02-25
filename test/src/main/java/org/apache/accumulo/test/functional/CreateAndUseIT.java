@@ -19,7 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -91,7 +91,7 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
 
           ei++;
         }
-        assertEquals("Did not see expected number of rows", 257, ei);
+        assertEquals(257, ei, "Did not see expected number of rows");
       }
     }
   }
@@ -132,7 +132,7 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
         bs.setRanges(ranges);
         Iterator<Entry<Key,Value>> iter = bs.iterator();
         int count = Iterators.size(iter);
-        assertEquals("Did not expect to find any entries", 0, count);
+        assertEquals(0, count, "Did not expect to find any entries");
       }
     }
   }

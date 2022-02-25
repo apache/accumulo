@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
 
@@ -70,34 +70,34 @@ public class DeprecatedPropertyUtilIT extends ConfigurableMacBase {
       String newProp = Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey() + "test.prop";
       String propValue = "dummy prop value";
       Map<String,String> config = client.instanceOperations().getSystemConfiguration();
-      assertFalse(oldProp + " was in the config!", config.containsKey(newProp));
-      assertFalse(newProp + " was in the config!", config.containsKey(newProp));
+      assertFalse(config.containsKey(newProp), oldProp + " was in the config!");
+      assertFalse(config.containsKey(newProp), newProp + " was in the config!");
 
       // create using old prop and verify new prop was created
       SystemPropUtil.setSystemProperty(getServerContext(), oldProp, propValue);
       config = client.instanceOperations().getSystemConfiguration();
-      assertFalse(oldProp + " was in the config after set call!", config.containsKey(oldProp));
-      assertTrue(newProp + " was not in the config after set call!", config.containsKey(newProp));
+      assertFalse(config.containsKey(oldProp), oldProp + " was in the config after set call!");
+      assertTrue(config.containsKey(newProp), newProp + " was not in the config after set call!");
       assertEquals(propValue, config.get(newProp));
 
       // remove using new prop and verify both are gone
       SystemPropUtil.removeSystemProperty(getServerContext(), newProp);
       config = client.instanceOperations().getSystemConfiguration();
-      assertFalse(oldProp + " was in the config after remove call!", config.containsKey(oldProp));
-      assertFalse(newProp + " was in the config after remove call!", config.containsKey(newProp));
+      assertFalse(config.containsKey(oldProp), oldProp + " was in the config after remove call!");
+      assertFalse(config.containsKey(newProp), newProp + " was in the config after remove call!");
 
       // re-create using new prop and verify new prop was created
       SystemPropUtil.setSystemProperty(getServerContext(), newProp, propValue);
       config = client.instanceOperations().getSystemConfiguration();
-      assertFalse(oldProp + " was in the config after set call!", config.containsKey(oldProp));
-      assertTrue(newProp + " was not in the config after set call!", config.containsKey(newProp));
+      assertFalse(config.containsKey(oldProp), oldProp + " was in the config after set call!");
+      assertTrue(config.containsKey(newProp), newProp + " was not in the config after set call!");
       assertEquals(propValue, config.get(newProp));
 
       // remove using old prop and verify both are gone
       SystemPropUtil.removeSystemProperty(getServerContext(), oldProp);
       config = client.instanceOperations().getSystemConfiguration();
-      assertFalse(oldProp + " was in the config after remove call!", config.containsKey(oldProp));
-      assertFalse(newProp + " was in the config after remove call!", config.containsKey(newProp));
+      assertFalse(config.containsKey(oldProp), oldProp + " was in the config after remove call!");
+      assertFalse(config.containsKey(newProp), newProp + " was in the config after remove call!");
     }
   }
 

@@ -19,7 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Collections;
 import java.util.Map.Entry;
@@ -68,7 +68,7 @@ public class TimeoutIT extends AccumuloClusterHarness {
 
     bw.addMutation(mut);
     var mre =
-        assertThrows("batch writer did not timeout", MutationsRejectedException.class, bw::close);
+        assertThrows(MutationsRejectedException.class, bw::close, "batch writer did not timeout");
     if (mre.getCause() instanceof TimedOutException)
       return;
     throw mre;
@@ -99,8 +99,8 @@ public class TimeoutIT extends AccumuloClusterHarness {
       iterSetting.addOption("sleepTime", 2000 + "");
       bs.addScanIterator(iterSetting);
 
-      assertThrows("batch scanner did not time out", TimedOutException.class,
-          () -> bs.iterator().next());
+      assertThrows(TimedOutException.class, () -> bs.iterator().next(),
+          "batch scanner did not time out");
     }
   }
 

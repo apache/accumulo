@@ -21,7 +21,7 @@ package org.apache.accumulo.test.functional;
 import static java.util.Collections.singletonMap;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
 import java.util.Map.Entry;
@@ -89,7 +89,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
           System.getProperty("timeout.factor"));
     }
 
-    assertTrue("Timeout factor must be greater than or equal to 1", timeoutFactor >= 1);
+    assertTrue(timeoutFactor >= 1, "Timeout factor must be greater than or equal to 1");
 
     String[] names = getUniqueNames(2);
     REG_TABLE_NAME = names[0];

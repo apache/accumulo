@@ -27,9 +27,9 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -213,16 +213,16 @@ public class BulkNewIT extends SharedMiniClusterBase {
       // test max tablets hit while inspecting bulk files
       var thrown = assertThrows(RuntimeException.class, () -> testBulkFileMax(false));
       var c = thrown.getCause();
-      assertTrue("Wrong exception: " + c, c instanceof ExecutionException);
-      assertTrue("Wrong exception: " + c.getCause(),
-          c.getCause() instanceof IllegalArgumentException);
+      assertTrue(c instanceof ExecutionException, "Wrong exception: " + c);
+      assertTrue(c.getCause() instanceof IllegalArgumentException,
+          "Wrong exception: " + c.getCause());
       var msg = c.getCause().getMessage();
-      assertTrue("Bad File not in exception: " + msg, msg.contains("bad-file.rf"));
+      assertTrue(msg.contains("bad-file.rf"), "Bad File not in exception: " + msg);
 
       // test max tablets hit using load plan on the server side
       c = assertThrows(AccumuloException.class, () -> testBulkFileMax(true));
       msg = c.getMessage();
-      assertTrue("Bad File not in exception: " + msg, msg.contains("bad-file.rf"));
+      assertTrue(msg.contains("bad-file.rf"), "Bad File not in exception: " + msg);
     }
   }
 

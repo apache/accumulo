@@ -19,8 +19,8 @@
 package org.apache.accumulo.test.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -108,7 +108,7 @@ public class ZooMutatorIT {
               byte[] val =
                   zk.mutateOrCreate("/test-zm", initialData.getBytes(UTF_8), this::nextValue);
               int nextCount = getCount(val);
-              assertTrue("nextCount <= count " + nextCount + " " + count, nextCount > count);
+              assertTrue(nextCount > count, "nextCount <= count " + nextCount + " " + count);
               count = nextCount;
               countCounts.merge(count, 1, Integer::sum);
             }

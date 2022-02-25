@@ -20,7 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static java.util.Collections.singletonMap;
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map;
 import java.util.Map.Entry;

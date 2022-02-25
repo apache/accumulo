@@ -25,7 +25,7 @@ import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.co
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.verify;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.writeData;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Collection;
 import java.util.List;

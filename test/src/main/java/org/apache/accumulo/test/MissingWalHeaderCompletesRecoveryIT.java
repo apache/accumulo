@@ -20,9 +20,9 @@ package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.util.UUID;
@@ -126,15 +126,14 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
       fs.create(new Path(emptyWalog.toURI())).close();
 
-      assertTrue("root user did not have write permission to metadata table",
-          client.securityOperations().hasTablePermission("root", MetadataTable.NAME,
-              TablePermission.WRITE));
+      assertTrue(client.securityOperations().hasTablePermission("root", MetadataTable.NAME,
+          TablePermission.WRITE), "root user did not have write permission to metadata table");
 
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
 
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
-      assertNotNull("Table ID was null", tableId);
+      assertNotNull(tableId, "Table ID was null");
 
       LogEntry logEntry =
           new LogEntry(new KeyExtent(tableId, null, null), 0, emptyWalog.toURI().toString());
@@ -186,15 +185,14 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
           DfsLogger.LOG_FILE_HEADER_V4.length() / 2);
       wal.close();
 
-      assertTrue("root user did not have write permission to metadata table",
-          client.securityOperations().hasTablePermission("root", MetadataTable.NAME,
-              TablePermission.WRITE));
+      assertTrue(client.securityOperations().hasTablePermission("root", MetadataTable.NAME,
+          TablePermission.WRITE), "root user did not have write permission to metadata table");
 
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
 
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
-      assertNotNull("Table ID was null", tableId);
+      assertNotNull(tableId, "Table ID was null");
 
       LogEntry logEntry = new LogEntry(null, 0, partialHeaderWalog.toURI().toString());
 

@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.ArrayList;
 
@@ -86,8 +86,8 @@ public class InterruptibleScannersIT extends AccumuloClusterHarness {
         thread.start();
         try {
           // Use the scanner, expect problems
-          assertThrows("Scan should not succeed", RuntimeException.class,
-              () -> Iterators.size(scanner.iterator()));
+          assertThrows(RuntimeException.class, () -> Iterators.size(scanner.iterator()),
+              "Scan should not succeed");
         } finally {
           thread.join();
         }

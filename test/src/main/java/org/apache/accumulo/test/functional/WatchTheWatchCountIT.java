@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.Socket;
 import java.util.Properties;
@@ -79,8 +79,8 @@ public class WatchTheWatchCountIT extends ConfigurableMacBase {
         }
       }
 
-      assertTrue("Expected number of watchers to be contained in (" + MIN + ", " + MAX
-          + "), but actually was " + total, total > MIN && total < MAX);
+      assertTrue(total > MIN && total < MAX, "Expected number of watchers to be contained in ("
+          + MIN + ", " + MAX + "), but actually was " + total);
 
     }
   }

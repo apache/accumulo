@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.iterator;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map;
 import java.util.TreeMap;

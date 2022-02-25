@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicLong;

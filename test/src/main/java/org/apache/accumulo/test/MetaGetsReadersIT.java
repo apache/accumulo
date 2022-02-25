@@ -20,8 +20,8 @@ package org.apache.accumulo.test;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -107,7 +107,7 @@ public class MetaGetsReadersIT extends ConfigurableMacBase {
 
       long delay = System.currentTimeMillis() - now;
       System.out.println("Delay = " + delay);
-      assertTrue("metadata table scan was slow", delay < 1000);
+      assertTrue(delay < 1000, "metadata table scan was slow");
       assertFalse(stop.get());
       stop.set(true);
       t1.interrupt();

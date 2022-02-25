@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.test.replication;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.EnumSet;
 import java.util.Map;
@@ -89,7 +89,7 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
       for (IteratorScope scope : scopes) {
         String key = Property.TABLE_ITERATOR_PREFIX.getKey() + scope.name() + "."
             + ReplicationTableUtil.COMBINER_NAME + ".opt.columns";
-        assertTrue("Properties did not contain key : " + key, properties.containsKey(key));
+        assertTrue(properties.containsKey(key), "Properties did not contain key : " + key);
         assertEquals(ReplicationSection.COLF.toString(), properties.get(key));
       }
     }

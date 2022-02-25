@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -96,13 +96,15 @@ public class FlushNoFileIT extends AccumuloClusterHarness {
       FunctionalTestUtils.checkRFiles(c, tableName, 3, 3, 0, 0);
 
       long secondFlushId = FunctionalTestUtils.checkFlushId((ClientContext) c, tableId, flushId);
-      assertTrue("Flush ID did not change", secondFlushId > flushId);
+      assertTrue(secondFlushId > flushId, "Flush ID did not change");
 
       try (Scanner scanner = c.createScanner(tableName)) {
         assertEquals("Expected 0 Entries in table", 0, Iterables.size(scanner));
       }
     }
   }
+
+  private void assertEquals(String s, int i, int size) {}
 
   public static class NullIterator implements SortedKeyValueIterator<Key,Value> {
 

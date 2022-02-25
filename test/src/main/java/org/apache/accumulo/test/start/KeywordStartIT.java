@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.test.start;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.File;
 import java.lang.reflect.Method;
@@ -155,21 +155,21 @@ public class KeywordStartIT {
         log.warn("Missing class for keyword '{}'", expectIter.next());
       }
     }
-    assertFalse("Missing expected classes", moreExpected);
+    assertFalse(moreExpected, "Missing expected classes");
     boolean moreActual = actualIter.hasNext();
     if (moreActual) {
       while (actualIter.hasNext()) {
         log.warn("Extra class found with keyword '{}'", actualIter.next());
       }
     }
-    assertFalse("Found additional unexpected classes", moreActual);
+    assertFalse(moreActual, "Found additional unexpected classes");
   }
 
   @Test
   @SuppressWarnings("deprecation")
   public void checkHasMain() {
-    assertFalse("Sanity check for test failed. Somehow the test class has a main method",
-        hasMain(this.getClass()));
+    assertFalse(hasMain(this.getClass()),
+        "Sanity check for test failed. Somehow the test class has a main method");
 
     HashSet<Class<?>> expectSet = new HashSet<>();
     expectSet.add(Admin.class);
@@ -189,7 +189,7 @@ public class KeywordStartIT {
     expectSet.add(ZooKeeperMain.class);
 
     for (Class<?> c : expectSet) {
-      assertTrue("Class " + c.getName() + " is missing a main method!", hasMain(c));
+      assertTrue(hasMain(c), "Class " + c.getName() + " is missing a main method!");
     }
 
   }

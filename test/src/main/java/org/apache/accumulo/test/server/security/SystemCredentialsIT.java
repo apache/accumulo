@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.server.security;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map.Entry;
 

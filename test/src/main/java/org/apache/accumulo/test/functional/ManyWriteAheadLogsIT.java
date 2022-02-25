@@ -19,7 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Base64;
 import java.util.HashSet;
@@ -179,8 +179,8 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
         }
       }
 
-      assertTrue("Number of WALs seen was less than expected " + allWalsSeen.size(),
-          allWalsSeen.size() >= 50);
+      assertTrue(allWalsSeen.size() >= 50,
+          "Number of WALs seen was less than expected " + allWalsSeen.size());
 
       // the total number of closed write ahead logs should get small
       int closedLogs = countClosedWals(context);
@@ -221,7 +221,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
     }
 
     log.debug("It took {} attempt(s) to find {} open WALs", attempts, open);
-    assertTrue("Open WALs not in expected range " + open, open > 0 && open < 4);
+    assertTrue(open > 0 && open < 4, "Open WALs not in expected range " + open);
   }
 
   private int countClosedWals(ServerContext c) throws Exception {

@@ -20,9 +20,10 @@ package org.apache.accumulo.test.functional;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -49,7 +50,6 @@ import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.junit.Assume;
 import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -67,7 +67,7 @@ public class ClassLoaderIT extends AccumuloClusterHarness {
 
   @BeforeEach
   public void checkCluster() {
-    Assume.assumeTrue(getClusterType() == ClusterType.MINI);
+    assumeTrue(getClusterType() == ClusterType.MINI);
     MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) getCluster();
     rootPath = mac.getConfig().getDir().getAbsolutePath();
   }

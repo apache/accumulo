@@ -19,9 +19,10 @@
 
 package org.apache.accumulo.test.compaction;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -429,8 +430,8 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
               .setIterators(List.of(iterSetting)).setWait(true).setFlush(true));
 
       for (String row : List.of("a", "h")) {
-        assertTrue(expected.remove(row + ":f:004") != null);
-        assertTrue(expected.remove(row + ":f:007") != null);
+        assertNotNull(expected.remove(row + ":f:004"));
+        assertNotNull(expected.remove(row + ":f:007"));
       }
 
       Map<String,String> actual = scanTable(client, tableName);
@@ -443,9 +444,9 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
           .setEndRow(new Text("u")).setIterators(List.of(iterSetting)).setWait(true));
 
       for (String row : List.of("o", "s", "x")) {
-        assertTrue(expected.remove(row + ":f:002") != null);
-        assertTrue(expected.remove(row + ":f:005") != null);
-        assertTrue(expected.remove(row + ":f:009") != null);
+        assertNotNull(expected.remove(row + ":f:002"));
+        assertNotNull(expected.remove(row + ":f:005"));
+        assertNotNull(expected.remove(row + ":f:009"));
       }
 
       actual = scanTable(client, tableName);
@@ -458,8 +459,8 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
           new CompactionConfig().setIterators(List.of(iterSetting)).setWait(true));
 
       for (String row : List.of("a", "h", "o", "s", "x")) {
-        assertTrue(expected.remove(row + ":f:001") != null);
-        assertTrue(expected.remove(row + ":f:008") != null);
+        assertNotNull(expected.remove(row + ":f:001"));
+        assertNotNull(expected.remove(row + ":f:008"));
       }
 
       actual = scanTable(client, tableName);
@@ -513,8 +514,8 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
 
       // without compression, expect file to be large
       long sizes = getFileSizes(client, tableName);
-      assertTrue("Unexpected files sizes : " + sizes,
-          sizes > data.length * 10 && sizes < data.length * 11);
+      assertTrue(sizes > data.length * 10 && sizes < data.length * 11,
+          "Unexpected files sizes : " + sizes);
 
       client.tableOperations().compact(tableName,
           new CompactionConfig().setWait(true)
@@ -524,14 +525,14 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
 
       // after compacting with compression, expect small file
       sizes = getFileSizes(client, tableName);
-      assertTrue("Unexpected files sizes : " + sizes, sizes < data.length);
+      assertTrue(sizes < data.length, "Unexpected files sizes : " + sizes);
 
       client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
 
       // after compacting without compression, expect big files again
       sizes = getFileSizes(client, tableName);
-      assertTrue("Unexpected files sizes : " + sizes,
-          sizes > data.length * 10 && sizes < data.length * 11);
+      assertTrue(sizes > data.length * 10 && sizes < data.length * 11,
+          "Unexpected files sizes : " + sizes);
 
     }
   }
@@ -561,13 +562,12 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
       client.tableOperations().create(tableName);
       addFiles(client, tableName, 5);
 
-      var msg = assertThrows(AccumuloException.class, () -> {
-        client.tableOperations().compact(tableName, new CompactionConfig()
-            .setSelector(new PluginConfig(CompressionConfigurer.class.getName())).setWait(true));
-      }).getMessage();
-
-      assertTrue("Unexpected message : " + msg,
-          msg.contains("TabletServer could not load CompactionSelector"));
+      var e = assertThrows(AccumuloException.class,
+          () -> client.tableOperations().compact(tableName, new CompactionConfig()
+              .setSelector(new PluginConfig(CompressionConfigurer.class.getName())).setWait(true)));
+      final String msg = e.getMessage();
+      assertTrue(msg.contains("TabletServer could not load CompactionSelector"),
+          "Unexpected message : " + msg);
 
     }
   }
@@ -580,13 +580,14 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
       client.tableOperations().create(tableName);
       addFiles(client, tableName, 5);
 
-      var msg = assertThrows(AccumuloException.class, () -> {
-        client.tableOperations().compact(tableName, new CompactionConfig()
-            .setConfigurer(new PluginConfig(TooManyDeletesSelector.class.getName())).setWait(true));
-      }).getMessage();
-
-      assertTrue("Unexpected message : " + msg,
-          msg.contains("TabletServer could not load CompactionConfigurer"));
+      var e = assertThrows(AccumuloException.class,
+          () -> client.tableOperations().compact(tableName,
+              new CompactionConfig()
+                  .setConfigurer(new PluginConfig(TooManyDeletesSelector.class.getName()))
+                  .setWait(true)));
+      final String msg = e.getMessage();
+      assertTrue(msg.contains("TabletServer could not load CompactionConfigurer"),
+          "Unexpected message : " + msg);
     }
   }
 

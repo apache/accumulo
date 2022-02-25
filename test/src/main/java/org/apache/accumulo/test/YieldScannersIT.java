@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -105,7 +105,7 @@ public class YieldScannersIT extends AccumuloClusterHarness {
 
           keyCount++;
         }
-        assertEquals("Did not get the expected number of results", 10, keyCount);
+        assertEquals(10, keyCount, "Did not get the expected number of results");
       }
     }
   }
@@ -160,7 +160,7 @@ public class YieldScannersIT extends AccumuloClusterHarness {
 
           keyCount++;
         }
-        assertEquals("Did not get the expected number of results", 10, keyCount);
+        assertEquals(10, keyCount, "Did not get the expected number of results");
       }
     }
   }

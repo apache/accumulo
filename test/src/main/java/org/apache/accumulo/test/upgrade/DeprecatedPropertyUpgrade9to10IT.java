@@ -19,10 +19,10 @@
 package org.apache.accumulo.test.upgrade;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
 
@@ -51,8 +51,8 @@ public class DeprecatedPropertyUpgrade9to10IT extends ConfigurableMacBase {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       Map<String,String> systemConfig = client.instanceOperations().getSystemConfiguration();
-      assertTrue(oldProp + " missing from system config before upgrade",
-          systemConfig.containsKey(oldProp));
+      assertTrue(systemConfig.containsKey(oldProp),
+          oldProp + " missing from system config before upgrade");
       assertEquals(propValue, systemConfig.get(oldProp));
       assertEquals(Property.MANAGER_BULK_RETRIES.getDefaultValue(), systemConfig.get(newProp));
       assertNotEquals(propValue, systemConfig.get(newProp));
@@ -60,7 +60,7 @@ public class DeprecatedPropertyUpgrade9to10IT extends ConfigurableMacBase {
       upgrader.upgradeZookeeper(getServerContext());
 
       systemConfig = client.instanceOperations().getSystemConfiguration();
-      assertFalse(oldProp + " is still set after upgrade", systemConfig.containsKey(oldProp));
+      assertFalse(systemConfig.containsKey(oldProp), oldProp + " is still set after upgrade");
       assertEquals(propValue, systemConfig.get(newProp));
     }
   }

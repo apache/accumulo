@@ -19,7 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
 

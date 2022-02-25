@@ -21,9 +21,9 @@ package org.apache.accumulo.test.manager;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -139,7 +139,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     // metadata table. Save its process reference off so we can exclude it later when
     // killing tablet servers.
     Collection<ProcessReference> procs = getCluster().getProcesses().get(ServerType.TABLET_SERVER);
-    assertEquals("Expected a single tserver process", 1, procs.size());
+    assertEquals(1, procs.size(), "Expected a single tserver process");
     metadataTserverProcess = procs.iterator().next();
 
     // Update the number of tservers and start the new tservers.
@@ -157,9 +157,9 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       List<ProcessReference> procs = getCluster().getProcesses().get(ServerType.TABLET_SERVER)
           .stream().filter(p -> !metadataTserverProcess.equals(p)).collect(Collectors.toList());
       Collections.shuffle(procs, random);
-      assertEquals("Not enough tservers exist", TSERVERS - 1, procs.size());
-      assertTrue("Attempting to kill more tservers (" + count + ") than exist in the cluster ("
-          + procs.size() + ")", procs.size() >= count);
+      assertEquals(TSERVERS - 1, procs.size(), "Not enough tservers exist");
+      assertTrue(procs.size() >= count, "Attempting to kill more tservers (" + count
+          + ") than exist in the cluster (" + procs.size() + ")");
 
       for (int i = 0; i < count; ++i) {
         ProcessReference pr = procs.get(i);
@@ -193,11 +193,11 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       }
 
       // remove servers with metadata on them from the list of servers to be shutdown
-      assertEquals("Expecting a single tServer in metadataServerSet", 1, metadataServerSet.size());
+      assertEquals(1, metadataServerSet.size(), "Expecting a single tServer in metadataServerSet");
       tserverSet.removeAll(metadataServerSet);
 
-      assertEquals("Expecting " + (TSERVERS - 1) + " tServers in shutdown-list", TSERVERS - 1,
-          tserverSet.size());
+      assertEquals(TSERVERS - 1, tserverSet.size(),
+          "Expecting " + (TSERVERS - 1) + " tServers in shutdown-list");
 
       List<TServerInstance> tserversList = new ArrayList<>(tserverSet);
       Collections.shuffle(tserversList, random);

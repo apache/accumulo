@@ -22,7 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 // attempt to reproduce ACCUMULO-315
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;

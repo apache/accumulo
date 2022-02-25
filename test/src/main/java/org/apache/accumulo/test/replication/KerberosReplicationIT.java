@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.test.replication;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.security.PrivilegedExceptionAction;
 import java.util.HashMap;
@@ -256,10 +256,9 @@ public class KerberosReplicationIT extends AccumuloITBase {
         try (var scanner = peerclient.createScanner(peerTable1, Authorizations.EMPTY)) {
           for (Entry<Key,Value> entry : scanner) {
             countTable++;
-            assertTrue(
+            assertTrue(entry.getKey().getRow().toString().startsWith(primaryTable1),
                 "Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
-                    + entry.getValue(),
-                entry.getKey().getRow().toString().startsWith(primaryTable1));
+                    + entry.getValue());
           }
         }
 

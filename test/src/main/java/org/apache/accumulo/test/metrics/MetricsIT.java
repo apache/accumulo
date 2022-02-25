@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.test.metrics;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.HashMap;
 import java.util.List;
@@ -115,8 +115,8 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
             }
           });
     }
-    assertTrue("Did not see all expected metric names, missing: " + expectedMetricNames.values(),
-        expectedMetricNames.isEmpty());
+    assertTrue(expectedMetricNames.isEmpty(),
+        "Did not see all expected metric names, missing: " + expectedMetricNames.values());
   }
 
   private void doWorkToGenerateMetrics() throws Exception {

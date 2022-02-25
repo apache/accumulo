@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.test.replication;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -186,11 +186,11 @@ public class WorkMakerIT extends ConfigurableMacBase {
       }
 
       for (ReplicationTarget expected : expectedTargets) {
-        assertTrue("Did not find expected target: " + expected, actualTargets.contains(expected));
+        assertTrue(actualTargets.contains(expected), "Did not find expected target: " + expected);
         actualTargets.remove(expected);
       }
 
-      assertTrue("Found extra replication work entries: " + actualTargets, actualTargets.isEmpty());
+      assertTrue(actualTargets.isEmpty(), "Found extra replication work entries: " + actualTargets);
     }
   }
 

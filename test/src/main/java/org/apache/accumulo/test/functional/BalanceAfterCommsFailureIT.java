@@ -20,8 +20,8 @@ package org.apache.accumulo.test.functional;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -131,7 +131,7 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
       }
     }
 
-    assertEquals("Unassigned tablets were not assigned within 30 seconds", 0, unassignedTablets);
+    assertEquals(0, unassignedTablets, "Unassigned tablets were not assigned within 30 seconds");
 
     List<Integer> counts = new ArrayList<>();
     for (TabletServerStatus server : stats.tServerInfo) {
@@ -141,11 +141,12 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
       }
       counts.add(count);
     }
-    assertTrue("Expected to have at least two TabletServers", counts.size() > 1);
+    assertTrue(counts.size() > 1, "Expected to have at least two TabletServers");
     for (int i = 1; i < counts.size(); i++) {
       int diff = Math.abs(counts.get(0) - counts.get(i));
-      assertTrue("Expected difference in tablets to be less than or equal to " + counts.size()
-          + " but was " + diff + ". Counts " + counts, diff <= counts.size());
+      assertTrue(diff <= counts.size(),
+          "Expected difference in tablets to be less than or equal to " + counts.size()
+              + " but was " + diff + ". Counts " + counts);
     }
   }
 }

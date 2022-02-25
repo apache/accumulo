@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -125,8 +125,8 @@ public class ShellIT extends SharedMiniClusterBase {
     }
 
     for (String expectedString : expectedStrings) {
-      assertTrue(expectedString + " was not present in " + output.get(),
-          output.get().contains(expectedString));
+      assertTrue(output.get().contains(expectedString),
+          expectedString + " was not present in " + output.get());
     }
   }
 
@@ -187,8 +187,8 @@ public class ShellIT extends SharedMiniClusterBase {
     Shell.log.debug("{}", output.get());
     assertEquals(shell.getExitCode(), 0);
     if (!s.isEmpty()) {
-      assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent,
-          output.get().contains(s));
+      assertEquals(stringPresent, output.get().contains(s),
+          s + " present in " + output.get() + " was not " + stringPresent);
     }
   }
 
@@ -196,8 +196,8 @@ public class ShellIT extends SharedMiniClusterBase {
     Shell.log.debug("{}", output.get());
     assertTrue(shell.getExitCode() > 0);
     if (!s.isEmpty()) {
-      assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent,
-          output.get().contains(s));
+      assertEquals(stringPresent, output.get().contains(s),
+          s + " present in " + output.get() + " was not " + stringPresent);
     }
     shell.resetExitCode();
   }

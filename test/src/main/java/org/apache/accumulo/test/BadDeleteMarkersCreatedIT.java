@@ -19,9 +19,9 @@
 package org.apache.accumulo.test;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Map;
 import java.util.Map.Entry;
@@ -78,7 +78,7 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
       log.warn("Could not parse integer from timeout.factor");
     }
 
-    assertTrue("timeout.factor must be greater than or equal to 1", timeoutFactor >= 1);
+    assertTrue(timeoutFactor >= 1, "timeout.factor must be greater than or equal to 1");
   }
 
   private String gcCycleDelay, gcCycleStart;
@@ -153,7 +153,7 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
       log.info("Creating table to be deleted");
       c.tableOperations().create(tableName);
       final String tableId = c.tableOperations().tableIdMap().get(tableName);
-      assertNotNull("Expected to find a tableId", tableId);
+      assertNotNull(tableId, "Expected to find a tableId");
 
       // add some splits
       SortedSet<Text> splits = new TreeSet<>();

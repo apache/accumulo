@@ -29,8 +29,8 @@ package org.apache.accumulo.test.functional;
  * local filesystem files..
  */
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map.Entry;
 import java.util.Properties;

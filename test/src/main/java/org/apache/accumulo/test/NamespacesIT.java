@@ -19,13 +19,13 @@
 package org.apache.accumulo.test;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -84,7 +84,6 @@ import org.apache.accumulo.test.constraints.NumericValueConstraint;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
 import org.junit.experimental.categories.Category;
-import org.junit.function.ThrowingRunnable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -92,6 +91,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.function.Executable;
 
 /**
  * Test different namespace permissions
@@ -164,14 +164,14 @@ public class NamespacesIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void createTableInAccumuloNamespace() throws Exception {
+  public void createTableInAccumuloNamespace() {
     String tableName = Namespace.ACCUMULO.name() + ".1";
     assertFalse(c.tableOperations().exists(tableName));
     assertThrows(AccumuloException.class, () -> c.tableOperations().create(tableName));
   }
 
   @Test
-  public void deleteBuiltinNamespaces() throws Exception {
+  public void deleteBuiltinNamespaces() {
     assertThrows(AccumuloSecurityException.class,
         () -> c.namespaceOperations().delete(Namespace.DEFAULT.name()));
     assertThrows(AccumuloSecurityException.class,
@@ -547,7 +547,7 @@ public class NamespacesIT extends SharedMiniClusterBase {
       }
     }
 
-    assertNotNull("Namespace constraint ID should not be null", namespaceNum);
+    assertNotNull(namespaceNum, "Namespace constraint ID should not be null");
     c.namespaceOperations().removeConstraint(namespace, namespaceNum);
 
     // loop until constraint is removed from config (or until test timeout)
@@ -1120,31 +1120,31 @@ public class NamespacesIT extends SharedMiniClusterBase {
     }
   }
 
-  private void assertNamespaceExists(ThrowingRunnable runnable) {
+  private void assertNamespaceExists(Executable runnable) {
     assertThrows(NamespaceExistsException.class, runnable);
   }
 
-  private void assertNoNamespace(ThrowingRunnable runnable) {
+  private void assertNoNamespace(Executable runnable) {
     assertThrows(NamespaceNotFoundException.class, runnable);
   }
 
-  private void assertNoTableNoNamespace(ThrowingRunnable runnable) {
+  private void assertNoTableNoNamespace(Executable runnable) {
     var e = assertThrows(TableNotFoundException.class, runnable);
     assertEquals(NamespaceNotFoundException.class, e.getCause().getClass());
   }
 
-  private void assertAccumuloExceptionNoNamespace(ThrowingRunnable runnable) {
+  private void assertAccumuloExceptionNoNamespace(Executable runnable) {
     var e = assertThrows(AccumuloException.class, runnable);
     assertEquals(NamespaceNotFoundException.class, e.getCause().getClass());
   }
 
-  private void assertAccumuloExceptionNoTableNoNamespace(ThrowingRunnable runnable) {
+  private void assertAccumuloExceptionNoTableNoNamespace(Executable runnable) {
     var e = assertThrows(AccumuloException.class, runnable);
     assertEquals(TableNotFoundException.class, e.getCause().getClass());
     assertEquals(NamespaceNotFoundException.class, e.getCause().getCause().getClass());
   }
 
-  private void assertSecurityException(SecurityErrorCode code, ThrowingRunnable runnable) {
+  private void assertSecurityException(SecurityErrorCode code, Executable runnable) {
     var e = assertThrows(AccumuloSecurityException.class, runnable);
     assertSame(code, e.getSecurityErrorCode());
   }

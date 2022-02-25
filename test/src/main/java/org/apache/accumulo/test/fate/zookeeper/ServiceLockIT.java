@@ -20,11 +20,11 @@ package org.apache.accumulo.test.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -477,11 +477,11 @@ public class ServiceLockIT {
 
       List<String> children = zk1.getChildren(parent.toString(), false);
       assertTrue(children.contains("zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000000"));
-      assertFalse("this node should have been deleted",
-          children.contains("zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000001"));
+      assertFalse(children.contains("zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000001"),
+          "this node should have been deleted");
       assertTrue(children.contains("zlock#00000000-0000-0000-0000-bbbbbbbbbbbb#0000000002"));
-      assertFalse("this node should have been deleted",
-          children.contains("zlock#00000000-0000-0000-0000-bbbbbbbbbbbb#0000000003"));
+      assertFalse(children.contains("zlock#00000000-0000-0000-0000-bbbbbbbbbbbb#0000000003"),
+          "this node should have been deleted");
 
       assertNull(zl1.getWatching());
       assertEquals("/zlretryLockSerial/zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000000",

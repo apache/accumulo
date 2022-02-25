@@ -19,9 +19,9 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -244,7 +244,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
               break;
             }
           }
-          assertTrue("Mutation not found: " + m, found);
+          assertTrue(found, "Mutation not found: " + m);
         }
 
         for (int m = 0; m < NUM_THREADS; m++) {

@@ -20,12 +20,12 @@ package org.apache.accumulo.test.replication;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -132,10 +132,10 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       Map<String,String> peerSiteConfig = new HashMap<>();
       peerSiteConfig.put(Property.INSTANCE_RPC_SSL_ENABLED.getKey(), "true");
       String keystorePath = primarySiteConfig.get(Property.RPC_SSL_KEYSTORE_PATH.getKey());
-      assertNotNull("Keystore Path was null", keystorePath);
+      assertNotNull(keystorePath, "Keystore Path was null");
       peerSiteConfig.put(Property.RPC_SSL_KEYSTORE_PATH.getKey(), keystorePath);
       String truststorePath = primarySiteConfig.get(Property.RPC_SSL_TRUSTSTORE_PATH.getKey());
-      assertNotNull("Truststore Path was null", truststorePath);
+      assertNotNull(truststorePath, "Truststore Path was null");
       peerSiteConfig.put(Property.RPC_SSL_TRUSTSTORE_PATH.getKey(), truststorePath);
 
       // Passwords might be stored in CredentialProvider
@@ -325,17 +325,18 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
         while (managerIter.hasNext() && peerIter.hasNext()) {
           managerEntry = managerIter.next();
           peerEntry = peerIter.next();
-          assertEquals(managerEntry.getKey() + " was not equal to " + peerEntry.getKey(), 0,
+          assertEquals(0,
               managerEntry.getKey().compareTo(peerEntry.getKey(),
-                  PartialKey.ROW_COLFAM_COLQUAL_COLVIS));
+                  PartialKey.ROW_COLFAM_COLQUAL_COLVIS),
+              managerEntry.getKey() + " was not equal to " + peerEntry.getKey());
           assertEquals(managerEntry.getValue(), peerEntry.getValue());
         }
 
         log.info("Last manager entry: {}", managerEntry);
         log.info("Last peer entry: {}", peerEntry);
 
-        assertFalse("Had more data to read from the manager", managerIter.hasNext());
-        assertFalse("Had more data to read from the peer", peerIter.hasNext());
+        assertFalse(managerIter.hasNext(), "Had more data to read from the manager");
+        assertFalse(peerIter.hasNext(), "Had more data to read from the peer");
       }
     } finally {
       peerCluster.stop();
@@ -476,8 +477,9 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       try (var scanner = clientPeer.createScanner(peerTable1, Authorizations.EMPTY)) {
         for (Entry<Key,Value> entry : scanner) {
           countTable++;
-          assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
-              + entry.getValue(), entry.getKey().getRow().toString().startsWith(managerTable1));
+          assertTrue(entry.getKey().getRow().toString().startsWith(managerTable1),
+              "Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
+                  + entry.getValue());
         }
       }
 
@@ -488,8 +490,9 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       try (var scanner = clientPeer.createScanner(peerTable2, Authorizations.EMPTY)) {
         for (Entry<Key,Value> entry : scanner) {
           countTable++;
-          assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
-              + entry.getValue(), entry.getKey().getRow().toString().startsWith(managerTable2));
+          assertTrue(entry.getKey().getRow().toString().startsWith(managerTable2),
+              "Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
+                  + entry.getValue());
         }
       }
 
@@ -605,14 +608,15 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
         Iterator<Entry<Key,Value>> managerIter = manager.iterator(), peerIter = peer.iterator();
         while (managerIter.hasNext() && peerIter.hasNext()) {
           Entry<Key,Value> managerEntry = managerIter.next(), peerEntry = peerIter.next();
-          assertEquals(peerEntry.getKey() + " was not equal to " + peerEntry.getKey(), 0,
+          assertEquals(0,
               managerEntry.getKey().compareTo(peerEntry.getKey(),
-                  PartialKey.ROW_COLFAM_COLQUAL_COLVIS));
+                  PartialKey.ROW_COLFAM_COLQUAL_COLVIS),
+              peerEntry.getKey() + " was not equal to " + peerEntry.getKey());
           assertEquals(managerEntry.getValue(), peerEntry.getValue());
         }
 
-        assertFalse("Had more data to read from the manager", managerIter.hasNext());
-        assertFalse("Had more data to read from the peer", peerIter.hasNext());
+        assertFalse(managerIter.hasNext(), "Had more data to read from the manager");
+        assertFalse(peerIter.hasNext(), "Had more data to read from the peer");
       }
     } finally {
       peerCluster.stop();
@@ -763,8 +767,9 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       for (int i = 0; i < 10; i++) {
         for (Entry<Key,Value> entry : clientPeer.createScanner(peerTable1, Authorizations.EMPTY)) {
           countTable++;
-          assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
-              + entry.getValue(), entry.getKey().getRow().toString().startsWith(managerTable1));
+          assertTrue(entry.getKey().getRow().toString().startsWith(managerTable1),
+              "Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
+                  + entry.getValue());
         }
 
         log.info("Found {} records in {}", countTable, peerTable1);
@@ -776,7 +781,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
         }
       }
 
-      assertTrue("Found no records in " + peerTable1 + " in the peer cluster", countTable > 0);
+      assertTrue(countTable > 0, "Found no records in " + peerTable1 + " in the peer cluster");
 
       // We have to wait for the manager to assign the replication work, a local tserver to process
       // it, and then the remote tserver to replay it
@@ -785,8 +790,9 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
         countTable = 0L;
         for (Entry<Key,Value> entry : clientPeer.createScanner(peerTable2, Authorizations.EMPTY)) {
           countTable++;
-          assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
-              + entry.getValue(), entry.getKey().getRow().toString().startsWith(managerTable2));
+          assertTrue(entry.getKey().getRow().toString().startsWith(managerTable2),
+              "Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
+                  + entry.getValue());
         }
 
         log.info("Found {} records in {}", countTable, peerTable2);
@@ -798,7 +804,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
         }
       }
 
-      assertTrue("Found no records in " + peerTable2 + " in the peer cluster", countTable > 0);
+      assertTrue(countTable > 0, "Found no records in " + peerTable2 + " in the peer cluster");
 
     } finally {
       peer1Cluster.stop();

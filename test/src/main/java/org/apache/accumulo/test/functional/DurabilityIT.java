@@ -19,8 +19,8 @@
 package org.apache.accumulo.test.functional;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
 
@@ -115,7 +115,7 @@ public class DurabilityIT extends ConfigurableMacBase {
       writeSome(client, tableNames[2], N);
       restartTServer();
       long numResults = readSome(client, tableNames[2]);
-      assertTrue("Expected " + N + " >= " + numResults, numResults <= N);
+      assertTrue(numResults <= N, "Expected " + N + " >= " + numResults);
       cleanup(client, tableNames);
     }
   }
@@ -128,7 +128,7 @@ public class DurabilityIT extends ConfigurableMacBase {
       writeSome(client, tableNames[3], N);
       restartTServer();
       long numResults = readSome(client, tableNames[3]);
-      assertTrue("Expected " + N + " >= " + numResults, numResults <= N);
+      assertTrue(numResults <= N, "Expected " + N + " >= " + numResults);
       cleanup(client, tableNames);
     }
   }
@@ -142,7 +142,7 @@ public class DurabilityIT extends ConfigurableMacBase {
       writeSome(c, tableName, N);
       restartTServer();
       long numResults = readSome(c, tableName);
-      assertTrue("Expected " + N + " >= " + numResults, numResults <= N);
+      assertTrue(numResults <= N, "Expected " + N + " >= " + numResults);
       c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "sync");
       writeSome(c, tableName, N);
       restartTServer();

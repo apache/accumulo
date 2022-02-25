@@ -19,8 +19,8 @@
 package org.apache.accumulo.test;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -143,7 +143,7 @@ public class MetaSplitIT extends AccumuloClusterHarness {
       Thread.sleep(2000);
     }
     Collection<Text> splits = opts.listSplits(MetadataTable.NAME);
-    assertEquals("Actual metadata table splits: " + splits, numSplits, splits.size());
+    assertEquals(numSplits, splits.size(), "Actual metadata table splits: " + splits);
   }
 
 }

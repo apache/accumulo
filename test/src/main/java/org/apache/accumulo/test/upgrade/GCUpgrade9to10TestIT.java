@@ -20,10 +20,10 @@ package org.apache.accumulo.test.upgrade;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -126,8 +126,8 @@ public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
     // ensure test quality by making sure we have enough candidates to
     // exceed the batch size at least ten times
     long numBatches = numberOfEntries * longpathname.length() / Upgrader9to10.CANDIDATE_BATCH_SIZE;
-    assertTrue("Expected numBatches between 10 and 15, but was " + numBatches,
-        numBatches > 10 && numBatches < 15);
+    assertTrue(numBatches > 10 && numBatches < 15,
+        "Expected numBatches between 10 and 15, but was " + numBatches);
 
     Ample.DataLevel level = Ample.DataLevel.USER;
 

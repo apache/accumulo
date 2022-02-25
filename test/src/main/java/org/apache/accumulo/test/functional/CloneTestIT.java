@@ -19,11 +19,12 @@
 package org.apache.accumulo.test.functional;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -67,7 +68,6 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.Assume;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
@@ -140,7 +140,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
       ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);
       String tableId = client.tableOperations().tableIdMap().get(table);
 
-      assertNotNull("Could not get table id for " + table, tableId);
+      assertNotNull(tableId, "Could not get table id for " + table);
 
       s.setRange(Range.prefix(tableId));
 
@@ -157,20 +157,20 @@ public class CloneTestIT extends AccumuloClusterHarness {
         if (cf.equals(DataFileColumnFamily.NAME)) {
           Path p = new Path(cq.toString());
           FileSystem fs = cluster.getFileSystem();
-          assertTrue("File does not exist: " + p, fs.exists(p));
+          assertTrue(fs.exists(p), "File does not exist: " + p);
         } else if (cf.equals(ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily())) {
-          assertEquals("Saw unexpected cq",
-              ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), cq);
+          assertEquals(ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), cq,
+              "Saw unexpected cq");
 
           String dirName = entry.getValue().toString();
 
-          assertTrue("Bad dir name " + dirName, pattern.matcher(dirName).matches());
+          assertTrue(pattern.matcher(dirName).matches(), "Bad dir name " + dirName);
         } else {
           fail("Got unexpected key-value: " + entry);
           throw new RuntimeException();
         }
       }
-      assertTrue("Expected to find metadata entries", itemsInspected > 0);
+      assertTrue(itemsInspected > 0, "Expected to find metadata entries");
     }
   }
 
@@ -220,7 +220,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       AccumuloCluster cluster = getCluster();
-      Assume.assumeTrue(cluster instanceof MiniAccumuloClusterImpl);
+      assumeTrue(cluster instanceof MiniAccumuloClusterImpl);
       MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) cluster;
       String rootPath = mac.getConfig().getDir().getAbsolutePath();
 
@@ -271,7 +271,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       AccumuloCluster cluster = getCluster();
-      Assume.assumeTrue(cluster instanceof MiniAccumuloClusterImpl);
+      assumeTrue(cluster instanceof MiniAccumuloClusterImpl);
 
       c.tableOperations().create(table1);
 

@@ -35,10 +35,10 @@ package org.apache.accumulo.test.functional;
  */
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -154,7 +154,7 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
   @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "COMMAND_INJECTION"},
       justification = "path provided by test; command args provided by test")
   public String test(int seconds, boolean expectTserverDied) throws Exception {
-    assumeTrue("Shared library did not build", sharedLibBuilt.get());
+    assumeTrue(sharedLibBuilt.get(), "Shared library did not build");
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       while (client.instanceOperations().getTabletServers().isEmpty()) {
         // wait until the tserver that we need to kill is running

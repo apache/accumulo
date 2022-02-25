@@ -19,7 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -105,7 +105,7 @@ public class BinaryStressIT extends AccumuloClusterHarness {
           tablets.add(entry.getKey().getRow());
         }
       }
-      assertTrue("Expected at least 8 tablets, saw " + tablets.size(), tablets.size() > 7);
+      assertTrue(tablets.size() > 7, "Expected at least 8 tablets, saw " + tablets.size());
     }
   }
 

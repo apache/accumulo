@@ -23,7 +23,7 @@ package org.apache.accumulo.test.functional;
  * in the metadata table when there is no work to be done on the tablet (see ACCUMULO-3580)
  */
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -114,8 +114,8 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
         copyTable(client, MetadataTable.NAME, metaCopy1);
         tabletsInFlux = findTabletsNeedingAttention(client, metaCopy1, state);
       }
-      assertEquals("No tables should need attention", 0,
-          findTabletsNeedingAttention(client, metaCopy1, state));
+      assertEquals(0, findTabletsNeedingAttention(client, metaCopy1, state),
+          "No tables should need attention");
 
       // The metadata table stabilized and metaCopy1 contains a copy suitable for testing. Before
       // metaCopy1 is modified, copy it for subsequent test.
@@ -124,13 +124,13 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
       // test the assigned case (no location)
       removeLocation(client, metaCopy1, t3);
-      assertEquals("Should have two tablets without a loc", 2,
-          findTabletsNeedingAttention(client, metaCopy1, state));
+      assertEquals(2, findTabletsNeedingAttention(client, metaCopy1, state),
+          "Should have two tablets without a loc");
 
       // test the cases where the assignment is to a dead tserver
       reassignLocation(client, metaCopy2, t3);
-      assertEquals("Should have one tablet that needs to be unassigned", 1,
-          findTabletsNeedingAttention(client, metaCopy2, state));
+      assertEquals(1, findTabletsNeedingAttention(client, metaCopy2, state),
+          "Should have one tablet that needs to be unassigned");
 
       // test the cases where there is ongoing merges
       state = new State(client) {
@@ -141,14 +141,14 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
               new MergeInfo(new KeyExtent(tableIdToModify, null, null), MergeInfo.Operation.MERGE));
         }
       };
-      assertEquals("Should have 2 tablets that need to be chopped or unassigned", 1,
-          findTabletsNeedingAttention(client, metaCopy2, state));
+      assertEquals(1, findTabletsNeedingAttention(client, metaCopy2, state),
+          "Should have 2 tablets that need to be chopped or unassigned");
 
       // test the bad tablet location state case (inconsistent metadata)
       state = new State(client);
       addDuplicateLocation(client, metaCopy3, t3);
-      assertEquals("Should have 1 tablet that needs a metadata repair", 1,
-          findTabletsNeedingAttention(client, metaCopy3, state));
+      assertEquals(1, findTabletsNeedingAttention(client, metaCopy3, state),
+          "Should have 1 tablet that needs a metadata repair");
 
       // clean up
       dropTables(client, t1, t2, t3, metaCopy1, metaCopy2, metaCopy3);
@@ -268,7 +268,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
     // metadata should be stable with only 7 rows (1 replication + 2 for each table)
     log.debug("Gathered {} rows to create copy {}", mutations.size(), copy);
-    assertEquals("Metadata should have 7 rows (1 repl + 2 for each table)", 7, mutations.size());
+    assertEquals(7, mutations.size(), "Metadata should have 7 rows (1 repl + 2 for each table)");
     client.tableOperations().create(copy);
 
     try (BatchWriter writer = client.createBatchWriter(copy)) {

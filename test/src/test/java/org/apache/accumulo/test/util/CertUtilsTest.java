@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.test.util;
 
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -78,8 +78,9 @@ public class CertUtilsTest {
     try (FileInputStream fis = new FileInputStream(publicKeyStoreFile)) {
       keyStore.load(fis, new char[0]);
     }
-    var e = assertThrows("expected not to find private key in keystore", KeyStoreException.class,
-        () -> CertUtils.findPrivateKey(keyStore, PASSWORD_CHARS));
+    var e = assertThrows(KeyStoreException.class,
+        () -> CertUtils.findPrivateKey(keyStore, PASSWORD_CHARS),
+        "expected not to find private key in keystore");
     assertTrue(e.getMessage().contains("private key"));
     Certificate cert = CertUtils.findCert(keyStore);
     cert.verify(cert.getPublicKey()); // throws exception if it can't be verified
@@ -108,8 +109,8 @@ public class CertUtilsTest {
 
     Certificate signedCert = CertUtils.findCert(signedKeyStore);
     PublicKey pubKey = signedCert.getPublicKey();
-    assertThrows("signed cert should not be able to verify itself", SignatureException.class,
-        () -> signedCert.verify(pubKey));
+    assertThrows(SignatureException.class, () -> signedCert.verify(pubKey),
+        "signed cert should not be able to verify itself");
 
     signedCert.verify(rootCert.getPublicKey()); // throws exception if it can't be verified
   }
@@ -143,8 +144,8 @@ public class CertUtilsTest {
     Certificate signedCert = CertUtils.findCert(signedKeyStore);
     PublicKey pubKey = signedCert.getPublicKey();
 
-    assertThrows("signed cert should not be able to verify itself", SignatureException.class,
-        () -> signedCert.verify(pubKey));
+    assertThrows(SignatureException.class, () -> signedCert.verify(pubKey),
+        "signed cert should not be able to verify itself");
 
     signedCert.verify(rootCert.getPublicKey()); // throws exception if it can't be verified
   }

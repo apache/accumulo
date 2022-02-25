@@ -23,7 +23,7 @@ package org.apache.accumulo.test;
 // so it may be marked with 3 WALs, the first with data, the 2nd without, a 3rd with data.
 // It would be useful to have an IT that will test this situation.
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.List;
 import java.util.Map.Entry;

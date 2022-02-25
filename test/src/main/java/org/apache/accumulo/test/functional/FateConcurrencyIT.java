@@ -20,10 +20,10 @@ package org.apache.accumulo.test.functional;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.test.functional.FateConcurrencyIT.TIMEOUT_MINUTES;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Arrays;
 import java.util.List;
@@ -127,7 +127,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     SlowOps.setExpectedCompactions(client, 1);
     slowOps = new SlowOps(client, tableName, maxWaitMillis);
 
-    assertEquals("verify table online after created", TableState.ONLINE, getTableState(tableName));
+    assertEquals(TableState.ONLINE, getTableState(tableName), "verify table online after created");
 
     OnLineCallable onlineOp = new OnLineCallable(tableName);
 
@@ -138,12 +138,12 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     log.trace("Online 1 in {} ms",
         TimeUnit.MILLISECONDS.convert(timing1.runningTime(), TimeUnit.NANOSECONDS));
 
-    assertEquals("verify table is still online", TableState.ONLINE, getTableState(tableName));
+    assertEquals(TableState.ONLINE, getTableState(tableName), "verify table is still online");
 
     // verify that offline then online functions as expected.
 
     client.tableOperations().offline(tableName, true);
-    assertEquals("verify table is offline", TableState.OFFLINE, getTableState(tableName));
+    assertEquals(TableState.OFFLINE, getTableState(tableName), "verify table is offline");
 
     onlineOp = new OnLineCallable(tableName);
 
@@ -154,7 +154,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     log.trace("Online 2 in {} ms",
         TimeUnit.MILLISECONDS.convert(timing2.runningTime(), TimeUnit.NANOSECONDS));
 
-    assertEquals("verify table is back online", TableState.ONLINE, getTableState(tableName));
+    assertEquals(TableState.ONLINE, getTableState(tableName), "verify table is back online");
 
     // launch a full table compaction with the slow iterator to ensure table lock is acquired and
     // held by the compaction
@@ -169,12 +169,14 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     OnlineOpTiming timing3 = task.get();
 
-    assertTrue("online should take less time than expected compaction time", timing3.runningTime()
-        < TimeUnit.NANOSECONDS.convert(NUM_ROWS * SLOW_SCAN_SLEEP_MS, TimeUnit.MILLISECONDS));
+    assertTrue(
+        timing3.runningTime()
+            < TimeUnit.NANOSECONDS.convert(NUM_ROWS * SLOW_SCAN_SLEEP_MS, TimeUnit.MILLISECONDS),
+        "online should take less time than expected compaction time");
 
-    assertEquals("verify table is still online", TableState.ONLINE, getTableState(tableName));
+    assertEquals(TableState.ONLINE, getTableState(tableName), "verify table is still online");
 
-    assertTrue("Find FATE operation for table", findFate(tableName));
+    assertTrue(findFate(tableName), "Find FATE operation for table");
 
     // test complete, cancel compaction and move on.
     client.tableOperations().cancelCompaction(tableName);
@@ -215,7 +217,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
   }
 
   /**
-   * Validate the the AdminUtil.getStatus works correctly after refactor and validate that
+   * Validate the AdminUtil.getStatus works correctly after refactor and validate that
    * getTransactionStatus can be called without lock map(s). The test starts a long running fate
    * transaction (slow compaction) and the calls AdminUtil functions to get the FATE.
    */
@@ -229,8 +231,8 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     try {
 
-      assertEquals("verify table online after created", TableState.ONLINE,
-          getTableState(tableName));
+      assertEquals(TableState.ONLINE, getTableState(tableName),
+          "verify table online after created");
 
       tableId = Tables.getTableId(context, tableName);
 
@@ -305,7 +307,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       }
     }
 
-    assertTrue("Number of fates matches should be > 0", matchCount > 0);
+    assertTrue(matchCount > 0, "Number of fates matches should be > 0");
 
     try {
 

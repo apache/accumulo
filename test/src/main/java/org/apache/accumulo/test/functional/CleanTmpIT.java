@@ -19,10 +19,10 @@
 package org.apache.accumulo.test.functional;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map.Entry;
 
@@ -94,9 +94,9 @@ public class CleanTmpIT extends ConfigurableMacBase {
       }
 
       FileSystem fs = getCluster().getFileSystem();
-      assertTrue("Could not find file: " + file, fs.exists(file));
+      assertTrue(fs.exists(file), "Could not find file: " + file);
       Path tabletDir = file.getParent();
-      assertNotNull("Tablet dir should not be null", tabletDir);
+      assertNotNull(tabletDir, "Tablet dir should not be null");
       Path tmp = new Path(tabletDir, "junk.rf_tmp");
       // Make the file
       fs.create(tmp).close();
@@ -107,7 +107,7 @@ public class CleanTmpIT extends ConfigurableMacBase {
       try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
         assertEquals(2, Iterators.size(scanner.iterator()));
         // If we performed log recovery, we should have cleaned up any stray files
-        assertFalse("File still exists: " + tmp, fs.exists(tmp));
+        assertFalse(fs.exists(tmp), "File still exists: " + tmp);
       }
     }
   }

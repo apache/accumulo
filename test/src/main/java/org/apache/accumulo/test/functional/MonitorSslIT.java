@@ -22,7 +22,7 @@ package org.apache.accumulo.test.functional;
  * Check SSL for the Monitor
  */
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.net.URL;

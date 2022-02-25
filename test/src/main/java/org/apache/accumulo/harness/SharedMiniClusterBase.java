@@ -19,7 +19,7 @@
 package org.apache.accumulo.harness;
 
 import static java.lang.StackWalker.Option.RETAIN_CLASS_REFERENCE;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.lang.StackWalker.StackFrame;

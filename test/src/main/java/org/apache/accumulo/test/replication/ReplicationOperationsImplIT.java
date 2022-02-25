@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.test.replication;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Map.Entry;
 import java.util.Set;
@@ -204,8 +204,8 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     }
 
     // After both metadata and replication
-    assertTrue("Drain never finished", done.get());
-    assertFalse("Saw unexpected exception", exception.get());
+    assertTrue(done.get(), "Drain never finished");
+    assertFalse(exception.get(), "Saw unexpected exception");
   }
 
   @Test
@@ -288,8 +288,8 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     }
 
     // After both metadata and replication
-    assertTrue("Drain never completed", done.get());
-    assertFalse("Saw unexpected exception", exception.get());
+    assertTrue(done.get(), "Drain never completed");
+    assertFalse(exception.get(), "Saw unexpected exception");
   }
 
   @Test
@@ -366,8 +366,8 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     }
 
     // New records, but not fully replicated ones don't cause it to complete
-    assertFalse("Drain somehow finished", done.get());
-    assertFalse("Saw unexpected exception", exception.get());
+    assertFalse(done.get(), "Drain somehow finished");
+    assertFalse(exception.get(), "Saw unexpected exception");
   }
 
   @Test
@@ -450,6 +450,6 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
 
     // We should pass immediately because we aren't waiting on both files to be deleted (just the
     // one that we did)
-    assertTrue("Drain didn't finish", done.get());
+    assertTrue(done.get(), "Drain didn't finish");
   }
 }

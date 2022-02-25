@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.test.replication;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -127,10 +127,10 @@ public class CyclicReplicationIT extends WithTestNames {
       Map<String,String> peerSiteConfig = new HashMap<>();
       peerSiteConfig.put(Property.INSTANCE_RPC_SSL_ENABLED.getKey(), "true");
       String keystorePath = primarySiteConfig.get(Property.RPC_SSL_KEYSTORE_PATH.getKey());
-      assertNotNull("Keystore Path was null", keystorePath);
+      assertNotNull(keystorePath, "Keystore Path was null");
       peerSiteConfig.put(Property.RPC_SSL_KEYSTORE_PATH.getKey(), keystorePath);
       String truststorePath = primarySiteConfig.get(Property.RPC_SSL_TRUSTSTORE_PATH.getKey());
-      assertNotNull("Truststore Path was null", truststorePath);
+      assertNotNull(truststorePath, "Truststore Path was null");
       peerSiteConfig.put(Property.RPC_SSL_TRUSTSTORE_PATH.getKey(), truststorePath);
 
       // Passwords might be stored in CredentialProvider

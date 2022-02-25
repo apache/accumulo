@@ -1099,8 +1099,20 @@
                   <property name="message" value="Use static imports for Assert.* methods for consistency" />
                 </module>
                 <module name="RegexpSinglelineJava">
+                  <property name="format" value="import org[.]junit[.]Assume;" />
+                  <property name="message" value="Use static imports for Assume.* methods for consistency" />
+                </module>
+                <module name="RegexpSinglelineJava">
                   <property name="format" value="org[.]junit[.]jupiter[.]api[.]Assertions;" />
                   <property name="message" value="Use static imports for Assert.* methods for consistency" />
+                </module>
+                <module name="RegexpSinglelineJava">
+                  <property name="format" value="org[.]junit[.]jupiter[.]api[.]Assertions;" />
+                  <property name="message" value="Use static imports for Assertions.* methods for consistency" />
+                </module>
+                <module name="RegexpSinglelineJava">
+                  <property name="format" value="org[.]junit[.]jupiter[.]api[.]Assumptions;" />
+                  <property name="message" value="Use static imports for Assumptions.* methods for consistency" />
                 </module>
                 <module name="RegexpSinglelineJava">
                   <property name="format" value="import java[.]nio[.]charset[.]StandardCharsets;" />

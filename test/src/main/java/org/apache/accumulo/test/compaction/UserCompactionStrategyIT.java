@@ -19,10 +19,11 @@
 package org.apache.accumulo.test.compaction;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -58,7 +59,6 @@ import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.io.Text;
-import org.junit.Assume;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -151,7 +151,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
   @Test
   public void testPerTableClasspath() throws Exception {
     // Can't assume that a test-resource will be on the server's classpath
-    Assume.assumeTrue(getClusterType() == ClusterType.MINI);
+    assumeTrue(getClusterType() == ClusterType.MINI);
 
     // test per-table classpath + user specified compaction strategy
 

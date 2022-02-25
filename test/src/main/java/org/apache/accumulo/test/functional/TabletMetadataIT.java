@@ -20,7 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.apache.accumulo.minicluster.ServerType.TABLET_SERVER;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Set;
 import java.util.concurrent.TimeUnit;

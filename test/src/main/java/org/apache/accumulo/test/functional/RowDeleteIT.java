@@ -20,7 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.test.functional.FunctionalTestUtils.checkRFiles;
 import static org.apache.accumulo.test.functional.FunctionalTestUtils.nm;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Collections;
 import java.util.EnumSet;
@@ -81,7 +81,7 @@ public class RowDeleteIT extends AccumuloClusterHarness {
       int count;
       try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
         count = Iterators.size(scanner.iterator());
-        assertEquals("count == " + count, 2, count);
+        assertEquals(2, count, "count == " + count);
 
         bw.addMutation(nm("r1", "", "", RowDeletingIterator.DELETE_ROW_VALUE));
 
@@ -93,7 +93,7 @@ public class RowDeleteIT extends AccumuloClusterHarness {
 
       try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
         count = Iterators.size(scanner.iterator());
-        assertEquals("count == " + count, 3, count);
+        assertEquals(3, count, "count == " + count);
 
         c.tableOperations().compact(tableName, null, null, false, true);
 
@@ -102,7 +102,7 @@ public class RowDeleteIT extends AccumuloClusterHarness {
 
       try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
         count = Iterators.size(scanner.iterator());
-        assertEquals("count == " + count, 0, count);
+        assertEquals(0, count, "count == " + count);
         bw.close();
       }
     }

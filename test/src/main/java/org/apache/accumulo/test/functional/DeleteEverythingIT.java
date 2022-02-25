@@ -19,7 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -100,7 +100,7 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
       try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(new Range());
         int count = Iterators.size(scanner.iterator());
-        assertEquals("count == " + count, 0, count);
+        assertEquals(0, count, "count == " + count);
         c.tableOperations().flush(tableName, null, null, true);
 
         c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1.0");

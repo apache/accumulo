@@ -19,9 +19,9 @@
 package org.apache.accumulo.test;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -115,7 +115,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
           actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(),
               entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
         }
-        assertEquals("Differing results for " + table1, table1Expectations, actual);
+        assertEquals(table1Expectations, actual, "Differing results for " + table1);
       }
 
       try (Scanner s = accumuloClient.createScanner(table2, new Authorizations())) {
@@ -125,7 +125,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
           actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(),
               entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
         }
-        assertEquals("Differing results for " + table2, table2Expectations, actual);
+        assertEquals(table2Expectations, actual, "Differing results for " + table2);
       }
 
     } finally {
@@ -182,7 +182,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
             actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(),
                 entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
           }
-          assertEquals("Differing results for " + table, expectations, actual);
+          assertEquals(expectations, actual, "Differing results for " + table);
         }
       }
     } finally {
@@ -217,13 +217,13 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
 
       // MTBW is still caching this name to the correct table, but we should invalidate its cache
       // after seeing the rename
-      assertThrows("Should not be able to find this table", TableNotFoundException.class,
-          () -> mtbw.getBatchWriter(table1));
+      assertThrows(TableNotFoundException.class, () -> mtbw.getBatchWriter(table1),
+          "Should not be able to find this table");
 
       tops.rename(table2, newTable2);
 
-      assertThrows("Should not be able to find this table", TableNotFoundException.class,
-          () -> mtbw.getBatchWriter(table2));
+      assertThrows(TableNotFoundException.class, () -> mtbw.getBatchWriter(table2),
+          "Should not be able to find this table");
 
       bw1 = mtbw.getBatchWriter(newTable1);
       bw2 = mtbw.getBatchWriter(newTable2);
@@ -251,7 +251,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
             actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(),
                 entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
           }
-          assertEquals("Differing results for " + table, expectations, actual);
+          assertEquals(expectations, actual, "Differing results for " + table);
         }
       }
     } finally {
@@ -286,11 +286,11 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
       tops.rename(table1, newTable1);
       tops.rename(table2, newTable2);
 
-      assertThrows("Should not have gotten batchwriter for " + table1, TableNotFoundException.class,
-          () -> mtbw.getBatchWriter(table1));
+      assertThrows(TableNotFoundException.class, () -> mtbw.getBatchWriter(table1),
+          "Should not have gotten batchwriter for " + table1);
 
-      assertThrows("Should not have gotten batchwriter for " + table2, TableNotFoundException.class,
-          () -> mtbw.getBatchWriter(table2));
+      assertThrows(TableNotFoundException.class, () -> mtbw.getBatchWriter(table2),
+          "Should not have gotten batchwriter for " + table2);
     } finally {
       if (mtbw != null) {
         mtbw.close();
@@ -346,7 +346,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
       }
     }
 
-    assertTrue("Expected mutations to be rejected.", mutationsRejected);
+    assertTrue(mutationsRejected, "Expected mutations to be rejected.");
   }
 
   @Test
@@ -395,6 +395,6 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
       }
     }
 
-    assertTrue("Expected mutations to be rejected.", mutationsRejected);
+    assertTrue(mutationsRejected, "Expected mutations to be rejected.");
   }
 }

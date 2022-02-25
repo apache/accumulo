@@ -23,7 +23,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static org.apache.hadoop.minikdc.MiniKdc.JAVA_SECURITY_KRB5_CONF;
 import static org.apache.hadoop.minikdc.MiniKdc.SUN_SECURITY_KRB5_DEBUG;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedOutputStream;
 import java.io.File;

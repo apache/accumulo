@@ -20,7 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.test.functional.KerberosRenewalIT.TEST_DURATION_MINUTES;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map;
 import java.util.Map.Entry;
@@ -195,8 +195,9 @@ public class KerberosRenewalIT extends AccumuloITBase {
     client.tableOperations().compact(table, new CompactionConfig().setFlush(true).setWait(true));
     try (Scanner s = client.createScanner(table, Authorizations.EMPTY)) {
       Entry<Key,Value> entry = Iterables.getOnlyElement(s);
-      assertEquals("Did not find the expected key", 0,
-          new Key("a", "b", "c").compareTo(entry.getKey(), PartialKey.ROW_COLFAM_COLQUAL));
+      assertEquals(0,
+          new Key("a", "b", "c").compareTo(entry.getKey(), PartialKey.ROW_COLFAM_COLQUAL),
+          "Did not find the expected key");
       assertEquals("d", entry.getValue().toString());
       client.tableOperations().delete(table);
     }

@@ -19,9 +19,9 @@
 package org.apache.accumulo.test.replication;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -92,8 +92,8 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
       }
 
       // Each tserver should also have equal replication services running internally
-      assertEquals("Expected an equal number of replication servicers and tservers",
-          tserverHost.size(), replicationServices.size());
+      assertEquals(tserverHost.size(), replicationServices.size(),
+          "Expected an equal number of replication servicers and tservers");
     }
   }
 

@@ -20,9 +20,9 @@ package org.apache.accumulo.test.replication;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.DataOutputStream;
 import java.io.File;
@@ -92,7 +92,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
     final int numericTableId = Integer.parseInt(tableId.canonical());
     final int fakeTableId = numericTableId + 1;
 
-    assertNotNull("Did not find table ID", tableId);
+    assertNotNull(tableId, "Did not find table ID");
 
     client.tableOperations().setProperty(tableName, Property.TABLE_REPLICATION.getKey(), "true");
     client.tableOperations().setProperty(tableName,
@@ -237,7 +237,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
       for (Entry<Key,Value> entry : s) {
         Status status = Status.parseFrom(entry.getValue().get());
         log.info("{} {}", entry.getKey().toStringNoTruncate(), ProtobufUtil.toString(status));
-        assertFalse("Status record was closed and it should not be", status.getClosed());
+        assertFalse(status.getClosed(), "Status record was closed and it should not be");
       }
     }
   }

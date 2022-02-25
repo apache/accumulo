@@ -24,7 +24,8 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
  * different table balance
  */
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -58,7 +59,6 @@ import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
-import org.junit.Assume;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -99,8 +99,8 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
         break;
       UtilWaitThread.sleep(TimeUnit.SECONDS.toMillis(2));
     }
-    Assume.assumeTrue("Not enough tservers to run test",
-        accumuloClient.instanceOperations().getTabletServers().size() >= 2);
+    assumeTrue(accumuloClient.instanceOperations().getTabletServers().size() >= 2,
+        "Not enough tservers to run test");
 
     // set up splits
     final SortedSet<Text> splits = new TreeSet<>();
@@ -209,7 +209,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
       balancingWorked = true;
     }
 
-    assertTrue("did not properly balance", balancingWorked);
+    assertTrue(balancingWorked, "did not properly balance");
   }
 
 }

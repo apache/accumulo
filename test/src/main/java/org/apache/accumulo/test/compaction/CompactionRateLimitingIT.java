@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.compaction;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
 
@@ -99,10 +99,9 @@ public class CompactionRateLimitingIT extends ConfigurableMacBase {
         long duration = System.currentTimeMillis() - compactionStart;
         // The rate will be "bursty", try to account for that by taking 80% of the expected rate
         // (allow for 20% under the maximum expected duration)
-        assertTrue(String.format(
+        assertTrue(duration > 1000L * 0.8 * BYTES_TO_WRITE / RATE, String.format(
             "Expected a compaction rate of no more than %,d bytes/sec, but saw a rate of %,f bytes/sec",
-            (int) (0.8d * RATE), 1000.0 * bytesWritten / duration),
-            duration > 1000L * 0.8 * BYTES_TO_WRITE / RATE);
+            (int) (0.8d * RATE), 1000.0 * bytesWritten / duration));
       }
     }
   }

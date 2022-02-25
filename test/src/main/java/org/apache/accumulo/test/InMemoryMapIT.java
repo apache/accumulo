@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -307,14 +307,14 @@ public class InMemoryMapIT {
     List<MemKey> memKeys1 = getArrayOfMemKeys(imm1);
     List<MemKey> memKeys2 = getArrayOfMemKeys(imm2);
 
-    assertEquals("Not all key value pairs included: " + dumpInMemoryMap(imm1, memKeys1),
-        mutationKVPairs, memKeys1.size());
-    assertEquals("InMemoryMaps differ in size: " + dumpInMemoryMap(imm1, memKeys1) + "\n"
-        + dumpInMemoryMap(imm2, memKeys2), memKeys1.size(), memKeys2.size());
-    assertEquals("InMemoryMap did not have distinct kvCounts " + dumpInMemoryMap(imm1, memKeys1),
-        mutationKVPairs, getUniqKVCount(memKeys1));
-    assertEquals("InMemoryMap did not have distinct kvCounts " + dumpInMemoryMap(imm2, memKeys2),
-        mutationKVPairs, getUniqKVCount(memKeys2));
+    assertEquals(mutationKVPairs, memKeys1.size(),
+        "Not all key value pairs included: " + dumpInMemoryMap(imm1, memKeys1));
+    assertEquals(memKeys1.size(), memKeys2.size(), "InMemoryMaps differ in size: "
+        + dumpInMemoryMap(imm1, memKeys1) + "\n" + dumpInMemoryMap(imm2, memKeys2));
+    assertEquals(mutationKVPairs, getUniqKVCount(memKeys1),
+        "InMemoryMap did not have distinct kvCounts " + dumpInMemoryMap(imm1, memKeys1));
+    assertEquals(mutationKVPairs, getUniqKVCount(memKeys2),
+        "InMemoryMap did not have distinct kvCounts " + dumpInMemoryMap(imm2, memKeys2));
 
   }
 

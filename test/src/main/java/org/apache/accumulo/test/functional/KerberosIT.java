@@ -18,11 +18,11 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.lang.reflect.UndeclaredThrowableException;
@@ -169,8 +169,8 @@ public class KerberosIT extends AccumuloITBase {
 
       // The "root" user should have all system permissions
       for (SystemPermission perm : SystemPermission.values()) {
-        assertTrue("Expected user to have permission: " + perm,
-            client.securityOperations().hasSystemPermission(client.whoami(), perm));
+        assertTrue(client.securityOperations().hasSystemPermission(client.whoami(), perm),
+            "Expected user to have permission: " + perm);
       }
 
       // and the ability to modify the root and metadata tables
@@ -377,11 +377,11 @@ public class KerberosIT extends AccumuloITBase {
       // Read (and proper authorizations)
       try (Scanner s = client.createScanner(table, new Authorizations(viz))) {
         Iterator<Entry<Key,Value>> iter = s.iterator();
-        assertTrue("No results from iterator", iter.hasNext());
+        assertTrue(iter.hasNext(), "No results from iterator");
         Entry<Key,Value> entry = iter.next();
         assertEquals(new Key("a", "b", "c", viz, ts), entry.getKey());
         assertEquals(new Value("d"), entry.getValue());
-        assertFalse("Had more results from iterator", iter.hasNext());
+        assertFalse(iter.hasNext(), "Had more results from iterator");
         return null;
       }
     });
@@ -462,20 +462,19 @@ public class KerberosIT extends AccumuloITBase {
     UserGroupInformation userWithoutPrivs =
         UserGroupInformation.createUserForTesting("fake_user", new String[0]);
     // Use the delegation token to try to log in as a different user
-    var e = assertThrows("Using a delegation token as a different user should throw an exception",
-        UndeclaredThrowableException.class,
+    var e = assertThrows(UndeclaredThrowableException.class,
         () -> userWithoutPrivs.doAs((PrivilegedExceptionAction<Void>) () -> {
           AccumuloClient client = mac.createAccumuloClient("some_other_user", delegationToken);
           client.securityOperations().authenticateUser("some_other_user", delegationToken);
           return null;
-        }));
+        }), "Using a delegation token as a different user should throw an exception");
 
     Throwable cause = e.getCause();
     assertNotNull(cause);
     // We should get an AccumuloSecurityException from trying to use a delegation token for the
     // wrong user
-    assertTrue("Expected cause to be AccumuloSecurityException, but was " + cause.getClass(),
-        cause instanceof AccumuloSecurityException);
+    assertTrue(cause instanceof AccumuloSecurityException,
+        "Expected cause to be AccumuloSecurityException, but was " + cause.getClass());
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
@@ -528,9 +527,8 @@ public class KerberosIT extends AccumuloITBase {
           AuthenticationToken token =
               client.securityOperations().getDelegationToken(new DelegationTokenConfig());
 
-          assertTrue("Could not get tables with delegation token",
-              !mac.createAccumuloClient(rootUser.getPrincipal(), token).tableOperations().list()
-                  .isEmpty());
+          assertTrue(!mac.createAccumuloClient(rootUser.getPrincipal(), token).tableOperations()
+              .list().isEmpty(), "Could not get tables with delegation token");
 
           return token;
         });
@@ -545,8 +543,8 @@ public class KerberosIT extends AccumuloITBase {
     root.doAs((PrivilegedExceptionAction<Void>) () -> {
       AccumuloClient client = mac.createAccumuloClient(rootUser.getPrincipal(), delegationToken1);
 
-      assertTrue("Could not get tables with delegation token",
-          !client.tableOperations().list().isEmpty());
+      assertTrue(!client.tableOperations().list().isEmpty(),
+          "Could not get tables with delegation token");
 
       return null;
     });
@@ -562,9 +560,8 @@ public class KerberosIT extends AccumuloITBase {
           AuthenticationToken token =
               client.securityOperations().getDelegationToken(new DelegationTokenConfig());
 
-          assertTrue("Could not get tables with delegation token",
-              !mac.createAccumuloClient(rootUser.getPrincipal(), token).tableOperations().list()
-                  .isEmpty());
+          assertTrue(!mac.createAccumuloClient(rootUser.getPrincipal(), token).tableOperations()
+              .list().isEmpty(), "Could not get tables with delegation token");
 
           return token;
         });
@@ -620,8 +617,8 @@ public class KerberosIT extends AccumuloITBase {
         });
 
     AuthenticationTokenIdentifier identifier = ((DelegationTokenImpl) dt).getIdentifier();
-    assertTrue("Expected identifier to expire in no more than 5 minutes: " + identifier,
-        identifier.getExpirationDate() - identifier.getIssueDate() <= (5 * 60 * 1000));
+    assertTrue(identifier.getExpirationDate() - identifier.getIssueDate() <= (5 * 60 * 1000),
+        "Expected identifier to expire in no more than 5 minutes: " + identifier);
   }
 
   @Test

@@ -19,10 +19,11 @@
 package org.apache.accumulo.test.functional;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -46,7 +47,6 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.junit.Assume;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -68,7 +68,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
 
   @BeforeEach
   public void checkCluster() throws Exception {
-    Assume.assumeTrue(getClusterType() == ClusterType.MINI);
+    assumeTrue(getClusterType() == ClusterType.MINI);
     MiniAccumuloClusterImpl.class.cast(getCluster());
     fs = FileSystem.get(cluster.getServerContext().getHadoopConf());
   }
@@ -112,11 +112,11 @@ public class ScannerContextIT extends AccumuloClusterHarness {
 
       // Check that ValueReversingIterator is not already on the classpath by not setting the
       // context. This should fail.
-      assertThrows("This should have failed because context was not set", Exception.class,
-          () -> scanCheck(c, tableName, cfg, null, "tseT"));
+      assertThrows(Exception.class, () -> scanCheck(c, tableName, cfg, null, "tseT"),
+          "This should have failed because context was not set");
 
-      assertThrows("This should have failed because context was not set", Exception.class,
-          () -> batchCheck(c, tableName, cfg, null, "tseT"));
+      assertThrows(Exception.class, () -> batchCheck(c, tableName, cfg, null, "tseT"),
+          "This should have failed because context was not set");
 
       // Ensure that the value is reversed using the iterator config and classloader context
       scanCheck(c, tableName, cfg, CONTEXT, "tseT");
@@ -161,11 +161,11 @@ public class ScannerContextIT extends AccumuloClusterHarness {
 
       // Check that ValueReversingIterator is not already on the classpath by not setting the
       // context. This should fail.
-      assertThrows("This should have failed because context was not set", Exception.class,
-          () -> scanCheck(c, tableName, cfg, null, "tseT"));
+      assertThrows(Exception.class, () -> scanCheck(c, tableName, cfg, null, "tseT"),
+          "This should have failed because context was not set");
 
-      assertThrows("This should have failed because context was not set", Exception.class,
-          () -> batchCheck(c, tableName, cfg, null, "tseT"));
+      assertThrows(Exception.class, () -> batchCheck(c, tableName, cfg, null, "tseT"),
+          "This should have failed because context was not set");
 
       // Ensure that the value is reversed using the iterator config and classloader context
       scanCheck(c, tableName, cfg, CONTEXT, "tseT");

@@ -25,7 +25,7 @@ import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.cr
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.getRunningCompactions;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.verify;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.writeData;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -159,10 +159,10 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
 
   private void verifyProgress() {
     log.info("Verify Progress.");
-    assertTrue("Missing start of progress", progressList.contains(EC_PROGRESS.STARTED));
-    assertTrue("Missing quarter progress", progressList.contains(EC_PROGRESS.QUARTER));
-    assertTrue("Missing half progress", progressList.contains(EC_PROGRESS.HALF));
-    assertTrue("Missing three quarters progress",
-        progressList.contains(EC_PROGRESS.THREE_QUARTERS));
+    assertTrue(progressList.contains(EC_PROGRESS.STARTED), "Missing start of progress");
+    assertTrue(progressList.contains(EC_PROGRESS.QUARTER), "Missing quarter progress");
+    assertTrue(progressList.contains(EC_PROGRESS.HALF), "Missing half progress");
+    assertTrue(progressList.contains(EC_PROGRESS.THREE_QUARTERS),
+        "Missing three quarters progress");
   }
 }

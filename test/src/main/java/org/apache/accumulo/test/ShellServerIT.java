@@ -22,12 +22,14 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.newBufferedReader;
 import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -106,7 +108,6 @@ import org.jline.reader.LineReaderBuilder;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.DumbTerminal;
-import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.AfterAll;
@@ -269,24 +270,24 @@ public class ShellServerIT extends SharedMiniClusterBase {
       shellLog.debug("Shell Output: '{}'", output.get());
       if (shell.getExitCode() != 0) {
         String errorMsg = callback.getErrorMessage();
-        assertEquals(errorMsg, 0, shell.getExitCode());
+        assertEquals(0, shell.getExitCode(), errorMsg);
       }
 
       if (!s.isEmpty())
-        assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent,
-            output.get().contains(s));
+        assertEquals(stringPresent, output.get().contains(s),
+            s + " present in " + output.get() + " was not " + stringPresent);
     }
 
     void assertBadExit(String s, boolean stringPresent, ErrorMessageCallback callback) {
       shellLog.debug(output.get());
       if (shell.getExitCode() == 0) {
         String errorMsg = callback.getErrorMessage();
-        assertTrue(errorMsg, shell.getExitCode() > 0);
+        assertTrue(shell.getExitCode() > 0, errorMsg);
       }
 
       if (!s.isEmpty())
-        assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent,
-            output.get().contains(s));
+        assertEquals(stringPresent, output.get().contains(s),
+            s + " present in " + output.get() + " was not " + stringPresent);
       shell.resetExitCode();
     }
 
@@ -408,7 +409,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       }
     } else {
       String[] distCpArgs = {"-f", exportUri + "/distcp.txt", import_};
-      assertEquals("Failed to run distcp: " + Arrays.toString(distCpArgs), 0, cp.run(distCpArgs));
+      assertEquals(0, cp.run(distCpArgs), "Failed to run distcp: " + Arrays.toString(distCpArgs));
     }
     ts.exec("importtable " + table2 + " " + import_, true);
     ts.exec("config -t " + table2 + " -np", true, "345M", true);
@@ -738,8 +739,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     long now = System.currentTimeMillis();
     ts.exec("sleep 0.2", true);
     long diff = System.currentTimeMillis() - now;
-    assertTrue("Diff was actually " + diff, diff >= 200);
-    assertTrue("Diff was actually " + diff, diff < 600);
+    assertTrue(diff >= 200, "Diff was actually " + diff);
+    assertTrue(diff < 600, "Diff was actually " + diff);
   }
 
   @Test
@@ -780,7 +781,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
         sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
       }
     }
-    assertTrue("Could not successfully see updated authoriations", passed);
+    assertTrue(passed, "Could not successfully see updated authoriations");
     ts.exec("insert a b c d -l foo");
     ts.exec("scan", true, "[foo]");
     ts.exec("scan -s bar", true, "[foo]", false);
@@ -789,7 +790,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void getAuths() throws Exception {
-    Assume.assumeFalse("test skipped for kerberos", getToken() instanceof KerberosToken);
+    assumeFalse(getToken() instanceof KerberosToken, "test skipped for kerberos");
 
     // create two users with different auths
     for (int i = 1; i <= 2; i++) {
@@ -960,7 +961,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     List<String> oldFiles = getFiles(tableId);
 
     // at this point there are 4 files in the default tablet
-    assertEquals("Files that were found: " + oldFiles, 4, oldFiles.size());
+    assertEquals(4, oldFiles.size(), "Files that were found: " + oldFiles);
 
     // compact some data:
     ts.exec("compact -b g -e z -w");
@@ -1234,11 +1235,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
       log.info("More than 3 files were found, compacting before proceeding");
       ts.exec("compact -w -t " + table);
       files = getFiles(tableId);
-      assertEquals("Expected to only find 3 files after compaction: " + files, 3, files.size());
+      assertEquals(3, files.size(), "Expected to only find 3 files after compaction: " + files);
     }
 
     assertNotNull(files);
-    assertEquals("Found the following files: " + files, 3, files.size());
+    assertEquals(3, files.size(), "Found the following files: " + files);
     ts.exec("deleterows -t " + table + " -b row5 -e row7");
     assertEquals(2, countFiles(tableId));
     ts.exec("deletetable -f " + table);
@@ -1690,7 +1691,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       }
       thread.join();
 
-      assertFalse("Could not find any active scans over table " + table, scans.isEmpty());
+      assertFalse(scans.isEmpty(), "Could not find any active scans over table " + table);
 
       for (String scan : scans) {
         if (!scan.contains("RUNNING")) {
@@ -1698,8 +1699,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
           continue;
         }
         String[] parts = scan.split("\\|");
-        assertEquals("Expected 14 colums, but found " + parts.length + " instead for '"
-            + Arrays.toString(parts) + "'", 14, parts.length);
+        assertEquals(14, parts.length, "Expected 14 colums, but found " + parts.length
+            + " instead for '" + Arrays.toString(parts) + "'");
         String tserver = parts[0].trim();
         // TODO: any way to tell if the client address is accurate? could be local IP, host,
         // loopback...?
@@ -1788,7 +1789,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void badLogin() throws Exception {
     // Can't run with Kerberos, can't switch identity in shell presently
-    Assume.assumeTrue(getToken() instanceof PasswordToken);
+    assumeTrue(getToken() instanceof PasswordToken);
     ts.input.set(getRootPassword() + "\n");
     String err = ts.exec("user NoSuchUser", false);
     assertTrue(err.contains("BAD_CREDENTIALS for user NoSuchUser"));
@@ -1914,8 +1915,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void scansWithClassLoaderContext() throws IOException {
 
-    assertThrows("ValueReversingIterator already on the classpath", ClassNotFoundException.class,
-        () -> Class.forName(VALUE_REVERSING_ITERATOR));
+    assertThrows(ClassNotFoundException.class, () -> Class.forName(VALUE_REVERSING_ITERATOR),
+        "ValueReversingIterator already on the classpath");
 
     final String tableName = getUniqueNames(1)[0];
 
@@ -2193,12 +2194,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   private static void assertMatches(String output, String pattern) {
     var p = Pattern.compile(pattern).asMatchPredicate();
-    assertTrue("Pattern " + pattern + " did not match output : " + output, p.test(output));
+    assertTrue(p.test(output), "Pattern " + pattern + " did not match output : " + output);
   }
 
   private static void assertNotContains(String output, String subsequence) {
-    assertFalse("Expected '" + subsequence + "' would not occur in output : " + output,
-        output.contains(subsequence));
+    assertFalse(output.contains(subsequence),
+        "Expected '" + subsequence + "' would not occur in output : " + output);
   }
 
   @Test

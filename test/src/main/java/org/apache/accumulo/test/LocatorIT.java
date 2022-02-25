@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -67,9 +67,9 @@ public class LocatorIT extends AccumuloClusterHarness {
 
       TabletId tid = entry.getKey();
       String location = locations.getTabletLocation(tid);
-      assertNotNull("Location for " + tid + " was null", location);
-      assertTrue("Unknown location " + location, tservers.contains(location));
-      assertEquals("Expected <host>:<port> " + location, 2, location.split(":").length);
+      assertNotNull(location, "Location for " + tid + " was null");
+      assertTrue(tservers.contains(location), "Unknown location " + location);
+      assertEquals(2, location.split(":").length, "Expected <host>:<port> " + location);
 
     }
 

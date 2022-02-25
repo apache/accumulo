@@ -21,8 +21,9 @@ package org.apache.accumulo.test.functional;
 import static java.util.Collections.singletonMap;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -51,7 +52,6 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.Assume;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -73,7 +73,7 @@ public class SplitIT extends AccumuloClusterHarness {
 
   @BeforeEach
   public void alterConfig() throws Exception {
-    Assume.assumeTrue(getClusterType() == ClusterType.MINI);
+    assumeTrue(getClusterType() == ClusterType.MINI);
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       InstanceOperations iops = client.instanceOperations();
       Map<String,String> config = iops.getSystemConfiguration();
@@ -151,8 +151,8 @@ public class SplitIT extends AccumuloClusterHarness {
           count++;
         }
 
-        assertTrue("Shortened should be greater than zero: " + shortened, shortened > 0);
-        assertTrue("Count should be cgreater than 10: " + count, count > 10);
+        assertTrue(shortened > 0, "Shortened should be greater than zero: " + shortened);
+        assertTrue(count > 10, "Count should be cgreater than 10: " + count);
       }
 
       assertEquals(0, getCluster().getClusterControl().exec(CheckForMetadataProblems.class,
@@ -180,7 +180,7 @@ public class SplitIT extends AccumuloClusterHarness {
         Thread.sleep(2000);
         numSplits = c.tableOperations().listSplits(tableName).size();
       }
-      assertTrue("Expected at least 20 splits, saw " + numSplits, numSplits > 20);
+      assertTrue(numSplits > 20, "Expected at least 20 splits, saw " + numSplits);
     }
   }
 

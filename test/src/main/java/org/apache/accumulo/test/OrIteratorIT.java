@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -88,10 +88,10 @@ public class OrIteratorIT extends AccumuloClusterHarness {
         for (Entry<Key,Value> entry : bs) {
           String term = entry.getKey().getColumnFamily().toString();
           String expectedDocId = expectedData.remove(term);
-          assertNotNull("Found unexpected term: " + term, expectedDocId);
+          assertNotNull(expectedDocId, "Found unexpected term: " + term);
           assertEquals(expectedDocId, entry.getKey().getColumnQualifier().toString());
         }
-        assertTrue("Expected no leftover entries but saw " + expectedData, expectedData.isEmpty());
+        assertTrue(expectedData.isEmpty(), "Expected no leftover entries but saw " + expectedData);
       }
     }
   }
@@ -140,10 +140,10 @@ public class OrIteratorIT extends AccumuloClusterHarness {
         for (Entry<Key,Value> entry : bs) {
           String term = entry.getKey().getColumnFamily().toString();
           String expectedDocId = expectedData.remove(term);
-          assertNotNull("Found unexpected term: " + term, expectedDocId);
+          assertNotNull(expectedDocId, "Found unexpected term: " + term);
           assertEquals(expectedDocId, entry.getKey().getColumnQualifier().toString());
         }
-        assertTrue("Expected no leftover entries but saw " + expectedData, expectedData.isEmpty());
+        assertTrue(expectedData.isEmpty(), "Expected no leftover entries but saw " + expectedData);
       }
     }
   }
@@ -187,11 +187,11 @@ public class OrIteratorIT extends AccumuloClusterHarness {
         for (Entry<Key,Value> entry : bs) {
           String term = entry.getKey().getColumnFamily().toString();
           String expectedDocId = expectedData.remove(term);
-          assertNotNull("Found unexpected term: " + term + " or the docId was unexpectedly null",
-              expectedDocId);
+          assertNotNull(expectedDocId,
+              "Found unexpected term: " + term + " or the docId was unexpectedly null");
           assertEquals(expectedDocId, entry.getKey().getColumnQualifier().toString());
         }
-        assertTrue("Expected no leftover entries but saw " + expectedData, expectedData.isEmpty());
+        assertTrue(expectedData.isEmpty(), "Expected no leftover entries but saw " + expectedData);
       }
     }
   }
@@ -224,7 +224,7 @@ public class OrIteratorIT extends AccumuloClusterHarness {
       try (BatchScanner bs = client.createBatchScanner(tableName)) {
         bs.setRanges(Collections.singleton(new Range()));
         bs.addScanIterator(is);
-        assertFalse("Found matches when none expected", bs.iterator().hasNext());
+        assertFalse(bs.iterator().hasNext(), "Found matches when none expected");
       }
     }
   }
@@ -275,11 +275,11 @@ public class OrIteratorIT extends AccumuloClusterHarness {
         for (Entry<Key,Value> entry : bs) {
           String term = entry.getKey().getColumnFamily().toString();
           String expectedDocId = expectedData.remove(term);
-          assertNotNull("Found unexpected term: " + term + " or the docId was unexpectedly null",
-              expectedDocId);
+          assertNotNull(expectedDocId,
+              "Found unexpected term: " + term + " or the docId was unexpectedly null");
           assertEquals(expectedDocId, entry.getKey().getColumnQualifier().toString());
         }
-        assertTrue("Expected no leftover entries but saw " + expectedData, expectedData.isEmpty());
+        assertTrue(expectedData.isEmpty(), "Expected no leftover entries but saw " + expectedData);
       }
     }
   }
@@ -306,12 +306,12 @@ public class OrIteratorIT extends AccumuloClusterHarness {
         Iterator<Entry<Key,Value>> iter = s.iterator();
         assertTrue(iter.hasNext());
         Key k = iter.next().getKey();
-        assertEquals("Actual key was " + k, 0,
-            k.compareTo(new Key("row1", "steve", "1"), PartialKey.ROW_COLFAM_COLQUAL));
+        assertEquals(0, k.compareTo(new Key("row1", "steve", "1"), PartialKey.ROW_COLFAM_COLQUAL),
+            "Actual key was " + k);
         assertTrue(iter.hasNext());
         k = iter.next().getKey();
-        assertEquals("Actual key was " + k, 0,
-            k.compareTo(new Key("row1", "bob", "2"), PartialKey.ROW_COLFAM_COLQUAL));
+        assertEquals(0, k.compareTo(new Key("row1", "bob", "2"), PartialKey.ROW_COLFAM_COLQUAL),
+            "Actual key was " + k);
         assertFalse(iter.hasNext());
       }
     }

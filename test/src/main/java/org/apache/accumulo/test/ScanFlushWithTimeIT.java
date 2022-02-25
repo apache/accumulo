@@ -19,7 +19,7 @@
 package org.apache.accumulo.test;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collections;
 import java.util.SortedSet;
@@ -103,6 +103,6 @@ public class ScanFlushWithTimeIT extends AccumuloClusterHarness {
     s.iterator().next();
     long diff = System.currentTimeMillis() - now;
     log.info("Diff = {}", diff);
-    assertTrue("Scanner taking too long to return intermediate results: " + diff, diff < expected);
+    assertTrue(diff < expected, "Scanner taking too long to return intermediate results: " + diff);
   }
 }

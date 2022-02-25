@@ -20,7 +20,7 @@ package org.apache.accumulo.harness;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.net.InetAddress;
@@ -62,8 +62,8 @@ public class TestingKdc {
     File targetDir = new File(System.getProperty("user.dir"), "target");
     if (!targetDir.exists())
       assertTrue(targetDir.mkdirs());
-    assertTrue("Could not find Maven target directory: " + targetDir,
-        targetDir.exists() && targetDir.isDirectory());
+    assertTrue(targetDir.exists() && targetDir.isDirectory(),
+        "Could not find Maven target directory: " + targetDir);
 
     // Create the directories: target/kerberos/minikdc
     File kdcDir = new File(new File(targetDir, "kerberos"), "minikdc");
@@ -75,8 +75,8 @@ public class TestingKdc {
 
   public static File computeKeytabDir() {
     File targetDir = new File(System.getProperty("user.dir"), "target");
-    assertTrue("Could not find Maven target directory: " + targetDir,
-        targetDir.exists() && targetDir.isDirectory());
+    assertTrue(targetDir.exists() && targetDir.isDirectory(),
+        "Could not find Maven target directory: " + targetDir);
 
     // Create the directories: target/kerberos/keytabs
     File keytabDir = new File(new File(targetDir, "kerberos"), "keytabs");

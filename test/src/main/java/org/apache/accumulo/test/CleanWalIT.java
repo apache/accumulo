@@ -20,7 +20,7 @@ package org.apache.accumulo.test;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
@@ -87,7 +87,7 @@ public class CleanWalIT extends AccumuloClusterHarness {
       assertEquals(1, count(tableName, client));
       for (String table : new String[] {MetadataTable.NAME, RootTable.NAME}) {
         log.debug("Checking logs for {}", table);
-        assertEquals("Found logs for " + table, 0, countLogs(client));
+        assertEquals(0, countLogs(client), "Found logs for " + table);
       }
 
       try (BatchWriter bw = client.createBatchWriter(tableName)) {

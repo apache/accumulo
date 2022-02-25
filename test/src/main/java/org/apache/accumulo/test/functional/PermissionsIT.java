@@ -18,10 +18,11 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -55,7 +56,6 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.hadoop.io.Text;
-import org.junit.Assume;
 import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -76,7 +76,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
 
   @BeforeEach
   public void limitToMini() throws Exception {
-    Assume.assumeTrue(getClusterType() == ClusterType.MINI);
+    assumeTrue(getClusterType() == ClusterType.MINI);
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       Set<String> users = c.securityOperations().listLocalUsers();
       ClusterUser user = getUser(0);
@@ -564,10 +564,10 @@ public class PermissionsIT extends AccumuloClusterHarness {
         test_user_client.securityOperations().grantSystemPermission(testUser.getPrincipal(),
             SystemPermission.CREATE_TABLE);
         loginAs(rootUser);
-        assertTrue("Test user should have CREATE_TABLE", root_client.securityOperations()
-            .hasSystemPermission(testUser.getPrincipal(), SystemPermission.CREATE_TABLE));
-        assertTrue("Test user should have GRANT", root_client.securityOperations()
-            .hasSystemPermission(testUser.getPrincipal(), SystemPermission.GRANT));
+        assertTrue(root_client.securityOperations().hasSystemPermission(testUser.getPrincipal(),
+            SystemPermission.CREATE_TABLE), "Test user should have CREATE_TABLE");
+        assertTrue(root_client.securityOperations().hasSystemPermission(testUser.getPrincipal(),
+            SystemPermission.GRANT), "Test user should have GRANT");
         root_client.securityOperations().revokeSystemPermission(testUser.getPrincipal(),
             SystemPermission.CREATE_TABLE);
         break;
