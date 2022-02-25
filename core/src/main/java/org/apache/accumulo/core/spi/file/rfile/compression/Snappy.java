@@ -20,8 +20,8 @@ package org.apache.accumulo.core.spi.file.rfile.compression;
 
 import com.google.auto.service.AutoService;
 
-@AutoService(CompressionAlgorithm.class)
-public class Snappy implements CompressionAlgorithm {
+@AutoService(CompressionAlgorithmConfiguration.class)
+public class Snappy implements CompressionAlgorithmConfiguration {
 
   @Override
   public String getName() {

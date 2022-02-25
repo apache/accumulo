@@ -28,7 +28,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.core.spi.file.rfile.compression.CompressionAlgorithm;
+import org.apache.accumulo.core.spi.file.rfile.compression.CompressionAlgorithmConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.compress.CodecPool;
@@ -128,13 +128,14 @@ public class DefaultCompressionAlgorithm extends Configured {
   protected static final int DATA_OBUF_SIZE = 4 * 1024;
 
   // The name of the compression algorithm.
-  private final CompressionAlgorithm algorithm;
+  private final CompressionAlgorithmConfiguration algorithm;
 
   private final AtomicBoolean checked = new AtomicBoolean(false);
 
   private transient CompressionCodec codec = null;
 
-  public DefaultCompressionAlgorithm(CompressionAlgorithm algorithm, Configuration conf) {
+  public DefaultCompressionAlgorithm(CompressionAlgorithmConfiguration algorithm,
+      Configuration conf) {
     this.algorithm = algorithm;
     setConf(conf);
     codec = initCodec(checked, algorithm.getDefaultBufferSize(), codec);

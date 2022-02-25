@@ -18,40 +18,36 @@
  */
 package org.apache.accumulo.core.spi.file.rfile.compression;
 
-public interface CompressionAlgorithm {
+import org.apache.accumulo.core.file.rfile.bcfile.IdentityCodec;
 
-  /**
-   * @return algorithm alias
-   */
-  String getName();
+import com.google.auto.service.AutoService;
 
-  /**
-   * @return name of property that can be specified in configuration or in system properties to
-   *         override class name of codec
-   */
-  String getCodecClassName();
+@AutoService(CompressionAlgorithmConfiguration.class)
+public class NoCompression implements CompressionAlgorithmConfiguration {
 
-  /**
-   * @return fully qualified class name of codec
-   */
-  String getCodecClassNameProperty();
+  @Override
+  public String getName() {
+    return "none";
+  }
 
-  /**
-   * @return default buffer size for compression algorithm
-   */
-  int getDefaultBufferSize();
+  @Override
+  public String getCodecClassName() {
+    return IdentityCodec.class.getName();
+  }
 
-  /**
-   * @return name of property that can be specified in configuration or in system properties to
-   *         override default buffer size
-   */
-  String getBufferSizeProperty();
+  @Override
+  public String getCodecClassNameProperty() {
+    return null;
+  }
 
-  /**
-   * @return true if codecs with non-default buffer sizes should be cached
-   */
-  default boolean cacheCodecsWithNonDefaultSizes() {
-    return false;
+  @Override
+  public int getDefaultBufferSize() {
+    return 32 * 1024;
+  }
+
+  @Override
+  public String getBufferSizeProperty() {
+    return "io.file.buffer.size";
   }
 
 }

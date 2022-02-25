@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.ServiceLoader;
 
-import org.apache.accumulo.core.spi.file.rfile.compression.CompressionAlgorithm;
+import org.apache.accumulo.core.spi.file.rfile.compression.CompressionAlgorithmConfiguration;
 import org.apache.hadoop.conf.Configuration;
 
 /**
@@ -41,8 +41,8 @@ public final class Compression {
   private static final Map<String,DefaultCompressionAlgorithm> CONFIGURED_ALGORITHMS =
       new HashMap<>();
 
-  private static final ServiceLoader<CompressionAlgorithm> COMPRESSION_ALGORITHMS =
-      ServiceLoader.load(CompressionAlgorithm.class);
+  private static final ServiceLoader<CompressionAlgorithmConfiguration> COMPRESSION_ALGORITHMS =
+      ServiceLoader.load(CompressionAlgorithmConfiguration.class);
 
   // All compression-related settings are required to be configured statically in the
   // Configuration object.
