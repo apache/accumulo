@@ -46,6 +46,15 @@ import org.slf4j.LoggerFactory;
 
 public class ThreadPools {
 
+  public static class ExecutionError extends Error {
+
+    private static final long serialVersionUID = 1L;
+
+    public ExecutionError(String message, Throwable cause) {
+      super(message, cause);
+    }
+  }
+
   private static final Logger LOG = LoggerFactory.getLogger(ThreadPools.class);
 
   // the number of seconds before we allow a thread to terminate with non-use.
@@ -72,7 +81,9 @@ public class ThreadPools {
             try {
               criticalTask.get();
               // If we get here, then a scheduled task exited but did not throw an error
-              // or get canceled. This was likely a one-shot scheduled task.
+              // or get canceled. This was likely a one-shot scheduled task (I don't think
+              // we can tell if it's one-shot or not, I think we have to assume that it is
+              // and that a recurring task would not normally be complete).
               if (!CRITICAL_RUNNING_TASKS.remove(criticalTask)) {
                 LOG.warn("Unable to remove task from list of watched critical tasks");
               }
@@ -80,7 +91,7 @@ public class ThreadPools {
               // An exception was thrown in the critical task. Throw the error here, which
               // will then be caught by the AccumuloUncaughtExceptionHandler which will
               // log the error and terminate the VM.
-              throw new RuntimeException("Critical scheduled task failed.", ee.getCause());
+              new ExecutionError("Critical scheduled task failed.", ee);
             } catch (CancellationException ce) {
               // do nothing here as it appears that the task was canceled. Remove it from
               // the list of critical tasks
