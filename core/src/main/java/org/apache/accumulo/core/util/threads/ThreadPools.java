@@ -44,6 +44,10 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "RV_EXCEPTION_NOT_THROWN",
+    justification = "Throwing Error for it to be caught by AccumuloUncaughtExceptionHandler")
 public class ThreadPools {
 
   public static class ExecutionError extends Error {
