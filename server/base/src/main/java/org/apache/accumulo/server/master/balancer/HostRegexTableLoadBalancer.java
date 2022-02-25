@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.master.balancer;
 
+import static java.util.concurrent.TimeUnit.HOURS;
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.SecureRandom;
@@ -32,7 +34,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -176,7 +177,6 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     }
   }
 
-  private static final long ONE_HOUR = 60 * 60 * 1000;
   private static final Set<KeyExtent> EMPTY_MIGRATIONS = Collections.emptySet();
   private volatile long lastOOBCheck = System.currentTimeMillis();
   private Map<String,SortedMap<TServerInstance,TabletServerStatus>> pools = new HashMap<>();
@@ -335,7 +335,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     this.hrtlbConf = context.getConfiguration().newDeriver(HrtlbConf::new);
 
     tablesRegExCache =
-        CacheBuilder.newBuilder().expireAfterAccess(1, TimeUnit.HOURS).build(new CacheLoader<>() {
+        CacheBuilder.newBuilder().expireAfterAccess(1, HOURS).build(new CacheLoader<>() {
           @Override
           public Deriver<Map<String,String>> load(TableId key) throws Exception {
             return context.getTableConfiguration(key)
@@ -384,7 +384,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
   @Override
   public long balance(SortedMap<TServerInstance,TabletServerStatus> current,
       Set<KeyExtent> migrations, List<TabletMigration> migrationsOut) {
-    long minBalanceTime = 20 * 1000;
+    long minBalanceTime = 20_000;
     // Iterate over the tables and balance each of them
     TableOperations t = getTableOperations();
     if (t == null) {
@@ -520,7 +520,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
       if (newMigrations.isEmpty()) {
         tableToTimeSinceNoMigrations.remove(s);
       } else if (tableToTimeSinceNoMigrations.containsKey(s)) {
-        if ((now - tableToTimeSinceNoMigrations.get(s)) > ONE_HOUR) {
+        if ((now - tableToTimeSinceNoMigrations.get(s)) > HOURS.toMillis(1)) {
           LOG.warn("We have been consistently producing migrations for {}: {}", tableName,
               Iterables.limit(newMigrations, 10));
         }

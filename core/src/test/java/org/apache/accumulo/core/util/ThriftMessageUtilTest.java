@@ -18,21 +18,21 @@
  */
 package org.apache.accumulo.core.util;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import org.apache.accumulo.core.securityImpl.thrift.TAuthenticationTokenIdentifier;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ThriftMessageUtilTest {
 
   private TAuthenticationTokenIdentifier msg;
   private ThriftMessageUtil util;
 
-  @Before
+  @BeforeEach
   public void setup() throws IOException {
     msg = new TAuthenticationTokenIdentifier("principal");
     util = new ThriftMessageUtil();

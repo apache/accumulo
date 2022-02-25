@@ -120,7 +120,7 @@ public class TableLoadBalancer implements TabletBalancer {
 
   @Override
   public long balance(BalanceParameters params) {
-    long minBalanceTime = 5 * 1000;
+    long minBalanceTime = 5_000;
     // Iterate over the tables and balance each of them
     for (TableId tableId : environment.getTableIdMap().values()) {
       ArrayList<TabletMigration> newMigrations = new ArrayList<>();

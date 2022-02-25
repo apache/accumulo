@@ -234,6 +234,13 @@
         <scope>import</scope>
       </dependency>
       <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>5.8.2</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
         <groupId>com.beust</groupId>
         <artifactId>jcommander</artifactId>
         <version>1.82</version>
@@ -314,11 +321,6 @@
         <groupId>commons-logging</groupId>
         <artifactId>commons-logging</artifactId>
         <version>1.2</version>
-      </dependency>
-      <dependency>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <version>4.13.2</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
@@ -972,6 +974,8 @@
                 <usedUndeclaredDependency>org.apache.httpcomponents:httpcore:jar:*</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.powermock:powermock-core:jar:*</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.powermock:powermock-reflect:jar:*</usedUndeclaredDependency>
+                <!-- This should be removed upon completion of migrating junit 4 to 5 -->
+                <usedUndeclaredDependency>junit:junit:jar:*</usedUndeclaredDependency>
               </ignoredUsedUndeclaredDependencies>
               <ignoredUnusedDeclaredDependencies>
                 <!-- auto-service isn't used in every module -->
@@ -985,7 +989,6 @@
                 -
                 <unusedDeclaredDependency>org.glassfish.jersey.test-framework.providers:jersey-test-framework-provider-grizzly2:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.powermock:powermock-api-easymock:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>junit:junit:jar:*</unusedDeclaredDependency>
                 <!-- spotbugs annotations may or may not be used in each module -->
                 <unusedDeclaredDependency>com.github.spotbugs:spotbugs-annotations:jar:*</unusedDeclaredDependency>
                 <!-- ignore unused native; analysis isn't possible with tar.gz dependency -->
@@ -994,6 +997,8 @@
                 <unusedDeclaredDependency>org.apache.logging.log4j:log4j-1.2-api:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.logging.log4j:log4j-slf4j-impl:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.logging.log4j:log4j-web:jar:*</unusedDeclaredDependency>
+                <!-- This should be removed upon completion of migrating junit 4 to 5 -->
+                <unusedDeclaredDependency>org.junit.vintage:junit-vintage-engine:jar:*</unusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>
@@ -1094,8 +1099,17 @@
                   <property name="message" value="Use static imports for Assert.* methods for consistency" />
                 </module>
                 <module name="RegexpSinglelineJava">
+                  <property name="format" value="org[.]junit[.]jupiter[.]api[.]Assertions;" />
+                  <property name="message" value="Use static imports for Assert.* methods for consistency" />
+                </module>
+                <module name="RegexpSinglelineJava">
                   <property name="format" value="import java[.]nio[.]charset[.]StandardCharsets;" />
                   <property name="message" value="Use static imports for StandardCharsets.* constants for consistency" />
+                </module>
+                <module name="RegexpSinglelineJava">
+                  <!-- double escape quotes because checkstyle passes these through another xml parser -->
+                  <property name="format" value="&amp;quot; [+] &amp;quot;" />
+                  <property name="message" value="Unnecessary concatenation of string literals" />
                 </module>
                 <module name="OuterTypeFilename" />
                 <module name="AvoidStarImport" />

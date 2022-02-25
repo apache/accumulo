@@ -1191,9 +1191,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
   public void help() throws Exception {
     ts.exec("help -np", true, "Help Commands", true);
     ts.exec("?", true, "Help Commands", true);
-    for (String c : ("bye exit quit " + "about help info ? "
+    for (String c : ("bye exit quit about help info ? "
         + "deleteiter deletescaniter listiter setiter setscaniter "
-        + "grant revoke systempermissions tablepermissions userpermissions " + "execfile history "
+        + "grant revoke systempermissions tablepermissions userpermissions execfile history "
         + "authenticate cls clear notable sleep table user whoami "
         + "clonetable config createtable deletetable droptable du exporttable "
         + "importtable offline online renametable tables "
@@ -1872,11 +1872,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
   private static final String REAL_CONTEXT_CLASSPATH = "file://" + System.getProperty("user.dir")
       + "/target/" + ShellServerIT.class.getSimpleName() + "-real-iterators.jar";
   private static final String VALUE_REVERSING_ITERATOR =
-      "org.apache.accumulo.test." + "functional.ValueReversingIterator";
+      "org.apache.accumulo.test.functional.ValueReversingIterator";
   private static final String SUMMING_COMBINER_ITERATOR =
-      "org.apache.accumulo.core." + "iterators.user.SummingCombiner";
+      "org.apache.accumulo.core.iterators.user.SummingCombiner";
   private static final String COLUMN_FAMILY_COUNTER_ITERATOR =
-      "org.apache.accumulo.core.iterators" + ".ColumnFamilyCounter";
+      "org.apache.accumulo.core.iterators.ColumnFamilyCounter";
 
   private void setupRealContextPath() throws IOException {
     // Copy the test iterators jar to tmp

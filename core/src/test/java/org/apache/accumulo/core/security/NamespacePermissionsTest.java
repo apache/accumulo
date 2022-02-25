@@ -18,11 +18,11 @@
  */
 package org.apache.accumulo.core.security;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.EnumSet;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class NamespacePermissionsTest {
   @Test
@@ -36,7 +36,7 @@ public class NamespacePermissionsTest {
       set.remove(NamespacePermission.getEquivalent(permission));
     }
 
-    assertTrue("All namespace permissions should have equivalent table or system permissions.",
-        set.isEmpty());
+    assertTrue(set.isEmpty(),
+        "All namespace permissions should have equivalent table or system permissions.");
   }
 }

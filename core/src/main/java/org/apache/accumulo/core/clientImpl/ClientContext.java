@@ -21,16 +21,17 @@ package org.apache.accumulo.core.clientImpl;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
-import static org.apache.accumulo.core.util.Validators.EXISTING_TABLE_NAME;
 
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -46,6 +47,7 @@ import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -59,6 +61,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -75,6 +78,7 @@ import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.spi.scan.ScanServerDispatcher;
 import org.apache.accumulo.core.util.OpTimer;
+import org.apache.accumulo.core.util.tables.TableZooHelper;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
@@ -120,8 +124,8 @@ public class ClientContext implements AccumuloClient {
   private volatile boolean closed = false;
 
   private SecurityOperations secops = null;
-  private TableOperationsImpl tableops = null;
-  private NamespaceOperations namespaceops = null;
+  private final TableOperationsImpl tableops;
+  private final NamespaceOperations namespaceops;
   private InstanceOperations instanceops = null;
   @SuppressWarnings("deprecation")
   private org.apache.accumulo.core.client.admin.ReplicationOperations replicationops = null;
@@ -135,7 +139,7 @@ public class ClientContext implements AccumuloClient {
 
   private static <T> Supplier<T> memoizeWithExpiration(Supplier<T> s) {
     // This insanity exists to make modernizer plugin happy. We are living in the future now.
-    return () -> Suppliers.memoizeWithExpiration(s::get, 100, TimeUnit.MILLISECONDS).get();
+    return () -> Suppliers.memoizeWithExpiration(s::get, 100, MILLISECONDS).get();
   }
 
   /**
@@ -299,11 +303,11 @@ public class ClientContext implements AccumuloClient {
     }
     Long maxLatency = ClientProperty.BATCH_WRITER_LATENCY_MAX.getTimeInMillis(props);
     if (maxLatency != null) {
-      batchWriterConfig.setMaxLatency(maxLatency, TimeUnit.SECONDS);
+      batchWriterConfig.setMaxLatency(maxLatency, SECONDS);
     }
     Long timeout = ClientProperty.BATCH_WRITER_TIMEOUT_MAX.getTimeInMillis(props);
     if (timeout != null) {
-      batchWriterConfig.setTimeout(timeout, TimeUnit.SECONDS);
+      batchWriterConfig.setTimeout(timeout, SECONDS);
     }
     Integer maxThreads = ClientProperty.BATCH_WRITER_THREADS_MAX.getInteger(props);
     if (maxThreads != null) {
@@ -357,7 +361,7 @@ public class ClientContext implements AccumuloClient {
 
     Long timeout = ClientProperty.CONDITIONAL_WRITER_TIMEOUT_MAX.getTimeInMillis(props);
     if (timeout != null) {
-      conditionalWriterConfig.setTimeout(timeout, TimeUnit.SECONDS);
+      conditionalWriterConfig.setTimeout(timeout, SECONDS);
     }
     String durability = ClientProperty.CONDITIONAL_WRITER_DURABILITY.getValue(props);
     if (!durability.isEmpty()) {
@@ -416,7 +420,7 @@ public class ClientContext implements AccumuloClient {
     if (timer != null) {
       timer.stop();
       log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(), loc,
-          String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+          String.format("%.3f secs", timer.scale(SECONDS)));
     }
 
     if (loc == null || loc.getType() != LocationType.CURRENT) {
@@ -454,7 +458,7 @@ public class ClientContext implements AccumuloClient {
       timer.stop();
       log.trace("tid={} Found manager at {} in {}", Thread.currentThread().getId(),
           (loc == null ? "null" : new String(loc, UTF_8)),
-          String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+          String.format("%.3f secs", timer.scale(SECONDS)));
     }
 
     if (loc == null) {
@@ -543,28 +547,82 @@ public class ClientContext implements AccumuloClient {
     return zooCache;
   }
 
-  // this validates the table name for all callers
-  TableId getTableId(String tableName) throws TableNotFoundException {
-    return Tables.getTableId(this, EXISTING_TABLE_NAME.validate(tableName));
+  private TableZooHelper tableZooHelper;
+
+  private synchronized TableZooHelper tableZooHelper() {
+    ensureOpen();
+    if (tableZooHelper == null) {
+      tableZooHelper = new TableZooHelper(this);
+    }
+    return tableZooHelper;
+  }
+
+  public TableId getTableId(String tableName) throws TableNotFoundException {
+    return tableZooHelper().getTableId(tableName);
+  }
+
+  public TableId _getTableIdDetectNamespaceNotFound(String tableName)
+      throws NamespaceNotFoundException, TableNotFoundException {
+    return tableZooHelper()._getTableIdDetectNamespaceNotFound(tableName);
+  }
+
+  public String getTableName(TableId tableId) throws TableNotFoundException {
+    return tableZooHelper().getTableName(tableId);
+  }
+
+  public Map<String,TableId> getTableNameToIdMap() {
+    return tableZooHelper().getTableMap().getNameToIdMap();
+  }
+
+  public Map<TableId,String> getTableIdToNameMap() {
+    return tableZooHelper().getTableMap().getIdtoNameMap();
+  }
+
+  public boolean tableNodeExists(TableId tableId) {
+    return tableZooHelper().tableNodeExists(tableId);
+  }
+
+  public void clearTableListCache() {
+    tableZooHelper().clearTableListCache();
+  }
+
+  public String getPrintableTableInfoFromId(TableId tableId) {
+    return tableZooHelper().getPrintableTableInfoFromId(tableId);
+  }
+
+  public String getPrintableTableInfoFromName(String tableName) {
+    return tableZooHelper().getPrintableTableInfoFromName(tableName);
+  }
+
+  public TableState getTableState(TableId tableId) {
+    return tableZooHelper().getTableState(tableId, false);
+  }
+
+  public TableState getTableState(TableId tableId, boolean clearCachedState) {
+    return tableZooHelper().getTableState(tableId, clearCachedState);
+  }
+
+  public NamespaceId getNamespaceId(TableId tableId) throws TableNotFoundException {
+    return tableZooHelper().getNamespaceId(tableId);
   }
 
   // use cases overlap with requireNotDeleted, but this throws a checked exception
   public TableId requireTableExists(TableId tableId, String tableName)
       throws TableNotFoundException {
-    if (!Tables.exists(this, tableId))
+    if (!tableNodeExists(tableId))
       throw new TableNotFoundException(tableId.canonical(), tableName, "Table no longer exists");
     return tableId;
   }
 
   // use cases overlap with requireTableExists, but this throws a runtime exception
   public TableId requireNotDeleted(TableId tableId) {
-    if (!Tables.exists(this, tableId))
+    if (!tableNodeExists(tableId))
       throw new TableDeletedException(tableId.canonical());
     return tableId;
   }
 
   public TableId requireNotOffline(TableId tableId, String tableName) {
-    if (Tables.getTableState(this, tableId) == TableState.OFFLINE)
+    if (getTableState(tableId) == TableState.OFFLINE)
       throw new TableOfflineException(tableId, tableName);
     return tableId;
   }
@@ -749,6 +807,9 @@ public class ClientContext implements AccumuloClient {
     if (thriftTransportPool != null) {
       thriftTransportPool.shutdown();
     }
+    if (tableZooHelper != null) {
+      tableZooHelper.close();
+    }
     singletonReservation.close();
   }
 
@@ -859,9 +920,9 @@ public class ClientContext implements AccumuloClient {
     public ConnectionOptions<T> batchWriterConfig(BatchWriterConfig batchWriterConfig) {
       ClientProperty.BATCH_WRITER_MEMORY_MAX.setBytes(properties, batchWriterConfig.getMaxMemory());
       ClientProperty.BATCH_WRITER_LATENCY_MAX.setTimeInMillis(properties,
-          batchWriterConfig.getMaxLatency(TimeUnit.MILLISECONDS));
+          batchWriterConfig.getMaxLatency(MILLISECONDS));
       ClientProperty.BATCH_WRITER_TIMEOUT_MAX.setTimeInMillis(properties,
-          batchWriterConfig.getTimeout(TimeUnit.MILLISECONDS));
+          batchWriterConfig.getTimeout(MILLISECONDS));
       setProperty(ClientProperty.BATCH_WRITER_THREADS_MAX, batchWriterConfig.getMaxWriteThreads());
       setProperty(ClientProperty.BATCH_WRITER_DURABILITY,
           batchWriterConfig.getDurability().toString());
@@ -962,4 +1023,5 @@ public class ClientContext implements AccumuloClient {
     }
     return thriftTransportPool;
   }
+
 }

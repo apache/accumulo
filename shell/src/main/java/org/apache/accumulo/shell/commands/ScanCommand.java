@@ -397,7 +397,7 @@ public class ScanCommand extends Command {
     optEndRowExclusive.setArgName("end-exclusive");
     scanOptRow = new Option("r", "row", true, "row to scan");
     scanOptColumns = new Option("c", "columns", true,
-        "comma-separated columns.This" + " option is mutually exclusive with cf and cq");
+        "comma-separated columns. This option is mutually exclusive with cf and cq");
     scanOptCf = new Option("cf", "column-family", true, "column family to scan.");
     scanOptCq = new Option("cq", "column-qualifier", true, "column qualifier to scan");
 
@@ -412,7 +412,7 @@ public class ScanCommand extends Command {
         "fully qualified name of a class that is a formatter and interpreter");
     timeoutOption = new Option(null, "timeout", true,
         "time before scan should fail if no data is returned. If no unit is"
-            + " given assumes seconds. Units d,h,m,s,and ms are supported. e.g. 30s" + " or 100ms");
+            + " given assumes seconds. Units d,h,m,s,and ms are supported. e.g. 30s or 100ms");
     outputFileOpt = new Option("o", "output", true, "local file to write the scan output to");
     sampleOpt = new Option(null, "sample", false, "Show sample");
     contextOpt = new Option("cc", "context", true, "name of the classloader context");

@@ -38,7 +38,6 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
@@ -99,7 +98,7 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
       writeData(client, table1);
       writeData(client, table1);
 
-      TableId tid = Tables.getTableId(getCluster().getServerContext(), table1);
+      TableId tid = getCluster().getServerContext().getTableId(table1);
 
       // Wait for the compaction to start by waiting for 1 external compaction column
       Set<ExternalCompactionId> ecids =
@@ -152,7 +151,7 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
       writeData(client, table1);
       compact(client, table1, 2, QUEUE2, false);
 
-      TableId tid = Tables.getTableId(getCluster().getServerContext(), table1);
+      TableId tid = getCluster().getServerContext().getTableId(table1);
 
       // Wait for the compaction to start by waiting for 1 external compaction column
       Set<ExternalCompactionId> ecids =

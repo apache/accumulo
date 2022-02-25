@@ -19,16 +19,16 @@
 package org.apache.accumulo.core.security;
 
 import static org.apache.accumulo.core.security.ColumnVisibility.quote;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.util.ByteArraySet;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class VisibilityEvaluatorTest {
 
@@ -41,24 +41,24 @@ public class VisibilityEvaluatorTest {
     assertTrue(ct.evaluate(new ColumnVisibility(new byte[0])));
 
     // test for and
-    assertTrue("'and' test", ct.evaluate(new ColumnVisibility("one&two")));
+    assertTrue(ct.evaluate(new ColumnVisibility("one&two")), "'and' test");
 
     // test for or
-    assertTrue("'or' test", ct.evaluate(new ColumnVisibility("foor|four")));
+    assertTrue(ct.evaluate(new ColumnVisibility("foor|four")), "'or' test");
 
     // test for and and or
-    assertTrue("'and' and 'or' test", ct.evaluate(new ColumnVisibility("(one&two)|(foo&bar)")));
+    assertTrue(ct.evaluate(new ColumnVisibility("(one&two)|(foo&bar)")), "'and' and 'or' test");
 
     // test for false negatives
     for (String marking : new String[] {"one", "one|five", "five|one", "(one)",
         "(one&two)|(foo&bar)", "(one|foo)&three", "one|foo|bar", "(one|foo)|bar",
         "((one|foo)|bar)&two"}) {
-      assertTrue(marking, ct.evaluate(new ColumnVisibility(marking)));
+      assertTrue(ct.evaluate(new ColumnVisibility(marking)), marking);
     }
 
     // test for false positives
     for (String marking : new String[] {"five", "one&five", "five&one", "((one|foo)|bar)&goober"}) {
-      assertFalse(marking, ct.evaluate(new ColumnVisibility(marking)));
+      assertFalse(ct.evaluate(new ColumnVisibility(marking)), marking);
     }
   }
 
@@ -115,8 +115,8 @@ public class VisibilityEvaluatorTest {
     final var invalidEscapeSeqList = List.of(new ArrayByteSequence("a\\b"),
         new ArrayByteSequence("a\\b\\c"), new ArrayByteSequence("a\"b\\"));
 
-    invalidEscapeSeqList.forEach(seq -> assertThrows(message, IllegalArgumentException.class,
-        () -> VisibilityEvaluator.unescape(seq)));
+    invalidEscapeSeqList.forEach(seq -> assertThrows(IllegalArgumentException.class,
+        () -> VisibilityEvaluator.unescape(seq), message));
   }
 
   @Test

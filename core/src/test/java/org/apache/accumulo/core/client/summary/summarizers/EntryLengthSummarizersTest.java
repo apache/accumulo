@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.client.summary.summarizers;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.HashMap;
 
@@ -27,7 +27,7 @@ import org.apache.accumulo.core.client.summary.Summarizer.Combiner;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class EntryLengthSummarizersTest {
 

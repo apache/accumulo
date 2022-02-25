@@ -51,7 +51,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
@@ -354,8 +353,8 @@ public class Manager extends AbstractServer
 
   public void mustBeOnline(final TableId tableId) throws ThriftTableOperationException {
     ServerContext context = getContext();
-    Tables.clearCache(context);
-    if (Tables.getTableState(context, tableId) != TableState.ONLINE) {
+    context.clearTableListCache();
+    if (context.getTableState(tableId) != TableState.ONLINE) {
       throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.MERGE,
           TableOperationExceptionType.OFFLINE, "table is not online");
     }
@@ -681,7 +680,7 @@ public class Manager extends AbstractServer
     private void cleanupOfflineMigrations() {
       ServerContext context = getContext();
       TableManager manager = context.getTableManager();
-      for (TableId tableId : Tables.getIdToNameMap(context).keySet()) {
+      for (TableId tableId : context.getTableIdToNameMap().keySet()) {
         TableState state = manager.getTableState(tableId);
         if (state == TableState.OFFLINE) {
           clearMigrations(tableId);
@@ -1597,7 +1596,7 @@ public class Manager extends AbstractServer
     ServerContext context = getContext();
     TableManager manager = context.getTableManager();
 
-    for (TableId tableId : Tables.getIdToNameMap(context).keySet()) {
+    for (TableId tableId : context.getTableIdToNameMap().keySet()) {
       TableState state = manager.getTableState(tableId);
       if ((state != null) && (state == TableState.ONLINE)) {
         result.add(tableId);
@@ -1614,7 +1613,7 @@ public class Manager extends AbstractServer
   @Override
   public Collection<MergeInfo> merges() {
     List<MergeInfo> result = new ArrayList<>();
-    for (TableId tableId : Tables.getIdToNameMap(getContext()).keySet()) {
+    for (TableId tableId : getContext().getTableIdToNameMap().keySet()) {
       result.add(getMergeInfo(tableId));
     }
     return result;

@@ -19,7 +19,7 @@
 
 package org.apache.accumulo.core.util.compaction;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -31,7 +31,7 @@ import java.util.Optional;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CompactionPrioritizerTest {
 

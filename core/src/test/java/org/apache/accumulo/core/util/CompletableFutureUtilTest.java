@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.util;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -27,7 +27,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CompletableFutureUtilTest {
   @Test

@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import java.io.IOException;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayList;
@@ -37,7 +39,6 @@ import java.util.TreeSet;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
@@ -175,7 +176,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       try {
         batch = null;
         while (batch == null && fatalException == null && !queryThreadPool.isShutdown())
-          batch = resultsQueue.poll(1, TimeUnit.SECONDS);
+          batch = resultsQueue.poll(1, SECONDS);
 
         if (fatalException != null)
           if (fatalException instanceof RuntimeException)
@@ -185,7 +186,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
         if (queryThreadPool.isShutdown()) {
           String shortMsg =
-              "The BatchScanner was unexpectedly closed while" + " this Iterator was still in use.";
+              "The BatchScanner was unexpectedly closed while this Iterator was still in use.";
           log.error("{} Ensure that a reference to the BatchScanner is retained"
               + " so that it can be closed when this Iterator is exhausted. Not"
               + " retaining a reference to the BatchScanner guarantees that you are"
@@ -321,7 +322,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   }
 
   private String getTableInfo() {
-    return Tables.getPrintableTableInfoFromId(context, tableId);
+    return context.getPrintableTableInfoFromId(tableId);
   }
 
   private class QueryTask implements Runnable {
@@ -384,8 +385,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         e.setTableInfo(getTableInfo());
         log.debug("AccumuloSecurityException thrown", e);
 
-        Tables.clearCache(context);
-        if (Tables.exists(context, tableId))
+        context.clearTableListCache();
+        if (context.tableNodeExists(tableId))
           fatalException = e;
         else
           fatalException = new TableDeletedException(tableId.canonical());
@@ -789,7 +790,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           log.trace("tid={} Got 1st multi scan results, #results={} {} in {}",
               Thread.currentThread().getId(), scanResult.results.size(),
               (scanResult.more ? "scanID=" + imsr.scanID : ""),
-              String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+              String.format("%.3f secs", timer.scale(SECONDS)));
         }
 
         ArrayList<Entry<Key,Value>> entries = new ArrayList<>(scanResult.results.size());
@@ -824,7 +825,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             log.trace("tid={} oid={} Got more multi scan results, #results={} {} in {}",
                 Thread.currentThread().getId(), nextOpid.getAndIncrement(),
                 scanResult.results.size(), (scanResult.more ? " scanID=" + imsr.scanID : ""),
-                String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+                String.format("%.3f secs", timer.scale(SECONDS)));
           }
 
           entries = new ArrayList<>(scanResult.results.size());
@@ -864,7 +865,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       String tableInfo = "?";
       if (e.getExtent() != null) {
         TableId tableId = KeyExtent.fromThrift(e.getExtent()).tableId();
-        tableInfo = Tables.getPrintableTableInfoFromId(context, tableId);
+        tableInfo = context.getPrintableTableInfoFromId(tableId);
       }
       String message = "Table " + tableInfo + " does not have sampling configured or built";
       throw new SampleNotPresentException(message, e);

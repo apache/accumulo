@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.security.delegation;
 
+import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
@@ -81,7 +83,7 @@ public class AuthenticationTokenSecretManagerTest {
   @Test
   public void testAddKey() {
     // 1 minute
-    long tokenLifetime = 60 * 1000;
+    long tokenLifetime = MINUTES.toMillis(1);
     AuthenticationTokenSecretManager secretManager =
         new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 
@@ -108,7 +110,7 @@ public class AuthenticationTokenSecretManagerTest {
   @Test
   public void testRemoveKey() {
     // 1 minute
-    long tokenLifetime = 60 * 1000;
+    long tokenLifetime = MINUTES.toMillis(1);
     AuthenticationTokenSecretManager secretManager =
         new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 
@@ -132,7 +134,7 @@ public class AuthenticationTokenSecretManagerTest {
     long then = System.currentTimeMillis();
 
     // 1 minute
-    long tokenLifetime = 60 * 1000;
+    long tokenLifetime = MINUTES.toMillis(1);
     AuthenticationTokenSecretManager secretManager =
         new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 
@@ -176,7 +178,7 @@ public class AuthenticationTokenSecretManagerTest {
     long then = System.currentTimeMillis();
 
     // 1 minute
-    long tokenLifetime = 60 * 1000;
+    long tokenLifetime = MINUTES.toMillis(1);
     AuthenticationTokenSecretManager secretManager =
         new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 
@@ -247,7 +249,7 @@ public class AuthenticationTokenSecretManagerTest {
     // start of the test
     long then = System.currentTimeMillis();
 
-    long tokenLifetime = 60 * 1000;
+    long tokenLifetime = MINUTES.toMillis(1);
     AuthenticationTokenSecretManager secretManager =
         new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 
@@ -275,7 +277,7 @@ public class AuthenticationTokenSecretManagerTest {
     // start of the test
     long then = System.currentTimeMillis();
 
-    long tokenLifetime = 60 * 1000;
+    long tokenLifetime = MINUTES.toMillis(1);
     AuthenticationTokenSecretManager secretManager =
         new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 
@@ -305,7 +307,7 @@ public class AuthenticationTokenSecretManagerTest {
     assertThrows(InvalidToken.class, () -> secretManager.retrievePassword(id));
   }
 
-  @Test(timeout = 20 * 1000)
+  @Test(timeout = 20_000)
   public void testManagerKeyExpiration() throws Exception {
     ZooAuthenticationKeyDistributor keyDistributor =
         createMock(ZooAuthenticationKeyDistributor.class);
@@ -313,7 +315,7 @@ public class AuthenticationTokenSecretManagerTest {
     long then = System.currentTimeMillis();
 
     // 10s lifetime
-    long tokenLifetime = 10 * 1000L;
+    long tokenLifetime = 10_000L;
     AuthenticationTokenSecretManager secretManager =
         new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 
@@ -363,7 +365,7 @@ public class AuthenticationTokenSecretManagerTest {
     long then = System.currentTimeMillis();
 
     // 1 hr
-    long tokenLifetime = 60 * 60 * 1000;
+    long tokenLifetime = HOURS.toMillis(1);
     AuthenticationTokenSecretManager secretManager =
         new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 
@@ -372,7 +374,7 @@ public class AuthenticationTokenSecretManagerTest {
         .addKey(new AuthenticationKey(1, then, then + tokenLifetime, keyGen.generateKey()));
 
     // 1 minute
-    cfg.setTokenLifetime(1, TimeUnit.MINUTES);
+    cfg.setTokenLifetime(1, MINUTES);
 
     String principal = "user@EXAMPLE.COM";
     Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair =
@@ -399,7 +401,7 @@ public class AuthenticationTokenSecretManagerTest {
     long then = System.currentTimeMillis();
 
     // 1 hr
-    long tokenLifetime = 60 * 60 * 1000;
+    long tokenLifetime = HOURS.toMillis(1);
     AuthenticationTokenSecretManager secretManager =
         new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 

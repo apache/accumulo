@@ -19,17 +19,17 @@
 package org.apache.accumulo.core.client.security.tokens;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.File;
 import java.net.URL;
 
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -40,7 +40,7 @@ public class CredentialProviderTokenTest {
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "keystoreUrl location isn't provided by user input")
-  @BeforeClass
+  @BeforeAll
   public static void setup() {
     URL keystoreUrl = CredentialProviderTokenTest.class.getResource("/passwords.jceks");
     assertNotNull(keystoreUrl);

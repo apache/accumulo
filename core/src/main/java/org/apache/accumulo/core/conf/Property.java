@@ -244,7 +244,7 @@ public enum Property {
       "Enables tracing functionality using OpenTelemetry (assuming OpenTelemetry is configured).",
       "2.1.0"),
   GENERAL_SIMPLETIMER_THREADPOOL_SIZE("general.server.simpletimer.threadpool.size", "1",
-      PropertyType.COUNT, "The number of threads to use for " + "server-internal scheduled tasks",
+      PropertyType.COUNT, "The number of threads to use for server-internal scheduled tasks",
       "1.7.0"),
   // If you update the default type, be sure to update the default used for initialization failures
   // in VolumeManagerImpl
@@ -527,7 +527,7 @@ public enum Property {
       "1.3.5"),
   TSERV_NATIVEMAP_ENABLED("tserver.memory.maps.native.enabled", "true", PropertyType.BOOLEAN,
       "An in-memory data store for accumulo implemented in c++ that increases"
-          + " the amount of data accumulo can hold in memory and avoids Java GC" + " pauses.",
+          + " the amount of data accumulo can hold in memory and avoids Java GC pauses.",
       "1.3.5"),
   TSERV_MAXMEM("tserver.memory.maps.max", "33%", PropertyType.MEMORY,
       "Maximum amount of memory that can be used to buffer data written to a"
@@ -672,13 +672,13 @@ public enum Property {
   TSERV_BULK_PROCESS_THREADS("tserver.bulk.process.threads", "1", PropertyType.COUNT,
       "The manager will task a tablet server with pre-processing a bulk import"
           + " RFile prior to assigning it to the appropriate tablet servers. This"
-          + " configuration value controls the number of threads used to process the" + " files.",
+          + " configuration value controls the number of threads used to process the files.",
       "1.4.0"),
   TSERV_BULK_ASSIGNMENT_THREADS("tserver.bulk.assign.threads", "1", PropertyType.COUNT,
       "The manager delegates bulk import RFile processing and assignment to"
           + " tablet servers. After file has been processed, the tablet server will"
           + " assign the file to the appropriate tablets on all servers. This property"
-          + " controls the number of threads used to communicate to the other" + " servers.",
+          + " controls the number of threads used to communicate to the other servers.",
       "1.4.0"),
   TSERV_BULK_RETRY("tserver.bulk.retry.max", "5", PropertyType.COUNT,
       "The number of times the tablet server will attempt to assign a RFile to"
@@ -1088,9 +1088,9 @@ public enum Property {
       "Properties in this category are per-table properties that add"
           + " constraints to a table. These properties start with the category"
           + " prefix, followed by a number, and their values correspond to a fully"
-          + " qualified Java class that implements the Constraint interface.\n" + "For example:\n"
+          + " qualified Java class that implements the Constraint interface.\nFor example:\n"
           + "table.constraint.1 = org.apache.accumulo.core.constraints.MyCustomConstraint\n"
-          + "and:\n" + " table.constraint.2 = my.package.constraints.MySecondConstraint",
+          + "and:\n table.constraint.2 = my.package.constraints.MySecondConstraint",
       "1.3.5"),
   TABLE_INDEXCACHE_ENABLED("table.cache.index.enable", "true", PropertyType.BOOLEAN,
       "Determines whether index block cache is enabled for a table.", "1.3.5"),

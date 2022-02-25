@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.SortedSet;
 
@@ -28,7 +28,7 @@ import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.iterators.DebugIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Test that scanner options are set/unset correctly

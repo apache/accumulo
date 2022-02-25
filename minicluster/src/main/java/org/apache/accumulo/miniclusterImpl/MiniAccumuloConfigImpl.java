@@ -75,7 +75,7 @@ public class MiniAccumuloConfigImpl {
 
   private int zooKeeperPort = 0;
   private int configuredZooKeeperPort = 0;
-  private long zooKeeperStartupTime = 20 * 1000;
+  private long zooKeeperStartupTime = 20_000;
   private String existingZooKeepers;
 
   private long defaultMemorySize = 256 * 1024 * 1024;

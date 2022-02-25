@@ -56,7 +56,7 @@ import org.junit.experimental.categories.Category;
 @Category(MiniClusterOnlyTests.class)
 public class ClassLoaderIT extends AccumuloClusterHarness {
 
-  private static final long ZOOKEEPER_PROPAGATION_TIME = 10 * 1000;
+  private static final long ZOOKEEPER_PROPAGATION_TIME = 10_000;
 
   @Override
   protected int defaultTimeoutSeconds() {

@@ -20,10 +20,10 @@ package org.apache.accumulo.core.security;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.security.ColumnVisibility.quote;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Comparator;
 
@@ -31,15 +31,15 @@ import org.apache.accumulo.core.security.ColumnVisibility.Node;
 import org.apache.accumulo.core.security.ColumnVisibility.NodeComparator;
 import org.apache.accumulo.core.security.ColumnVisibility.NodeType;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ColumnVisibilityTest {
 
   private void shouldThrow(String... strings) {
     for (String s : strings) {
       final byte[] sBytes = s.getBytes();
-      assertThrows("Should throw: " + s, IllegalArgumentException.class,
-          () -> new ColumnVisibility(sBytes));
+      assertThrows(IllegalArgumentException.class, () -> new ColumnVisibility(sBytes),
+          "Should throw: " + s);
     }
   }
 
@@ -234,8 +234,8 @@ public class ColumnVisibilityTest {
 
     // Convert to String for indexOf convenience
     String flat = new String(flattened, UTF_8);
-    assertTrue("shortest expressions sort first", flat.indexOf('e') < flat.indexOf('|'));
-    assertTrue("shortest children sort first", flat.indexOf('b') < flat.indexOf('a'));
+    assertTrue(flat.indexOf('e') < flat.indexOf('|'), "shortest expressions sort first");
+    assertTrue(flat.indexOf('b') < flat.indexOf('a'), "shortest children sort first");
   }
 
   private Node parse(String s) {

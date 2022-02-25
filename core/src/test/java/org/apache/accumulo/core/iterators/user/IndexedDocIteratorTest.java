@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.security.SecureRandom;
@@ -42,7 +42,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class IndexedDocIteratorTest {
 

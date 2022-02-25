@@ -40,7 +40,6 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.IterConfigUtil;
 import org.apache.accumulo.core.conf.IterLoad;
@@ -117,7 +116,7 @@ public class CollectTabletStats {
     ServerContext context = opts.getServerContext();
     final VolumeManager fs = context.getVolumeManager();
 
-    TableId tableId = Tables.getTableId(context, opts.tableName);
+    TableId tableId = context.getTableId(opts.tableName);
     if (tableId == null) {
       log.error("Unable to find table named {}", opts.tableName);
       System.exit(-1);
@@ -353,7 +352,7 @@ public class CollectTabletStats {
   private static List<KeyExtent> findTablets(ClientContext context, boolean selectLocalTablets,
       String tableName, SortedMap<KeyExtent,String> tabletLocations) throws Exception {
 
-    TableId tableId = Tables.getTableId(context, tableName);
+    TableId tableId = context.getTableId(tableName);
     MetadataServicer.forTableId(context, tableId).getTabletLocations(tabletLocations);
 
     InetAddress localaddress = InetAddress.getLocalHost();

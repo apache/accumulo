@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.core.util;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class StatTest {
 
@@ -30,7 +30,7 @@ public class StatTest {
   Stat zero;
   Stat stat;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     zero = new Stat();
     zero.addStat(0);

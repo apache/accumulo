@@ -141,7 +141,7 @@ public class AccumuloMonitorAppender extends AbstractAppender {
 
   @Override
   public String toString() {
-    return "AccumuloMonitorAppender{" + "name=" + getName() + ", state=" + getState() + '}';
+    return "AccumuloMonitorAppender{name=" + getName() + ", state=" + getState() + '}';
   }
 
 }

@@ -31,6 +31,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -47,7 +48,7 @@ public class CacheTestReader {
     File myfile = new File(reportDir + "/" + UUID.randomUUID());
     myfile.deleteOnExit();
 
-    ZooCache zc = new ZooCache(keepers, 30000);
+    ZooCache zc = new ZooCache(new ZooReader(keepers, 30000), null);
 
     while (true) {
       if (myfile.exists() && !myfile.delete()) {

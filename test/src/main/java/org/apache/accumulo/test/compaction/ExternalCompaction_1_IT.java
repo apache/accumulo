@@ -66,7 +66,6 @@ import org.apache.accumulo.core.client.admin.PluginConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.client.admin.compaction.CompressionConfigurer;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -221,7 +220,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
 
       compact(client, table1, 2, QUEUE3, false);
-      TableId tid = Tables.getTableId(getCluster().getServerContext(), table1);
+      TableId tid = getCluster().getServerContext().getTableId(table1);
 
       // Wait for the compaction to start by waiting for 1 external compaction column
       ExternalCompactionTestUtils
@@ -396,7 +395,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       // ExternalCompactionTServer will not commit the compaction. Wait for the
       // metadata table entries to show up.
       LOG.info("Waiting for external compaction to complete.");
-      TableId tid = Tables.getTableId(getCluster().getServerContext(), table3);
+      TableId tid = getCluster().getServerContext().getTableId(table3);
       Stream<ExternalCompactionFinalState> fs = getFinalStatesForTable(getCluster(), tid);
       while (fs.count() == 0) {
         LOG.info("Waiting for compaction completed marker to appear");

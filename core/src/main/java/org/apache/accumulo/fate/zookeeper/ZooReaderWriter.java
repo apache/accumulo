@@ -50,7 +50,7 @@ public class ZooReaderWriter extends ZooReader {
 
   public ZooReaderWriter(String keepers, int timeoutInMillis, String secret) {
     super(keepers, timeoutInMillis);
-    this.auth = ("accumulo" + ":" + secret).getBytes(UTF_8);
+    this.auth = ("accumulo:" + secret).getBytes(UTF_8);
   }
 
   @Override

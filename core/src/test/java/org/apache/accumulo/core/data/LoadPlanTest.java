@@ -20,8 +20,8 @@ package org.apache.accumulo.core.data;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toSet;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -29,7 +29,7 @@ import java.util.Set;
 import org.apache.accumulo.core.data.LoadPlan.Destination;
 import org.apache.accumulo.core.data.LoadPlan.RangeType;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class LoadPlanTest {
   @Test

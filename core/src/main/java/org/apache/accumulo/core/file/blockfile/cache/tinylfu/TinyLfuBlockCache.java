@@ -18,12 +18,13 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache.tinylfu;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.file.blockfile.cache.impl.ClassSize;
@@ -70,8 +71,7 @@ public final class TinyLfuBlockCache implements BlockCache {
         }).maximumWeight(conf.getMaxSize(type)).recordStats().build();
     policy = cache.policy().eviction().get();
     maxSize = (int) Math.min(Integer.MAX_VALUE, policy.getMaximum());
-    statsExecutor.scheduleAtFixedRate(this::logStats, STATS_PERIOD_SEC, STATS_PERIOD_SEC,
-        TimeUnit.SECONDS);
+    statsExecutor.scheduleAtFixedRate(this::logStats, STATS_PERIOD_SEC, STATS_PERIOD_SEC, SECONDS);
   }
 
   @Override

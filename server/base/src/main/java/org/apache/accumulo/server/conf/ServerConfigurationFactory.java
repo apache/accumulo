@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigCheckUtil;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -30,6 +29,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.ServerContext;
 
@@ -106,8 +106,12 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   @Override
   public synchronized AccumuloConfiguration getSystemConfiguration() {
     if (systemConfig == null) {
-      systemConfig =
-          new ZooConfigurationFactory().getInstance(context, zcf, getSiteConfiguration());
+      // Force the creation of a new ZooCache instead of using a shared one.
+      // This is done so that the ZooCache will update less often, causing the
+      // configuration update count to increment more slowly.
+      ZooCache propCache =
+          zcf.getNewZooCache(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
+      systemConfig = new ZooConfiguration(context, propCache, getSiteConfiguration());
     }
     return systemConfig;
   }
@@ -129,7 +133,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     // Tablet sets will never see updates from ZooKeeper which means that things like constraints
     // and
     // default visibility labels will never be updated in a Tablet until it is reloaded.
-    if (conf == null && Tables.exists(context, tableId)) {
+    if (conf == null && context.tableNodeExists(tableId)) {
       conf = new TableConfiguration(context, tableId, getNamespaceConfigurationForTable(tableId));
       ConfigCheckUtil.validate(conf);
       synchronized (tableConfigs) {
@@ -157,7 +161,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     if (conf == null) {
       NamespaceId namespaceId;
       try {
-        namespaceId = Tables.getNamespaceId(context, tableId);
+        namespaceId = context.getNamespaceId(tableId);
       } catch (TableNotFoundException e) {
         throw new RuntimeException(e);
       }

@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -28,7 +28,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 
 import org.apache.accumulo.fate.zookeeper.DistributedReadWriteLock.QueueLock;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class DistributedReadWriteLockTest {
 

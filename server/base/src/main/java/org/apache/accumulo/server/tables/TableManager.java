@@ -29,12 +29,12 @@ import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -82,7 +82,7 @@ public class TableManager {
     // state gets created last
     log.debug("Creating ZooKeeper entries for new table {} (ID: {}) in namespace (ID: {})",
         tableName, tableId, namespaceId);
-    Pair<String,String> qualifiedTableName = Tables.qualify(tableName);
+    Pair<String,String> qualifiedTableName = TableNameUtil.qualify(tableName);
     tableName = qualifiedTableName.getSecond();
     String zTablePath = Constants.ZROOT + "/" + instanceId + Constants.ZTABLES + "/" + tableId;
     zoo.putPersistentData(zTablePath, new byte[0], existsPolicy);

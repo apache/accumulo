@@ -22,7 +22,7 @@ import java.util.Arrays;
 
 import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoderTest;
 import org.apache.accumulo.core.util.ComparablePair;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class PairLexicoderTest extends AbstractLexicoderTest {
 

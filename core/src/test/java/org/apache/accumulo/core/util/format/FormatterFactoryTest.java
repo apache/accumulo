@@ -18,21 +18,21 @@
  */
 package org.apache.accumulo.core.util.format;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Collections;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class FormatterFactoryTest {
 
   Iterable<Entry<Key,Value>> scanner;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     scanner = Collections.<Key,Value>emptyMap().entrySet();
   }

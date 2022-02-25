@@ -20,6 +20,7 @@ package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -209,7 +210,7 @@ public class ScannerOptions implements ScannerBase {
 
   @Override
   public synchronized long getTimeout(TimeUnit timeunit) {
-    return timeunit.convert(timeOut, TimeUnit.MILLISECONDS);
+    return timeunit.convert(timeOut, MILLISECONDS);
   }
 
   @Override
@@ -252,7 +253,7 @@ public class ScannerOptions implements ScannerBase {
 
   @Override
   public long getBatchTimeout(TimeUnit timeUnit) {
-    return timeUnit.convert(batchTimeOut, TimeUnit.MILLISECONDS);
+    return timeUnit.convert(batchTimeOut, MILLISECONDS);
   }
 
   @Override

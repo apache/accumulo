@@ -23,7 +23,7 @@ import java.util.Arrays;
 import java.util.UUID;
 
 import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoderTest;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class UUIDLexicoderTest extends AbstractLexicoderTest {
 

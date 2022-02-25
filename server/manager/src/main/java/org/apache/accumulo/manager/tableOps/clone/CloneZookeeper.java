@@ -21,8 +21,8 @@ package org.apache.accumulo.manager.tableOps.clone;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Namespaces;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
+import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -37,8 +37,8 @@ class CloneZookeeper extends ManagerRepo {
   public CloneZookeeper(CloneInfo cloneInfo, ClientContext context)
       throws NamespaceNotFoundException {
     this.cloneInfo = cloneInfo;
-    this.cloneInfo.namespaceId =
-        Namespaces.getNamespaceId(context, Tables.qualify(this.cloneInfo.tableName).getFirst());
+    this.cloneInfo.namespaceId = Namespaces.getNamespaceId(context,
+        TableNameUtil.qualify(this.cloneInfo.tableName).getFirst());
   }
 
   @Override
@@ -64,7 +64,7 @@ class CloneZookeeper extends ManagerRepo {
       environment.getTableManager().cloneTable(cloneInfo.srcTableId, cloneInfo.tableId,
           cloneInfo.tableName, cloneInfo.namespaceId, cloneInfo.propertiesToSet,
           cloneInfo.propertiesToExclude);
-      Tables.clearCache(environment.getContext());
+      environment.getContext().clearTableListCache();
 
       return new CloneMetadata(cloneInfo);
     } finally {
@@ -78,7 +78,7 @@ class CloneZookeeper extends ManagerRepo {
     if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId))
       Utils.unreserveNamespace(environment, cloneInfo.namespaceId, tid, false);
     Utils.unreserveTable(environment, cloneInfo.tableId, tid, true);
-    Tables.clearCache(environment.getContext());
+    environment.getContext().clearTableListCache();
   }
 
 }

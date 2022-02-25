@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.core.clientImpl.mapreduce;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -43,7 +43,7 @@ import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @Deprecated(since = "2.0.0")
 public class BatchInputSplitTest {
