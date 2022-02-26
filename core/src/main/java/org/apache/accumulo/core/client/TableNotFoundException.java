@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.core.client;
 
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.util.tables.TableNameUtil;
 
 /**
  * Thrown when the table specified doesn't exist when it was expected to
@@ -79,8 +79,8 @@ public class TableNotFoundException extends Exception {
    *          wasn't found
    */
   public TableNotFoundException(String tableName, NamespaceNotFoundException e) {
-    this(null, tableName, "Namespace " + Tables.qualify(tableName).getFirst() + " does not exist.",
-        e);
+    this(null, tableName,
+        "Namespace " + TableNameUtil.qualify(tableName).getFirst() + " does not exist.", e);
   }
 
   /**

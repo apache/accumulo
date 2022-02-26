@@ -48,7 +48,6 @@ import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.Property;
@@ -102,7 +101,7 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
       createTable(client, table1, "cs1");
-      TableId tid = Tables.getTableId(getCluster().getServerContext(), table1);
+      TableId tid = getCluster().getServerContext().getTableId(table1);
       writeData(client, table1);
       compact(client, table1, 2, QUEUE1, false);
 
@@ -165,7 +164,7 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
       getCluster().getClusterControl()
           .startCoordinator(TestCompactionCoordinatorForOfflineTable.class);
 
-      TableId tid = Tables.getTableId(getCluster().getServerContext(), table1);
+      TableId tid = getCluster().getServerContext().getTableId(table1);
       // Confirm that no final state is in the metadata table
       assertEquals(0, getFinalStatesForTable(getCluster(), tid).count());
 
@@ -246,7 +245,7 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
       createTable(client, table1, "cs3");
-      TableId tid = Tables.getTableId(getCluster().getServerContext(), table1);
+      TableId tid = getCluster().getServerContext().getTableId(table1);
       writeData(client, table1);
       compact(client, table1, 2, QUEUE3, false);
 
@@ -282,7 +281,7 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
       createTable(client, table1, "cs4");
-      TableId tid = Tables.getTableId(getCluster().getServerContext(), table1);
+      TableId tid = getCluster().getServerContext().getTableId(table1);
       writeData(client, table1);
       compact(client, table1, 2, QUEUE4, false);
 
@@ -321,7 +320,7 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
       writeData(client, table1);
       writeData(client, table1);
 
-      TableId tid = Tables.getTableId(getCluster().getServerContext(), table1);
+      TableId tid = getCluster().getServerContext().getTableId(table1);
 
       // Wait for the compaction to start by waiting for 1 external compaction column
       Set<ExternalCompactionId> ecids = ExternalCompactionTestUtils

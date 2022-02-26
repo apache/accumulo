@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.manager;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -229,7 +228,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
         if (count == 0) {
           return;
         } else {
-          Thread.sleep(MILLISECONDS.convert(2, SECONDS));
+          Thread.sleep(SECONDS.toMillis(2));
         }
       }
       throw new IllegalStateException("Tablet servers didn't die!");

@@ -31,7 +31,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Namespaces;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -172,8 +171,8 @@ public class ConfigCommand extends Command {
 
       final TreeMap<String,String> namespaceConfig = new TreeMap<>();
       if (tableName != null) {
-        String n = Namespaces.getNamespaceName(shellState.getContext(), Tables.getNamespaceId(
-            shellState.getContext(), Tables.getTableId(shellState.getContext(), tableName)));
+        String n = Namespaces.getNamespaceName(shellState.getContext(),
+            shellState.getContext().getNamespaceId(shellState.getContext().getTableId(tableName)));
         shellState.getAccumuloClient().namespaceOperations().getConfiguration(n)
             .forEach(namespaceConfig::put);
       }

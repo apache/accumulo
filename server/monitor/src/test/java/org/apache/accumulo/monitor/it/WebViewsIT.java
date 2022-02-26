@@ -18,7 +18,9 @@
  */
 package org.apache.accumulo.monitor.it;
 
+import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -37,7 +39,7 @@ import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.MessageBodyWriter;
 
-import org.apache.accumulo.core.clientImpl.Tables;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
@@ -46,7 +48,6 @@ import org.apache.accumulo.monitor.Monitor.MonitorFactory;
 import org.apache.accumulo.monitor.view.WebViews;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.categories.MonitorTests;
-import org.easymock.EasyMock;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
@@ -55,19 +56,11 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
-import org.powermock.api.easymock.PowerMock;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
 
 /**
  * Basic tests for parameter validation constraints
  */
 @Category(MonitorTests.class)
-@RunWith(PowerMockRunner.class)
-@PrepareForTest({Monitor.class, Tables.class})
-@PowerMockIgnore({"javax.xml.*"})
 public class WebViewsIT extends JerseyTest {
 
   @Override
@@ -89,17 +82,18 @@ public class WebViewsIT extends JerseyTest {
   private static AtomicReference<Monitor> monitor = new AtomicReference<>(null);
 
   @BeforeClass
-  public static void createMocks() {
-    ServerContext contextMock = EasyMock.createMock(ServerContext.class);
+  public static void createMocks() throws TableNotFoundException {
+    ServerContext contextMock = createMock(ServerContext.class);
     expect(contextMock.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
     expect(contextMock.getInstanceID()).andReturn(InstanceId.of("foo")).atLeastOnce();
     expect(contextMock.getInstanceName()).andReturn("foo").anyTimes();
     expect(contextMock.getZooKeepers()).andReturn("foo:2181").anyTimes();
+    expect(contextMock.getTableName(TableId.of("foo"))).andReturn("bar").anyTimes();
 
-    Monitor monitorMock = EasyMock.createMock(Monitor.class);
+    Monitor monitorMock = createMock(Monitor.class);
     expect(monitorMock.getContext()).andReturn(contextMock).anyTimes();
 
-    EasyMock.replay(contextMock, monitorMock);
+    replay(contextMock, monitorMock);
     monitor.set(monitorMock);
   }
 
@@ -133,10 +127,6 @@ public class WebViewsIT extends JerseyTest {
    */
   @Test
   public void testGetTablesConstraintPassing() throws Exception {
-    PowerMock.mockStatic(Tables.class);
-    expect(Tables.getTableName(monitor.get().getContext(), TableId.of("foo"))).andReturn("bar");
-    PowerMock.replayAll();
-
     // Using the mocks we can verify that the getModel method gets called via debugger
     // however it's difficult to continue to mock through the jersey MVC code for the properly built
     // response.

@@ -52,7 +52,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.UserCompactionUtils;
 import org.apache.accumulo.core.conf.AccumuloConfiguration.Deriver;
 import org.apache.accumulo.core.conf.Property;
@@ -318,7 +317,7 @@ public class Tablet {
 
     TableConfiguration tblConf = tabletServer.getTableConfiguration(extent);
     if (tblConf == null) {
-      Tables.clearCache(tabletServer.getContext());
+      tabletServer.getContext().clearTableListCache();
       tblConf = tabletServer.getTableConfiguration(extent);
       requireNonNull(tblConf, "Could not get table configuration for " + extent.tableId());
     }
