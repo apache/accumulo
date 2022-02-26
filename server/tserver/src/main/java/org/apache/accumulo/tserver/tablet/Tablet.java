@@ -1401,14 +1401,16 @@ public class Tablet {
         throw new RuntimeException(msg);
       }
 
-      if (tabletMeta.getFlushId().orElse(-1) != lastFlushID) {
+      if (tabletMeta.getFlushId().isPresent()
+          && tabletMeta.getFlushId().orElse(-1) != lastFlushID) {
         String msg = "Closed tablet " + extent + " lastFlushID is inconsistent with metadata : "
             + tabletMeta.getFlushId().orElse(-1) + " != " + lastFlushID;
         log.error(msg);
         throw new RuntimeException(msg);
       }
 
-      if (tabletMeta.getCompactId().orElse(-1) != lastCompactID) {
+      if (tabletMeta.getCompactId().isPresent()
+          && tabletMeta.getCompactId().orElse(-1) != lastCompactID) {
         String msg = "Closed tablet " + extent + " lastCompactID is inconsistent with metadata : "
             + tabletMeta.getCompactId().orElse(-1) + " != " + lastCompactID;
         log.error(msg);
