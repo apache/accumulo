@@ -1401,21 +1401,23 @@ public class Tablet {
         throw new RuntimeException(msg);
       }
 
-      if (tabletMeta.getFlushId().isPresent()
-          && tabletMeta.getFlushId().orElse(-1) != lastFlushID) {
-        String msg = "Closed tablet " + extent + " lastFlushID is inconsistent with metadata : "
-            + tabletMeta.getFlushId().orElse(-1) + " != " + lastFlushID;
-        log.error(msg);
-        throw new RuntimeException(msg);
-      }
+      tabletMeta.getFlushId().ifPresent(flushId -> {
+        if (flushId != lastFlushID) {
+          String msg = "Closed tablet " + extent + " lastFlushID is inconsistent with metadata : "
+              + flushId + " != " + lastFlushID;
+          log.error(msg);
+          throw new RuntimeException(msg);
+        }
+      });
 
-      if (tabletMeta.getCompactId().isPresent()
-          && tabletMeta.getCompactId().orElse(-1) != lastCompactID) {
-        String msg = "Closed tablet " + extent + " lastCompactID is inconsistent with metadata : "
-            + tabletMeta.getCompactId().orElse(-1) + " != " + lastCompactID;
-        log.error(msg);
-        throw new RuntimeException(msg);
-      }
+      tabletMeta.getCompactId().ifPresent(compactId -> {
+        if (compactId != lastCompactID) {
+          String msg = "Closed tablet " + extent + " lastCompactID is inconsistent with metadata : "
+              + compactId + " != " + lastCompactID;
+          log.error(msg);
+          throw new RuntimeException(msg);
+        }
+      });
 
       compareToDataInMemory(tabletMeta);
     } catch (Exception e) {
