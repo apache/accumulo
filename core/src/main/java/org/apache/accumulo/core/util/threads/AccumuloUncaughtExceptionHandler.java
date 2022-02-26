@@ -32,11 +32,29 @@ class AccumuloUncaughtExceptionHandler implements UncaughtExceptionHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(AccumuloUncaughtExceptionHandler.class);
 
+  static boolean isError(Throwable t) {
+    while (t != null) {
+      if (t instanceof Error) {
+        return true;
+      }
+
+      for (Throwable suppressed : t.getSuppressed()) {
+        if (isError(suppressed)) {
+          return true;
+        }
+      }
+
+      t = t.getCause();
+    }
+
+    return false;
+  }
+
   @Override
   public void uncaughtException(Thread t, Throwable e) {
     if (e instanceof Exception) {
       LOG.error("Caught an Exception in {}. Thread is dead.", t, e);
-    } else if (e instanceof Error) {
+    } else if (isError(e)) {
       try {
         e.printStackTrace();
         System.err.println("Error thrown in thread: " + t + ", halting VM.");
