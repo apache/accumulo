@@ -129,8 +129,7 @@ public class RFileTest {
   private static final Configuration hadoopConf = new Configuration();
 
   @TempDir
-  private final File tempFolder =
-      new File(System.getProperty("user.dir") + "/target", RFileTest.class.getSimpleName() + "/");
+  private static File tempDir;
 
   @BeforeAll
   public static void setupCryptoKeyFile() throws Exception {
@@ -2321,7 +2320,7 @@ public class RFileTest {
 
     if (true) {
       FileOutputStream fileOutputStream =
-          new FileOutputStream(new File(tempFolder, "testEncryptedRootFile.rf"));
+          new FileOutputStream(new File(tempDir, "testEncryptedRootFile.rf"));
       fileOutputStream.write(testRfile.baos.toByteArray());
       fileOutputStream.flush();
       fileOutputStream.close();
