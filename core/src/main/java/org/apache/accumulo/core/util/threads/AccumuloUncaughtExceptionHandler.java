@@ -32,14 +32,20 @@ class AccumuloUncaughtExceptionHandler implements UncaughtExceptionHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(AccumuloUncaughtExceptionHandler.class);
 
-  static boolean isError(Throwable t) {
+  static boolean isError(Throwable t, int depth) {
+
+    if(depth > 32) {
+      // This is a peculiar exception.  No error has been found, but recursing too deep may cause a stack overflow so going to stop.
+      return false;
+    }
+
     while (t != null) {
       if (t instanceof Error) {
         return true;
       }
 
       for (Throwable suppressed : t.getSuppressed()) {
-        if (isError(suppressed)) {
+        if (isError(suppressed, depth+1)) {
           return true;
         }
       }
@@ -48,6 +54,10 @@ class AccumuloUncaughtExceptionHandler implements UncaughtExceptionHandler {
     }
 
     return false;
+  }
+
+  static boolean isError(Throwable t) {
+    return isError(t, 0);
   }
 
   @Override

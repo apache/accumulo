@@ -30,7 +30,7 @@ import org.junit.Test;
 public class AccumuloUncaughtExceptionHandlerTest {
 
   @Test
-  public void testIsError() {
+  public void testIsError_noerror() {
     assertFalse(isError(new IOException()));
     assertFalse(isError(new UncheckedIOException(new IOException())));
 
@@ -38,13 +38,65 @@ public class AccumuloUncaughtExceptionHandlerTest {
     e.addSuppressed(new RuntimeException());
     e.addSuppressed(new RuntimeException());
     assertFalse(isError(e));
+  }
 
+  @Test
+  public void testIsError_error() {
     assertTrue(isError(new UnsatisfiedLinkError()));
-    assertTrue(isError(new RuntimeException(new UnsatisfiedLinkError())));
+    assertTrue(isError(new RuntimeException(new OutOfMemoryError())));
     assertTrue(isError(new RuntimeException(new RuntimeException(new UnsatisfiedLinkError()))));
 
+    // check for cases where error as a non-error cause
+    assertTrue(isError(new Error(new RuntimeException())));
+    assertTrue(isError(new RuntimeException(new Error(new RuntimeException()))));
+    assertTrue(isError(new RuntimeException(new RuntimeException(new Error(new RuntimeException())))));
+
+    // check for suppressed exception that has error
+    Exception e = new UncheckedIOException(new IOException());
+    e.addSuppressed(new RuntimeException());
+    e.addSuppressed(new RuntimeException());
     e.addSuppressed(new RuntimeException(new UnsatisfiedLinkError()));
     assertTrue(isError(e));
     assertTrue(isError(new RuntimeException(e)));
+
+    // check for suppressed exception that has non terminal error
+    Exception e2 = new UncheckedIOException(new IOException());
+    e2.addSuppressed(new RuntimeException());
+    e2.addSuppressed(new RuntimeException());
+    e2.addSuppressed(new RuntimeException(new Error(new RuntimeException())));
+    assertTrue(isError(e2));
+    assertTrue(isError(new RuntimeException(e2)));
+
+    // test suppressed with error a few levels deep
+    Exception ed1 = new UncheckedIOException(new IOException());
+    Exception ed2 = new UncheckedIOException(new IOException());
+    Exception ed3 = new RuntimeException(new OutOfMemoryError());
+    ed1.addSuppressed(ed2);
+    ed2.addSuppressed(ed3);
+    assertTrue(isError(ed1));
+    assertTrue(isError(new RuntimeException(ed1)));
+
+    // test case where suppressed is an error
+    Exception e4 = new UncheckedIOException(new IOException());
+    e4.addSuppressed(new RuntimeException());
+    e4.addSuppressed(new RuntimeException());
+    e4.addSuppressed(new Error(new RuntimeException())); //try direct error (not nested as cause)
+    assertTrue(isError(e4));
+    assertTrue(isError(new RuntimeException(e4)));
+  }
+
+  @Test
+  public void testIsError_loop() {
+    Exception e1 = new UncheckedIOException(new IOException());
+    Exception e2 = new RuntimeException(new RuntimeException());
+    Exception e3 = new IllegalStateException();
+
+    // create a chain of suppressed exceptions that forms a loop
+    e1.addSuppressed(e2);
+    e2.addSuppressed(e3);
+    e3.addSuppressed(e1);
+
+    assertFalse(isError(e1));
+    assertFalse(isError(new RuntimeException(e1)));
   }
 }
