@@ -26,6 +26,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeFalse;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -84,7 +86,6 @@ import org.apache.hadoop.tools.DistCp;
 import org.jline.terminal.Terminal;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -580,7 +581,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void getAuths() throws Exception {
-    Assume.assumeFalse("test skipped for kerberos", getToken() instanceof KerberosToken);
+    assumeFalse("test skipped for kerberos", getToken() instanceof KerberosToken);
 
     // create two users with different auths
     for (int i = 1; i <= 2; i++) {
@@ -1564,7 +1565,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void badLogin() throws Exception {
     // Can't run with Kerberos, can't switch identity in shell presently
-    Assume.assumeTrue(getToken() instanceof PasswordToken);
+    assumeTrue(getToken() instanceof PasswordToken);
     ts.input.set(getRootPassword() + "\n");
     String err = ts.exec("user NoSuchUser", false);
     assertTrue(err.contains("BAD_CREDENTIALS for user NoSuchUser"));
