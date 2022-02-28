@@ -46,7 +46,7 @@ public class AccumuloUncaughtExceptionHandlerTest {
     assertTrue(isError(new RuntimeException(new OutOfMemoryError())));
     assertTrue(isError(new RuntimeException(new RuntimeException(new UnsatisfiedLinkError()))));
 
-    // check for cases where error as a non-error cause
+    // check for cases where error has a non-error cause
     assertTrue(isError(new Error(new RuntimeException())));
     assertTrue(isError(new RuntimeException(new Error(new RuntimeException()))));
     assertTrue(
