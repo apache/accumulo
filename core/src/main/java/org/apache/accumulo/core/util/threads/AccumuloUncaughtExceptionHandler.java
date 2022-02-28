@@ -34,8 +34,9 @@ class AccumuloUncaughtExceptionHandler implements UncaughtExceptionHandler {
 
   static boolean isError(Throwable t, int depth) {
 
-    if(depth > 32) {
-      // This is a peculiar exception.  No error has been found, but recursing too deep may cause a stack overflow so going to stop.
+    if (depth > 32) {
+      // This is a peculiar exception. No error has been found, but recursing too deep may cause a
+      // stack overflow so going to stop.
       return false;
     }
 
@@ -45,7 +46,7 @@ class AccumuloUncaughtExceptionHandler implements UncaughtExceptionHandler {
       }
 
       for (Throwable suppressed : t.getSuppressed()) {
-        if (isError(suppressed, depth+1)) {
+        if (isError(suppressed, depth + 1)) {
           return true;
         }
       }

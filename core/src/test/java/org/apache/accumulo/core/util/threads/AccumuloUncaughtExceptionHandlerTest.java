@@ -49,7 +49,8 @@ public class AccumuloUncaughtExceptionHandlerTest {
     // check for cases where error as a non-error cause
     assertTrue(isError(new Error(new RuntimeException())));
     assertTrue(isError(new RuntimeException(new Error(new RuntimeException()))));
-    assertTrue(isError(new RuntimeException(new RuntimeException(new Error(new RuntimeException())))));
+    assertTrue(
+        isError(new RuntimeException(new RuntimeException(new Error(new RuntimeException())))));
 
     // check for suppressed exception that has error
     Exception e = new UncheckedIOException(new IOException());
@@ -80,7 +81,7 @@ public class AccumuloUncaughtExceptionHandlerTest {
     Exception e4 = new UncheckedIOException(new IOException());
     e4.addSuppressed(new RuntimeException());
     e4.addSuppressed(new RuntimeException());
-    e4.addSuppressed(new Error(new RuntimeException())); //try direct error (not nested as cause)
+    e4.addSuppressed(new Error(new RuntimeException())); // try direct error (not nested as cause)
     assertTrue(isError(e4));
     assertTrue(isError(new RuntimeException(e4)));
   }
