@@ -19,9 +19,10 @@
 package org.apache.accumulo.core.file.rfile.bcfile;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.ServiceLoader;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.spi.file.rfile.compression.CompressionAlgorithmConfiguration;
 import org.apache.hadoop.conf.Configuration;
@@ -38,38 +39,17 @@ public final class Compression {
     throw new UnsupportedOperationException();
   }
 
-  private static final Map<String,DefaultCompressionAlgorithm> CONFIGURED_ALGORITHMS =
-      new HashMap<>();
+  // All compression-related settings are required to be configured statically in the
+  // Configuration object.
+  protected static final Configuration conf = new Configuration();
 
   private static final ServiceLoader<CompressionAlgorithmConfiguration> COMPRESSION_ALGORITHMS =
       ServiceLoader.load(CompressionAlgorithmConfiguration.class);
 
-  // All compression-related settings are required to be configured statically in the
-  // Configuration object.
-  protected static final Configuration conf;
-
-  // The model defined by the static block below creates a singleton for each defined codec in the
-  // Algorithm enumeration. By creating the codecs, each call to isSupported shall return
-  // true/false depending on if the codec singleton is defined. The static initializer, below,
-  // will ensure this occurs when the Enumeration is loaded. Furthermore, calls to getCodec will
-  // return the singleton, whether it is null or not.
-  //
-  // Calls to createCompressionStream and createDecompressionStream may return a different codec
-  // than getCodec, if the incoming downStreamBufferSize is different than the default. In such a
-  // case, we will place the resulting codec into the codecCache, defined below, to ensure we have
-  // cache codecs.
-  //
-  // Since codecs are immutable, there is no concern about concurrent access to the
-  // CompressionCodec objects within the guava cache.
-  static {
-    conf = new Configuration();
-
-    COMPRESSION_ALGORITHMS.forEach(a -> {
-      DefaultCompressionAlgorithm algo = new DefaultCompressionAlgorithm(a, conf);
-      CONFIGURED_ALGORITHMS.put(algo.getName(), algo);
-    });
-
-  }
+  private static final Map<String,DefaultCompressionAlgorithm> CONFIGURED_ALGORITHMS =
+      StreamSupport.stream(COMPRESSION_ALGORITHMS.spliterator(), false)
+          .map(a -> new DefaultCompressionAlgorithm(a, conf))
+          .collect(Collectors.toMap(algo -> algo.getName(), algo -> algo));
 
   public static String[] getSupportedAlgorithms() {
     ArrayList<String> supportedAlgorithms = new ArrayList<>();
