@@ -39,7 +39,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -79,9 +78,9 @@ class WriteExportFiles extends ManagerRepo {
   }
 
   private void checkOffline(ClientContext context) throws Exception {
-    if (Tables.getTableState(context, tableInfo.tableID) != TableState.OFFLINE) {
-      Tables.clearCache(context);
-      if (Tables.getTableState(context, tableInfo.tableID) != TableState.OFFLINE) {
+    if (context.getTableState(tableInfo.tableID) != TableState.OFFLINE) {
+      context.clearTableListCache();
+      if (context.getTableState(tableInfo.tableID) != TableState.OFFLINE) {
         throw new AcceptableThriftTableOperationException(tableInfo.tableID.canonical(),
             tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
             "Table is not offline");

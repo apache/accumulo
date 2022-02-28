@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.tserver.memory;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
@@ -43,12 +44,11 @@ public class LargestFirstMemoryManagerTest {
   public Timeout timeout = Timeout.seconds(60);
 
   private static final long ZERO = LargestFirstMemoryManager.ZERO_TIME;
-  private static final long LATER = ZERO + 20 * 60_000;
+  private static final long LATER = ZERO + MINUTES.toMillis(20);
   private static final long ONE_GIG = 1024 * 1024 * 1024;
   private static final long ONE_MEG = 1024 * 1024;
   private static final long HALF_GIG = ONE_GIG / 2;
   private static final long QGIG = ONE_GIG / 4;
-  private static final long ONE_MINUTE = 60_000;
 
   private ServerContext context;
 
@@ -158,17 +158,17 @@ public class LargestFirstMemoryManagerTest {
         t(k("b"), ZERO, QGIG + 1, 0), t(k("c"), ZERO, 0, QGIG + 2)));
     assertEquals(0, tabletsToMinorCompact.size());
     // not going to bother compacting any more
-    mgr.currentTime += ONE_MINUTE;
+    mgr.currentTime += MINUTES.toMillis(1);
     tabletsToMinorCompact = mgr.tabletsToMinorCompact(tablets(t(k("a"), ZERO, QGIG, 0),
         t(k("b"), ZERO, QGIG + 1, 0), t(k("c"), ZERO, 0, QGIG + 2)));
     assertEquals(0, tabletsToMinorCompact.size());
     // now do nothing
-    mgr.currentTime += ONE_MINUTE;
+    mgr.currentTime += MINUTES.toMillis(1);
     tabletsToMinorCompact = mgr.tabletsToMinorCompact(
         tablets(t(k("a"), ZERO, QGIG, 0), t(k("b"), ZERO, 0, 0), t(k("c"), ZERO, 0, 0)));
     assertEquals(0, tabletsToMinorCompact.size());
     // on no! more data, this time we compact because we've adjusted
-    mgr.currentTime += ONE_MINUTE;
+    mgr.currentTime += MINUTES.toMillis(1);
     tabletsToMinorCompact = mgr.tabletsToMinorCompact(
         tablets(t(k("a"), ZERO, QGIG, 0), t(k("b"), ZERO, QGIG + 1, 0), t(k("c"), ZERO, 0, 0)));
     assertEquals(1, tabletsToMinorCompact.size());
@@ -207,7 +207,7 @@ public class LargestFirstMemoryManagerTest {
 
     @Override
     protected long getMinCIdleThreshold(KeyExtent extent) {
-      return 15 * 60_000;
+      return MINUTES.toMillis(15);
     }
 
     @Override

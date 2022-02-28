@@ -37,7 +37,6 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
@@ -322,7 +321,7 @@ public class TabletServerResource {
       TableId tableId = extent.tableId();
       String displayExtent = String.format("[%s]", extent.obscured());
 
-      String tableName = Tables.getPrintableTableInfoFromId(monitor.getContext(), tableId);
+      String tableName = monitor.getContext().getPrintableTableInfoFromId(tableId);
 
       currentOperations.add(
           new CurrentOperations(tableName, tableId, displayExtent, info.numEntries, info.ingestRate,

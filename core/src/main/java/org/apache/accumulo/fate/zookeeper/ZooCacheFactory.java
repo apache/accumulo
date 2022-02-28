@@ -23,7 +23,6 @@ import java.util.Map;
 
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonService;
-import org.apache.zookeeper.Watcher;
 
 /**
  * A factory for {@link ZooCache} instances.
@@ -32,6 +31,8 @@ public class ZooCacheFactory {
   // TODO: make this better - LRU, soft references, ...
   private static Map<String,ZooCache> instances = new HashMap<>();
   private static boolean enabled = true;
+
+  public ZooCacheFactory() {}
 
   private static boolean isEnabled() {
     synchronized (instances) {
@@ -96,33 +97,21 @@ public class ZooCacheFactory {
         throw new IllegalStateException("The Accumulo singleton for zookeeper caching is "
             + "disabled. This is likely caused by all AccumuloClients being closed");
       }
-      ZooCache zc = instances.get(key);
-      if (zc == null) {
-        zc = new ZooCache(zooKeepers, sessionTimeout);
-        instances.put(key, zc);
-      }
-      return zc;
+      return instances.computeIfAbsent(key, k -> getNewZooCache(zooKeepers, sessionTimeout));
     }
   }
 
   /**
-   * Gets a watched {@link ZooCache}. If the watcher is null, then the same (unwatched) object may
-   * be returned for multiple calls with the same remaining arguments.
+   * Always return a new {@link ZooCache}.
    *
    * @param zooKeepers
    *          comma-separated list of ZooKeeper host[:port]s
    * @param sessionTimeout
    *          session timeout
-   * @param watcher
-   *          watcher (optional)
-   * @return cache object
+   * @return a new instance
    */
-  public ZooCache getZooCache(String zooKeepers, int sessionTimeout, Watcher watcher) {
-    if (watcher == null) {
-      // reuse
-      return getZooCache(zooKeepers, sessionTimeout);
-    }
-    return new ZooCache(zooKeepers, sessionTimeout, watcher);
+  public ZooCache getNewZooCache(String zooKeepers, int sessionTimeout) {
+    return new ZooCache(new ZooReader(zooKeepers, sessionTimeout), null);
   }
 
   /**

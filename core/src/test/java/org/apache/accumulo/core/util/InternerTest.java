@@ -81,7 +81,7 @@ public class InternerTest {
   }
 
   @Test
-  @Timeout(20_000)
+  @Timeout(20)
   public void testInternsGetGarbageCollected() {
     var interner = new Interner<TestObj>();
     assertEquals(0, interner.size()); // ensure empty
