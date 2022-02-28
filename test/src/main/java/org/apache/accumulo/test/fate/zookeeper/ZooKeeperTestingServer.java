@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.zookeeper;
+package org.apache.accumulo.test.fate.zookeeper;
 
 import java.io.File;
 import java.io.IOException;

@@ -44,7 +44,6 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooSession;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.test.categories.ZooKeeperTestingServerTests;
-import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
