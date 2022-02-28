@@ -38,7 +38,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class ContextClassLoaderFactoryTest {
 
   @TempDir
-  private static final File tempFolder = new File(System.getProperty("user.dir") + "/target",
+  private final File tempFolder = new File(System.getProperty("user.dir") + "/target",
       ContextClassLoaderFactoryTest.class.getSimpleName() + "/");
 
   private String uri1;
