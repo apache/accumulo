@@ -25,6 +25,7 @@ import java.io.File;
 import java.net.URLClassLoader;
 import java.util.Objects;
 
+import org.apache.accumulo.core.WithTestNames;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.commons.io.FileUtils;
@@ -35,11 +36,10 @@ import org.junit.jupiter.api.io.TempDir;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
-public class ContextClassLoaderFactoryTest {
+public class ContextClassLoaderFactoryTest extends WithTestNames {
 
   @TempDir
-  private final File tempFolder = new File(System.getProperty("user.dir") + "/target",
-      ContextClassLoaderFactoryTest.class.getSimpleName() + "/");
+  private static File tempFolder;
 
   private String uri1;
   private String uri2;
@@ -47,14 +47,14 @@ public class ContextClassLoaderFactoryTest {
   @BeforeEach
   public void setup() throws Exception {
 
-    File folder1 = new File(tempFolder, "folder1/");
+    File folder1 = new File(tempFolder, testName() + "_1");
     assertTrue(folder1.isDirectory() || folder1.mkdir(), "Failed to make a new sub-directory");
     FileUtils.copyURLToFile(
         Objects.requireNonNull(this.getClass().getResource("/accumulo.properties")),
         new File(folder1, "accumulo.properties"));
     uri1 = new File(folder1, "accumulo.properties").toURI().toString();
 
-    File folder2 = new File(tempFolder, "folder2/");
+    File folder2 = new File(tempFolder, testName() + "_2");
     assertTrue(folder2.isDirectory() || folder2.mkdir(), "Failed to make a new sub-directory");
     FileUtils.copyURLToFile(
         Objects.requireNonNull(this.getClass().getResource("/accumulo2.properties")),
@@ -64,7 +64,7 @@ public class ContextClassLoaderFactoryTest {
   }
 
   @Test
-  public void differentContexts() throws Exception {
+  public void differentContexts() {
 
     ConfigurationCopy cc = new ConfigurationCopy();
     cc.set(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY.getKey(),

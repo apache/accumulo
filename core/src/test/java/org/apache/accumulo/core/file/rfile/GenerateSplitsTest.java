@@ -51,8 +51,7 @@ public class GenerateSplitsTest {
   private static final Logger log = LoggerFactory.getLogger(GenerateSplitsTest.class);
 
   @TempDir
-  private static File tempFolder = new File(System.getProperty("user.dir") + "/target",
-      GenerateSplitsTest.class.getSimpleName() + "/");
+  private static File tempDir;
 
   private static final RFileTest.TestRFile trf = new RFileTest.TestRFile(null);
   private static String rfilePath;
@@ -74,7 +73,7 @@ public class GenerateSplitsTest {
     trf.writer.append(newKey("r6", "cf4", "cq1", "L1", 55), newValue("foo6"));
     trf.closeWriter();
 
-    File file = new File(tempFolder, "testGenerateSplits.rf");
+    File file = new File(tempDir, "testGenerateSplits.rf");
     assertTrue(file.createNewFile(), "Failed to create file: " + file);
     try (var fileOutputStream = new FileOutputStream(file)) {
       fileOutputStream.write(trf.baos.toByteArray());
@@ -82,7 +81,7 @@ public class GenerateSplitsTest {
     rfilePath = "file:" + file.getAbsolutePath();
     log.info("Wrote to file {}", rfilePath);
 
-    File splitsFile = new File(tempFolder, "testSplitsFile");
+    File splitsFile = new File(tempDir, "testSplitsFile");
     assertTrue(splitsFile.createNewFile(), "Failed to create file: " + splitsFile);
     splitsFilePath = splitsFile.getAbsolutePath();
   }
@@ -132,8 +131,8 @@ public class GenerateSplitsTest {
     e = assertThrows(IllegalArgumentException.class, () -> main(args3.toArray(new String[0])));
     assertTrue(e.getMessage().contains("Requested number of splits and"), e.getMessage());
 
-    File dir1 = new File(tempFolder, "dir1/");
-    File dir2 = new File(tempFolder, "dir2/");
+    File dir1 = new File(tempDir, "dir1/");
+    File dir2 = new File(tempDir, "dir2/");
     assertTrue(dir1.mkdir() && dir2.mkdir(), "Failed to make new sub-directories");
 
     List<String> args4 = List.of(dir1.getAbsolutePath(), dir2.getAbsolutePath(), "-n", "2");
