@@ -49,11 +49,10 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.junit.Rule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.io.TempDir;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
@@ -74,9 +73,9 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
       new SamplerConfiguration(RowSampler.class.getName()).addOption("hasher", "murmur3_32")
           .addOption("modulus", "3");
 
-  @Rule
-  public TemporaryFolder folder =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File tempDir = new File(System.getProperty("user.dir") + "/target",
+      AccumuloFileOutputFormatIT.class.getSimpleName() + "/");
 
   @BeforeEach
   public void setup() throws Exception {
@@ -202,7 +201,8 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
   }
 
   private void handleWriteTests(boolean content) throws Exception {
-    File f = folder.newFile(testName());
+    File f = new File(tempDir, testName());
+    assertTrue(f.createNewFile());
     assertTrue(f.delete());
     MRTester.main(new String[] {content ? TEST_TABLE : EMPTY_TABLE, f.getAbsolutePath()});
 
@@ -234,7 +234,8 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
   @Test
   public void writeBadVisibility() throws Exception {
-    File f = folder.newFile(testName());
+    File f = new File(tempDir, testName());
+    assertTrue(f.createNewFile());
     assertTrue(f.delete());
     MRTester.main(new String[] {BAD_TABLE, f.getAbsolutePath()});
     assertTrue(f.exists());

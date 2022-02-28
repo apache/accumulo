@@ -30,25 +30,25 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import org.apache.accumulo.WithTestNames;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.test.categories.ZooKeeperTestingServerTests;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
-import org.junit.Rule;
 import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.io.TempDir;
 
 import com.google.common.hash.Hashing;
 
 @Category({ZooKeeperTestingServerTests.class})
 @Tag("ZooKeeperTestingServerTests")
-public class ZooMutatorIT {
+public class ZooMutatorIT extends WithTestNames {
 
-  @Rule
-  public TemporaryFolder tempFolder =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private final File tempDir = new File(System.getProperty("user.dir") + "/target",
+      ZooMutatorIT.class.getSimpleName() + "/");
 
   /**
    * This test uses multiple threads to update the data in a single zookeeper node using
@@ -84,8 +84,9 @@ public class ZooMutatorIT {
    */
   @Test
   public void concurrentMutatorTest() throws Exception {
-
-    try (ZooKeeperTestingServer szk = new ZooKeeperTestingServer(tempFolder.newFolder())) {
+    File newFolder = new File(tempDir, testName() + "/");
+    assertTrue(newFolder.isDirectory() || newFolder.mkdir(), "failed to create dir: " + newFolder);
+    try (ZooKeeperTestingServer szk = new ZooKeeperTestingServer(newFolder)) {
       szk.initPaths("/accumulo/" + InstanceId.of(UUID.randomUUID()));
       ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 10_0000, "aPasswd");
 

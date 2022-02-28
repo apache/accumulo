@@ -49,9 +49,8 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.junit.Rule;
 import org.junit.jupiter.api.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -165,9 +164,9 @@ public class TokenFileIT extends AccumuloClusterHarness {
     }
   }
 
-  @Rule
-  public TemporaryFolder folder =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private final File tempDir =
+      new File(System.getProperty("user.dir") + "/target", TokenFileIT.class.getSimpleName() + "/");
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @Test
@@ -186,7 +185,8 @@ public class TokenFileIT extends AccumuloClusterHarness {
       }
       bw.close();
 
-      File tf = folder.newFile("root_test.pw");
+      File tf = new File(tempDir, "root_test.pw");
+      assertTrue(tf.createNewFile(), "Failed to create file: " + tf);
       try (PrintStream out = new PrintStream(tf)) {
         String outString = new Credentials(getAdminPrincipal(), getAdminToken()).serialize();
         out.println(outString);

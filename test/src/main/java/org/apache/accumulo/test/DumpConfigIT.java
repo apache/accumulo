@@ -34,19 +34,18 @@ import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.Rule;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Timeout(value = 2, unit = MINUTES)
 public class DumpConfigIT extends ConfigurableMacBase {
 
-  @Rule
-  public TemporaryFolder tempFolder =
-      new TemporaryFolder(new File(System.getProperty("user.dir"), "target"));
+  @TempDir
+  private final File tempDir = new File(System.getProperty("user.dir") + "/target",
+      DumpConfigIT.class.getSimpleName() + "/");
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -57,7 +56,8 @@ public class DumpConfigIT extends ConfigurableMacBase {
       justification = "user.dir is suitable test input")
   @Test
   public void test() throws Exception {
-    File folder = tempFolder.newFolder();
+    File folder = new File(tempDir, testName() + "/");
+    assertTrue(folder.isDirectory() || folder.mkdir(), "failed to create dir: " + folder);
     File siteFileBackup = new File(folder, "accumulo.properties.bak");
     assertFalse(siteFileBackup.exists());
     assertEquals(0, exec(Admin.class, "dumpConfig", "-a", "-d", folder.getPath()).waitFor());

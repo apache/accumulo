@@ -29,6 +29,7 @@ import java.io.File;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
+import org.apache.accumulo.WithTestNames;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -50,18 +51,17 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.categories.ZooKeeperTestingServerTests;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.KeeperException;
-import org.junit.ClassRule;
 import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.io.TempDir;
 
 @Category({ZooKeeperTestingServerTests.class})
 @Tag("ZooKeeperTestingServerTests")
-public class FateIT {
+public class FateIT extends WithTestNames {
 
   public static class TestOperation extends ManagerRepo {
 
@@ -95,9 +95,8 @@ public class FateIT {
 
   }
 
-  @ClassRule
-  public static final TemporaryFolder TEMP =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File tempdir;
 
   private static ZooKeeperTestingServer szk = null;
   private static final String ZK_ROOT = "/accumulo/" + UUID.randomUUID().toString();
@@ -109,7 +108,7 @@ public class FateIT {
 
   @BeforeAll
   public static void setup() throws Exception {
-    szk = new ZooKeeperTestingServer(TEMP.newFolder());
+    szk = new ZooKeeperTestingServer(tempdir);
   }
 
   @AfterAll

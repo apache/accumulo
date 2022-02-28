@@ -19,6 +19,7 @@
 package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
@@ -34,6 +35,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.WithTestNames;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
@@ -52,12 +54,11 @@ import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.MemKey;
 import org.apache.accumulo.tserver.memory.NativeMapLoader;
 import org.easymock.EasyMock;
-import org.junit.Rule;
 import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,13 +85,13 @@ import org.slf4j.LoggerFactory;
  */
 @Category(SunnyDayTests.class)
 @Tag("SunnyDayTests")
-public class InMemoryMapIT {
+public class InMemoryMapIT extends WithTestNames {
 
   private static final Logger log = LoggerFactory.getLogger(InMemoryMapIT.class);
 
-  @Rule
-  public TemporaryFolder tempFolder =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File tempDir = new File(System.getProperty("user.dir") + "/target",
+      InMemoryMapIT.class.getSimpleName() + "/");
 
   @BeforeAll
   public static void ensureNativeLibrary() {
@@ -221,24 +222,30 @@ public class InMemoryMapIT {
     InMemoryMap localityGroupMapWithNative = null;
 
     try {
+      String[] tempFolders = new String[4];
+      for (int i = 0; i < tempFolders.length; i++) {
+        File dir = new File(tempDir, testName() + "_" + i);
+        assertTrue(dir.isDirectory() || dir.mkdir());
+        tempFolders[i] = dir.getAbsolutePath();
+      }
+
       Map<String,String> defaultMapConfig = new HashMap<>();
       defaultMapConfig.put(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "false");
-      defaultMapConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(),
-          tempFolder.newFolder().getAbsolutePath());
+      defaultMapConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(), tempFolders[0]);
       defaultMapConfig.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "");
+
       Map<String,String> nativeMapConfig = new HashMap<>();
       nativeMapConfig.put(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "true");
-      nativeMapConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(),
-          tempFolder.newFolder().getAbsolutePath());
+      nativeMapConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(), tempFolders[1]);
       nativeMapConfig.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "");
+
       Map<String,String> localityGroupConfig = new HashMap<>();
       localityGroupConfig.put(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "false");
-      localityGroupConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(),
-          tempFolder.newFolder().getAbsolutePath());
+      localityGroupConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(), tempFolders[2]);
+
       Map<String,String> localityGroupNativeConfig = new HashMap<>();
       localityGroupNativeConfig.put(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "true");
-      localityGroupNativeConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(),
-          tempFolder.newFolder().getAbsolutePath());
+      localityGroupNativeConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(), tempFolders[3]);
 
       TableId testId = TableId.of("TEST");
 
@@ -258,13 +265,13 @@ public class InMemoryMapIT {
     }
 
     // ensure the maps are correct type
-    assertEquals("Not a DefaultMap", InMemoryMap.TYPE_DEFAULT_MAP, defaultMap.getMapType());
-    assertEquals("Not a NativeMapWrapper", InMemoryMap.TYPE_NATIVE_MAP_WRAPPER,
-        nativeMapWrapper.getMapType());
-    assertEquals("Not a LocalityGroupMap", InMemoryMap.TYPE_LOCALITY_GROUP_MAP,
-        localityGroupMap.getMapType());
-    assertEquals("Not a LocalityGroupMap with native", InMemoryMap.TYPE_LOCALITY_GROUP_MAP_NATIVE,
-        localityGroupMapWithNative.getMapType());
+    assertEquals(InMemoryMap.TYPE_DEFAULT_MAP, defaultMap.getMapType(), "Not a DefaultMap");
+    assertEquals(InMemoryMap.TYPE_NATIVE_MAP_WRAPPER, nativeMapWrapper.getMapType(),
+        "Not a NativeMapWrapper");
+    assertEquals(InMemoryMap.TYPE_LOCALITY_GROUP_MAP, localityGroupMap.getMapType(),
+        "Not a LocalityGroupMap");
+    assertEquals(InMemoryMap.TYPE_LOCALITY_GROUP_MAP_NATIVE,
+        localityGroupMapWithNative.getMapType(), "Not a LocalityGroupMap with native");
 
     int count = 0;
     for (Mutation m : mutations) {

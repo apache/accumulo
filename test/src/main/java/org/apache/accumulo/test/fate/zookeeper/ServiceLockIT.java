@@ -54,14 +54,13 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
-import org.junit.ClassRule;
 import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,15 +70,15 @@ import com.google.common.util.concurrent.Uninterruptibles;
 @Tag("ZooKeeperTestingServerTests")
 public class ServiceLockIT {
 
-  @ClassRule
-  public static final TemporaryFolder TEMP =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File tempDir = new File(System.getProperty("user.dir") + "/target",
+      ServiceLockIT.class.getSimpleName() + "/");
 
   private static ZooKeeperTestingServer szk = null;
 
   @BeforeAll
   public static void setup() throws Exception {
-    szk = new ZooKeeperTestingServer(TEMP.newFolder());
+    szk = new ZooKeeperTestingServer(tempDir);
     szk.initPaths("/accumulo/" + InstanceId.of(UUID.randomUUID()));
   }
 
