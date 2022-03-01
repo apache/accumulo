@@ -47,10 +47,10 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Maps;
 
 /**
- * Compression algorithms. There is a static initializer, below the values defined in the
- * enumeration, that calls the initializer of all defined codecs within
- * {@link DefaultCompressionAlgorithm}. This promotes a model of the following call graph of
- * initialization by the static initializer, followed by calls to {@link #getCodec()},
+ * There is a static initializer in {@link Compression} that finds all implementations of
+ * {@link CompressionAlgorithmConfiguration} and initializes a {@link CompressionAlgorithm}
+ * instance. This promotes a model of the following call graph of initialization by the static
+ * initializer, followed by calls to {@link #getCodec()},
  * {@link #createCompressionStream(OutputStream, Compressor, int)}, and
  * {@link #createDecompressionStream(InputStream, Decompressor, int)}. In some cases, the
  * compression and decompression call methods will include a different buffer size for the stream.
@@ -85,7 +85,7 @@ import com.google.common.collect.Maps;
  * Snappy will use the default Snappy codec with the default buffer size of 64k for the compression
  * stream, but will use a cached codec if the buffer size differs from the default.
  */
-public class DefaultCompressionAlgorithm extends Configured {
+public class CompressionAlgorithm extends Configured {
 
   public static class FinishOnFlushCompressionStream extends FilterOutputStream {
 
@@ -107,19 +107,18 @@ public class DefaultCompressionAlgorithm extends Configured {
     }
   }
 
-  private static final Logger LOG = LoggerFactory.getLogger(DefaultCompressionAlgorithm.class);
+  private static final Logger LOG = LoggerFactory.getLogger(CompressionAlgorithm.class);
 
   /**
    * Guava cache to have a limited factory pattern defined in the Algorithm enum.
    */
-  private static LoadingCache<Entry<DefaultCompressionAlgorithm,Integer>,
-      CompressionCodec> codecCache =
-          CacheBuilder.newBuilder().maximumSize(25).build(new CacheLoader<>() {
-            @Override
-            public CompressionCodec load(Entry<DefaultCompressionAlgorithm,Integer> key) {
-              return key.getKey().createNewCodec(key.getValue());
-            }
-          });
+  private static LoadingCache<Entry<CompressionAlgorithm,Integer>,CompressionCodec> codecCache =
+      CacheBuilder.newBuilder().maximumSize(25).build(new CacheLoader<>() {
+        @Override
+        public CompressionCodec load(Entry<CompressionAlgorithm,Integer> key) {
+          return key.getKey().createNewCodec(key.getValue());
+        }
+      });
 
   // Data input buffer size to absorb small reads from application.
   protected static final int DATA_IBUF_SIZE = 1024;
@@ -134,8 +133,7 @@ public class DefaultCompressionAlgorithm extends Configured {
 
   private transient CompressionCodec codec = null;
 
-  public DefaultCompressionAlgorithm(CompressionAlgorithmConfiguration algorithm,
-      Configuration conf) {
+  public CompressionAlgorithm(CompressionAlgorithmConfiguration algorithm, Configuration conf) {
     this.algorithm = algorithm;
     setConf(conf);
     codec = initCodec(checked, algorithm.getDefaultBufferSize(), codec);
@@ -168,11 +166,10 @@ public class DefaultCompressionAlgorithm extends Configured {
 
   private InputStream createDecompressionStream(final InputStream stream,
       final Decompressor decompressor, final int bufferSize, final int defaultBufferSize,
-      final DefaultCompressionAlgorithm algorithm, CompressionCodec codec) throws IOException {
+      final CompressionAlgorithm algorithm, CompressionCodec codec) throws IOException {
     // If the default buffer size is not being used, pull from the loading cache.
     if (bufferSize != defaultBufferSize) {
-      Entry<DefaultCompressionAlgorithm,Integer> sizeOpt =
-          Maps.immutableEntry(algorithm, bufferSize);
+      Entry<CompressionAlgorithm,Integer> sizeOpt = Maps.immutableEntry(algorithm, bufferSize);
       try {
         codec = codecCache.get(sizeOpt);
       } catch (ExecutionException e) {

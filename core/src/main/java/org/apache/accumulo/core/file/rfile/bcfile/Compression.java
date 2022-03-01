@@ -46,9 +46,9 @@ public final class Compression {
   private static final ServiceLoader<CompressionAlgorithmConfiguration> COMPRESSION_ALGORITHMS =
       ServiceLoader.load(CompressionAlgorithmConfiguration.class);
 
-  private static final Map<String,DefaultCompressionAlgorithm> CONFIGURED_ALGORITHMS =
+  private static final Map<String,CompressionAlgorithm> CONFIGURED_ALGORITHMS =
       StreamSupport.stream(COMPRESSION_ALGORITHMS.spliterator(), false)
-          .map(a -> new DefaultCompressionAlgorithm(a, conf))
+          .map(a -> new CompressionAlgorithm(a, conf))
           .collect(Collectors.toMap(algo -> algo.getName(), algo -> algo));
 
   public static String[] getSupportedAlgorithms() {
@@ -61,8 +61,8 @@ public final class Compression {
     return supportedAlgorithms.toArray(new String[0]);
   }
 
-  public static DefaultCompressionAlgorithm getCompressionAlgorithmByName(final String name) {
-    DefaultCompressionAlgorithm algorithm = CONFIGURED_ALGORITHMS.get(name);
+  public static CompressionAlgorithm getCompressionAlgorithmByName(final String name) {
+    CompressionAlgorithm algorithm = CONFIGURED_ALGORITHMS.get(name);
     if (algorithm != null) {
       return algorithm;
     }
