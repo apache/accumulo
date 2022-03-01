@@ -273,12 +273,10 @@ public class AccumuloConfigurationTest {
   @Test
   public void testGetByPrefixWithOneTimeRegeneratedTableIteratorScanPrefix() {
     //Arrangement
-    //Init
     TestConfiguration tc = testGetByPrefixSetUpConfig();
     Map<String,String> pm2 = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
     //Regenerate(check if the regeneration change other prefix)
-    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i2", "class42");
-    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i2.opt", "o78234");
+    tc = reSetupTableIterScanPrefix(tc);
     //Expected Value
     Map<String,String> expected2 = new HashMap<>();
     expected2.put(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i1", "class34");
@@ -301,8 +299,7 @@ public class AccumuloConfigurationTest {
     TestConfiguration tc = testGetByPrefixSetUpConfig();
     Map<String,String> pm1 = tc.getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX);
     //Regenerate
-    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i2", "class42");
-    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i2.opt", "o78234");
+    tc = reSetupTableIterScanPrefix(tc);
     //Expected Value
     Map<String,String> expected1 = new HashMap<>();
     expected1.put(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "a1", "325");
@@ -317,13 +314,13 @@ public class AccumuloConfigurationTest {
   }
 
   @Test
-  public void testGetByPrefixWithOneTimeRegeneratedVFSContextClasspathProp() {
+  public void testGetByPrefixWithTwiceRegeneratedVFSContextClasspathProp() {
     //Arrangement
     TestConfiguration tc = testGetByPrefixSetUpConfig();
     Map<String,String> pm3 = tc.getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
-    //Regenerate
-    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i2", "class42");
-    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i2.opt", "o78234");
+    //Regenerate Once
+    tc = reSetupTableIterScanPrefix(tc);
+    //Regenerate Twice
     tc.set(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "ctx123", "hdfs://ib/p1");
 
     //Action
@@ -340,8 +337,7 @@ public class AccumuloConfigurationTest {
     //Arrangement
     TestConfiguration tc = testGetByPrefixSetUpConfig();
     //Regenerate Once
-    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i2", "class42");
-    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i2.opt", "o78234");
+    tc = reSetupTableIterScanPrefix(tc);
     Map<String,String> pmA = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
     //Regenerate Twice
     tc.set(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "ctx123", "hdfs://ib/p1");
@@ -365,8 +361,7 @@ public class AccumuloConfigurationTest {
     //Arrangement
     TestConfiguration tc = testGetByPrefixSetUpConfig();
     //Regenerate Once
-    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i2", "class42");
-    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i2.opt", "o78234");
+    tc = reSetupTableIterScanPrefix(tc);
     Map<String,String> pmC = tc.getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX);
     //Regenerate Twice
     tc.set(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "ctx123", "hdfs://ib/p1");
@@ -389,8 +384,7 @@ public class AccumuloConfigurationTest {
     //init
     TestConfiguration tc = testGetByPrefixSetUpConfig();
     //Regenerate Once
-    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i2", "class42");
-    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i2.opt", "o78234");
+    tc = reSetupTableIterScanPrefix(tc);
     //Regenerate Twice
     tc.set(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "ctx123", "hdfs://ib/p1");
     Map<String,String> pmE = tc.getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
@@ -497,6 +491,12 @@ public class AccumuloConfigurationTest {
     tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i1", "class34");
     tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i1.opt", "o99");
     
+    return tc;
+  }
+
+  public TestConfiguration reSetupTableIterScanPrefix(TestConfiguration tc) {
+    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i2", "class42");
+    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i2.opt", "o78234");
     return tc;
   }
 }
