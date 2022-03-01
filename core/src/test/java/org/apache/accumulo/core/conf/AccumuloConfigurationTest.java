@@ -247,6 +247,23 @@ public class AccumuloConfigurationTest {
   }
 
   @Test
+  public void testGetByPrefixVFSContextClasspathProp() {
+    //Arrangement
+    TestConfiguration tc = new TestConfiguration();
+
+    tc.set(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "a1", "325");
+    tc.set(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "a2", "asg34");
+
+    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i1", "class34");
+    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i1.opt", "o99");
+    //Action
+    Map<String,String> pm3 = tc.getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
+    //Assert
+    assertSame(pm3, tc.getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY));
+    assertEquals(0, pm3.size());
+  }
+
+  @Test
   public void testGetByPrefixGetOnePrefixNotRegenerateOther() {
     //Arrangement
     TestConfiguration tc = new TestConfiguration();
@@ -259,18 +276,22 @@ public class AccumuloConfigurationTest {
 
     Map<String,String> pm1 = tc.getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX);
     Map<String,String> pm2 = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
+    Map<String,String> pm3 = tc.getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
 
     //Action & Assert
     //ensure getting one prefix does not cause others to unnecessarily regenerate
-    Map<String,String> pm3 = tc.getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX);
-    assertSame(pm1, pm3);
+    Map<String,String> pm4 = tc.getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX);
+    assertSame(pm1, pm4);
 
-    Map<String,String> pm4 = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
-    assertSame(pm2, pm4);
+    Map<String,String> pm5 = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
+    assertSame(pm2, pm5);
+
+    Map<String,String> pm6 = tc.getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
+    assertSame(pm3, pm6);
   }
 
   @Test
-  public void testGetByPrefixWithRegeneratedTableIteratorScanPrefix() {
+  public void testGetByPrefixWithOneTimeRegeneratedTableIteratorScanPrefix() {
     //Arrangement
     TestConfiguration tc = new TestConfiguration();
 
@@ -302,7 +323,7 @@ public class AccumuloConfigurationTest {
   }
 
   @Test
-  public void testGetByPrefixWithRegeneratedTableArbitraryPropPrefix(){
+  public void testGetByPrefixWithOneTimeRegeneratedTableArbitraryPropPrefix(){
     TestConfiguration tc = new TestConfiguration();
 
     tc.set(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "a1", "325");
@@ -326,6 +347,132 @@ public class AccumuloConfigurationTest {
     assertSame(pmC, tc.getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX));
     assertEquals(expected1, pmC);//same value
   }
+
+  @Test
+  public void testGetByPrefixWithOneTimeRegeneratedVFSContextClasspathProp() {
+    //Arrangement
+    TestConfiguration tc = new TestConfiguration();
+
+    tc.set(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "a1", "325");
+    tc.set(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "a2", "asg34");
+
+    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i1", "class34");
+    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i1.opt", "o99");
+
+    Map<String,String> pm3 = tc.getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
+
+    //Regenerate
+    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i2", "class42");
+    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i2.opt", "o78234");
+    tc.set(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "ctx123", "hdfs://ib/p1");
+    //Action
+    Map<String,String> pmE = tc.getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
+    //Assert
+    assertSame(pmE, tc.getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY));
+    assertNotSame(pm3, pmE);
+    assertEquals(ImmutableMap.of(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "ctx123",
+            "hdfs://ib/p1"), pmE);
+  }
+
+  @Test
+  public void testGetByPrefixWithTwiceRegeneratedTableIteratorScanPrefix() {
+    //Arrangement
+    //init
+    TestConfiguration tc = new TestConfiguration();
+
+    tc.set(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "a1", "325");
+    tc.set(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "a2", "asg34");
+
+    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i1", "class34");
+    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i1.opt", "o99");
+
+    Map<String,String> expected2 = new HashMap<>();
+    expected2.put(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i1", "class34");
+    expected2.put(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i1.opt", "o99");
+    //Regenerate
+    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i2", "class42");
+    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i2.opt", "o78234");
+
+    expected2.put(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i2", "class42");
+    expected2.put(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i2.opt", "o78234");
+
+    Map<String,String> pmA = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
+    //Regenerate
+    tc.set(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "ctx123", "hdfs://ib/p1");
+
+    //Action
+    Map<String,String> pmG = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
+
+    //Assert
+    assertNotSame(pmA, pmG);
+    assertSame(pmG, tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX));
+    assertEquals(expected2, pmG);
+  }
+
+  @Test
+  public void testGetByPrefixWithTwiceRegeneratedTableArbitraryPropPrefix() {
+    //Arrangement
+    //init
+    TestConfiguration tc = new TestConfiguration();
+
+    tc.set(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "a1", "325");
+    tc.set(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "a2", "asg34");
+
+    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i1", "class34");
+    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i1.opt", "o99");
+
+    Map<String,String> expected1 = new HashMap<>();
+    expected1.put(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "a1", "325");
+    expected1.put(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "a2", "asg34");
+
+    //Regenerate Once
+    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i2", "class42");
+    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i2.opt", "o78234");
+
+    Map<String,String> pmC = tc.getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX);
+    //Regenerate Twice
+    tc.set(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "ctx123", "hdfs://ib/p1");
+
+    //Action
+    Map<String,String> pmI = tc.getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX);
+    //Assert
+    assertNotSame(pmC, pmI);
+    assertSame(pmI, tc.getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX));
+    assertEquals(expected1, pmI);
+  }
+
+  @Test
+  public void testGetByPrefixGetOnePrefixNotRegenerateOtherAfterRegenerate(){
+    //Arrangement
+    //init
+    TestConfiguration tc = new TestConfiguration();
+
+    tc.set(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "a1", "325");
+    tc.set(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "a2", "asg34");
+
+    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i1", "class34");
+    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i1.opt", "o99");
+
+    //Regenerate Once
+    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i2", "class42");
+    tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i2.opt", "o78234");
+
+    Map<String,String> pmC = tc.getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX);
+    //Regenerate Twice
+    tc.set(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "ctx123", "hdfs://ib/p1");
+
+    Map<String,String> pmE = tc.getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
+    Map<String,String> pmG = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
+
+    //Action & Assert
+    //ensure getting one prefix does not cause others to unnecessarily regenerate
+    Map<String,String> pmK = tc.getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
+    assertSame(pmE, pmK);
+
+    Map<String,String> pmL = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
+    assertSame(pmG, pmL);
+  }
+
 
   @Test
   public void testScanExecutors() {
