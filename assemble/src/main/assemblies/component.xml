@@ -35,9 +35,9 @@
         <include>com.fasterxml.jackson.core:jackson-annotations</include>
         <include>com.fasterxml.jackson.core:jackson-core</include>
         <include>com.fasterxml.jackson.core:jackson-databind</include>
-        <include>com.fasterxml.jackson.jaxrs:jackson-jaxrs-base:jar:jakarta</include>
-        <include>com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider:jar:jakarta</include>
-        <include>com.fasterxml.jackson.module:jackson-module-jaxb-annotations:jar:jakarta</include>
+        <include>com.fasterxml.jackson.jakarta.rs:jackson-jakarta-rs-base</include>
+        <include>com.fasterxml.jackson.jakarta.rs:jackson-jakarta-rs-json-provider</include>
+        <include>com.fasterxml.jackson.module:jackson-module-jakarta-xmlbind-annotations</include>
         <include>com.github.ben-manes.caffeine:caffeine</include>
         <include>com.google.code.gson:gson</include>
         <include>com.google.guava:failureaccess</include>
