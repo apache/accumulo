@@ -65,19 +65,17 @@ public class RemoveEntriesForMissingFiles {
   }
 
   private static class CheckFileTask implements Runnable {
-    @SuppressWarnings("rawtypes")
-    private Map cache;
-    private VolumeManager fs;
-    private AtomicInteger missing;
-    private BatchWriter writer;
-    private Key key;
-    private Path path;
-    private Set<Path> processing;
-    private AtomicReference<Exception> exceptionRef;
+    private final Map<Path,Path> cache;
+    private final VolumeManager fs;
+    private final AtomicInteger missing;
+    private final BatchWriter writer;
+    private final Key key;
+    private final Path path;
+    private final Set<Path> processing;
+    private final AtomicReference<Exception> exceptionRef;
 
-    @SuppressWarnings({"rawtypes"})
-    CheckFileTask(Map cache, VolumeManager fs, AtomicInteger missing, BatchWriter writer, Key key,
-        Path map, Set<Path> processing, AtomicReference<Exception> exceptionRef) {
+    CheckFileTask(Map<Path,Path> cache, VolumeManager fs, AtomicInteger missing, BatchWriter writer,
+        Key key, Path map, Set<Path> processing, AtomicReference<Exception> exceptionRef) {
       this.cache = cache;
       this.fs = fs;
       this.missing = missing;
@@ -89,7 +87,6 @@ public class RemoveEntriesForMissingFiles {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public void run() {
       try {
         if (fs.exists(path)) {
@@ -122,8 +119,7 @@ public class RemoveEntriesForMissingFiles {
   private static int checkTable(ServerContext context, String tableName, Range range, boolean fix)
       throws Exception {
 
-    @SuppressWarnings({"rawtypes"})
-    Map cache = new LRUMap(100000);
+    Map<Path,Path> cache = new LRUMap<>(100000);
     Set<Path> processing = new HashSet<>();
     ExecutorService threadPool = ThreadPools.createFixedThreadPool(16, "CheckFileTasks", false);
 
