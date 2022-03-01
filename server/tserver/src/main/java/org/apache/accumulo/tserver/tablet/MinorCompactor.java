@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -64,8 +63,7 @@ public class MinorCompactor extends FileCompactor {
 
   private boolean isTableDeleting() {
     try {
-      return Tables.getTableState(tabletServer.getContext(), extent.tableId())
-          == TableState.DELETING;
+      return tabletServer.getContext().getTableState(extent.tableId()) == TableState.DELETING;
     } catch (Exception e) {
       log.warn("Failed to determine if table " + extent.tableId() + " was deleting ", e);
       return false; // can not get positive confirmation that its deleting.

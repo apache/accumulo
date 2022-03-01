@@ -59,7 +59,6 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
@@ -78,6 +77,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.accumulo.test.constraints.NumericValueConstraint;
@@ -129,7 +129,7 @@ public class NamespacesIT extends SharedMiniClusterBase {
     }
     // clean up any added tables, namespaces, and users, after each test
     for (String t : c.tableOperations().list())
-      if (!Tables.qualify(t).getFirst().equals(Namespace.ACCUMULO.name()))
+      if (!TableNameUtil.qualify(t).getFirst().equals(Namespace.ACCUMULO.name()))
         c.tableOperations().delete(t);
     assertEquals(3, c.tableOperations().list().size());
     for (String n : c.namespaceOperations().list())

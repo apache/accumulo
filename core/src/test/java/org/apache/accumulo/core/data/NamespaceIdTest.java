@@ -23,9 +23,9 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.apache.accumulo.core.WithTestNames;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Tests the NamespaceId class, mainly the internal cache.
  */
-public class NamespaceIdTest {
+public class NamespaceIdTest extends WithTestNames {
 
   private static final Logger LOG = LoggerFactory.getLogger(NamespaceIdTest.class);
 
@@ -44,13 +44,12 @@ public class NamespaceIdTest {
   }
 
   @Test
-  public void testCacheNoDuplicates(TestInfo testInfo) {
+  public void testCacheNoDuplicates() {
     // the next line just preloads the built-ins, since they now exist in a separate class from
     // NamespaceId, and aren't preloaded when the NamespaceId class is referenced
     assertNotSame(Namespace.ACCUMULO.id(), Namespace.DEFAULT.id());
 
-    String namespaceString =
-        "namespace-" + testInfo.getTestMethod().orElseThrow(IllegalStateException::new).getName();
+    String namespaceString = "namespace-" + testName();
     long initialSize = cacheCount();
     NamespaceId nsId = NamespaceId.of(namespaceString);
     assertEquals(initialSize + 1, cacheCount());
@@ -70,16 +69,15 @@ public class NamespaceIdTest {
   }
 
   @Test
-  @Timeout(30_000)
-  public void testCacheIncreasesAndDecreasesAfterGC(TestInfo testInfo) {
+  @Timeout(30)
+  public void testCacheIncreasesAndDecreasesAfterGC() {
     long initialSize = cacheCount();
     assertTrue(initialSize < 20); // verify initial amount is reasonably low
     LOG.info("Initial cache size: {}", initialSize);
     LOG.info(NamespaceId.cache.asMap().toString());
 
     // add one and check increase
-    String namespaceString =
-        "namespace-" + testInfo.getTestMethod().orElseThrow(IllegalStateException::new).getName();
+    String namespaceString = "namespace-" + testName();
     NamespaceId nsId = NamespaceId.of(namespaceString);
     assertEquals(initialSize + 1, cacheCount());
     assertEquals(namespaceString, nsId.canonical());

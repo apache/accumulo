@@ -97,7 +97,7 @@ public class RetryTest {
     }
     assertFalse(retry.canRetry());
     assertThrows(IllegalStateException.class, () -> retry.useRetry(),
-        "Calling useRetry when canRetry " + "returns false throws an exception");
+        "Calling useRetry when canRetry returns false throws an exception");
   }
 
   @Test
@@ -277,7 +277,7 @@ public class RetryTest {
     builder.maxWait(16, MILLISECONDS);
 
     assertThrows(IllegalArgumentException.class, () -> builder.maxWait(14, MILLISECONDS),
-        "Max wait time " + "should be greater than or equal to initial wait time");
+        "Max wait time should be greater than or equal to initial wait time");
   }
 
   @Test

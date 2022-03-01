@@ -130,7 +130,7 @@
     <failsafe.forkCount>1</failsafe.forkCount>
     <failsafe.groups />
     <failsafe.reuseForks>false</failsafe.reuseForks>
-    <hadoop.version>3.3.0</hadoop.version>
+    <hadoop.version>3.3.1</hadoop.version>
     <htrace.hadoop.version>4.1.0-incubating</htrace.hadoop.version>
     <it.failIfNoSpecifiedTests>false</it.failIfNoSpecifiedTests>
     <!-- prevent introduction of new compiler warnings -->
@@ -159,7 +159,7 @@
     <thrift.version>0.15.0</thrift.version>
     <unitTestMemSize>-Xmx1G</unitTestMemSize>
     <!-- ZooKeeper version -->
-    <zookeeper.version>3.5.9</zookeeper.version>
+    <zookeeper.version>3.7.0</zookeeper.version>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -1103,8 +1103,21 @@
                   <property name="message" value="Use static imports for Assertions.* methods for consistency" />
                 </module>
                 <module name="RegexpSinglelineJava">
+                  <property name="format" value="import org[.]junit[.]Assume;" />
+                  <property name="message" value="Use static imports for Assume.* methods for consistency" />
+                </module>
+                <module name="RegexpSinglelineJava">
+                  <property name="format" value="org[.]junit[.]jupiter[.]api[.]Assumptions;" />
+                  <property name="message" value="Use static imports for Assumptions.* methods for consistency" />
+                </module>
+                <module name="RegexpSinglelineJava">
                   <property name="format" value="import java[.]nio[.]charset[.]StandardCharsets;" />
                   <property name="message" value="Use static imports for StandardCharsets.* constants for consistency" />
+                </module>
+                <module name="RegexpSinglelineJava">
+                  <!-- double escape quotes because checkstyle passes these through another xml parser -->
+                  <property name="format" value="&amp;quot; [+] &amp;quot;" />
+                  <property name="message" value="Unnecessary concatenation of string literals" />
                 </module>
                 <module name="OuterTypeFilename" />
                 <module name="AvoidStarImport" />

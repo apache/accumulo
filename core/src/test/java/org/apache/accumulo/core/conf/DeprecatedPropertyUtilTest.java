@@ -91,7 +91,7 @@ public class DeprecatedPropertyUtilTest {
     assertEquals(4, config.size());
     assertThrows(IllegalStateException.class,
         () -> DeprecatedPropertyUtil.sanityCheckManagerProperties(config),
-        "Sanity check should " + "fail when 'master.*' and 'manager.*' appear in same config");
+        "Sanity check should fail when 'master.*' and 'manager.*' appear in same config");
     config.clearProperty("master.deprecatedProp");
     assertEquals(3, config.size());
     DeprecatedPropertyUtil.sanityCheckManagerProperties(config); // should succeed

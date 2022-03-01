@@ -81,6 +81,12 @@ public class ExternalCompactionTestUtils {
   public static final int MAX_DATA = 1000;
   public static final String QUEUE1 = "DCQ1";
   public static final String QUEUE2 = "DCQ2";
+  public static final String QUEUE3 = "DCQ3";
+  public static final String QUEUE4 = "DCQ4";
+  public static final String QUEUE5 = "DCQ5";
+  public static final String QUEUE6 = "DCQ6";
+  public static final String QUEUE7 = "DCQ7";
+  public static final String QUEUE8 = "DCQ8";
 
   public static String row(int r) {
     return String.format("r:%04d", r);
@@ -192,11 +198,35 @@ public class ExternalCompactionTestUtils {
     cfg.setProperty("tserver.compaction.major.service.cs1.planner",
         DefaultCompactionPlanner.class.getName());
     cfg.setProperty("tserver.compaction.major.service.cs1.planner.opts.executors",
-        "[{'name':'all', 'type': 'external', 'queue': 'DCQ1'}]");
+        "[{'name':'all', 'type': 'external', 'queue': '" + QUEUE1 + "'}]");
     cfg.setProperty("tserver.compaction.major.service.cs2.planner",
         DefaultCompactionPlanner.class.getName());
     cfg.setProperty("tserver.compaction.major.service.cs2.planner.opts.executors",
-        "[{'name':'all', 'type': 'external','queue': 'DCQ2'}]");
+        "[{'name':'all', 'type': 'external','queue': '" + QUEUE2 + "'}]");
+    cfg.setProperty("tserver.compaction.major.service.cs3.planner",
+        DefaultCompactionPlanner.class.getName());
+    cfg.setProperty("tserver.compaction.major.service.cs3.planner.opts.executors",
+        "[{'name':'all', 'type': 'external','queue': '" + QUEUE3 + "'}]");
+    cfg.setProperty("tserver.compaction.major.service.cs4.planner",
+        DefaultCompactionPlanner.class.getName());
+    cfg.setProperty("tserver.compaction.major.service.cs4.planner.opts.executors",
+        "[{'name':'all', 'type': 'external','queue': '" + QUEUE4 + "'}]");
+    cfg.setProperty("tserver.compaction.major.service.cs5.planner",
+        DefaultCompactionPlanner.class.getName());
+    cfg.setProperty("tserver.compaction.major.service.cs5.planner.opts.executors",
+        "[{'name':'all', 'type': 'external','queue': '" + QUEUE5 + "'}]");
+    cfg.setProperty("tserver.compaction.major.service.cs6.planner",
+        DefaultCompactionPlanner.class.getName());
+    cfg.setProperty("tserver.compaction.major.service.cs6.planner.opts.executors",
+        "[{'name':'all', 'type': 'external','queue': '" + QUEUE6 + "'}]");
+    cfg.setProperty("tserver.compaction.major.service.cs7.planner",
+        DefaultCompactionPlanner.class.getName());
+    cfg.setProperty("tserver.compaction.major.service.cs7.planner.opts.executors",
+        "[{'name':'all', 'type': 'external','queue': '" + QUEUE7 + "'}]");
+    cfg.setProperty("tserver.compaction.major.service.cs8.planner",
+        DefaultCompactionPlanner.class.getName());
+    cfg.setProperty("tserver.compaction.major.service.cs8.planner.opts.executors",
+        "[{'name':'all', 'type': 'external','queue': '" + QUEUE8 + "'}]");
     cfg.setProperty(Property.COMPACTION_COORDINATOR_FINALIZER_COMPLETION_CHECK_INTERVAL, "5s");
     cfg.setProperty(Property.COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL, "5s");
     cfg.setProperty(Property.COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL, "3s");
@@ -255,10 +285,12 @@ public class ExternalCompactionTestUtils {
       TableId tid) {
     Set<ExternalCompactionId> ecids = new HashSet<>();
     do {
-      UtilWaitThread.sleep(50);
       try (TabletsMetadata tm =
           ctx.getAmple().readTablets().forTable(tid).fetch(ColumnType.ECOMP).build()) {
         tm.stream().flatMap(t -> t.getExternalCompactions().keySet().stream()).forEach(ecids::add);
+      }
+      if (ecids.isEmpty()) {
+        UtilWaitThread.sleep(50);
       }
     } while (ecids.isEmpty());
     return ecids;
@@ -278,7 +310,9 @@ public class ExternalCompactionTestUtils {
           }
         }
       }
-      UtilWaitThread.sleep(250);
+      if (matches == 0) {
+        UtilWaitThread.sleep(50);
+      }
     }
     return matches;
   }
@@ -288,14 +322,18 @@ public class ExternalCompactionTestUtils {
     // The running compaction should be removed
     TExternalCompactionList running = ExternalCompactionTestUtils.getRunningCompactions(ctx);
     while (running.getCompactions() != null) {
-      UtilWaitThread.sleep(250);
       running = ExternalCompactionTestUtils.getRunningCompactions(ctx);
+      if (running.getCompactions() == null) {
+        UtilWaitThread.sleep(250);
+      }
     }
     // The compaction should be in the completed list with the expected state
     TExternalCompactionList completed = ExternalCompactionTestUtils.getCompletedCompactions(ctx);
     while (completed.getCompactions() == null) {
-      UtilWaitThread.sleep(250);
       completed = ExternalCompactionTestUtils.getCompletedCompactions(ctx);
+      if (completed.getCompactions() == null) {
+        UtilWaitThread.sleep(50);
+      }
     }
     for (ExternalCompactionId e : ecids) {
       TExternalCompaction tec = completed.getCompactions().get(e.canonical());

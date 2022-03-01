@@ -500,7 +500,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
                 + String.format(AuditedSecurityOperation.CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE,
                     "offlineTable", OLD_TEST_TABLE_NAME)));
     assertEquals(1, findAuditMessage(auditMessages,
-        "operation: denied;.*" + "action: scan; targetTable: " + OLD_TEST_TABLE_NAME));
+        "operation: denied;.*action: scan; targetTable: " + OLD_TEST_TABLE_NAME));
     assertEquals(1,
         findAuditMessage(auditMessages,
             "operation: denied;.*"

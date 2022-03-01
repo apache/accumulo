@@ -113,8 +113,7 @@ public final class LruBlockCacheConfiguration {
     this.useEvictionThread = get(EVICTION_THREAD_PROPERTY).map(Boolean::valueOf).orElse(true);
 
     if (this.getSingleFactor() + this.getMultiFactor() + this.getMemoryFactor() != 1) {
-      throw new IllegalArgumentException(
-          "Single, multi, and memory factors " + " should total 1.0");
+      throw new IllegalArgumentException("Single, multi, and memory factors should total 1.0");
     }
     if (this.getMinFactor() >= this.getAcceptableFactor()) {
       throw new IllegalArgumentException("minFactor must be smaller than acceptableFactor");

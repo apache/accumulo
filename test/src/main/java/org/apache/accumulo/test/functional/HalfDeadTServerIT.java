@@ -194,7 +194,7 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
         sleepUninterruptibly(1, TimeUnit.SECONDS);
         client.tableOperations().create("test_ingest");
         assertEquals(1, client.instanceOperations().getTabletServers().size());
-        int rows = 100 * 1000;
+        int rows = 100_000;
         ingest =
             cluster.exec(TestIngest.class, "-c", cluster.getClientPropsPath(), "--rows", rows + "")
                 .getProcess();

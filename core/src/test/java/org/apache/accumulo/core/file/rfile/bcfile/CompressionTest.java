@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.file.rfile.bcfile;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -31,7 +32,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.file.rfile.bcfile.Compression.Algorithm;
 import org.apache.hadoop.conf.Configuration;
@@ -159,7 +159,7 @@ public class CompressionTest {
   }
 
   @Test
-  @Timeout(60 * 1000)
+  @Timeout(60)
   public void testManyStartNotNull() throws InterruptedException, ExecutionException {
 
     for (final Algorithm al : Algorithm.values()) {
@@ -187,7 +187,7 @@ public class CompressionTest {
 
         assertNotNull(codec, al + " should not be null");
 
-        while (!service.awaitTermination(1, TimeUnit.SECONDS)) {
+        while (!service.awaitTermination(1, SECONDS)) {
           // wait
         }
 
@@ -202,7 +202,7 @@ public class CompressionTest {
 
   // don't start until we have created the codec
   @Test
-  @Timeout(60 * 1000)
+  @Timeout(60)
   public void testManyDontStartUntilThread() throws InterruptedException, ExecutionException {
 
     for (final Algorithm al : Algorithm.values()) {
@@ -225,7 +225,7 @@ public class CompressionTest {
 
         service.shutdown();
 
-        while (!service.awaitTermination(1, TimeUnit.SECONDS)) {
+        while (!service.awaitTermination(1, SECONDS)) {
           // wait
         }
 
@@ -239,7 +239,7 @@ public class CompressionTest {
   }
 
   @Test
-  @Timeout(60 * 1000)
+  @Timeout(60)
   public void testThereCanBeOnlyOne() throws InterruptedException, ExecutionException {
 
     for (final Algorithm al : Algorithm.values()) {
@@ -274,13 +274,13 @@ public class CompressionTest {
         assertEquals(1, testSet.size(), al + " created too many codecs");
         service.shutdown();
 
-        while (!service.awaitTermination(1, TimeUnit.SECONDS)) {
+        while (!service.awaitTermination(1, SECONDS)) {
           // wait
         }
 
         for (Future<Boolean> result : results) {
           assertTrue(result.get(),
-              al + " resulted in a failed call to getcodec within the thread " + "pool");
+              al + " resulted in a failed call to getcodec within the thread pool");
         }
       }
     }

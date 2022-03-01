@@ -188,8 +188,9 @@ public class UserImpersonation {
         hostConfigString.trim().isEmpty() ? new String[] {""} : hostConfigString.split(";");
 
     if (userConfigs.length != hostConfigs.length) {
-      String msg = String.format("Should have equal number of user and host"
-          + " impersonation elements in configuration. Got %d and %d elements," + " respectively.",
+      String msg = String.format(
+          "Should have equal number of user and host"
+              + " impersonation elements in configuration. Got %d and %d elements, respectively.",
           userConfigs.length, hostConfigs.length);
       throw new IllegalArgumentException(msg);
     }

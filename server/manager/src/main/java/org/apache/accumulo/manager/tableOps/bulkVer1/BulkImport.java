@@ -30,7 +30,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -97,8 +96,8 @@ public class BulkImport extends ManagerRepo {
     if (!Utils.getReadLock(manager, tableId, tid).tryLock())
       return 100;
 
-    Tables.clearCache(manager.getContext());
-    if (Tables.getTableState(manager.getContext(), tableId) == TableState.ONLINE) {
+    manager.getContext().clearTableListCache();
+    if (manager.getContext().getTableState(tableId) == TableState.ONLINE) {
       long reserve1, reserve2;
       reserve1 = reserve2 = Utils.reserveHdfsDirectory(manager, sourceDir, tid);
       if (reserve1 == 0)

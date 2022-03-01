@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import java.util.concurrent.TimeUnit;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -91,8 +91,8 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
       int numQueryThreads, long maxMemory, long maxLatency, int maxWriteThreads)
       throws TableNotFoundException {
     return context.createBatchDeleter(tableName, authorizations, numQueryThreads,
-        new BatchWriterConfig().setMaxMemory(maxMemory)
-            .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
+        new BatchWriterConfig().setMaxMemory(maxMemory).setMaxLatency(maxLatency, MILLISECONDS)
+            .setMaxWriteThreads(maxWriteThreads));
   }
 
   @Override
@@ -105,7 +105,7 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
   public BatchWriter createBatchWriter(String tableName, long maxMemory, long maxLatency,
       int maxWriteThreads) throws TableNotFoundException {
     return context.createBatchWriter(tableName, new BatchWriterConfig().setMaxMemory(maxMemory)
-        .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
+        .setMaxLatency(maxLatency, MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
   }
 
   @Override
@@ -118,7 +118,7 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
   public MultiTableBatchWriter createMultiTableBatchWriter(long maxMemory, long maxLatency,
       int maxWriteThreads) {
     return context.createMultiTableBatchWriter(new BatchWriterConfig().setMaxMemory(maxMemory)
-        .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
+        .setMaxLatency(maxLatency, MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
   }
 
   @Override

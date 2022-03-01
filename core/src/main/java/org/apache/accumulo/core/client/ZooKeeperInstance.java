@@ -19,10 +19,10 @@
 package org.apache.accumulo.core.client;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -154,7 +154,7 @@ public class ZooKeeperInstance implements Instance {
     if (timer != null) {
       timer.stop();
       log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(), loc,
-          String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+          String.format("%.3f secs", timer.scale(SECONDS)));
     }
 
     if (loc == null || loc.getType() != LocationType.CURRENT) {

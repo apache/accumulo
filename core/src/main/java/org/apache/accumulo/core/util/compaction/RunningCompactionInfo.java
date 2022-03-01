@@ -19,9 +19,9 @@
 package org.apache.accumulo.core.util.compaction;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
@@ -75,7 +75,7 @@ public class RunningCompactionInfo {
       startedMillis = firstEntry.getKey();
     }
     duration = nowMillis - startedMillis;
-    long durationMinutes = TimeUnit.MILLISECONDS.toMinutes(duration);
+    long durationMinutes = MILLISECONDS.toMinutes(duration);
     if (durationMinutes > 15) {
       log.warn("Compaction {} has been running for {} minutes", ecid, durationMinutes);
     }
@@ -92,7 +92,7 @@ public class RunningCompactionInfo {
       return;
     }
 
-    long sinceLastUpdateSeconds = TimeUnit.MILLISECONDS.toSeconds(nowMillis - updateMillis);
+    long sinceLastUpdateSeconds = MILLISECONDS.toSeconds(nowMillis - updateMillis);
     log.debug("Time since Last update {} - {} = {} seconds", nowMillis, updateMillis,
         sinceLastUpdateSeconds);
 

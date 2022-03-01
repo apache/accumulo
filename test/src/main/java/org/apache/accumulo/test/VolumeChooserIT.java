@@ -68,7 +68,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
   private static final String TP = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey();
   static final String PREFERRED_CHOOSER_PROP = TP + "volume.preferred";
-  static final String PERTABLE_CHOOSER_PROP = TP + "volume.chooser";
+  public static final String PERTABLE_CHOOSER_PROP = TP + "volume.chooser";
 
   private static final String GP = Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey();
 

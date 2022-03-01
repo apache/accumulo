@@ -19,10 +19,6 @@
 package org.apache.accumulo.test.functional;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-/**
- * Start a new table, create many splits, and offline before they can rebalance. Then try to have a
- * different table balance
- */
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -66,6 +62,10 @@ import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Start a new table, create many splits, and offline before they can rebalance. Then try to have a
+ * different table balance
+ */
 @Timeout(value = 10, unit = MINUTES)
 public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
@@ -143,7 +143,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
     log.debug("waiting for balancing, up to ~5 minutes to allow for migration cleanup.");
     final long startTime = System.currentTimeMillis();
-    long currentWait = 10 * 1000;
+    long currentWait = 10_000;
     boolean balancingWorked = false;
 
     Credentials creds = new Credentials(getAdminPrincipal(), getAdminToken());

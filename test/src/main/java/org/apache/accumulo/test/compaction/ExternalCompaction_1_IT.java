@@ -22,6 +22,12 @@ import static org.apache.accumulo.minicluster.ServerType.TABLET_SERVER;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.MAX_DATA;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE2;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE3;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE4;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE5;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE6;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE7;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE8;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.getFinalStatesForTable;
@@ -60,7 +66,6 @@ import org.apache.accumulo.core.client.admin.PluginConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.client.admin.compaction.CompressionConfigurer;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -208,14 +213,14 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       // Start our TServer that will not commit the compaction
       ProcessInfo tserverProcess = getCluster().exec(ExternalCompactionTServer.class);
 
-      createTable(client, table1, "cs1", 2);
+      createTable(client, table1, "cs3", 2);
       writeData(client, table1);
 
-      getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE1);
+      getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE3);
       getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
 
-      compact(client, table1, 2, QUEUE1, false);
-      TableId tid = Tables.getTableId(getCluster().getServerContext(), table1);
+      compact(client, table1, 2, QUEUE3, false);
+      TableId tid = getCluster().getServerContext().getTableId(table1);
 
       // Wait for the compaction to start by waiting for 1 external compaction column
       ExternalCompactionTestUtils
@@ -232,12 +237,12 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
         UtilWaitThread.sleep(250);
       }
 
-      getCluster().stopProcessWithTimeout(tserverProcess.getProcess(), 30, TimeUnit.SECONDS);
-      getCluster().getClusterControl().stop(ServerType.TABLET_SERVER);
       // We need to cancel the compaction or delete the table here because we initiate a user
       // compaction above in the test. Even though the external compaction was cancelled
       // because we split the table, FaTE will continue to queue up a compaction
       client.tableOperations().cancelCompaction(table1);
+      getCluster().stopProcessWithTimeout(tserverProcess.getProcess(), 30, TimeUnit.SECONDS);
+      getCluster().getClusterControl().stop(ServerType.TABLET_SERVER);
     } finally {
       // We stopped the TServer and started our own, restart the original TabletServers
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
@@ -251,14 +256,14 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     try (AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
-      createTable(client, table1, "cs1", 200);
+      createTable(client, table1, "cs4", 200);
 
       writeData(client, table1);
 
-      getCluster().getClusterControl().startCompactors(Compactor.class, 2, QUEUE1);
+      getCluster().getClusterControl().startCompactors(Compactor.class, 2, QUEUE4);
       getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
 
-      compact(client, table1, 3, QUEUE1, true);
+      compact(client, table1, 3, QUEUE4, true);
 
       verify(client, table1, 3);
     }
@@ -268,7 +273,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
   public void testConfigurer() throws Exception {
     String tableName = this.getUniqueNames(1)[0];
 
-    getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE1);
+    getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE5);
     getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
 
     try (AccumuloClient client =
@@ -276,7 +281,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
 
       Map<String,String> props = Map.of("table.compaction.dispatcher",
           SimpleCompactionDispatcher.class.getName(), "table.compaction.dispatcher.opts.service",
-          "cs1", Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none");
+          "cs5", Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none");
       NewTableConfiguration ntc = new NewTableConfiguration().setProperties(props);
       client.tableOperations().create(tableName, ntc);
 
@@ -342,11 +347,11 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
-      createTable(client, table1, "cs1");
+      createTable(client, table1, "cs6");
       writeData(client, table1);
-      getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE1);
+      getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE6);
       getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
-      compact(client, table1, 2, QUEUE1, true);
+      compact(client, table1, 2, QUEUE6, true);
       verify(client, table1, 2);
 
       IteratorSetting setting = new IteratorSetting(50, "delete", ExtDevNull.class);
@@ -381,16 +386,16 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
 
     try (final AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
-      createTable(client, table3, "cs1");
+      createTable(client, table3, "cs7");
       writeData(client, table3);
-      getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE1);
+      getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE7);
       getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
-      compact(client, table3, 2, QUEUE1, false);
+      compact(client, table3, 2, QUEUE7, false);
 
       // ExternalCompactionTServer will not commit the compaction. Wait for the
       // metadata table entries to show up.
       LOG.info("Waiting for external compaction to complete.");
-      TableId tid = Tables.getTableId(getCluster().getServerContext(), table3);
+      TableId tid = getCluster().getServerContext().getTableId(table3);
       Stream<ExternalCompactionFinalState> fs = getFinalStatesForTable(getCluster(), tid);
       while (fs.count() == 0) {
         LOG.info("Waiting for compaction completed marker to appear");
@@ -464,14 +469,14 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     try (final AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
-      getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE1);
+      getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE8);
       getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
 
-      createTable(client, tableName, "cs1");
+      createTable(client, tableName, "cs8");
 
       writeData(client, tableName);
       // This should create an A file
-      compact(client, tableName, 17, QUEUE1, true);
+      compact(client, tableName, 17, QUEUE8, true);
       verify(client, tableName, 17);
 
       try (BatchWriter bw = client.createBatchWriter(tableName)) {
@@ -488,7 +493,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       // run a compaction that only compacts F files
       IteratorSetting iterSetting = new IteratorSetting(100, TestFilter.class);
       // make sure iterator options make it to compactor process
-      iterSetting.addOption("expectedQ", QUEUE1);
+      iterSetting.addOption("expectedQ", QUEUE8);
       // compact F file w/ different modulus and user pmodulus option for partial compaction
       iterSetting.addOption("pmodulus", 19 + "");
       CompactionConfig config = new CompactionConfig().setIterators(List.of(iterSetting))

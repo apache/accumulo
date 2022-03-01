@@ -227,7 +227,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
         if (count == 0) {
           return;
         } else {
-          Thread.sleep(MILLISECONDS.convert(2, SECONDS));
+          Thread.sleep(SECONDS.toMillis(2));
         }
       }
       throw new IllegalStateException("Tablet servers didn't die!");

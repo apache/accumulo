@@ -93,7 +93,7 @@ public class SplitCancelsMajCIT extends SharedMiniClusterBase {
       c.tableOperations().addSplits(tableName, partitionKeys);
       thread.join();
       // wait for the restarted compaction
-      assertTrue(System.currentTimeMillis() - now > 59 * 1000);
+      assertTrue(System.currentTimeMillis() - now > 59_000);
       if (ex.get() != null)
         throw ex.get();
     }

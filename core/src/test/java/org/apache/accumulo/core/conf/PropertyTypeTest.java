@@ -28,24 +28,20 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.WithTestNames;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayNameGeneration;
-import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
 
 import com.google.common.base.Joiner;
 
-@DisplayNameGeneration(DisplayNameGenerator.Simple.class)
-public class PropertyTypeTest {
+public class PropertyTypeTest extends WithTestNames {
 
   private PropertyType type;
 
   @BeforeEach
-  public void getPropertyTypeForTest(TestInfo testInfo) {
-    String displayName = testInfo.getTestMethod().orElseThrow(IllegalStateException::new).getName();
-    if (displayName.startsWith("testType")) {
-      String tn = displayName.substring("testType".length());
+  public void getPropertyTypeForTest() {
+    if (testName().startsWith("testType")) {
+      String tn = testName().substring("testType".length());
       try {
         type = PropertyType.valueOf(tn);
       } catch (IllegalArgumentException e) {
@@ -59,7 +55,7 @@ public class PropertyTypeTest {
   public void testGetFormatDescription() {
     assertEquals(
         "An arbitrary string of characters whose format is unspecified"
-            + " and interpreted based on the context of the property to which it" + " applies.",
+            + " and interpreted based on the context of the property to which it applies.",
         PropertyType.STRING.getFormatDescription());
   }
 

@@ -66,7 +66,7 @@ public class ScanFlushWithTimeIT extends AccumuloClusterHarness {
       partitionKeys.add(new Text("5"));
       c.tableOperations().addSplits(tableName, partitionKeys);
       log.info("waiting for zookeeper propagation");
-      UtilWaitThread.sleep(5 * 1000);
+      UtilWaitThread.sleep(5_000);
       log.info("Adding a few entries");
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
         for (int i = 0; i < 10; i++) {

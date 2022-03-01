@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import javax.security.auth.DestroyFailedException;
 
+import org.apache.accumulo.core.WithTestNames;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
@@ -37,16 +38,12 @@ import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
 
-public class CredentialsTest {
-
-  private InstanceId instanceID;
+public class CredentialsTest extends WithTestNames {
 
   @Test
-  public void testToThrift(TestInfo testInfo) throws DestroyFailedException {
-    instanceID =
-        InstanceId.of(testInfo.getTestMethod().orElseThrow(IllegalStateException::new).getName());
+  public void testToThrift() throws DestroyFailedException {
+    var instanceID = InstanceId.of(testName());
     // verify thrift serialization
     Credentials creds = new Credentials("test", new PasswordToken("testing"));
     TCredentials tCreds = creds.toThrift(instanceID);
@@ -64,9 +61,8 @@ public class CredentialsTest {
   }
 
   @Test
-  public void roundtripThrift(TestInfo testInfo) {
-    instanceID =
-        InstanceId.of(testInfo.getTestMethod().orElseThrow(IllegalStateException::new).getName());
+  public void roundtripThrift() {
+    var instanceID = InstanceId.of(testName());
     Credentials creds = new Credentials("test", new PasswordToken("testing"));
     TCredentials tCreds = creds.toThrift(instanceID);
     Credentials roundtrip = Credentials.fromThrift(tCreds);
@@ -74,9 +70,7 @@ public class CredentialsTest {
   }
 
   @Test
-  public void testEqualsAndHashCode(TestInfo testInfo) {
-    instanceID =
-        InstanceId.of(testInfo.getTestMethod().orElseThrow(IllegalStateException::new).getName());
+  public void testEqualsAndHashCode() {
     Credentials nullNullCreds = new Credentials(null, null);
     Credentials abcNullCreds = new Credentials("abc", new NullToken());
     Credentials cbaNullCreds = new Credentials("cba", new NullToken());
@@ -101,9 +95,7 @@ public class CredentialsTest {
   }
 
   @Test
-  public void testCredentialsSerialization(TestInfo testInfo) {
-    instanceID =
-        InstanceId.of(testInfo.getTestMethod().orElseThrow(IllegalStateException::new).getName());
+  public void testCredentialsSerialization() {
     Credentials creds = new Credentials("a:b-c", new PasswordToken("d-e-f".getBytes(UTF_8)));
     String serialized = creds.serialize();
     Credentials result = Credentials.deserialize(serialized);
@@ -119,9 +111,7 @@ public class CredentialsTest {
   }
 
   @Test
-  public void testToString(TestInfo testInfo) {
-    instanceID =
-        InstanceId.of(testInfo.getTestMethod().orElseThrow(IllegalStateException::new).getName());
+  public void testToString() {
     Credentials creds = new Credentials(null, null);
     assertEquals(Credentials.class.getName() + ":null:null:<hidden>", creds.toString());
     creds = new Credentials("", new NullToken());

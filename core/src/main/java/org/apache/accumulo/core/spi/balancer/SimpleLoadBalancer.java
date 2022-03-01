@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.spi.balancer;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -28,7 +30,6 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -374,13 +375,13 @@ public class SimpleLoadBalancer implements TabletBalancer {
       if (params.currentMigrations().isEmpty()) {
         problemReporter.clearProblemReportTimes();
         if (getMigrations(params.currentStatus(), params.migrationsOut()))
-          return TimeUnit.SECONDS.toMillis(1);
+          return SECONDS.toMillis(1);
       } else {
         outstandingMigrationsProblem.setMigrations(params.currentMigrations());
         problemReporter.reportProblem(outstandingMigrationsProblem);
       }
     }
-    return 5 * 1000;
+    return 5_000;
   }
 
 }

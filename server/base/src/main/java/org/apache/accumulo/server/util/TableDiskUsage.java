@@ -37,7 +37,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
@@ -229,7 +228,7 @@ public class TableDiskUsage {
       }
     }
 
-    Map<TableId,String> reverseTableIdMap = Tables.getIdToNameMap((ClientContext) client);
+    Map<TableId,String> reverseTableIdMap = ((ClientContext) client).getTableIdToNameMap();
 
     TreeMap<TreeSet<String>,Long> usage = new TreeMap<>((o1, o2) -> {
       int len1 = o1.size();
@@ -286,7 +285,7 @@ public class TableDiskUsage {
 
     // Get table IDs for all tables requested to be 'du'
     for (String tableName : tableNames) {
-      TableId tableId = Tables.getTableId((ClientContext) client, tableName);
+      TableId tableId = ((ClientContext) client).getTableId(tableName);
       if (tableId == null)
         throw new TableNotFoundException(null, tableName, "Table " + tableName + " not found");
 

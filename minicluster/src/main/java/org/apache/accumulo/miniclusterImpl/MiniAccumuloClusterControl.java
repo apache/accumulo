@@ -143,6 +143,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     }
   }
 
+  @Override
   public synchronized void startCoordinator(Class<? extends CompactionCoordinator> coordinator)
       throws IOException {
     if (coordinatorProcess == null) {
@@ -162,6 +163,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     }
   }
 
+  @Override
   public synchronized void startCompactors(Class<? extends Compactor> compactor, int limit,
       String queueName) throws IOException {
     synchronized (compactorProcesses) {
