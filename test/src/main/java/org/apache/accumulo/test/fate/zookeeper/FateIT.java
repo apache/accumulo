@@ -33,6 +33,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.File;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
@@ -59,8 +60,10 @@ import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.KeeperException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -111,6 +114,10 @@ public class FateIT {
 
   private static final Logger LOG = LoggerFactory.getLogger(FateIT.class);
 
+  @ClassRule
+  public static final TemporaryFolder TEMP =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+
   private static ZooKeeperTestingServer szk = null;
   private static final String ZK_ROOT = "/accumulo/" + UUID.randomUUID().toString();
   private static final NamespaceId NS = NamespaceId.of("testNameSpace");
@@ -121,7 +128,7 @@ public class FateIT {
 
   @BeforeClass
   public static void setup() throws Exception {
-    szk = new ZooKeeperTestingServer();
+    szk = new ZooKeeperTestingServer(TEMP.newFolder());
     ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
     zk.mkdirs(ZK_ROOT + Constants.ZFATE);
     zk.mkdirs(ZK_ROOT + Constants.ZTABLE_LOCKS);

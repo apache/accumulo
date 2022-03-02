@@ -27,7 +27,7 @@ import static org.apache.accumulo.core.client.summary.CountingSummarizer.MAX_COU
 import static org.apache.accumulo.core.client.summary.CountingSummarizer.SEEN_STAT;
 import static org.apache.accumulo.core.client.summary.CountingSummarizer.TOO_LONG_STAT;
 import static org.apache.accumulo.core.client.summary.CountingSummarizer.TOO_MANY_STAT;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -37,7 +37,7 @@ import org.apache.accumulo.core.client.summary.summarizers.FamilySummarizer;
 import org.apache.accumulo.core.client.summary.summarizers.VisibilitySummarizer;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CountingSummarizerTest {
 

@@ -59,7 +59,6 @@ import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.core.classloader.annotations.SuppressStaticInitializationFor;
 import org.powermock.modules.junit4.PowerMockRunner;
-import org.powermock.reflect.Whitebox;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -298,24 +297,17 @@ public class CompactorTest {
 
   @Test
   public void testCheckTime() throws Exception {
-    // Instantiates class without calling constructor
-    Compactor c = Whitebox.newInstance(Compactor.class);
-    assertEquals(1, c.calculateProgressCheckTime(1024));
-    assertEquals(1, c.calculateProgressCheckTime(1048576));
-    assertEquals(1, c.calculateProgressCheckTime(10485760));
-    assertEquals(10, c.calculateProgressCheckTime(104857600));
-    assertEquals(102, c.calculateProgressCheckTime(1024 * 1024 * 1024));
+    assertEquals(1, Compactor.calculateProgressCheckTime(1024));
+    assertEquals(1, Compactor.calculateProgressCheckTime(1048576));
+    assertEquals(1, Compactor.calculateProgressCheckTime(10485760));
+    assertEquals(10, Compactor.calculateProgressCheckTime(104857600));
+    assertEquals(102, Compactor.calculateProgressCheckTime(1024 * 1024 * 1024));
   }
 
   @Test
   public void testCompactionSucceeds() throws Exception {
     UUID uuid = UUID.randomUUID();
-    Supplier<UUID> supplier = new Supplier<>() {
-      @Override
-      public UUID get() {
-        return uuid;
-      }
-    };
+    Supplier<UUID> supplier = () -> uuid;
 
     ExternalCompactionId eci = ExternalCompactionId.generate(supplier.get());
 
@@ -362,12 +354,7 @@ public class CompactorTest {
   @Test
   public void testCompactionFails() throws Exception {
     UUID uuid = UUID.randomUUID();
-    Supplier<UUID> supplier = new Supplier<>() {
-      @Override
-      public UUID get() {
-        return uuid;
-      }
-    };
+    Supplier<UUID> supplier = () -> uuid;
 
     ExternalCompactionId eci = ExternalCompactionId.generate(supplier.get());
 
@@ -416,12 +403,7 @@ public class CompactorTest {
   @Test
   public void testCompactionInterrupted() throws Exception {
     UUID uuid = UUID.randomUUID();
-    Supplier<UUID> supplier = new Supplier<>() {
-      @Override
-      public UUID get() {
-        return uuid;
-      }
-    };
+    Supplier<UUID> supplier = () -> uuid;
 
     ExternalCompactionId eci = ExternalCompactionId.generate(supplier.get());
 

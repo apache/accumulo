@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
+
 import java.security.SecureRandom;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -371,7 +373,7 @@ public class ThriftTransportPool {
   private static final Logger log = LoggerFactory.getLogger(ThriftTransportPool.class);
 
   private static final Long ERROR_THRESHOLD = 20L;
-  private static final int STUCK_THRESHOLD = 2 * 60 * 1000;
+  private static final long STUCK_THRESHOLD = MINUTES.toMillis(2);
 
   private static class CachedConnection {
 

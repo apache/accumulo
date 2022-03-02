@@ -18,12 +18,12 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.LinkedList;
 
 import org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlockQueue;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TestCachedBlockQueue {
 

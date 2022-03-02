@@ -18,50 +18,53 @@
  */
 package org.apache.accumulo.core.classloader;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.net.URLClassLoader;
+import java.util.Objects;
 
+import org.apache.accumulo.core.WithTestNames;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.commons.io.FileUtils;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
-public class ContextClassLoaderFactoryTest {
+public class ContextClassLoaderFactoryTest extends WithTestNames {
 
-  @Rule
-  public TemporaryFolder tempFolder =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File tempFolder;
 
-  private File folder1;
-  private File folder2;
   private String uri1;
   private String uri2;
 
-  @Before
+  @BeforeEach
   public void setup() throws Exception {
 
-    folder1 = tempFolder.newFolder();
-    FileUtils.copyURLToFile(this.getClass().getResource("/accumulo.properties"),
+    File folder1 = new File(tempFolder, testName() + "_1");
+    assertTrue(folder1.isDirectory() || folder1.mkdir(), "Failed to make a new sub-directory");
+    FileUtils.copyURLToFile(
+        Objects.requireNonNull(this.getClass().getResource("/accumulo.properties")),
         new File(folder1, "accumulo.properties"));
     uri1 = new File(folder1, "accumulo.properties").toURI().toString();
 
-    folder2 = tempFolder.newFolder();
-    FileUtils.copyURLToFile(this.getClass().getResource("/accumulo2.properties"),
+    File folder2 = new File(tempFolder, testName() + "_2");
+    assertTrue(folder2.isDirectory() || folder2.mkdir(), "Failed to make a new sub-directory");
+    FileUtils.copyURLToFile(
+        Objects.requireNonNull(this.getClass().getResource("/accumulo2.properties")),
         new File(folder2, "accumulo2.properties"));
     uri2 = folder2.toURI() + ".*";
 
   }
 
   @Test
-  public void differentContexts() throws Exception {
+  public void differentContexts() {
 
     ConfigurationCopy cc = new ConfigurationCopy();
     cc.set(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY.getKey(),

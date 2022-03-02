@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.file;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -30,7 +32,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.bloomfilter.DynamicBloomFilter;
@@ -78,8 +79,8 @@ public class BloomFilterLayer {
     }
 
     if (maxLoadThreads > 0) {
-      loadThreadPool = ThreadPools.createThreadPool(0, maxLoadThreads, 60, TimeUnit.SECONDS,
-          "bloom-loader", false);
+      loadThreadPool =
+          ThreadPools.createThreadPool(0, maxLoadThreads, 60, SECONDS, "bloom-loader", false);
     }
 
     return loadThreadPool;

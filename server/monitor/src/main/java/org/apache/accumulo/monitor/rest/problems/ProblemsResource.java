@@ -38,7 +38,6 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.problems.ProblemReport;
@@ -85,7 +84,7 @@ public class ProblemsResource {
           }
         }
 
-        String tableName = Tables.getPrintableTableInfoFromId(monitor.getContext(), entry.getKey());
+        String tableName = monitor.getContext().getPrintableTableInfoFromId(entry.getKey());
 
         problems.addProblemSummary(new ProblemSummaryInformation(tableName, entry.getKey(),
             readCount, writeCount, loadCount));
@@ -135,8 +134,7 @@ public class ProblemsResource {
           problemReports.add(iter.next());
         }
         for (ProblemReport pr : problemReports) {
-          String tableName =
-              Tables.getPrintableTableInfoFromId(monitor.getContext(), pr.getTableId());
+          String tableName = monitor.getContext().getPrintableTableInfoFromId(pr.getTableId());
 
           problems.addProblemDetail(
               new ProblemDetailInformation(tableName, entry.getKey(), pr.getProblemType().name(),

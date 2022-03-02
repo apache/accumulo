@@ -18,12 +18,13 @@
  */
 package org.apache.accumulo.core.client.admin;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static java.util.concurrent.TimeUnit.DAYS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.util.concurrent.TimeUnit;
-
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class DelegationTokenConfigTest {
 
@@ -32,11 +33,10 @@ public class DelegationTokenConfigTest {
     DelegationTokenConfig config1 = new DelegationTokenConfig(),
         config2 = new DelegationTokenConfig();
 
-    config1.setTokenLifetime(1000, TimeUnit.MILLISECONDS);
-    config2.setTokenLifetime(1, TimeUnit.SECONDS);
+    config1.setTokenLifetime(1000, MILLISECONDS);
+    config2.setTokenLifetime(1, SECONDS);
 
-    assertEquals(config1.getTokenLifetime(TimeUnit.MILLISECONDS),
-        config2.getTokenLifetime(TimeUnit.MILLISECONDS));
+    assertEquals(config1.getTokenLifetime(MILLISECONDS), config2.getTokenLifetime(MILLISECONDS));
     assertEquals(config1, config2);
     assertEquals(config1.hashCode(), config2.hashCode());
   }
@@ -45,16 +45,16 @@ public class DelegationTokenConfigTest {
   public void testNoTimeout() {
     DelegationTokenConfig config = new DelegationTokenConfig();
 
-    config.setTokenLifetime(0, TimeUnit.MILLISECONDS);
+    config.setTokenLifetime(0, MILLISECONDS);
 
-    assertEquals(0, config.getTokenLifetime(TimeUnit.MILLISECONDS));
+    assertEquals(0, config.getTokenLifetime(MILLISECONDS));
 
   }
 
   @Test
   public void testInvalidLifetime() {
     assertThrows(IllegalArgumentException.class,
-        () -> new DelegationTokenConfig().setTokenLifetime(-1, TimeUnit.DAYS));
+        () -> new DelegationTokenConfig().setTokenLifetime(-1, DAYS));
   }
 
   @Test

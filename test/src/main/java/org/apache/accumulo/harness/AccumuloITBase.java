@@ -21,6 +21,7 @@ package org.apache.accumulo.harness;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.concurrent.TimeUnit;
 
@@ -118,5 +119,20 @@ public class AccumuloITBase {
    */
   protected int defaultTimeoutSeconds() {
     return 600;
+  }
+
+  @SuppressFBWarnings(value = "UI_INHERITANCE_UNSAFE_GETRESOURCE", justification = "for testing")
+  protected File initJar(String jarResourcePath, String namePrefix, String testDir)
+      throws IOException {
+    var testFileDir = new File(testDir);
+    File jar = File.createTempFile(namePrefix, ".jar", testFileDir);
+    var url = this.getClass().getResource(jarResourcePath);
+    if (url == null) {
+      throw new IllegalStateException("Can't find the jar: " + jarResourcePath);
+    }
+    FileUtils.copyInputStreamToFile(url.openStream(), jar);
+    jar.deleteOnExit();
+
+    return jar;
   }
 }

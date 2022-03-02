@@ -18,16 +18,16 @@
  */
 package org.apache.accumulo.core.client.mapreduce;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @Deprecated(since = "2.0.0")
 public class AccumuloOutputFormatTest {
@@ -38,14 +38,14 @@ public class AccumuloOutputFormatTest {
 
     // make sure we aren't testing defaults
     final BatchWriterConfig bwDefaults = new BatchWriterConfig();
-    assertNotEquals(7654321L, bwDefaults.getMaxLatency(TimeUnit.MILLISECONDS));
-    assertNotEquals(9898989L, bwDefaults.getTimeout(TimeUnit.MILLISECONDS));
+    assertNotEquals(7654321L, bwDefaults.getMaxLatency(MILLISECONDS));
+    assertNotEquals(9898989L, bwDefaults.getTimeout(MILLISECONDS));
     assertNotEquals(42, bwDefaults.getMaxWriteThreads());
     assertNotEquals(1123581321L, bwDefaults.getMaxMemory());
 
     final BatchWriterConfig bwConfig = new BatchWriterConfig();
-    bwConfig.setMaxLatency(7654321L, TimeUnit.MILLISECONDS);
-    bwConfig.setTimeout(9898989L, TimeUnit.MILLISECONDS);
+    bwConfig.setMaxLatency(7654321L, MILLISECONDS);
+    bwConfig.setTimeout(9898989L, MILLISECONDS);
     bwConfig.setMaxWriteThreads(42);
     bwConfig.setMaxMemory(1123581321L);
     AccumuloOutputFormat.setBatchWriterOptions(job, bwConfig);
@@ -56,16 +56,14 @@ public class AccumuloOutputFormatTest {
         BatchWriterConfig bwOpts = getBatchWriterOptions(job);
 
         // passive check
-        assertEquals(bwConfig.getMaxLatency(TimeUnit.MILLISECONDS),
-            bwOpts.getMaxLatency(TimeUnit.MILLISECONDS));
-        assertEquals(bwConfig.getTimeout(TimeUnit.MILLISECONDS),
-            bwOpts.getTimeout(TimeUnit.MILLISECONDS));
+        assertEquals(bwConfig.getMaxLatency(MILLISECONDS), bwOpts.getMaxLatency(MILLISECONDS));
+        assertEquals(bwConfig.getTimeout(MILLISECONDS), bwOpts.getTimeout(MILLISECONDS));
         assertEquals(bwConfig.getMaxWriteThreads(), bwOpts.getMaxWriteThreads());
         assertEquals(bwConfig.getMaxMemory(), bwOpts.getMaxMemory());
 
         // explicit check
-        assertEquals(7654321L, bwOpts.getMaxLatency(TimeUnit.MILLISECONDS));
-        assertEquals(9898989L, bwOpts.getTimeout(TimeUnit.MILLISECONDS));
+        assertEquals(7654321L, bwOpts.getMaxLatency(MILLISECONDS));
+        assertEquals(9898989L, bwOpts.getTimeout(MILLISECONDS));
         assertEquals(42, bwOpts.getMaxWriteThreads());
         assertEquals(1123581321L, bwOpts.getMaxMemory());
 

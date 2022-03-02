@@ -19,15 +19,16 @@
 package org.apache.accumulo.core.security;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import javax.security.auth.DestroyFailedException;
 
+import org.apache.accumulo.core.WithTestNames;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
@@ -36,20 +37,13 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.Test;
 
-public class CredentialsTest {
-
-  @Rule
-  public TestName test = new TestName();
-
-  private InstanceId instanceID;
+public class CredentialsTest extends WithTestNames {
 
   @Test
   public void testToThrift() throws DestroyFailedException {
-    instanceID = InstanceId.of(test.getMethodName());
+    var instanceID = InstanceId.of(testName());
     // verify thrift serialization
     Credentials creds = new Credentials("test", new PasswordToken("testing"));
     TCredentials tCreds = creds.toThrift(instanceID);
@@ -61,23 +55,22 @@ public class CredentialsTest {
     // verify that we can't serialize if it's destroyed
     creds.getToken().destroy();
     Exception e = assertThrows(RuntimeException.class, () -> creds.toThrift(instanceID));
-    assertTrue(e.getCause() instanceof AccumuloSecurityException);
+    assertSame(AccumuloSecurityException.class, e.getCause().getClass());
     assertEquals(AccumuloSecurityException.class.cast(e.getCause()).getSecurityErrorCode(),
         SecurityErrorCode.TOKEN_EXPIRED);
   }
 
   @Test
   public void roundtripThrift() {
-    instanceID = InstanceId.of(test.getMethodName());
+    var instanceID = InstanceId.of(testName());
     Credentials creds = new Credentials("test", new PasswordToken("testing"));
     TCredentials tCreds = creds.toThrift(instanceID);
     Credentials roundtrip = Credentials.fromThrift(tCreds);
-    assertEquals("Roundtrip through thirft changed credentials equality", creds, roundtrip);
+    assertEquals(creds, roundtrip, "Round-trip through thrift changed credentials equality");
   }
 
   @Test
   public void testEqualsAndHashCode() {
-    instanceID = InstanceId.of(test.getMethodName());
     Credentials nullNullCreds = new Credentials(null, null);
     Credentials abcNullCreds = new Credentials("abc", new NullToken());
     Credentials cbaNullCreds = new Credentials("cba", new NullToken());
@@ -103,7 +96,6 @@ public class CredentialsTest {
 
   @Test
   public void testCredentialsSerialization() {
-    instanceID = InstanceId.of(test.getMethodName());
     Credentials creds = new Credentials("a:b-c", new PasswordToken("d-e-f".getBytes(UTF_8)));
     String serialized = creds.serialize();
     Credentials result = Credentials.deserialize(serialized);
@@ -120,7 +112,6 @@ public class CredentialsTest {
 
   @Test
   public void testToString() {
-    instanceID = InstanceId.of(test.getMethodName());
     Credentials creds = new Credentials(null, null);
     assertEquals(Credentials.class.getName() + ":null:null:<hidden>", creds.toString());
     creds = new Credentials("", new NullToken());

@@ -18,25 +18,23 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
-import static org.easymock.EasyMock.createMock;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
-import org.apache.zookeeper.Watcher;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ZooCacheFactoryTest {
   private ZooCacheFactory zcf;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     zcf = new ZooCacheFactory();
   }
 
-  @After
+  @AfterEach
   public void tearDown() {
     zcf.reset();
   }
@@ -61,22 +59,16 @@ public class ZooCacheFactoryTest {
   }
 
   @Test
-  public void testGetZooCacheWatcher() {
+  public void testGetNewZooCache() {
     String zks1 = "zk1";
     int timeout1 = 1000;
-    Watcher watcher = createMock(Watcher.class);
-    ZooCache zc1 = zcf.getZooCache(zks1, timeout1, watcher);
-    assertNotNull(zc1);
-  }
-
-  @Test
-  public void testGetZooCacheWatcher_Null() {
-    String zks1 = "zk1";
-    int timeout1 = 1000;
-    ZooCache zc1 = zcf.getZooCache(zks1, timeout1, null);
+    ZooCache zc1 = zcf.getNewZooCache(zks1, timeout1);
     assertNotNull(zc1);
     ZooCache zc1a = zcf.getZooCache(zks1, timeout1);
-    assertSame(zc1, zc1a);
+    assertNotSame(zc1, zc1a);
+    ZooCache zc1b = zcf.getNewZooCache(zks1, timeout1);
+    assertNotSame(zc1, zc1b);
+    assertNotSame(zc1a, zc1b);
   }
 
   @Test

@@ -50,7 +50,6 @@ import org.apache.accumulo.core.client.admin.InitialTableState;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.UserCompactionUtils;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
@@ -68,6 +67,7 @@ import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.Validator;
+import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.manager.tableOps.ChangeTableState;
@@ -114,7 +114,7 @@ class FateServiceHandler implements FateService.Iface {
       List<ByteBuffer> arguments, Map<String,String> options, boolean autoCleanup)
       throws ThriftSecurityException, ThriftTableOperationException {
     authenticate(c);
-    String goalMessage = "Op: " + op.toString() + " ";
+    String goalMessage = op.toString() + " ";
 
     switch (op) {
       case NAMESPACE_CREATE: {
@@ -197,8 +197,8 @@ class FateServiceHandler implements FateService.Iface {
         NamespaceId namespaceId;
 
         try {
-          namespaceId =
-              Namespaces.getNamespaceId(manager.getContext(), Tables.qualify(tableName).getFirst());
+          namespaceId = Namespaces.getNamespaceId(manager.getContext(),
+              TableNameUtil.qualify(tableName).getFirst());
         } catch (NamespaceNotFoundException e) {
           throw new ThriftTableOperationException(null, tableName, tableOp,
               TableOperationExceptionType.NAMESPACE_NOTFOUND, "");
@@ -275,8 +275,8 @@ class FateServiceHandler implements FateService.Iface {
 
         NamespaceId namespaceId;
         try {
-          namespaceId =
-              Namespaces.getNamespaceId(manager.getContext(), Tables.qualify(tableName).getFirst());
+          namespaceId = Namespaces.getNamespaceId(manager.getContext(),
+              TableNameUtil.qualify(tableName).getFirst());
         } catch (NamespaceNotFoundException e) {
           // shouldn't happen, but possible once cloning between namespaces is supported
           throw new ThriftTableOperationException(null, tableName, tableOp,
@@ -555,8 +555,8 @@ class FateServiceHandler implements FateService.Iface {
         Set<String> exportDirs = ByteBufferUtil.toStringSet(exportDirArgs);
         NamespaceId namespaceId;
         try {
-          namespaceId =
-              Namespaces.getNamespaceId(manager.getContext(), Tables.qualify(tableName).getFirst());
+          namespaceId = Namespaces.getNamespaceId(manager.getContext(),
+              TableNameUtil.qualify(tableName).getFirst());
         } catch (NamespaceNotFoundException e) {
           throw new ThriftTableOperationException(null, tableName, tableOp,
               TableOperationExceptionType.NAMESPACE_NOTFOUND, "");
@@ -620,7 +620,7 @@ class FateServiceHandler implements FateService.Iface {
         final boolean canBulkImport;
         String tableName;
         try {
-          tableName = Tables.getTableName(manager.getContext(), tableId);
+          tableName = manager.getContext().getTableName(tableId);
           canBulkImport =
               manager.security.canBulkImport(c, tableId, tableName, dir, null, namespaceId);
         } catch (ThriftSecurityException e) {
@@ -650,7 +650,7 @@ class FateServiceHandler implements FateService.Iface {
       throws ThriftTableOperationException {
     NamespaceId namespaceId;
     try {
-      namespaceId = Tables.getNamespaceId(manager.getContext(), tableId);
+      namespaceId = manager.getContext().getNamespaceId(tableId);
     } catch (TableNotFoundException e) {
       throw new ThriftTableOperationException(tableId.canonical(), null, tableOp,
           TableOperationExceptionType.NOTFOUND, e.getMessage());

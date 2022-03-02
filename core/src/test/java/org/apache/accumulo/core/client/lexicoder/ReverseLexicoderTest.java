@@ -25,7 +25,7 @@ import java.util.Comparator;
 import java.util.Date;
 
 import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoderTest;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ReverseLexicoderTest extends AbstractLexicoderTest {
 

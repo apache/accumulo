@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.clientImpl;
+package org.apache.accumulo.core.util.tables;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -26,6 +26,9 @@ import java.util.Map;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.Namespace;
+import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
@@ -46,9 +49,9 @@ public class TableMap {
   private final ZooCache zooCache;
   private final long updateCount;
 
-  public TableMap(ClientContext context, ZooCache zooCache) {
+  public TableMap(ClientContext context) {
 
-    this.zooCache = zooCache;
+    this.zooCache = context.getZooCache();
     // important to read this first
     this.updateCount = zooCache.getUpdateCount();
 
@@ -92,7 +95,7 @@ public class TableMap {
         }
       }
       if (tableName != null && namespaceName != null) {
-        String tableNameStr = Tables.qualified(new String(tableName, UTF_8), namespaceName);
+        String tableNameStr = TableNameUtil.qualified(new String(tableName, UTF_8), namespaceName);
         TableId tableId = TableId.of(tableIdStr);
         tableNameToIdBuilder.put(tableNameStr, tableId);
         tableIdToNameBuilder.put(tableId, tableNameStr);

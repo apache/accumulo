@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.tserver.compactions;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.apache.accumulo.core.util.compaction.CompactionServicesConfig.DEFAULT_SERVICE;
 
 import java.util.Collection;
@@ -29,7 +32,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.conf.Property;
@@ -101,17 +103,15 @@ public class CompactionManager {
 
     long increment = Math.max(1, maxTimeBetweenChecks / 10);
 
-    var retryFactory = Retry.builder().infiniteRetries()
-        .retryAfter(increment, TimeUnit.MILLISECONDS).incrementBy(increment, TimeUnit.MILLISECONDS)
-        .maxWait(maxTimeBetweenChecks, TimeUnit.MILLISECONDS).backOffFactor(1.07)
-        .logInterval(1, TimeUnit.MINUTES).createFactory();
+    var retryFactory = Retry.builder().infiniteRetries().retryAfter(increment, MILLISECONDS)
+        .incrementBy(increment, MILLISECONDS).maxWait(maxTimeBetweenChecks, MILLISECONDS)
+        .backOffFactor(1.07).logInterval(1, MINUTES).createFactory();
     var retry = retryFactory.createRetry();
     Compactable last = null;
 
     while (true) {
       try {
-        long passed = TimeUnit.MILLISECONDS.convert(System.nanoTime() - lastCheckAllTime,
-            TimeUnit.NANOSECONDS);
+        long passed = NANOSECONDS.toMillis(System.nanoTime() - lastCheckAllTime);
         if (passed >= maxTimeBetweenChecks) {
           // take a snapshot of what is currently running
           HashSet<ExternalCompactionId> runningEcids =
@@ -127,8 +127,7 @@ public class CompactionManager {
           // still exists
           runningExternalCompactions.keySet().removeAll(runningEcids);
         } else {
-          var compactable =
-              compactablesToCheck.poll(maxTimeBetweenChecks - passed, TimeUnit.MILLISECONDS);
+          var compactable = compactablesToCheck.poll(maxTimeBetweenChecks - passed, MILLISECONDS);
           if (compactable != null) {
             last = compactable;
             submitCompaction(compactable);
@@ -225,7 +224,7 @@ public class CompactionManager {
   private synchronized void checkForConfigChanges(boolean force) {
     try {
       final long secondsSinceLastCheck =
-          TimeUnit.SECONDS.convert(System.nanoTime() - lastConfigCheckTime, TimeUnit.NANOSECONDS);
+          NANOSECONDS.toSeconds(System.nanoTime() - lastConfigCheckTime);
       if (!force && (secondsSinceLastCheck < 1)) {
         return;
       }

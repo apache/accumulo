@@ -18,14 +18,14 @@
  */
 package org.apache.accumulo.core.util;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.concurrent.TimeUnit;
-
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,8 +56,7 @@ public class OpTimerTest {
 
     long tValue = timer.now();
 
-    log.debug("Time value before reset {}",
-        String.format("%.3f ms", timer.scale(TimeUnit.MILLISECONDS)));
+    log.debug("Time value before reset {}", String.format("%.3f ms", timer.scale(MILLISECONDS)));
 
     timer.reset().start();
 
@@ -76,8 +75,7 @@ public class OpTimerTest {
 
     timer.reset();
 
-    log.debug("Time value after reset {}",
-        String.format("%.3f ms", timer.scale(TimeUnit.MILLISECONDS)));
+    log.debug("Time value after reset {}", String.format("%.3f ms", timer.scale(MILLISECONDS)));
 
     assertEquals(0, timer.now());
 
@@ -163,7 +161,7 @@ public class OpTimerTest {
     long tValue = timer.now();
 
     log.debug("Time value after first stop {}",
-        String.format("%.3f ms", timer.scale(TimeUnit.MILLISECONDS)));
+        String.format("%.3f ms", timer.scale(MILLISECONDS)));
 
     timer.start();
 
@@ -177,7 +175,7 @@ public class OpTimerTest {
     timer.stop();
 
     log.debug("Time value after second stop {}",
-        String.format("%.3f ms", timer.scale(TimeUnit.MILLISECONDS)));
+        String.format("%.3f ms", timer.scale(MILLISECONDS)));
 
     assertTrue(tValue < timer.now());
 
@@ -201,9 +199,9 @@ public class OpTimerTest {
 
     long tValue = timer.now();
 
-    assertEquals(tValue / 1000000.0, timer.scale(TimeUnit.MILLISECONDS), 0.00000001);
+    assertEquals(tValue / 1000000.0, timer.scale(MILLISECONDS), 0.00000001);
 
-    assertEquals(tValue / 1000000000.0, timer.scale(TimeUnit.SECONDS), 0.00000001);
+    assertEquals(tValue / 1000000000.0, timer.scale(SECONDS), 0.00000001);
 
   }
 }

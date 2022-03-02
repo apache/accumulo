@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.Iterator;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.data.Key;
@@ -176,7 +176,7 @@ public class LinkingIterator implements Iterator<TabletMetadata> {
       }
 
       if (currTablet == null) {
-        sleepUninterruptibly(sleepTime, TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(sleepTime, MILLISECONDS);
         resetSource();
         sleepTime = Math.min(2 * sleepTime, 5000);
       }

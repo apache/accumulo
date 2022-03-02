@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.core.data;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ConstraintViolationSummaryTest {
 
@@ -35,7 +35,7 @@ public class ConstraintViolationSummaryTest {
     cvs = new ConstraintViolationSummary(null, (short) 2, null, 101L);
     assertEquals(
         "ConstraintViolationSummary(constrainClass:null,"
-            + " violationCode:2, violationDescription:null," + " numberOfViolatingMutations:101)",
+            + " violationCode:2, violationDescription:null, numberOfViolatingMutations:101)",
         cvs.toString());
   }
 }

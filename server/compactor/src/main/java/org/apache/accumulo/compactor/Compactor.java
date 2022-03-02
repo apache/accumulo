@@ -19,6 +19,7 @@
 package org.apache.accumulo.compactor;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
@@ -41,7 +42,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
@@ -134,7 +134,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
   private static final Logger LOG = LoggerFactory.getLogger(Compactor.class);
   private static final long TIME_BETWEEN_GC_CHECKS = 5000;
-  private static final long TIME_BETWEEN_CANCEL_CHECKS = 5 * 60 * 1000;
+  private static final long TIME_BETWEEN_CANCEL_CHECKS = MINUTES.toMillis(5);
 
   private static final long TEN_MEGABYTES = 10485760;
   private static final CompactionCoordinatorService.Client.Factory COORDINATOR_CLIENT_FACTORY =
@@ -372,7 +372,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       throws TException {
     TableId tableId = JOB_HOLDER.getTableId();
     try {
-      NamespaceId nsId = Tables.getNamespaceId(getContext(), tableId);
+      NamespaceId nsId = getContext().getNamespaceId(tableId);
       if (!security.canCompact(credentials, tableId, nsId)) {
         throw new AccumuloSecurityException(credentials.getPrincipal(),
             SecurityErrorCode.PERMISSION_DENIED).asThriftException();
@@ -621,7 +621,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
    *          number of bytes in input file
    * @return number of seconds to wait between progress checks
    */
-  protected long calculateProgressCheckTime(long numBytes) {
+  static long calculateProgressCheckTime(long numBytes) {
     return Math.max(1, (numBytes / TEN_MEGABYTES));
   }
 

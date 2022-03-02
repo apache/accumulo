@@ -18,18 +18,18 @@
  */
 package org.apache.accumulo.core.conf;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.ConfigCheckUtil.ConfigCheckException;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ConfigCheckUtilTest {
   private Map<String,String> m;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     m = new java.util.HashMap<>();
   }

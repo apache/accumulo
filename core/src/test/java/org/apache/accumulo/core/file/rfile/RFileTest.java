@@ -18,12 +18,12 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -90,10 +90,9 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.PositionedReadable;
 import org.apache.hadoop.fs.Seekable;
 import org.apache.hadoop.io.Text;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hasher;
@@ -129,11 +128,10 @@ public class RFileTest {
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
   private static final Configuration hadoopConf = new Configuration();
 
-  @Rule
-  public TemporaryFolder tempFolder =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File tempDir;
 
-  @BeforeClass
+  @BeforeAll
   public static void setupCryptoKeyFile() throws Exception {
     CryptoTest.setupKeyFiles(RFileTest.class);
   }
@@ -2229,7 +2227,7 @@ public class RFileTest {
     FileSKVIterator iiter = trf.reader.getIndex();
     while (iiter.hasTop()) {
       Key k = iiter.getTopKey();
-      assertTrue(k + " " + k.getSize() + " >= 20", k.getSize() < 20);
+      assertTrue(k.getSize() < 20, k + " " + k.getSize() + " >= 20");
       iiter.next();
     }
 
@@ -2322,7 +2320,7 @@ public class RFileTest {
 
     if (true) {
       FileOutputStream fileOutputStream =
-          new FileOutputStream(tempFolder.newFile("testEncryptedRootFile.rf"));
+          new FileOutputStream(new File(tempDir, "testEncryptedRootFile.rf"));
       fileOutputStream.write(testRfile.baos.toByteArray());
       fileOutputStream.flush();
       fileOutputStream.close();

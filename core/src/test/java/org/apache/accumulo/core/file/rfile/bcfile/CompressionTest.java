@@ -18,10 +18,11 @@
  */
 package org.apache.accumulo.core.file.rfile.bcfile;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,90 +32,101 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.file.rfile.bcfile.Compression.Algorithm;
+import org.apache.accumulo.core.spi.file.rfile.compression.Bzip2;
+import org.apache.accumulo.core.spi.file.rfile.compression.Gz;
+import org.apache.accumulo.core.spi.file.rfile.compression.Lz4;
+import org.apache.accumulo.core.spi.file.rfile.compression.Lzo;
+import org.apache.accumulo.core.spi.file.rfile.compression.Snappy;
+import org.apache.accumulo.core.spi.file.rfile.compression.ZStandard;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.util.ReflectionUtils;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class CompressionTest {
 
-  HashMap<Compression.Algorithm,Boolean> isSupported = new HashMap<>();
+  HashMap<CompressionAlgorithm,Boolean> isSupported = new HashMap<>();
 
-  @Before
-  public void testSupport() {
-    // we can safely assert that GZ exists by virtue of it being the DefaultCodec
-    isSupported.put(Compression.Algorithm.GZ, true);
-
+  @BeforeEach
+  public void testSupport() throws ClassNotFoundException {
     Configuration myConf = new Configuration();
 
-    String extClazz = System.getProperty(Compression.Algorithm.CONF_LZO_CLASS);
-    String clazz = (extClazz != null) ? extClazz : "org.apache.hadoop.io.compress.LzoCodec";
+    Gz gz = new Gz();
+    String extClazz = gz.getCodecClassNameProperty();
+    String clazz = (extClazz != null) ? extClazz : gz.getCodecClassName();
+    CompressionCodec codec =
+        (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
+
+    assertNotNull(codec);
+    isSupported.put(new CompressionAlgorithm(gz, myConf), true);
+
+    Lzo lzo = new Lzo();
+    extClazz = lzo.getCodecClassNameProperty();
+    clazz = (extClazz != null) ? extClazz : lzo.getCodecClassName();
     try {
-      CompressionCodec codec =
-          (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
+      codec = (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
 
       assertNotNull(codec);
-      isSupported.put(Compression.Algorithm.LZO, true);
+      isSupported.put(new CompressionAlgorithm(lzo, myConf), true);
 
     } catch (ClassNotFoundException e) {
       // that is okay
     }
 
-    extClazz = System.getProperty(Compression.Algorithm.CONF_LZ4_CLASS);
-    clazz = (extClazz != null) ? extClazz : "org.apache.hadoop.io.compress.Lz4Codec";
+    Lz4 lz4 = new Lz4();
+    extClazz = lz4.getCodecClassNameProperty();
+    clazz = (extClazz != null) ? extClazz : lz4.getCodecClassName();
     try {
-      CompressionCodec codec =
-          (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
+      codec = (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
 
       assertNotNull(codec);
 
-      isSupported.put(Compression.Algorithm.LZ4, true);
+      isSupported.put(new CompressionAlgorithm(lz4, myConf), true);
 
     } catch (ClassNotFoundException e) {
       // that is okay
     }
 
-    extClazz = System.getProperty(Compression.Algorithm.CONF_BZIP2_CLASS);
-    clazz = (extClazz != null) ? extClazz : "org.apache.hadoop.io.compress.BZip2Codec";
+    Bzip2 bzip = new Bzip2();
+    extClazz = bzip.getCodecClassNameProperty();
+    clazz = (extClazz != null) ? extClazz : bzip.getCodecClassName();
     try {
-      CompressionCodec codec =
-          (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
+      codec = (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
 
       assertNotNull(codec);
 
-      isSupported.put(Compression.Algorithm.BZIP2, true);
+      isSupported.put(new CompressionAlgorithm(bzip, myConf), true);
 
     } catch (ClassNotFoundException e) {
       // that is okay
     }
 
-    extClazz = System.getProperty(Compression.Algorithm.CONF_SNAPPY_CLASS);
-    clazz = (extClazz != null) ? extClazz : "org.apache.hadoop.io.compress.SnappyCodec";
+    Snappy snappy = new Snappy();
+    extClazz = snappy.getCodecClassNameProperty();
+    clazz = (extClazz != null) ? extClazz : snappy.getCodecClassName();
     try {
-      CompressionCodec codec =
-          (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
+      codec = (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
 
       assertNotNull(codec);
 
-      isSupported.put(Compression.Algorithm.SNAPPY, true);
+      isSupported.put(new CompressionAlgorithm(snappy, myConf), true);
 
     } catch (ClassNotFoundException e) {
       // that is okay
     }
 
-    extClazz = System.getProperty(Compression.Algorithm.CONF_ZSTD_CLASS);
-    clazz = (extClazz != null) ? extClazz : "org.apache.hadoop.io.compress.ZStandardCodec";
+    ZStandard zstd = new ZStandard();
+    extClazz = zstd.getCodecClassNameProperty();
+    clazz = (extClazz != null) ? extClazz : zstd.getCodecClassName();
     try {
-      CompressionCodec codec =
-          (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
+      codec = (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
 
       assertNotNull(codec);
 
-      isSupported.put(Compression.Algorithm.ZSTANDARD, true);
+      isSupported.put(new CompressionAlgorithm(zstd, myConf), true);
 
     } catch (ClassNotFoundException e) {
       // that is okay
@@ -125,15 +137,16 @@ public class CompressionTest {
   @Test
   public void testSingle() {
 
-    for (final Algorithm al : Algorithm.values()) {
+    for (final String name : Compression.getSupportedAlgorithms()) {
+      CompressionAlgorithm al = Compression.getCompressionAlgorithmByName(name);
       if (isSupported.get(al) != null && isSupported.get(al)) {
 
         // first call to isSupported should be true
-        assertTrue(al + " is not supported, but should be", al.isSupported());
+        assertTrue(al.isSupported(), al + " is not supported, but should be");
 
-        assertNotNull(al + " should have a non-null codec", al.getCodec());
+        assertNotNull(al.getCodec(), al + " should have a non-null codec");
 
-        assertNotNull(al + " should have a non-null codec", al.getCodec());
+        assertNotNull(al.getCodec(), al + " should have a non-null codec");
       }
     }
   }
@@ -141,34 +154,37 @@ public class CompressionTest {
   @Test
   public void testSingleNoSideEffect() {
 
-    for (final Algorithm al : Algorithm.values()) {
+    for (final String name : Compression.getSupportedAlgorithms()) {
+      CompressionAlgorithm al = Compression.getCompressionAlgorithmByName(name);
       if (isSupported.get(al) != null && isSupported.get(al)) {
 
-        assertTrue(al + " is not supported, but should be", al.isSupported());
+        assertTrue(al.isSupported(), al + " is not supported, but should be");
 
-        assertNotNull(al + " should have a non-null codec", al.getCodec());
+        assertNotNull(al.getCodec(), al + " should have a non-null codec");
 
         // assert that additional calls to create will not create
         // additional codecs
 
-        assertNotEquals(al + " should have created a new codec, but did not",
-            System.identityHashCode(al.getCodec()), al.createNewCodec(88 * 1024));
+        assertNotEquals(System.identityHashCode(al.getCodec()), al.createNewCodec(88 * 1024),
+            al + " should have created a new codec, but did not");
       }
     }
   }
 
-  @Test(timeout = 60 * 1000)
+  @Test
+  @Timeout(60)
   public void testManyStartNotNull() throws InterruptedException, ExecutionException {
 
-    for (final Algorithm al : Algorithm.values()) {
+    for (final String name : Compression.getSupportedAlgorithms()) {
+      CompressionAlgorithm al = Compression.getCompressionAlgorithmByName(name);
       if (isSupported.get(al) != null && isSupported.get(al)) {
 
         // first call to isSupported should be true
-        assertTrue(al + " is not supported, but should be", al.isSupported());
+        assertTrue(al.isSupported(), al + " is not supported, but should be");
 
         final CompressionCodec codec = al.getCodec();
 
-        assertNotNull(al + " should not be null", codec);
+        assertNotNull(codec, al + " should not be null");
 
         ExecutorService service = Executors.newFixedThreadPool(10);
 
@@ -176,22 +192,22 @@ public class CompressionTest {
 
         for (int i = 0; i < 30; i++) {
           results.add(service.submit(() -> {
-            assertNotNull(al + " should not be null", al.getCodec());
+            assertNotNull(al.getCodec(), al + " should not be null");
             return true;
           }));
         }
 
         service.shutdown();
 
-        assertNotNull(al + " should not be null", codec);
+        assertNotNull(codec, al + " should not be null");
 
-        while (!service.awaitTermination(1, TimeUnit.SECONDS)) {
+        while (!service.awaitTermination(1, SECONDS)) {
           // wait
         }
 
         for (Future<Boolean> result : results) {
-          assertTrue(al + " resulted in a failed call to getcodec within the thread pool",
-              result.get());
+          assertTrue(result.get(),
+              al + " resulted in a failed call to getcodec within the thread pool");
         }
       }
     }
@@ -199,14 +215,16 @@ public class CompressionTest {
   }
 
   // don't start until we have created the codec
-  @Test(timeout = 60 * 1000)
+  @Test
+  @Timeout(60)
   public void testManyDontStartUntilThread() throws InterruptedException, ExecutionException {
 
-    for (final Algorithm al : Algorithm.values()) {
+    for (final String name : Compression.getSupportedAlgorithms()) {
+      CompressionAlgorithm al = Compression.getCompressionAlgorithmByName(name);
       if (isSupported.get(al) != null && isSupported.get(al)) {
 
         // first call to isSupported should be true
-        assertTrue(al + " is not supported, but should be", al.isSupported());
+        assertTrue(al.isSupported(), al + " is not supported, but should be");
 
         ExecutorService service = Executors.newFixedThreadPool(10);
 
@@ -215,34 +233,36 @@ public class CompressionTest {
         for (int i = 0; i < 30; i++) {
 
           results.add(service.submit(() -> {
-            assertNotNull(al + " should have a non-null codec", al.getCodec());
+            assertNotNull(al.getCodec(), al + " should have a non-null codec");
             return true;
           }));
         }
 
         service.shutdown();
 
-        while (!service.awaitTermination(1, TimeUnit.SECONDS)) {
+        while (!service.awaitTermination(1, SECONDS)) {
           // wait
         }
 
         for (Future<Boolean> result : results) {
-          assertTrue(al + " resulted in a failed call to getcodec within the thread pool",
-              result.get());
+          assertTrue(result.get(),
+              al + " resulted in a failed call to getcodec within the thread pool");
         }
       }
     }
 
   }
 
-  @Test(timeout = 60 * 1000)
+  @Test
+  @Timeout(60)
   public void testThereCanBeOnlyOne() throws InterruptedException, ExecutionException {
 
-    for (final Algorithm al : Algorithm.values()) {
+    for (final String name : Compression.getSupportedAlgorithms()) {
+      CompressionAlgorithm al = Compression.getCompressionAlgorithmByName(name);
       if (isSupported.get(al) != null && isSupported.get(al)) {
 
         // first call to isSupported should be true
-        assertTrue(al + " is not supported, but should be", al.isSupported());
+        assertTrue(al.isSupported(), al + " is not supported, but should be");
 
         ExecutorService service = Executors.newFixedThreadPool(20);
 
@@ -256,7 +276,7 @@ public class CompressionTest {
         for (int i = 0; i < 40; i++) {
           list.add(() -> {
             CompressionCodec codec = al.getCodec();
-            assertNotNull(al + " resulted in a non-null codec", codec);
+            assertNotNull(codec, al + " resulted in a non-null codec");
             // add the identity hashcode to the set.
             synchronized (testSet) {
               testSet.add(System.identityHashCode(codec));
@@ -267,16 +287,16 @@ public class CompressionTest {
 
         results.addAll(service.invokeAll(list));
         // ensure that we
-        assertEquals(al + " created too many codecs", 1, testSet.size());
+        assertEquals(1, testSet.size(), al + " created too many codecs");
         service.shutdown();
 
-        while (!service.awaitTermination(1, TimeUnit.SECONDS)) {
+        while (!service.awaitTermination(1, SECONDS)) {
           // wait
         }
 
         for (Future<Boolean> result : results) {
-          assertTrue(al + " resulted in a failed call to getcodec within the thread pool",
-              result.get());
+          assertTrue(result.get(),
+              al + " resulted in a failed call to getcodec within the thread pool");
         }
       }
     }

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test;
+package org.apache.accumulo.test.shell;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -481,7 +481,7 @@ public class ShellIT extends SharedMiniClusterBase {
     Shell.log.debug("Starting exec file test --------------------------");
     shell.config("--config-file", config.toString(), "-u", "root", "-p", getRootPassword(), "-zi",
         getCluster().getInstanceName(), "-zh", getCluster().getZooKeepers(), "-f",
-        "src/main/resources/shellit.shellit");
+        "src/main/unpackaged-classpath-files/shellit.shellit");
     assertEquals(0, shell.start());
     assertGoodExit("Unknown command", false);
   }

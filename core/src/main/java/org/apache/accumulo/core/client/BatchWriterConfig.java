@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.client;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_LATENCY_MAX;
 import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_MEMORY_MAX;
 import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_THREADS_MAX;
@@ -187,12 +188,11 @@ public class BatchWriterConfig implements Writable {
   }
 
   public long getMaxLatency(TimeUnit timeUnit) {
-    return timeUnit.convert(maxLatency != null ? maxLatency : DEFAULT_MAX_LATENCY,
-        TimeUnit.MILLISECONDS);
+    return timeUnit.convert(maxLatency != null ? maxLatency : DEFAULT_MAX_LATENCY, MILLISECONDS);
   }
 
   public long getTimeout(TimeUnit timeUnit) {
-    return timeUnit.convert(timeout != null ? timeout : DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS);
+    return timeUnit.convert(timeout != null ? timeout : DEFAULT_TIMEOUT, MILLISECONDS);
   }
 
   public int getMaxWriteThreads() {
@@ -377,8 +377,8 @@ public class BatchWriterConfig implements Writable {
   public String toString() {
     StringBuilder sb = new StringBuilder(32);
     sb.append("[maxMemory=").append(getMaxMemory()).append(", maxLatency=")
-        .append(getMaxLatency(TimeUnit.MILLISECONDS)).append(", maxWriteThreads=")
-        .append(getMaxWriteThreads()).append(", timeout=").append(getTimeout(TimeUnit.MILLISECONDS))
+        .append(getMaxLatency(MILLISECONDS)).append(", maxWriteThreads=")
+        .append(getMaxWriteThreads()).append(", timeout=").append(getTimeout(MILLISECONDS))
         .append(", durability=").append(durability).append("]");
     return sb.toString();
   }

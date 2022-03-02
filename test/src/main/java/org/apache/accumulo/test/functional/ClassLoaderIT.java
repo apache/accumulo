@@ -22,6 +22,7 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -48,7 +49,6 @@ import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -56,7 +56,7 @@ import org.junit.experimental.categories.Category;
 @Category(MiniClusterOnlyTests.class)
 public class ClassLoaderIT extends AccumuloClusterHarness {
 
-  private static final long ZOOKEEPER_PROPAGATION_TIME = 10 * 1000;
+  private static final long ZOOKEEPER_PROPAGATION_TIME = 10_000;
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -67,7 +67,7 @@ public class ClassLoaderIT extends AccumuloClusterHarness {
 
   @Before
   public void checkCluster() {
-    Assume.assumeTrue(getClusterType() == ClusterType.MINI);
+    assumeTrue(getClusterType() == ClusterType.MINI);
     MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) getCluster();
     rootPath = mac.getConfig().getDir().getAbsolutePath();
   }
@@ -100,7 +100,7 @@ public class ClassLoaderIT extends AccumuloClusterHarness {
       scanCheck(c, tableName, "Test");
       FileSystem fs = getCluster().getFileSystem();
       Path jarPath = new Path(rootPath + "/lib/ext/Test.jar");
-      copyStreamToFileSystem(fs, "/TestCombinerX.jar", jarPath);
+      copyStreamToFileSystem(fs, "/org/apache/accumulo/test/TestCombinerX.jar", jarPath);
       sleepUninterruptibly(1, TimeUnit.SECONDS);
       IteratorSetting is = new IteratorSetting(10, "TestCombiner",
           "org.apache.accumulo.test.functional.TestCombiner");
@@ -109,7 +109,7 @@ public class ClassLoaderIT extends AccumuloClusterHarness {
       sleepUninterruptibly(ZOOKEEPER_PROPAGATION_TIME, TimeUnit.MILLISECONDS);
       scanCheck(c, tableName, "TestX");
       fs.delete(jarPath, true);
-      copyStreamToFileSystem(fs, "/TestCombinerY.jar", jarPath);
+      copyStreamToFileSystem(fs, "/org/apache/accumulo/test/TestCombinerY.jar", jarPath);
       sleepUninterruptibly(5, TimeUnit.SECONDS);
       scanCheck(c, tableName, "TestY");
       fs.delete(jarPath, true);

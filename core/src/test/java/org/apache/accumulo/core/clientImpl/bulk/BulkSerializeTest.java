@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.clientImpl.bulk;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -34,7 +34,7 @@ import org.apache.accumulo.core.clientImpl.bulk.BulkSerialize.Input;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class BulkSerializeTest {
 
@@ -71,8 +71,8 @@ public class BulkSerializeTest {
 
     Map<String,String> readMap = BulkSerialize.readRenameMap("/some/dir", p -> bais);
 
-    assertEquals("Read renames file wrong size", renames.size(), readMap.size());
-    assertEquals("Read renames file different from what was written.", renames, readMap);
+    assertEquals(renames.size(), readMap.size(), "Read renames file wrong size");
+    assertEquals(renames, readMap, "Read renames file different from what was written.");
   }
 
   @Test

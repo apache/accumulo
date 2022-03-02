@@ -46,7 +46,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
@@ -262,7 +261,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
     @Override
     public Set<TableId> getTableIDs() {
-      return Tables.getIdToNameMap(getContext()).keySet();
+      return getContext().getTableIdToNameMap().keySet();
     }
 
     @Override

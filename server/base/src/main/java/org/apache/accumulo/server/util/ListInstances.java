@@ -48,7 +48,7 @@ public class ListInstances {
   private static final int UUID_WIDTH = 37;
   private static final int MANAGER_WIDTH = 30;
 
-  private static final int ZOOKEEPER_TIMER_MILLIS = 30 * 1000;
+  private static final int ZOOKEEPER_TIMER_MILLIS = 30_000;
 
   static class Opts extends Help {
     @Parameter(names = "--print-errors", description = "display errors while listing instances")
@@ -84,7 +84,7 @@ public class ListInstances {
 
     System.out.println("INFO : Using ZooKeepers " + keepers);
     ZooReader rdr = new ZooReader(keepers, ZOOKEEPER_TIMER_MILLIS);
-    ZooCache cache = new ZooCache(keepers, ZOOKEEPER_TIMER_MILLIS);
+    ZooCache cache = new ZooCache(rdr, null);
 
     TreeMap<String,InstanceId> instanceNames = getInstanceNames(rdr, printErrors);
 

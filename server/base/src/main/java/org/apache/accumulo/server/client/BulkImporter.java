@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.client;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
@@ -174,9 +175,9 @@ public class BulkImporter {
       for (Entry<Path,List<KeyExtent>> entry : assignmentFailures.entrySet())
         failureCount.put(entry.getKey(), 1);
 
-      long sleepTime = 2 * 1000;
+      long sleepTime = 2_000;
       while (!assignmentFailures.isEmpty()) {
-        sleepTime = Math.min(sleepTime * 2, 60 * 1000);
+        sleepTime = Math.min(sleepTime * 2, MINUTES.toMillis(1));
         locator.invalidateCache();
         // assumption about assignment failures is that it caused by a split
         // happening or a missing location

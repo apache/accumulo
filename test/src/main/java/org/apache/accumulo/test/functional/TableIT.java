@@ -21,6 +21,7 @@ package org.apache.accumulo.test.functional;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.FileNotFoundException;
 
@@ -42,7 +43,6 @@ import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
@@ -58,7 +58,7 @@ public class TableIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    Assume.assumeTrue(getClusterType() == ClusterType.MINI);
+    assumeTrue(getClusterType() == ClusterType.MINI);
 
     AccumuloCluster cluster = getCluster();
     MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) cluster;

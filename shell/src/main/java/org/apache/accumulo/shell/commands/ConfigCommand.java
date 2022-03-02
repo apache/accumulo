@@ -31,7 +31,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Namespaces;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -172,8 +171,8 @@ public class ConfigCommand extends Command {
 
       final TreeMap<String,String> namespaceConfig = new TreeMap<>();
       if (tableName != null) {
-        String n = Namespaces.getNamespaceName(shellState.getContext(), Tables.getNamespaceId(
-            shellState.getContext(), Tables.getTableId(shellState.getContext(), tableName)));
+        String n = Namespaces.getNamespaceName(shellState.getContext(),
+            shellState.getContext().getNamespaceId(shellState.getContext().getTableId(tableName)));
         shellState.getAccumuloClient().namespaceOperations().getConfiguration(n)
             .forEach(namespaceConfig::put);
       }
@@ -287,7 +286,7 @@ public class ConfigCommand extends Command {
       s2 += " " + Shell.repeat(".", COL2 - s2.length() - 1);
     }
     output.add(String.format("%-" + COL1 + "s | %-" + COL2 + "s | %s", s1, s2, s3.replace("\n",
-        "\n" + Shell.repeat(" ", COL1 + 1) + "|" + Shell.repeat(" ", COL2 + 2) + "|" + " ")));
+        "\n" + Shell.repeat(" ", COL1 + 1) + "|" + Shell.repeat(" ", COL2 + 2) + "| ")));
   }
 
   private void printConfFooter(List<String> output) {

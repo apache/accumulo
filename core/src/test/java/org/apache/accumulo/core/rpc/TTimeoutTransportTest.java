@@ -18,13 +18,14 @@
  */
 package org.apache.accumulo.core.rpc;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.createMockBuilder;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,7 +33,7 @@ import java.net.Socket;
 import java.net.SocketAddress;
 
 import org.apache.thrift.transport.TTransportException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Tests for {@link TTimeoutTransport}.
@@ -75,7 +76,7 @@ public class TTimeoutTransportTest {
 
   @Test
   public void testFailedInputStreamClosesSocket() throws IOException {
-    long timeout = 2 * 60 * 1000; // 2 mins
+    long timeout = MINUTES.toMillis(2);
     SocketAddress addr = createMock(SocketAddress.class);
     Socket s = createMock(Socket.class);
     TTimeoutTransport timeoutTransport = createMockBuilder(TTimeoutTransport.class)
@@ -105,7 +106,7 @@ public class TTimeoutTransportTest {
 
   @Test
   public void testFailedOutputStreamClosesSocket() throws IOException {
-    long timeout = 2 * 60 * 1000; // 2 mins
+    long timeout = MINUTES.toMillis(2);
     SocketAddress addr = createMock(SocketAddress.class);
     Socket s = createMock(Socket.class);
     InputStream is = createMock(InputStream.class);

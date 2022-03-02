@@ -23,30 +23,30 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.zookeeper.KeeperException.NoNodeException;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class MonitorUtilTest {
 
   private ZooReader zr;
   private ClientContext context;
 
-  @Before
+  @BeforeEach
   public void beforeEachTest() {
     zr = mock(ZooReader.class);
     context = mock(ClientContext.class);
     expect(context.getZooKeeperRoot()).andReturn("/root");
   }
 
-  @After
+  @AfterEach
   public void afterEachTest() {
     verify(zr, context);
   }

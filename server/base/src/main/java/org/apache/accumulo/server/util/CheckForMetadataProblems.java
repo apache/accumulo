@@ -28,7 +28,6 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
@@ -56,7 +55,7 @@ public class CheckForMetadataProblems {
     String tableName;
 
     try {
-      tableName = Tables.getTableName(opts.getServerContext(), tableId);
+      tableName = opts.getServerContext().getTableName(tableId);
     } catch (TableNotFoundException e) {
       tableName = null;
     }
@@ -69,7 +68,7 @@ public class CheckForMetadataProblems {
     }
 
     if (tablets.first().prevEndRow() != null) {
-      System.out.println("...First entry for table " + tableName + " (" + tableId + ") " + " - "
+      System.out.println("...First entry for table " + tableName + " (" + tableId + ")  - "
           + tablets.first() + " - has non null prev end row");
       sawProblems = true;
       return;
@@ -111,7 +110,7 @@ public class CheckForMetadataProblems {
 
   private static void checkMetadataAndRootTableEntries(String tableNameToCheck, ServerUtilOpts opts)
       throws Exception {
-    TableId tableCheckId = Tables.getTableId(opts.getServerContext(), tableNameToCheck);
+    TableId tableCheckId = opts.getServerContext().getTableId(tableNameToCheck);
     System.out.println("Checking tables whose metadata is found in: " + tableNameToCheck + " ("
         + tableCheckId + ")");
     Map<TableId,TreeSet<KeyExtent>> tables = new HashMap<>();
