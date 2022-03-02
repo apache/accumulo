@@ -129,7 +129,7 @@ public class DefaultEcScanManager implements ScanServerDispatcher {
   }
 
   private int hashTablet(TabletId tablet) {
-    var hasher = Hashing.murmur3_32().newHasher();
+    var hasher = Hashing.murmur3_32_fixed().newHasher();
 
     hasher.putString(tablet.getTable().canonical(), UTF_8);
 
