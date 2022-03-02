@@ -78,8 +78,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
           .addOption("modulus", "3");
 
   @TempDir
-  private final File tempDir = new File(System.getProperty("user.dir") + "/target",
-      AccumuloFileOutputFormatIT.class.getSimpleName() + "/");
+  private static File tempDir;
 
   @Test
   public void testEmptyWrite() throws Exception {

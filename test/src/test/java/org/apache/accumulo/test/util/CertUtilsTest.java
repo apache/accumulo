@@ -41,8 +41,7 @@ public class CertUtilsTest {
   private static final String RDN_STRING = "o=Apache Accumulo,cn=CertUtilsTest";
 
   @TempDir
-  private final File tempDir = new File(System.getProperty("user.dir") + "/target",
-      CertUtilsTest.class.getSimpleName() + "/");
+  private static File tempDir;
 
   private CertUtils getUtils() {
     return new CertUtils(KEYSTORE_TYPE, RDN_STRING, "RSA", 4096, "SHA512WITHRSA");

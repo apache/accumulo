@@ -165,8 +165,7 @@ public class TokenFileIT extends AccumuloClusterHarness {
   }
 
   @TempDir
-  private final File tempDir =
-      new File(System.getProperty("user.dir") + "/target", TokenFileIT.class.getSimpleName() + "/");
+  private static File tempDir;
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @Test

@@ -90,8 +90,7 @@ public class InMemoryMapIT extends WithTestNames {
   private static final Logger log = LoggerFactory.getLogger(InMemoryMapIT.class);
 
   @TempDir
-  private static File tempDir = new File(System.getProperty("user.dir") + "/target",
-      InMemoryMapIT.class.getSimpleName() + "/");
+  private static File tempDir;
 
   @BeforeAll
   public static void ensureNativeLibrary() {

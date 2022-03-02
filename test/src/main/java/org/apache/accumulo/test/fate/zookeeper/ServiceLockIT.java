@@ -71,8 +71,7 @@ import com.google.common.util.concurrent.Uninterruptibles;
 public class ServiceLockIT {
 
   @TempDir
-  private static File tempDir = new File(System.getProperty("user.dir") + "/target",
-      ServiceLockIT.class.getSimpleName() + "/");
+  private static File tempDir;
 
   private static ZooKeeperTestingServer szk = null;
 

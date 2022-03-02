@@ -47,8 +47,7 @@ import com.google.common.hash.Hashing;
 public class ZooMutatorIT extends WithTestNames {
 
   @TempDir
-  private final File tempDir = new File(System.getProperty("user.dir") + "/target",
-      ZooMutatorIT.class.getSimpleName() + "/");
+  private static File tempDir;
 
   /**
    * This test uses multiple threads to update the data in a single zookeeper node using

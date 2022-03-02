@@ -44,8 +44,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class DumpConfigIT extends ConfigurableMacBase {
 
   @TempDir
-  private final File tempDir = new File(System.getProperty("user.dir") + "/target",
-      DumpConfigIT.class.getSimpleName() + "/");
+  private static File tempDir;
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
