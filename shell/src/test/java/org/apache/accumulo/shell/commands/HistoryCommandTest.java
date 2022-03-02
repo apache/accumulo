@@ -23,6 +23,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -38,7 +39,6 @@ import org.jline.reader.impl.DefaultExpander;
 import org.jline.reader.impl.history.DefaultHistory;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -94,8 +94,7 @@ public class HistoryCommandTest {
     reader.unsetOpt(LineReader.Option.DISABLE_EVENT_EXPANSION);
     Expander expander = new DefaultExpander();
     // Fails github QA since that doesn't have terminal with event expansion. Adding this check
-    Assume
-        .assumeFalse(expander.expandHistory(reader.getHistory(), baos.toString().trim()).isEmpty());
+    assumeFalse(expander.expandHistory(reader.getHistory(), baos.toString().trim()).isEmpty());
 
     assertEquals("foo", expander.expandHistory(reader.getHistory(), baos.toString().trim()));
   }

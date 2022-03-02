@@ -213,12 +213,7 @@ public class DistributedWorkQueue {
             else
               log.info("Unexpected path for NodeChildrenChanged event {}", event.getPath());
             break;
-          case NodeCreated:
-          case NodeDataChanged:
-          case NodeDeleted:
-          case ChildWatchRemoved:
-          case DataWatchRemoved:
-          case None:
+          default:
             log.info("Got unexpected zookeeper event: {} for {}", event.getType(), path);
             break;
         }
@@ -277,12 +272,7 @@ public class DistributedWorkQueue {
               condVar.notify();
             }
             break;
-          case NodeCreated:
-          case NodeDataChanged:
-          case NodeDeleted:
-          case ChildWatchRemoved:
-          case DataWatchRemoved:
-          case None:
+          default:
             log.info("Got unexpected zookeeper event: {} for {}", event.getType(), path);
             break;
         }

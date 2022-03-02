@@ -1377,7 +1377,7 @@ public class Tablet {
 
     try {
       var tabletMeta = context.getAmple().readTablet(extent, ColumnType.FILES, ColumnType.LOGS,
-          ColumnType.ECOMP, ColumnType.PREV_ROW);
+          ColumnType.ECOMP, ColumnType.PREV_ROW, ColumnType.FLUSH_ID, ColumnType.COMPACT_ID);
 
       if (tabletMeta == null) {
         String msg = "Closed tablet " + extent + " not found in metadata";
@@ -1401,6 +1401,24 @@ public class Tablet {
         throw new RuntimeException(msg);
       }
 
+      tabletMeta.getFlushId().ifPresent(flushId -> {
+        if (flushId != lastFlushID) {
+          String msg = "Closed tablet " + extent + " lastFlushID is inconsistent with metadata : "
+              + flushId + " != " + lastFlushID;
+          log.error(msg);
+          throw new RuntimeException(msg);
+        }
+      });
+
+      tabletMeta.getCompactId().ifPresent(compactId -> {
+        if (compactId != lastCompactID) {
+          String msg = "Closed tablet " + extent + " lastCompactID is inconsistent with metadata : "
+              + compactId + " != " + lastCompactID;
+          log.error(msg);
+          throw new RuntimeException(msg);
+        }
+      });
+
       compareToDataInMemory(tabletMeta);
     } catch (Exception e) {
       String msg = "Failed to do close consistency check for tablet " + extent;
@@ -1411,12 +1429,10 @@ public class Tablet {
 
     if (!otherLogs.isEmpty() || !currentLogs.isEmpty() || !referencedLogs.isEmpty()) {
       String msg = "Closed tablet " + extent + " has walog entries in memory currentLogs = "
-          + currentLogs + "  otherLogs = " + otherLogs + " refererncedLogs = " + referencedLogs;
+          + currentLogs + "  otherLogs = " + otherLogs + " referencedLogs = " + referencedLogs;
       log.error(msg);
       throw new RuntimeException(msg);
     }
-
-    // TODO check lastFlushID and lostCompactID - ACCUMULO-1290
   }
 
   private void compareToDataInMemory(TabletMetadata tabletMetadata) {
