@@ -19,7 +19,6 @@
 package org.apache.accumulo.core.file.rfile;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.apache.accumulo.core.cli.Help;
@@ -59,10 +58,9 @@ public class CreateEmpty implements KeywordExecutable {
   public static class IsSupportedCompressionAlgorithm implements IParameterValidator {
     @Override
     public void validate(String name, String value) throws ParameterException {
-      String[] algorithms = Compression.getSupportedAlgorithms();
-      if (!Arrays.asList(algorithms).contains(value)) {
-        throw new ParameterException(
-            "Compression codec must be one of " + Arrays.toString(algorithms));
+      List<String> algorithms = Compression.getSupportedAlgorithms();
+      if (!algorithms.contains(value)) {
+        throw new ParameterException("Compression codec must be one of " + algorithms);
       }
     }
   }

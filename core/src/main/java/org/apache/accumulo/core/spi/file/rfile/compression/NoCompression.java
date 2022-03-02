@@ -20,9 +20,6 @@ package org.apache.accumulo.core.spi.file.rfile.compression;
 
 import org.apache.accumulo.core.file.rfile.bcfile.IdentityCodec;
 
-import com.google.auto.service.AutoService;
-
-@AutoService(CompressionAlgorithmConfiguration.class)
 public class NoCompression implements CompressionAlgorithmConfiguration {
 
   @Override

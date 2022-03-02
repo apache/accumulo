@@ -116,6 +116,7 @@
   <properties>
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
+    <auto-service.version>1.0.1</auto-service.version>
     <!-- bouncycastle version for test dependencies -->
     <bouncycastle.version>1.70</bouncycastle.version>
     <!-- Curator version -->
@@ -130,7 +131,8 @@
     <failsafe.forkCount>1</failsafe.forkCount>
     <failsafe.groups />
     <failsafe.reuseForks>false</failsafe.reuseForks>
-    <hadoop.version>3.3.1</hadoop.version>
+    <!-- Version 3.3.1 seems to have issues especially with CountNameNodeOptsBulkIT -->
+    <hadoop.version>3.3.0</hadoop.version>
     <htrace.hadoop.version>4.1.0-incubating</htrace.hadoop.version>
     <it.failIfNoSpecifiedTests>false</it.failIfNoSpecifiedTests>
     <!-- prevent introduction of new compiler warnings -->
@@ -263,7 +265,7 @@
       <dependency>
         <groupId>com.google.auto.service</groupId>
         <artifactId>auto-service</artifactId>
-        <version>1.0.1</version>
+        <version>${auto-service.version}</version>
       </dependency>
       <dependency>
         <groupId>com.google.code.findbugs</groupId>
@@ -805,6 +807,13 @@
               <arg>-Xmaxwarns</arg>
               <arg>5</arg>
             </compilerArgs>
+            <annotationProcessorPaths combine.children="append">
+              <path>
+                <groupId>com.google.auto.service</groupId>
+                <artifactId>auto-service</artifactId>
+                <version>${auto-service.version}</version>
+              </path>
+            </annotationProcessorPaths>
           </configuration>
         </plugin>
         <plugin>
@@ -1697,11 +1706,6 @@
                   <groupId>com.google.errorprone</groupId>
                   <artifactId>error_prone_core</artifactId>
                   <version>${errorprone.version}</version>
-                </path>
-                <path>
-                  <groupId>com.google.auto.service</groupId>
-                  <artifactId>auto-service</artifactId>
-                  <version>1.0</version>
                 </path>
               </annotationProcessorPaths>
             </configuration>

@@ -18,13 +18,23 @@
  */
 package org.apache.accumulo.core.file.rfile.bcfile;
 
-import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import org.apache.accumulo.core.spi.file.rfile.compression.Bzip2;
 import org.apache.accumulo.core.spi.file.rfile.compression.CompressionAlgorithmConfiguration;
+import org.apache.accumulo.core.spi.file.rfile.compression.Gz;
+import org.apache.accumulo.core.spi.file.rfile.compression.Lz4;
+import org.apache.accumulo.core.spi.file.rfile.compression.Lzo;
+import org.apache.accumulo.core.spi.file.rfile.compression.NoCompression;
+import org.apache.accumulo.core.spi.file.rfile.compression.Snappy;
+import org.apache.accumulo.core.spi.file.rfile.compression.ZStandard;
 import org.apache.hadoop.conf.Configuration;
 
 /**
@@ -43,22 +53,21 @@ public final class Compression {
   // Configuration object.
   protected static final Configuration conf = new Configuration();
 
-  private static final ServiceLoader<CompressionAlgorithmConfiguration> COMPRESSION_ALGORITHMS =
+  private static final ServiceLoader<CompressionAlgorithmConfiguration> FOUND_ALGOS =
       ServiceLoader.load(CompressionAlgorithmConfiguration.class);
 
-  private static final Map<String,CompressionAlgorithm> CONFIGURED_ALGORITHMS =
-      StreamSupport.stream(COMPRESSION_ALGORITHMS.spliterator(), false)
-          .map(a -> new CompressionAlgorithm(a, conf))
-          .collect(Collectors.toMap(algo -> algo.getName(), algo -> algo));
+  private static final Set<CompressionAlgorithmConfiguration> BUILTIN_ALGOS = Set.of(new Gz(),
+      new Bzip2(), new Lz4(), new Lzo(), new NoCompression(), new Snappy(), new ZStandard());
 
-  public static String[] getSupportedAlgorithms() {
-    ArrayList<String> supportedAlgorithms = new ArrayList<>();
-    CONFIGURED_ALGORITHMS.forEach((k, v) -> {
-      if (v.isSupported()) {
-        supportedAlgorithms.add(k);
-      }
-    });
-    return supportedAlgorithms.toArray(new String[0]);
+  private static final Map<String,
+      CompressionAlgorithm> CONFIGURED_ALGORITHMS = Stream
+          .concat(BUILTIN_ALGOS.stream(), StreamSupport.stream(FOUND_ALGOS.spliterator(), false))
+          .map(a -> new CompressionAlgorithm(a, conf))
+          .collect(Collectors.toMap(CompressionAlgorithm::getName, Function.identity()));
+
+  public static List<String> getSupportedAlgorithms() {
+    return CONFIGURED_ALGORITHMS.entrySet().stream().filter(e -> e.getValue().isSupported())
+        .map(Map.Entry::getKey).collect(Collectors.toList());
   }
 
   public static CompressionAlgorithm getCompressionAlgorithmByName(final String name) {
