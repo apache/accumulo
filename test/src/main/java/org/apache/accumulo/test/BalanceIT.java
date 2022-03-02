@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
+
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -30,12 +32,11 @@ import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Timeout(60)
+@Timeout(value = 1, unit = MINUTES)
 public class BalanceIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(BalanceIT.class);
 
   @Test
-  @Timeout(3)
   public void testBalance() throws Exception {
     String tableName = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {

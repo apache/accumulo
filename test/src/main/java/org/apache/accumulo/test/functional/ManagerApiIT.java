@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -46,16 +47,16 @@ import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.hadoop.io.Text;
-import org.junit.FixMethodOrder;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.Timeout;
-import org.junit.runners.MethodSorters;
 
 // the shutdown test should sort last, so other tests don't break
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
-@Timeout(60)
+@TestMethodOrder(MethodOrderer.MethodName.class)
+@Timeout(value = 1, unit = MINUTES)
 public class ManagerApiIT extends SharedMiniClusterBase {
 
   private static Credentials rootUser;
@@ -239,8 +240,7 @@ public class ManagerApiIT extends SharedMiniClusterBase {
   }
 
   private static void expectPermissionDenied(
-      Function<TCredentials,ClientExec<ManagerClientService.Client>> op, Credentials user)
-      throws Exception {
+      Function<TCredentials,ClientExec<ManagerClientService.Client>> op, Credentials user) {
     AccumuloSecurityException e =
         assertThrows(AccumuloSecurityException.class, () -> expectPermissionSuccess(op, user));
     assertSame(SecurityErrorCode.PERMISSION_DENIED, e.getSecurityErrorCode());

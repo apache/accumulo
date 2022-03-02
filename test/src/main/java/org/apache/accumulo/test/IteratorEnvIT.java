@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
@@ -54,7 +55,7 @@ import org.junit.jupiter.api.Timeout;
 /**
  * Test that objects in IteratorEnvironment returned from the server are as expected.
  */
-@Timeout(60)
+@Timeout(value = 1, unit = MINUTES)
 public class IteratorEnvIT extends AccumuloClusterHarness {
 
   @Override

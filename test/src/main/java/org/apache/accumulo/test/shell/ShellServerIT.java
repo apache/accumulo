@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.shell;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -84,8 +85,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.tools.DistCp;
 import org.jline.terminal.Terminal;
-import org.jline.terminal.impl.DumbTerminal;
-import org.junit.Rule;
 import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -94,7 +93,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.junit.rules.TestName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,7 +104,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @Category({MiniClusterOnlyTests.class, SunnyDayTests.class})
 @Tag("MiniClusterOnlyTests")
 @Tag("SunnyDayTests")
-@Timeout(60)
+@Timeout(value = 1, unit = MINUTES)
 public class ShellServerIT extends SharedMiniClusterBase {
 
   @SuppressWarnings("removal")
@@ -118,9 +116,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
   private MockShell ts;
 
   private static String rootPath;
-
-  @Rule
-  public TestName name = new TestName();
 
   private static class ShellServerITConfigCallback implements MiniClusterConfigurationCallback {
     @Override
@@ -586,7 +581,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     // create two users with different auths
     for (int i = 1; i <= 2; i++) {
-      String userName = name.getMethodName() + "user" + i;
+      String userName = testName() + "user" + i;
       String password = "password" + i;
       String auths = "auth" + i + "A,auth" + i + "B";
       ts.exec("createuser " + userName, true);
@@ -714,13 +709,13 @@ public class ShellServerIT extends SharedMiniClusterBase {
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       accumuloClient.tableOperations().getConfiguration(table).forEach((key, value) -> {
         if (key.equals("table.custom.description"))
-          assertEquals("Initial property was not set correctly", "description", value);
+          assertEquals("description", value, "Initial property was not set correctly");
 
         if (key.equals("table.custom.testProp"))
-          assertEquals("Initial property was not set correctly", "testProp", value);
+          assertEquals("testProp", value, "Initial property was not set correctly");
 
         if (key.equals(Property.TABLE_SPLIT_THRESHOLD.getKey()))
-          assertEquals("Initial property was not set correctly", "10K", value);
+          assertEquals("10K", value, "Initial property was not set correctly");
       });
     }
     ts.exec("deletetable -f " + table);

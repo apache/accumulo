@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.server.security;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map.Entry;
@@ -42,7 +43,7 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
-@Timeout(60)
+@Timeout(value = 1, unit = MINUTES)
 public class SystemCredentialsIT extends ConfigurableMacBase {
 
   private static final int SCAN_FAILED = 7, AUTHENICATION_FAILED = 8;

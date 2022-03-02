@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -51,7 +53,7 @@ import org.junit.jupiter.api.Timeout;
  * Tests iterator class hierarchy bug. The failure condition of this test is to hang on the flush
  * due to a class cast exception on the tserver. See https://github.com/apache/accumulo/issues/2341
  */
-@Timeout(60)
+@Timeout(value = 1, unit = MINUTES)
 public class IteratorMincClassCastBugIT extends AccumuloClusterHarness {
 
   @Override

@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.HashMap;
@@ -48,7 +49,7 @@ import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Timeout(60)
+@Timeout(value = 1, unit = MINUTES)
 public class ConstraintIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(ConstraintIT.class);
 

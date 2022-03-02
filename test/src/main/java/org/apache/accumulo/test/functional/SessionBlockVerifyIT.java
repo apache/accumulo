@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -57,7 +58,7 @@ import com.google.common.collect.Iterables;
  * Verify that we have resolved blocking issue by ensuring that we have not lost scan sessions which
  * we know to currently be running
  */
-@Timeout(60)
+@Timeout(value = 1, unit = MINUTES)
 public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
   private static final Logger log = LoggerFactory.getLogger(SessionBlockVerifyIT.class);
 

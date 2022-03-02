@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -64,7 +65,7 @@ import org.slf4j.LoggerFactory;
  * <p>
  * ACCUMULO-3215
  */
-@Timeout(60)
+@Timeout(value = 1, unit = MINUTES)
 public class ImportExportIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(ImportExportIT.class);

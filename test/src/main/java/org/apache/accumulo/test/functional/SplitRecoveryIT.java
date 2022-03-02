@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -80,7 +81,7 @@ import org.junit.jupiter.api.Timeout;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@Timeout(60)
+@Timeout(value = 1, unit = MINUTES)
 public class SplitRecoveryIT extends ConfigurableMacBase {
 
   private KeyExtent nke(String table, String endRow, String prevEndRow) {

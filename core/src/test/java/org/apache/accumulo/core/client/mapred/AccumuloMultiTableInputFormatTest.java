@@ -31,7 +31,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
 
 @Deprecated(since = "2.0.0")
 public class AccumuloMultiTableInputFormatTest extends WithTestNames {

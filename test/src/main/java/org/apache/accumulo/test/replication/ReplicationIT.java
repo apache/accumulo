@@ -460,9 +460,9 @@ public class ReplicationIT extends ConfigurableMacBase {
       }
       // We should at least find one status record for this table, we might find a second if another
       // log was started from ingesting the data
-      assertEquals("Expected to find replication entry for " + table1,
-          client.tableOperations().tableIdMap().get(table1),
-          entry.getKey().getColumnQualifier().toString());
+      assertEquals(client.tableOperations().tableIdMap().get(table1),
+          entry.getKey().getColumnQualifier().toString(),
+          "Expected to find replication entry for " + table1);
 
       // Enable replication on table2
       client.tableOperations().setProperty(table2, Property.TABLE_REPLICATION.getKey(), "true");

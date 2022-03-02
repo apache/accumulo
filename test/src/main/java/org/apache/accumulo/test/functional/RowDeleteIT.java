@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.test.functional.FunctionalTestUtils.checkRFiles;
 import static org.apache.accumulo.test.functional.FunctionalTestUtils.nm;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -46,7 +47,7 @@ import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Iterators;
 
-@Timeout(60)
+@Timeout(value = 1, unit = MINUTES)
 public class RowDeleteIT extends AccumuloClusterHarness {
 
   @Override

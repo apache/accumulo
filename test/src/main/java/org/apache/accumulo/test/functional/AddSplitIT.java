@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.Collection;
@@ -39,7 +40,7 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
-@Timeout(60)
+@Timeout(value = 1, unit = MINUTES)
 public class AddSplitIT extends AccumuloClusterHarness {
 
   @Test

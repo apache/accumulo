@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.replication;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -30,7 +31,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.WithTestNames;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -60,12 +60,11 @@ import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.Rule;
 import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.rules.Timeout;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,20 +76,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @Category(MiniClusterOnlyTests.class)
 @Tag("MiniClusterOnlyTests")
 @Deprecated
+@Timeout(value = 10, unit = MINUTES)
 public class CyclicReplicationIT extends WithTestNames {
   private static final Logger log = LoggerFactory.getLogger(CyclicReplicationIT.class);
-
-  @Rule
-  public Timeout getTimeout() {
-    int scalingFactor = 1;
-    try {
-      scalingFactor = Integer.parseInt(System.getProperty("timeout.factor"));
-    } catch (NumberFormatException exception) {
-      log.warn("Could not parse timeout.factor, not scaling timeout");
-    }
-
-    return new Timeout(scalingFactor * 10, TimeUnit.MINUTES);
-  }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   private File createTestDir(String name) {

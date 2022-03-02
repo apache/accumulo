@@ -19,6 +19,7 @@
 package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -70,7 +71,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * installed instance, instead piping everything through stdout and writing to a set location so we
  * have to find the logs and grep the bits we need out.
  */
-@Timeout(60)
+@Timeout(value = 1, unit = MINUTES)
 public class AuditMessageIT extends ConfigurableMacBase {
 
   private static final String AUDIT_USER_1 = "AuditUser1";

@@ -19,6 +19,7 @@
 package org.apache.accumulo.test;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -49,7 +50,7 @@ import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Iterators;
 
-@Timeout(60)
+@Timeout(value = 1, unit = MINUTES)
 public class SplitRecoveryIT extends AccumuloClusterHarness {
 
   private Mutation m(String row) {

@@ -154,8 +154,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
       int i = 0;
       for (Entry<Key,Value> entry : scanner) {
-        assertEquals("Data read is not data written", alpha_rows[i++],
-            entry.getKey().getRow().toString());
+        assertEquals(alpha_rows[i++], entry.getKey().getRow().toString(),
+            "Data read is not data written");
       }
     }
   }

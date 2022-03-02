@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -43,7 +44,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Iterables;
 
 // ACCUMULO-3967
-@Timeout(60)
+@Timeout(value = 1, unit = MINUTES)
 public class BulkImportSequentialRowsIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(BulkImportSequentialRowsIT.class);
 

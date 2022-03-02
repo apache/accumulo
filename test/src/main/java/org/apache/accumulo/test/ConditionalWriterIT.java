@@ -1370,9 +1370,9 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
           String val = entry.getValue().toString();
 
           if (cf.equals("tx") && cq.equals("seq"))
-            assertEquals("Unexpected value in tx:seq", "1", val);
+            assertEquals("1", val, "Unexpected value in tx:seq");
           else if (cf.equals("data") && cq.equals("x"))
-            assertEquals("Unexpected value in data:x", "a", val);
+            assertEquals("a", val, "Unexpected value in data:x");
           else
             fail("Saw unexpected column family and qualifier: " + entry);
         }

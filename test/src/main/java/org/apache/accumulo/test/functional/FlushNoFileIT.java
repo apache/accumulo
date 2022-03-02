@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -54,7 +55,7 @@ import com.google.common.collect.Iterables;
 /**
  * Tests that Accumulo will flush but not create a file that has 0 entries.
  */
-@Timeout(60)
+@Timeout(value = 1, unit = MINUTES)
 public class FlushNoFileIT extends AccumuloClusterHarness {
 
   @Test

@@ -23,11 +23,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.File;
 import java.io.IOException;
 import java.security.SecureRandom;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.WithTestNames;
 import org.apache.commons.io.FileUtils;
-import org.junit.rules.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -117,20 +115,20 @@ public class AccumuloITBase extends WithTestNames {
    * .withLookingForStuckThread(true).build(); }
    *
    */
-  public Timeout testsShouldTimeout() {
-    int waitLonger = 0;
-    try {
-      String timeoutString = System.getProperty("timeout.factor");
-      if (timeoutString != null && !timeoutString.isEmpty()) {
-        waitLonger = Integer.parseInt(timeoutString);
-      }
-    } catch (NumberFormatException exception) {
-      log.warn("Could not parse timeout.factor, defaulting to no timeout.");
-    }
-
-    return Timeout.builder().withTimeout(waitLonger * DEFAULT_TIMEOUT, TimeUnit.SECONDS)
-        .withLookingForStuckThread(true).build();
-  }
+  // public Timeout testsShouldTimeout() {
+  // int waitLonger = 0;
+  // try {
+  // String timeoutString = System.getProperty("timeout.factor");
+  // if (timeoutString != null && !timeoutString.isEmpty()) {
+  // waitLonger = Integer.parseInt(timeoutString);
+  // }
+  // } catch (NumberFormatException exception) {
+  // log.warn("Could not parse timeout.factor, defaulting to no timeout.");
+  // }
+  //
+  // return Timeout.builder().withTimeout(waitLonger * DEFAULT_TIMEOUT, TimeUnit.SECONDS)
+  // .withLookingForStuckThread(true).build();
+  // }
 
   /**
    * time to wait per-method before declaring a timeout, in seconds.
@@ -138,9 +136,6 @@ public class AccumuloITBase extends WithTestNames {
   /*
    * protected int defaultTimeoutSeconds() { return 600; }
    */
-  protected int defaultTimeoutSeconds() {
-    return 600;
-  }
 
   @SuppressFBWarnings(value = "UI_INHERITANCE_UNSAFE_GETRESOURCE", justification = "for testing")
   protected File initJar(String jarResourcePath, String namePrefix, String testDir)

@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -83,7 +84,7 @@ import org.slf4j.LoggerFactory;
  * <p>
  * back into org.apache.accumulo.trace.thrift.TInfo until that test signature is regenerated.
  */
-@Timeout(60)
+@Timeout(value = 1, unit = MINUTES)
 public class ScanIdIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(ScanIdIT.class);

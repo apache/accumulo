@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.mapreduce;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
@@ -52,7 +53,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * This tests deprecated mapreduce code in core jar
  */
 @Deprecated(since = "2.0.0")
-@Timeout(60)
+@Timeout(value = 1, unit = MINUTES)
 public class MapReduceIT extends ConfigurableMacBase {
 
   public static final String hadoopTmpDirArg =
