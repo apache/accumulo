@@ -395,6 +395,18 @@ public enum Property {
   SSERV_PREFIX("sserver.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the scan servers", "2.1.0"),
   @Experimental
+  SSERV_DATACACHE_SIZE("sserver.cache.data.size", "10%", PropertyType.MEMORY,
+      "Specifies the size of the cache for RFile data blocks on each scan server.", "2.1.0"),
+  @Experimental
+  SSERV_INDEXCACHE_SIZE("sserver.cache.index.size", "25%", PropertyType.MEMORY,
+      "Specifies the size of the cache for RFile index blocks on each scan server.", "2.1.0"),
+  @Experimental
+  SSERV_SUMMARYCACHE_SIZE("sserver.cache.summary.size", "10%", PropertyType.MEMORY,
+      "Specifies the size of the cache for summary data on each scan server.", "2.1.0"),
+  @Experimental
+  SSERV_DEFAULT_BLOCKSIZE("sserver.default.blocksize", "1M", PropertyType.BYTES,
+      "Specifies a default blocksize for the scan server caches", "2.1.0"),
+  @Experimental
   SSERV_CACHED_TABLET_METADATA_EXPIRATION("sserver.cache.metadata.expiration", "5m",
       PropertyType.TIMEDURATION, "The time after which cached tablet metadata will be refreshed.",
       "2.1.0"),

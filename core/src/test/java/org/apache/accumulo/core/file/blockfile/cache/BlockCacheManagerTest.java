@@ -20,6 +20,7 @@ package org.apache.accumulo.core.file.blockfile.cache;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheType;
 import org.junit.jupiter.api.Test;
@@ -28,14 +29,14 @@ public class BlockCacheManagerTest {
 
   @Test
   public void testGetPropertyPrefix() {
-    assertEquals("tserver.cache.config.lru.data.",
-        BlockCacheManager.getFullyQualifiedPropertyPrefix("lru", CacheType.DATA));
-    assertEquals("tserver.cache.config.lru.index.",
-        BlockCacheManager.getFullyQualifiedPropertyPrefix("lru", CacheType.INDEX));
-    assertEquals("tserver.cache.config.lru.summary.",
-        BlockCacheManager.getFullyQualifiedPropertyPrefix("lru", CacheType.SUMMARY));
+    assertEquals("tserver.cache.config.lru.data.", BlockCacheManager
+        .getFullyQualifiedPropertyPrefix(Property.TSERV_PREFIX.getKey(), "lru", CacheType.DATA));
+    assertEquals("tserver.cache.config.lru.index.", BlockCacheManager
+        .getFullyQualifiedPropertyPrefix(Property.TSERV_PREFIX.getKey(), "lru", CacheType.INDEX));
+    assertEquals("tserver.cache.config.lru.summary.", BlockCacheManager
+        .getFullyQualifiedPropertyPrefix(Property.TSERV_PREFIX.getKey(), "lru", CacheType.SUMMARY));
     assertEquals("tserver.cache.config.lru.default.",
-        BlockCacheManager.getFullyQualifiedPropertyPrefix("lru"));
+        BlockCacheManager.getFullyQualifiedPropertyPrefix(Property.TSERV_PREFIX.getKey(), "lru"));
   }
 
 }

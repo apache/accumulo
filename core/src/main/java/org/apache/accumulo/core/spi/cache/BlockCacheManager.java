@@ -21,8 +21,6 @@ package org.apache.accumulo.core.spi.cache;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.accumulo.core.conf.Property;
-
 /**
  * @since 2.0.0
  * @see org.apache.accumulo.core.spi
@@ -30,8 +28,6 @@ import org.apache.accumulo.core.conf.Property;
 public abstract class BlockCacheManager {
 
   private final Map<CacheType,BlockCache> caches = new HashMap<>();
-
-  public static final String CACHE_PROPERTY_BASE = Property.TSERV_PREFIX + "cache.config.";
 
   public interface Configuration {
 
@@ -136,12 +132,14 @@ public abstract class BlockCacheManager {
    * {@code tserver.cache.config.<prefix>.default.} this method is useful for configuring a cache
    * manager.
    *
+   * @param serverPrefix
+   *          The key representation of the server prefix property (TSERV_PREFIX or SSERV_PREFIX)
    * @param prefix
    *          A unique identifier that corresponds to a particular BlockCacheManager implementation.
    * @see Configuration#getProperties(String, CacheType)
    */
-  public static String getFullyQualifiedPropertyPrefix(String prefix) {
-    return CACHE_PROPERTY_BASE + prefix + ".default.";
+  public static String getFullyQualifiedPropertyPrefix(String serverPrefix, String prefix) {
+    return getCachePropertyBase(serverPrefix) + prefix + ".default.";
   }
 
   /**
@@ -149,12 +147,24 @@ public abstract class BlockCacheManager {
    * {@code tserver.cache.config.<prefix>.<type>.} this method is useful for configuring a cache
    * manager.
    *
+   * @param serverPrefix
+   *          The key representation of the server prefix property (TSERV_PREFIX or SSERV_PREFIX)
    * @param prefix
    *          A unique identifier that corresponds to a particular BlockCacheManager implementation.
    * @see Configuration#getProperties(String, CacheType)
    */
-  public static String getFullyQualifiedPropertyPrefix(String prefix, CacheType type) {
-    return CACHE_PROPERTY_BASE + prefix + "." + type.name().toLowerCase() + ".";
+  public static String getFullyQualifiedPropertyPrefix(String serverPrefix, String prefix,
+      CacheType type) {
+    return getCachePropertyBase(serverPrefix) + prefix + "." + type.name().toLowerCase() + ".";
+  }
+
+  /**
+   * @param serverPrefix
+   *          The key representation of the server prefix property (TSERV_PREFIX or SSERV_PREFIX)
+   * @return fully qualified property prefix for the server cache configuration properties
+   */
+  public static String getCachePropertyBase(String serverPrefix) {
+    return serverPrefix + "cache.config.";
   }
 
 }

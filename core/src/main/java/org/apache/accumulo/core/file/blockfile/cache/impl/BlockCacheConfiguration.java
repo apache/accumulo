@@ -33,6 +33,8 @@ public class BlockCacheConfiguration implements Configuration {
   /** Approximate block size */
   private final long blockSize;
 
+  private final Property serverPrefix;
+
   private final Map<String,String> genProps;
 
   private final long indexMaxSize;
@@ -41,13 +43,16 @@ public class BlockCacheConfiguration implements Configuration {
 
   private final long summaryMaxSize;
 
-  public BlockCacheConfiguration(AccumuloConfiguration conf) {
-    genProps = conf.getAllPropertiesWithPrefix(Property.TSERV_PREFIX);
+  public BlockCacheConfiguration(AccumuloConfiguration conf, Property serverPrefix,
+      Property indexCacheSizeProperty, Property dataCacheSizeProperty,
+      Property summaryCacheSizeProperty, Property defaultBlockSizeProperty) {
 
-    this.indexMaxSize = conf.getAsBytes(Property.TSERV_INDEXCACHE_SIZE);
-    this.dataMaxSize = conf.getAsBytes(Property.TSERV_DATACACHE_SIZE);
-    this.summaryMaxSize = conf.getAsBytes(Property.TSERV_SUMMARYCACHE_SIZE);
-    this.blockSize = conf.getAsBytes(Property.TSERV_DEFAULT_BLOCKSIZE);
+    this.serverPrefix = serverPrefix;
+    this.genProps = conf.getAllPropertiesWithPrefix(serverPrefix);
+    this.indexMaxSize = conf.getAsBytes(indexCacheSizeProperty);
+    this.dataMaxSize = conf.getAsBytes(dataCacheSizeProperty);
+    this.summaryMaxSize = conf.getAsBytes(summaryCacheSizeProperty);
+    this.blockSize = conf.getAsBytes(defaultBlockSizeProperty);
   }
 
   @Override
@@ -80,14 +85,16 @@ public class BlockCacheConfiguration implements Configuration {
     HashMap<String,String> props = new HashMap<>();
 
     // get default props first
-    String defaultPrefix = BlockCacheManager.getFullyQualifiedPropertyPrefix(prefix);
+    String defaultPrefix =
+        BlockCacheManager.getFullyQualifiedPropertyPrefix(serverPrefix.getKey(), prefix);
     genProps.forEach((k, v) -> {
       if (k.startsWith(defaultPrefix)) {
         props.put(k.substring(defaultPrefix.length()), v);
       }
     });
 
-    String typePrefix = BlockCacheManager.getFullyQualifiedPropertyPrefix(prefix, type);
+    String typePrefix =
+        BlockCacheManager.getFullyQualifiedPropertyPrefix(serverPrefix.getKey(), prefix, type);
     genProps.forEach((k, v) -> {
       if (k.startsWith(typePrefix)) {
         props.put(k.substring(typePrefix.length()), v);
