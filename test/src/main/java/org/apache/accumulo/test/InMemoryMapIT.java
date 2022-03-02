@@ -215,76 +215,72 @@ public class InMemoryMapIT extends WithTestNames {
   }
 
   private void assertEquivalentMutate(List<Mutation> mutations) {
-    InMemoryMap defaultMap = null;
-    InMemoryMap nativeMapWrapper = null;
-    InMemoryMap localityGroupMap = null;
-    InMemoryMap localityGroupMapWithNative = null;
+
+    String[] tempFolders = new String[4];
+    for (int i = 0; i < tempFolders.length; i++) {
+      File dir = new File(tempDir, testName() + "_" + i);
+      assertTrue(dir.isDirectory() || dir.mkdir());
+      tempFolders[i] = dir.getAbsolutePath();
+    }
+
+    Map<String,String> defaultMapConfig = new HashMap<>();
+    defaultMapConfig.put(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "false");
+    defaultMapConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(), tempFolders[0]);
+    defaultMapConfig.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "");
+
+    Map<String,String> nativeMapConfig = new HashMap<>();
+    nativeMapConfig.put(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "true");
+    nativeMapConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(), tempFolders[1]);
+    nativeMapConfig.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "");
+
+    Map<String,String> localityGroupConfig = new HashMap<>();
+    localityGroupConfig.put(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "false");
+    localityGroupConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(), tempFolders[2]);
+
+    Map<String,String> localityGroupNativeConfig = new HashMap<>();
+    localityGroupNativeConfig.put(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "true");
+    localityGroupNativeConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(), tempFolders[3]);
+
+    TableId testId = TableId.of("TEST");
 
     try {
-      String[] tempFolders = new String[4];
-      for (int i = 0; i < tempFolders.length; i++) {
-        File dir = new File(tempDir, testName() + "_" + i);
-        assertTrue(dir.isDirectory() || dir.mkdir());
-        tempFolders[i] = dir.getAbsolutePath();
-      }
-
-      Map<String,String> defaultMapConfig = new HashMap<>();
-      defaultMapConfig.put(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "false");
-      defaultMapConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(), tempFolders[0]);
-      defaultMapConfig.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "");
-
-      Map<String,String> nativeMapConfig = new HashMap<>();
-      nativeMapConfig.put(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "true");
-      nativeMapConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(), tempFolders[1]);
-      nativeMapConfig.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "");
-
-      Map<String,String> localityGroupConfig = new HashMap<>();
-      localityGroupConfig.put(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "false");
-      localityGroupConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(), tempFolders[2]);
-
-      Map<String,String> localityGroupNativeConfig = new HashMap<>();
-      localityGroupNativeConfig.put(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "true");
-      localityGroupNativeConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(), tempFolders[3]);
-
-      TableId testId = TableId.of("TEST");
-
-      defaultMap =
+      InMemoryMap defaultMap =
           new InMemoryMap(new ConfigurationCopy(defaultMapConfig), getServerContext(), testId);
-      nativeMapWrapper =
+      InMemoryMap nativeMapWrapper =
           new InMemoryMap(new ConfigurationCopy(nativeMapConfig), getServerContext(), testId);
-      localityGroupMap = new InMemoryMap(
+      InMemoryMap localityGroupMap = new InMemoryMap(
           updateConfigurationForLocalityGroups(new ConfigurationCopy(localityGroupConfig)),
           getServerContext(), testId);
-      localityGroupMapWithNative = new InMemoryMap(
+      InMemoryMap localityGroupMapWithNative = new InMemoryMap(
           updateConfigurationForLocalityGroups(new ConfigurationCopy(localityGroupNativeConfig)),
           getServerContext(), testId);
+
+      // ensure the maps are correct type
+      assertEquals(InMemoryMap.TYPE_DEFAULT_MAP, defaultMap.getMapType(), "Not a DefaultMap");
+      assertEquals(InMemoryMap.TYPE_NATIVE_MAP_WRAPPER, nativeMapWrapper.getMapType(),
+          "Not a NativeMapWrapper");
+      assertEquals(InMemoryMap.TYPE_LOCALITY_GROUP_MAP, localityGroupMap.getMapType(),
+          "Not a LocalityGroupMap");
+      assertEquals(InMemoryMap.TYPE_LOCALITY_GROUP_MAP_NATIVE,
+          localityGroupMapWithNative.getMapType(), "Not a LocalityGroupMap with native");
+
+      int count = 0;
+      for (Mutation m : mutations) {
+        count += m.size();
+      }
+      defaultMap.mutate(mutations, count);
+      nativeMapWrapper.mutate(mutations, count);
+      localityGroupMap.mutate(mutations, count);
+      localityGroupMapWithNative.mutate(mutations, count);
+
+      // let's use the transitive property to assert all four are equivalent
+      assertMutatesEquivalent(mutations, defaultMap, nativeMapWrapper);
+      assertMutatesEquivalent(mutations, defaultMap, localityGroupMap);
+      assertMutatesEquivalent(mutations, defaultMap, localityGroupMapWithNative);
     } catch (Exception e) {
       log.error("Error getting new InMemoryMap ", e);
       fail(e.getMessage());
     }
-
-    // ensure the maps are correct type
-    assertEquals(InMemoryMap.TYPE_DEFAULT_MAP, defaultMap.getMapType(), "Not a DefaultMap");
-    assertEquals(InMemoryMap.TYPE_NATIVE_MAP_WRAPPER, nativeMapWrapper.getMapType(),
-        "Not a NativeMapWrapper");
-    assertEquals(InMemoryMap.TYPE_LOCALITY_GROUP_MAP, localityGroupMap.getMapType(),
-        "Not a LocalityGroupMap");
-    assertEquals(InMemoryMap.TYPE_LOCALITY_GROUP_MAP_NATIVE,
-        localityGroupMapWithNative.getMapType(), "Not a LocalityGroupMap with native");
-
-    int count = 0;
-    for (Mutation m : mutations) {
-      count += m.size();
-    }
-    defaultMap.mutate(mutations, count);
-    nativeMapWrapper.mutate(mutations, count);
-    localityGroupMap.mutate(mutations, count);
-    localityGroupMapWithNative.mutate(mutations, count);
-
-    // let's use the transitive property to assert all four are equivalent
-    assertMutatesEquivalent(mutations, defaultMap, nativeMapWrapper);
-    assertMutatesEquivalent(mutations, defaultMap, localityGroupMap);
-    assertMutatesEquivalent(mutations, defaultMap, localityGroupMapWithNative);
   }
 
   /**
