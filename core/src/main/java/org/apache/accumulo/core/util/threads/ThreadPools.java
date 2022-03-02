@@ -22,6 +22,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.OptionalInt;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
@@ -76,15 +77,17 @@ public class ThreadPools {
   private static Runnable TASK_CHECKER = new Runnable() {
     @Override
     public void run() {
+      final List<ConcurrentLinkedQueue<ScheduledFuture<?>>> queues =
+          List.of(CRITICAL_RUNNING_TASKS, NON_CRITICAL_RUNNING_TASKS);
       while (true) {
-        Iterator<ScheduledFuture<?>> criticalTasks = CRITICAL_RUNNING_TASKS.iterator();
-        while (criticalTasks.hasNext()) {
-          checkTaskFailed(criticalTasks.next(), true);
-        }
-        Iterator<ScheduledFuture<?>> nonCriticalTasks = NON_CRITICAL_RUNNING_TASKS.iterator();
-        while (nonCriticalTasks.hasNext()) {
-          checkTaskFailed(nonCriticalTasks.next(), false);
-        }
+        queues.forEach(q -> {
+          Iterator<ScheduledFuture<?>> tasks = q.iterator();
+          while (tasks.hasNext()) {
+            if (checkTaskFailed(tasks.next(), q)) {
+              tasks.remove();
+            }
+          }
+        });
         try {
           TimeUnit.MINUTES.sleep(1);
         } catch (InterruptedException ie) {
@@ -96,7 +99,17 @@ public class ThreadPools {
     }
   };
 
-  private static void checkTaskFailed(Future<?> future, boolean critical) {
+  /**
+   * Checks to see if a ScheduledFuture has exited successfully or thrown an error
+   *
+   * @param future
+   *          scheduled future to check
+   * @param taskQueue
+   *          the running task queue from which the future came
+   * @return true if the future should be removed
+   */
+  private static boolean checkTaskFailed(ScheduledFuture<?> future,
+      ConcurrentLinkedQueue<ScheduledFuture<?>> taskQueue) {
     // Calling get() on a ScheduledFuture will block unless that scheduled task has
     // completed. We call isDone() here instead. If the scheduled task is done then
     // either it was a one-shot task, cancelled or an exception was thrown.
@@ -108,39 +121,30 @@ public class ThreadPools {
         // or get canceled. This was likely a one-shot scheduled task (I don't think
         // we can tell if it's one-shot or not, I think we have to assume that it is
         // and that a recurring task would not normally be complete).
-        boolean removed = critical ? CRITICAL_RUNNING_TASKS.remove(future)
-            : NON_CRITICAL_RUNNING_TASKS.remove(future);
-        if (!removed) {
-          LOG.warn("Unable to remove task from list of watched tasks");
-        }
+        return true;
       } catch (ExecutionException ee) {
         // An exception was thrown in the critical task. Throw the error here, which
         // will then be caught by the AccumuloUncaughtExceptionHandler which will
         // log the error and terminate the VM.
-        if (critical) {
-          throw new ExecutionError("Critical scheduled task failed.", ee);
+        if (taskQueue == CRITICAL_RUNNING_TASKS) {
+          throw new ExecutionError("Critical scheduled background task failed.", ee);
         } else {
-          LOG.error("Non-critical task failed", ee);
-          if (!NON_CRITICAL_RUNNING_TASKS.remove(future)) {
-            LOG.warn("Unable to remove failed task from list of watched non-critical tasks");
-          }
+          LOG.error("Non-critical scheduled background task failed", ee);
+          return true;
         }
       } catch (CancellationException ce) {
         // do nothing here as it appears that the task was canceled. Remove it from
         // the list of critical tasks
-        boolean removed = critical ? CRITICAL_RUNNING_TASKS.remove(future)
-            : NON_CRITICAL_RUNNING_TASKS.remove(future);
-        if (!removed) {
-          LOG.warn("Unable to remove task from list of watched tasks");
-        }
+        return true;
       } catch (InterruptedException ie) {
         // current thread was interrupted waiting for get to return, which in theory,
         // shouldn't happen since the task is done.
-        LOG.info("Interrupted while waiting to check on scheduled task.");
+        LOG.info("Interrupted while waiting to check on scheduled background task.");
         // Reset the interrupt state on this thread
         Thread.interrupted();
       }
     }
+    return false;
   }
 
   static {
