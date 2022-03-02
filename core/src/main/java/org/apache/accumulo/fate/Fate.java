@@ -81,11 +81,9 @@ public class Fate<T> {
             try {
               deferTime = op.isReady(tid, environment);
 
-              // For this if/else statenebt, the deferTime value is treated as an exit code, where
-              // 0 indicates success and processing continues. A non-zero value indicates that
-              // processing should not immediately proceed and another loop of the while occurs.
-              // The actual deferTime value is utilized as a wait time within the ZooStore
-              // class.
+              // Here, deferTime is only used to determine success (zero) or failure (non-zero),
+              // proceeding on success and returning to the while loop on failure.
+              // The value of deferTime is only used as a wait time in ZooStore.unreserve
               if (deferTime == 0) {
                 prevOp = op;
                 if (status == TStatus.SUBMITTED) {
