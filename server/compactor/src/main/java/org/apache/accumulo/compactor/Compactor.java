@@ -197,10 +197,10 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   }
 
   protected void startGCLogger(ScheduledThreadPoolExecutor schedExecutor) {
-    @SuppressWarnings("unused")
     ScheduledFuture<?> future =
         schedExecutor.scheduleWithFixedDelay(() -> gcLogger.logGCInfo(getConfiguration()), 0,
             TIME_BETWEEN_GC_CHECKS, TimeUnit.MILLISECONDS);
+    ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
   protected void startCancelChecker(ScheduledThreadPoolExecutor schedExecutor,

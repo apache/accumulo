@@ -72,9 +72,9 @@ public final class TinyLfuBlockCache implements BlockCache {
         }).maximumWeight(conf.getMaxSize(type)).recordStats().build();
     policy = cache.policy().eviction().get();
     maxSize = (int) Math.min(Integer.MAX_VALUE, policy.getMaximum());
-    @SuppressWarnings("unused") // don't care if stat logging fails
-    ScheduledFuture<?> unused = statsExecutor.scheduleAtFixedRate(this::logStats, STATS_PERIOD_SEC,
+    ScheduledFuture<?> future = statsExecutor.scheduleAtFixedRate(this::logStats, STATS_PERIOD_SEC,
         STATS_PERIOD_SEC, SECONDS);
+    ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
   @Override

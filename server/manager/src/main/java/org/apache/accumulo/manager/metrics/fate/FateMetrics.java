@@ -156,7 +156,6 @@ public class FateMetrics implements MetricsProducer {
         ThreadPools.createScheduledExecutorService(1, "fateMetricsPoller", false);
     Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdownNow));
 
-    @SuppressWarnings("unused")
     ScheduledFuture<?> future = scheduler.scheduleAtFixedRate(() -> {
       try {
         update();
@@ -164,7 +163,7 @@ public class FateMetrics implements MetricsProducer {
         log.info("Failed to update fate metrics due to exception", ex);
       }
     }, refreshDelay, refreshDelay, TimeUnit.MILLISECONDS);
-
+    ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
 }

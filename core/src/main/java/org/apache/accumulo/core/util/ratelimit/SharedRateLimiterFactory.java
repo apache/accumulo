@@ -61,10 +61,10 @@ public class SharedRateLimiterFactory {
           .createNamedRunnable("SharedRateLimiterFactory update polling", instance::updateAll),
           UPDATE_RATE, UPDATE_RATE, MILLISECONDS);
 
-      @SuppressWarnings("unused") // don't care if rate logging fails
-      ScheduledFuture<?> unused = svc.scheduleWithFixedDelay(Threads
+      ScheduledFuture<?> future = svc.scheduleWithFixedDelay(Threads
           .createNamedRunnable("SharedRateLimiterFactory report polling", instance::reportAll),
           REPORT_RATE, REPORT_RATE, MILLISECONDS);
+      ThreadPools.watchNonCriticalScheduledTask(future);
 
     }
     return instance;

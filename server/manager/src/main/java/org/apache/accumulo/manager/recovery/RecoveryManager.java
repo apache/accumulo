@@ -106,8 +106,8 @@ public class RecoveryManager {
             manager.getVolumeManager(), new Path(source));
 
         if (time > 0) {
-          @SuppressWarnings("unused")
           ScheduledFuture<?> future = executor.schedule(this, time, TimeUnit.MILLISECONDS);
+          ThreadPools.watchNonCriticalScheduledTask(future);
           rescheduled = true;
         } else {
           initiateSort(sortId, source, destination);
@@ -212,9 +212,9 @@ public class RecoveryManager {
             log.info("Starting recovery of {} (in : {}s), tablet {} holds a reference", filename,
                 (delay / 1000), extent);
 
-            @SuppressWarnings("unused")
             ScheduledFuture<?> future = executor.schedule(
                 new LogSortTask(closer, filename, dest, sortId), delay, TimeUnit.MILLISECONDS);
+            ThreadPools.watchNonCriticalScheduledTask(future);
             closeTasksQueued.add(sortId);
             recoveryDelay.put(sortId, delay);
           }

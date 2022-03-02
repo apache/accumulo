@@ -69,10 +69,9 @@ public class CompactionExecutorsMetrics implements MetricsProducer {
         ThreadPools.createScheduledExecutorService(1, "compactionExecutorsMetricsPoller", false);
     Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdownNow));
     long minimumRefreshDelay = TimeUnit.SECONDS.toMillis(5);
-    @SuppressWarnings("unused")
     ScheduledFuture<?> future = scheduler.scheduleAtFixedRate(this::update, minimumRefreshDelay,
         minimumRefreshDelay, TimeUnit.MILLISECONDS);
-
+    ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
   public synchronized AutoCloseable addExecutor(CompactionExecutorId ceid,

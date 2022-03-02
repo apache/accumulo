@@ -163,16 +163,16 @@ public class CompactionCoordinator extends AbstractServer
   }
 
   protected void startGCLogger(ScheduledThreadPoolExecutor schedExecutor) {
-    @SuppressWarnings("unused")
-    ScheduledFuture<?> unused =
+    ScheduledFuture<?> future =
         schedExecutor.scheduleWithFixedDelay(() -> gcLogger.logGCInfo(getConfiguration()), 0,
             TIME_BETWEEN_GC_CHECKS, TimeUnit.MILLISECONDS);
+    ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
   protected void startCompactionCleaner(ScheduledThreadPoolExecutor schedExecutor) {
-    @SuppressWarnings("unused")
-    ScheduledFuture<?> unused =
+    ScheduledFuture<?> future =
         schedExecutor.scheduleWithFixedDelay(() -> cleanUpCompactors(), 0, 5, TimeUnit.MINUTES);
+    ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
   protected void printStartupMsg() {

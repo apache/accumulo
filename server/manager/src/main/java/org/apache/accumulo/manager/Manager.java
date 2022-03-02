@@ -253,12 +253,12 @@ public class Manager extends AbstractServer
     if (newState == ManagerState.STOP) {
       // Give the server a little time before shutdown so the client
       // thread requesting the stop can return
-      @SuppressWarnings("unused")
       ScheduledFuture<?> future = getContext().getScheduledExecutor().scheduleWithFixedDelay(() -> {
         // This frees the main thread and will cause the manager to exit
         clientService.stop();
         Manager.this.nextEvent.event("stopped event loop");
       }, 100L, 1000L, TimeUnit.MILLISECONDS);
+      ThreadPools.watchNonCriticalScheduledTask(future);
     }
 
     if (oldState != newState && (newState == ManagerState.HAVE_LOCK)) {
@@ -1200,7 +1200,6 @@ public class Manager extends AbstractServer
 
     // if the replication name is ever set, then start replication services
     final AtomicReference<TServer> replServer = new AtomicReference<>();
-    @SuppressWarnings("unused")
     ScheduledFuture<?> future = context.getScheduledExecutor().scheduleWithFixedDelay(() -> {
       try {
         @SuppressWarnings("deprecation")
@@ -1213,6 +1212,7 @@ public class Manager extends AbstractServer
         log.error("Error occurred starting replication services. ", e);
       }
     }, 0, 5000, TimeUnit.MILLISECONDS);
+    ThreadPools.watchNonCriticalScheduledTask(future);
 
     // checking stored user hashes if any of them uses an outdated algorithm
     security.validateStoredUserCreditentials();

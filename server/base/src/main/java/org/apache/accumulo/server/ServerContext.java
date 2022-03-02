@@ -420,8 +420,7 @@ public class ServerContext extends ClientContext {
   }
 
   private void monitorSwappiness() {
-    @SuppressWarnings("unused")
-    ScheduledFuture<?> unused = getScheduledExecutor().scheduleWithFixedDelay(() -> {
+    ScheduledFuture<?> future = getScheduledExecutor().scheduleWithFixedDelay(() -> {
       try {
         String procFile = "/proc/sys/vm/swappiness";
         File swappiness = new File(procFile);
@@ -443,6 +442,7 @@ public class ServerContext extends ClientContext {
         log.error("", t);
       }
     }, SECONDS.toMillis(1), MINUTES.toMillis(10), TimeUnit.MILLISECONDS);
+    ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
   /**

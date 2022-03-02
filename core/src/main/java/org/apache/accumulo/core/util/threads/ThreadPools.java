@@ -70,46 +70,20 @@ public class ThreadPools {
   private static final ConcurrentLinkedQueue<ScheduledFuture<?>> CRITICAL_RUNNING_TASKS =
       new ConcurrentLinkedQueue<>();
 
-  private static Runnable CRITICAL_TASK_CHECKER = new Runnable() {
+  private static final ConcurrentLinkedQueue<ScheduledFuture<?>> NON_CRITICAL_RUNNING_TASKS =
+      new ConcurrentLinkedQueue<>();
+
+  private static Runnable TASK_CHECKER = new Runnable() {
     @Override
     public void run() {
       while (true) {
-        Iterator<ScheduledFuture<?>> futures = CRITICAL_RUNNING_TASKS.iterator();
-        while (futures.hasNext()) {
-          ScheduledFuture<?> criticalTask = futures.next();
-          // Calling get() on a ScheduledFuture will block unless that scheduled task has
-          // completed. We call isDone() here instead. If the scheduled task is done then
-          // either it was a one-shot task, cancelled or an exception was thrown.
-          if (criticalTask.isDone()) {
-            // Now call get() to see if we get an exception.
-            try {
-              criticalTask.get();
-              // If we get here, then a scheduled task exited but did not throw an error
-              // or get canceled. This was likely a one-shot scheduled task (I don't think
-              // we can tell if it's one-shot or not, I think we have to assume that it is
-              // and that a recurring task would not normally be complete).
-              if (!CRITICAL_RUNNING_TASKS.remove(criticalTask)) {
-                LOG.warn("Unable to remove task from list of watched critical tasks");
-              }
-            } catch (ExecutionException ee) {
-              // An exception was thrown in the critical task. Throw the error here, which
-              // will then be caught by the AccumuloUncaughtExceptionHandler which will
-              // log the error and terminate the VM.
-              new ExecutionError("Critical scheduled task failed.", ee);
-            } catch (CancellationException ce) {
-              // do nothing here as it appears that the task was canceled. Remove it from
-              // the list of critical tasks
-              if (!CRITICAL_RUNNING_TASKS.remove(criticalTask)) {
-                LOG.warn("Unable to remove task from list of watched critical tasks");
-              }
-            } catch (InterruptedException ie) {
-              // current thread was interrupted waiting for get to return, which in theory,
-              // shouldn't happen since the task is done.
-              LOG.info("Interrupted while waiting to check on scheduled task.");
-              // Reset the interrupt state on this thread
-              Thread.interrupted();
-            }
-          }
+        Iterator<ScheduledFuture<?>> criticalTasks = CRITICAL_RUNNING_TASKS.iterator();
+        while (criticalTasks.hasNext()) {
+          checkTaskFailed(criticalTasks.next(), true);
+        }
+        Iterator<ScheduledFuture<?>> nonCriticalTasks = NON_CRITICAL_RUNNING_TASKS.iterator();
+        while (nonCriticalTasks.hasNext()) {
+          checkTaskFailed(nonCriticalTasks.next(), false);
         }
         try {
           TimeUnit.MINUTES.sleep(1);
@@ -122,12 +96,75 @@ public class ThreadPools {
     }
   };
 
+  private static void checkTaskFailed(Future<?> future, boolean critical) {
+    // Calling get() on a ScheduledFuture will block unless that scheduled task has
+    // completed. We call isDone() here instead. If the scheduled task is done then
+    // either it was a one-shot task, cancelled or an exception was thrown.
+    if (future.isDone()) {
+      // Now call get() to see if we get an exception.
+      try {
+        future.get();
+        // If we get here, then a scheduled task exited but did not throw an error
+        // or get canceled. This was likely a one-shot scheduled task (I don't think
+        // we can tell if it's one-shot or not, I think we have to assume that it is
+        // and that a recurring task would not normally be complete).
+        boolean removed = critical ? CRITICAL_RUNNING_TASKS.remove(future)
+            : NON_CRITICAL_RUNNING_TASKS.remove(future);
+        if (!removed) {
+          LOG.warn("Unable to remove task from list of watched tasks");
+        }
+      } catch (ExecutionException ee) {
+        // An exception was thrown in the critical task. Throw the error here, which
+        // will then be caught by the AccumuloUncaughtExceptionHandler which will
+        // log the error and terminate the VM.
+        if (critical) {
+          throw new ExecutionError("Critical scheduled task failed.", ee);
+        } else {
+          LOG.error("Non-critical task failed", ee);
+          if (!NON_CRITICAL_RUNNING_TASKS.remove(future)) {
+            LOG.warn("Unable to remove failed task from list of watched non-critical tasks");
+          }
+        }
+      } catch (CancellationException ce) {
+        // do nothing here as it appears that the task was canceled. Remove it from
+        // the list of critical tasks
+        boolean removed = critical ? CRITICAL_RUNNING_TASKS.remove(future)
+            : NON_CRITICAL_RUNNING_TASKS.remove(future);
+        if (!removed) {
+          LOG.warn("Unable to remove task from list of watched tasks");
+        }
+      } catch (InterruptedException ie) {
+        // current thread was interrupted waiting for get to return, which in theory,
+        // shouldn't happen since the task is done.
+        LOG.info("Interrupted while waiting to check on scheduled task.");
+        // Reset the interrupt state on this thread
+        Thread.interrupted();
+      }
+    }
+  }
+
   static {
-    SCHEDULED_FUTURE_CHECKER_POOL.execute(CRITICAL_TASK_CHECKER);
+    SCHEDULED_FUTURE_CHECKER_POOL.execute(TASK_CHECKER);
   }
 
   public static void watchCriticalScheduledTask(ScheduledFuture<?> future) {
     CRITICAL_RUNNING_TASKS.add(future);
+  }
+
+  public static void watchNonCriticalScheduledTask(ScheduledFuture<?> future) {
+    NON_CRITICAL_RUNNING_TASKS.add(future);
+  }
+
+  public static void ensureRunning(ScheduledFuture<?> future, String message) {
+    if (future.isDone()) {
+      try {
+        future.get();
+      } catch (Exception e) {
+        throw new IllegalStateException(message, e);
+      }
+      // it exited w/o exception, but we still expect it to be running so throw an exception.
+      throw new IllegalStateException(message);
+    }
   }
 
   /**

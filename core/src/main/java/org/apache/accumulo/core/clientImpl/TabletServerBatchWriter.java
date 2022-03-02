@@ -251,8 +251,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
       throw new IllegalStateException("Closed");
     if (m.size() == 0)
       throw new IllegalArgumentException("Can not add empty mutations");
-    if (this.latencyTimerFuture != null && this.latencyTimerFuture.isDone()) {
-      throw new RuntimeException(
+    if (this.latencyTimerFuture != null) {
+      ThreadPools.ensureRunning(this.latencyTimerFuture,
           "Latency timer thread has exited, cannot guarantee latency target");
     }
 
@@ -592,9 +592,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
     }
 
     private MutationSet init() {
-      if (future.isDone()) {
-        throw new RuntimeException("Background task that re-queues failed mutations has exited.");
-      }
+      ThreadPools.ensureRunning(future,
+          "Background task that re-queues failed mutations has exited.");
       if (recentFailures == null) {
         recentFailures = new MutationSet();
         initTime = System.currentTimeMillis();

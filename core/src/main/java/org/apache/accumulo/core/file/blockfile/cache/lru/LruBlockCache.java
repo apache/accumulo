@@ -161,9 +161,9 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
     } else {
       this.evictionThread = null;
     }
-    @SuppressWarnings("unused") // don't care if stat logging fails
-    ScheduledFuture<?> unused = this.scheduleThreadPool.scheduleAtFixedRate(
+    ScheduledFuture<?> future = this.scheduleThreadPool.scheduleAtFixedRate(
         new StatisticsThread(this), statThreadPeriod, statThreadPeriod, SECONDS);
+    ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
   public long getOverhead() {

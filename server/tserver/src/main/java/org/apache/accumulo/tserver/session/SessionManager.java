@@ -279,9 +279,9 @@ public class SessionManager {
         }
       };
 
-      @SuppressWarnings("unused")
       ScheduledFuture<?> future = ThreadPools.createGeneralScheduledExecutorService(aconf)
           .schedule(r, delay, TimeUnit.MILLISECONDS);
+      ThreadPools.watchNonCriticalScheduledTask(future);
     }
   }
 

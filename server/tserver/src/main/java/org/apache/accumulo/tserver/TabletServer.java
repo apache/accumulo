@@ -261,7 +261,6 @@ public class TabletServer extends AbstractServer {
     // This thread will calculate and log out the busiest tablets based on ingest count and
     // query count every #{logBusiestTabletsDelay}
     if (numBusyTabletsToLog > 0) {
-      @SuppressWarnings("unused")
       ScheduledFuture<?> future = context.getScheduledExecutor()
           .scheduleWithFixedDelay(Threads.createNamedRunnable("BusyTabletLogger", new Runnable() {
             private BusiestTracker ingestTracker =
@@ -287,9 +286,9 @@ public class TabletServer extends AbstractServer {
               }
             }
           }), logBusyTabletsDelay, logBusyTabletsDelay, TimeUnit.MILLISECONDS);
+      ThreadPools.watchNonCriticalScheduledTask(future);
     }
 
-    @SuppressWarnings("unused")
     ScheduledFuture<?> future = context.getScheduledExecutor()
         .scheduleWithFixedDelay(Threads.createNamedRunnable("TabletRateUpdater", new Runnable() {
           @Override
@@ -304,6 +303,7 @@ public class TabletServer extends AbstractServer {
             }
           }
         }), 5, 5, TimeUnit.SECONDS);
+    ThreadPools.watchNonCriticalScheduledTask(future);
 
     @SuppressWarnings("deprecation")
     final long walMaxSize =
@@ -794,7 +794,6 @@ public class TabletServer extends AbstractServer {
     // if the replication name is ever set, then start replication services
     @SuppressWarnings("deprecation")
     Property p = Property.REPLICATION_NAME;
-    @SuppressWarnings("unused")
     ScheduledFuture<?> future = context.getScheduledExecutor().scheduleWithFixedDelay(() -> {
       if (this.replServer == null) {
         if (!getConfiguration().get(p).isEmpty()) {
@@ -803,6 +802,7 @@ public class TabletServer extends AbstractServer {
         }
       }
     }, 0, 5, TimeUnit.SECONDS);
+    ThreadPools.watchNonCriticalScheduledTask(future);
 
     int tabletCheckFrequency = 30 + random.nextInt(31); // random 30-60 minute delay
     // Periodically check that metadata of tablets matches what is held in memory
@@ -960,9 +960,9 @@ public class TabletServer extends AbstractServer {
     Runnable replicationWorkThreadPoolResizer = () -> {
       ThreadPools.resizePool(replicationThreadPool, aconf, Property.REPLICATION_WORKER_THREADS);
     };
-    @SuppressWarnings("unused")
     ScheduledFuture<?> future = context.getScheduledExecutor()
         .scheduleWithFixedDelay(replicationWorkThreadPoolResizer, 10, 30, TimeUnit.SECONDS);
+    ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
   public String getClientAddressString() {
@@ -1027,9 +1027,9 @@ public class TabletServer extends AbstractServer {
 
     Runnable gcDebugTask = () -> gcLogger.logGCInfo(getConfiguration());
 
-    @SuppressWarnings("unused")
     ScheduledFuture<?> future = context.getScheduledExecutor().scheduleWithFixedDelay(gcDebugTask,
         0, TIME_BETWEEN_GC_CHECKS, TimeUnit.MILLISECONDS);
+    ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
   public TabletServerStatus getStats(Map<TableId,MapCounter<ScanRunState>> scanCounts) {

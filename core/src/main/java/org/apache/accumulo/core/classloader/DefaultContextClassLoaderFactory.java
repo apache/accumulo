@@ -63,8 +63,7 @@ public class DefaultContextClassLoaderFactory implements ContextClassLoaderFacto
 
   private static void startCleanupThread(final AccumuloConfiguration conf,
       final Supplier<Map<String,String>> contextConfigSupplier) {
-    @SuppressWarnings("unused") // don't care if classloader cleanup thread fails
-    ScheduledFuture<?> unused = ThreadPools.createGeneralScheduledExecutorService(conf)
+    ScheduledFuture<?> future = ThreadPools.createGeneralScheduledExecutorService(conf)
         .scheduleWithFixedDelay(Threads.createNamedRunnable(className + "-cleanup", () -> {
           LOG.trace("{}-cleanup thread, properties: {}", className, conf);
           Set<String> contextsInUse = contextConfigSupplier.get().keySet().stream()
@@ -73,6 +72,7 @@ public class DefaultContextClassLoaderFactory implements ContextClassLoaderFacto
           LOG.trace("{}-cleanup thread, contexts in use: {}", className, contextsInUse);
           AccumuloVFSClassLoader.removeUnusedContexts(contextsInUse);
         }), 1, 1, MINUTES);
+    ThreadPools.watchNonCriticalScheduledTask(future);
     LOG.debug("Context cleanup timer started at 60s intervals");
   }
 
