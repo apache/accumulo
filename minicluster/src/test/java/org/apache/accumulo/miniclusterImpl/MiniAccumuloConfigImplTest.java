@@ -42,15 +42,17 @@ public class MiniAccumuloConfigImplTest {
       new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @Test
-  public void testZookeeperPort() {
-
-    // set specific zookeeper port
+  public void testZookeeperPortSpecific() {
     MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password")
-        .setZooKeeperPort(5000).initialize();
-    assertEquals(5000, config.getZooKeeperPort());
+            .setZooKeeperPort(5000).initialize();
 
-    // generate zookeeper port
-    config = new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password").initialize();
+    assertEquals(5000, config.getZooKeeperPort());
+  }
+
+  @Test
+  public void testZookeeperPortGenerate() {
+    MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password").initialize();
+
     assertTrue(config.getZooKeeperPort() > 0);
   }
 
