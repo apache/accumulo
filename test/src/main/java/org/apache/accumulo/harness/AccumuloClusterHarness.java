@@ -20,6 +20,7 @@ package org.apache.accumulo.harness;
 
 import static com.google.common.base.Preconditions.checkState;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.IOException;
 import java.util.Properties;
@@ -47,7 +48,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.experimental.categories.Category;
@@ -114,7 +114,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
   public void setupCluster() throws Exception {
     // Before we try to instantiate the cluster, check to see if the test even wants to run against
     // this type of cluster
-    Assume.assumeTrue(canRunTest(type));
+    assumeTrue(canRunTest(type));
 
     switch (type) {
       case MINI:

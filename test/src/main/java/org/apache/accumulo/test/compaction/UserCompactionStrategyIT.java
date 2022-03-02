@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
 import java.util.Arrays;
@@ -55,7 +56,6 @@ import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Test;
 
 @SuppressWarnings("removal")
@@ -148,7 +148,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
   @Test
   public void testPerTableClasspath() throws Exception {
     // Can't assume that a test-resource will be on the server's classpath
-    Assume.assumeTrue(getClusterType() == ClusterType.MINI);
+    assumeTrue(getClusterType() == ClusterType.MINI);
 
     // test per-table classpath + user specified compaction strategy
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {

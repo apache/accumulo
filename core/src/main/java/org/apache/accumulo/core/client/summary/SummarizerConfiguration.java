@@ -56,7 +56,7 @@ public class SummarizerConfiguration {
     if (configId == null) {
       ArrayList<String> keys = new ArrayList<>(this.options.keySet());
       Collections.sort(keys);
-      Hasher hasher = Hashing.murmur3_32().newHasher();
+      Hasher hasher = Hashing.murmur3_32_fixed().newHasher();
       hasher.putString(className, UTF_8);
       for (String key : keys) {
         hasher.putString(key, UTF_8);
@@ -84,7 +84,7 @@ public class SummarizerConfiguration {
   }
 
   /**
-   * The propertyId is used to when creating table properties for a summarizer. Its not used for
+   * The propertyId is used when creating table properties for a summarizer. It's not used for
    * equality or hashCode for this class.
    */
   public String getPropertyId() {
