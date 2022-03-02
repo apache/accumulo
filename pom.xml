@@ -858,7 +858,7 @@
             <reuseForks>${surefire.reuseForks}</reuseForks>
             <excludedGroups>${surefire.excludedGroups}</excludedGroups>
             <groups>${surefire.groups}</groups>
-            <systemPropertyVariables>
+            <systemPropertyVariables combine.children="append">
               <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
             </systemPropertyVariables>
             <argLine>${unitTestMemSize} ${extraTestArgs}</argLine>
@@ -872,7 +872,7 @@
             <reuseForks>${failsafe.reuseForks}</reuseForks>
             <excludedGroups>${failsafe.excludedGroups}</excludedGroups>
             <groups>${failsafe.groups}</groups>
-            <systemPropertyVariables>
+            <systemPropertyVariables combine.children="append">
               <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
             </systemPropertyVariables>
             <argLine>${extraTestArgs}</argLine>
