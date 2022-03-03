@@ -19,8 +19,8 @@
 package org.apache.accumulo.core.client.lexicoder;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoderTest;
 import org.junit.jupiter.api.Test;
@@ -30,9 +30,9 @@ public class BigDecimalLexicoderTest extends AbstractLexicoderTest {
   @Test
   public void testSortOrder() {
 
-    List<BigDecimal> list =
-        List.of("2.0", "2.00", "2.000", "-3.000", "-2.00", "0.0000", "0.1", "0.10", "-65537.000",
-            "-65537.00", "-65537.0").stream().map(BigDecimal::new).collect(Collectors.toList());
+
+    var list = Stream.of("2.0", "2.00", "2.000", "-3.000", "-2.00", "0.0000", "0.1", "0.10",
+            "-65537.000", "-65537.00", "-65537.0").map(BigDecimal::new).collect(Collectors.toList());
 
     assertSortOrder(new BigDecimalLexicoder(), list);
 
