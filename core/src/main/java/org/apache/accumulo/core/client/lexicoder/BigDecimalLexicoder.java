@@ -18,7 +18,11 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
@@ -37,11 +41,12 @@ public class BigDecimalLexicoder extends AbstractLexicoder<BigDecimal> {
 
   @Override
   public byte[] encode(BigDecimal bd) {
-    //To encode we seperate out the scale and the unscaled value
+    // To encode we separate out the scale and the unscaled value
     // serialize each value individually and store them
     int scale = bd.scale();
     BigInteger bigInt = bd.unscaledValue();
     byte[] encodedbigInt = bigIntegerLexicoder.encode(bigInt);
+    // Length is set to size of encoded BigInteger + length of the scale value
     byte[] ret = new byte[4 + encodedbigInt.length];
     try (DataOutputStream dos = new DataOutputStream(new FixedByteArrayOutputStream(ret))) {
       scale = scale ^ 0x80000000;
@@ -60,9 +65,10 @@ public class BigDecimalLexicoder extends AbstractLexicoder<BigDecimal> {
 
     try {
       DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b, offset, origLen));
-
       byte[] bytes = new byte[origLen - 4];
+      // read the encoded Unscaled Value first
       dis.readFully(bytes, 0, origLen - 4);
+      // read the scale
       int scale = dis.readInt();
       scale = scale ^ 0x80000000;
       scale = Math.abs(scale);
