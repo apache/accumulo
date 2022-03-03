@@ -20,7 +20,7 @@ package org.apache.accumulo.hadoop.mapreduce;
 
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,28 +32,25 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.hadoop.WithTestNames;
 import org.apache.accumulo.hadoopImpl.mapreduce.InputTableConfig;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.Test;
 
-public class MultiTableInputFormatTest {
+public class MultiTableInputFormatTest extends WithTestNames {
   public static final Class<AccumuloInputFormat> CLASS = AccumuloInputFormat.class;
-
-  @Rule
-  public TestName testName = new TestName();
 
   /**
    * Verify {@link InputTableConfig} objects get correctly serialized in the JobContext.
    */
   @Test
   public void testStoreTables() throws Exception {
-    String table1Name = testName.getMethodName() + "1";
-    String table2Name = testName.getMethodName() + "2";
+    String table1Name = testName() + "1";
+    String table2Name = testName() + "2";
+
     Job job = Job.getInstance();
     Properties clientProps =
         org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormatTest.setupClientProperties();

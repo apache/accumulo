@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.hadoopImpl.mapreduce;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -35,14 +35,14 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.io.Text;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class InputTableConfigTest {
 
   private InputTableConfig tableQueryConfig;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     tableQueryConfig = new InputTableConfig();
   }

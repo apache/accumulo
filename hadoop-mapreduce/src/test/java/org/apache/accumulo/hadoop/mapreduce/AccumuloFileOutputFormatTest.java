@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.hadoop.mapreduce;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -36,7 +36,7 @@ import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.FileOutputConfigurator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class AccumuloFileOutputFormatTest {
 
