@@ -19,9 +19,9 @@
 package org.apache.accumulo.hadoop.mapreduce;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -34,7 +34,7 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.OutputConfigurator;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class AccumuloOutputFormatTest {
 
@@ -106,8 +106,9 @@ public class AccumuloOutputFormatTest {
     AccumuloOutputFormat.configure().clientProperties(cp).defaultTable(tableName).createTables(true)
         .store(job);
 
-    assertEquals("Should have been able to create table", true,
-        OutputConfigurator.canCreateTables(AccumuloOutputFormat.class, job.getConfiguration()));
+    assertEquals(true,
+        OutputConfigurator.canCreateTables(AccumuloOutputFormat.class, job.getConfiguration()),
+        "Should have been able to create table");
   }
 
   @Test
@@ -129,9 +130,8 @@ public class AccumuloOutputFormatTest {
 
       AccumuloOutputFormat.configure().clientPropertiesPath(file.getAbsolutePath()).store(job);
 
-      assertEquals("Properties from path does not match the expected values ", cp,
-          OutputConfigurator.getClientProperties(AccumuloOutputFormat.class,
-              job.getConfiguration()));
+      assertEquals(cp, OutputConfigurator.getClientProperties(AccumuloOutputFormat.class,
+          job.getConfiguration()), "Properties from path does not match the expected values ");
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
