@@ -19,7 +19,8 @@
 package org.apache.accumulo.core.client.lexicoder;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoderTest;
 import org.junit.jupiter.api.Test;
@@ -29,30 +30,30 @@ public class BigDecimalLexicoderTest extends AbstractLexicoderTest {
   @Test
   public void testSortOrder() {
 
-    assertSortOrder(new BigDecimalLexicoder(), BigDecimal::compareTo,
-        Arrays.asList(new BigDecimal("2.0"), new BigDecimal("2.00"), new BigDecimal("2.000"),
-            new BigDecimal("-3.000"), new BigDecimal("-2.00"), new BigDecimal("0.0000"),
-            new BigDecimal("0.1"), new BigDecimal("0.10"), new BigDecimal("-65537.000"),
-            new BigDecimal("-65537.00"), new BigDecimal("-65537.0")));
+    List list= List.of("2.0", "2.00", "2.000", "-3.000", "-2.00", "0.0000", "0.1", "0.10", "-65537.000",
+                    "-65537.00", "-65537.0").stream().map(BigDecimal::new).collect(Collectors.toList());
+
+    assertSortOrder(new BigDecimalLexicoder(),list);
 
   }
 
   @Test
   public void testDecode() {
-    assertDecodes(new BigDecimalLexicoder(), BigDecimal.valueOf(-3.000));
-    assertDecodes(new BigDecimalLexicoder(), new BigDecimal("2.00"));
-    assertDecodes(new BigDecimalLexicoder(), new BigDecimal("2.000"));
+    BigDecimalLexicoder bg = new BigDecimalLexicoder();
+    assertDecodes(bg, BigDecimal.valueOf(-3.000));
+    assertDecodes(bg, new BigDecimal("2.00"));
+    assertDecodes(bg, new BigDecimal("2.000"));
 
-    assertDecodes(new BigDecimalLexicoder(), new BigDecimal("-2.00"));
-    assertDecodes(new BigDecimalLexicoder(), BigDecimal.valueOf(0.1));
+    assertDecodes(bg, new BigDecimal("-2.00"));
+    assertDecodes(bg, BigDecimal.valueOf(0.1));
 
-    assertDecodes(new BigDecimalLexicoder(), BigDecimal.valueOf(2.000));
+    assertDecodes(bg, BigDecimal.valueOf(2.000));
 
-    assertDecodes(new BigDecimalLexicoder(), new BigDecimal("20.03"));
-    assertDecodes(new BigDecimalLexicoder(), new BigDecimal("56.67890"));
-    assertDecodes(new BigDecimalLexicoder(), new BigDecimal("1.2345E-12"));
-    assertDecodes(new BigDecimalLexicoder(), new BigDecimal("4.9e-324"));
-    assertDecodes(new BigDecimalLexicoder(), BigDecimal.valueOf(1.000000D));
+    assertDecodes(bg, new BigDecimal("20.03"));
+    assertDecodes(bg, new BigDecimal("56.67890"));
+    assertDecodes(bg, new BigDecimal("1.2345E-12"));
+    assertDecodes(bg, new BigDecimal("4.9e-324"));
+    assertDecodes(bg, BigDecimal.valueOf(1.000000D));
 
   }
 }

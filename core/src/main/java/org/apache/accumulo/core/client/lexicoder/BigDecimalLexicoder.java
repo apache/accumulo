@@ -18,10 +18,7 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
@@ -29,7 +26,7 @@ import org.apache.accumulo.core.clientImpl.lexicoder.FixedByteArrayOutputStream;
 
 public class BigDecimalLexicoder extends AbstractLexicoder<BigDecimal> {
 
-  BigIntegerLexicoder bigIntegerLexicoder = new BigIntegerLexicoder();
+  private final BigIntegerLexicoder bigIntegerLexicoder = new BigIntegerLexicoder();
 
   @Override
   public BigDecimal decode(byte[] b) {
@@ -40,22 +37,20 @@ public class BigDecimalLexicoder extends AbstractLexicoder<BigDecimal> {
 
   @Override
   public byte[] encode(BigDecimal bd) {
-
-    try {
-      int scale = bd.scale();
-      BigInteger bigInt = bd.unscaledValue();
-      byte[] encodedbigInt = bigIntegerLexicoder.encode(bigInt);
-      byte[] ret = new byte[4 + encodedbigInt.length];
-      int len = ret.length;
-      DataOutputStream dos = new DataOutputStream(new FixedByteArrayOutputStream(ret));
-      len = len ^ 0x80000000;
+    //To encode we seperate out the scale and the unscaled value
+    // serialize each value individually and store them
+    int scale = bd.scale();
+    BigInteger bigInt = bd.unscaledValue();
+    byte[] encodedbigInt = bigIntegerLexicoder.encode(bigInt);
+    byte[] ret = new byte[4 + encodedbigInt.length];
+    try (DataOutputStream dos = new DataOutputStream(new FixedByteArrayOutputStream(ret))) {
       scale = scale ^ 0x80000000;
       dos.write(encodedbigInt);
       dos.writeInt(scale);
-      dos.close();
       return ret;
+
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new UncheckedIOException(e);
     }
   }
 
@@ -75,7 +70,7 @@ public class BigDecimalLexicoder extends AbstractLexicoder<BigDecimal> {
       BigInteger bigInt = bigIntegerLexicoder.decodeUnchecked(bytes, 0, bytes.length);
       return new BigDecimal(bigInt, scale);
     } catch (IOException ioe) {
-      throw new RuntimeException(ioe);
+      throw new UncheckedIOException(ioe);
     }
 
   }
