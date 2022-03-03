@@ -75,7 +75,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.MonitorUtil;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
@@ -119,9 +118,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
 
   @Test
   public void invalidInstanceName() {
-    try (AccumuloClient client =
-        Accumulo.newClient().to("fake_instance_name", cluster.getZooKeepers())
-            .as(getAdminPrincipal(), getAdminToken()).build()) {
+    try (var client = Accumulo.newClient().to("fake_instance_name", cluster.getZooKeepers())
+        .as(getAdminPrincipal(), getAdminToken()).build()) {
       assertThrows(RuntimeException.class, () -> client.instanceOperations().getTabletServers());
     }
   }
@@ -167,9 +165,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       log.debug("Stopping accumulo cluster");
       ClusterControl control = cluster.getClusterControl();
       control.adminStopAll();
-      ClientInfo info = ClientInfo.from(accumuloClient.properties());
-      ZooReader zreader = new ZooReader(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
-      ZooCache zcache = new ZooCache(zreader, null);
+      ZooCache zcache = cluster.getServerContext().getZooCache();
       var zLockPath =
           ServiceLock.path(ZooUtil.getRoot(accumuloClient.instanceOperations().getInstanceId())
               + Constants.ZMANAGER_LOCK);

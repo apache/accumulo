@@ -85,7 +85,7 @@ public class ZooMutatorIT {
 
     try (ZooKeeperTestingServer szk = new ZooKeeperTestingServer(tempFolder.newFolder())) {
       szk.initPaths("/accumulo/" + InstanceId.of(UUID.randomUUID()));
-      ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 10_0000, "aPasswd");
+      ZooReaderWriter zk = szk.getZooReaderWriter();
 
       var executor = Executors.newFixedThreadPool(16);
 

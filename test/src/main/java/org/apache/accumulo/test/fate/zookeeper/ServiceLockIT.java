@@ -217,7 +217,7 @@ public class ServiceLockIT {
 
     assertFalse(zl.isLocked());
 
-    ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
+    ZooReaderWriter zk = szk.getZooReaderWriter();
 
     // intentionally created parent after lock
     zk.mkdirs(parent.toString());
@@ -266,7 +266,7 @@ public class ServiceLockIT {
     var parent =
         ServiceLock.path("/zltestDeleteLock-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
-    ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
+    ZooReaderWriter zk = szk.getZooReaderWriter();
     zk.mkdirs(parent.toString());
 
     ServiceLock zl = getZooLock(parent, UUID.randomUUID());
@@ -298,7 +298,7 @@ public class ServiceLockIT {
     var parent = ServiceLock
         .path("/zltestDeleteWaiting-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
-    ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
+    ZooReaderWriter zk = szk.getZooReaderWriter();
     zk.mkdirs(parent.toString());
 
     ServiceLock zl = getZooLock(parent, UUID.randomUUID());

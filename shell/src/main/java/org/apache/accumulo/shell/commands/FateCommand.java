@@ -237,8 +237,7 @@ public class FateCommand extends Command {
       secret = siteConfig.get(Property.INSTANCE_SECRET);
     }
 
-    return new ZooReaderWriter(context.getZooKeepers(), context.getZooKeepersSessionTimeOut(),
-        secret);
+    return context.getZooReader().asWriter(secret);
   }
 
   @Override

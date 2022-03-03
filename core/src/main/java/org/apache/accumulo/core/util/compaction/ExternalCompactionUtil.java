@@ -118,8 +118,7 @@ public class ExternalCompactionUtil {
     try {
       final Map<String,List<HostAndPort>> queuesAndAddresses = new HashMap<>();
       final String compactorQueuesPath = context.getZooKeeperRoot() + Constants.ZCOMPACTORS;
-      ZooReader zooReader =
-          new ZooReader(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
+      ZooReader zooReader = context.getZooReader();
       List<String> queues = zooReader.getChildren(compactorQueuesPath);
       for (String queue : queues) {
         queuesAndAddresses.putIfAbsent(queue, new ArrayList<HostAndPort>());

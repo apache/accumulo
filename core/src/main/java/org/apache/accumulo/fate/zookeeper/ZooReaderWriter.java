@@ -24,8 +24,8 @@ import static java.util.Objects.requireNonNull;
 import java.util.List;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.zookeeper.CreateMode;
@@ -40,17 +40,27 @@ public class ZooReaderWriter extends ZooReader {
     byte[] mutate(byte[] currentValue) throws AcceptableThriftTableOperationException;
   }
 
-  public ZooReaderWriter(AccumuloConfiguration conf) {
+  public ZooReaderWriter(SiteConfiguration conf) {
     this(conf.get(Property.INSTANCE_ZK_HOST),
         (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT),
         conf.get(Property.INSTANCE_SECRET));
   }
 
+  private final String secret;
   private final byte[] auth;
 
-  public ZooReaderWriter(String keepers, int timeoutInMillis, String secret) {
+  ZooReaderWriter(String keepers, int timeoutInMillis, String secret) {
     super(keepers, timeoutInMillis);
+    this.secret = requireNonNull(secret);
     this.auth = ("accumulo:" + secret).getBytes(UTF_8);
+  }
+
+  @Override
+  public ZooReaderWriter asWriter(String secret) {
+    if (this.secret.equals(secret)) {
+      return this;
+    }
+    return super.asWriter(secret);
   }
 
   @Override

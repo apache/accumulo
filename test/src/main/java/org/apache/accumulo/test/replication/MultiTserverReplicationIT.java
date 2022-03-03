@@ -70,8 +70,7 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
     try (Scanner s = client.createScanner("foo", Authorizations.EMPTY)) {
       assertEquals(0, Iterables.size(s));
 
-      ZooReader zreader =
-          new ZooReader(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
+      ZooReader zreader = context.getZooReader();
       Set<String> tserverHost = new HashSet<>();
       tserverHost.addAll(zreader.getChildren(
           ZooUtil.getRoot(client.instanceOperations().getInstanceId()) + Constants.ZTSERVERS));
@@ -108,8 +107,7 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
     try (Scanner s = client.createScanner("foo", Authorizations.EMPTY)) {
       assertEquals(0, Iterables.size(s));
 
-      ZooReader zreader =
-          new ZooReader(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
+      ZooReader zreader = context.getZooReader();
 
       // Should have one manager instance
       assertEquals(1, context.getManagerLocations().size());

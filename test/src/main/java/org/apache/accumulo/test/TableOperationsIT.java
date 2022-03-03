@@ -50,7 +50,6 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -88,9 +87,9 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   @After
   public void checkForDanglingFateLocks() {
     if (getClusterType() == ClusterType.MINI) {
-      FunctionalTestUtils.assertNoDanglingFateLocks((ClientContext) accumuloClient, getCluster());
-      accumuloClient.close();
+      FunctionalTestUtils.assertNoDanglingFateLocks(getCluster());
     }
+    accumuloClient.close();
   }
 
   @Test
