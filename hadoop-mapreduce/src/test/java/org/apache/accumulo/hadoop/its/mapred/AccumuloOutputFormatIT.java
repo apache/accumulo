@@ -43,7 +43,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.hadoop.WithTestNames;
 import org.apache.accumulo.hadoop.mapred.AccumuloInputFormat;
 import org.apache.accumulo.hadoop.mapred.AccumuloOutputFormat;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -63,8 +62,6 @@ import org.junit.jupiter.api.Test;
 
 public class AccumuloOutputFormatIT extends ConfigurableMacBase {
 
-  private WithTestNames wtn = new WithTestNames();
-
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.TSERV_SESSION_MAXIDLE, "1");
@@ -76,7 +73,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
   public void testMapred() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       // create a table and put some data in it
-      client.tableOperations().create(wtn.testName());
+      client.tableOperations().create(testName());
 
       JobConf job = new JobConf();
       BatchWriterConfig batchConfig = new BatchWriterConfig();
@@ -98,7 +95,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
           for (int j = 0; j < 3; j++) {
             m.put("cf1", "cq" + j, i + "_" + j);
           }
-          writer.write(new Text(wtn.testName()), m);
+          writer.write(new Text(testName()), m);
         }
 
       } catch (Exception e) {
@@ -106,8 +103,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
         // we don't want the exception to come from write
       }
 
-      client.securityOperations().revokeTablePermission("root", wtn.testName(),
-          TablePermission.WRITE);
+      client.securityOperations().revokeTablePermission("root", testName(), TablePermission.WRITE);
 
       var ex = assertThrows(IOException.class, () -> writer.close(null));
       log.info(ex.getMessage(), ex);

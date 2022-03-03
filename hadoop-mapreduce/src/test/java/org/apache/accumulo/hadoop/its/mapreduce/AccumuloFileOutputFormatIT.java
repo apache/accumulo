@@ -39,7 +39,6 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.rfile.RFileOperations;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.hadoop.WithTestNames;
 import org.apache.accumulo.hadoop.mapreduce.AccumuloFileOutputFormat;
 import org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -69,7 +68,6 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
   private String BAD_TABLE;
   private String TEST_TABLE;
   private String EMPTY_TABLE;
-  private WithTestNames wtn = new WithTestNames();
 
   private static final SamplerConfiguration SAMPLER_CONFIG =
       new SamplerConfiguration(RowSampler.class.getName()).addOption("hasher", "murmur3_32")
@@ -195,7 +193,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
   }
 
   private void handleWriteTests(boolean content) throws Exception {
-    File f = new File(tempDir, wtn.testName());
+    File f = new File(tempDir, testName());
     assertTrue(f.createNewFile(), "Failed to create file: " + f);
     assertTrue(f.delete());
     MRTester.main(new String[] {content ? TEST_TABLE : EMPTY_TABLE, f.getAbsolutePath()});
@@ -228,7 +226,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
   @Test
   public void writeBadVisibility() throws Exception {
-    File f = new File(tempDir, wtn.testName());
+    File f = new File(tempDir, testName());
     assertTrue(f.createNewFile(), "Failed to create file: " + f);
     assertTrue(f.delete());
     MRTester.main(new String[] {BAD_TABLE, f.getAbsolutePath()});

@@ -40,7 +40,6 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.hadoop.WithTestNames;
 import org.apache.accumulo.hadoop.mapred.AccumuloFileOutputFormat;
 import org.apache.accumulo.hadoop.mapred.AccumuloInputFormat;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.ConfiguratorBase;
@@ -72,7 +71,6 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
   private static final String BAD_TABLE = PREFIX + "_mapred_bad_table";
   private static final String TEST_TABLE = PREFIX + "_mapred_test_table";
   private static final String EMPTY_TABLE = PREFIX + "_mapred_empty_table";
-  private WithTestNames wtn = new WithTestNames();
 
   private static AssertionError e1 = null;
   private static AssertionError e2 = null;
@@ -182,7 +180,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
   }
 
   private void handleWriteTests(boolean content) throws Exception {
-    File f = new File(tempDir, wtn.testName());
+    File f = new File(tempDir, testName());
     assertTrue(f.createNewFile(), "Failed to create file: " + f);
     if (f.delete()) {
       log.debug("Deleted {}", f);
@@ -220,7 +218,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
       m.put("cf1", "cq2", "A&");
       bw.addMutation(m);
       bw.close();
-      File f = new File(tempDir, wtn.testName());
+      File f = new File(tempDir, testName());
       assertTrue(f.createNewFile(), "Failed to create file: " + f);
       if (f.delete()) {
         log.debug("Deleted {}", f);
