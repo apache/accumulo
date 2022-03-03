@@ -87,7 +87,7 @@ public class ZooMutatorIT extends WithTestNames {
     assertTrue(newFolder.isDirectory() || newFolder.mkdir(), "failed to create dir: " + newFolder);
     try (ZooKeeperTestingServer szk = new ZooKeeperTestingServer(newFolder)) {
       szk.initPaths("/accumulo/" + InstanceId.of(UUID.randomUUID()));
-      ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 10_0000, "aPasswd");
+      ZooReaderWriter zk = szk.getZooReaderWriter();
 
       var executor = Executors.newFixedThreadPool(16);
 

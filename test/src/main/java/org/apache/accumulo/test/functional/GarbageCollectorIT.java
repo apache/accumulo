@@ -102,7 +102,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
         getCluster().getProcesses().get(ServerType.GARBAGE_COLLECTOR).iterator().next());
     // delete lock in zookeeper if there, this will allow next GC to start quickly
     var path = ServiceLock.path(getServerContext().getZooKeeperRoot() + Constants.ZGC_LOCK);
-    ZooReaderWriter zk = new ZooReaderWriter(cluster.getZooKeepers(), 30000, OUR_SECRET);
+    ZooReaderWriter zk = getServerContext().getZooReaderWriter();
     try {
       ServiceLock.deleteLock(zk, path);
     } catch (IllegalStateException e) {
@@ -256,7 +256,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
 
-      ZooReaderWriter zk = new ZooReaderWriter(cluster.getZooKeepers(), 30000, OUR_SECRET);
+      ZooReaderWriter zk = cluster.getServerContext().getZooReaderWriter();
       var path = ServiceLock
           .path(ZooUtil.getRoot(client.instanceOperations().getInstanceId()) + Constants.ZGC_LOCK);
       for (int i = 0; i < 5; i++) {

@@ -119,7 +119,7 @@ public class FateIT extends WithTestNames {
   @Test
   @Timeout(30)
   public void testTransactionStatus() throws Exception {
-    ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
+    ZooReaderWriter zk = szk.getZooReaderWriter();
 
     zk.mkdirs(ZK_ROOT + Constants.ZFATE);
     zk.mkdirs(ZK_ROOT + Constants.ZTABLE_LOCKS);

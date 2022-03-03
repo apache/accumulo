@@ -45,7 +45,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -67,10 +66,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
   @AfterEach
   public void checkForDanglingFateLocks() {
     if (getClusterType() == ClusterType.MINI) {
-      try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-        assertNotNull(c);
-        FunctionalTestUtils.assertNoDanglingFateLocks((ClientContext) c, getCluster());
-      }
+      FunctionalTestUtils.assertNoDanglingFateLocks(getCluster());
     }
   }
 

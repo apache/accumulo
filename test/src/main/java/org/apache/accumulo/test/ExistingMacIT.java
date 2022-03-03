@@ -38,8 +38,6 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ClientProperty;
-import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -113,11 +111,7 @@ public class ExistingMacIT extends ConfigurableMacBase {
         getCluster().killProcess(entry.getKey(), pr);
     }
 
-    final DefaultConfiguration defaultConfig = DefaultConfiguration.getInstance();
-    final long zkTimeout = ConfigurationTypeHelper.getTimeInMillis(
-        getCluster().getConfig().getSiteConfig().get(Property.INSTANCE_ZK_TIMEOUT.getKey()));
-    ZooReaderWriter zrw = new ZooReaderWriter(getCluster().getZooKeepers(), (int) zkTimeout,
-        defaultConfig.get(Property.INSTANCE_SECRET));
+    ZooReaderWriter zrw = getCluster().getServerContext().getZooReaderWriter();
     final String zInstanceRoot =
         Constants.ZROOT + "/" + client.instanceOperations().getInstanceId();
     while (!AccumuloStatus.isAccumuloOffline(zrw, zInstanceRoot)) {
