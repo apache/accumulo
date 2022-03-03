@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.util;
 
+import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
@@ -47,7 +48,6 @@ import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.thrift.server.TServer;
-import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -61,7 +61,8 @@ public class TServerUtilsTest {
 
   @Before
   public void createMockServerContext() {
-    context = EasyMock.createMock(ServerContext.class);
+    context = createMock(ServerContext.class);
+    expect(context.getZooReader()).andReturn(null).anyTimes();
     expect(context.getZooReaderWriter()).andReturn(null).anyTimes();
     expect(context.getProperties()).andReturn(new Properties()).anyTimes();
     expect(context.getZooKeepers()).andReturn("").anyTimes();

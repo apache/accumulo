@@ -60,7 +60,6 @@ public class DistributedWorkQueue {
   private ThreadPoolExecutor threadPool;
   private ZooReaderWriter zoo;
   private String path;
-  private AccumuloConfiguration config;
   private ServerContext context;
   private long timerInitialDelay, timerPeriod;
 
@@ -174,19 +173,14 @@ public class DistributedWorkQueue {
   public DistributedWorkQueue(String path, AccumuloConfiguration config, ServerContext context,
       long timerInitialDelay, long timerPeriod) {
     this.path = path;
-    this.config = config;
     this.context = context;
     this.timerInitialDelay = timerInitialDelay;
     this.timerPeriod = timerPeriod;
-    zoo = new ZooReaderWriter(this.config);
+    zoo = context.getZooReaderWriter();
   }
 
   public ServerContext getContext() {
     return context;
-  }
-
-  public ZooReaderWriter getZooReaderWriter() {
-    return zoo;
   }
 
   public void startProcessing(final Processor processor, ThreadPoolExecutor executorService)

@@ -32,7 +32,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.util.MonitorUtil;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.manager.Manager;
@@ -139,10 +138,9 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
 
       // Wait for the Manager to grab its lock
       while (true) {
-        final ZooReader reader = new ZooReader(cluster.getZooKeepers(), 30000);
         try {
-          List<String> locks =
-              reader.getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZMANAGER_LOCK);
+          List<String> locks = cluster.getServerContext().getZooReader()
+              .getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZMANAGER_LOCK);
           if (!locks.isEmpty()) {
             break;
           }
@@ -199,10 +197,9 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
 
       // Wait for the Manager to grab its lock
       while (true) {
-        final ZooReader reader = new ZooReader(cluster.getZooKeepers(), 30000);
         try {
-          List<String> locks =
-              reader.getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZGC_LOCK);
+          List<String> locks = cluster.getServerContext().getZooReader()
+              .getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZGC_LOCK);
           if (!locks.isEmpty()) {
             break;
           }

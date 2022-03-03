@@ -510,7 +510,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
       case EVENTUAL:
         return getRootMetadata(zkRoot, ctx.getZooCache());
       case IMMEDIATE:
-        ZooReader zooReader = new ZooReader(ctx.getZooKeepers(), ctx.getZooKeepersSessionTimeOut());
+        ZooReader zooReader = ctx.getZooReader();
         try {
           return RootTabletMetadata.fromJson(zooReader.getData(zkRoot + RootTable.ZROOT_TABLET))
               .convertToTabletMetadata();
