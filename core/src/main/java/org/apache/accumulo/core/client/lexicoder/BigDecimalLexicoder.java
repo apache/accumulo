@@ -28,6 +28,11 @@ import java.math.BigInteger;
 
 import org.apache.accumulo.core.clientImpl.lexicoder.FixedByteArrayOutputStream;
 
+/**
+ * A lexicoder to encode/decode a BigDecimal to/from bytes that maintain its native Java sort order.
+ *
+ * @since 2.1.0
+ */
 public class BigDecimalLexicoder extends AbstractLexicoder<BigDecimal> {
 
   private final BigIntegerLexicoder bigIntegerLexicoder = new BigIntegerLexicoder();
