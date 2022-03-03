@@ -30,9 +30,8 @@ public class BigDecimalLexicoderTest extends AbstractLexicoderTest {
   @Test
   public void testSortOrder() {
 
-
     var list = Stream.of("2.0", "2.00", "2.000", "-3.000", "-2.00", "0.0000", "0.1", "0.10",
-            "-65537.000", "-65537.00", "-65537.0").map(BigDecimal::new).collect(Collectors.toList());
+        "-65537.000", "-65537.00", "-65537.0").map(BigDecimal::new).collect(Collectors.toList());
 
     assertSortOrder(new BigDecimalLexicoder(), list);
 
