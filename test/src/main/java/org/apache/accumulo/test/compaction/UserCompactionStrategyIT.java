@@ -19,12 +19,11 @@
 package org.apache.accumulo.test.compaction;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,7 +43,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -52,16 +50,11 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.test.functional.ConfigurableCompactionIT;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.accumulo.test.functional.SlowIterator;
-import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Test;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressWarnings("removal")
 public class UserCompactionStrategyIT extends AccumuloClusterHarness {
@@ -74,10 +67,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
   @After
   public void checkForDanglingFateLocks() {
     if (getClusterType() == ClusterType.MINI) {
-      try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-        assertNotNull(c);
-        FunctionalTestUtils.assertNoDanglingFateLocks((ClientContext) c, getCluster());
-      }
+      FunctionalTestUtils.assertNoDanglingFateLocks(getCluster());
     }
   }
 
@@ -153,15 +143,15 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
   @Test
   public void testPerTableClasspath() throws Exception {
     // Can't assume that a test-resource will be on the server's classpath
-    Assume.assumeTrue(getClusterType() == ClusterType.MINI);
+    assumeTrue(getClusterType() == ClusterType.MINI);
 
     // test per-table classpath + user specified compaction strategy
-
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
       File target = new File(System.getProperty("user.dir"), "target");
       assertTrue(target.mkdirs() || target.isDirectory());
-      File destFile = installJar(target, "/TestCompactionStrat.jar");
+      var destFile = initJar("/org/apache/accumulo/test/TestCompactionStrat.jar",
+          "TestCompactionStrat", target.getAbsolutePath());
       c.instanceOperations().setProperty(
           Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "context1", destFile.toString());
       HashMap<String,String> props = new HashMap<>();
@@ -191,14 +181,6 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
       assertEquals(2, FunctionalTestUtils.countRFiles(c, tableName));
     }
-  }
-
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
-  private static File installJar(File destDir, String jarFile) throws IOException {
-    File destName = new File(destDir, new File(jarFile).getName());
-    FileUtils.copyInputStreamToFile(ConfigurableCompactionIT.class.getResourceAsStream(jarFile),
-        destName);
-    return destName;
   }
 
   @Test

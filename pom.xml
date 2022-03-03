@@ -116,18 +116,22 @@
   <properties>
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
+    <auto-service.version>1.0.1</auto-service.version>
     <!-- bouncycastle version for test dependencies -->
-    <bouncycastle.version>1.68</bouncycastle.version>
+    <bouncycastle.version>1.70</bouncycastle.version>
     <!-- Curator version -->
-    <curator.version>5.1.0</curator.version>
+    <curator.version>5.2.0</curator.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
     <eclipseFormatterStyle>${project.parent.basedir}/contrib/Eclipse-Accumulo-Codestyle.xml</eclipseFormatterStyle>
+    <errorprone.version>2.11.0</errorprone.version>
     <!-- avoid error shutting down built-in ForkJoinPool.commonPool() during exec:java tasks -->
     <exec.cleanupDaemonThreads>false</exec.cleanupDaemonThreads>
+    <extraTestArgs />
     <failsafe.excludedGroups />
     <failsafe.forkCount>1</failsafe.forkCount>
     <failsafe.groups />
     <failsafe.reuseForks>false</failsafe.reuseForks>
+    <!-- Version 3.3.1 seems to have issues especially with CountNameNodeOptsBulkIT -->
     <hadoop.version>3.3.0</hadoop.version>
     <htrace.hadoop.version>4.1.0-incubating</htrace.hadoop.version>
     <it.failIfNoSpecifiedTests>false</it.failIfNoSpecifiedTests>
@@ -142,9 +146,9 @@
     <minimalMavenBuildVersion>3.5.0</minimalMavenBuildVersion>
     <powermock.version>2.0.9</powermock.version>
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
-    <project.build.outputTimestamp>2020-12-17T22:06:50Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2022-02-08T14:59:16Z</project.build.outputTimestamp>
     <rat.consoleOutput>true</rat.consoleOutput>
-    <slf4j.version>1.7.30</slf4j.version>
+    <slf4j.version>1.7.35</slf4j.version>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <surefire.excludedGroups />
     <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
@@ -157,84 +161,91 @@
     <thrift.version>0.15.0</thrift.version>
     <unitTestMemSize>-Xmx1G</unitTestMemSize>
     <!-- ZooKeeper version -->
-    <zookeeper.version>3.5.9</zookeeper.version>
+    <zookeeper.version>3.7.0</zookeeper.version>
   </properties>
   <dependencyManagement>
     <dependencies>
       <dependency>
         <groupId>com.fasterxml.jackson</groupId>
         <artifactId>jackson-bom</artifactId>
-        <version>2.12.3</version>
+        <version>2.13.1</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>io.micrometer</groupId>
         <artifactId>micrometer-bom</artifactId>
-        <version>1.7.5</version>
+        <version>1.8.3</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>io.opentelemetry</groupId>
         <artifactId>opentelemetry-bom</artifactId>
-        <version>1.7.1</version>
+        <version>1.11.0</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>io.opentelemetry</groupId>
         <artifactId>opentelemetry-bom-alpha</artifactId>
-        <version>1.7.1-alpha</version>
+        <version>1.11.0-alpha</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>jakarta.platform</groupId>
         <artifactId>jakarta.jakartaee-bom</artifactId>
-        <version>9.1.0-RC1</version>
+        <version>9.1.0</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>org.apache.logging.log4j</groupId>
         <artifactId>log4j-bom</artifactId>
-        <version>2.14.1</version>
+        <version>2.17.2</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-bom</artifactId>
-        <version>11.0.2</version>
+        <version>11.0.8</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>org.glassfish.hk2</groupId>
         <artifactId>hk2-bom</artifactId>
-        <version>3.0.1</version>
+        <version>3.0.2</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>org.glassfish.jaxb</groupId>
         <artifactId>jaxb-bom</artifactId>
-        <version>3.0.1</version>
+        <version>3.0.2</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>org.glassfish.jersey</groupId>
         <artifactId>jersey-bom</artifactId>
-        <version>3.0.2</version>
+        <version>3.0.4</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>5.8.2</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>com.beust</groupId>
         <artifactId>jcommander</artifactId>
-        <version>1.81</version>
+        <version>1.82</version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml</groupId>
@@ -244,17 +255,17 @@
       <dependency>
         <groupId>com.github.ben-manes.caffeine</groupId>
         <artifactId>caffeine</artifactId>
-        <version>3.0.2</version>
+        <version>3.0.5</version>
       </dependency>
       <dependency>
         <groupId>com.github.spotbugs</groupId>
         <artifactId>spotbugs-annotations</artifactId>
-        <version>4.4.2</version>
+        <version>4.5.3</version>
       </dependency>
       <dependency>
         <groupId>com.google.auto.service</groupId>
         <artifactId>auto-service</artifactId>
-        <version>1.0</version>
+        <version>${auto-service.version}</version>
       </dependency>
       <dependency>
         <groupId>com.google.code.findbugs</groupId>
@@ -264,13 +275,13 @@
       <dependency>
         <groupId>com.google.code.gson</groupId>
         <artifactId>gson</artifactId>
-        <version>2.8.6</version>
+        <version>2.9.0</version>
       </dependency>
       <dependency>
         <!-- converge transitive dependency version between guava and caffeine -->
         <groupId>com.google.errorprone</groupId>
         <artifactId>error_prone_annotations</artifactId>
-        <version>2.6.0</version>
+        <version>2.11.0</version>
       </dependency>
       <dependency>
         <!-- this is a runtime dependency of guava, no longer included with guava as of 27.1 -->
@@ -281,12 +292,12 @@
       <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
-        <version>30.1.1-jre</version>
+        <version>31.1-jre</version>
       </dependency>
       <dependency>
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java</artifactId>
-        <version>3.7.1</version>
+        <version>3.19.2</version>
       </dependency>
       <dependency>
         <groupId>com.lmax</groupId>
@@ -314,6 +325,7 @@
         <version>1.2</version>
       </dependency>
       <dependency>
+        <!-- legacy junit version specified here for dependency convergence -->
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
         <version>4.13.2</version>
@@ -437,7 +449,7 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-vfs2</artifactId>
-        <version>2.8.0</version>
+        <version>2.9.0</version>
         <exclusions>
           <exclusion>
             <groupId>org.apache.hadoop</groupId>
@@ -454,6 +466,11 @@
         <groupId>org.apache.curator</groupId>
         <artifactId>curator-test</artifactId>
         <version>${curator.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.datasketches</groupId>
+        <artifactId>datasketches-java</artifactId>
+        <version>3.0.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.hadoop</groupId>
@@ -563,7 +580,7 @@
       <dependency>
         <groupId>org.checkerframework</groupId>
         <artifactId>checker-qual</artifactId>
-        <version>3.13.0</version>
+        <version>3.21.2</version>
       </dependency>
       <dependency>
         <groupId>org.easymock</groupId>
@@ -578,7 +595,7 @@
       <dependency>
         <groupId>org.glassfish</groupId>
         <artifactId>jakarta.el</artifactId>
-        <version>4.0.1</version>
+        <version>4.0.2</version>
       </dependency>
       <dependency>
         <groupId>org.hdrhistogram</groupId>
@@ -588,7 +605,7 @@
       <dependency>
         <groupId>org.hibernate.validator</groupId>
         <artifactId>hibernate-validator</artifactId>
-        <version>7.0.1.Final</version>
+        <version>7.0.2.Final</version>
       </dependency>
       <dependency>
         <groupId>org.javassist</groupId>
@@ -598,12 +615,12 @@
       <dependency>
         <groupId>org.jboss.logging</groupId>
         <artifactId>jboss-logging</artifactId>
-        <version>3.4.1.Final</version>
+        <version>3.4.3.Final</version>
       </dependency>
       <dependency>
         <groupId>org.jline</groupId>
         <artifactId>jline</artifactId>
-        <version>3.20.0</version>
+        <version>3.21.0</version>
       </dependency>
       <dependency>
         <groupId>org.latencyutils</groupId>
@@ -650,7 +667,7 @@
       <dependency>
         <groupId>org.yaml</groupId>
         <artifactId>snakeyaml</artifactId>
-        <version>1.29</version>
+        <version>1.30</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -707,7 +724,7 @@
         <plugin>
           <groupId>com.github.spotbugs</groupId>
           <artifactId>spotbugs-maven-plugin</artifactId>
-          <version>4.4.2.2</version>
+          <version>4.5.3.0</version>
           <configuration>
             <xmlOutput>true</xmlOutput>
             <effort>Max</effort>
@@ -790,6 +807,13 @@
               <arg>-Xmaxwarns</arg>
               <arg>5</arg>
             </compilerArgs>
+            <annotationProcessorPaths combine.children="append">
+              <path>
+                <groupId>com.google.auto.service</groupId>
+                <artifactId>auto-service</artifactId>
+                <version>${auto-service.version}</version>
+              </path>
+            </annotationProcessorPaths>
           </configuration>
         </plugin>
         <plugin>
@@ -843,10 +867,10 @@
             <reuseForks>${surefire.reuseForks}</reuseForks>
             <excludedGroups>${surefire.excludedGroups}</excludedGroups>
             <groups>${surefire.groups}</groups>
-            <systemPropertyVariables>
+            <systemPropertyVariables combine.children="append">
               <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
             </systemPropertyVariables>
-            <argLine>${unitTestMemSize}</argLine>
+            <argLine>${unitTestMemSize} ${extraTestArgs}</argLine>
           </configuration>
         </plugin>
         <plugin>
@@ -857,16 +881,17 @@
             <reuseForks>${failsafe.reuseForks}</reuseForks>
             <excludedGroups>${failsafe.excludedGroups}</excludedGroups>
             <groups>${failsafe.groups}</groups>
-            <systemPropertyVariables>
+            <systemPropertyVariables combine.children="append">
               <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
             </systemPropertyVariables>
+            <argLine>${extraTestArgs}</argLine>
             <trimStackTrace>false</trimStackTrace>
           </configuration>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>build-helper-maven-plugin</artifactId>
-          <version>3.2.0</version>
+          <version>3.3.0</version>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
@@ -881,11 +906,8 @@
         <plugin>
           <groupId>net.revelc.code.formatter</groupId>
           <artifactId>formatter-maven-plugin</artifactId>
-          <version>2.17.0</version>
+          <version>2.18.0</version>
           <configuration>
-            <compilerCompliance>${maven.compiler.source}</compilerCompliance>
-            <compilerSource>${maven.compiler.source}</compilerSource>
-            <compilerTargetPlatform>${maven.compiler.target}</compilerTargetPlatform>
             <configFile>${eclipseFormatterStyle}</configFile>
             <excludes>
               <exclude>**/thrift/*.java</exclude>
@@ -893,7 +915,6 @@
             </excludes>
             <lineEnding>LF</lineEnding>
             <overrideConfigCompilerVersion>true</overrideConfigCompilerVersion>
-            <removeTrailingWhitespace>true</removeTrailingWhitespace>
             <skipCssFormatting>true</skipCssFormatting>
             <skipHtmlFormatting>true</skipHtmlFormatting>
             <skipJsFormatting>true</skipJsFormatting>
@@ -964,6 +985,8 @@
                 <usedUndeclaredDependency>org.apache.httpcomponents:httpcore:jar:*</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.powermock:powermock-core:jar:*</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.powermock:powermock-reflect:jar:*</usedUndeclaredDependency>
+                <!-- This should be removed upon completion of migrating junit 4 to 5 -->
+                <usedUndeclaredDependency>junit:junit:jar:*</usedUndeclaredDependency>
               </ignoredUsedUndeclaredDependencies>
               <ignoredUnusedDeclaredDependencies>
                 <!-- auto-service isn't used in every module -->
@@ -977,7 +1000,6 @@
                 -
                 <unusedDeclaredDependency>org.glassfish.jersey.test-framework.providers:jersey-test-framework-provider-grizzly2:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.powermock:powermock-api-easymock:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>junit:junit:jar:*</unusedDeclaredDependency>
                 <!-- spotbugs annotations may or may not be used in each module -->
                 <unusedDeclaredDependency>com.github.spotbugs:spotbugs-annotations:jar:*</unusedDeclaredDependency>
                 <!-- ignore unused native; analysis isn't possible with tar.gz dependency -->
@@ -986,6 +1008,8 @@
                 <unusedDeclaredDependency>org.apache.logging.log4j:log4j-1.2-api:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.logging.log4j:log4j-slf4j-impl:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.logging.log4j:log4j-web:jar:*</unusedDeclaredDependency>
+                <!-- This should be removed upon completion of migrating junit 4 to 5 -->
+                <unusedDeclaredDependency>org.junit.vintage:junit-vintage-engine:jar:*</unusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>
@@ -1021,6 +1045,7 @@
                     <!-- we redirect logging to log4j2, so we should have those bridges instead -->
                     <!-- commons-logging is allowed because log4j-jcl uses it as a dependency -->
                     <exclude>ch.qos.logback:*</exclude>
+                    <exclude>ch.qos.reload4j:*</exclude>
                     <exclude>log4j:*</exclude>
                     <exclude>org.apache.logging.log4j:log4j-to-slf4j</exclude>
                     <exclude>org.slf4j:*</exclude>
@@ -1085,8 +1110,25 @@
                   <property name="message" value="Use static imports for Assert.* methods for consistency" />
                 </module>
                 <module name="RegexpSinglelineJava">
+                  <property name="format" value="org[.]junit[.]jupiter[.]api[.]Assertions;" />
+                  <property name="message" value="Use static imports for Assert.* methods for consistency" />
+                </module>
+                <module name="RegexpSinglelineJava">
+                  <property name="format" value="import org[.]junit[.]Assume;" />
+                  <property name="message" value="Use static imports for Assume.* methods for consistency" />
+                </module>
+                <module name="RegexpSinglelineJava">
+                  <property name="format" value="org[.]junit[.]jupiter[.]api[.]Assumptions;" />
+                  <property name="message" value="Use static imports for Assumptions.* methods for consistency" />
+                </module>
+                <module name="RegexpSinglelineJava">
                   <property name="format" value="import java[.]nio[.]charset[.]StandardCharsets;" />
                   <property name="message" value="Use static imports for StandardCharsets.* constants for consistency" />
+                </module>
+                <module name="RegexpSinglelineJava">
+                  <!-- double escape quotes because checkstyle passes these through another xml parser -->
+                  <property name="format" value="&amp;quot; [+] &amp;quot;" />
+                  <property name="message" value="Unnecessary concatenation of string literals" />
                 </module>
                 <module name="OuterTypeFilename" />
                 <module name="AvoidStarImport" />
@@ -1127,7 +1169,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>9.1</version>
+            <version>9.3</version>
           </dependency>
         </dependencies>
         <executions>
@@ -1615,6 +1657,69 @@
       <properties>
         <failsafe.reuseForks>${reuseForks}</failsafe.reuseForks>
         <surefire.reuseForks>${reuseForks}</surefire.reuseForks>
+      </properties>
+    </profile>
+    <profile>
+      <!-- This profile uses the Google ErrorProne tool to perform static code analysis at
+      compile time. Auto-generated code is not checked.
+      See: https://errorprone.info/bugpatterns for list of available bug patterns.-->
+      <id>errorprone</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <configuration>
+              <compilerArgs>
+                <arg>-XDcompilePolicy=simple</arg>
+                <arg>
+                  -Xplugin:ErrorProne \
+                  -XepExcludedPaths:.*/(proto|thrift|generated-sources)/.* \
+                  -XepDisableWarningsInGeneratedCode \
+                  -XepDisableAllWarnings \
+                  <!-- error/warning patterns to ignore -->
+                  -Xep:Incomparable:OFF \
+                  -Xep:CheckReturnValue:OFF \
+                  -Xep:MustBeClosedChecker:OFF \
+                  -Xep:ReturnValueIgnored:OFF \
+                  -Xep:UnicodeInCode:OFF \
+                  <!-- error/warning patterns to specifically check -->
+                  -Xep:ExpectedExceptionChecker \
+                  -Xep:MissingOverride \
+                  <!-- Items containing 'OFF' are currently flagged by ErrorProne. The 'OFF'
+                  can be removed and the project recompiled to discover location of errors for
+                  further analysis. @SuppressWarnings can be used to ignore errors if desired. -->
+                </arg>
+                <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED</arg>
+                <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED</arg>
+                <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED</arg>
+                <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED</arg>
+                <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED</arg>
+                <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED</arg>
+                <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED</arg>
+                <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</arg>
+                <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED</arg>
+                <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED</arg>
+              </compilerArgs>
+              <annotationProcessorPaths>
+                <path>
+                  <groupId>com.google.errorprone</groupId>
+                  <artifactId>error_prone_core</artifactId>
+                  <version>${errorprone.version}</version>
+                </path>
+              </annotationProcessorPaths>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>jdk17</id>
+      <activation>
+        <jdk>[17,)</jdk>
+      </activation>
+      <properties>
+        <extraTestArgs>--add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED --add-opens java.management/java.lang.management=ALL-UNNAMED --add-opens java.management/sun.management=ALL-UNNAMED --add-opens java.base/java.security=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED --add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED</extraTestArgs>
       </properties>
     </profile>
   </profiles>

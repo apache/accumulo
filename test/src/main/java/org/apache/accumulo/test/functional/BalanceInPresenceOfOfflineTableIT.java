@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -54,7 +55,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -101,7 +101,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
         break;
       UtilWaitThread.sleep(TimeUnit.SECONDS.toMillis(2));
     }
-    Assume.assumeTrue("Not enough tservers to run test",
+    assumeTrue("Not enough tservers to run test",
         accumuloClient.instanceOperations().getTabletServers().size() >= 2);
 
     // set up splits
@@ -145,7 +145,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
     log.debug("waiting for balancing, up to ~5 minutes to allow for migration cleanup.");
     final long startTime = System.currentTimeMillis();
-    long currentWait = 10 * 1000;
+    long currentWait = 10_000;
     boolean balancingWorked = false;
 
     Credentials creds = new Credentials(getAdminPrincipal(), getAdminToken());
@@ -161,7 +161,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
         try {
           client = ManagerClient.getConnectionWithRetry((ClientContext) accumuloClient);
           stats = client.getManagerStats(TraceUtil.traceInfo(),
-              creds.toThrift(accumuloClient.instanceOperations().getInstanceID()));
+              creds.toThrift(accumuloClient.instanceOperations().getInstanceId()));
           break;
         } catch (ThriftSecurityException exception) {
           throw new AccumuloSecurityException(exception);

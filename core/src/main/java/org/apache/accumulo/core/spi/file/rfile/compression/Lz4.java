@@ -16,13 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.spi.trace;
+package org.apache.accumulo.core.spi.file.rfile.compression;
 
-import java.util.function.Supplier;
+public class Lz4 implements CompressionAlgorithmConfiguration {
 
-import io.opentelemetry.api.OpenTelemetry;
+  @Override
+  public String getName() {
+    return "lz4";
+  }
 
-/**
- * Configures and returns an instance of OpenTelemetry
- */
-public interface OpenTelemetryFactory extends Supplier<OpenTelemetry> {}
+  @Override
+  public String getCodecClassName() {
+    return "org.apache.hadoop.io.compress.Lz4Codec";
+  }
+
+  @Override
+  public String getCodecClassNameProperty() {
+    return "io.compression.codec.lz4.class";
+  }
+
+  @Override
+  public int getDefaultBufferSize() {
+    return 256 * 1024;
+  }
+
+  @Override
+  public String getBufferSizeProperty() {
+    return "io.compression.codec.lz4.buffersize";
+  }
+
+}

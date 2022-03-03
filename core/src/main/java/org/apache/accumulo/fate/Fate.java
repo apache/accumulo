@@ -18,13 +18,15 @@
  */
 package org.apache.accumulo.fate;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
@@ -79,8 +81,14 @@ public class Fate<T> {
             try {
               deferTime = op.isReady(tid, environment);
 
+              // Here, deferTime is only used to determine success (zero) or failure (non-zero),
+              // proceeding on success and returning to the while loop on failure.
+              // The value of deferTime is only used as a wait time in ZooStore.unreserve
               if (deferTime == 0) {
                 prevOp = op;
+                if (status == TStatus.SUBMITTED) {
+                  store.setStatus(tid, TStatus.IN_PROGRESS);
+                }
                 op = op.call(tid, environment);
               } else
                 continue;
@@ -157,7 +165,7 @@ public class Fate<T> {
         while (true) {
           // Nothing is going to work well at this point, so why even try. Just wait for the end,
           // preventing this FATE thread from processing further work and likely failing.
-          UtilWaitThread.sleepUninterruptibly(1, TimeUnit.MINUTES);
+          UtilWaitThread.sleepUninterruptibly(1, MINUTES);
         }
       }
     }
@@ -229,8 +237,8 @@ public class Fate<T> {
    * Launches the specified number of worker threads.
    */
   public void startTransactionRunners(AccumuloConfiguration conf) {
-    final ThreadPoolExecutor pool = (ThreadPoolExecutor) ThreadPools.createExecutorService(conf,
-        Property.MANAGER_FATE_THREADPOOL_SIZE);
+    final ThreadPoolExecutor pool =
+        ThreadPools.createExecutorService(conf, Property.MANAGER_FATE_THREADPOOL_SIZE, true);
     fatePoolWatcher = ThreadPools.createGeneralScheduledExecutorService(conf);
     fatePoolWatcher.schedule(() -> {
       // resize the pool if the property changed
@@ -254,7 +262,7 @@ public class Fate<T> {
           }
         }
       }
-    }, 3, TimeUnit.SECONDS);
+    }, 3, SECONDS);
     executor = pool;
   }
 
@@ -265,18 +273,18 @@ public class Fate<T> {
 
   // start work in the transaction.. it is safe to call this
   // multiple times for a transaction... but it will only seed once
-  public void seedTransaction(long tid, Repo<T> repo, boolean autoCleanUp) {
+  public void seedTransaction(long tid, Repo<T> repo, boolean autoCleanUp, String goalMessage) {
     store.reserve(tid);
     try {
       if (store.getStatus(tid) == TStatus.NEW) {
         if (store.top(tid) == null) {
           try {
+            log.info("Seeding {} {}", FateTxId.formatTid(tid), goalMessage);
             store.push(tid, repo);
           } catch (StackOverflowException e) {
             // this should not happen
             throw new RuntimeException(e);
           }
-
         }
 
         if (autoCleanUp)
@@ -284,7 +292,7 @@ public class Fate<T> {
 
         store.setProperty(tid, DEBUG_PROP, repo.getDescription());
 
-        store.setStatus(tid, TStatus.IN_PROGRESS);
+        store.setStatus(tid, TStatus.SUBMITTED);
       }
     } finally {
       store.unreserve(tid, 0);
@@ -303,6 +311,7 @@ public class Fate<T> {
     try {
       switch (store.getStatus(tid)) {
         case NEW:
+        case SUBMITTED:
         case FAILED:
         case SUCCESSFUL:
           store.delete(tid);

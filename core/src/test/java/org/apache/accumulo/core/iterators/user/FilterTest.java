@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.text.ParseException;
@@ -48,7 +48,7 @@ import org.apache.accumulo.core.iteratorsImpl.system.VisibilityFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class FilterTest {
 
@@ -199,11 +199,9 @@ public class FilterTest {
     AgeOffFilter.setTTL(is, 101L);
     AgeOffFilter.setCurrentTime(is, 1001L);
     AgeOffFilter.setNegate(is, true);
-    assertTrue(((AgeOffFilter) a).validateOptions(is.getOptions()));
-    try {
-      ((AgeOffFilter) a).validateOptions(EMPTY_OPTS);
-      fail();
-    } catch (IllegalArgumentException e) {}
+    final AgeOffFilter finalA = (AgeOffFilter) a;
+    assertTrue((finalA.validateOptions(is.getOptions())));
+    assertThrows(IllegalArgumentException.class, () -> finalA.validateOptions(EMPTY_OPTS));
     a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a = a.deepCopy(null);
     SortedKeyValueIterator<Key,Value> copy = a.deepCopy(null);
@@ -559,10 +557,8 @@ public class FilterTest {
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(32, size(a));
 
-    try {
-      a.validateOptions(EMPTY_OPTS);
-      fail();
-    } catch (IllegalArgumentException e) {}
+    final TimestampFilter finalA = a;
+    assertThrows(IllegalArgumentException.class, () -> finalA.validateOptions(EMPTY_OPTS));
   }
 
   @Test

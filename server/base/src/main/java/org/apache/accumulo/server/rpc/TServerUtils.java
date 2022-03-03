@@ -21,7 +21,6 @@ package org.apache.accumulo.server.rpc;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -159,7 +158,7 @@ public class TServerUtils {
       timeBetweenThreadChecks = config.getTimeInMillis(timeBetweenThreadChecksProperty);
     }
 
-    long maxMessageSize = 10 * 1000 * 1000;
+    long maxMessageSize = 10_000_000;
     if (maxMessageSizeProperty != null) {
       maxMessageSize = config.getAsBytes(maxMessageSizeProperty);
     }
@@ -313,7 +312,7 @@ public class TServerUtils {
       final int executorThreads, long threadTimeOut, final AccumuloConfiguration conf,
       long timeBetweenThreadChecks) {
     final ThreadPoolExecutor pool = ThreadPools.createFixedThreadPool(executorThreads,
-        threadTimeOut, TimeUnit.MILLISECONDS, serverName + "-ClientPool");
+        threadTimeOut, TimeUnit.MILLISECONDS, serverName + "-ClientPool", true);
     // periodically adjust the number of threads we need by checking how busy our threads are
     ThreadPools.createGeneralScheduledExecutorService(conf).scheduleWithFixedDelay(() -> {
       // there is a minor race condition between sampling the current state of the thread pool and
@@ -430,7 +429,7 @@ public class TServerUtils {
       if (socketEnabledProtocols.isEmpty()) {
         // Bad configuration...
         throw new RuntimeException(
-            "No available protocols available for secure socket. Availaable protocols: "
+            "No available protocols available for secure socket. Available protocols: "
                 + Arrays.toString(sslServerSock.getEnabledProtocols()) + ", allowed protocols: "
                 + Arrays.toString(protocols));
       }
@@ -690,28 +689,6 @@ public class TServerUtils {
       }
     }
     return serverAddress;
-  }
-
-  /**
-   * Stop a Thrift TServer. Existing connections will keep our thread running; use reflection to
-   * forcibly shut down the threadpool.
-   *
-   * @param s
-   *          The TServer to stop
-   */
-  public static void stopTServer(TServer s) {
-    if (s == null) {
-      return;
-    }
-    s.stop();
-    try {
-      Field f = s.getClass().getDeclaredField("executorService_");
-      f.setAccessible(true);
-      ExecutorService es = (ExecutorService) f.get(s);
-      es.shutdownNow();
-    } catch (Exception e) {
-      log.error("Unable to call shutdownNow", e);
-    }
   }
 
   /**

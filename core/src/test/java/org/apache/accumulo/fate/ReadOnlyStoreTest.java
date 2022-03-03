@@ -18,15 +18,15 @@
  */
 package org.apache.accumulo.fate;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.util.Collections;
 import java.util.EnumSet;
 
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.easymock.EasyMock;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Make sure read only decorate passes read methods.
@@ -39,7 +39,7 @@ public class ReadOnlyStoreTest {
     EasyMock.expect(repo.getDescription()).andReturn("description");
     EasyMock.expect(repo.isReady(0xdeadbeefL, null)).andReturn(0x0L);
 
-    TStore<String> mock = EasyMock.createNiceMock(TStore.class);
+    ZooStore<String> mock = EasyMock.createNiceMock(ZooStore.class);
     EasyMock.expect(mock.reserve()).andReturn(0xdeadbeefL);
     mock.reserve(0xdeadbeefL);
     EasyMock.expect(mock.top(0xdeadbeefL)).andReturn(repo);

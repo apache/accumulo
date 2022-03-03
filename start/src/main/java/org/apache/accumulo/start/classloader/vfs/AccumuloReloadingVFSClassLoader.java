@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.start.classloader.vfs;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.ArrayList;
@@ -52,7 +53,7 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
 
   // set to 5 mins. The rationale behind this large time is to avoid a gazillion tservers all asking
   // the name node for info too frequently.
-  private static final int DEFAULT_TIMEOUT = 5 * 60 * 1000;
+  private static final long DEFAULT_TIMEOUT = MINUTES.toMillis(5);
 
   private volatile long maxWaitInterval = 60000;
 
@@ -101,7 +102,7 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
                 currentSleepMillis = Math.min(maxWaitInterval, currentSleepMillis + sleepInterval);
 
               } catch (InterruptedException e) {
-                log.error("VFS Retry Interruped", e);
+                log.error("VFS Retry Interrupted", e);
                 throw new RuntimeException(e);
               }
 

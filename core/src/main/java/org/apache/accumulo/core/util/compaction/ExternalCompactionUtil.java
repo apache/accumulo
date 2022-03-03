@@ -118,8 +118,7 @@ public class ExternalCompactionUtil {
     try {
       final Map<String,List<HostAndPort>> queuesAndAddresses = new HashMap<>();
       final String compactorQueuesPath = context.getZooKeeperRoot() + Constants.ZCOMPACTORS;
-      ZooReader zooReader =
-          new ZooReader(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
+      ZooReader zooReader = context.getZooReader();
       List<String> queues = zooReader.getChildren(compactorQueuesPath);
       for (String queue : queues) {
         queuesAndAddresses.putIfAbsent(queue, new ArrayList<HostAndPort>());
@@ -233,7 +232,7 @@ public class ExternalCompactionUtil {
   public static List<RunningCompaction> getCompactionsRunningOnCompactors(ClientContext context) {
     final List<RunningCompactionFuture> rcFutures = new ArrayList<>();
     final ExecutorService executor =
-        ThreadPools.createFixedThreadPool(16, "CompactorRunningCompactions");
+        ThreadPools.createFixedThreadPool(16, "CompactorRunningCompactions", false);
 
     getCompactorAddrs(context).forEach((q, hp) -> {
       hp.forEach(hostAndPort -> {
@@ -261,7 +260,7 @@ public class ExternalCompactionUtil {
   public static Collection<ExternalCompactionId>
       getCompactionIdsRunningOnCompactors(ClientContext context) {
     final ExecutorService executor =
-        ThreadPools.createFixedThreadPool(16, "CompactorRunningCompactions");
+        ThreadPools.createFixedThreadPool(16, "CompactorRunningCompactions", false);
 
     List<Future<ExternalCompactionId>> futures = new ArrayList<>();
 
@@ -306,5 +305,18 @@ public class ExternalCompactionUtil {
     }
 
     return count;
+  }
+
+  public static void cancelCompaction(ClientContext context, HostAndPort compactorAddr,
+      String ecid) {
+    CompactorService.Client client = null;
+    try {
+      client = ThriftUtil.getClient(new CompactorService.Client.Factory(), compactorAddr, context);
+      client.cancel(TraceUtil.traceInfo(), context.rpcCreds(), ecid);
+    } catch (TException e) {
+      LOG.debug("Failed to cancel compactor {} for {}", compactorAddr, ecid, e);
+    } finally {
+      ThriftUtil.returnClient(client, context);
+    }
   }
 }

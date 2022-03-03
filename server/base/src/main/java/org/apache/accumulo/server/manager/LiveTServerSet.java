@@ -19,6 +19,7 @@
 package org.apache.accumulo.server.manager;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy.SKIP;
 
 import java.nio.ByteBuffer;
@@ -247,7 +248,7 @@ public class LiveTServerSet implements Watcher {
 
   public synchronized ZooCache getZooCache() {
     if (zooCache == null)
-      zooCache = new ZooCache(context.getZooReaderWriter(), this);
+      zooCache = new ZooCache(context.getZooReader(), this);
     return zooCache;
   }
 
@@ -310,7 +311,7 @@ public class LiveTServerSet implements Watcher {
       Long firstSeen = locklessServers.get(zPath);
       if (firstSeen == null) {
         locklessServers.put(zPath, System.currentTimeMillis());
-      } else if (System.currentTimeMillis() - firstSeen > 10 * 60 * 1000) {
+      } else if (System.currentTimeMillis() - firstSeen > MINUTES.toMillis(10)) {
         deleteServerNode(path + "/" + zPath);
         locklessServers.remove(zPath);
       }

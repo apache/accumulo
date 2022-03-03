@@ -78,9 +78,7 @@ public class VisMetricsGatherer
     ByteSequence cf = new ArrayByteSequence(oneCF.toString());
     for (Entry<String,ArrayList<ByteSequence>> entry : localityGroupCF.entrySet()) {
       if (entry.getValue().contains(cf)) {
-        if (entry.getKey() == null)
-          name = null;
-        else
+        if (entry.getKey() != null)
           name = entry.getKey().toString();
         break;
       }
@@ -130,8 +128,7 @@ public class VisMetricsGatherer
       else
         out.println(localityGroups.get(i));
       out.printf("%-27s", metricWord);
-      out.println("Number of keys" + "\t   " + "Percent of keys" + "\t" + "Number of blocks" + "\t"
-          + "Percent of blocks");
+      out.println("Number of keys\t   Percent of keys\tNumber of blocks\tPercent of blocks");
       for (Entry<String,Long> entry : metric.get(lGName).asMap().entrySet()) {
         if (hash) {
           String encodedKey = "";

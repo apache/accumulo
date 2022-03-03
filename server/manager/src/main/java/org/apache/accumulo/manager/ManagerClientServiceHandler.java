@@ -42,7 +42,6 @@ import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.DelegationTokenConfigSerializer;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
@@ -201,7 +200,7 @@ public class ManagerClientServiceHandler extends FateServiceHandler
 
         // TODO detect case of table offline AND tablets w/ logs? - ACCUMULO-1296
 
-        if (tabletCount == 0 && !Tables.exists(manager.getContext(), tableId))
+        if (tabletCount == 0 && !manager.getContext().tableNodeExists(tableId))
           throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.FLUSH,
               TableOperationExceptionType.NOTFOUND, null);
 
@@ -217,7 +216,7 @@ public class ManagerClientServiceHandler extends FateServiceHandler
       throws ThriftTableOperationException {
     NamespaceId namespaceId;
     try {
-      namespaceId = Tables.getNamespaceId(manager.getContext(), tableId);
+      namespaceId = manager.getContext().getNamespaceId(tableId);
     } catch (TableNotFoundException e) {
       throw new ThriftTableOperationException(tableId.canonical(), null, tableOp,
           TableOperationExceptionType.NOTFOUND, e.getMessage());
@@ -274,9 +273,10 @@ public class ManagerClientServiceHandler extends FateServiceHandler
 
     long tid = manager.fate.startTransaction();
 
-    log.debug("Seeding FATE op to shutdown " + tabletServer + " with tid " + tid);
+    String msg = "Shutdown tserver " + tabletServer;
 
-    manager.fate.seedTransaction(tid, new TraceRepo<>(new ShutdownTServer(doomed, force)), false);
+    manager.fate.seedTransaction(tid, new TraceRepo<>(new ShutdownTServer(doomed, force)), false,
+        msg);
     manager.fate.waitForCompletion(tid);
     manager.fate.delete(tid);
 

@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache.lru;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.file.blockfile.cache.impl.ClassSize.CONCURRENT_HASHMAP;
 import static org.apache.accumulo.core.file.blockfile.cache.impl.ClassSize.CONCURRENT_HASHMAP_ENTRY;
 import static org.apache.accumulo.core.file.blockfile.cache.impl.ClassSize.CONCURRENT_HASHMAP_SEGMENT;
@@ -27,7 +28,6 @@ import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
@@ -101,7 +101,7 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
 
   /** Statistics thread schedule pool (for heavy debugging, could remove) */
   private final ScheduledExecutorService scheduleThreadPool =
-      ThreadPools.createScheduledExecutorService(1, "LRUBlockCacheStats");
+      ThreadPools.createScheduledExecutorService(1, "LRUBlockCacheStats", true);
 
   /** Current size of cache */
   private final AtomicLong size;
@@ -161,7 +161,7 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
       this.evictionThread = null;
     }
     this.scheduleThreadPool.scheduleAtFixedRate(new StatisticsThread(this), statThreadPeriod,
-        statThreadPeriod, TimeUnit.SECONDS);
+        statThreadPeriod, SECONDS);
   }
 
   public long getOverhead() {

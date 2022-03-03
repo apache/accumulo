@@ -69,10 +69,12 @@ class DatafileManager {
   // ensure we only have one reader/writer of our bulk file notes at at time
   private final Object bulkFileImportLock = new Object();
 
+  // This must be incremented whenever datafileSizes is mutated
+  private long updateCount;
+
   DatafileManager(Tablet tablet, SortedMap<StoredTabletFile,DataFileValue> datafileSizes) {
-    for (Entry<StoredTabletFile,DataFileValue> datafiles : datafileSizes.entrySet()) {
-      this.datafileSizes.put(datafiles.getKey(), datafiles.getValue());
-    }
+    this.datafileSizes.putAll(datafileSizes);
+    this.updateCount = 0L;
     this.tablet = tablet;
   }
 
@@ -80,7 +82,6 @@ class DatafileManager {
   private final Map<Long,Set<StoredTabletFile>> scanFileReservations = new HashMap<>();
   private final MapCounter<StoredTabletFile> fileScanReferenceCounts = new MapCounter<>();
   private long nextScanReservationId = 0;
-  private boolean reservationsBlocked = false;
 
   static void rename(VolumeManager fs, Path src, Path dst) throws IOException {
     if (!fs.rename(src, dst)) {
@@ -90,14 +91,6 @@ class DatafileManager {
 
   Pair<Long,Map<TabletFile,DataFileValue>> reserveFilesForScan() {
     synchronized (tablet) {
-
-      while (reservationsBlocked) {
-        try {
-          tablet.wait(50);
-        } catch (InterruptedException e) {
-          log.warn("{}", e.getMessage(), e);
-        }
-      }
 
       Set<StoredTabletFile> absFilePaths = new HashSet<>(datafileSizes.keySet());
 
@@ -260,6 +253,7 @@ class DatafileManager {
         }
         datafileSizes.put(tpath.getKey(), tpath.getValue());
       }
+      updateCount++;
 
       tablet.getTabletResources().importedMapFiles();
 
@@ -386,6 +380,7 @@ class DatafileManager {
           log.error("Adding file that is already in set {}", newFileStored);
         }
         datafileSizes.put(newFileStored, dfv);
+        updateCount++;
       }
 
       tablet.flushComplete(flushId);
@@ -456,6 +451,7 @@ class DatafileManager {
         datafileSizes.put(newFile, dfv);
         // could be used by a follow on compaction in a multipass compaction
       }
+      updateCount++;
 
       tablet.computeNumEntries();
 
@@ -502,6 +498,10 @@ class DatafileManager {
 
   public int getNumFiles() {
     return datafileSizes.size();
+  }
+
+  public long getUpdateCount() {
+    return updateCount;
   }
 
 }

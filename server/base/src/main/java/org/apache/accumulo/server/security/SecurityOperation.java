@@ -113,7 +113,7 @@ public class SecurityOperation {
   protected SecurityOperation(ServerContext context) {
     this.context = context;
     ZKUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
-    zooCache = new ZooCache(context.getZooReaderWriter(), null);
+    zooCache = new ZooCache(context.getZooReader(), null);
   }
 
   public SecurityOperation(ServerContext context, Authorizor author, Authenticator authent,
@@ -127,7 +127,7 @@ public class SecurityOperation {
         || !authenticator.validSecurityHandlers()
         || !permHandle.validSecurityHandlers(authent, author))
       throw new RuntimeException(authorizor + ", " + authenticator + ", and " + pm
-          + " do not play nice with eachother. Please choose authentication and"
+          + " do not play nice with each other. Please choose authentication and"
           + " authorization mechanisms that are compatible with one another.");
 
     isKerberos = KerberosAuthenticator.class.isAssignableFrom(authenticator.getClass());
@@ -163,7 +163,7 @@ public class SecurityOperation {
   }
 
   protected void authenticate(TCredentials credentials) throws ThriftSecurityException {
-    if (!credentials.getInstanceId().equals(context.getInstanceID()))
+    if (!credentials.getInstanceId().equals(context.getInstanceID().canonical()))
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.INVALID_INSTANCEID);
 
@@ -180,7 +180,7 @@ public class SecurityOperation {
               SecurityErrorCode.BAD_CREDENTIALS);
         }
       } else {
-        if (!(context.getCredentials().equals(creds))) {
+        if (!context.getCredentials().equals(creds)) {
           log.debug("Provided credentials did not match server's expected"
               + " credentials. Expected {} but got {}", context.getCredentials(), creds);
           throw new ThriftSecurityException(creds.getPrincipal(),

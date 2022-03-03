@@ -46,7 +46,6 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
@@ -58,7 +57,6 @@ import org.apache.accumulo.core.client.admin.TableOperations.ImportMappingOption
 import org.apache.accumulo.core.clientImpl.AccumuloBulkMergeException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.bulk.Bulk.FileInfo;
 import org.apache.accumulo.core.clientImpl.bulk.Bulk.Files;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -129,7 +127,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   public void load()
       throws TableNotFoundException, IOException, AccumuloException, AccumuloSecurityException {
 
-    TableId tableId = Tables.getTableId(context, tableName);
+    TableId tableId = context.getTableId(tableName);
 
     FileSystem fs = VolumeConfiguration.fileSystemForPath(dir, context.getHadoopConf());
 
@@ -147,7 +145,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     }
     Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
         .incrementBy(100, MILLISECONDS).maxWait(2, MINUTES).backOffFactor(1.5)
-        .logInterval(3, TimeUnit.MINUTES).createRetry();
+        .logInterval(3, MINUTES).createRetry();
 
     // retry if a merge occurs
     boolean shouldRetry = true;
@@ -478,11 +476,11 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     if (this.executor != null) {
       executor = this.executor;
     } else if (numThreads > 0) {
-      executor = service = ThreadPools.createFixedThreadPool(numThreads, "BulkImportThread");
+      executor = service = ThreadPools.createFixedThreadPool(numThreads, "BulkImportThread", false);
     } else {
       String threads = context.getConfiguration().get(ClientProperty.BULK_LOAD_THREADS.getKey());
       executor = service = ThreadPools.createFixedThreadPool(
-          ConfigurationTypeHelper.getNumThreads(threads), "BulkImportThread");
+          ConfigurationTypeHelper.getNumThreads(threads), "BulkImportThread", false);
     }
 
     try {

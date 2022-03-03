@@ -24,7 +24,6 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -276,13 +275,11 @@ public class BulkNewIT extends SharedMiniClusterBase {
       FsPermission originalPerms = fs.getFileStatus(rFilePath).getPermission();
       fs.setPermission(rFilePath, FsPermission.valueOf("----------"));
       try {
-        c.tableOperations().importDirectory(dir).to(tableName).load();
-      } catch (Exception e) {
+        final var importMappingOptions = c.tableOperations().importDirectory(dir).to(tableName);
+        var e = assertThrows(Exception.class, importMappingOptions::load);
         Throwable cause = e.getCause();
-        if (!(cause instanceof FileNotFoundException)
-            && !(cause.getCause() instanceof FileNotFoundException)) {
-          fail("Expected FileNotFoundException but threw " + e.getCause());
-        }
+        assertTrue(cause instanceof FileNotFoundException
+            || cause.getCause() instanceof FileNotFoundException);
       } finally {
         fs.setPermission(rFilePath, originalPerms);
       }
@@ -290,11 +287,9 @@ public class BulkNewIT extends SharedMiniClusterBase {
       originalPerms = fs.getFileStatus(new Path(dir)).getPermission();
       fs.setPermission(new Path(dir), FsPermission.valueOf("dr--r--r--"));
       try {
-        c.tableOperations().importDirectory(dir).to(tableName).load();
-      } catch (AccumuloException ae) {
-        if (!(ae.getCause() instanceof FileNotFoundException)) {
-          fail("Expected FileNotFoundException but threw " + ae.getCause());
-        }
+        final var importMappingOptions = c.tableOperations().importDirectory(dir).to(tableName);
+        var ae = assertThrows(AccumuloException.class, importMappingOptions::load);
+        assertTrue(ae.getCause() instanceof FileNotFoundException);
       } finally {
         fs.setPermission(new Path(dir), originalPerms);
       }
@@ -439,45 +434,36 @@ public class BulkNewIT extends SharedMiniClusterBase {
       writeData(dir + "/f1.", aconf, 0, 333);
       writeData(dir + "/f2.", aconf, 0, 666);
 
+      final var importMappingOptions = c.tableOperations().importDirectory(dir).to(tableName);
+
       // Create a plan with more files than exists in dir
       LoadPlan loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(333))
           .loadFileTo("f2.rf", RangeType.TABLE, null, row(666))
           .loadFileTo("f3.rf", RangeType.TABLE, null, row(666)).build();
-      try {
-        c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
-        fail();
-      } catch (IllegalArgumentException e) {
-        // ignore
-      }
+      final var tooManyFiles = importMappingOptions.plan(loadPlan);
+      assertThrows(IllegalArgumentException.class, tooManyFiles::load);
 
-      // Create a plan with less files than exists in dir
+      // Create a plan with fewer files than exists in dir
       loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(333)).build();
-      try {
-        c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
-        fail();
-      } catch (IllegalArgumentException e) {
-        // ignore
-      }
+      final var tooFewFiles = importMappingOptions.plan(loadPlan);
+      assertThrows(IllegalArgumentException.class, tooFewFiles::load);
 
-      // Create a plan with tablet boundary that does not exits
+      // Create a plan with tablet boundary that does not exist
       loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(555))
           .loadFileTo("f2.rf", RangeType.TABLE, null, row(555)).build();
-      try {
-        c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
-        fail();
-      } catch (AccumuloException e) {
-        // ignore
-      }
+      final var nonExistentBoundary = importMappingOptions.plan(loadPlan);
+      assertThrows(AccumuloException.class, nonExistentBoundary::load);
     }
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testEmptyDir() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String dir = getDir("/testBulkFile-");
       FileSystem fs = getCluster().getFileSystem();
       fs.mkdirs(new Path(dir));
-      c.tableOperations().importDirectory(dir).to(tableName).load();
+      assertThrows(IllegalArgumentException.class,
+          () -> c.tableOperations().importDirectory(dir).to(tableName).load());
     }
   }
 

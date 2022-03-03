@@ -20,10 +20,11 @@ package org.apache.accumulo.fate.zookeeper;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
@@ -41,9 +42,9 @@ import org.slf4j.LoggerFactory;
 public class ZooReader {
   private static final Logger log = LoggerFactory.getLogger(ZooReader.class);
 
-  protected static final RetryFactory RETRY_FACTORY = Retry.builder().maxRetries(10)
-      .retryAfter(250, MILLISECONDS).incrementBy(250, MILLISECONDS).maxWait(5, TimeUnit.SECONDS)
-      .backOffFactor(1.5).logInterval(3, TimeUnit.MINUTES).createFactory();
+  protected static final RetryFactory RETRY_FACTORY =
+      Retry.builder().maxRetries(10).retryAfter(250, MILLISECONDS).incrementBy(250, MILLISECONDS)
+          .maxWait(5, SECONDS).backOffFactor(1.5).logInterval(3, MINUTES).createFactory();
 
   protected final String keepers;
   protected final int timeout;
@@ -51,6 +52,10 @@ public class ZooReader {
   public ZooReader(String keepers, int timeout) {
     this.keepers = requireNonNull(keepers);
     this.timeout = timeout;
+  }
+
+  public ZooReaderWriter asWriter(String secret) {
+    return new ZooReaderWriter(keepers, timeout, secret);
   }
 
   protected ZooKeeper getZooKeeper() {

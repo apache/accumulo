@@ -57,21 +57,18 @@
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>com.fasterxml.jackson.jaxrs</groupId>
-      <artifactId>jackson-jaxrs-base</artifactId>
-      <classifier>jakarta</classifier>
+      <groupId>com.fasterxml.jackson.jakarta.rs</groupId>
+      <artifactId>jackson-jakarta-rs-base</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>com.fasterxml.jackson.jaxrs</groupId>
-      <artifactId>jackson-jaxrs-json-provider</artifactId>
-      <classifier>jakarta</classifier>
+      <groupId>com.fasterxml.jackson.jakarta.rs</groupId>
+      <artifactId>jackson-jakarta-rs-json-provider</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.module</groupId>
-      <artifactId>jackson-module-jaxb-annotations</artifactId>
-      <classifier>jakarta</classifier>
+      <artifactId>jackson-module-jakarta-xmlbind-annotations</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -283,6 +280,11 @@
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-vfs2</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.datasketches</groupId>
+      <artifactId>datasketches-java</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>

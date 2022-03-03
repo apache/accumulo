@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.hadoop.conf.Configuration;
@@ -33,7 +34,9 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -135,6 +138,10 @@ public interface VolumeManager extends AutoCloseable {
   // return the item in options that is in the same file system as source
   Path matchingFileSystem(Path source, Set<String> options);
 
+  // forward to appropriate FileSystem object. Does not support globbing.
+  RemoteIterator<LocatedFileStatus> listFiles(final Path path, final boolean recursive)
+      throws IOException;
+
   // forward to the appropriate FileSystem object
   FileStatus[] listStatus(Path path) throws IOException;
 
@@ -195,7 +202,7 @@ public interface VolumeManager extends AutoCloseable {
 
   Logger log = LoggerFactory.getLogger(VolumeManager.class);
 
-  static String getInstanceIDFromHdfs(Path instanceDirectory, Configuration hadoopConf) {
+  static InstanceId getInstanceIDFromHdfs(Path instanceDirectory, Configuration hadoopConf) {
     try {
       FileSystem fs =
           VolumeConfiguration.fileSystemForPath(instanceDirectory.toString(), hadoopConf);
@@ -215,7 +222,7 @@ public interface VolumeManager extends AutoCloseable {
         throw new RuntimeException(
             "Accumulo found multiple possible instance ids in " + instanceDirectory);
       } else {
-        return files[0].getPath().getName();
+        return InstanceId.of(files[0].getPath().getName());
       }
     } catch (IOException e) {
       log.error("Problem reading instance id out of hdfs at " + instanceDirectory, e);

@@ -58,6 +58,6 @@ public class DiskUsage {
 
   @Override
   public String toString() {
-    return "DiskUsage{" + "tables=" + tables + ", usage=" + usage + '}';
+    return "DiskUsage{tables=" + tables + ", usage=" + usage + '}';
   }
 }

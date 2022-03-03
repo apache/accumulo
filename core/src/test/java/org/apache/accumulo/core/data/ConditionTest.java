@@ -19,16 +19,17 @@
 package org.apache.accumulo.core.data;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ConditionTest {
   private static final ByteSequence EMPTY = new ArrayByteSequence(new byte[0]);
@@ -49,7 +50,7 @@ public class ConditionTest {
 
   private Condition c;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     c = new Condition(FAMILY, QUALIFIER);
   }
@@ -129,20 +130,20 @@ public class ConditionTest {
     assertArrayEquals(ITERATORS, c.getIterators());
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testSetIterators_DuplicateName() {
     IteratorSetting[] iterators = {new IteratorSetting(1, "first", "someclass"),
         new IteratorSetting(2, "second", "someotherclass"),
         new IteratorSetting(3, "first", "yetanotherclass")};
-    c.setIterators(iterators);
+    assertThrows(IllegalArgumentException.class, () -> c.setIterators(iterators));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testSetIterators_DuplicatePriority() {
     IteratorSetting[] iterators = {new IteratorSetting(1, "first", "someclass"),
         new IteratorSetting(2, "second", "someotherclass"),
         new IteratorSetting(1, "third", "yetanotherclass")};
-    c.setIterators(iterators);
+    assertThrows(IllegalArgumentException.class, () -> c.setIterators(iterators));
   }
 
   @Test

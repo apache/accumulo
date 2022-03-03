@@ -18,14 +18,15 @@
  */
 package org.apache.accumulo.fate;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.accumulo.fate.AgeOffStore.TimeSource;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
-import org.junit.Test;
+import org.apache.zookeeper.KeeperException;
+import org.junit.jupiter.api.Test;
 
 public class AgeOffStoreTest {
 
@@ -40,11 +41,11 @@ public class AgeOffStoreTest {
   }
 
   @Test
-  public void testBasic() {
+  public void testBasic() throws InterruptedException, KeeperException {
 
     TestTimeSource tts = new TestTimeSource();
-    SimpleStore<String> sstore = new SimpleStore<>();
-    AgeOffStore<String> aoStore = new AgeOffStore<>(sstore, 10, tts);
+    TestStore testStore = new TestStore();
+    AgeOffStore<String> aoStore = new AgeOffStore<>(testStore, 10, tts);
 
     aoStore.ageOff();
 
@@ -92,31 +93,31 @@ public class AgeOffStoreTest {
   }
 
   @Test
-  public void testNonEmpty() {
+  public void testNonEmpty() throws InterruptedException, KeeperException {
     // test age off when source store starts off non empty
 
     TestTimeSource tts = new TestTimeSource();
-    SimpleStore<String> sstore = new SimpleStore<>();
-    long txid1 = sstore.create();
-    sstore.reserve(txid1);
-    sstore.setStatus(txid1, TStatus.IN_PROGRESS);
-    sstore.unreserve(txid1, 0);
+    TestStore testStore = new TestStore();
+    long txid1 = testStore.create();
+    testStore.reserve(txid1);
+    testStore.setStatus(txid1, TStatus.IN_PROGRESS);
+    testStore.unreserve(txid1, 0);
 
-    long txid2 = sstore.create();
-    sstore.reserve(txid2);
-    sstore.setStatus(txid2, TStatus.IN_PROGRESS);
-    sstore.setStatus(txid2, TStatus.FAILED);
-    sstore.unreserve(txid2, 0);
+    long txid2 = testStore.create();
+    testStore.reserve(txid2);
+    testStore.setStatus(txid2, TStatus.IN_PROGRESS);
+    testStore.setStatus(txid2, TStatus.FAILED);
+    testStore.unreserve(txid2, 0);
 
-    long txid3 = sstore.create();
-    sstore.reserve(txid3);
-    sstore.setStatus(txid3, TStatus.IN_PROGRESS);
-    sstore.setStatus(txid3, TStatus.SUCCESSFUL);
-    sstore.unreserve(txid3, 0);
+    long txid3 = testStore.create();
+    testStore.reserve(txid3);
+    testStore.setStatus(txid3, TStatus.IN_PROGRESS);
+    testStore.setStatus(txid3, TStatus.SUCCESSFUL);
+    testStore.unreserve(txid3, 0);
 
-    Long txid4 = sstore.create();
+    Long txid4 = testStore.create();
 
-    AgeOffStore<String> aoStore = new AgeOffStore<>(sstore, 10, tts);
+    AgeOffStore<String> aoStore = new AgeOffStore<>(testStore, 10, tts);
 
     assertEquals(Set.of(txid1, txid2, txid3, txid4), new HashSet<>(aoStore.list()));
     assertEquals(4, new HashSet<>(aoStore.list()).size());

@@ -20,8 +20,10 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -46,7 +48,6 @@ import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -65,7 +66,6 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.Assume;
 import org.junit.Test;
 
 public class CloneTestIT extends AccumuloClusterHarness {
@@ -111,7 +111,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
   private void assertTableState(String tableName, AccumuloClient c, TableState expected) {
     String tableId = c.tableOperations().tableIdMap().get(tableName);
-    TableState tableState = Tables.getTableState((ClientContext) c, TableId.of(tableId));
+    TableState tableState = ((ClientContext) c).getTableState(TableId.of(tableId));
     assertEquals(expected, tableState);
   }
 
@@ -221,7 +221,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       AccumuloCluster cluster = getCluster();
-      Assume.assumeTrue(cluster instanceof MiniAccumuloClusterImpl);
+      assumeTrue(cluster instanceof MiniAccumuloClusterImpl);
       MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) cluster;
       String rootPath = mac.getConfig().getDir().getAbsolutePath();
 
@@ -272,7 +272,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       AccumuloCluster cluster = getCluster();
-      Assume.assumeTrue(cluster instanceof MiniAccumuloClusterImpl);
+      assumeTrue(cluster instanceof MiniAccumuloClusterImpl);
 
       c.tableOperations().create(table1);
 
@@ -333,17 +333,19 @@ public class CloneTestIT extends AccumuloClusterHarness {
     }
   }
 
-  @Test(expected = AccumuloException.class)
-  public void testCloneRootTable() throws Exception {
+  @Test
+  public void testCloneRootTable() {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      client.tableOperations().clone(RootTable.NAME, "rc1", true, null, null);
+      assertThrows(AccumuloException.class,
+          () -> client.tableOperations().clone(RootTable.NAME, "rc1", true, null, null));
     }
   }
 
-  @Test(expected = AccumuloException.class)
-  public void testCloneMetadataTable() throws Exception {
+  @Test
+  public void testCloneMetadataTable() {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      client.tableOperations().clone(MetadataTable.NAME, "mc1", true, null, null);
+      assertThrows(AccumuloException.class,
+          () -> client.tableOperations().clone(MetadataTable.NAME, "mc1", true, null, null));
     }
   }
 }

@@ -19,6 +19,7 @@
 package org.apache.accumulo.server.rpc;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
@@ -101,31 +102,34 @@ public class TCredentialsUpdatingInvocationHandlerTest {
     assertEquals(KerberosToken.class, cache.get(KerberosToken.CLASS_NAME));
   }
 
-  @Test(expected = ThriftSecurityException.class)
-  public void testMissingPrincipal() throws Exception {
+  @Test
+  public void testMissingPrincipal() {
     final String principal = "root";
     TCredentials tcreds = new TCredentials(principal, KerberosToken.CLASS_NAME,
         ByteBuffer.allocate(0), UUID.randomUUID().toString());
     UGIAssumingProcessor.rpcPrincipal.set(null);
-    proxy.updateArgs(new Object[] {new Object(), tcreds});
+    assertThrows(ThriftSecurityException.class,
+        () -> proxy.updateArgs(new Object[] {new Object(), tcreds}));
   }
 
-  @Test(expected = ThriftSecurityException.class)
-  public void testMismatchedPrincipal() throws Exception {
+  @Test
+  public void testMismatchedPrincipal() {
     final String principal = "root";
     TCredentials tcreds = new TCredentials(principal, KerberosToken.CLASS_NAME,
         ByteBuffer.allocate(0), UUID.randomUUID().toString());
     UGIAssumingProcessor.rpcPrincipal.set(principal + "foobar");
-    proxy.updateArgs(new Object[] {new Object(), tcreds});
+    assertThrows(ThriftSecurityException.class,
+        () -> proxy.updateArgs(new Object[] {new Object(), tcreds}));
   }
 
-  @Test(expected = ThriftSecurityException.class)
-  public void testWrongTokenType() throws Exception {
+  @Test
+  public void testWrongTokenType() {
     final String principal = "root";
     TCredentials tcreds = new TCredentials(principal, PasswordToken.class.getName(),
         ByteBuffer.allocate(0), UUID.randomUUID().toString());
     UGIAssumingProcessor.rpcPrincipal.set(principal);
-    proxy.updateArgs(new Object[] {new Object(), tcreds});
+    assertThrows(ThriftSecurityException.class,
+        () -> proxy.updateArgs(new Object[] {new Object(), tcreds}));
   }
 
   @Test
@@ -155,8 +159,8 @@ public class TCredentialsUpdatingInvocationHandlerTest {
     proxy.updateArgs(new Object[] {new Object(), tcreds});
   }
 
-  @Test(expected = ThriftSecurityException.class)
-  public void testDisallowedImpersonationForUser() throws Exception {
+  @Test
+  public void testDisallowedImpersonationForUser() {
     final String proxyServer = "proxy";
     // let "otherproxy" impersonate, but not "proxy"
     cc.set(Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION, "otherproxy:*");
@@ -165,11 +169,12 @@ public class TCredentialsUpdatingInvocationHandlerTest {
     TCredentials tcreds = new TCredentials("client", KerberosToken.class.getName(),
         ByteBuffer.allocate(0), UUID.randomUUID().toString());
     UGIAssumingProcessor.rpcPrincipal.set(proxyServer);
-    proxy.updateArgs(new Object[] {new Object(), tcreds});
+    assertThrows(ThriftSecurityException.class,
+        () -> proxy.updateArgs(new Object[] {new Object(), tcreds}));
   }
 
-  @Test(expected = ThriftSecurityException.class)
-  public void testDisallowedImpersonationForMultipleUsers() throws Exception {
+  @Test
+  public void testDisallowedImpersonationForMultipleUsers() {
     final String proxyServer = "proxy";
     // let "otherproxy" impersonate, but not "proxy"
     cc.set(Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION,
@@ -179,7 +184,8 @@ public class TCredentialsUpdatingInvocationHandlerTest {
     TCredentials tcreds = new TCredentials("client1", KerberosToken.class.getName(),
         ByteBuffer.allocate(0), UUID.randomUUID().toString());
     UGIAssumingProcessor.rpcPrincipal.set(proxyServer);
-    proxy.updateArgs(new Object[] {new Object(), tcreds});
+    assertThrows(ThriftSecurityException.class,
+        () -> proxy.updateArgs(new Object[] {new Object(), tcreds}));
   }
 
   @Test
@@ -195,8 +201,8 @@ public class TCredentialsUpdatingInvocationHandlerTest {
     proxy.updateArgs(new Object[] {new Object(), tcreds});
   }
 
-  @Test(expected = ThriftSecurityException.class)
-  public void testDisallowedImpersonationFromSpecificHost() throws Exception {
+  @Test
+  public void testDisallowedImpersonationFromSpecificHost() {
     final String proxyServer = "proxy", client = "client", host = "host.domain.com";
     cc.set(Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION, proxyServer + ":" + client);
     cc.set(Property.INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION, host);
@@ -206,6 +212,7 @@ public class TCredentialsUpdatingInvocationHandlerTest {
     UGIAssumingProcessor.rpcPrincipal.set(proxyServer);
     // The RPC came from a different host than is allowed
     TServerUtils.clientAddress.set("otherhost.domain.com");
-    proxy.updateArgs(new Object[] {new Object(), tcreds});
+    assertThrows(ThriftSecurityException.class,
+        () -> proxy.updateArgs(new Object[] {new Object(), tcreds}));
   }
 }

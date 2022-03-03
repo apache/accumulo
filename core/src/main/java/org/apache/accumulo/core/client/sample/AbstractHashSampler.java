@@ -105,7 +105,7 @@ public abstract class AbstractHashSampler implements Sampler {
 
     switch (hasherOpt) {
       case "murmur3_32":
-        hashFunction = Hashing.murmur3_32();
+        hashFunction = Hashing.murmur3_32_fixed();
         break;
       case "md5":
         @SuppressWarnings("deprecation")

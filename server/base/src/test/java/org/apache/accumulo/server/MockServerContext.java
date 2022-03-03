@@ -26,6 +26,7 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.data.InstanceId;
 import org.easymock.EasyMock;
 
 /**
@@ -44,7 +45,7 @@ public class MockServerContext {
     return context;
   }
 
-  public static ServerContext getWithZK(String instanceID, String zk, int zkTimeout) {
+  public static ServerContext getWithZK(InstanceId instanceID, String zk, int zkTimeout) {
     var sc = get();
     expect(sc.getZooKeeperRoot()).andReturn("/accumulo/" + instanceID).anyTimes();
     expect(sc.getInstanceID()).andReturn(instanceID).anyTimes();

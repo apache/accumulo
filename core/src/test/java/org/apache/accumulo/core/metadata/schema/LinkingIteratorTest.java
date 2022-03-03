@@ -19,7 +19,8 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.create;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,7 +35,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Lists;
 
@@ -84,7 +85,7 @@ public class LinkingIteratorTest {
     check(tablets2, new IterFactory(tablets1, tablets2));
   }
 
-  @Test(expected = TabletDeletedException.class)
+  @Test
   public void testMerge() {
     // test for case when a tablet is merged away
     List<TabletMetadata> tablets1 = Arrays.asList(create("4", null, "f"), create("4", "f", "m"),
@@ -93,10 +94,11 @@ public class LinkingIteratorTest {
         create("4", "r", "x"), create("4", "x", null));
 
     LinkingIterator li = new LinkingIterator(new IterFactory(tablets1, tablets2), new Range());
-
-    while (li.hasNext()) {
-      li.next();
-    }
+    assertThrows(TabletDeletedException.class, () -> {
+      while (li.hasNext()) {
+        li.next();
+      }
+    });
   }
 
   @Test
@@ -140,7 +142,7 @@ public class LinkingIteratorTest {
         new KeyExtent(TableId.of("4"), null, new Text("f")).toMetaRange());
   }
 
-  @Test(expected = IllegalStateException.class)
+  @Test
   public void testIncompleteTable() {
     // the last tablet in a table should have a null end row. Ensure the code detects when this does
     // not happen.
@@ -149,9 +151,11 @@ public class LinkingIteratorTest {
     LinkingIterator li = new LinkingIterator(new IterFactory(tablets1, tablets1),
         TabletsSection.getRange(TableId.of("4")));
 
-    while (li.hasNext()) {
-      li.next();
-    }
+    assertThrows(IllegalStateException.class, () -> {
+      while (li.hasNext()) {
+        li.next();
+      }
+    });
   }
 
   @Test

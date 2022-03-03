@@ -49,7 +49,7 @@ public class ZKAuthorizor implements Authorizor {
   @Override
   public void initialize(ServerContext context) {
     this.context = context;
-    zooCache = new ZooCache(context.getZooReaderWriter(), null);
+    zooCache = new ZooCache(context.getZooReader(), null);
     ZKUserPath = ZKSecurityTool.getInstancePath(context.getInstanceID()) + "/users";
   }
 

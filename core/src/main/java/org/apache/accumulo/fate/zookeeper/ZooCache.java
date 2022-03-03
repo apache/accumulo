@@ -201,36 +201,6 @@ public class ZooCache {
   }
 
   /**
-   * Creates a new cache.
-   *
-   * @param zooKeepers
-   *          comma-separated list of ZooKeeper host[:port]s
-   * @param sessionTimeout
-   *          ZooKeeper session timeout
-   */
-  public ZooCache(String zooKeepers, int sessionTimeout) {
-    this(zooKeepers, sessionTimeout, null);
-  }
-
-  /**
-   * Creates a new cache. The given watcher is called whenever a watched node changes.
-   *
-   * @param zooKeepers
-   *          comma-separated list of ZooKeeper host[:port]s
-   * @param sessionTimeout
-   *          ZooKeeper session timeout
-   * @param watcher
-   *          watcher object
-   */
-  public ZooCache(String zooKeepers, int sessionTimeout, Watcher watcher) {
-    this(new ZooReader(zooKeepers, sessionTimeout), watcher);
-  }
-
-  public ZooCache(ZooReaderWriter reader) {
-    this(reader, null);
-  }
-
-  /**
    * Creates a new cache. The given watcher is called whenever a watched node changes.
    *
    * @param reader
@@ -246,7 +216,7 @@ public class ZooCache {
     this.externalWatcher = watcher;
   }
 
-  private abstract class ZooRunnable<T> {
+  private abstract static class ZooRunnable<T> {
     /**
      * Runs an operation against ZooKeeper. Retries are performed by the retry method when
      * KeeperExceptions occur.

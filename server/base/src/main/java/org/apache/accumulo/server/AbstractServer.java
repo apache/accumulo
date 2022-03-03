@@ -30,8 +30,6 @@ import org.apache.accumulo.server.security.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.opentelemetry.context.Context;
-
 public abstract class AbstractServer implements AutoCloseable, Runnable {
 
   private final ServerContext context;
@@ -51,11 +49,7 @@ public abstract class AbstractServer implements AutoCloseable, Runnable {
     log.info("Instance " + context.getInstanceID());
     context.init(appName);
     ClassLoaderUtil.initContextFactory(context.getConfiguration());
-    try {
-      TraceUtil.initializeTracer(context.getConfiguration());
-    } catch (ReflectiveOperationException e) {
-      log.error("Error initializing tracing", e);
-    }
+    TraceUtil.initializeTracer(context.getConfiguration());
     if (context.getSaslParams() != null) {
       // Server-side "client" check to make sure we're logged in as a user we expect to be
       context.enforceKerberosLogin();
@@ -67,10 +61,8 @@ public abstract class AbstractServer implements AutoCloseable, Runnable {
    */
   public void runServer() throws Exception {
     final AtomicReference<Throwable> err = new AtomicReference<>();
-    Thread service = new Thread(Context.current().wrap(this), applicationName);
-    service.setUncaughtExceptionHandler((thread, exception) -> {
-      err.set(exception);
-    });
+    Thread service = new Thread(TraceUtil.wrap(this), applicationName);
+    service.setUncaughtExceptionHandler((thread, exception) -> err.set(exception));
     service.start();
     service.join();
     Throwable thrown = err.get();

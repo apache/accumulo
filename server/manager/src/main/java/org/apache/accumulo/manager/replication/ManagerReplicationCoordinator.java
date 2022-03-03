@@ -54,8 +54,7 @@ public class ManagerReplicationCoordinator implements ReplicationCoordinator.Ifa
   private final SecurityOperation security;
 
   public ManagerReplicationCoordinator(Manager manager) {
-    this(manager, new ZooReader(manager.getContext().getZooKeepers(),
-        manager.getContext().getZooKeepersSessionTimeOut()));
+    this(manager, manager.getContext().getZooReader());
   }
 
   protected ManagerReplicationCoordinator(Manager manager, ZooReader reader) {
@@ -89,7 +88,7 @@ public class ManagerReplicationCoordinator implements ReplicationCoordinator.Ifa
       replServiceAddr = new String(reader.getData(manager.getZooKeeperRoot()
           + ReplicationConstants.ZOO_TSERVERS + "/" + tserver.getHostPort()), UTF_8);
     } catch (KeeperException | InterruptedException e) {
-      log.error("Could not fetch repliation service port for tserver", e);
+      log.error("Could not fetch replication service port for tserver", e);
       throw new ReplicationCoordinatorException(
           ReplicationCoordinatorErrorCode.SERVICE_CONFIGURATION_UNAVAILABLE,
           "Could not determine port for replication service running at " + tserver.getHostPort());

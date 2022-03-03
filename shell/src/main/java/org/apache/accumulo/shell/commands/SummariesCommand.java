@@ -109,7 +109,7 @@ public class SummariesCommand extends TableOperation {
     final Options opts = super.getOptions();
     disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
     summarySelectionOpt = new Option("sr", "select-regex", true,
-        "regex to" + " select summaries. Matches against class name and options used to"
+        "regex to select summaries. Matches against class name and options used to"
             + " generate summaries.");
     opts.addOption(disablePaginationOpt);
     opts.addOption(summarySelectionOpt);

@@ -19,8 +19,8 @@
 package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -37,8 +37,6 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ClientProperty;
-import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -114,13 +112,9 @@ public class ExistingMacIT extends ConfigurableMacBase {
         getCluster().killProcess(entry.getKey(), pr);
     }
 
-    final DefaultConfiguration defaultConfig = DefaultConfiguration.getInstance();
-    final long zkTimeout = ConfigurationTypeHelper.getTimeInMillis(
-        getCluster().getConfig().getSiteConfig().get(Property.INSTANCE_ZK_TIMEOUT.getKey()));
-    ZooReaderWriter zrw = new ZooReaderWriter(getCluster().getZooKeepers(), (int) zkTimeout,
-        defaultConfig.get(Property.INSTANCE_SECRET));
+    ZooReaderWriter zrw = getCluster().getServerContext().getZooReaderWriter();
     final String zInstanceRoot =
-        Constants.ZROOT + "/" + client.instanceOperations().getInstanceID();
+        Constants.ZROOT + "/" + client.instanceOperations().getInstanceId();
     while (!AccumuloStatus.isAccumuloOffline(zrw, zInstanceRoot)) {
       log.debug("Accumulo services still have their ZK locks held");
       Thread.sleep(1000);
@@ -184,12 +178,12 @@ public class ExistingMacIT extends ConfigurableMacBase {
           "conf " + new File(getCluster().getConfig().getConfDir(), "accumulo.properties"));
 
       MiniAccumuloClusterImpl accumulo2 = new MiniAccumuloClusterImpl(macConfig2);
-      try {
-        accumulo2.start();
-        fail("A 2nd MAC instance should not be able to start over an existing MAC instance");
-      } catch (RuntimeException e) {
-        // TODO check message or throw more explicit exception
-      }
+
+      RuntimeException e = assertThrows(
+          "A 2nd MAC instance should not be able to start over an existing MAC instance",
+          RuntimeException.class, accumulo2::start);
+      assertEquals("The Accumulo instance being used is already running. Aborting.",
+          e.getMessage());
     }
   }
 }

@@ -73,7 +73,7 @@ public class DistributedWorkQueueWorkAssignerHelper {
     int thirdIndex = queueKey.indexOf(KEY_SEPARATOR, secondIndex + 1);
     if (thirdIndex == -1) {
       throw new IllegalArgumentException(
-          "Could not find expected seperator in queue key '" + queueKey + "'");
+          "Could not find expected separator in queue key '" + queueKey + "'");
     }
 
     return Maps.immutableEntry(filename,

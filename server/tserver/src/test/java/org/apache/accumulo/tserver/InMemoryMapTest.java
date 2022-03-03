@@ -22,7 +22,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -420,10 +419,9 @@ public class InMemoryMapTest {
     }
 
     for (int i = 1; i <= 4; i++) {
-      try {
-        deepCopyAndDelete(i, true);
-        fail("i = " + i);
-      } catch (IterationInterruptedException iie) {}
+      final int finalI = i;
+      assertThrows("i = " + finalI, IterationInterruptedException.class,
+          () -> deepCopyAndDelete(finalI, true));
     }
   }
 
@@ -678,10 +676,8 @@ public class InMemoryMapTest {
 
     assertEquals(expectedSample, readAll(iter));
     iFlag.set(true);
-    try {
-      readAll(iter);
-      fail();
-    } catch (IterationInterruptedException iie) {}
+    final var finalIter = iter;
+    assertThrows(IterationInterruptedException.class, () -> readAll(finalIter));
 
     miter.close();
   }
@@ -696,7 +692,7 @@ public class InMemoryMapTest {
     expectedAll.put(k1, new Value(val));
   }
 
-  @Test(expected = SampleNotPresentException.class)
+  @Test
   public void testDifferentSampleConfig() throws Exception {
     SamplerConfigurationImpl sampleConfig = new SamplerConfigurationImpl(RowSampler.class.getName(),
         Map.of("hasher", "murmur3_32", "modulus", "7"));
@@ -713,10 +709,10 @@ public class InMemoryMapTest {
     SamplerConfigurationImpl sampleConfig2 = new SamplerConfigurationImpl(
         RowSampler.class.getName(), Map.of("hasher", "murmur3_32", "modulus", "9"));
     MemoryIterator iter = imm.skvIterator(sampleConfig2);
-    iter.seek(new Range(), Set.of(), false);
+    assertThrows(SampleNotPresentException.class, () -> iter.seek(new Range(), Set.of(), false));
   }
 
-  @Test(expected = SampleNotPresentException.class)
+  @Test
   public void testNoSampleConfig() throws Exception {
     InMemoryMap imm = newInMemoryMap(false, tempFolder.newFolder().getAbsolutePath());
 
@@ -725,7 +721,7 @@ public class InMemoryMapTest {
     SamplerConfigurationImpl sampleConfig2 = new SamplerConfigurationImpl(
         RowSampler.class.getName(), Map.of("hasher", "murmur3_32", "modulus", "9"));
     MemoryIterator iter = imm.skvIterator(sampleConfig2);
-    iter.seek(new Range(), Set.of(), false);
+    assertThrows(SampleNotPresentException.class, () -> iter.seek(new Range(), Set.of(), false));
   }
 
   @Test

@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.client.mapreduce;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -35,7 +35,7 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @Deprecated(since = "2.0.0")
 public class AccumuloInputFormatTest {

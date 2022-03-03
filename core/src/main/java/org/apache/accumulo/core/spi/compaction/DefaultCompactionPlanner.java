@@ -113,7 +113,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class DefaultCompactionPlanner implements CompactionPlanner {
 
-  private static Logger log = LoggerFactory.getLogger(DefaultCompactionPlanner.class);
+  private static final Logger log = LoggerFactory.getLogger(DefaultCompactionPlanner.class);
 
   public static class ExecutorConfig {
     String type;
@@ -170,17 +170,16 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
         case "internal":
           Preconditions.checkArgument(null == executorConfig.queue,
               "'queue' should not be specified for internal compactions");
-          Objects.requireNonNull(executorConfig.numThreads,
+          int numThreads = Objects.requireNonNull(executorConfig.numThreads,
               "'numThreads' must be specified for internal type");
-          ceid = params.getExecutorManager().createExecutor(executorConfig.name,
-              executorConfig.numThreads);
+          ceid = params.getExecutorManager().createExecutor(executorConfig.name, numThreads);
           break;
         case "external":
           Preconditions.checkArgument(null == executorConfig.numThreads,
               "'numThreads' should not be specified for external compactions");
-          Objects.requireNonNull(executorConfig.queue,
+          String queue = Objects.requireNonNull(executorConfig.queue,
               "'queue' must be specified for external type");
-          ceid = params.getExecutorManager().getExternalExecutor(executorConfig.queue);
+          ceid = params.getExecutorManager().getExternalExecutor(queue);
           break;
         default:
           throw new IllegalArgumentException("type must be 'internal' or 'external'");
@@ -217,7 +216,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
         && params.getServiceEnvironment().getConfiguration()
             .isSet(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey())) {
       log.warn("The property " + Property.TSERV_MAJC_THREAD_MAXOPEN.getKey()
-          + " was set, it is deperecated.  Set the " + fqo + " option instead.");
+          + " was set, it is deprecated.  Set the " + fqo + " option instead.");
       this.maxFilesToCompact = Integer.parseInt(params.getServiceEnvironment().getConfiguration()
           .get(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey()));
     } else {

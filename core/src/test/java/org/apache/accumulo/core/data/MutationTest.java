@@ -19,11 +19,12 @@
 package org.apache.accumulo.core.data;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -37,7 +38,7 @@ import java.util.List;
 import org.apache.accumulo.core.dataImpl.thrift.TMutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class MutationTest {
 
@@ -365,7 +366,7 @@ public class MutationTest {
     assertEquals(expected, actual);
   }
 
-  @Test(expected = IllegalStateException.class)
+  @Test
   public void testFluentPutNull() {
     final String fam = "f16bc";
     final String qual = "q1pm2";
@@ -378,7 +379,8 @@ public class MutationTest {
     actual.at().family(fam).qualifier(qual).put(val.getBytes());
     assertEquals(expected, actual);
     assertEquals(34, actual.numBytes());
-    actual.at().family(fam).qualifier(qual).put("test2");
+    assertThrows(IllegalStateException.class,
+        () -> actual.at().family(fam).qualifier(qual).put("test2"));
   }
 
   @Test
@@ -874,13 +876,13 @@ public class MutationTest {
     assertEquals(m1, m2);
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testThrift_Invalid() {
     Mutation m1 = new Mutation("r1");
     m1.put("cf1", "cq1", "v1");
     TMutation tm1 = m1.toThrift();
     tm1.setRow((byte[]) null);
-    new Mutation(tm1);
+    assertThrows(IllegalArgumentException.class, () -> new Mutation(tm1));
   }
 
   /*
@@ -913,12 +915,12 @@ public class MutationTest {
     }
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testSanityCheck() {
     Mutation m = new Mutation("too big mutation");
     m.put("cf", "cq1", "v");
     m.estRowAndLargeValSize += (Long.MAX_VALUE / 2);
-    m.put("cf", "cq2", "v");
+    assertThrows(IllegalArgumentException.class, () -> m.put("cf", "cq2", "v"));
   }
 
   @Test

@@ -35,7 +35,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class ClusterConfigParser {
 
-  private static final String PROPERTY_FORMAT = "%s=\"%s\"";
+  private static final String PROPERTY_FORMAT = "%s=\"%s\"%n";
   private static final String[] SECTIONS = new String[] {"manager", "monitor", "gc", "tserver"};
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
@@ -50,7 +50,7 @@ public class ClusterConfigParser {
   }
 
   private static String addTheDot(String key) {
-    return (key.endsWith(".")) ? "" : ".";
+    return key.endsWith(".") ? "" : ".";
   }
 
   private static void flatten(String parentKey, String key, Object value,
@@ -83,8 +83,7 @@ public class ClusterConfigParser {
   public static void outputShellVariables(Map<String,String> config, PrintStream out) {
     for (String section : SECTIONS) {
       if (config.containsKey(section)) {
-        out.println(
-            String.format(PROPERTY_FORMAT, section.toUpperCase() + "_HOSTS", config.get(section)));
+        out.printf(PROPERTY_FORMAT, section.toUpperCase() + "_HOSTS", config.get(section));
       } else {
         if (section.equals("manager") || section.equals("tserver")) {
           throw new RuntimeException("Required configuration section is missing: " + section);
@@ -94,20 +93,18 @@ public class ClusterConfigParser {
     }
 
     if (config.containsKey("compaction.coordinator")) {
-      out.println(String.format(PROPERTY_FORMAT, "COORDINATOR_HOSTS",
-          config.get("compaction.coordinator")));
+      out.printf(PROPERTY_FORMAT, "COORDINATOR_HOSTS", config.get("compaction.coordinator"));
     }
     if (config.containsKey("compaction.compactor.queue")) {
-      out.println(String.format(PROPERTY_FORMAT, "COMPACTION_QUEUES",
-          config.get("compaction.compactor.queue")));
+      out.printf(PROPERTY_FORMAT, "COMPACTION_QUEUES", config.get("compaction.compactor.queue"));
     }
     String queues = config.get("compaction.compactor.queue");
     if (StringUtils.isNotEmpty(queues)) {
       String[] q = queues.split(" ");
       for (int i = 0; i < q.length; i++) {
         if (config.containsKey("compaction.compactor." + q[i])) {
-          out.println(String.format(PROPERTY_FORMAT, "COMPACTOR_HOSTS_" + q[i],
-              config.get("compaction.compactor." + q[i])));
+          out.printf(PROPERTY_FORMAT, "COMPACTOR_HOSTS_" + q[i],
+              config.get("compaction.compactor." + q[i]));
         }
       }
     }

@@ -88,8 +88,7 @@ public class YieldScannersIT extends AccumuloClusterHarness {
         int yieldSeekCount = 0;
         while (it.hasNext()) {
           Map.Entry<Key,Value> next = it.next();
-          log.info(Integer.toString(keyCount) + ": Got key " + next.getKey() + " with value "
-              + next.getValue());
+          log.info(keyCount + ": Got key " + next.getKey() + " with value " + next.getValue());
 
           // verify we got the expected key
           char expected = (char) (START_ROW + keyCount);
@@ -144,8 +143,7 @@ public class YieldScannersIT extends AccumuloClusterHarness {
         int yieldSeekCount = 0;
         while (it.hasNext()) {
           Map.Entry<Key,Value> next = it.next();
-          log.info(Integer.toString(keyCount) + ": Got key " + next.getKey() + " with value "
-              + next.getValue());
+          log.info(keyCount + ": Got key " + next.getKey() + " with value " + next.getValue());
 
           // verify we got the expected key
           char expected = (char) (START_ROW + keyCount);

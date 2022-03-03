@@ -18,13 +18,15 @@
  */
 package org.apache.accumulo.test.metrics;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -56,9 +58,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
 
   @AfterClass
   public static void after() throws Exception {
-    if (sink != null) {
-      sink.close();
-    }
+    sink.close();
   }
 
   @Override
@@ -78,26 +78,55 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 4 * 60;
+    return 60;
   }
 
   @Test
   public void confirmMetricsPublished() throws Exception {
-    Set<String> flakyMetricNames = new HashSet<>();
-    flakyMetricNames.add(METRICS_GC_WAL_ERRORS);
+
+    doWorkToGenerateMetrics();
+    cluster.stop();
+
+    Set<String> unexpectedMetrics = Set.of(METRICS_SCAN_YIELDS, METRICS_UPDATE_ERRORS,
+        METRICS_REPLICATION_QUEUE, METRICS_COMPACTOR_MAJC_STUCK);
+    Set<String> flakyMetrics = Set.of(METRICS_GC_WAL_ERRORS, METRICS_FATE_TYPE_IN_PROGRESS);
 
     Map<String,String> expectedMetricNames = this.getMetricFields();
-    // We might not see these in the course of normal operations
-    expectedMetricNames.remove(METRICS_SCAN_YIELDS);
-    expectedMetricNames.remove(METRICS_UPDATE_ERRORS);
-    expectedMetricNames.remove(METRICS_REPLICATION_QUEUE);
-    expectedMetricNames.remove(METRICS_FATE_TYPE_IN_PROGRESS);
+    flakyMetrics.forEach(expectedMetricNames::remove); // might not see these
+    unexpectedMetrics.forEach(expectedMetricNames::remove); // definitely shouldn't see these
+    assertFalse(expectedMetricNames.isEmpty()); // make sure we didn't remove everything
 
+    Map<String,String> seenMetricNames = new HashMap<>();
+
+    List<String> statsDMetrics;
+
+    // loop until we run out of lines or until we see all expected metrics
+    while (!(statsDMetrics = sink.getLines()).isEmpty() && !expectedMetricNames.isEmpty()) {
+      // for each metric name not yet seen, check if it is expected, flaky, or unknown
+      statsDMetrics.stream().filter(line -> line.startsWith("accumulo"))
+          .map(TestStatsDSink::parseStatsDMetric).map(Metric::getName)
+          .filter(Predicate.not(seenMetricNames::containsKey)).forEach(name -> {
+            if (expectedMetricNames.containsKey(name)) {
+              // record expected metric names as seen, along with the value seen
+              seenMetricNames.put(name, expectedMetricNames.remove(name));
+            } else if (flakyMetrics.contains(name)) {
+              // ignore any flaky metric names seen
+              // these aren't always expected, but we shouldn't be surprised if we see them
+            } else {
+              // completely unexpected metric
+              fail("Found accumulo metric not in expectedMetricNames or flakyMetricNames: " + name);
+            }
+          });
+    }
+    assertTrue("Did not see all expected metric names, missing: " + expectedMetricNames.values(),
+        expectedMetricNames.isEmpty());
+  }
+
+  private void doWorkToGenerateMetrics() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = this.getClass().getSimpleName();
       client.tableOperations().create(tableName);
-      BatchWriterConfig config = new BatchWriterConfig();
-      config.setMaxMemory(0);
+      BatchWriterConfig config = new BatchWriterConfig().setMaxMemory(0);
       try (BatchWriter writer = client.createBatchWriter(tableName, config)) {
         Mutation m = new Mutation("row");
         m.put("cf", "cq", new Value("value"));
@@ -109,51 +138,17 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
         m.put("cf", "cq", new Value("value"));
         writer.addMutation(m);
       }
-      client.tableOperations().flush(tableName);
-      client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+      client.tableOperations().compact(tableName, new CompactionConfig());
       client.tableOperations().delete(tableName);
       while (client.tableOperations().exists(tableName)) {
         Thread.sleep(1000);
       }
     }
-
-    Thread.sleep(30000);
-    cluster.stop();
-
-    Map<String,String> seenMetricNames = new HashMap<>();
-
-    List<String> statsDMetrics = sink.getLines();
-    while (!statsDMetrics.isEmpty()) {
-      for (String s : statsDMetrics) {
-        if (!s.startsWith("accumulo")) {
-          continue;
-        }
-        Metric m = TestStatsDSink.parseStatsDMetric(s);
-        boolean hasBeenSeen = seenMetricNames.containsKey(m.getName());
-        boolean isExpectedMetricName = expectedMetricNames.containsKey(m.getName());
-        if (!hasBeenSeen && isExpectedMetricName) {
-          String expectedValue = expectedMetricNames.remove(m.getName());
-          seenMetricNames.put(m.getName(), expectedValue);
-        } else if (!hasBeenSeen && !isExpectedMetricName) {
-          if (!flakyMetricNames.contains(m.getName())) {
-            fail("Found accumulo metric not in expectedMetricNames: " + m.getName());
-          }
-        }
-        if (expectedMetricNames.isEmpty()) {
-          break;
-        }
-      }
-      statsDMetrics = sink.getLines();
-    }
-    if (!expectedMetricNames.isEmpty()) {
-      fail("Did not see all metric names, missing: " + expectedMetricNames.values());
-    }
-
   }
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    // unused
+    // unused; this class only extends MetricsProducer to easily reference its methods/constants
   }
 
 }

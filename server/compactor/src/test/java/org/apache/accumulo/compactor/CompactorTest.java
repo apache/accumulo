@@ -49,7 +49,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceededException;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.rpc.ServerAddress;
-import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooKeeper;
 import org.easymock.EasyMock;
@@ -60,7 +59,6 @@ import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.core.classloader.annotations.SuppressStaticInitializationFor;
 import org.powermock.modules.junit4.PowerMockRunner;
-import org.powermock.reflect.Whitebox;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -220,6 +218,9 @@ public class CompactorTest {
     }
 
     @Override
+    protected synchronized void checkIfCanceled() {}
+
+    @Override
     protected Runnable createCompactionJob(TExternalCompactionJob job, LongAdder totalInputEntries,
         LongAdder totalInputBytes, CountDownLatch started, CountDownLatch stopped,
         AtomicReference<Throwable> err) {
@@ -296,30 +297,22 @@ public class CompactorTest {
 
   @Test
   public void testCheckTime() throws Exception {
-    // Instantiates class without calling constructor
-    Compactor c = Whitebox.newInstance(Compactor.class);
-    assertEquals(1, c.calculateProgressCheckTime(1024));
-    assertEquals(1, c.calculateProgressCheckTime(1048576));
-    assertEquals(1, c.calculateProgressCheckTime(10485760));
-    assertEquals(10, c.calculateProgressCheckTime(104857600));
-    assertEquals(102, c.calculateProgressCheckTime(1024 * 1024 * 1024));
+    assertEquals(1, Compactor.calculateProgressCheckTime(1024));
+    assertEquals(1, Compactor.calculateProgressCheckTime(1048576));
+    assertEquals(1, Compactor.calculateProgressCheckTime(10485760));
+    assertEquals(10, Compactor.calculateProgressCheckTime(104857600));
+    assertEquals(102, Compactor.calculateProgressCheckTime(1024 * 1024 * 1024));
   }
 
   @Test
   public void testCompactionSucceeds() throws Exception {
     UUID uuid = UUID.randomUUID();
-    Supplier<UUID> supplier = new Supplier<>() {
-      @Override
-      public UUID get() {
-        return uuid;
-      }
-    };
+    Supplier<UUID> supplier = () -> uuid;
 
     ExternalCompactionId eci = ExternalCompactionId.generate(supplier.get());
 
     PowerMock.resetAll();
     PowerMock.suppress(PowerMock.methods(Halt.class, "halt"));
-    PowerMock.suppress(PowerMock.methods(TServerUtils.class, "stopTServer"));
     PowerMock.suppress(PowerMock.constructor(AbstractServer.class));
 
     ServerAddress client = PowerMock.createNiceMock(ServerAddress.class);
@@ -337,6 +330,7 @@ public class CompactorTest {
     EasyMock.expect(conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT)).andReturn(86400000L);
 
     ServerContext context = PowerMock.createNiceMock(ServerContext.class);
+    EasyMock.expect(context.getConfiguration()).andReturn(conf);
     ZooReaderWriter zrw = PowerMock.createNiceMock(ZooReaderWriter.class);
     ZooKeeper zk = PowerMock.createNiceMock(ZooKeeper.class);
     EasyMock.expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
@@ -360,18 +354,12 @@ public class CompactorTest {
   @Test
   public void testCompactionFails() throws Exception {
     UUID uuid = UUID.randomUUID();
-    Supplier<UUID> supplier = new Supplier<>() {
-      @Override
-      public UUID get() {
-        return uuid;
-      }
-    };
+    Supplier<UUID> supplier = () -> uuid;
 
     ExternalCompactionId eci = ExternalCompactionId.generate(supplier.get());
 
     PowerMock.resetAll();
     PowerMock.suppress(PowerMock.methods(Halt.class, "halt"));
-    PowerMock.suppress(PowerMock.methods(TServerUtils.class, "stopTServer"));
     PowerMock.suppress(PowerMock.constructor(AbstractServer.class));
 
     ServerAddress client = PowerMock.createNiceMock(ServerAddress.class);
@@ -390,6 +378,7 @@ public class CompactorTest {
     EasyMock.expect(conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT)).andReturn(86400000L);
 
     ServerContext context = PowerMock.createNiceMock(ServerContext.class);
+    EasyMock.expect(context.getConfiguration()).andReturn(conf);
     ZooReaderWriter zrw = PowerMock.createNiceMock(ZooReaderWriter.class);
     ZooKeeper zk = PowerMock.createNiceMock(ZooKeeper.class);
     EasyMock.expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
@@ -414,18 +403,12 @@ public class CompactorTest {
   @Test
   public void testCompactionInterrupted() throws Exception {
     UUID uuid = UUID.randomUUID();
-    Supplier<UUID> supplier = new Supplier<>() {
-      @Override
-      public UUID get() {
-        return uuid;
-      }
-    };
+    Supplier<UUID> supplier = () -> uuid;
 
     ExternalCompactionId eci = ExternalCompactionId.generate(supplier.get());
 
     PowerMock.resetAll();
     PowerMock.suppress(PowerMock.methods(Halt.class, "halt"));
-    PowerMock.suppress(PowerMock.methods(TServerUtils.class, "stopTServer"));
     PowerMock.suppress(PowerMock.constructor(AbstractServer.class));
 
     ServerAddress client = PowerMock.createNiceMock(ServerAddress.class);
@@ -443,6 +426,7 @@ public class CompactorTest {
     EasyMock.expect(conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT)).andReturn(86400000L);
 
     ServerContext context = PowerMock.createNiceMock(ServerContext.class);
+    EasyMock.expect(context.getConfiguration()).andReturn(conf);
     ZooReaderWriter zrw = PowerMock.createNiceMock(ZooReaderWriter.class);
     ZooKeeper zk = PowerMock.createNiceMock(ZooKeeper.class);
     EasyMock.expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();

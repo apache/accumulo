@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.security.delegation;
 
+import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
@@ -26,6 +28,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -41,6 +44,7 @@ import javax.crypto.KeyGenerator;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.hadoop.security.token.SecretManager.InvalidToken;
 import org.apache.hadoop.security.token.Token;
 import org.junit.Before;
@@ -67,19 +71,19 @@ public class AuthenticationTokenSecretManagerTest {
     keyGen.init(KEY_LENGTH);
   }
 
-  private String instanceId;
+  private InstanceId instanceId;
   private DelegationTokenConfig cfg;
 
   @Before
   public void setup() {
-    instanceId = UUID.randomUUID().toString();
+    instanceId = InstanceId.of(UUID.randomUUID());
     cfg = new DelegationTokenConfig();
   }
 
   @Test
   public void testAddKey() {
     // 1 minute
-    long tokenLifetime = 60 * 1000;
+    long tokenLifetime = MINUTES.toMillis(1);
     AuthenticationTokenSecretManager secretManager =
         new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 
@@ -106,7 +110,7 @@ public class AuthenticationTokenSecretManagerTest {
   @Test
   public void testRemoveKey() {
     // 1 minute
-    long tokenLifetime = 60 * 1000;
+    long tokenLifetime = MINUTES.toMillis(1);
     AuthenticationTokenSecretManager secretManager =
         new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 
@@ -130,7 +134,7 @@ public class AuthenticationTokenSecretManagerTest {
     long then = System.currentTimeMillis();
 
     // 1 minute
-    long tokenLifetime = 60 * 1000;
+    long tokenLifetime = MINUTES.toMillis(1);
     AuthenticationTokenSecretManager secretManager =
         new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 
@@ -174,7 +178,7 @@ public class AuthenticationTokenSecretManagerTest {
     long then = System.currentTimeMillis();
 
     // 1 minute
-    long tokenLifetime = 60 * 1000;
+    long tokenLifetime = MINUTES.toMillis(1);
     AuthenticationTokenSecretManager secretManager =
         new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 
@@ -211,7 +215,7 @@ public class AuthenticationTokenSecretManagerTest {
         Arrays.equals(password, password2));
   }
 
-  @Test(expected = InvalidToken.class)
+  @Test
   public void testExpiredPasswordsThrowError() throws Exception {
     // start of the test
     long then = System.currentTimeMillis();
@@ -237,15 +241,15 @@ public class AuthenticationTokenSecretManagerTest {
     AuthenticationTokenIdentifier id = new AuthenticationTokenIdentifier();
     id.readFields(new DataInputStream(new ByteArrayInputStream(token.getIdentifier())));
 
-    secretManager.retrievePassword(id);
+    assertThrows(InvalidToken.class, () -> secretManager.retrievePassword(id));
   }
 
-  @Test(expected = InvalidToken.class)
+  @Test
   public void testTokenIssuedInFuture() throws Exception {
     // start of the test
     long then = System.currentTimeMillis();
 
-    long tokenLifetime = 60 * 1000;
+    long tokenLifetime = MINUTES.toMillis(1);
     AuthenticationTokenSecretManager secretManager =
         new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 
@@ -265,15 +269,15 @@ public class AuthenticationTokenSecretManagerTest {
     // Increase the value of issueDate
     id.setIssueDate(Long.MAX_VALUE);
 
-    secretManager.retrievePassword(id);
+    assertThrows(InvalidToken.class, () -> secretManager.retrievePassword(id));
   }
 
-  @Test(expected = InvalidToken.class)
+  @Test
   public void testRolledManagerKey() throws Exception {
     // start of the test
     long then = System.currentTimeMillis();
 
-    long tokenLifetime = 60 * 1000;
+    long tokenLifetime = MINUTES.toMillis(1);
     AuthenticationTokenSecretManager secretManager =
         new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 
@@ -300,10 +304,10 @@ public class AuthenticationTokenSecretManagerTest {
     secretManager.removeKey(authKey1.getKeyId());
 
     // Should fail -- authKey1 (presumably) expired, cannot authenticate
-    secretManager.retrievePassword(id);
+    assertThrows(InvalidToken.class, () -> secretManager.retrievePassword(id));
   }
 
-  @Test(timeout = 20 * 1000)
+  @Test(timeout = 20_000)
   public void testManagerKeyExpiration() throws Exception {
     ZooAuthenticationKeyDistributor keyDistributor =
         createMock(ZooAuthenticationKeyDistributor.class);
@@ -311,7 +315,7 @@ public class AuthenticationTokenSecretManagerTest {
     long then = System.currentTimeMillis();
 
     // 10s lifetime
-    long tokenLifetime = 10 * 1000L;
+    long tokenLifetime = 10_000L;
     AuthenticationTokenSecretManager secretManager =
         new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 
@@ -361,7 +365,7 @@ public class AuthenticationTokenSecretManagerTest {
     long then = System.currentTimeMillis();
 
     // 1 hr
-    long tokenLifetime = 60 * 60 * 1000;
+    long tokenLifetime = HOURS.toMillis(1);
     AuthenticationTokenSecretManager secretManager =
         new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 
@@ -370,7 +374,7 @@ public class AuthenticationTokenSecretManagerTest {
         .addKey(new AuthenticationKey(1, then, then + tokenLifetime, keyGen.generateKey()));
 
     // 1 minute
-    cfg.setTokenLifetime(1, TimeUnit.MINUTES);
+    cfg.setTokenLifetime(1, MINUTES);
 
     String principal = "user@EXAMPLE.COM";
     Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair =
@@ -391,13 +395,13 @@ public class AuthenticationTokenSecretManagerTest {
         approximateLifetime <= cfg.getTokenLifetime(TimeUnit.MILLISECONDS));
   }
 
-  @Test(expected = AccumuloException.class)
+  @Test
   public void testInvalidRequestedExpirationDate() throws Exception {
     // start of the test
     long then = System.currentTimeMillis();
 
     // 1 hr
-    long tokenLifetime = 60 * 60 * 1000;
+    long tokenLifetime = HOURS.toMillis(1);
     AuthenticationTokenSecretManager secretManager =
         new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 
@@ -409,6 +413,7 @@ public class AuthenticationTokenSecretManagerTest {
     cfg.setTokenLifetime(tokenLifetime + 1, TimeUnit.MILLISECONDS);
 
     // Should throw an exception
-    secretManager.generateToken("user@EXAMPLE.COM", cfg);
+    assertThrows(AccumuloException.class,
+        () -> secretManager.generateToken("user@EXAMPLE.COM", cfg));
   }
 }

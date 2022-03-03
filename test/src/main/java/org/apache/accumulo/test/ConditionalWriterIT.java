@@ -21,6 +21,8 @@ package org.apache.accumulo.test;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -444,14 +446,11 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         cm8.put("name", "first", cva, "john");
         cm8.put("tx", "seq", cva, "1");
 
-        try {
+        assertThrows(AccumuloSecurityException.class, () -> {
           Status status = cw2.write(cm8).getStatus();
-          fail(
-              "Writing mutation with Authorizations the user doesn't have should fail. Got status: "
-                  + status);
-        } catch (AccumuloSecurityException ase) {
-          // expected, check specific failure?
-        }
+          log.error("Writing mutation with Authorizations the user doesn't have should fail. Got "
+              + "status: {}", status);
+        });
       }
     }
   }
@@ -1126,7 +1125,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
       ConditionalMutation cm = new ConditionalMutation(row, cond);
 
       cm.put("meta", "seq", (seq + 1) + "");
-      cm.put("meta", "sum", (sum) + "");
+      cm.put("meta", "sum", sum + "");
 
       for (int i = 0; i < data.length; i++) {
         cm.put("data", i + "", data[i] + "");
@@ -1322,22 +1321,19 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         assertEquals(Status.ACCEPTED, cw3.write(cm1).getStatus());
 
         // Conditional-update to a table we only have read on should fail
-        try {
+        assertThrows(AccumuloSecurityException.class, () -> {
           Status status = cw1.write(cm1).getStatus();
-          fail("Expected exception writing conditional mutation to table"
-              + " the user doesn't have write access to, Got status: " + status);
-        } catch (AccumuloSecurityException ase) {
-
-        }
+          log.error("Expected exception writing conditional mutation to table the user doesn't "
+              + "have write access to, Got status: {}", status);
+        });
 
         // Conditional-update to a table we only have writer on should fail
-        try {
+        assertThrows(AccumuloSecurityException.class, () -> {
           Status status = cw2.write(cm1).getStatus();
-          fail("Expected exception writing conditional mutation to table"
-              + " the user doesn't have read access to. Got status: " + status);
-        } catch (AccumuloSecurityException ase) {
-
-        }
+          log.error(
+              "Expected exception writing conditional mutation to table the user doesn't have read access to. Got status: {}",
+              status);
+        });
       }
     }
   }
@@ -1399,10 +1395,8 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
     String table = getUniqueNames(1)[0];
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
-      try {
-        client.createConditionalWriter(table);
-        fail("Creating conditional writer for table that doesn't exist should fail");
-      } catch (TableNotFoundException e) {}
+      assertThrows("Creating conditional writer for table that doesn't exist should fail",
+          TableNotFoundException.class, () -> client.createConditionalWriter(table));
 
       client.tableOperations().create(table);
 
@@ -1416,13 +1410,13 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
         Result result = cw.write(cm1);
 
-        try {
+        var ae = assertThrows(AccumuloException.class, () -> {
           Status status = result.getStatus();
-          fail("Expected exception writing conditional mutation to deleted table. Got status: "
-              + status);
-        } catch (AccumuloException ae) {
-          assertEquals(TableDeletedException.class, ae.getCause().getClass());
-        }
+          log.error(
+              "Expected exception writing conditional mutation to deleted table. Got status: {}",
+              status);
+        });
+        assertSame(TableDeletedException.class, ae.getCause().getClass());
       }
     }
   }
@@ -1444,18 +1438,15 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
         Result result = cw.write(cm1);
 
-        try {
+        var ae = assertThrows(AccumuloException.class, () -> {
           Status status = result.getStatus();
-          fail("Expected exception writing conditional mutation to offline table. Got status: "
-              + status);
-        } catch (AccumuloException ae) {
-          assertEquals(TableOfflineException.class, ae.getCause().getClass());
-        }
+          log.error("Expected exception writing conditional mutation to offline table. Got "
+              + "status: {}", status);
+        });
+        assertSame(TableOfflineException.class, ae.getCause().getClass());
 
-        try {
-          client.createConditionalWriter(table);
-          fail("Expected exception creating conditional writer to offline table");
-        } catch (TableOfflineException e) {}
+        assertThrows("Expected exception creating conditional writer to offline table",
+            TableOfflineException.class, () -> client.createConditionalWriter(table));
       }
     }
   }
@@ -1478,18 +1469,17 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
         Result result = cw.write(cm1);
 
-        try {
+        assertThrows(AccumuloException.class, () -> {
           Status status = result.getStatus();
-          fail("Expected exception using iterator which throws an error, Got status: " + status);
-        } catch (AccumuloException ae) {
-
-        }
+          log.error("Expected exception using iterator which throws an error, Got status: {}",
+              status);
+        });
 
       }
     }
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testNoConditions() throws AccumuloException, AccumuloSecurityException,
       TableExistsException, TableNotFoundException {
     String table = getUniqueNames(1)[0];
@@ -1503,7 +1493,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         cm1.put("tx", "seq", "1");
         cm1.put("data", "x", "a");
 
-        cw.write(cm1);
+        assertThrows(IllegalArgumentException.class, () -> cw.write(cm1));
       }
     }
   }

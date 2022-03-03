@@ -20,10 +20,10 @@ package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.ArrayList;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -99,7 +99,7 @@ public class ServerClient {
         throw new AccumuloServerException(server, tae);
       } catch (TTransportException tte) {
         log.debug("ClientService request failed " + server + ", retrying ... ", tte);
-        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(100, MILLISECONDS);
       } finally {
         if (client != null)
           ServerClient.close(client, context);
@@ -123,7 +123,7 @@ public class ServerClient {
         throw new AccumuloServerException(server, tae);
       } catch (TTransportException tte) {
         log.debug("ClientService request failed " + server + ", retrying ... ", tte);
-        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(100, MILLISECONDS);
       } finally {
         if (client != null)
           ServerClient.close(client, context);

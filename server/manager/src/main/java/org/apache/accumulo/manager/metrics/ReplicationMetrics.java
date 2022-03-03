@@ -29,7 +29,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.metrics.MetricsUtil;
@@ -67,7 +66,7 @@ public class ReplicationMetrics implements MetricsProducer {
 
   protected void update() {
     // Only add these metrics if the replication table is online and there are peers
-    if (TableState.ONLINE == Tables.getTableState(manager.getContext(), ReplicationTable.ID)
+    if (TableState.ONLINE == manager.getContext().getTableState(ReplicationTable.ID)
         && !replicationUtil.getPeers().isEmpty()) {
       pendingFiles.set(getNumFilesPendingReplication());
       addReplicationQueueTimeMetrics();
@@ -163,7 +162,7 @@ public class ReplicationMetrics implements MetricsProducer {
         new AtomicInteger(0));
 
     ScheduledExecutorService scheduler =
-        ThreadPools.createScheduledExecutorService(1, "replicationMetricsPoller");
+        ThreadPools.createScheduledExecutorService(1, "replicationMetricsPoller", false);
     Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdownNow));
     long minimumRefreshDelay = TimeUnit.SECONDS.toMillis(5);
     scheduler.scheduleAtFixedRate(this::update, minimumRefreshDelay, minimumRefreshDelay,

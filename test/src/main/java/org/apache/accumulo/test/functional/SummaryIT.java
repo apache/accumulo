@@ -644,7 +644,7 @@ public class SummaryIT extends SharedMiniClusterBase {
       try (AccumuloClient c2 =
           Accumulo.newClient().from(c.properties()).as("user1", passTok).build()) {
         var e = assertThrows(
-            "Expected operation to fail because user does not have permssion to get summaries",
+            "Expected operation to fail because user does not have permission to get summaries",
             AccumuloSecurityException.class,
             () -> c2.tableOperations().summaries(table).retrieve());
         assertEquals(SecurityErrorCode.PERMISSION_DENIED, e.getSecurityErrorCode());

@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -55,7 +56,6 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.hadoop.io.Text;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -77,7 +77,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
 
   @Before
   public void limitToMini() throws Exception {
-    Assume.assumeTrue(getClusterType() == ClusterType.MINI);
+    assumeTrue(getClusterType() == ClusterType.MINI);
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       Set<String> users = c.securityOperations().listLocalUsers();
       ClusterUser user = getUser(0);
@@ -298,7 +298,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
           loginAs(testUser);
           test_user_client.instanceOperations()
               .removeProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey());
-          throw new IllegalStateException("Should NOT be able to remove Sysem Property");
+          throw new IllegalStateException("Should NOT be able to remove System Property");
         } catch (AccumuloSecurityException e) {
           loginAs(rootUser);
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
@@ -731,7 +731,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
         try {
           test_user_client.tableOperations().flush(tableName, new Text("myrow"), new Text("myrow~"),
               false);
-          throw new IllegalStateException("Should NOT be able to flsuh a table");
+          throw new IllegalStateException("Should NOT be able to flush a table");
         } catch (AccumuloSecurityException e) {
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
             throw e;

@@ -352,7 +352,7 @@ public class ThriftUtil {
           // Sadly, we have no way to determine the actual reason we got this TTransportException
           // other than inspecting the exception msg.
           log.debug("Caught TTransportException opening SASL transport,"
-              + " checking if re-login is necessary before propagating the" + " exception.");
+              + " checking if re-login is necessary before propagating the exception.");
           attemptClientReLogin();
 
           throw e;

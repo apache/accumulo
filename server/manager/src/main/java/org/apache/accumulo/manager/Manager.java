@@ -51,12 +51,12 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
@@ -353,8 +353,8 @@ public class Manager extends AbstractServer
 
   public void mustBeOnline(final TableId tableId) throws ThriftTableOperationException {
     ServerContext context = getContext();
-    Tables.clearCache(context);
-    if (Tables.getTableState(context, tableId) != TableState.ONLINE) {
+    context.clearTableListCache();
+    if (context.getTableState(tableId) != TableState.ONLINE) {
       throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.MERGE,
           TableOperationExceptionType.OFFLINE, "table is not online");
     }
@@ -409,7 +409,7 @@ public class Manager extends AbstractServer
     }
   }
 
-  public String getInstanceID() {
+  public InstanceId getInstanceID() {
     return getContext().getInstanceID();
   }
 
@@ -680,7 +680,7 @@ public class Manager extends AbstractServer
     private void cleanupOfflineMigrations() {
       ServerContext context = getContext();
       TableManager manager = context.getTableManager();
-      for (TableId tableId : Tables.getIdToNameMap(context).keySet()) {
+      for (TableId tableId : context.getTableIdToNameMap().keySet()) {
         TableState state = manager.getTableState(tableId);
         if (state == TableState.OFFLINE) {
           clearMigrations(tableId);
@@ -918,7 +918,7 @@ public class Manager extends AbstractServer
     final long rpcTimeout = getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
     int threads = getConfiguration().getCount(Property.MANAGER_STATUS_THREAD_POOL_SIZE);
     ExecutorService tp = ThreadPools.createExecutorService(getConfiguration(),
-        Property.MANAGER_STATUS_THREAD_POOL_SIZE);
+        Property.MANAGER_STATUS_THREAD_POOL_SIZE, false);
     long start = System.currentTimeMillis();
     final SortedMap<TServerInstance,TabletServerStatus> result = new ConcurrentSkipListMap<>();
     final RateLimiter shutdownServerRateLimiter = RateLimiter.create(MAX_SHUTDOWNS_PER_SEC);
@@ -1141,8 +1141,11 @@ public class Manager extends AbstractServer
     }
 
     try {
-      final AgeOffStore<Manager> store = new AgeOffStore<>(new org.apache.accumulo.fate.ZooStore<>(
-          getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter()), 1000 * 60 * 60 * 8);
+      final AgeOffStore<Manager> store =
+          new AgeOffStore<>(
+              new org.apache.accumulo.fate.ZooStore<>(getZooKeeperRoot() + Constants.ZFATE,
+                  context.getZooReaderWriter()),
+              TimeUnit.HOURS.toMillis(8), System::currentTimeMillis);
 
       fate = new Fate<>(this, store, TraceRepo::toLogString);
       fate.startTransactionRunners(getConfiguration());
@@ -1232,7 +1235,10 @@ public class Manager extends AbstractServer
     } catch (InterruptedException e) {
       throw new IllegalStateException("Exception stopping replication workers", e);
     }
-    TServerUtils.stopTServer(replServer.get());
+    var nullableReplServer = replServer.get();
+    if (nullableReplServer != null) {
+      nullableReplServer.stop();
+    }
 
     // Signal that we want it to stop, and wait for it to do so.
     if (authenticationTokenKeyManager != null) {
@@ -1590,7 +1596,7 @@ public class Manager extends AbstractServer
     ServerContext context = getContext();
     TableManager manager = context.getTableManager();
 
-    for (TableId tableId : Tables.getIdToNameMap(context).keySet()) {
+    for (TableId tableId : context.getTableIdToNameMap().keySet()) {
       TableState state = manager.getTableState(tableId);
       if ((state != null) && (state == TableState.ONLINE)) {
         result.add(tableId);
@@ -1607,7 +1613,7 @@ public class Manager extends AbstractServer
   @Override
   public Collection<MergeInfo> merges() {
     List<MergeInfo> result = new ArrayList<>();
-    for (TableId tableId : Tables.getIdToNameMap(getContext()).keySet()) {
+    for (TableId tableId : getContext().getTableIdToNameMap().keySet()) {
       result.add(getMergeInfo(tableId));
     }
     return result;

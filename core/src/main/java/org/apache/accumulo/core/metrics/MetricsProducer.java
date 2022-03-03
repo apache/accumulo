@@ -46,6 +46,13 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <th>Notes</th>
  * </tr>
  * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_COMPACTOR_MAJC_STUCK}</td>
+ * <td>LongTaskTimer</td>
+ * <td></td>
+ * </tr>
+ * <tr>
  * <td>currentFateOps</td>
  * <td>Gauge</td>
  * <td>{@link #METRICS_FATE_TOTAL_IN_PROGRESS}</td>
@@ -238,6 +245,13 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td></td>
  * </tr>
  * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_TSERVER_MAJC_STUCK}</td>
+ * <td>LongTaskTimer</td>
+ * <td></td>
+ * </tr>
+ * <tr>
  * <td>queuedMajCs</td>
  * <td>Gauge</td>
  * <td>{@link #METRICS_TSERVER_MAJC_QUEUED}</td>
@@ -269,6 +283,13 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>onlineTablets</td>
  * <td>Gauge</td>
  * <td>{@link #METRICS_TSERVER_TABLETS_ONLINE}</td>
+ * <td>Gauge</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_TSERVER_TABLETS_LONG_ASSIGNMENTS}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
@@ -352,6 +373,13 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>scan</td>
  * <td>Stat</td>
  * <td>{@link #METRICS_SCAN}</td>
+ * <td>Gauge</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_SCAN_OPEN_FILES}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
@@ -510,6 +538,9 @@ public interface MetricsProducer {
 
   Logger LOG = LoggerFactory.getLogger(MetricsProducer.class);
 
+  String METRICS_COMPACTOR_PREFIX = "accumulo.compactor";
+  String METRICS_COMPACTOR_MAJC_STUCK = METRICS_COMPACTOR_PREFIX + "majc.stuck";
+
   String METRICS_FATE_PREFIX = "accumulo.fate.";
   String METRICS_FATE_TYPE_IN_PROGRESS = METRICS_FATE_PREFIX + "ops.in_progress_by_type";
   String METRICS_FATE_TOTAL_IN_PROGRESS = METRICS_FATE_PREFIX + "ops.in_progress";
@@ -548,6 +579,7 @@ public interface MetricsProducer {
   String METRICS_REPLICATION_THREADS = METRICS_REPLICATION_PREFIX + "threads";
 
   String METRICS_SCAN = "accumulo.tserver.scans";
+  String METRICS_SCAN_OPEN_FILES = METRICS_SCAN + ".files.open";
   String METRICS_SCAN_RESULTS = METRICS_SCAN + ".result";
   String METRICS_SCAN_YIELDS = METRICS_SCAN + ".yields";
 
@@ -556,9 +588,12 @@ public interface MetricsProducer {
   String METRICS_TSERVER_MEM_ENTRIES = METRICS_TSERVER_PREFIX + "entries.mem";
   String METRICS_TSERVER_MAJC_QUEUED = METRICS_TSERVER_PREFIX + "majc.queued";
   String METRICS_TSERVER_MAJC_RUNNING = METRICS_TSERVER_PREFIX + "majc.running";
+  String METRICS_TSERVER_MAJC_STUCK = METRICS_TSERVER_PREFIX + "majc.stuck";
   String METRICS_TSERVER_MINC_QUEUED = METRICS_TSERVER_PREFIX + "minc.queued";
   String METRICS_TSERVER_MINC_RUNNING = METRICS_TSERVER_PREFIX + "minc.running";
   String METRICS_TSERVER_MINC_TOTAL = METRICS_TSERVER_PREFIX + "minc.total";
+  String METRICS_TSERVER_TABLETS_LONG_ASSIGNMENTS =
+      METRICS_TSERVER_PREFIX + "tablets.assignments.warning";
   String METRICS_TSERVER_TABLETS_ONLINE = METRICS_TSERVER_PREFIX + "tablets.online";
   String METRICS_TSERVER_TABLETS_OPENING = METRICS_TSERVER_PREFIX + "tablets.opening";
   String METRICS_TSERVER_TABLETS_UNOPENED = METRICS_TSERVER_PREFIX + "tablets.unopened";
@@ -588,7 +623,7 @@ public interface MetricsProducer {
   void registerMetrics(MeterRegistry registry);
 
   /**
-   * Returns a mapping of metric field value to metric field name.
+   * Returns a new mutable mapping of metric field value to metric field name.
    *
    * @return map of field names to variable names.
    */

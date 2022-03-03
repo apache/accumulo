@@ -19,6 +19,8 @@
 package org.apache.accumulo.miniclusterImpl;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.File;
@@ -68,6 +70,7 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
@@ -96,6 +99,8 @@ import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.ZooKeeper.States;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -281,8 +286,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       Map<String,String> configOverrides, String... args) throws IOException {
     List<String> jvmOpts = new ArrayList<>();
     if (serverType == ServerType.ZOOKEEPER) {
-      // disable zookeeper's log4j 1.2 jmx support, which depends on log4j 1.2 on the class path,
-      // which we don't need or expect to be there
+      // disable zookeeper's log4j 1.2 jmx support, which requires old versions of log4j 1.2
+      // and won't work with reload4j or log4j2
       jvmOpts.add("-Dzookeeper.jmx.log4j.disable=true");
     }
     jvmOpts.add("-Xmx" + config.getMemory(serverType));
@@ -325,6 +330,13 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   public MiniAccumuloClusterImpl(MiniAccumuloConfigImpl config) throws IOException {
 
     this.config = config.initialize();
+
+    if (Boolean.valueOf(config.getSiteConfig().get(Property.TSERV_NATIVEMAP_ENABLED.getKey()))
+        && config.getNativeLibPaths().length == 0
+        && !config.getSystemProperties().containsKey("accumulo.native.lib.path")) {
+      throw new RuntimeException(
+          "MAC configured to use native maps, but native library path was not provided.");
+    }
 
     mkdirs(config.getConfDir());
     mkdirs(config.getLogDir());
@@ -471,7 +483,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       Configuration hadoopConf = config.getHadoopConfiguration();
       ServerDirs serverDirs = new ServerDirs(acuConf, hadoopConf);
 
-      ConfigurationCopy cc = new ConfigurationCopy(acuConf);
       Path instanceIdPath;
       try (var fs = getServerContext().getVolumeManager()) {
         instanceIdPath = serverDirs.getInstanceIdLocation(fs.getFirst());
@@ -479,9 +490,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         throw new RuntimeException(e);
       }
 
-      String instanceIdFromFile = VolumeManager.getInstanceIDFromHdfs(instanceIdPath, hadoopConf);
-      ZooReaderWriter zrw = new ZooReaderWriter(cc.get(Property.INSTANCE_ZK_HOST),
-          (int) cc.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), cc.get(Property.INSTANCE_SECRET));
+      InstanceId instanceIdFromFile =
+          VolumeManager.getInstanceIDFromHdfs(instanceIdPath, hadoopConf);
+      ZooReaderWriter zrw = getServerContext().getZooReaderWriter();
 
       String rootPath = ZooUtil.getRoot(instanceIdFromFile);
 
@@ -490,7 +501,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         for (String name : zrw.getChildren(Constants.ZROOT + Constants.ZINSTANCES)) {
           String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + name;
           byte[] bytes = zrw.getData(instanceNamePath);
-          String iid = new String(bytes, UTF_8);
+          InstanceId iid = InstanceId.of(new String(bytes, UTF_8));
           if (iid.equals(instanceIdFromFile)) {
             instanceName = name;
           }
@@ -599,6 +610,109 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     if (executor == null) {
       executor = Executors.newSingleThreadExecutor();
+    }
+
+    verifyUp();
+
+  }
+
+  // wait up to 10 seconds for the process to start
+  private static void waitForProcessStart(Process p, String name) throws InterruptedException {
+    long start = System.nanoTime();
+    while (p.info().startInstant().isEmpty()) {
+      if (NANOSECONDS.toSeconds(System.nanoTime() - start) > 10) {
+        throw new IllegalStateException(
+            "Error starting " + name + " - instance not started within 10 seconds");
+      }
+      Thread.sleep(50);
+    }
+  }
+
+  private void verifyUp() throws InterruptedException, IOException {
+
+    int numTries = 10;
+
+    requireNonNull(getClusterControl().managerProcess, "Error starting Manager - no process");
+    waitForProcessStart(getClusterControl().managerProcess, "Manager");
+
+    requireNonNull(getClusterControl().gcProcess, "Error starting GC - no process");
+    waitForProcessStart(getClusterControl().gcProcess, "GC");
+
+    int tsExpectedCount = 0;
+    for (Process tsp : getClusterControl().tabletServerProcesses) {
+      tsExpectedCount++;
+      requireNonNull(tsp, "Error starting TabletServer " + tsExpectedCount + " - no process");
+      waitForProcessStart(tsp, "TabletServer" + tsExpectedCount);
+    }
+
+    try (ZooKeeper zk = new ZooKeeper(getZooKeepers(), 60000, event -> log.info("{}", event))) {
+
+      String secret = getSiteConfiguration().get(Property.INSTANCE_SECRET);
+
+      for (int i = 0; i < numTries; i++) {
+        if (zk.getState().equals(States.CONNECTED)) {
+          ZooUtil.digestAuth(zk, secret);
+          break;
+        } else {
+          Thread.sleep(1000);
+        }
+      }
+
+      String instanceId = null;
+      try {
+        for (String name : zk.getChildren(Constants.ZROOT + Constants.ZINSTANCES, null)) {
+          if (name.equals(config.getInstanceName())) {
+            String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + name;
+            byte[] bytes = zk.getData(instanceNamePath, null, null);
+            instanceId = new String(bytes, UTF_8);
+            break;
+          }
+        }
+      } catch (KeeperException e) {
+        throw new RuntimeException("Unable to read instance id from zookeeper.", e);
+      }
+
+      if (instanceId == null) {
+        throw new RuntimeException("Unable to find instance id from zookeeper.");
+      }
+
+      String rootPath = Constants.ZROOT + "/" + instanceId;
+      int tsActualCount = 0;
+      try {
+        while (tsActualCount < tsExpectedCount) {
+          tsActualCount = 0;
+          for (String child : zk.getChildren(rootPath + Constants.ZTSERVERS, null)) {
+            if (zk.getChildren(rootPath + Constants.ZTSERVERS + "/" + child, null).isEmpty()) {
+              log.info("TServer " + tsActualCount + " not yet present in ZooKeeper");
+            } else {
+              tsActualCount++;
+              log.info("TServer " + tsActualCount + " present in ZooKeeper");
+            }
+          }
+          Thread.sleep(500);
+        }
+      } catch (KeeperException e) {
+        throw new RuntimeException("Unable to read TServer information from zookeeper.", e);
+      }
+
+      try {
+        while (zk.getChildren(rootPath + Constants.ZMANAGER_LOCK, null).isEmpty()) {
+          log.info("Manager not yet present in ZooKeeper");
+          Thread.sleep(500);
+        }
+      } catch (KeeperException e) {
+        throw new RuntimeException("Unable to read Manager information from zookeeper.", e);
+      }
+
+      try {
+        while (zk.getChildren(rootPath + Constants.ZGC_LOCK, null).isEmpty()) {
+          log.info("GC not yet present in ZooKeeper");
+          Thread.sleep(500);
+        }
+      } catch (KeeperException e) {
+        throw new RuntimeException("Unable to read GC information from zookeeper.", e);
+      }
+
     }
   }
 

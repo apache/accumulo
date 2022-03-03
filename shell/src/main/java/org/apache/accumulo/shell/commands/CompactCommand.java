@@ -56,7 +56,7 @@ public class CompactCommand extends TableOperation {
         + " specified, then all files will be compacted. Options that configure"
         + " output settings are only applied to this compaction and not later"
         + " compactions. If multiple concurrent user initiated compactions specify"
-        + " iterators or a compaction strategy, then all but one will fail to" + " start.";
+        + " iterators or a compaction strategy, then all but one will fail to start.";
   }
 
   @Override
@@ -254,10 +254,10 @@ public class CompactCommand extends TableOperation {
         "Select files that do not have the summaries specified in the table configuration.");
     opts.addOption(enoSummaryOption);
     extraSummaryOption = new Option(null, "sf-extra-summary", false,
-        "Select files that have summary information which exceeds the tablets boundries.");
+        "Select files that have summary information which exceeds the tablets boundaries.");
     opts.addOption(extraSummaryOption);
     enoSampleOption = new Option(null, "sf-no-sample", false,
-        "Select files that have no sample data or sample data that differes"
+        "Select files that have no sample data or sample data that differs"
             + " from the table configuration.");
     opts.addOption(enoSampleOption);
     enameOption =
@@ -293,8 +293,8 @@ public class CompactCommand extends TableOperation {
             + " K,M, and G suffixes. Uses table settings if not specified.");
     opts.addOption(outIndexBlockSizeOpt);
     outCompressionOpt = newLAO("out-compress",
-        "Compression to use for compaction output file. Either snappy, gz, lzo,"
-            + " or none. Uses table settings if not specified.");
+        "Compression to use for compaction output file. Either snappy, gz, bzip2, lzo,"
+            + "lz4, zstd, or none. Uses table settings if not specified.");
     opts.addOption(outCompressionOpt);
     outReplication =
         newLAO("out-replication", "HDFS replication to use for compaction output file. Uses table"

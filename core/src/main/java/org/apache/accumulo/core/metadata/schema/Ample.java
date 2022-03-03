@@ -117,8 +117,8 @@ public interface Ample {
    */
   public enum ReadConsistency {
     /**
-     * Read data in a a way that is slower, but should always yield the latest data. In addition to
-     * being slower, it possible this read consistency can place higher load on shared resource
+     * Read data in a way that is slower, but should always yield the latest data. In addition to
+     * being slower, it's possible this read consistency can place higher load on shared resource
      * which can negatively impact an entire cluster.
      */
     IMMEDIATE,

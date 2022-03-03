@@ -29,7 +29,7 @@
   </parent>
   <artifactId>accumulo-manager</artifactId>
   <name>Apache Accumulo Manager Server</name>
-  <description>The manager server for Apache Accumulo for load balacing and other system-wide operations.</description>
+  <description>The manager server for Apache Accumulo for load balancing and other system-wide operations.</description>
   <dependencies>
     <dependency>
       <groupId>com.beust</groupId>
@@ -110,11 +110,6 @@
       <scope>runtime</scope>
     </dependency>
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-slf4j-impl</artifactId>
       <scope>test</scope>
@@ -122,6 +117,11 @@
     <dependency>
       <groupId>org.easymock</groupId>
       <artifactId>easymock</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.vintage</groupId>
+      <artifactId>junit-vintage-engine</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

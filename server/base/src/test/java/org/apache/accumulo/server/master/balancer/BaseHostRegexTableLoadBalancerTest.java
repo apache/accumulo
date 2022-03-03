@@ -42,6 +42,7 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
@@ -162,7 +163,7 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     expect(mockContext.getZooKeepers()).andReturn("").anyTimes();
     expect(mockContext.getInstanceName()).andReturn("test").anyTimes();
     expect(mockContext.getZooKeepersSessionTimeOut()).andReturn(30).anyTimes();
-    expect(mockContext.getInstanceID()).andReturn("1111").anyTimes();
+    expect(mockContext.getInstanceID()).andReturn(InstanceId.of("1111")).anyTimes();
     expect(mockContext.getZooKeeperRoot()).andReturn(Constants.ZROOT + "/1111").anyTimes();
     return mockContext;
   }

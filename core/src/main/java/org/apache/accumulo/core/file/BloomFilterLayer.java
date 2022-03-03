@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.file;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -30,7 +32,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.bloomfilter.DynamicBloomFilter;
@@ -79,7 +80,7 @@ public class BloomFilterLayer {
 
     if (maxLoadThreads > 0) {
       loadThreadPool =
-          ThreadPools.createThreadPool(0, maxLoadThreads, 60, TimeUnit.SECONDS, "bloom-loader");
+          ThreadPools.createThreadPool(0, maxLoadThreads, 60, SECONDS, "bloom-loader", false);
     }
 
     return loadThreadPool;
@@ -544,7 +545,7 @@ public class BloomFilterLayer {
 
     t2 = System.currentTimeMillis();
 
-    out.printf("existant lookup rate %6.2f%n", 500 / ((t2 - t1) / 1000.0));
+    out.printf("existing lookup rate %6.2f%n", 500 / ((t2 - t1) / 1000.0));
     out.println("expected hits 500.  Receive hits: " + count);
     bmfr.close();
   }

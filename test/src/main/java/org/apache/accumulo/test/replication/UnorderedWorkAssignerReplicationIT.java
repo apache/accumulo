@@ -286,7 +286,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
         return true;
       });
 
-      long timeoutSeconds = timeoutFactor * 30;
+      long timeoutSeconds = timeoutFactor * 30L;
       try {
         future.get(timeoutSeconds, TimeUnit.SECONDS);
       } catch (TimeoutException e) {

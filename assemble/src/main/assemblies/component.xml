@@ -35,9 +35,9 @@
         <include>com.fasterxml.jackson.core:jackson-annotations</include>
         <include>com.fasterxml.jackson.core:jackson-core</include>
         <include>com.fasterxml.jackson.core:jackson-databind</include>
-        <include>com.fasterxml.jackson.jaxrs:jackson-jaxrs-base:jar:jakarta</include>
-        <include>com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider:jar:jakarta</include>
-        <include>com.fasterxml.jackson.module:jackson-module-jaxb-annotations:jar:jakarta</include>
+        <include>com.fasterxml.jackson.jakarta.rs:jackson-jakarta-rs-base</include>
+        <include>com.fasterxml.jackson.jakarta.rs:jackson-jakarta-rs-json-provider</include>
+        <include>com.fasterxml.jackson.module:jackson-module-jakarta-xmlbind-annotations</include>
         <include>com.github.ben-manes.caffeine:caffeine</include>
         <include>com.google.code.gson:gson</include>
         <include>com.google.guava:failureaccess</include>
@@ -67,6 +67,7 @@
         <include>org.apache.commons:commons-math3</include>
         <include>org.apache.commons:commons-text</include>
         <include>org.apache.commons:commons-vfs2</include>
+        <include>org.apache.datasketches:datasketches-java</include>
         <include>org.apache.htrace:htrace-core4</include>
         <include>org.apache.logging.log4j:log4j-1.2-api</include>
         <include>org.apache.logging.log4j:log4j-api</include>

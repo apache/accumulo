@@ -30,7 +30,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -97,8 +96,8 @@ public class BulkImport extends ManagerRepo {
     if (!Utils.getReadLock(manager, tableId, tid).tryLock())
       return 100;
 
-    Tables.clearCache(manager.getContext());
-    if (Tables.getTableState(manager.getContext(), tableId) == TableState.ONLINE) {
+    manager.getContext().clearTableListCache();
+    if (manager.getContext().getTableState(tableId) == TableState.ONLINE) {
       long reserve1, reserve2;
       reserve1 = reserve2 = Utils.reserveHdfsDirectory(manager, sourceDir, tid);
       if (reserve1 == 0)
@@ -201,8 +200,9 @@ public class BulkImport extends ManagerRepo {
 
     AccumuloConfiguration serverConfig = manager.getConfiguration();
     @SuppressWarnings("deprecation")
-    ExecutorService workers = ThreadPools.createExecutorService(serverConfig, serverConfig
-        .resolve(Property.MANAGER_RENAME_THREADS, Property.MANAGER_BULK_RENAME_THREADS));
+    ExecutorService workers = ThreadPools.createExecutorService(serverConfig,
+        serverConfig.resolve(Property.MANAGER_RENAME_THREADS, Property.MANAGER_BULK_RENAME_THREADS),
+        false);
     List<Future<Exception>> results = new ArrayList<>();
 
     for (FileStatus file : mapFiles) {

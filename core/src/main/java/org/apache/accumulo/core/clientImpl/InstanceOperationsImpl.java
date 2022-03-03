@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -49,6 +48,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.FateTransaction;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
@@ -222,7 +222,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
     List<String> tservers = getTabletServers();
 
     int numThreads = Math.max(4, Math.min((tservers.size() + compactors.size()) / 10, 256));
-    var executorService = ThreadPools.createFixedThreadPool(numThreads, "getactivecompactions");
+    var executorService =
+        ThreadPools.createFixedThreadPool(numThreads, "getactivecompactions", false);
     try {
       List<Future<List<ActiveCompaction>>> futures = new ArrayList<>();
 
@@ -323,12 +324,12 @@ public class InstanceOperationsImpl implements InstanceOperations {
   /**
    * Given a zooCache and instanceId, look up the instance name.
    */
-  public static String lookupInstanceName(ZooCache zooCache, UUID instanceId) {
+  public static String lookupInstanceName(ZooCache zooCache, InstanceId instanceId) {
     checkArgument(zooCache != null, "zooCache is null");
     checkArgument(instanceId != null, "instanceId is null");
     for (String name : zooCache.getChildren(Constants.ZROOT + Constants.ZINSTANCES)) {
       var bytes = zooCache.get(Constants.ZROOT + Constants.ZINSTANCES + "/" + name);
-      var iid = UUID.fromString(new String(bytes, UTF_8));
+      InstanceId iid = InstanceId.of(new String(bytes, UTF_8));
       if (iid.equals(instanceId)) {
         return name;
       }
@@ -337,7 +338,13 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
+  @Deprecated(since = "2.1.0")
   public String getInstanceID() {
+    return getInstanceId().canonical();
+  }
+
+  @Override
+  public InstanceId getInstanceId() {
     return context.getInstanceID();
   }
 }

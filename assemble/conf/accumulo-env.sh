@@ -31,13 +31,13 @@
 ############################
 
 ## Accumulo logs directory. Referenced by logger config.
-export ACCUMULO_LOG_DIR="${ACCUMULO_LOG_DIR:-${basedir}/logs}"
+ACCUMULO_LOG_DIR="${ACCUMULO_LOG_DIR:-${basedir}/logs}"
 ## Hadoop installation
-export HADOOP_HOME="${HADOOP_HOME:-/path/to/hadoop}"
+HADOOP_HOME="${HADOOP_HOME:-/path/to/hadoop}"
 ## Hadoop configuration
-export HADOOP_CONF_DIR="${HADOOP_CONF_DIR:-${HADOOP_HOME}/etc/hadoop}"
+HADOOP_CONF_DIR="${HADOOP_CONF_DIR:-${HADOOP_HOME}/etc/hadoop}"
 ## Zookeeper installation
-export ZOOKEEPER_HOME="${ZOOKEEPER_HOME:-/path/to/zookeeper}"
+ZOOKEEPER_HOME="${ZOOKEEPER_HOME:-/path/to/zookeeper}"
 
 ##########################
 # Build CLASSPATH variable
@@ -68,7 +68,7 @@ export CLASSPATH
 ##################################################################
 
 ## JVM options set for all processes. Extra options can be passed in by setting ACCUMULO_JAVA_OPTS to an array of options.
-JAVA_OPTS=("${ACCUMULO_JAVA_OPTS[@]}"
+JAVA_OPTS=($ACCUMULO_JAVA_OPTS
   '-XX:OnOutOfMemoryError=kill -9 %p'
   '-XX:-OmitStackTraceInFastThrow'
   '-Djava.net.preferIPv4Stack=true'
@@ -83,6 +83,8 @@ case "$cmd" in
   monitor) JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx256m' '-Xms256m') ;;
   gc)      JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx256m' '-Xms256m') ;;
   tserver) JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx768m' '-Xms768m') ;;
+  compaction-coordinator) JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx512m' '-Xms512m') ;;
+  compactor) JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx256m' '-Xms256m') ;;
   *)       JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx256m' '-Xms64m') ;;
 esac
 
@@ -112,8 +114,6 @@ case "$cmd" in
     true
     ;;
 esac
-
-export JAVA_OPTS
 
 ############################
 # Variables set to a default

@@ -19,7 +19,7 @@
 package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -369,13 +369,10 @@ public class SampleIT extends AccumuloClusterHarness {
         scanners = Arrays.asList(scanner, isoScanner, bScanner, csiScanner, oScanner);
 
         for (ScannerBase s : scanners) {
-          try {
-            countEntries(s);
-            fail("Expected SampleNotPresentException, but it did not happen : "
-                + s.getClass().getSimpleName());
-          } catch (SampleNotPresentException e) {
-
-          }
+          assertThrows(
+              "Expected SampleNotPresentException, but it did not happen : "
+                  + s.getClass().getSimpleName(),
+              SampleNotPresentException.class, () -> countEntries(s));
         }
       } finally {
         if (scanner != null) {
@@ -487,15 +484,9 @@ public class SampleIT extends AccumuloClusterHarness {
 
       scanner.setSamplerConfiguration(sc);
 
-      try {
-        for (Entry<Key,Value> entry : scanner) {
-          entry.getKey();
-        }
-        fail("Expected SampleNotPresentException, but it did not happen : "
-            + scanner.getClass().getSimpleName());
-      } catch (SampleNotPresentException e) {
-
-      }
+      final String message = "Expected SampleNotPresentException, but it did not happen : "
+          + scanner.getClass().getSimpleName();
+      assertThrows(message, SampleNotPresentException.class, () -> scanner.iterator().next());
 
       scanner.clearSamplerConfiguration();
       for (Entry<Key,Value> entry : scanner) {

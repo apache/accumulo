@@ -655,7 +655,7 @@ public class RFile {
     public void append(Key key, Value value) throws IOException {
 
       if (dataClosed) {
-        throw new IllegalStateException("Cannont append, data closed");
+        throw new IllegalStateException("Cannot append, data closed");
       }
 
       lgWriter.append(key, value);

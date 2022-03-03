@@ -20,6 +20,8 @@ package org.apache.accumulo.server;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.File;
@@ -43,6 +45,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -53,6 +56,7 @@ import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
@@ -107,7 +111,7 @@ public class ServerContext extends ClientContext {
    * Used during initialization to set the instance name and ID.
    */
   public static ServerContext initialize(SiteConfiguration siteConfig, String instanceName,
-      String instanceID) {
+      InstanceId instanceID) {
     return new ServerContext(new ServerInfo(siteConfig, instanceName, instanceID));
   }
 
@@ -121,7 +125,7 @@ public class ServerContext extends ClientContext {
   }
 
   @Override
-  public String getInstanceID() {
+  public InstanceId getInstanceID() {
     return info.getInstanceID();
   }
 
@@ -152,7 +156,9 @@ public class ServerContext extends ClientContext {
   @Override
   public AccumuloConfiguration getConfiguration() {
     if (systemConfig == null) {
-      ZooCache propCache = new ZooCache(getZooKeepers(), getZooKeepersSessionTimeOut());
+      // system configuration uses its own instance of ZooCache
+      // this could be useful to keep its update counter independent
+      ZooCache propCache = new ZooCache(getZooReader(), null);
       systemConfig = new ZooConfiguration(this, propCache, getSiteConfiguration());
     }
     return systemConfig;
@@ -203,6 +209,11 @@ public class ServerContext extends ClientContext {
 
   public VolumeManager getVolumeManager() {
     return info.getVolumeManager();
+  }
+
+  @Override
+  public ZooReader getZooReader() {
+    return getZooReaderWriter();
   }
 
   public ZooReaderWriter getZooReaderWriter() {
@@ -307,7 +318,7 @@ public class ServerContext extends ClientContext {
    * Check to see if this version of Accumulo can run against or upgrade the passed in data version.
    */
   public static void ensureDataVersionCompatible(int dataVersion) {
-    if (!(AccumuloDataVersion.CAN_RUN.contains(dataVersion))) {
+    if (!AccumuloDataVersion.CAN_RUN.contains(dataVersion)) {
       throw new IllegalStateException("This version of accumulo (" + Constants.VERSION
           + ") is not compatible with files stored using data version " + dataVersion);
     }
@@ -321,7 +332,7 @@ public class ServerContext extends ClientContext {
         break;
       } catch (InterruptedException | KeeperException ex) {
         log.info("Waiting for accumulo to be initialized");
-        sleepUninterruptibly(1, TimeUnit.SECONDS);
+        sleepUninterruptibly(1, SECONDS);
       }
     }
     log.info("ZooKeeper connected and initialized, attempting to talk to HDFS");
@@ -357,7 +368,7 @@ public class ServerContext extends ClientContext {
       log.info("Backing off due to failure; current sleep period is {} seconds", sleep / 1000.);
       sleepUninterruptibly(sleep, TimeUnit.MILLISECONDS);
       /* Back off to give transient failures more time to clear. */
-      sleep = Math.min(60 * 1000, sleep * 2);
+      sleep = Math.min(MINUTES.toMillis(1), sleep * 2);
     }
     log.info("Connected to HDFS");
   }
@@ -433,7 +444,7 @@ public class ServerContext extends ClientContext {
       } catch (Exception t) {
         log.error("", t);
       }
-    }, 1000, 10 * 60 * 1000, TimeUnit.MILLISECONDS);
+    }, SECONDS.toMillis(1), MINUTES.toMillis(10), TimeUnit.MILLISECONDS);
   }
 
   /**
@@ -441,8 +452,9 @@ public class ServerContext extends ClientContext {
    */
   public synchronized ScheduledThreadPoolExecutor getScheduledExecutor() {
     if (sharedScheduledThreadPool == null) {
-      sharedScheduledThreadPool = (ScheduledThreadPoolExecutor) ThreadPools
-          .createExecutorService(getConfiguration(), Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE);
+      sharedScheduledThreadPool =
+          (ScheduledThreadPoolExecutor) ThreadPools.createExecutorService(getConfiguration(),
+              Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE, true);
     }
     return sharedScheduledThreadPool;
   }

@@ -19,6 +19,7 @@
 package org.apache.accumulo.monitor;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.HOURS;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.net.InetAddress;
@@ -37,6 +38,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -133,7 +135,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     return Collections.synchronizedList(new LinkedList<>() {
 
       private static final long serialVersionUID = 1L;
-      private final long maxDelta = 60 * 60 * 1000;
+      private final long maxDelta = HOURS.toMillis(1);
 
       @Override
       public boolean add(Pair<Long,T> obj) {
@@ -170,6 +172,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private Exception problemException;
   private GCStatus gcStatus;
   private Optional<HostAndPort> coordinatorHost = Optional.empty();
+  private long coordinatorCheckNanos = 0L;
   private CompactionCoordinatorService.Client coordinatorClient;
   private final String coordinatorMissingMsg =
       "Error getting the compaction coordinator. Check that it is running. It is not "
@@ -180,7 +183,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
   private ServiceLock monitorLock;
 
-  private class EventCounter {
+  private static class EventCounter {
 
     Map<String,Pair<Long,Long>> prevSamples = new HashMap<>();
     Map<String,Pair<Long,Long>> samples = new HashMap<>();
@@ -377,10 +380,14 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         this.problemException = e;
       }
 
-      if (coordinatorHost.isEmpty()) {
+      // check for compaction coordinator host and only notify its discovery
+      Optional<HostAndPort> previousHost;
+      if (System.nanoTime() - coordinatorCheckNanos > fetchTimeNanos) {
+        previousHost = coordinatorHost;
         coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(context);
-      } else {
-        log.info("External Compaction Coordinator found at {}", coordinatorHost.get());
+        coordinatorCheckNanos = System.nanoTime();
+        if (previousHost.isEmpty() && coordinatorHost.isPresent())
+          log.info("External Compaction Coordinator found at {}", coordinatorHost.get());
       }
 
     } finally {
@@ -587,7 +594,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private final Map<HostAndPort,CompactionStats> allCompactions = new HashMap<>();
   private final RecentLogs recentLogs = new RecentLogs();
   private final ExternalCompactionInfo ecInfo = new ExternalCompactionInfo();
-  private final Map<String,TExternalCompaction> ecRunningMap = new HashMap<>();
+  private final Map<String,TExternalCompaction> ecRunningMap = new ConcurrentHashMap<>();
   private long scansFetchedNanos = 0L;
   private long compactsFetchedNanos = 0L;
   private long ecInfoFetchedNanos = 0L;
@@ -639,7 +646,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
    * user fetches since RPC calls are going to the coordinator. This allows for fine grain updates
    * of external compaction progress.
    */
-  public synchronized Map<String,TExternalCompaction> getRunningInfo() {
+  public synchronized Map<String,TExternalCompaction> fetchRunningInfo() {
     if (coordinatorHost.isEmpty()) {
       throw new IllegalStateException(coordinatorMissingMsg);
     }
@@ -655,12 +662,13 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
     ecRunningMap.clear();
     if (running.getCompactions() != null) {
-      running.getCompactions().forEach((queue, ec) -> {
-        log.trace("Found Compactions running on queue {} -> {}", queue, ec);
-        ecRunningMap.put(queue, ec);
-      });
+      ecRunningMap.putAll(running.getCompactions());
     }
 
+    return ecRunningMap;
+  }
+
+  public Map<String,TExternalCompaction> getEcRunningMap() {
     return ecRunningMap;
   }
 

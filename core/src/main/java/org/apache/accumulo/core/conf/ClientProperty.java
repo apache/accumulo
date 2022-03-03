@@ -41,8 +41,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public enum ClientProperty {
 
   // Instance
-  INSTANCE_NAME("instance.name", "", PropertyType.STRING,
-      "Name of Accumulo instance to " + "connect to", "2.0.0", true),
+  INSTANCE_NAME("instance.name", "", PropertyType.STRING, "Name of Accumulo instance to connect to",
+      "2.0.0", true),
   INSTANCE_ZOOKEEPERS("instance.zookeepers", "localhost:2181", PropertyType.HOSTLIST,
       "Zookeeper connection information for Accumulo instance", "2.0.0", true),
   INSTANCE_ZOOKEEPERS_TIMEOUT("instance.zookeepers.timeout", "30s", PropertyType.TIMEDURATION,
@@ -123,12 +123,6 @@ public enum ClientProperty {
       "Kerberos principal/primary that Accumulo servers use to login"),
 
   // Trace
-  @Experimental
-  GENERAL_OPENTELEMETRY_ENABLED("general.opentelemetry.enabled", "false", PropertyType.BOOLEAN,
-      "Enables tracing functionality using OpenTelemetry.", "2.1.0", false),
-  @Experimental
-  GENERAL_OPENTELEMETRY_FACTORY("general.opentelemetry.factory", "", PropertyType.CLASSNAME,
-      "Name of class that implements OpenTelemetryFactory", "2.1.0", false),
   @Deprecated(since = "2.1.0", forRemoval = true)
   TRACE_SPAN_RECEIVERS("trace.span.receivers", "org.apache.accumulo.tracer.ZooTraceClient",
       "A list of span receiver classes to send trace spans"),
@@ -244,8 +238,8 @@ public enum ClientProperty {
   }
 
   public void setBytes(Properties properties, Long bytes) {
-    checkState(getType() == PropertyType.BYTES, "Invalid type setting " + "bytes. Type must be "
-        + PropertyType.BYTES + ", not " + getType());
+    checkState(getType() == PropertyType.BYTES,
+        "Invalid type setting bytes. Type must be " + PropertyType.BYTES + ", not " + getType());
     properties.setProperty(getKey(), bytes.toString());
   }
 

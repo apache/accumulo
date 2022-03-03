@@ -29,7 +29,6 @@ import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
@@ -242,7 +241,7 @@ public class Merge {
     TabletsMetadata tablets;
     try {
       ClientContext context = (ClientContext) client;
-      tableId = Tables.getTableId(context, tablename);
+      tableId = context.getTableId(tablename);
       tablets = TabletsMetadata.builder(context).scanMetadataTable()
           .overRange(new KeyExtent(tableId, end, start).toMetaRange()).fetch(FILES, PREV_ROW)
           .build();

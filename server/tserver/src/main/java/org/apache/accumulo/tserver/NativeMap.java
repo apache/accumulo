@@ -18,10 +18,8 @@
  */
 package org.apache.accumulo.tserver;
 
-import java.io.File;
 import java.lang.ref.Cleaner.Cleanable;
 import java.util.AbstractMap.SimpleImmutableEntry;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.ConcurrentModificationException;
 import java.util.HashSet;
@@ -37,7 +35,6 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Key;
@@ -54,8 +51,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 /**
  * This class stores data in a C++ map. Doing this allows us to store more in memory and avoid
  * pauses caused by Java GC.
@@ -70,121 +65,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
   private static final Logger log = LoggerFactory.getLogger(NativeMap.class);
-  private static AtomicBoolean loadedNativeLibraries = new AtomicBoolean(false);
-
-  // Load native library
-  static {
-    // Check in directories set by JVM system property
-    List<File> directories = new ArrayList<>();
-    String accumuloNativeLibDirs = System.getProperty("accumulo.native.lib.path");
-    if (accumuloNativeLibDirs != null) {
-      for (String libDir : accumuloNativeLibDirs.split(":")) {
-        directories.add(new File(libDir));
-      }
-    }
-    // Attempt to load from these directories, using standard names
-    loadNativeLib(directories);
-
-    // Check LD_LIBRARY_PATH (DYLD_LIBRARY_PATH on Mac)
-    if (!isLoaded()) {
-      if (accumuloNativeLibDirs != null) {
-        log.error("Tried and failed to load Accumulo native library from {}",
-            accumuloNativeLibDirs);
-      }
-      String ldLibraryPath = System.getProperty("java.library.path");
-      try {
-        System.loadLibrary("accumulo");
-        loadedNativeLibraries.set(true);
-        log.info("Loaded native map shared library from {}", ldLibraryPath);
-      } catch (Exception | UnsatisfiedLinkError e) {
-        log.error("Tried and failed to load Accumulo native library from {}", ldLibraryPath, e);
-      }
-    }
-
-    // Exit if native libraries could not be loaded
-    if (!isLoaded()) {
-      log.error(
-          "FATAL! Accumulo native libraries were requested but could not"
-              + " be be loaded. Either set '{}' to false in accumulo.properties or make"
-              + " sure native libraries are created in directories set by the JVM"
-              + " system property 'accumulo.native.lib.path' in accumulo-env.sh!",
-          Property.TSERV_NATIVEMAP_ENABLED);
-      System.exit(1);
-    }
-  }
-
-  /**
-   * If native libraries are not loaded, the specified search path will be used to attempt to load
-   * them. Directories will be searched by using the system-specific library naming conventions. A
-   * path directly to a file can also be provided. Loading will continue until the search path is
-   * exhausted, or until the native libraries are found and successfully loaded, whichever occurs
-   * first.
-   *
-   * @param searchPath
-   *          a list of files and directories to search
-   */
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "search paths provided by admin")
-  public static void loadNativeLib(List<File> searchPath) {
-    if (!isLoaded()) {
-      List<String> names = getValidLibraryNames();
-      List<File> tryList = new ArrayList<>(searchPath.size() * names.size());
-
-      for (File p : searchPath)
-        if (p.exists() && p.isDirectory())
-          for (String name : names)
-            tryList.add(new File(p, name));
-        else
-          tryList.add(p);
-
-      for (File f : tryList)
-        if (loadNativeLib(f))
-          break;
-    }
-  }
-
-  /**
-   * Check if native libraries are loaded.
-   *
-   * @return true if they are loaded; false otherwise
-   */
-  public static boolean isLoaded() {
-    return loadedNativeLibraries.get();
-  }
-
-  private static List<String> getValidLibraryNames() {
-    ArrayList<String> names = new ArrayList<>(3);
-
-    String libname = System.mapLibraryName("accumulo");
-    names.add(libname);
-
-    int dot = libname.lastIndexOf(".");
-    String prefix = dot < 0 ? libname : libname.substring(0, dot);
-
-    // additional supported Mac extensions
-    if ("Mac OS X".equals(System.getProperty("os.name")))
-      for (String ext : new String[] {".dylib", ".jnilib"})
-        if (!libname.endsWith(ext))
-          names.add(prefix + ext);
-
-    return names;
-  }
-
-  private static boolean loadNativeLib(File libFile) {
-    log.debug("Trying to load native map library {}", libFile);
-    if (libFile.exists() && libFile.isFile()) {
-      try {
-        System.load(libFile.getAbsolutePath());
-        loadedNativeLibraries.set(true);
-        log.info("Loaded native map shared library {}", libFile);
-        return true;
-      } catch (Exception | UnsatisfiedLinkError e) {
-        log.error("Tried and failed to load native map library " + libFile, e);
-      }
-    } else {
-      log.debug("Native map library {} not found or is not a file.", libFile);
-    }
-    return false;
-  }
 
   private final AtomicLong nmPtr = new AtomicLong(0);
 

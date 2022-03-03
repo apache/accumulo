@@ -19,6 +19,7 @@
 package org.apache.accumulo.fate;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.ByteArrayInputStream;
@@ -36,7 +37,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -111,6 +111,11 @@ public class ZooStore<T> implements TStore<T> {
     zk.putPersistentData(path, new byte[0], NodeExistsPolicy.SKIP);
   }
 
+  /**
+   * For testing only
+   */
+  ZooStore() {}
+
   @Override
   public long create() {
     while (true) {
@@ -174,7 +179,8 @@ public class ZooStore<T> implements TStore<T> {
 
           try {
             TStatus status = TStatus.valueOf(new String(zk.getData(path + "/" + txdir), UTF_8));
-            if (status == TStatus.IN_PROGRESS || status == TStatus.FAILED_IN_PROGRESS) {
+            if (status == TStatus.SUBMITTED || status == TStatus.IN_PROGRESS
+                || status == TStatus.FAILED_IN_PROGRESS) {
               return tid;
             } else {
               unreserve(tid);
@@ -291,7 +297,7 @@ public class ZooStore<T> implements TStore<T> {
         return (Repo<T>) deserialize(ser);
       } catch (KeeperException.NoNodeException ex) {
         log.debug("zookeeper error reading " + txpath + ": " + ex, ex);
-        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(100, MILLISECONDS);
         continue;
       } catch (Exception e) {
         throw new RuntimeException(e);

@@ -85,8 +85,7 @@ public class TabletIT extends AccumuloClusterHarness {
         // populate
         for (int i = 0; i < N; i++) {
           Mutation m = new Mutation(new Text(String.format("%05d", i)));
-          m.put(new Text("col" + Integer.toString((i % 3) + 1)), new Text("qual"),
-              new Value("junk"));
+          m.put("col" + ((i % 3) + 1), "qual", "junk");
           b.addMutation(m);
         }
       }
@@ -96,7 +95,7 @@ public class TabletIT extends AccumuloClusterHarness {
       int count = 0;
       for (Entry<Key,Value> elt : scanner) {
         String expected = String.format("%05d", count);
-        assert (elt.getKey().getRow().toString().equals(expected));
+        assert elt.getKey().getRow().toString().equals(expected);
         count++;
       }
       assertEquals(N, count);

@@ -33,6 +33,7 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
@@ -47,7 +48,7 @@ public class TableConfigurationTest {
   private static final String ZOOKEEPERS = "localhost";
   private static final int ZK_SESSION_TIMEOUT = 120000;
 
-  private String iid;
+  private InstanceId iid;
   private ServerContext context;
   private NamespaceConfiguration parent;
   private ZooCacheFactory zcf;
@@ -56,7 +57,7 @@ public class TableConfigurationTest {
 
   @Before
   public void setUp() {
-    iid = UUID.randomUUID().toString();
+    iid = InstanceId.of(UUID.randomUUID());
     context = MockServerContext.getWithZK(iid, ZOOKEEPERS, ZK_SESSION_TIMEOUT);
     replay(context);
 
@@ -108,8 +109,8 @@ public class TableConfigurationTest {
     expect(zc
         .getChildren(ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF))
             .andReturn(children);
-    expect(zc.get(
-        ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF + "/" + "foo"))
+    expect(zc
+        .get(ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF + "/foo"))
             .andReturn("bar".getBytes(UTF_8));
     expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF + "/"
         + "ding")).andReturn("dong".getBytes(UTF_8));

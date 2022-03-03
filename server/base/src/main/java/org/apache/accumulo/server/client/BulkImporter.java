@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.client;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
@@ -129,7 +130,8 @@ public class BulkImporter {
           Collections.synchronizedSortedMap(new TreeMap<>());
 
       timer.start(Timers.EXAMINE_MAP_FILES);
-      ExecutorService threadPool = ThreadPools.createFixedThreadPool(numThreads, "findOverlapping");
+      ExecutorService threadPool =
+          ThreadPools.createFixedThreadPool(numThreads, "findOverlapping", false);
 
       for (Path path : paths) {
         final Path mapFile = path;
@@ -173,9 +175,9 @@ public class BulkImporter {
       for (Entry<Path,List<KeyExtent>> entry : assignmentFailures.entrySet())
         failureCount.put(entry.getKey(), 1);
 
-      long sleepTime = 2 * 1000;
+      long sleepTime = 2_000;
       while (!assignmentFailures.isEmpty()) {
-        sleepTime = Math.min(sleepTime * 2, 60 * 1000);
+        sleepTime = Math.min(sleepTime * 2, MINUTES.toMillis(1));
         locator.invalidateCache();
         // assumption about assignment failures is that it caused by a split
         // happening or a missing location
@@ -314,7 +316,7 @@ public class BulkImporter {
     return Collections.emptySet();
   }
 
-  private class AssignmentInfo {
+  private static class AssignmentInfo {
     public AssignmentInfo(KeyExtent keyExtent, Long estSize) {
       this.ke = keyExtent;
       this.estSize = estSize;
@@ -349,7 +351,8 @@ public class BulkImporter {
 
     final Map<Path,List<AssignmentInfo>> ais = Collections.synchronizedMap(new TreeMap<>());
 
-    ExecutorService threadPool = ThreadPools.createFixedThreadPool(numThreads, "estimateSizes");
+    ExecutorService threadPool =
+        ThreadPools.createFixedThreadPool(numThreads, "estimateSizes", false);
 
     for (final Entry<Path,List<TabletLocation>> entry : assignments.entrySet()) {
       if (entry.getValue().size() == 1) {
@@ -486,7 +489,7 @@ public class BulkImporter {
 
   }
 
-  private class PathSize {
+  private static class PathSize {
     public PathSize(Path mapFile, long estSize) {
       this.path = mapFile;
       this.estSize = estSize;
@@ -533,7 +536,7 @@ public class BulkImporter {
       }
     });
 
-    ExecutorService threadPool = ThreadPools.createFixedThreadPool(numThreads, "submit");
+    ExecutorService threadPool = ThreadPools.createFixedThreadPool(numThreads, "submit", false);
 
     for (Entry<String,Map<KeyExtent,List<PathSize>>> entry : assignmentsPerTabletServer
         .entrySet()) {

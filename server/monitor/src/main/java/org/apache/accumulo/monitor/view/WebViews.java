@@ -46,7 +46,6 @@ import jakarta.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
@@ -302,7 +301,7 @@ public class WebViews {
       @PathParam("tableID") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableID)
       throws TableNotFoundException {
 
-    String tableName = Tables.getTableName(monitor.getContext(), TableId.of(tableID));
+    String tableName = monitor.getContext().getTableName(TableId.of(tableID));
 
     Map<String,Object> model = getModel();
     model.put("title", "Table Status");
@@ -328,7 +327,7 @@ public class WebViews {
   public Map<String,Object> getTracesSummary(
       @QueryParam("minutes") @DefaultValue("10") @Min(0) @Max(2592000) int minutes) {
     Map<String,Object> model = getModel();
-    model.put("title", "Traces for the last&nbsp;" + String.valueOf(minutes) + "&nbsp;minute(s)");
+    model.put("title", "Traces for the last&nbsp;" + minutes + "&nbsp;minute(s)");
 
     model.put("template", "summary.ftl");
     model.put("js", "summary.js");
@@ -353,8 +352,7 @@ public class WebViews {
       @QueryParam("type") @NotNull @Pattern(regexp = RESOURCE_REGEX) String type,
       @QueryParam("minutes") @DefaultValue("10") @Min(0) @Max(2592000) int minutes) {
     Map<String,Object> model = getModel();
-    model.put("title",
-        "Traces for " + type + " for the last " + String.valueOf(minutes) + " minute(s)");
+    model.put("title", "Traces for " + type + " for the last " + minutes + " minute(s)");
 
     model.put("template", "listType.ftl");
     model.put("js", "listType.js");

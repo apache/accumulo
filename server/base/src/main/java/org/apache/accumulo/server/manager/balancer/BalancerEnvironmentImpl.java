@@ -29,7 +29,6 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
@@ -61,12 +60,12 @@ public class BalancerEnvironmentImpl extends ServiceEnvironmentImpl implements B
 
   @Override
   public Map<String,TableId> getTableIdMap() {
-    return Tables.getNameToIdMap(getContext());
+    return getContext().getTableNameToIdMap();
   }
 
   @Override
   public boolean isTableOnline(TableId tableId) {
-    return TableState.ONLINE.equals(Tables.getTableState(getContext(), tableId));
+    return TableState.ONLINE.equals(getContext().getTableState(tableId));
   }
 
   @Override

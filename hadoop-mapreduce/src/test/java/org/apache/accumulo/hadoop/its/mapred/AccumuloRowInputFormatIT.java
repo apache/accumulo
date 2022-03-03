@@ -56,7 +56,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
- * Tests the new MR API in the hadoop-mareduce package.
+ * Tests the new MR API in the hadoop-mapreduce package.
  *
  * @since 2.0
  */

@@ -21,7 +21,8 @@ package org.apache.accumulo.core.client.lexicoder;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +31,7 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoderTest;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Unit tests for {@link SequenceLexicoder}.
@@ -73,8 +74,9 @@ public class SequenceLexicoderTest extends AbstractLexicoderTest {
     assertDecodes(new SequenceLexicoder<>(new StringLexicoder()), data5);
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void tesRejectsTrailingBytes() {
-    new SequenceLexicoder<>(new StringLexicoder()).decode(new byte[] {10});
+    assertThrows(IllegalArgumentException.class,
+        () -> new SequenceLexicoder<>(new StringLexicoder()).decode(new byte[] {10}));
   }
 }

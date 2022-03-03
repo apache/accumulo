@@ -30,8 +30,8 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.util.MonitorUtil;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.manager.Manager;
@@ -134,14 +134,13 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
   public void testManagerService() throws Exception {
     final MiniAccumuloClusterImpl cluster = (MiniAccumuloClusterImpl) getCluster();
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      final String instanceID = client.instanceOperations().getInstanceID();
+      final InstanceId instanceID = client.instanceOperations().getInstanceId();
 
       // Wait for the Manager to grab its lock
       while (true) {
-        final ZooReader reader = new ZooReader(cluster.getZooKeepers(), 30000);
         try {
-          List<String> locks =
-              reader.getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZMANAGER_LOCK);
+          List<String> locks = cluster.getServerContext().getZooReader()
+              .getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZMANAGER_LOCK);
           if (!locks.isEmpty()) {
             break;
           }
@@ -194,14 +193,13 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
   public void testGarbageCollectorPorts() throws Exception {
     final MiniAccumuloClusterImpl cluster = (MiniAccumuloClusterImpl) getCluster();
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String instanceID = client.instanceOperations().getInstanceID();
+      InstanceId instanceID = client.instanceOperations().getInstanceId();
 
       // Wait for the Manager to grab its lock
       while (true) {
-        final ZooReader reader = new ZooReader(cluster.getZooKeepers(), 30000);
         try {
-          List<String> locks =
-              reader.getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZGC_LOCK);
+          List<String> locks = cluster.getServerContext().getZooReader()
+              .getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZGC_LOCK);
           if (!locks.isEmpty()) {
             break;
           }

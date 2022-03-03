@@ -21,7 +21,6 @@ package org.apache.accumulo.test.rpc;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.concurrent.TimeUnit;
 
@@ -88,12 +87,7 @@ public class ThriftBehaviorIT {
 
   @Test
   public void echoFail() throws TException {
-    try {
-      client.echoFail(KITTY_MSG);
-      fail("Thrift client did not throw an expected exception");
-    } catch (Exception e) {
-      assertEquals(TApplicationException.class.getName(), e.getClass().getName());
-    }
+    assertThrows(TApplicationException.class, () -> client.echoFail(KITTY_MSG));
     // verify normal two-way method still passes using same client
     echoPass();
   }
@@ -105,12 +99,7 @@ public class ThriftBehaviorIT {
 
   @Test
   public void echoRuntimeFail() throws TException {
-    try {
-      client.echoRuntimeFail(KITTY_MSG);
-      fail("Thrift client did not throw an expected exception");
-    } catch (Exception e) {
-      assertEquals(TApplicationException.class.getName(), e.getClass().getName());
-    }
+    assertThrows(TApplicationException.class, () -> client.echoRuntimeFail(KITTY_MSG));
     // verify normal two-way method still passes using same client
     echoPass();
   }

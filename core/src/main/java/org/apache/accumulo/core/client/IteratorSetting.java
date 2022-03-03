@@ -340,7 +340,7 @@ public class IteratorSetting implements Writable {
     sb.append("name:");
     sb.append(name);
     sb.append(", priority:");
-    sb.append(Integer.toString(priority));
+    sb.append(priority);
     sb.append(", class:");
     sb.append(iteratorClass);
     sb.append(", properties:");

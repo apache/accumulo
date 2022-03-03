@@ -272,7 +272,7 @@ public class MergeStats {
         ZooReaderWriter zooReaderWriter = opts.getServerContext().getZooReaderWriter();
         for (Entry<String,String> entry : tableIdMap.entrySet()) {
           final String table = entry.getKey(), tableId = entry.getValue();
-          String path = ZooUtil.getRoot(client.instanceOperations().getInstanceID())
+          String path = ZooUtil.getRoot(client.instanceOperations().getInstanceId())
               + Constants.ZTABLES + "/" + tableId + "/merge";
           MergeInfo info = new MergeInfo();
           if (zooReaderWriter.exists(path)) {
@@ -281,8 +281,8 @@ public class MergeStats {
             in.reset(data, data.length);
             info.readFields(in);
           }
-          System.out.println(String.format("%25s  %10s %10s %s", table, info.getState(),
-              info.getOperation(), info.getExtent()));
+          System.out.printf("%25s  %10s %10s %s%n", table, info.getState(), info.getOperation(),
+              info.getExtent());
         }
       }
     } finally {

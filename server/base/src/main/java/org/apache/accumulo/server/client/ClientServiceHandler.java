@@ -43,7 +43,6 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.clientImpl.Namespaces;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.AdminOperation;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
@@ -100,7 +99,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       TableOperation operation) throws ThriftTableOperationException {
     TableOperationExceptionType reason = null;
     try {
-      return Tables._getTableId(context, tableName);
+      return context._getTableIdDetectNamespaceNotFound(tableName);
     } catch (NamespaceNotFoundException e) {
       reason = TableOperationExceptionType.NAMESPACE_NOTFOUND;
     } catch (TableNotFoundException e) {
@@ -115,7 +114,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     if (namespaceId == null) {
       // maybe the namespace exists, but the cache was not updated yet... so try to clear the cache
       // and check again
-      Tables.clearCache(context);
+      context.clearTableListCache();
       namespaceId = Namespaces.lookupNamespaceId(context, namespaceName);
       if (namespaceId == null)
         throw new ThriftTableOperationException(null, namespaceName, operation,
@@ -126,7 +125,7 @@ public class ClientServiceHandler implements ClientService.Iface {
 
   @Override
   public String getInstanceId() {
-    return context.getInstanceID();
+    return context.getInstanceID().canonical();
   }
 
   @Override
@@ -224,7 +223,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     TableId tableId = checkTableId(context, tableName, TableOperation.PERMISSION);
     NamespaceId namespaceId;
     try {
-      namespaceId = Tables.getNamespaceId(context, tableId);
+      namespaceId = context.getNamespaceId(tableId);
     } catch (TableNotFoundException e) {
       throw new TException(e);
     }
@@ -254,7 +253,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     TableId tableId = checkTableId(context, tableName, TableOperation.PERMISSION);
     NamespaceId namespaceId;
     try {
-      namespaceId = Tables.getNamespaceId(context, tableId);
+      namespaceId = context.getNamespaceId(tableId);
     } catch (TableNotFoundException e) {
       throw new TException(e);
     }
@@ -442,7 +441,7 @@ public class ClientServiceHandler implements ClientService.Iface {
         // ensure that table table exists
         TableId tableId = checkTableId(context, table, null);
         tableIds.add(tableId);
-        NamespaceId namespaceId = Tables.getNamespaceId(context, tableId);
+        NamespaceId namespaceId = context.getNamespaceId(tableId);
         if (!security.canScan(credentials, tableId, namespaceId))
           throw new ThriftSecurityException(credentials.getPrincipal(),
               SecurityErrorCode.PERMISSION_DENIED);

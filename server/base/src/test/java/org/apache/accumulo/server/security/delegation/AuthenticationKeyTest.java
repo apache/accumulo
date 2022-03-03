@@ -20,6 +20,7 @@ package org.apache.accumulo.server.security.delegation;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertThrows;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -46,9 +47,9 @@ public class AuthenticationKeyTest {
     keyGen.init(KEY_LENGTH);
   }
 
-  @Test(expected = NullPointerException.class)
+  @Test
   public void testNullSecretKey() {
-    new AuthenticationKey(0, 0, 0, null);
+    assertThrows(NullPointerException.class, () -> new AuthenticationKey(0, 0, 0, null));
   }
 
   @Test

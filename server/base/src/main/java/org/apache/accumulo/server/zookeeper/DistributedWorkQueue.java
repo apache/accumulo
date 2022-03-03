@@ -18,7 +18,9 @@
  */
 package org.apache.accumulo.server.zookeeper;
 
+import static java.lang.Math.toIntExact;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MINUTES;
 
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -58,7 +60,6 @@ public class DistributedWorkQueue {
   private ThreadPoolExecutor threadPool;
   private ZooReaderWriter zoo;
   private String path;
-  private AccumuloConfiguration config;
   private ServerContext context;
   private long timerInitialDelay, timerPeriod;
 
@@ -165,25 +166,21 @@ public class DistributedWorkQueue {
 
   public DistributedWorkQueue(String path, AccumuloConfiguration config, ServerContext context) {
     // Preserve the old delay and period
-    this(path, config, context, random.nextInt(60_000), 60_000);
+    this(path, config, context, random.nextInt(toIntExact(MINUTES.toMillis(1))),
+        MINUTES.toMillis(1));
   }
 
   public DistributedWorkQueue(String path, AccumuloConfiguration config, ServerContext context,
       long timerInitialDelay, long timerPeriod) {
     this.path = path;
-    this.config = config;
     this.context = context;
     this.timerInitialDelay = timerInitialDelay;
     this.timerPeriod = timerPeriod;
-    zoo = new ZooReaderWriter(this.config);
+    zoo = context.getZooReaderWriter();
   }
 
   public ServerContext getContext() {
     return context;
-  }
-
-  public ZooReaderWriter getZooReaderWriter() {
-    return zoo;
   }
 
   public void startProcessing(final Processor processor, ThreadPoolExecutor executorService)
@@ -210,12 +207,7 @@ public class DistributedWorkQueue {
             else
               log.info("Unexpected path for NodeChildrenChanged event {}", event.getPath());
             break;
-          case NodeCreated:
-          case NodeDataChanged:
-          case NodeDeleted:
-          case ChildWatchRemoved:
-          case DataWatchRemoved:
-          case None:
+          default:
             log.info("Got unexpected zookeeper event: {} for {}", event.getType(), path);
             break;
         }
@@ -274,12 +266,7 @@ public class DistributedWorkQueue {
               condVar.notify();
             }
             break;
-          case NodeCreated:
-          case NodeDataChanged:
-          case NodeDeleted:
-          case ChildWatchRemoved:
-          case DataWatchRemoved:
-          case None:
+          default:
             log.info("Got unexpected zookeeper event: {} for {}", event.getType(), path);
             break;
         }

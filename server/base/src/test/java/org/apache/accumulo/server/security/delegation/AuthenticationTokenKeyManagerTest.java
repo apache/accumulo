@@ -65,8 +65,8 @@ public class AuthenticationTokenKeyManagerTest {
 
   @Test
   public void testIntervalNotPassed() {
-    long updateInterval = 5 * 1000L;
-    long tokenLifetime = 100 * 1000L;
+    long updateInterval = 5_000L;
+    long tokenLifetime = 100_000L;
     AuthenticationTokenKeyManager keyManager = new AuthenticationTokenKeyManager(secretManager,
         zooDistributor, updateInterval, tokenLifetime);
 
@@ -86,8 +86,8 @@ public class AuthenticationTokenKeyManagerTest {
 
   @Test
   public void testIntervalHasPassed() throws Exception {
-    long updateInterval = 0 * 1000L;
-    long tokenLifetime = 100 * 1000L;
+    long updateInterval = 0;
+    long tokenLifetime = 100_000L;
     long runTime = 10L;
     SecretKey secretKey = keyGen.generateKey();
 
@@ -138,7 +138,7 @@ public class AuthenticationTokenKeyManagerTest {
 
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30_000)
   public void testStopLoop() throws InterruptedException {
     final MockManager keyManager = EasyMock.createMockBuilder(MockManager.class)
         .addMockedMethod("_run").addMockedMethod("updateStateFromCurrentKeys").createMock();
@@ -183,8 +183,8 @@ public class AuthenticationTokenKeyManagerTest {
 
   @Test
   public void testExistingKeysAreAddedAtStartup() throws Exception {
-    long updateInterval = 0 * 1000L;
-    long tokenLifetime = 100 * 1000L;
+    long updateInterval = 0;
+    long tokenLifetime = 100_000L;
     SecretKey secretKey1 = keyGen.generateKey(), secretKey2 = keyGen.generateKey();
 
     AuthenticationKey authKey1 = new AuthenticationKey(1, 0, tokenLifetime, secretKey1),

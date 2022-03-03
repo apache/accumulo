@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.summary;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
@@ -212,9 +213,9 @@ public class Gatherer {
 
         // When no location, the approach below will consistently choose the same tserver for the
         // same file (as long as the set of tservers is stable).
-        int idx =
-            Math.abs(Hashing.murmur3_32().hashString(entry.getKey().getPathStr(), UTF_8).asInt())
-                % tservers.size();
+        int idx = Math
+            .abs(Hashing.murmur3_32_fixed().hashString(entry.getKey().getPathStr(), UTF_8).asInt())
+            % tservers.size();
         location = tservers.get(idx);
       }
 
@@ -367,9 +368,9 @@ public class Gatherer {
 
     private synchronized void initiateProcessing(ProcessedFiles previousWork) {
       try {
-        Predicate<TabletFile> fileSelector =
-            file -> Math.abs(Hashing.murmur3_32().hashString(file.getPathStr(), UTF_8).asInt())
-                % modulus == remainder;
+        Predicate<TabletFile> fileSelector = file -> Math
+            .abs(Hashing.murmur3_32_fixed().hashString(file.getPathStr(), UTF_8).asInt()) % modulus
+            == remainder;
         if (previousWork != null) {
           fileSelector = fileSelector.and(previousWork.failedFiles::contains);
         }
@@ -483,13 +484,13 @@ public class Gatherer {
       long t1, t2;
       CompletableFuture<ProcessedFiles> futureRef = updateFuture();
       t1 = System.nanoTime();
-      ProcessedFiles processedFiles = futureRef.get(Long.max(1, nanosLeft), TimeUnit.NANOSECONDS);
+      ProcessedFiles processedFiles = futureRef.get(Long.max(1, nanosLeft), NANOSECONDS);
       t2 = System.nanoTime();
       nanosLeft -= (t2 - t1);
       while (!processedFiles.failedFiles.isEmpty()) {
         futureRef = updateFuture();
         t1 = System.nanoTime();
-        processedFiles = futureRef.get(Long.max(1, nanosLeft), TimeUnit.NANOSECONDS);
+        processedFiles = futureRef.get(Long.max(1, nanosLeft), NANOSECONDS);
         t2 = System.nanoTime();
         nanosLeft -= (t2 - t1);
       }

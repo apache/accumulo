@@ -171,7 +171,7 @@ class FateMetricValues {
 
   @Override
   public String toString() {
-    return "FateMetricValues{" + "updateTime=" + updateTime + ", currentFateOps=" + currentFateOps
+    return "FateMetricValues{updateTime=" + updateTime + ", currentFateOps=" + currentFateOps
         + ", zkFateChildOpsTotal=" + zkFateChildOpsTotal + ", zkConnectionErrors="
         + zkConnectionErrors + '}';
   }

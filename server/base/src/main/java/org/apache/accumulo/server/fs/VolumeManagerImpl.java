@@ -53,7 +53,9 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.fs.Trash;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
@@ -262,6 +264,12 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   @Override
+  public RemoteIterator<LocatedFileStatus> listFiles(final Path path, final boolean recursive)
+      throws IOException {
+    return getFileSystemByPath(path).listFiles(path, recursive);
+  }
+
+  @Override
   public FileStatus[] listStatus(Path path) throws IOException {
     return getFileSystemByPath(path).listStatus(path);
   }
@@ -296,7 +304,7 @@ public class VolumeManagerImpl implements VolumeManager {
   public void bulkRename(Map<Path,Path> oldToNewPathMap, int poolSize, String poolName,
       String transactionId) throws IOException {
     List<Future<Void>> results = new ArrayList<>();
-    ExecutorService workerPool = ThreadPools.createFixedThreadPool(poolSize, poolName);
+    ExecutorService workerPool = ThreadPools.createFixedThreadPool(poolSize, poolName, false);
     oldToNewPathMap.forEach((oldPath, newPath) -> results.add(workerPool.submit(() -> {
       boolean success;
       try {

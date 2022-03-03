@@ -19,11 +19,11 @@
 package org.apache.accumulo.test;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.clientImpl.ManagerClient;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
@@ -51,7 +51,7 @@ public class GetManagerStats {
         break;
       } catch (ThriftNotActiveServiceException e) {
         // Let it loop, fetching a new location
-        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(100, MILLISECONDS);
       } finally {
         if (client != null) {
           ManagerClient.close(client, context);
@@ -148,11 +148,11 @@ public class GetManagerStats {
     }
   }
 
-  private static void out(int indent, String string, Object... args) {
+  private static void out(int indent, String fmtString, Object... args) {
     for (int i = 0; i < indent; i++) {
       System.out.print(" ");
     }
-    System.out.println(String.format(string, args));
+    System.out.printf(fmtString + "%n", args);
   }
 
 }

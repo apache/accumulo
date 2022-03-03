@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.security.delegation;
 
+import static java.util.concurrent.TimeUnit.DAYS;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
@@ -39,6 +40,7 @@ import java.util.UUID;
 import javax.crypto.KeyGenerator;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.WatchedEvent;
@@ -63,16 +65,16 @@ public class ZooAuthenticationKeyWatcherTest {
   }
 
   private ZooReader zk;
-  private String instanceId;
+  private InstanceId instanceId;
   private String baseNode;
-  private long tokenLifetime = 7 * 24 * 60 * 60 * 1000; // 7days
+  private long tokenLifetime = DAYS.toMillis(7);
   private AuthenticationTokenSecretManager secretManager;
   private ZooAuthenticationKeyWatcher keyWatcher;
 
   @Before
   public void setupMocks() {
     zk = createMock(ZooReader.class);
-    instanceId = UUID.randomUUID().toString();
+    instanceId = InstanceId.of(UUID.randomUUID());
     baseNode = "/accumulo/" + instanceId + Constants.ZDELEGATION_TOKEN_KEYS;
     secretManager = new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
     keyWatcher = new ZooAuthenticationKeyWatcher(secretManager, zk, baseNode);

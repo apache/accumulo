@@ -22,7 +22,7 @@ import static java.lang.System.currentTimeMillis;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import java.io.File;
 import java.io.IOException;
@@ -73,7 +73,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 
 /**
- * Tests the new MR API in the hadoop-mareduce package.
+ * Tests the new MR API in the hadoop-mapreduce package.
  *
  * @since 2.0
  */
@@ -142,10 +142,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     // offline mode
     AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties()).table(table)
         .auths(Authorizations.EMPTY).offlineScan(true).store(job);
-    try {
-      inputFormat.getSplits(job);
-      fail("An IOException should have been thrown");
-    } catch (IOException e) {}
+    assertThrows(IOException.class, () -> inputFormat.getSplits(job));
 
     client.tableOperations().offline(table, true);
     splits = inputFormat.getSplits(job);
@@ -172,10 +169,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties()).table(table)
         .auths(Authorizations.EMPTY).batchScan(true).offlineScan(true).store(job);
 
-    try {
-      inputFormat.getSplits(job);
-      fail("IllegalArgumentException should have been thrown trying to batch scan offline");
-    } catch (IllegalArgumentException e) {}
+    assertThrows("IllegalArgumentException should have been thrown trying to batch scan offline",
+        IllegalArgumentException.class, () -> inputFormat.getSplits(job));
 
     // table online tests
     client.tableOperations().online(table, true);
@@ -189,19 +184,16 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties()).table(table)
         .auths(Authorizations.EMPTY).batchScan(true).scanIsolation(true).store(job);
 
-    try {
-      inputFormat.getSplits(job);
-      fail("IllegalArgumentException should have been thrown trying to batch scan with isolation");
-    } catch (IllegalArgumentException e) {}
+    assertThrows(
+        "IllegalArgumentException should have been thrown trying to batch scan with isolation",
+        IllegalArgumentException.class, () -> inputFormat.getSplits(job));
 
     // BatchScan not available with local iterators
     AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties()).table(table)
         .auths(Authorizations.EMPTY).batchScan(true).localIterators(true).store(job);
 
-    try {
-      inputFormat.getSplits(job);
-      fail("IllegalArgumentException should have been thrown trying to batch scan locally");
-    } catch (IllegalArgumentException e) {}
+    assertThrows("IllegalArgumentException should have been thrown trying to batch scan locally",
+        IllegalArgumentException.class, () -> inputFormat.getSplits(job));
 
     AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties()).table(table)
         .auths(Authorizations.EMPTY).batchScan(true).store(job);

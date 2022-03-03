@@ -18,21 +18,21 @@
  */
 package org.apache.accumulo.core.util;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Optional;
 
 import org.apache.hadoop.shaded.com.google.re2j.Pattern;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ValidatorTest {
 
   private Validator<String> v, v2, v3;
   private static final Pattern STARTSWITH_C = Pattern.compile("c.*");
 
-  @Before
+  @BeforeEach
   public void setUp() {
     v = new Validator<>(
         arg -> "correct".equals(arg) ? Validator.OK : Optional.of("Invalid argument " + arg));

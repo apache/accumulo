@@ -18,35 +18,31 @@
  */
 package org.apache.accumulo.core.client.mapreduce;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.accumulo.core.WithTestNames;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.Test;
 
 @Deprecated(since = "2.0.0")
-public class AccumuloMultiTableInputFormatTest {
-
-  @Rule
-  public TestName testName = new TestName();
+public class AccumuloMultiTableInputFormatTest extends WithTestNames {
 
   /**
    * Verify {@link InputTableConfig} objects get correctly serialized in the JobContext.
    */
   @Test
   public void testInputTableConfigSerialization() throws IOException {
-    String table1 = testName.getMethodName() + "1";
-    String table2 = testName.getMethodName() + "2";
+    String table1 = testName() + "1";
+    String table2 = testName() + "2";
     Job job = Job.getInstance();
 
     InputTableConfig tableConfig = new InputTableConfig()

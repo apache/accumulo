@@ -50,7 +50,6 @@ import org.apache.accumulo.core.client.admin.InitialTableState;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.UserCompactionUtils;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
@@ -67,6 +66,7 @@ import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.Validator;
+import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.manager.tableOps.ChangeTableState;
@@ -113,6 +113,7 @@ class FateServiceHandler implements FateService.Iface {
       List<ByteBuffer> arguments, Map<String,String> options, boolean autoCleanup)
       throws ThriftSecurityException, ThriftTableOperationException {
     authenticate(c);
+    String goalMessage = op.toString() + " ";
 
     switch (op) {
       case NAMESPACE_CREATE: {
@@ -123,9 +124,10 @@ class FateServiceHandler implements FateService.Iface {
         if (!manager.security.canCreateNamespace(c))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
+        goalMessage += "Create " + namespace + " namespace.";
         manager.fate.seedTransaction(opid,
-            new TraceRepo<>(new CreateNamespace(c.getPrincipal(), namespace, options)),
-            autoCleanup);
+            new TraceRepo<>(new CreateNamespace(c.getPrincipal(), namespace, options)), autoCleanup,
+            goalMessage);
         break;
       }
       case NAMESPACE_RENAME: {
@@ -140,8 +142,10 @@ class FateServiceHandler implements FateService.Iface {
         if (!manager.security.canRenameNamespace(c, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
+        goalMessage += "Rename " + oldName + " namespace to " + newName;
         manager.fate.seedTransaction(opid,
-            new TraceRepo<>(new RenameNamespace(namespaceId, oldName, newName)), autoCleanup);
+            new TraceRepo<>(new RenameNamespace(namespaceId, oldName, newName)), autoCleanup,
+            goalMessage);
         break;
       }
       case NAMESPACE_DELETE: {
@@ -155,8 +159,9 @@ class FateServiceHandler implements FateService.Iface {
         if (!manager.security.canDeleteNamespace(c, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
+        goalMessage += "Delete namespace Id: " + namespaceId;
         manager.fate.seedTransaction(opid, new TraceRepo<>(new DeleteNamespace(namespaceId)),
-            autoCleanup);
+            autoCleanup, goalMessage);
         break;
       }
       case TABLE_CREATE: {
@@ -191,8 +196,8 @@ class FateServiceHandler implements FateService.Iface {
         NamespaceId namespaceId;
 
         try {
-          namespaceId =
-              Namespaces.getNamespaceId(manager.getContext(), Tables.qualify(tableName).getFirst());
+          namespaceId = Namespaces.getNamespaceId(manager.getContext(),
+              TableNameUtil.qualify(tableName).getFirst());
         } catch (NamespaceNotFoundException e) {
           throw new ThriftTableOperationException(null, tableName, tableOp,
               TableOperationExceptionType.NAMESPACE_NOTFOUND, "");
@@ -209,10 +214,13 @@ class FateServiceHandler implements FateService.Iface {
           }
         }
 
+        goalMessage += "Create table " + tableName + " " + initialTableState + " with " + splitCount
+            + " splits.";
+
         manager.fate.seedTransaction(opid,
             new TraceRepo<>(new CreateTable(c.getPrincipal(), tableName, timeType, options,
                 splitsPath, splitCount, splitsDirsPath, initialTableState, namespaceId)),
-            autoCleanup);
+            autoCleanup, goalMessage);
 
         break;
       }
@@ -240,10 +248,12 @@ class FateServiceHandler implements FateService.Iface {
         if (!canRename)
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
+        goalMessage += "Rename table " + oldTableName + "(" + tableId + ") to " + oldTableName;
+
         try {
           manager.fate.seedTransaction(opid,
               new TraceRepo<>(new RenameTable(namespaceId, tableId, oldTableName, newTableName)),
-              autoCleanup);
+              autoCleanup, goalMessage);
         } catch (NamespaceNotFoundException e) {
           throw new ThriftTableOperationException(null, oldTableName, tableOp,
               TableOperationExceptionType.NAMESPACE_NOTFOUND, "");
@@ -264,8 +274,8 @@ class FateServiceHandler implements FateService.Iface {
 
         NamespaceId namespaceId;
         try {
-          namespaceId =
-              Namespaces.getNamespaceId(manager.getContext(), Tables.qualify(tableName).getFirst());
+          namespaceId = Namespaces.getNamespaceId(manager.getContext(),
+              TableNameUtil.qualify(tableName).getFirst());
         } catch (NamespaceNotFoundException e) {
           // shouldn't happen, but possible once cloning between namespaces is supported
           throw new ThriftTableOperationException(null, tableName, tableOp,
@@ -303,9 +313,14 @@ class FateServiceHandler implements FateService.Iface {
           propertiesToSet.put(entry.getKey(), entry.getValue());
         }
 
-        manager.fate.seedTransaction(opid, new TraceRepo<>(new CloneTable(c.getPrincipal(),
-            namespaceId, srcTableId, tableName, propertiesToSet, propertiesToExclude, keepOffline)),
-            autoCleanup);
+        goalMessage += "Clone table " + srcTableId + " to " + tableName;
+        if (keepOffline)
+          goalMessage += " and keep offline.";
+
+        manager.fate.seedTransaction(
+            opid, new TraceRepo<>(new CloneTable(c.getPrincipal(), namespaceId, srcTableId,
+                tableName, propertiesToSet, propertiesToExclude, keepOffline)),
+            autoCleanup, goalMessage);
 
         break;
       }
@@ -329,8 +344,10 @@ class FateServiceHandler implements FateService.Iface {
 
         if (!canDeleteTable)
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+
+        goalMessage += "Delete table " + tableName + "(" + tableId + ")";
         manager.fate.seedTransaction(opid,
-            new TraceRepo<>(new PreDeleteTable(namespaceId, tableId)), autoCleanup);
+            new TraceRepo<>(new PreDeleteTable(namespaceId, tableId)), autoCleanup, goalMessage);
         break;
       }
       case TABLE_ONLINE: {
@@ -351,8 +368,10 @@ class FateServiceHandler implements FateService.Iface {
         if (!canOnlineOfflineTable)
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
+        goalMessage += "Online table " + tableId;
         manager.fate.seedTransaction(opid,
-            new TraceRepo<>(new ChangeTableState(namespaceId, tableId, tableOp)), autoCleanup);
+            new TraceRepo<>(new ChangeTableState(namespaceId, tableId, tableOp)), autoCleanup,
+            goalMessage);
         break;
       }
       case TABLE_OFFLINE: {
@@ -373,8 +392,10 @@ class FateServiceHandler implements FateService.Iface {
         if (!canOnlineOfflineTable)
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
+        goalMessage += "Offline table " + tableId;
         manager.fate.seedTransaction(opid,
-            new TraceRepo<>(new ChangeTableState(namespaceId, tableId, tableOp)), autoCleanup);
+            new TraceRepo<>(new ChangeTableState(namespaceId, tableId, tableOp)), autoCleanup,
+            goalMessage);
         break;
       }
       case TABLE_MERGE: {
@@ -400,9 +421,11 @@ class FateServiceHandler implements FateService.Iface {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
         Manager.log.debug("Creating merge op: {} {} {}", tableId, startRow, endRow);
+        goalMessage += "Merge table " + tableName + "(" + tableId + ") splits from " + startRow
+            + " to " + endRow;
         manager.fate.seedTransaction(opid, new TraceRepo<>(
             new TableRangeOp(MergeInfo.Operation.MERGE, namespaceId, tableId, startRow, endRow)),
-            autoCleanup);
+            autoCleanup, goalMessage);
         break;
       }
       case TABLE_DELETE_RANGE: {
@@ -429,9 +452,11 @@ class FateServiceHandler implements FateService.Iface {
         if (!canDeleteRange)
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
+        goalMessage +=
+            "Delete table " + tableName + "(" + tableId + ") range " + startRow + " to " + endRow;
         manager.fate.seedTransaction(opid, new TraceRepo<>(
             new TableRangeOp(MergeInfo.Operation.DELETE, namespaceId, tableId, startRow, endRow)),
-            autoCleanup);
+            autoCleanup, goalMessage);
         break;
       }
       case TABLE_BULK_IMPORT: {
@@ -460,10 +485,12 @@ class FateServiceHandler implements FateService.Iface {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
         manager.updateBulkImportStatus(dir, BulkImportState.INITIAL);
+        goalMessage +=
+            "Bulk import " + dir + " to " + tableName + "(" + tableId + ") failing to " + failDir;
         manager.fate.seedTransaction(opid,
             new TraceRepo<>(new org.apache.accumulo.manager.tableOps.bulkVer1.BulkImport(tableId,
                 dir, failDir, setTime)),
-            autoCleanup);
+            autoCleanup, goalMessage);
         break;
       }
       case TABLE_COMPACT: {
@@ -485,8 +512,10 @@ class FateServiceHandler implements FateService.Iface {
         if (!canCompact)
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
+        goalMessage += "Compact table (" + tableId + ") with config " + compactionConfig;
         manager.fate.seedTransaction(opid,
-            new TraceRepo<>(new CompactRange(namespaceId, tableId, compactionConfig)), autoCleanup);
+            new TraceRepo<>(new CompactRange(namespaceId, tableId, compactionConfig)), autoCleanup,
+            goalMessage);
         break;
       }
       case TABLE_CANCEL_COMPACT: {
@@ -506,8 +535,9 @@ class FateServiceHandler implements FateService.Iface {
         if (!canCancelCompact)
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
+        goalMessage += "Cancel compaction of table (" + tableId + ")";
         manager.fate.seedTransaction(opid,
-            new TraceRepo<>(new CancelCompactions(namespaceId, tableId)), autoCleanup);
+            new TraceRepo<>(new CancelCompactions(namespaceId, tableId)), autoCleanup, goalMessage);
         break;
       }
       case TABLE_IMPORT: {
@@ -524,8 +554,8 @@ class FateServiceHandler implements FateService.Iface {
         Set<String> exportDirs = ByteBufferUtil.toStringSet(exportDirArgs);
         NamespaceId namespaceId;
         try {
-          namespaceId =
-              Namespaces.getNamespaceId(manager.getContext(), Tables.qualify(tableName).getFirst());
+          namespaceId = Namespaces.getNamespaceId(manager.getContext(),
+              TableNameUtil.qualify(tableName).getFirst());
         } catch (NamespaceNotFoundException e) {
           throw new ThriftTableOperationException(null, tableName, tableOp,
               TableOperationExceptionType.NAMESPACE_NOTFOUND, "");
@@ -542,9 +572,10 @@ class FateServiceHandler implements FateService.Iface {
         if (!canImport)
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
+        goalMessage += "Import table with new name: " + tableName + " from " + exportDirs;
         manager.fate.seedTransaction(opid,
             new TraceRepo<>(new ImportTable(c.getPrincipal(), tableName, exportDirs, namespaceId)),
-            autoCleanup);
+            autoCleanup, goalMessage);
         break;
       }
       case TABLE_EXPORT: {
@@ -569,9 +600,10 @@ class FateServiceHandler implements FateService.Iface {
         if (!canExport)
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
+        goalMessage += "Export table " + tableName + "(" + tableId + ") to " + exportDir;
         manager.fate.seedTransaction(opid,
             new TraceRepo<>(new ExportTable(namespaceId, tableName, tableId, exportDir)),
-            autoCleanup);
+            autoCleanup, goalMessage);
         break;
       }
       case TABLE_BULK_IMPORT2:
@@ -585,8 +617,9 @@ class FateServiceHandler implements FateService.Iface {
         NamespaceId namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
 
         final boolean canBulkImport;
+        String tableName;
         try {
-          String tableName = Tables.getTableName(manager.getContext(), tableId);
+          tableName = manager.getContext().getTableName(tableId);
           canBulkImport =
               manager.security.canBulkImport(c, tableId, tableName, dir, null, namespaceId);
         } catch (ThriftSecurityException e) {
@@ -602,8 +635,10 @@ class FateServiceHandler implements FateService.Iface {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
         manager.updateBulkImportStatus(dir, BulkImportState.INITIAL);
+
+        goalMessage += "Bulk import (v2)  " + dir + " to " + tableName + "(" + tableId + ")";
         manager.fate.seedTransaction(opid,
-            new TraceRepo<>(new PrepBulkImport(tableId, dir, setTime)), autoCleanup);
+            new TraceRepo<>(new PrepBulkImport(tableId, dir, setTime)), autoCleanup, goalMessage);
         break;
       default:
         throw new UnsupportedOperationException();
@@ -614,7 +649,7 @@ class FateServiceHandler implements FateService.Iface {
       throws ThriftTableOperationException {
     NamespaceId namespaceId;
     try {
-      namespaceId = Tables.getNamespaceId(manager.getContext(), tableId);
+      namespaceId = manager.getContext().getNamespaceId(tableId);
     } catch (TableNotFoundException e) {
       throw new ThriftTableOperationException(tableId.canonical(), null, tableOp,
           TableOperationExceptionType.NOTFOUND, e.getMessage());

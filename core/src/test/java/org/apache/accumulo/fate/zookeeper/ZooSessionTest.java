@@ -18,18 +18,26 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import org.apache.zookeeper.ZooKeeper;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class ZooSessionTest {
 
-  private static final int MINIMUM_TIMEOUT = 10000;
+  private static final int TIMEOUT_SECONDS = 10;
   private static final String UNKNOWN_HOST = "hostname.that.should.not.exist.example.com:2181";
 
-  @Test(expected = RuntimeException.class, timeout = MINIMUM_TIMEOUT * 4)
-  public void testUnknownHost() throws Exception {
-    ZooKeeper session = ZooSession.connect(UNKNOWN_HOST, MINIMUM_TIMEOUT, null, null, null);
-    session.close();
+  @Test
+  @Timeout(TIMEOUT_SECONDS * 4)
+  public void testUnknownHost() {
+    assertThrows(RuntimeException.class, () -> {
+      ZooKeeper session = ZooSession.connect(UNKNOWN_HOST, (int) SECONDS.toMillis(TIMEOUT_SECONDS),
+          null, null, null);
+      session.close();
+    });
   }
 
 }

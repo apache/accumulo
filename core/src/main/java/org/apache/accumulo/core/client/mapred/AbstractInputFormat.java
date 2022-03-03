@@ -53,7 +53,6 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.DelegationTokenImpl;
 import org.apache.accumulo.core.clientImpl.OfflineScanner;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.clientImpl.mapreduce.lib.InputConfigurator;
 import org.apache.accumulo.core.data.Key;
@@ -652,7 +651,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       TableId tableId;
       // resolve table name to id once, and use id from this point forward
       try {
-        tableId = Tables.getTableId(client, tableName);
+        tableId = client.getTableId(tableName);
       } catch (TableNotFoundException e) {
         throw new IOException(e);
       }

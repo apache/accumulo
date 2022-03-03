@@ -19,6 +19,8 @@
 package org.apache.accumulo.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.DAYS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -129,7 +131,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
     public void lock() {
       while (true) {
         try {
-          if (tryLock(1, TimeUnit.DAYS))
+          if (tryLock(1, DAYS))
             return;
         } catch (InterruptedException ex) {
           // ignored
@@ -140,7 +142,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
     @Override
     public void lockInterruptibly() throws InterruptedException {
       while (!Thread.currentThread().isInterrupted()) {
-        if (tryLock(100, TimeUnit.MILLISECONDS))
+        if (tryLock(100, MILLISECONDS))
           return;
       }
     }
@@ -149,7 +151,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
     public boolean tryLock() {
       if (entry == -1) {
         entry = qlock.addEntry(new ParsedLock(this.lockType(), this.userData).getLockData());
-        log.info("Added lock entry {} userData {} lockTpye {}", entry,
+        log.info("Added lock entry {} userData {} lockType {}", entry,
             new String(this.userData, UTF_8), lockType());
       }
       SortedMap<Long,byte[]> entries = qlock.getEarlierEntries(entry);
@@ -167,7 +169,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
     @Override
     public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
       long now = System.currentTimeMillis();
-      long returnTime = now + TimeUnit.MILLISECONDS.convert(time, unit);
+      long returnTime = now + MILLISECONDS.convert(time, unit);
       while (returnTime > now) {
         if (tryLock())
           return true;

@@ -18,14 +18,15 @@
  */
 package org.apache.accumulo.core.security;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.ByteBuffer;
 
 import org.apache.accumulo.core.util.ByteArraySet;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class AuthorizationsTest {
 
@@ -93,12 +94,13 @@ public class AuthorizationsTest {
     assertArrayEquals(expected.getAuthorizationsArray(), actual.getAuthorizationsArray());
   }
 
-  @Test(expected = UnsupportedOperationException.class)
+  @Test
   public void testUnmodifiableList() {
     Authorizations expected = new Authorizations("foo");
     Authorizations actual = new Authorizations("foo");
 
     assertArrayEquals(expected.getAuthorizationsArray(), actual.getAuthorizationsArray());
-    actual.getAuthorizationsBB().add(ByteBuffer.wrap(new byte[] {'a'}));
+    assertThrows(UnsupportedOperationException.class,
+        () -> actual.getAuthorizationsBB().add(ByteBuffer.wrap(new byte[] {'a'})));
   }
 }

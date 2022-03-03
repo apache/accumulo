@@ -19,6 +19,10 @@
 package org.apache.accumulo.tserver;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
@@ -53,12 +57,12 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
@@ -69,9 +73,7 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -103,6 +105,7 @@ import org.apache.accumulo.server.GarbageCollectionLogger;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.TabletLevel;
+import org.apache.accumulo.server.compaction.CompactionWatcher;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -143,7 +146,6 @@ import org.apache.accumulo.tserver.session.Session;
 import org.apache.accumulo.tserver.session.SessionManager;
 import org.apache.accumulo.tserver.tablet.BulkImportCacheCleaner;
 import org.apache.accumulo.tserver.tablet.CommitSession;
-import org.apache.accumulo.tserver.tablet.CompactionWatcher;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletData;
 import org.apache.commons.collections4.map.LRUMap;
@@ -164,8 +166,8 @@ public class TabletServer extends AbstractServer {
 
   private static final SecureRandom random = new SecureRandom();
   private static final Logger log = LoggerFactory.getLogger(TabletServer.class);
-  private static final long TIME_BETWEEN_GC_CHECKS = 5000;
-  private static final long TIME_BETWEEN_LOCATOR_CACHE_CLEARS = 60 * 60 * 1000;
+  private static final long TIME_BETWEEN_GC_CHECKS = TimeUnit.SECONDS.toMillis(5);
+  private static final long TIME_BETWEEN_LOCATOR_CACHE_CLEARS = TimeUnit.HOURS.toMillis(1);
 
   final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
   final ZooCache managerLockCache;
@@ -237,7 +239,7 @@ public class TabletServer extends AbstractServer {
     super("tserver", opts, args);
     context = super.getContext();
     context.setupCrypto();
-    this.managerLockCache = new ZooCache(context.getZooReaderWriter(), null);
+    this.managerLockCache = new ZooCache(context.getZooReader(), null);
     final AccumuloConfiguration aconf = getConfiguration();
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + getInstanceID());
@@ -298,7 +300,7 @@ public class TabletServer extends AbstractServer {
               }
             }
           }
-        }), 5000, 5000, TimeUnit.MILLISECONDS);
+        }), 5, 5, TimeUnit.SECONDS);
 
     @SuppressWarnings("deprecation")
     final long walMaxSize =
@@ -365,7 +367,7 @@ public class TabletServer extends AbstractServer {
     config();
   }
 
-  public String getInstanceID() {
+  public InstanceId getInstanceID() {
     return getContext().getInstanceID();
   }
 
@@ -766,8 +768,8 @@ public class TabletServer extends AbstractServer {
       throw new RuntimeException(e);
     }
 
-    ThreadPoolExecutor distWorkQThreadPool = (ThreadPoolExecutor) ThreadPools
-        .createExecutorService(getConfiguration(), Property.TSERV_WORKQ_THREADS);
+    ThreadPoolExecutor distWorkQThreadPool =
+        ThreadPools.createExecutorService(getConfiguration(), Property.TSERV_WORKQ_THREADS, true);
 
     bulkFailedCopyQ =
         new DistributedWorkQueue(getContext().getZooKeeperRoot() + Constants.ZBULK_FAILED_COPYQ,
@@ -796,9 +798,35 @@ public class TabletServer extends AbstractServer {
           setupReplication(aconf);
         }
       }
-    }, 0, 5000, TimeUnit.MILLISECONDS);
+    }, 0, 5, TimeUnit.SECONDS);
 
-    final long CLEANUP_BULK_LOADED_CACHE_MILLIS = 15 * 60 * 1000;
+    int tabletCheckFrequency = 30 + random.nextInt(31); // random 30-60 minute delay
+    // Periodically check that metadata of tablets matches what is held in memory
+    ThreadPools.createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(() -> {
+      final SortedMap<KeyExtent,Tablet> onlineTabletsSnapshot = onlineTablets.snapshot();
+
+      Map<KeyExtent,Long> updateCounts = new HashMap<>();
+
+      // gather updateCounts for each tablet
+      onlineTabletsSnapshot.forEach((ke, tablet) -> {
+        updateCounts.put(ke, tablet.getUpdateCount());
+      });
+
+      // gather metadata for all tablets readTablets()
+      try (TabletsMetadata tabletsMetadata = getContext().getAmple().readTablets()
+          .forTablets(onlineTabletsSnapshot.keySet()).fetch(FILES, LOGS, ECOMP, PREV_ROW).build()) {
+
+        // for each tablet, compare its metadata to what is held in memory
+        tabletsMetadata.forEach(tabletMetadata -> {
+          KeyExtent extent = tabletMetadata.getExtent();
+          Tablet tablet = onlineTabletsSnapshot.get(extent);
+          Long counter = updateCounts.get(extent);
+          tablet.compareTabletInfo(counter, tabletMetadata);
+        });
+      }
+    }, tabletCheckFrequency, tabletCheckFrequency, TimeUnit.MINUTES);
+
+    final long CLEANUP_BULK_LOADED_CACHE_MILLIS = TimeUnit.MINUTES.toMillis(15);
     context.getScheduledExecutor().scheduleWithFixedDelay(new BulkImportCacheCleaner(this),
         CLEANUP_BULK_LOADED_CACHE_MILLIS, CLEANUP_BULK_LOADED_CACHE_MILLIS, TimeUnit.MILLISECONDS);
 
@@ -813,7 +841,7 @@ public class TabletServer extends AbstractServer {
           // wait until a message is ready to send, or a sever stop
           // was requested
           while (mm == null && !serverStopRequested) {
-            mm = managerMessages.poll(1000, TimeUnit.MILLISECONDS);
+            mm = managerMessages.poll(1, TimeUnit.SECONDS);
           }
 
           // have a message to send to the manager, so grab a
@@ -879,10 +907,14 @@ public class TabletServer extends AbstractServer {
       }
     }
     log.debug("Stopping Replication Server");
-    TServerUtils.stopTServer(this.replServer);
+    if (this.replServer != null) {
+      this.replServer.stop();
+    }
 
     log.debug("Stopping Thrift Servers");
-    TServerUtils.stopTServer(server);
+    if (server != null) {
+      server.stop();
+    }
 
     try {
       log.debug("Closing filesystems");
@@ -912,8 +944,8 @@ public class TabletServer extends AbstractServer {
     }
 
     // Start the pool to handle outgoing replications
-    final ThreadPoolExecutor replicationThreadPool = (ThreadPoolExecutor) ThreadPools
-        .createExecutorService(getConfiguration(), Property.REPLICATION_WORKER_THREADS);
+    final ThreadPoolExecutor replicationThreadPool = ThreadPools
+        .createExecutorService(getConfiguration(), Property.REPLICATION_WORKER_THREADS, false);
     replWorker.setExecutor(replicationThreadPool);
     replWorker.run();
 
@@ -921,45 +953,8 @@ public class TabletServer extends AbstractServer {
     Runnable replicationWorkThreadPoolResizer = () -> {
       ThreadPools.resizePool(replicationThreadPool, aconf, Property.REPLICATION_WORKER_THREADS);
     };
-    context.getScheduledExecutor().scheduleWithFixedDelay(replicationWorkThreadPoolResizer, 10000,
-        30000, TimeUnit.MILLISECONDS);
-  }
-
-  static boolean checkTabletMetadata(KeyExtent extent, TServerInstance instance,
-      TabletMetadata meta) throws AccumuloException {
-
-    if (meta == null) {
-      log.info("Not loading tablet {}, its metadata was not found.", extent);
-      return false;
-    }
-
-    if (!meta.sawPrevEndRow()) {
-      throw new AccumuloException("Metadata entry does not have prev row (" + meta.getTableId()
-          + " " + meta.getEndRow() + ")");
-    }
-
-    if (!extent.equals(meta.getExtent())) {
-      log.info("Tablet extent mismatch {} {}", extent, meta.getExtent());
-      return false;
-    }
-
-    if (meta.getDirName() == null) {
-      throw new AccumuloException(
-          "Metadata entry does not have directory (" + meta.getExtent() + ")");
-    }
-
-    if (meta.getTime() == null && !extent.equals(RootTable.EXTENT)) {
-      throw new AccumuloException("Metadata entry does not have time (" + meta.getExtent() + ")");
-    }
-
-    Location loc = meta.getLocation();
-
-    if (loc == null || loc.getType() != LocationType.FUTURE || !instance.equals(loc)) {
-      log.info("Unexpected location {} {}", extent, loc);
-      return false;
-    }
-
-    return true;
+    context.getScheduledExecutor().scheduleWithFixedDelay(replicationWorkThreadPoolResizer, 10, 30,
+        TimeUnit.SECONDS);
   }
 
   public String getClientAddressString() {

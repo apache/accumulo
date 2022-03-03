@@ -19,12 +19,12 @@
 package org.apache.accumulo.core.client;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.List;
 import java.util.Properties;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.ClientConfConverter;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -34,6 +34,7 @@ import org.apache.accumulo.core.clientImpl.InstanceOperationsImpl;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -43,7 +44,6 @@ import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -127,7 +127,7 @@ public class ZooKeeperInstance implements Instance {
   @Override
   public String getInstanceID() {
     if (instanceId == null) {
-      instanceId = ClientContext.getInstanceID(zooCache, instanceName);
+      instanceId = ClientContext.getInstanceID(zooCache, instanceName).canonical();
     }
     ClientContext.verifyInstanceId(zooCache, instanceId, instanceName);
     return instanceId;
@@ -148,13 +148,13 @@ public class ZooKeeperInstance implements Instance {
       timer = new OpTimer().start();
     }
 
-    Location loc =
-        TabletsMetadata.getRootMetadata(ZooUtil.getRoot(getInstanceID()), zooCache).getLocation();
+    Location loc = TabletsMetadata
+        .getRootMetadata(Constants.ZROOT + "/" + getInstanceID(), zooCache).getLocation();
 
     if (timer != null) {
       timer.stop();
       log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(), loc,
-          String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+          String.format("%.3f secs", timer.scale(SECONDS)));
     }
 
     if (loc == null || loc.getType() != LocationType.CURRENT) {
@@ -168,7 +168,7 @@ public class ZooKeeperInstance implements Instance {
   public String getInstanceName() {
     if (instanceName == null)
       instanceName =
-          InstanceOperationsImpl.lookupInstanceName(zooCache, UUID.fromString(getInstanceID()));
+          InstanceOperationsImpl.lookupInstanceName(zooCache, InstanceId.of(getInstanceID()));
 
     return instanceName;
   }

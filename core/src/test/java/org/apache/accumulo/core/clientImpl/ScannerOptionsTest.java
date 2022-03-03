@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.SortedSet;
 
@@ -28,7 +28,7 @@ import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.iterators.DebugIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Test that scanner options are set/unset correctly
@@ -52,14 +52,10 @@ public class ScannerOptionsTest {
   public void testIteratorConflict() {
     try (ScannerOptions options = new ScannerOptions()) {
       options.addScanIterator(new IteratorSetting(1, "NAME", DebugIterator.class));
-      try {
-        options.addScanIterator(new IteratorSetting(2, "NAME", DebugIterator.class));
-        fail();
-      } catch (IllegalArgumentException e) {}
-      try {
-        options.addScanIterator(new IteratorSetting(1, "NAME2", DebugIterator.class));
-        fail();
-      } catch (IllegalArgumentException e) {}
+      assertThrows(IllegalArgumentException.class,
+          () -> options.addScanIterator(new IteratorSetting(2, "NAME", DebugIterator.class)));
+      assertThrows(IllegalArgumentException.class,
+          () -> options.addScanIterator(new IteratorSetting(1, "NAME2", DebugIterator.class)));
     }
   }
 
@@ -78,11 +74,11 @@ public class ScannerOptionsTest {
     }
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testFetchNullColumn() {
     try (ScannerOptions options = new ScannerOptions()) {
       // Require a non-null instance of Column
-      options.fetchColumn(null);
+      assertThrows(IllegalArgumentException.class, () -> options.fetchColumn(null));
     }
   }
 }

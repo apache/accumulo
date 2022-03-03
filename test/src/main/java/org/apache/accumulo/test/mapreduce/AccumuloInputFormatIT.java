@@ -22,7 +22,7 @@ import static java.lang.System.currentTimeMillis;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import java.io.File;
 import java.io.IOException;
@@ -134,10 +134,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
       // offline mode
       org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setOfflineTableScan(job, true);
-      try {
-        inputFormat.getSplits(job);
-        fail("An exception should have been thrown");
-      } catch (IOException e) {}
+      assertThrows(IOException.class, () -> inputFormat.getSplits(job));
 
       client.tableOperations().offline(table, true);
       splits = inputFormat.getSplits(job);
@@ -162,10 +159,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setAutoAdjustRanges(job, true);
 
       org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setOfflineTableScan(job, true);
-      try {
-        inputFormat.getSplits(job);
-        fail("An exception should have been thrown");
-      } catch (IllegalArgumentException e) {}
+      assertThrows(IllegalArgumentException.class, () -> inputFormat.getSplits(job));
 
       client.tableOperations().online(table, true);
       org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setOfflineTableScan(job, false);
@@ -176,10 +170,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
       // BatchScan not available with isolated iterators
       org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setScanIsolation(job, true);
-      try {
-        inputFormat.getSplits(job);
-        fail("An exception should have been thrown");
-      } catch (IllegalArgumentException e) {}
+      assertThrows(IllegalArgumentException.class, () -> inputFormat.getSplits(job));
       org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setScanIsolation(job, false);
 
       // test for resumption of success
@@ -188,10 +179,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
       // BatchScan not available with local iterators
       org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setLocalIterators(job, true);
-      try {
-        inputFormat.getSplits(job);
-        fail("An exception should have been thrown");
-      } catch (IllegalArgumentException e) {}
+      assertThrows(IllegalArgumentException.class, () -> inputFormat.getSplits(job));
       org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setLocalIterators(job, false);
 
       // Check we are getting back correct type pf split
@@ -439,7 +427,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     }
   }
 
-  @Test(expected = IOException.class)
+  @Test
   public void testGetSplitsNoReadPermission() throws Exception {
     Job job = Job.getInstance();
 
@@ -472,7 +460,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat aif =
           new org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat();
 
-      aif.getSplits(job);
+      assertThrows(IOException.class, () -> aif.getSplits(job));
     }
   }
 

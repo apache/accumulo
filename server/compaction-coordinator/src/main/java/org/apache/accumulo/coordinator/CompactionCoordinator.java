@@ -21,7 +21,6 @@ package org.apache.accumulo.coordinator;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.net.UnknownHostException;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,8 +34,12 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.coordinator.QueueSummaries.PrioTserver;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
+import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService.Iface;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
@@ -45,6 +48,7 @@ import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -92,8 +96,7 @@ public class CompactionCoordinator extends AbstractServer
 
   private static final Logger LOG = LoggerFactory.getLogger(CompactionCoordinator.class);
   private static final long TIME_BETWEEN_GC_CHECKS = 5000;
-  private static final long FIFTEEN_MINUTES =
-      TimeUnit.MILLISECONDS.convert(Duration.of(15, TimeUnit.MINUTES.toChronoUnit()));
+  private static final long FIFTEEN_MINUTES = TimeUnit.MINUTES.toMillis(15);
 
   protected static final QueueSummaries QUEUE_SUMMARIES = new QueueSummaries();
 
@@ -311,7 +314,8 @@ public class CompactionCoordinator extends AbstractServer
   }
 
   private void updateSummaries() {
-    ExecutorService executor = ThreadPools.createFixedThreadPool(10, "Compaction Summary Gatherer");
+    ExecutorService executor =
+        ThreadPools.createFixedThreadPool(10, "Compaction Summary Gatherer", false);
     try {
       Set<String> queuesSeen = new ConcurrentSkipListSet<>();
 
@@ -655,6 +659,26 @@ public class CompactionCoordinator extends AbstractServer
       result.putToCompactions(ecid.canonical(), trc);
     });
     return result;
+  }
+
+  @Override
+  public void cancel(TInfo tinfo, TCredentials credentials, String externalCompactionId)
+      throws TException {
+    var runningCompaction = RUNNING.get(ExternalCompactionId.of(externalCompactionId));
+    var extent = KeyExtent.fromThrift(runningCompaction.getJob().getExtent());
+    try {
+      NamespaceId nsId = getContext().getNamespaceId(extent.tableId());
+      if (!security.canCompact(credentials, extent.tableId(), nsId)) {
+        throw new AccumuloSecurityException(credentials.getPrincipal(),
+            SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+      }
+    } catch (TableNotFoundException e) {
+      throw new ThriftTableOperationException(extent.tableId().canonical(), null,
+          TableOperation.COMPACT_CANCEL, TableOperationExceptionType.NOTFOUND, e.getMessage());
+    }
+
+    HostAndPort address = HostAndPort.fromString(runningCompaction.getCompactorAddress());
+    ExternalCompactionUtil.cancelCompaction(getContext(), address, externalCompactionId);
   }
 
   private void deleteEmpty(ZooReaderWriter zoorw, String path)

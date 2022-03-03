@@ -25,6 +25,7 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCache.ZcStat;
 import org.easymock.EasyMock;
@@ -35,7 +36,7 @@ public class AdminTest {
   @Test
   public void testZooKeeperTserverPath() {
     ClientContext context = EasyMock.createMock(ClientContext.class);
-    String instanceId = UUID.randomUUID().toString();
+    InstanceId instanceId = InstanceId.of(UUID.randomUUID());
 
     EasyMock.expect(context.getZooKeeperRoot()).andReturn(Constants.ZROOT + "/" + instanceId);
 
@@ -56,7 +57,7 @@ public class AdminTest {
     final long session = 123456789L;
 
     String serverPath = root + "/" + server;
-    String validZLockEphemeralNode = "zlock#" + UUID.randomUUID().toString() + "#0000000000";
+    String validZLockEphemeralNode = "zlock#" + UUID.randomUUID() + "#0000000000";
     EasyMock.expect(zc.getChildren(serverPath))
         .andReturn(Collections.singletonList(validZLockEphemeralNode));
     EasyMock.expect(zc.get(EasyMock.eq(serverPath + "/" + validZLockEphemeralNode),

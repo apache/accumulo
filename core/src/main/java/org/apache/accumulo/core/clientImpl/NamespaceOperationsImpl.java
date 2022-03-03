@@ -20,6 +20,7 @@ package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.util.Validators.EXISTING_NAMESPACE_NAME;
 import static org.apache.accumulo.core.util.Validators.NEW_NAMESPACE_NAME;
 
@@ -33,7 +34,6 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -87,7 +87,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     if (timer != null) {
       timer.stop();
       log.trace("tid={} Fetched {} namespaces in {}", Thread.currentThread().getId(),
-          namespaces.size(), String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+          namespaces.size(), String.format("%.3f secs", timer.scale(SECONDS)));
     }
 
     return namespaces;
@@ -109,8 +109,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
     if (timer != null) {
       timer.stop();
-      log.trace("tid={} Checked existance of {} in {}", Thread.currentThread().getId(), exists,
-          String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+      log.trace("tid={} Checked existence of {} in {}", Thread.currentThread().getId(), exists,
+          String.format("%.3f secs", timer.scale(SECONDS)));
     }
 
     return exists;

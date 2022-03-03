@@ -91,7 +91,7 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
    */
   protected void initializeWorkQueue(AccumuloConfiguration conf) {
     workQueue =
-        new DistributedWorkQueue(ZooUtil.getRoot(client.instanceOperations().getInstanceID())
+        new DistributedWorkQueue(ZooUtil.getRoot(client.instanceOperations().getInstanceId())
             + ReplicationConstants.ZOO_WORK_QUEUE, conf, this.workQueue.getContext());
   }
 
@@ -110,7 +110,7 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
     initializeQueuedWork();
 
     if (zooCache == null) {
-      zooCache = new ZooCache(workQueue.getZooReaderWriter());
+      zooCache = new ZooCache(workQueue.getContext().getZooReader(), null);
     }
 
     // Get the maximum number of entries we want to queue work for (or the default)

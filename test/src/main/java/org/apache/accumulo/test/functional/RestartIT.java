@@ -33,13 +33,11 @@ import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
@@ -137,11 +135,9 @@ public class RestartIT extends AccumuloClusterHarness {
       control.stopAllServers(ServerType.GARBAGE_COLLECTOR);
       control.stopAllServers(ServerType.MONITOR);
 
-      ClientInfo info = ClientInfo.from(c.properties());
-      ZooReader zreader = new ZooReader(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
-      ZooCache zcache = new ZooCache(zreader, null);
+      ZooCache zcache = cluster.getServerContext().getZooCache();
       var zLockPath = ServiceLock
-          .path(ZooUtil.getRoot(c.instanceOperations().getInstanceID()) + Constants.ZMANAGER_LOCK);
+          .path(ZooUtil.getRoot(c.instanceOperations().getInstanceId()) + Constants.ZMANAGER_LOCK);
       byte[] managerLockData;
       do {
         managerLockData = ServiceLock.getLockData(zcache, zLockPath, null);
@@ -190,11 +186,9 @@ public class RestartIT extends AccumuloClusterHarness {
 
       control.stopAllServers(ServerType.MANAGER);
 
-      ClientInfo info = ClientInfo.from(c.properties());
-      ZooReader zreader = new ZooReader(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
-      ZooCache zcache = new ZooCache(zreader, null);
+      ZooCache zcache = cluster.getServerContext().getZooCache();
       var zLockPath = ServiceLock
-          .path(ZooUtil.getRoot(c.instanceOperations().getInstanceID()) + Constants.ZMANAGER_LOCK);
+          .path(ZooUtil.getRoot(c.instanceOperations().getInstanceId()) + Constants.ZMANAGER_LOCK);
       byte[] managerLockData;
       do {
         managerLockData = ServiceLock.getLockData(zcache, zLockPath, null);
@@ -251,6 +245,8 @@ public class RestartIT extends AccumuloClusterHarness {
         getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
         getCluster().getClusterControl().adminStopAll();
       } finally {
+        // make sure processes are cleaned up before we restart clean for other tests
+        getCluster().stop();
         getCluster().start();
       }
     }

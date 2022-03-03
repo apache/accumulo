@@ -392,6 +392,7 @@ public class AdminUtil<T> {
         log.error("Invalid transaction ID: {}", txid);
         break;
 
+      case SUBMITTED:
       case IN_PROGRESS:
       case NEW:
       case FAILED:
@@ -427,6 +428,7 @@ public class AdminUtil<T> {
         log.error("Invalid transaction ID: {}", txid);
         break;
 
+      case SUBMITTED:
       case IN_PROGRESS:
       case NEW:
         log.info("Failing transaction: {}, {}", txid, ts);

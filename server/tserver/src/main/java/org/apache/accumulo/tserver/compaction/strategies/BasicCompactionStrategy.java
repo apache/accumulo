@@ -85,8 +85,8 @@ public class BasicCompactionStrategy extends DefaultCompactionStrategy {
   public static final String LARGE_FILE_COMPRESSION_THRESHOLD = "large.compress.threshold";
 
   /**
-   * Type of compression to use if large threshold is surpassed. One of "gz","lzo","snappy", or
-   * "none"
+   * Type of compression to use if large threshold is surpassed. One of "none", "gz", "bzip2",
+   * "lzo", "lz4", "snappy", or "zstd"
    */
   public static final String LARGE_FILE_COMPRESSION_TYPE = "large.compress.type";
 

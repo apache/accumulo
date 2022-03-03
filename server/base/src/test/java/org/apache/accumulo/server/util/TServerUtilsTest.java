@@ -19,13 +19,13 @@
 package org.apache.accumulo.server.util;
 
 import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.createNiceMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -34,13 +34,13 @@ import java.net.ServerSocket;
 import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.ExecutorService;
 
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Iface;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Processor;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -48,8 +48,6 @@ import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.thrift.server.TServer;
-import org.apache.thrift.transport.TServerSocket;
-import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -58,72 +56,19 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class TServerUtilsTest {
 
-  private static class TServerWithoutES extends TServer {
-    boolean stopCalled;
-
-    TServerWithoutES(TServerSocket socket) {
-      super(new TServer.Args(socket));
-      stopCalled = false;
-    }
-
-    @Override
-    public void serve() {}
-
-    @Override
-    public void stop() {
-      stopCalled = true;
-    }
-  }
-
-  private static class TServerWithES extends TServerWithoutES {
-    final ExecutorService executorService_;
-
-    TServerWithES(TServerSocket socket) {
-      super(socket);
-      executorService_ = createMock(ExecutorService.class);
-      expect(executorService_.shutdownNow()).andReturn(null);
-      replay(executorService_);
-    }
-  }
-
-  @Test
-  public void testStopTServer_ES() {
-    TServerSocket socket = createNiceMock(TServerSocket.class);
-    replay(socket);
-    TServerWithES s = new TServerWithES(socket);
-    TServerUtils.stopTServer(s);
-    assertTrue(s.stopCalled);
-    verify(socket, s.executorService_);
-  }
-
-  @Test
-  public void testStopTServer_NoES() {
-    TServerSocket socket = createNiceMock(TServerSocket.class);
-    replay(socket);
-    TServerWithoutES s = new TServerWithoutES(socket);
-    TServerUtils.stopTServer(s);
-    assertTrue(s.stopCalled);
-    verify(socket);
-  }
-
-  @Test
-  public void testStopTServer_Null() {
-    TServerUtils.stopTServer(null);
-    // not dying is enough
-  }
-
   private ServerContext context;
   private final ConfigurationCopy conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
 
   @Before
   public void createMockServerContext() {
-    context = EasyMock.createMock(ServerContext.class);
+    context = createMock(ServerContext.class);
+    expect(context.getZooReader()).andReturn(null).anyTimes();
     expect(context.getZooReaderWriter()).andReturn(null).anyTimes();
     expect(context.getProperties()).andReturn(new Properties()).anyTimes();
     expect(context.getZooKeepers()).andReturn("").anyTimes();
     expect(context.getInstanceName()).andReturn("instance").anyTimes();
     expect(context.getZooKeepersSessionTimeOut()).andReturn(1).anyTimes();
-    expect(context.getInstanceID()).andReturn("11111").anyTimes();
+    expect(context.getInstanceID()).andReturn(InstanceId.of("11111")).anyTimes();
     expect(context.getConfiguration()).andReturn(conf).anyTimes();
     expect(context.getThriftServerType()).andReturn(ThriftServerType.THREADPOOL).anyTimes();
     expect(context.getServerSslParams()).andReturn(null).anyTimes();
@@ -148,8 +93,8 @@ public class TServerUtilsTest {
       assertNotNull(server);
       assertTrue(address.getAddress().getPort() > 1024);
     } finally {
-      if (null != server) {
-        TServerUtils.stopTServer(server);
+      if (server != null) {
+        server.stop();
       }
     }
   }
@@ -166,14 +111,14 @@ public class TServerUtilsTest {
       assertNotNull(server);
       assertEquals(port, address.getAddress().getPort());
     } finally {
-      if (null != server) {
-        TServerUtils.stopTServer(server);
+      if (server != null) {
+        server.stop();
       }
     }
   }
 
   @SuppressFBWarnings(value = "UNENCRYPTED_SERVER_SOCKET", justification = "socket for testing")
-  @Test(expected = UnknownHostException.class)
+  @Test
   public void testStartServerUsedPort() throws Exception {
     int port = getFreePort(1024);
     InetAddress addr = InetAddress.getByName("localhost");
@@ -181,7 +126,7 @@ public class TServerUtilsTest {
     conf.set(Property.TSERV_CLIENTPORT, Integer.toString(port));
     try (ServerSocket s = new ServerSocket(port, 50, addr)) {
       assertNotNull(s);
-      startServer();
+      assertThrows(UnknownHostException.class, this::startServer);
     }
   }
 
@@ -202,8 +147,8 @@ public class TServerUtilsTest {
       assertNotNull(server);
       assertEquals(port[1], address.getAddress().getPort());
     } finally {
-      if (null != server) {
-        TServerUtils.stopTServer(server);
+      if (server != null) {
+        server.stop();
       }
 
     }
@@ -265,8 +210,8 @@ public class TServerUtilsTest {
       // Finally ensure that the TServer is using the last port (i.e. port search worked)
       assertTrue(address.getAddress().getPort() == tserverFinalPort);
     } finally {
-      if (null != server) {
-        TServerUtils.stopTServer(server);
+      if (server != null) {
+        server.stop();
       }
 
     }
@@ -276,7 +221,7 @@ public class TServerUtilsTest {
   public void testStartServerPortRange() throws Exception {
     TServer server = null;
     int[] port = findTwoFreeSequentialPorts(1024);
-    String portRange = Integer.toString(port[0]) + "-" + Integer.toString(port[1]);
+    String portRange = port[0] + "-" + port[1];
     conf.set(Property.TSERV_CLIENTPORT, portRange);
     try {
       ServerAddress address = startServer();
@@ -286,8 +231,8 @@ public class TServerUtilsTest {
       assertTrue(
           port[0] == address.getAddress().getPort() || port[1] == address.getAddress().getPort());
     } finally {
-      if (null != server) {
-        TServerUtils.stopTServer(server);
+      if (server != null) {
+        server.stop();
       }
     }
   }
@@ -298,7 +243,7 @@ public class TServerUtilsTest {
     TServer server = null;
     InetAddress addr = InetAddress.getByName("localhost");
     int[] port = findTwoFreeSequentialPorts(1024);
-    String portRange = Integer.toString(port[0]) + "-" + Integer.toString(port[1]);
+    String portRange = port[0] + "-" + port[1];
     // Bind to the port
     conf.set(Property.TSERV_CLIENTPORT, portRange);
     try (ServerSocket s = new ServerSocket(port[0], 50, addr)) {
@@ -309,8 +254,8 @@ public class TServerUtilsTest {
       assertNotNull(server);
       assertEquals(port[1], address.getAddress().getPort());
     } finally {
-      if (null != server) {
-        TServerUtils.stopTServer(server);
+      if (server != null) {
+        server.stop();
       }
     }
   }

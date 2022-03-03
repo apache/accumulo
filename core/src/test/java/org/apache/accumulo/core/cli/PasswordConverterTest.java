@@ -19,10 +19,10 @@
 package org.apache.accumulo.core.cli;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
@@ -31,10 +31,10 @@ import java.io.PipedOutputStream;
 import java.security.SecureRandom;
 import java.util.Scanner;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -53,12 +53,12 @@ public class PasswordConverterTest {
   private Password password;
   private static InputStream realIn;
 
-  @BeforeClass
+  @BeforeAll
   public static void saveIn() {
     realIn = System.in;
   }
 
-  @Before
+  @BeforeEach
   public void setup() throws IOException {
     argv = new String[] {"--password", ""};
     password = new Password();
@@ -72,7 +72,7 @@ public class PasswordConverterTest {
     System.setIn(in);
   }
 
-  @After
+  @AfterEach
   public void teardown() {
     System.setIn(realIn);
   }
@@ -103,10 +103,10 @@ public class PasswordConverterTest {
     assertEquals(expected, password.password);
   }
 
-  @Test(expected = ParameterException.class)
-  public void testNoFile() throws FileNotFoundException {
+  @Test
+  public void testNoFile() {
     argv[1] = "file:doesnotexist";
-    new JCommander(password).parse(argv);
+    assertThrows(ParameterException.class, () -> new JCommander(password).parse(argv));
   }
 
   @Test
