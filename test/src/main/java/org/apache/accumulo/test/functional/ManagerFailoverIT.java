@@ -33,10 +33,13 @@ import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
-@Timeout(90)
 public class ManagerFailoverIT extends AccumuloClusterHarness {
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 90;
+  }
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

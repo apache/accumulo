@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.replication;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -74,7 +73,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,7 +83,6 @@ import com.google.common.collect.Iterators;
  */
 @Disabled("Replication ITs are not stable and not currently maintained")
 @Deprecated
-@Timeout(value = 15, unit = MINUTES)
 public class MultiInstanceReplicationIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(MultiInstanceReplicationIT.class);
 

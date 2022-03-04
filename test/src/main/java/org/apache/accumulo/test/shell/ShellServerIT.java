@@ -19,7 +19,6 @@
 package org.apache.accumulo.test.shell;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -92,7 +91,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -104,7 +102,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @Category({MiniClusterOnlyTests.class, SunnyDayTests.class})
 @Tag("MiniClusterOnlyTests")
 @Tag("SunnyDayTests")
-@Timeout(value = 1, unit = MINUTES)
 public class ShellServerIT extends SharedMiniClusterBase {
 
   @SuppressWarnings("removal")
@@ -126,6 +123,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
       Map<String,String> siteConf = cfg.getSiteConfig();
       cfg.setSiteConfig(siteConf);
     }
+  }
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
   }
 
   @BeforeAll

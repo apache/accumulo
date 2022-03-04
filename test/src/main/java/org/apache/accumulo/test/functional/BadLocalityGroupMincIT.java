@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map.Entry;
@@ -35,12 +34,15 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Iterables;
 
-@Timeout(value = 1, unit = MINUTES)
 public class BadLocalityGroupMincIT extends AccumuloClusterHarness {
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
 
   @Test
   public void test() throws Exception {

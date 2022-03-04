@@ -26,10 +26,13 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
-@Timeout(30)
 public class BatchWriterIT extends AccumuloClusterHarness {
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 30;
+  }
 
   @Test
   public void test() throws Exception {

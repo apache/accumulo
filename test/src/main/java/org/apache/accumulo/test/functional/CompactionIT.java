@@ -18,8 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.apache.accumulo.test.functional.CompactionIT.TIMEOUT_MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -78,7 +77,6 @@ import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.bouncycastle.util.Arrays;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,7 +85,6 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
 @SuppressWarnings("removal")
-@Timeout(value = TIMEOUT_MINUTES, unit = MINUTES)
 public class CompactionIT extends AccumuloClusterHarness {
 
   public static class TestFilter extends Filter {
@@ -156,7 +153,10 @@ public class CompactionIT extends AccumuloClusterHarness {
 
   private static final int MAX_DATA = 1000;
 
-  public static final int TIMEOUT_MINUTES = 4;
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 4;
+  }
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -473,7 +473,7 @@ public class CompactionIT extends AccumuloClusterHarness {
           executor.execute(r);
         }
         executor.shutdown();
-        executor.awaitTermination(TIMEOUT_MINUTES, MINUTES);
+        executor.awaitTermination(defaultTimeoutSeconds(), SECONDS);
         assertFalse(fail.get(),
             "Failed to successfully run all threads, Check the test output for error");
       }

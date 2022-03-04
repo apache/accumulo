@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -52,16 +51,19 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.Timeout;
 
 // the shutdown test should sort last, so other tests don't break
 @TestMethodOrder(MethodOrderer.MethodName.class)
-@Timeout(value = 1, unit = MINUTES)
 public class ManagerApiIT extends SharedMiniClusterBase {
 
   private static Credentials rootUser;
   private static Credentials regularUser;
   private static Credentials privilegedUser;
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
 
   @BeforeAll
   public static void setup() throws Exception {

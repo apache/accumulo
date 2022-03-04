@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -35,16 +34,19 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@Timeout(value = 2, unit = MINUTES)
 public class DumpConfigIT extends ConfigurableMacBase {
 
   @TempDir
   private static File tempDir;
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 2;
+  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

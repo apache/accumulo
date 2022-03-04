@@ -18,11 +18,6 @@
  */
 package org.apache.accumulo.test;
 
-// When reviewing the changes for ACCUMULO-3423, kturner suggested
-// "tablets will now have log references that contain no data,
-// so it may be marked with 3 WALs, the first with data, the 2nd without, a 3rd with data.
-// It would be useful to have an IT that will test this situation.
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.List;
@@ -50,12 +45,15 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Iterators;
 
-@Timeout(value = 4, unit = MINUTES)
 public class UnusedWALIT extends ConfigurableMacBase {
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 4;
+  }
 
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

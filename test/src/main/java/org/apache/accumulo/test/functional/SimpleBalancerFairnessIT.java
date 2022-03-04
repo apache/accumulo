@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -48,9 +47,7 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
-@Timeout(value = 10, unit = MINUTES)
 public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
 
   private static final int NUM_SPLITS = 50;

@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.core.conf.Property.INSTANCE_CRYPTO_PREFIX;
 import static org.apache.accumulo.test.functional.WriteAheadLogIT.testWAL;
 
@@ -32,11 +31,9 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Timeout(value = 10, unit = MINUTES)
 public class WriteAheadLogEncryptedIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(WriteAheadLogEncryptedIT.class);

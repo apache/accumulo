@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -93,7 +92,6 @@ import org.apache.hadoop.io.Text;
 import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -104,8 +102,13 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @Category({StandaloneCapableClusterTests.class, SunnyDayTests.class})
 @Tag("StandaloneCapableClusterTests")
 @Tag("SunnyDayTests")
-@Timeout(value = 6, unit = MINUTES)
 public class ReadWriteIT extends AccumuloClusterHarness {
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 6;
+  }
+
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");

@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -49,11 +48,14 @@ import org.apache.accumulo.core.iterators.OrIterator;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
-@Timeout(value = 1, unit = MINUTES)
 public class OrIteratorIT extends AccumuloClusterHarness {
   private static final String EMPTY = "";
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
 
   @Test
   public void testMultipleRowsInTablet() throws Exception {

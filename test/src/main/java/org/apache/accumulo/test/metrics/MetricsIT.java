@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.metrics;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -45,14 +44,17 @@ import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
 import io.micrometer.core.instrument.MeterRegistry;
 
-@Timeout(value = 1, unit = MINUTES)
 public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
 
   private static TestStatsDSink sink;
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
 
   @BeforeAll
   public static void before() throws Exception {

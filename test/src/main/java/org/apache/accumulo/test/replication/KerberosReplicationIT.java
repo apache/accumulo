@@ -68,7 +68,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,13 +80,17 @@ import com.google.common.collect.Iterators;
 @Category(MiniClusterOnlyTests.class)
 @Tag("MiniClusterOnlyTests")
 @Deprecated
-@Timeout(60 * 3)
 public class KerberosReplicationIT extends AccumuloITBase {
   private static final Logger log = LoggerFactory.getLogger(KerberosIT.class);
 
   private static TestingKdc kdc;
   private static String krbEnabledForITs = null;
   private static ClusterUser rootUser;
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 3;
+  }
 
   @BeforeAll
   public static void startKdc() throws Exception {

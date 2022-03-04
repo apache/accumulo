@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -45,11 +44,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Iterators;
 
-@Timeout(value = 4, unit = MINUTES)
 public class VerifySerialRecoveryIT extends ConfigurableMacBase {
 
   private static final byte[] HEXCHARS = {0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38,
@@ -65,6 +62,11 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
       hex[count++] = HEXCHARS[x & 0xf];
     }
     return hex;
+  }
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 4;
   }
 
   @Override

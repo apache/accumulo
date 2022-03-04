@@ -18,10 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-/**
- * Check SSL for the Monitor
- */
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
@@ -49,12 +45,16 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@Timeout(value = 6, unit = MINUTES)
 public class MonitorSslIT extends ConfigurableMacBase {
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 6;
+  }
+
   @BeforeAll
   public static void initHttps() throws NoSuchAlgorithmException, KeyManagementException {
     SSLContext ctx = SSLContext.getInstance("TLSv1.2");

@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.EnumSet;
@@ -40,11 +39,9 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Iterators;
 
-@Timeout(value = 2, unit = MINUTES)
 public class ConcurrencyIT extends AccumuloClusterHarness {
 
   static class ScanTask extends Thread {
@@ -71,6 +68,11 @@ public class ConcurrencyIT extends AccumuloClusterHarness {
         throw new IllegalStateException(e);
       }
     }
+  }
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 2;
   }
 
   @Override

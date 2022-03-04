@@ -106,7 +106,6 @@ import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -125,7 +124,6 @@ import com.google.protobuf.TextFormat;
  */
 @Disabled("Replication ITs are not stable and not currently maintained")
 @Deprecated
-@Timeout(60 * 10)
 public class ReplicationIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(ReplicationIT.class);
   private static final long MILLIS_BETWEEN_REPLICATION_TABLE_ONLINE_CHECKS = 5000L;

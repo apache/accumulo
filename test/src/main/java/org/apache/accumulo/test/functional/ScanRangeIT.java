@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
-
 import java.util.Map.Entry;
 import java.util.TreeSet;
 
@@ -36,15 +34,18 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
-@Timeout(value = 2, unit = MINUTES)
 public class ScanRangeIT extends AccumuloClusterHarness {
 
   private static final int TS_LIMIT = 1;
   private static final int CQ_LIMIT = 5;
   private static final int CF_LIMIT = 5;
   private static final int ROW_LIMIT = 100;
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 2;
+  }
 
   @Test
   public void run() throws Exception {

@@ -55,13 +55,11 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
 import com.beust.jcommander.Parameter;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@Timeout(60)
 public class RowHashIT extends ConfigurableMacBase {
 
   public static final String hadoopTmpDirArg =
@@ -72,6 +70,11 @@ public class RowHashIT extends ConfigurableMacBase {
   static final String input_cq = "cq-NOTHASHED";
   static final String input_cfcq = input_cf + ":" + input_cq;
   static final String output_cq = "cq-MD4BASE64";
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
 
   @Test
   public void test() throws Exception {

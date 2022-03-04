@@ -19,7 +19,6 @@
 package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -59,7 +58,6 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -71,7 +69,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * installed instance, instead piping everything through stdout and writing to a set location so we
  * have to find the logs and grep the bits we need out.
  */
-@Timeout(value = 1, unit = MINUTES)
 public class AuditMessageIT extends ConfigurableMacBase {
 
   private static final String AUDIT_USER_1 = "AuditUser1";
@@ -81,6 +78,11 @@ public class AuditMessageIT extends ConfigurableMacBase {
   private static final String NEW_TEST_TABLE_NAME = "oranges";
   private static final String THIRD_TEST_TABLE_NAME = "pears";
   private static final Authorizations auths = new Authorizations("private", "public");
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
 
   @Override
   public void beforeClusterStart(MiniAccumuloConfigImpl cfg) {

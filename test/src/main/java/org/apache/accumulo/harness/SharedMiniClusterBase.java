@@ -61,8 +61,8 @@ import org.slf4j.LoggerFactory;
  *
  * Implementations of this class must be sure to invoke {@link #startMiniCluster()} or
  * {@link #startMiniClusterWithConfig(MiniClusterConfigurationCallback)} in a method annotated with
- * the {@link BeforeAll} JUnit annotation and {@link #stopMiniCluster()} in a method annotated with
- * the {@link AfterAll} JUnit annotation.
+ * the {@link org.junit.jupiter.api.BeforeAll} JUnit annotation and {@link #stopMiniCluster()} in a
+ * method annotated with the {@link org.junit.jupiter.api.AfterAll} JUnit annotation.
  */
 @Category(MiniClusterOnlyTests.class)
 @Tag("MiniClusterOnlyTests")

@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Collections;
@@ -42,15 +41,18 @@ import org.apache.accumulo.test.functional.YieldingIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // ACCUMULO-4643
-@Timeout(value = 1, unit = MINUTES)
 public class YieldScannersIT extends AccumuloClusterHarness {
   Logger log = LoggerFactory.getLogger(YieldScannersIT.class);
   private static final char START_ROW = 'a';
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

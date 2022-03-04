@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.replication;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -64,7 +63,6 @@ import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,7 +74,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @Category(MiniClusterOnlyTests.class)
 @Tag("MiniClusterOnlyTests")
 @Deprecated
-@Timeout(value = 10, unit = MINUTES)
 public class CyclicReplicationIT extends WithTestNames {
   private static final Logger log = LoggerFactory.getLogger(CyclicReplicationIT.class);
 

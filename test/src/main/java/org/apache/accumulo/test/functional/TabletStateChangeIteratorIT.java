@@ -18,11 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-/**
- * Test to ensure that the {@link TabletStateChangeIterator} properly skips over tablet information
- * in the metadata table when there is no work to be done on the tablet (see ACCUMULO-3580)
- */
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
@@ -71,15 +66,18 @@ import org.apache.accumulo.server.manager.state.MergeInfo;
 import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
-@Timeout(value = 3, unit = MINUTES)
 public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
   private final static Logger log = LoggerFactory.getLogger(TabletStateChangeIteratorIT.class);
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 3;
+  }
 
   @Test
   public void test() throws AccumuloException, AccumuloSecurityException, TableExistsException,

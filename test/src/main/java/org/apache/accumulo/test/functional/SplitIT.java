@@ -19,7 +19,6 @@
 package org.apache.accumulo.test.functional;
 
 import static java.util.Collections.singletonMap;
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -55,13 +54,16 @@ import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Timeout(value = 4, unit = MINUTES)
 public class SplitIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(SplitIT.class);
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 4;
+  }
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

@@ -19,7 +19,6 @@
 package org.apache.accumulo.test.functional;
 
 import static java.util.Collections.singletonMap;
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -50,15 +49,18 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@Timeout(value = 4, unit = MINUTES)
 public class LargeRowIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(LargeRowIT.class);
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 4;
+  }
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -89,7 +91,8 @@ public class LargeRowIT extends AccumuloClusterHarness {
           System.getProperty("timeout.factor"));
     }
 
-    assertTrue(timeoutFactor >= 1, "Timeout factor must be greater than or equal to 1");
+    assertTrue(timeoutFactor >= 1,
+        "org.apache.accumulo.Timeout factor must be greater than or equal to 1");
 
     String[] names = getUniqueNames(2);
     REG_TABLE_NAME = names[0];

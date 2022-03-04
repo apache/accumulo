@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -104,7 +105,7 @@ public class AccumuloOutputFormatTest {
     AccumuloOutputFormat.configure().clientProperties(cp).defaultTable(tableName).createTables(true)
         .store(job);
 
-    assertEquals(true, OutputConfigurator.canCreateTables(AccumuloOutputFormat.class, job),
+    assertTrue(OutputConfigurator.canCreateTables(AccumuloOutputFormat.class, job),
         "Should have been able to create table");
   }
 

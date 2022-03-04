@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.Socket;
@@ -31,16 +30,19 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 // ACCUMULO-2757 - make sure we don't make too many more watchers
-@Timeout(value = 1, unit = MINUTES)
 public class WatchTheWatchCountIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(WatchTheWatchCountIT.class);
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

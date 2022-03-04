@@ -96,16 +96,19 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 
-@Timeout(120)
 public class ConditionalWriterIT extends SharedMiniClusterBase {
 
   private static final Logger log = LoggerFactory.getLogger(ConditionalWriterIT.class);
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 2;
+  }
 
   @BeforeAll
   public static void setup() throws Exception {

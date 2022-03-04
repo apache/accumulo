@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -47,14 +45,17 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
 /**
  * Tests iterator class hierarchy bug. The failure condition of this test is to hang on the flush
  * due to a class cast exception on the tserver. See https://github.com/apache/accumulo/issues/2341
  */
-@Timeout(value = 1, unit = MINUTES)
 public class IteratorMincClassCastBugIT extends AccumuloClusterHarness {
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

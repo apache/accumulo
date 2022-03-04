@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
-
 import java.util.Iterator;
 import java.util.Map.Entry;
 
@@ -35,13 +33,16 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
 /**
  * This test recreates issue ACCUMULO-516. Until that issue is fixed this test should time out.
  */
-@Timeout(value = 1, unit = MINUTES)
 public class SparseColumnFamilyIT extends AccumuloClusterHarness {
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
 
   @Test
   public void sparceColumnFamily() throws Exception {

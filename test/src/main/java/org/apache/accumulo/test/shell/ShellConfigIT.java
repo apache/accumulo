@@ -40,12 +40,15 @@ import org.apache.accumulo.test.FairVolumeChooser;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
-@Timeout(30)
 public class ShellConfigIT extends AccumuloClusterHarness {
 
   private String origPropValue;
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 30;
+  }
 
   @BeforeEach
   public void checkProperty() throws Exception {

@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.upgrade;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -58,13 +57,16 @@ import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
-@Timeout(value = 5, unit = MINUTES)
 public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
   private static final String OUR_SECRET = "itsreallysecret";
   private static final String OLDDELPREFIX = "~del";
   private static final Upgrader9to10 upgrader = new Upgrader9to10();
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 5;
+  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

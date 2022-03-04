@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.mapreduce;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -51,7 +50,6 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -61,7 +59,6 @@ import com.google.common.collect.Multimap;
  * This tests deprecated mapreduce code in core jar
  */
 @Deprecated(since = "2.0.0")
-@Timeout(value = 4, unit = MINUTES)
 public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
   private String PREFIX;
@@ -75,6 +72,11 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
   @TempDir
   private static File tempDir;
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 4;
+  }
 
   @BeforeEach
   public void setup() throws Exception {

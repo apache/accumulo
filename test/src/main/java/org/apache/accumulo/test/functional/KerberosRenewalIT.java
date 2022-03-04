@@ -73,7 +73,6 @@ import com.google.common.collect.Iterables;
  */
 @Category(MiniClusterOnlyTests.class)
 @Tag("MiniClusterOnlyTests")
-@Timeout(value = TEST_DURATION_MINUTES, unit = MINUTES)
 public class KerberosRenewalIT extends AccumuloITBase {
   private static final Logger log = LoggerFactory.getLogger(KerberosRenewalIT.class);
 
@@ -84,7 +83,13 @@ public class KerberosRenewalIT extends AccumuloITBase {
   private static final long TICKET_LIFETIME = MINUTES.toMillis(6); // Anything less seems to fail
                                                                    // when generating the ticket
   private static final long TICKET_TEST_LIFETIME = MINUTES.toMillis(8); // Run a test for 8 mins
-  public static final long TEST_DURATION_MINUTES = 9; // The test should finish within 9 mins
+
+  public static final int TEST_DURATION_MINUTES = 9; // The test should finish within 9 mins
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * TEST_DURATION_MINUTES;
+  }
 
   @BeforeAll
   public static void startKdc() throws Exception {

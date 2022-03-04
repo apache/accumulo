@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.test.compaction;
 
-// ACCUMULO-2862
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -42,10 +40,13 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
-@Timeout(value = 2, unit = MINUTES)
 public class SplitCancelsMajCIT extends SharedMiniClusterBase {
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 2;
+  }
 
   @BeforeAll
   public static void setup() throws Exception {

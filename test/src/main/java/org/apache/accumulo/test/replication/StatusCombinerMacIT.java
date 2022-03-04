@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.replication;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -52,14 +51,17 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Iterables;
 
 @Disabled("Replication ITs are not stable and not currently maintained")
 @Deprecated
-@Timeout(value = 1, unit = MINUTES)
 public class StatusCombinerMacIT extends SharedMiniClusterBase {
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
 
   @BeforeAll
   public static void setup() throws Exception {

@@ -23,9 +23,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.File;
 import java.io.IOException;
 import java.security.SecureRandom;
+import java.time.Duration;
 
+import org.apache.accumulo.Timeout;
 import org.apache.accumulo.WithTestNames;
 import org.apache.commons.io.FileUtils;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,18 +41,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class AccumuloITBase extends WithTestNames {
   public static final SecureRandom random = new SecureRandom();
   private static final Logger log = LoggerFactory.getLogger(AccumuloITBase.class);
-
-  public static final int DEFAULT_TIMEOUT = 600;
-
-  // @Rule
-  // public TestName testName = new TestName();
-
-  /*
-   * TODO junit - relies on junit4 TestName - replace with version with TestInfo parameter below
-   * public String[] getUniqueNames(int num) { String[] names = new String[num]; for (int i = 0; i <
-   * num; i++) names[i] = this.getClass().getSimpleName() + "_" + testName() + i; return names; }
-   *
-   */
 
   public String[] getUniqueNames(int num) {
     String[] names = new String[num];
@@ -90,7 +82,7 @@ public class AccumuloITBase extends WithTestNames {
    * If a given IT test has a method that takes longer than a class-set default timeout, declare it
    * failed.
    *
-   * Note that this provides a upper bound on test times, even in the presence of Test annotations
+   * Note that this provides an upper bound on test times, even in the presence of Test annotations
    * with a timeout. That is, the Test annotation can make the timing tighter but will not be able
    * to allow a timeout that takes longer.
    *
@@ -104,38 +96,27 @@ public class AccumuloITBase extends WithTestNames {
    * level timeout is set to 0.
    *
    */
+  @RegisterExtension
+  Timeout timeout = Timeout.from(() -> {
+    long waitLonger = 1L;
+    try {
+      String timeoutString = System.getProperty("timeout.factor");
+      if (timeoutString != null && !timeoutString.isEmpty()) {
+        waitLonger = Long.parseLong(timeoutString);
+      }
+    } catch (NumberFormatException exception) {
+      log.warn("Could not parse timeout.factor, defaulting to no timeout.");
+    }
 
-  /*
-   * @Rule public Timeout testsShouldTimeout() { int waitLonger = 0; try { String timeoutString =
-   * System.getProperty("timeout.factor"); if (timeoutString != null && !timeoutString.isEmpty()) {
-   * waitLonger = Integer.parseInt(timeoutString); } } catch (NumberFormatException exception) {
-   * log.warn("Could not parse timeout.factor, defaulting to no timeout."); }
-   *
-   * return Timeout.builder().withTimeout(waitLonger * defaultTimeoutSeconds(), TimeUnit.SECONDS)
-   * .withLookingForStuckThread(true).build(); }
-   *
-   */
-  // public Timeout testsShouldTimeout() {
-  // int waitLonger = 0;
-  // try {
-  // String timeoutString = System.getProperty("timeout.factor");
-  // if (timeoutString != null && !timeoutString.isEmpty()) {
-  // waitLonger = Integer.parseInt(timeoutString);
-  // }
-  // } catch (NumberFormatException exception) {
-  // log.warn("Could not parse timeout.factor, defaulting to no timeout.");
-  // }
-  //
-  // return Timeout.builder().withTimeout(waitLonger * DEFAULT_TIMEOUT, TimeUnit.SECONDS)
-  // .withLookingForStuckThread(true).build();
-  // }
+    return Duration.ofSeconds(waitLonger * defaultTimeoutSeconds());
+  });
 
   /**
-   * time to wait per-method before declaring a timeout, in seconds.
+   * Time to wait per-method before declaring a timeout, in seconds.
    */
-  /*
-   * protected int defaultTimeoutSeconds() { return 600; }
-   */
+  protected int defaultTimeoutSeconds() {
+    return 60 * 10;
+  }
 
   @SuppressFBWarnings(value = "UI_INHERITANCE_UNSAFE_GETRESOURCE", justification = "for testing")
   protected File initJar(String jarResourcePath, String namePrefix, String testDir)

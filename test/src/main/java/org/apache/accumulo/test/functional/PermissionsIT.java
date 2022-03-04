@@ -60,7 +60,6 @@ import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,9 +69,13 @@ import org.slf4j.LoggerFactory;
  */
 @Category(MiniClusterOnlyTests.class)
 @Tag("MiniClusterOnlyTests")
-@Timeout(90)
 public class PermissionsIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(PermissionsIT.class);
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 90;
+  }
 
   @BeforeEach
   public void limitToMini() throws Exception {

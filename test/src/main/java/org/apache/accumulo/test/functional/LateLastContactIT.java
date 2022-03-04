@@ -26,14 +26,17 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
 /**
  * Fake the "tablet stops talking but holds its lock" problem we see when hard drives and NFS fail.
  * Start a ZombieTServer, and see that manager stops it.
  */
-@Timeout(90)
 public class LateLastContactIT extends ConfigurableMacBase {
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 90;
+  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

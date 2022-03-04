@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
-
 import java.util.EnumSet;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -34,11 +32,14 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
 // ACCUMULO-2880
-@Timeout(value = 1, unit = MINUTES)
 public class DeletedTablesDontFlushIT extends SharedMiniClusterBase {
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
 
   @BeforeAll
   public static void setup() throws Exception {

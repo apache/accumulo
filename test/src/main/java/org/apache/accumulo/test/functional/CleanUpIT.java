@@ -38,7 +38,6 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,9 +51,13 @@ import com.google.common.collect.Iterables;
  * will fail (because they attempt to create a Connector). Until the ZooKeeperInstance and Connector
  * are self-contained WRT resource management, we can't leverage the AccumuloClusterBase.
  */
-@Timeout(30)
 public class CleanUpIT extends SharedMiniClusterBase {
   private static final Logger log = LoggerFactory.getLogger(CleanUpIT.class);
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 30;
+  }
 
   @BeforeAll
   public static void setup() throws Exception {

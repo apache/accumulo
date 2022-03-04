@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.mapreduce;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
@@ -45,7 +44,6 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -53,7 +51,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * This tests deprecated mapreduce code in core jar
  */
 @Deprecated(since = "2.0.0")
-@Timeout(value = 1, unit = MINUTES)
 public class MapReduceIT extends ConfigurableMacBase {
 
   public static final String hadoopTmpDirArg =
@@ -65,6 +62,11 @@ public class MapReduceIT extends ConfigurableMacBase {
   static final String input_cfcq = input_cf + ":" + input_cq;
   static final String output_cq = "cq-MD4BASE64";
   static final String output_cfcq = input_cf + ":" + output_cq;
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
 
   @Test
   public void test() throws Exception {

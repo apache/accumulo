@@ -50,15 +50,18 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Category({MiniClusterOnlyTests.class, SunnyDayTests.class})
 @Tag("MiniClusterOnlyTests")
 @Tag("SunnyDayTests")
-@Timeout(180)
 public class ShellIT extends SharedMiniClusterBase {
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 3;
+  }
 
   @BeforeAll
   public static void setup() throws Exception {

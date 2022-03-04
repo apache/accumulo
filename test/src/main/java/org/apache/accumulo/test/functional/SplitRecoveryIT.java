@@ -19,7 +19,6 @@
 package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -77,12 +76,15 @@ import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@Timeout(value = 1, unit = MINUTES)
 public class SplitRecoveryIT extends ConfigurableMacBase {
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
 
   private KeyExtent nke(String table, String endRow, String prevEndRow) {
     return new KeyExtent(TableId.of(table), endRow == null ? null : new Text(endRow),

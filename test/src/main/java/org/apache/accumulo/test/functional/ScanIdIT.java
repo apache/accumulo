@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -61,7 +60,6 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,7 +82,6 @@ import org.slf4j.LoggerFactory;
  * <p>
  * back into org.apache.accumulo.trace.thrift.TInfo until that test signature is regenerated.
  */
-@Timeout(value = 1, unit = MINUTES)
 public class ScanIdIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(ScanIdIT.class);
@@ -98,6 +95,11 @@ public class ScanIdIT extends AccumuloClusterHarness {
   private static final AtomicBoolean testInProgress = new AtomicBoolean(true);
 
   private static final Map<Integer,Value> resultsByWorker = new ConcurrentHashMap<>();
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
 
   /**
    * @throws Exception

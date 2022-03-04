@@ -46,10 +46,13 @@ import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
-@Timeout(120)
 public class LocatorIT extends AccumuloClusterHarness {
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 2;
+  }
 
   private void assertContains(Locations locations, HashSet<String> tservers,
       Map<Range,Set<TabletId>> expected1, Map<TabletId,Set<Range>> expected2) {

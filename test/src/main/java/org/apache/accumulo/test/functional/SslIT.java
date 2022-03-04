@@ -18,13 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-/**
- * Do a selection of ITs with SSL turned on that cover a range of different connection scenarios.
- * Note that you can run *all* the ITs against SSL-enabled mini clusters with `mvn verify
- * -DuseSslForIT`
- */
-import static java.util.concurrent.TimeUnit.MINUTES;
-
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -34,10 +27,13 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
-@Timeout(value = 6, unit = MINUTES)
 public class SslIT extends ConfigurableMacBase {
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 6;
+  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

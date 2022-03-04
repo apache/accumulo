@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -91,7 +90,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.function.Executable;
 
 /**
@@ -99,12 +97,16 @@ import org.junit.jupiter.api.function.Executable;
  */
 @Category(MiniClusterOnlyTests.class)
 @Tag("MiniClusterOnlyTests")
-@Timeout(value = 1, unit = MINUTES)
 public class NamespacesIT extends SharedMiniClusterBase {
 
   private AccumuloClient c;
   private String namespace;
   private static final int MAX_NAMESPACE_LEN = 1024;
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
 
   @BeforeAll
   public static void setup() throws Exception {

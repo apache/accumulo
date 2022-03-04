@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
@@ -53,13 +52,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Category(SunnyDayTests.class)
 @Tag("SunnyDayTests")
-@Timeout(value = 1, unit = MINUTES)
 public class ScanIteratorIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(ScanIteratorIT.class);
 
@@ -67,6 +64,11 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
   private String tableName;
   private String user;
   private boolean saslEnabled;
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
 
   @BeforeEach
   public void setup() throws Exception {

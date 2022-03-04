@@ -21,7 +21,7 @@ package org.apache.accumulo.test.functional;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static org.apache.accumulo.test.functional.FateConcurrencyIT.TIMEOUT_MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -57,7 +57,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,10 +71,7 @@ import org.slf4j.LoggerFactory;
  * (original) and additional method without.</li>
  * </ul>
  */
-@Timeout(value = TIMEOUT_MINUTES, unit = MINUTES)
 public class FateConcurrencyIT extends AccumuloClusterHarness {
-
-  public static final int TIMEOUT_MINUTES = 4;
 
   private static final Logger log = LoggerFactory.getLogger(FateConcurrencyIT.class);
 
@@ -93,12 +89,17 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
   private SlowOps slowOps;
 
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 4;
+  }
+
   @BeforeEach
   public void setup() {
     client = Accumulo.newClient().from(getClientProps()).build();
     context = (ClientContext) client;
     secret = cluster.getSiteConfiguration().get(Property.INSTANCE_SECRET);
-    maxWaitMillis = Math.max(MINUTES.toMillis(1), MINUTES.toMillis(TIMEOUT_MINUTES) / 2);
+    maxWaitMillis = Math.max(MINUTES.toMillis(1), SECONDS.toMillis(defaultTimeoutSeconds()) / 2);
   }
 
   @AfterEach

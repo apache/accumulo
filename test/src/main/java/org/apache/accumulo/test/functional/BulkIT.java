@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
-
 import java.io.IOException;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -39,18 +37,21 @@ import org.apache.hadoop.fs.Path;
 import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
 /**
  * Tests Old and New Bulk import
  */
 @Category(SunnyDayTests.class)
 @Tag("SunnyDayTests")
-@Timeout(value = 4, unit = MINUTES)
 public class BulkIT extends AccumuloClusterHarness {
 
   private static final int N = 100000;
   private static final int COUNT = 5;
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 4;
+  }
 
   @Test
   public void test() throws Exception {

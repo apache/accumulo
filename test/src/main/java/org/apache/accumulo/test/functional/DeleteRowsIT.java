@@ -18,17 +18,15 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -41,31 +39,31 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
 
-@Timeout(value = 5, unit = MINUTES)
 public class DeleteRowsIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(DeleteRowsIT.class);
 
   private static final int ROWS_PER_TABLET = 10;
-  private static final String[] LETTERS = {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k",
-      "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"};
-  static final SortedSet<Text> SPLITS = new TreeSet<>();
+  private static final List<String> LETTERS = List.of("a", "b", "c", "d", "e", "f", "g", "h", "i",
+      "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z");
+  static final TreeSet<Text> SPLITS =
+      LETTERS.stream().map(Text::new).collect(Collectors.toCollection(TreeSet::new));
+
+  static final List<String> ROWS = new ArrayList<>(LETTERS);
+  // put data on first and last tablet
   static {
-    for (String alpha : LETTERS) {
-      SPLITS.add(new Text(alpha));
-    }
-  }
-  static final List<String> ROWS = new ArrayList<>(Arrays.asList(LETTERS));
-  static {
-    // put data on first and last tablet
     ROWS.add("A");
     ROWS.add("{");
+  }
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 5;
   }
 
   @Test

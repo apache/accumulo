@@ -52,7 +52,6 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -61,7 +60,6 @@ import com.google.common.collect.Multimap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not from user input")
-@Timeout(4 * 60)
 public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
   private String PREFIX;
@@ -72,6 +70,11 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
   private static final SamplerConfiguration SAMPLER_CONFIG =
       new SamplerConfiguration(RowSampler.class.getName()).addOption("hasher", "murmur3_32")
           .addOption("modulus", "3");
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 4 * 60;
+  }
 
   @TempDir
   private static File tempDir;

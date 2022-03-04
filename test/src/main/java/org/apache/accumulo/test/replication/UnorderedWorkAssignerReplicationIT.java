@@ -73,7 +73,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,13 +80,17 @@ import com.google.common.collect.Iterators;
 
 @Disabled("Replication ITs are not stable and not currently maintained")
 @Deprecated
-@Timeout(60 * 6)
 public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
   private static final Logger log =
       LoggerFactory.getLogger(UnorderedWorkAssignerReplicationIT.class);
 
   private ExecutorService executor;
   private int timeoutFactor = 1;
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 6;
+  }
 
   @BeforeEach
   public void createExecutor() {
@@ -743,7 +746,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
       // Wait until we fully replicated something
       boolean fullyReplicated = false;
       for (int i = 0; i < 10 && !fullyReplicated; i++) {
-        sleepUninterruptibly(timeoutFactor * 2, TimeUnit.SECONDS);
+        sleepUninterruptibly(timeoutFactor * 2L, TimeUnit.SECONDS);
 
         try (Scanner s = ReplicationTable.getScanner(clientManager)) {
           WorkSection.limit(s);

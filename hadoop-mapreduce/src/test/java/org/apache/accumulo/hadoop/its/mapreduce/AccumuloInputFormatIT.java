@@ -23,6 +23,7 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -68,7 +69,6 @@ import org.apache.hadoop.util.ToolRunner;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
@@ -78,11 +78,15 @@ import com.google.common.collect.Multimap;
  *
  * @since 2.0
  */
-@Timeout(4 * 60)
 public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
   AccumuloInputFormat inputFormat;
   AccumuloClient client;
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 4 * 60;
+  }
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -420,8 +424,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     RangeInputSplit risplit = (RangeInputSplit) split;
 
     assertEquals(table, risplit.getTableName());
-    assertEquals(true, risplit.isIsolatedScan());
-    assertEquals(true, risplit.usesLocalIterators());
+    assertTrue(risplit.isIsolatedScan());
+    assertTrue(risplit.usesLocalIterators());
     assertEquals(fetchColumnsText, risplit.getFetchedColumns());
   }
 

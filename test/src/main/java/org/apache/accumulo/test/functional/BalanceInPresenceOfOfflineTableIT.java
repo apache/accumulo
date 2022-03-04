@@ -19,7 +19,6 @@
 package org.apache.accumulo.test.functional;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -58,7 +57,6 @@ import org.apache.thrift.TException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,10 +64,10 @@ import org.slf4j.LoggerFactory;
  * Start a new table, create many splits, and offline before they can rebalance. Then try to have a
  * different table balance
  */
-@Timeout(value = 10, unit = MINUTES)
 public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
-  private static Logger log = LoggerFactory.getLogger(BalanceInPresenceOfOfflineTableIT.class);
+  private static final Logger log =
+      LoggerFactory.getLogger(BalanceInPresenceOfOfflineTableIT.class);
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

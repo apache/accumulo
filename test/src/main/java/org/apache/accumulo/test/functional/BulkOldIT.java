@@ -18,11 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-/**
- * Tests old bulk import technique. For new bulk import see {@link BulkNewIT}
- */
-import static java.util.concurrent.TimeUnit.MINUTES;
-
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -50,10 +45,13 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
-@Timeout(value = 4, unit = MINUTES)
 public class BulkOldIT extends AccumuloClusterHarness {
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 4;
+  }
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration conf) {

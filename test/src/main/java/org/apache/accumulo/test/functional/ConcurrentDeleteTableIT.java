@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -50,13 +49,16 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
-@Timeout(value = 7, unit = MINUTES)
 public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
 
   private final NewTableConfiguration ntc = new NewTableConfiguration().withSplits(createSplits());
   private final int NUM_TABLES = 2;
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 7;
+  }
 
   @Test
   public void testConcurrentDeleteTablesOps() throws Exception {

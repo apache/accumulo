@@ -18,22 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-/**
- * This test verifies tserver behavior when the node experiences certain failure states that cause
- * it to be unresponsive to network I/O and/or disk access.
- *
- * <p>
- * This failure state is simulated in a tserver by running that tserver with a shared library that
- * hooks the read/write system calls. When the shared library sees a specific trigger file, it
- * pauses the system calls and prints "sleeping", until that file is deleted, after which it proxies
- * the system call to the real system implementation.
- *
- * <p>
- * In response to failures of the type this test simulates, the tserver should recover if the system
- * call is stalled for less than the ZooKeeper timeout. Otherwise, it should lose its lock in
- * ZooKeeper and terminate itself.
- */
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -63,12 +47,15 @@ import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@Timeout(value = 4, unit = MINUTES)
 public class HalfDeadTServerIT extends ConfigurableMacBase {
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 4;
+  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

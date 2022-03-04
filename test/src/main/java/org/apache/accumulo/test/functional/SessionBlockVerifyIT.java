@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -48,7 +47,6 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,9 +56,13 @@ import com.google.common.collect.Iterables;
  * Verify that we have resolved blocking issue by ensuring that we have not lost scan sessions which
  * we know to currently be running
  */
-@Timeout(value = 1, unit = MINUTES)
 public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
   private static final Logger log = LoggerFactory.getLogger(SessionBlockVerifyIT.class);
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
 
   @Override
   public boolean canRunTest(ClusterType type) {

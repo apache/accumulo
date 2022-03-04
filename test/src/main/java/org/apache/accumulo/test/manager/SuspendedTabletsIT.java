@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.manager;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -72,14 +71,12 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
 
-@Timeout(value = 5, unit = MINUTES)
 public class SuspendedTabletsIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(SuspendedTabletsIT.class);
   private static ExecutorService THREAD_POOL;
@@ -89,6 +86,11 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
   public static final int TABLETS = 30;
 
   private ProcessReference metadataTserverProcess;
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 5;
+  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration fsConf) {
