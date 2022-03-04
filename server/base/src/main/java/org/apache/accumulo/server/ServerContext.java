@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -158,8 +159,7 @@ public class ServerContext extends ClientContext {
     if (systemConfig == null) {
       // system configuration uses its own instance of ZooCache
       // this could be useful to keep its update counter independent
-      ZooCache propCache =
-          new ZooCache(new ZooReader(getZooKeepers(), getZooKeepersSessionTimeOut()), null);
+      ZooCache propCache = new ZooCache(getZooReader(), null);
       systemConfig = new ZooConfiguration(this, propCache, getSiteConfiguration());
     }
     return systemConfig;
@@ -210,6 +210,11 @@ public class ServerContext extends ClientContext {
 
   public VolumeManager getVolumeManager() {
     return info.getVolumeManager();
+  }
+
+  @Override
+  public ZooReader getZooReader() {
+    return getZooReaderWriter();
   }
 
   public ZooReaderWriter getZooReaderWriter() {
@@ -419,7 +424,7 @@ public class ServerContext extends ClientContext {
   }
 
   private void monitorSwappiness() {
-    getScheduledExecutor().scheduleWithFixedDelay(() -> {
+    ScheduledFuture<?> future = getScheduledExecutor().scheduleWithFixedDelay(() -> {
       try {
         String procFile = "/proc/sys/vm/swappiness";
         File swappiness = new File(procFile);
@@ -441,6 +446,7 @@ public class ServerContext extends ClientContext {
         log.error("", t);
       }
     }, SECONDS.toMillis(1), MINUTES.toMillis(10), TimeUnit.MILLISECONDS);
+    ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
   /**

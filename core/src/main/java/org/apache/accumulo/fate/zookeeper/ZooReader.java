@@ -54,6 +54,10 @@ public class ZooReader {
     this.timeout = timeout;
   }
 
+  public ZooReaderWriter asWriter(String secret) {
+    return new ZooReaderWriter(keepers, timeout, secret);
+  }
+
   protected ZooKeeper getZooKeeper() {
     return ZooSession.getAnonymousSession(keepers, timeout);
   }

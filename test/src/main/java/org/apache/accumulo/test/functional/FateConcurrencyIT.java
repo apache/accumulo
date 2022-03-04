@@ -250,8 +250,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       try {
 
         InstanceId instanceId = context.getInstanceID();
-        ZooReaderWriter zk = new ZooReaderWriter(context.getZooKeepers(),
-            context.getZooKeepersSessionTimeOut(), secret);
+        ZooReaderWriter zk = context.getZooReader().asWriter(secret);
         ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk);
 
         withLocks = admin.getStatus(zs, zk,
@@ -342,8 +341,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       log.trace("tid: {}", tableId);
 
       InstanceId instanceId = context.getInstanceID();
-      ZooReaderWriter zk = new ZooReaderWriter(context.getZooKeepers(),
-          context.getZooKeepersSessionTimeOut(), secret);
+      ZooReaderWriter zk = context.getZooReader().asWriter(secret);
       ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk);
       AdminUtil.FateStatus fateStatus = admin.getStatus(zs, zk,
           ZooUtil.getRoot(instanceId) + Constants.ZTABLE_LOCKS + "/" + tableId, null, null);

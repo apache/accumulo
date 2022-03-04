@@ -48,7 +48,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ExternalCompactionSection;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
@@ -163,7 +162,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   @Override
   public Iterator<String> getGcCandidates(DataLevel level) {
     if (level == DataLevel.ROOT) {
-      var zooReader = new ZooReader(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
+      var zooReader = context.getZooReader();
       byte[] json;
       try {
         json = zooReader.getData(context.getZooKeeperRoot() + RootTable.ZROOT_TABLET_GC_CANDIDATES);

@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.compaction;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -45,7 +46,9 @@ public class ExternalDoNothingCompactor extends Compactor implements Iface {
   @Override
   protected void startCancelChecker(ScheduledThreadPoolExecutor schedExecutor,
       long timeBetweenChecks) {
-    schedExecutor.scheduleWithFixedDelay(() -> checkIfCanceled(), 0, 5000, TimeUnit.MILLISECONDS);
+    @SuppressWarnings("unused")
+    ScheduledFuture<?> future = schedExecutor.scheduleWithFixedDelay(() -> checkIfCanceled(), 0,
+        5000, TimeUnit.MILLISECONDS);
   }
 
   @Override

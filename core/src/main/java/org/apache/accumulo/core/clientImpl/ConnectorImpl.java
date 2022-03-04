@@ -20,6 +20,8 @@ package org.apache.accumulo.core.clientImpl;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+import java.util.List;
+
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
@@ -36,6 +38,7 @@ import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.client.admin.ReplicationOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.singletons.SingletonManager;
@@ -77,7 +80,43 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
 
   @Override
   public org.apache.accumulo.core.client.Instance getInstance() {
-    return context.getDeprecatedInstance();
+    return new org.apache.accumulo.core.client.Instance() {
+      @Override
+      public String getRootTabletLocation() {
+        return context.getRootTabletLocation();
+      }
+
+      @Override
+      public List<String> getMasterLocations() {
+        return context.getManagerLocations();
+      }
+
+      @Override
+      public String getInstanceID() {
+        return context.getInstanceID().canonical();
+      }
+
+      @Override
+      public String getInstanceName() {
+        return context.getInstanceName();
+      }
+
+      @Override
+      public String getZooKeepers() {
+        return context.getZooKeepers();
+      }
+
+      @Override
+      public int getZooKeepersSessionTimeOut() {
+        return context.getZooKeepersSessionTimeOut();
+      }
+
+      @Override
+      public org.apache.accumulo.core.client.Connector getConnector(String principal,
+          AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
+        return org.apache.accumulo.core.client.Connector.from(context);
+      }
+    };
   }
 
   @Override

@@ -119,6 +119,7 @@ public class FateIT {
       new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   private static ZooKeeperTestingServer szk = null;
+  private static ZooReaderWriter zk = null;
   private static final String ZK_ROOT = "/accumulo/" + UUID.randomUUID().toString();
   private static final NamespaceId NS = NamespaceId.of("testNameSpace");
   private static final TableId TID = TableId.of("testTable");
@@ -129,7 +130,7 @@ public class FateIT {
   @BeforeClass
   public static void setup() throws Exception {
     szk = new ZooKeeperTestingServer(TEMP.newFolder());
-    ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
+    zk = szk.getZooReaderWriter();
     zk.mkdirs(ZK_ROOT + Constants.ZFATE);
     zk.mkdirs(ZK_ROOT + Constants.ZTABLE_LOCKS);
     zk.mkdirs(ZK_ROOT + Constants.ZNAMESPACES + "/" + NS.canonical());
@@ -145,7 +146,6 @@ public class FateIT {
   @Test(timeout = 30000)
   public void testTransactionStatus() throws Exception {
 
-    final ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
     final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
     final AgeOffStore<Manager> store =
         new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
@@ -207,7 +207,6 @@ public class FateIT {
 
   @Test
   public void testCancelWhileNew() throws Exception {
-    final ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
     final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
     final AgeOffStore<Manager> store =
         new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
@@ -248,7 +247,6 @@ public class FateIT {
 
   @Test
   public void testCancelWhileSubmittedNotRunning() throws Exception {
-    final ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
     final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
     final AgeOffStore<Manager> store =
         new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
@@ -282,7 +280,6 @@ public class FateIT {
 
   @Test
   public void testCancelWhileSubmittedAndRunning() throws Exception {
-    final ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
     final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
     final AgeOffStore<Manager> store =
         new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
@@ -325,7 +322,6 @@ public class FateIT {
 
   @Test
   public void testCancelWhileInCall() throws Exception {
-    final ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
     final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
     final AgeOffStore<Manager> store =
         new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);

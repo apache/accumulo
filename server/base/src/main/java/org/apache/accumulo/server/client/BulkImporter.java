@@ -153,7 +153,7 @@ public class BulkImporter {
               assignments.put(mapFile, tabletsToAssignMapFileTo);
           }
         };
-        threadPool.submit(getAssignments);
+        threadPool.execute(getAssignments);
       }
       threadPool.shutdown();
       while (!threadPool.isTerminated()) {
@@ -396,7 +396,7 @@ public class BulkImporter {
         }
       };
 
-      threadPool.submit(estimationTask);
+      threadPool.execute(estimationTask);
     }
 
     threadPool.shutdown();
@@ -541,7 +541,7 @@ public class BulkImporter {
     for (Entry<String,Map<KeyExtent,List<PathSize>>> entry : assignmentsPerTabletServer
         .entrySet()) {
       String location = entry.getKey();
-      threadPool.submit(new AssignmentTask(assignmentFailures, location, entry.getValue()));
+      threadPool.execute(new AssignmentTask(assignmentFailures, location, entry.getValue()));
     }
 
     threadPool.shutdown();

@@ -483,7 +483,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       Configuration hadoopConf = config.getHadoopConfiguration();
       ServerDirs serverDirs = new ServerDirs(acuConf, hadoopConf);
 
-      ConfigurationCopy cc = new ConfigurationCopy(acuConf);
       Path instanceIdPath;
       try (var fs = getServerContext().getVolumeManager()) {
         instanceIdPath = serverDirs.getInstanceIdLocation(fs.getFirst());
@@ -493,8 +492,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
       InstanceId instanceIdFromFile =
           VolumeManager.getInstanceIDFromHdfs(instanceIdPath, hadoopConf);
-      ZooReaderWriter zrw = new ZooReaderWriter(cc.get(Property.INSTANCE_ZK_HOST),
-          (int) cc.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), cc.get(Property.INSTANCE_SECRET));
+      ZooReaderWriter zrw = getServerContext().getZooReaderWriter();
 
       String rootPath = ZooUtil.getRoot(instanceIdFromFile);
 
