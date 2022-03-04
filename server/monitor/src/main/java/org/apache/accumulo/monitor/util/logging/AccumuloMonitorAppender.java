@@ -26,8 +26,10 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
+import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
@@ -122,7 +124,9 @@ public class AccumuloMonitorAppender extends AbstractAppender {
 
         var req = HttpRequest.newBuilder(uri).POST(BodyPublishers.ofString(jsonEvent, UTF_8))
             .setHeader("Content-Type", "application/json").build();
-        httpClient.sendAsync(req, BodyHandlers.discarding());
+        @SuppressWarnings("unused")
+        CompletableFuture<HttpResponse<Void>> future =
+            httpClient.sendAsync(req, BodyHandlers.discarding());
       } catch (final Exception e) {
         error("Unable to send HTTP in appender [" + getName() + "]", event, e);
       }

@@ -240,7 +240,7 @@ public class Fate<T> {
     final ThreadPoolExecutor pool =
         ThreadPools.createExecutorService(conf, Property.MANAGER_FATE_THREADPOOL_SIZE, true);
     fatePoolWatcher = ThreadPools.createGeneralScheduledExecutorService(conf);
-    fatePoolWatcher.schedule(() -> {
+    ThreadPools.watchCriticalScheduledTask(fatePoolWatcher.schedule(() -> {
       // resize the pool if the property changed
       ThreadPools.resizePool(pool, conf, Property.MANAGER_FATE_THREADPOOL_SIZE);
       // If the pool grew, then ensure that there is a TransactionRunner for each thread
@@ -262,7 +262,7 @@ public class Fate<T> {
           }
         }
       }
-    }, 3, SECONDS);
+    }, 3, SECONDS));
     executor = pool;
   }
 

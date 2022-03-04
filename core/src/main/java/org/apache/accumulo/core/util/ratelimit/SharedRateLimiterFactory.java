@@ -25,6 +25,7 @@ import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -43,6 +44,7 @@ public class SharedRateLimiterFactory {
   private static final long REPORT_RATE = 60000;
   private static final long UPDATE_RATE = 1000;
   private static SharedRateLimiterFactory instance = null;
+  private static ScheduledFuture<?> updateTaskFuture;
   private final Logger log = LoggerFactory.getLogger(SharedRateLimiterFactory.class);
   private final WeakHashMap<String,WeakReference<SharedRateLimiter>> activeLimiters =
       new WeakHashMap<>();
@@ -55,13 +57,14 @@ public class SharedRateLimiterFactory {
       instance = new SharedRateLimiterFactory();
 
       ScheduledThreadPoolExecutor svc = ThreadPools.createGeneralScheduledExecutorService(conf);
-      svc.scheduleWithFixedDelay(Threads
+      updateTaskFuture = svc.scheduleWithFixedDelay(Threads
           .createNamedRunnable("SharedRateLimiterFactory update polling", instance::updateAll),
           UPDATE_RATE, UPDATE_RATE, MILLISECONDS);
 
-      svc.scheduleWithFixedDelay(Threads
+      ScheduledFuture<?> future = svc.scheduleWithFixedDelay(Threads
           .createNamedRunnable("SharedRateLimiterFactory report polling", instance::reportAll),
           REPORT_RATE, REPORT_RATE, MILLISECONDS);
+      ThreadPools.watchNonCriticalScheduledTask(future);
 
     }
     return instance;
@@ -91,6 +94,9 @@ public class SharedRateLimiterFactory {
    */
   public RateLimiter create(String name, RateProvider rateProvider) {
     synchronized (activeLimiters) {
+      if (updateTaskFuture.isDone()) {
+        log.warn("SharedRateLimiterFactory update task has failed.");
+      }
       var limiterRef = activeLimiters.get(name);
       var limiter = limiterRef == null ? null : limiterRef.get();
       if (limiter == null) {
