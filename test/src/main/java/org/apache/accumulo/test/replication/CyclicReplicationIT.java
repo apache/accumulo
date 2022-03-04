@@ -26,11 +26,13 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.Timeout;
 import org.apache.accumulo.WithTestNames;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -63,6 +65,7 @@ import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,6 +79,21 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @Deprecated
 public class CyclicReplicationIT extends WithTestNames {
   private static final Logger log = LoggerFactory.getLogger(CyclicReplicationIT.class);
+
+  @RegisterExtension
+  Timeout timeout = Timeout.from(() -> {
+    long waitLonger = 1L;
+    try {
+      String timeoutString = System.getProperty("timeout.factor");
+      if (timeoutString != null && !timeoutString.isEmpty()) {
+        waitLonger = Long.parseLong(timeoutString);
+      }
+    } catch (NumberFormatException exception) {
+      log.warn("Could not parse timeout.factor, not scaling timeout");
+    }
+
+    return Duration.ofMinutes(waitLonger * 10);
+  });
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   private File createTestDir(String name) {

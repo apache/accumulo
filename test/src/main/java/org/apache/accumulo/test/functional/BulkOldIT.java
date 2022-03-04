@@ -46,6 +46,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
+/**
+ * Tests old bulk import technique. For new bulk import see {@link BulkNewIT}
+ */
 public class BulkOldIT extends AccumuloClusterHarness {
 
   @Override

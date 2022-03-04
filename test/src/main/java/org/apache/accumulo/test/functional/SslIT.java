@@ -28,6 +28,11 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.Test;
 
+/**
+ * Do a selection of ITs with SSL turned on that cover a range of different connection scenarios.
+ * Note that you can run *all* the ITs against SSL-enabled mini clusters with `mvn verify
+ * -DuseSslForIT`
+ */
 public class SslIT extends ConfigurableMacBase {
 
   @Override

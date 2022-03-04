@@ -43,6 +43,7 @@ import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterators;
 
+// ACCUMULO-3211
 public class MetaRecoveryIT extends ConfigurableMacBase {
 
   @Override

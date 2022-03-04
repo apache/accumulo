@@ -48,6 +48,9 @@ import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+/**
+ * Check SSL for the Monitor
+ */
 public class MonitorSslIT extends ConfigurableMacBase {
 
   @Override

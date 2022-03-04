@@ -25,6 +25,11 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
 
+/**
+ * Run all the same tests as SslIT, but with client auth turned on.
+ *
+ * All the methods are overridden just to make it easier to run individual tests from an IDE.
+ */
 public class SslWithClientAuthIT extends SslIT {
 
   @Override

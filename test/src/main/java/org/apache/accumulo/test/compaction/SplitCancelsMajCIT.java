@@ -41,6 +41,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+// ACCUMULO-2862
 public class SplitCancelsMajCIT extends SharedMiniClusterBase {
 
   @Override

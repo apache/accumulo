@@ -38,6 +38,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+/**
+ * This test verifies that when a lot of files are bulk imported into a table with one tablet and
+ * then splits that not all map files go to the children tablets.
+ */
 public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
 
   @Override

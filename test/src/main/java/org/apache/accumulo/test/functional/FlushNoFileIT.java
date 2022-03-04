@@ -102,12 +102,10 @@ public class FlushNoFileIT extends AccumuloClusterHarness {
       assertTrue(secondFlushId > flushId, "Flush ID did not change");
 
       try (Scanner scanner = c.createScanner(tableName)) {
-        assertEquals("Expected 0 Entries in table", 0, Iterables.size(scanner));
+        assertEquals(0, Iterables.size(scanner), "Expected 0 Entries in table");
       }
     }
   }
-
-  private void assertEquals(String s, int i, int size) {}
 
   public static class NullIterator implements SortedKeyValueIterator<Key,Value> {
 

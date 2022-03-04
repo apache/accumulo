@@ -29,7 +29,6 @@ import java.io.File;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
-import org.apache.accumulo.WithTestNames;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -61,7 +60,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 @Category({ZooKeeperTestingServerTests.class})
 @Tag("ZooKeeperTestingServerTests")
-public class FateIT extends WithTestNames {
+public class FateIT {
 
   public static class TestOperation extends ManagerRepo {
 

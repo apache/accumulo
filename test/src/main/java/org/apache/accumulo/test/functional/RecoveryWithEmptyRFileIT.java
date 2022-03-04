@@ -43,6 +43,16 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * XXX As a part of verifying lossy recovery via inserting an empty rfile, this test deletes test
+ * table tablets. This will require write access to the backing files of the test Accumulo mini
+ * cluster.
+ *
+ * This test should read the file location from the test harness and that file should be on the
+ * local filesystem. If you want to take a paranoid approach just make sure the test user doesn't
+ * have write access to the HDFS files of any colocated live Accumulo instance or any important
+ * local filesystem files..
+ */
 public class RecoveryWithEmptyRFileIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(RecoveryWithEmptyRFileIT.class);
 

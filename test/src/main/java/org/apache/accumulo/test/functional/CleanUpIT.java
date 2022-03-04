@@ -69,11 +69,6 @@ public class CleanUpIT extends SharedMiniClusterBase {
     SharedMiniClusterBase.stopMiniCluster();
   }
 
-  @Test
-  public void testerTimeourer() throws InterruptedException {
-    Thread.sleep(10_000L);
-  }
-
   @SuppressWarnings("deprecation")
   @Test
   public void run() throws Exception {
