@@ -54,8 +54,7 @@ public class ManagerReplicationCoordinator implements ReplicationCoordinator.Ifa
   private final SecurityOperation security;
 
   public ManagerReplicationCoordinator(Manager manager) {
-    this(manager, new ZooReader(manager.getContext().getZooKeepers(),
-        manager.getContext().getZooKeepersSessionTimeOut()));
+    this(manager, manager.getContext().getZooReader());
   }
 
   protected ManagerReplicationCoordinator(Manager manager, ZooReader reader) {

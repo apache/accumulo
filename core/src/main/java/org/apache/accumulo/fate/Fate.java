@@ -81,6 +81,9 @@ public class Fate<T> {
             try {
               deferTime = op.isReady(tid, environment);
 
+              // Here, deferTime is only used to determine success (zero) or failure (non-zero),
+              // proceeding on success and returning to the while loop on failure.
+              // The value of deferTime is only used as a wait time in ZooStore.unreserve
               if (deferTime == 0) {
                 prevOp = op;
                 if (status == TStatus.SUBMITTED) {

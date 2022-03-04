@@ -24,7 +24,6 @@ import java.util.List;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestIngest.IngestParams;
@@ -68,7 +67,7 @@ public class FateStarvationIT extends AccumuloClusterHarness {
 
       c.tableOperations().offline(tableName);
 
-      FunctionalTestUtils.assertNoDanglingFateLocks((ClientContext) c, getCluster());
+      FunctionalTestUtils.assertNoDanglingFateLocks(getCluster());
     }
   }
 }

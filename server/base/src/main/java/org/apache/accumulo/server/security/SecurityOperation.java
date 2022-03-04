@@ -113,7 +113,7 @@ public class SecurityOperation {
   protected SecurityOperation(ServerContext context) {
     this.context = context;
     ZKUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
-    zooCache = new ZooCache(context.getZooReaderWriter(), null);
+    zooCache = new ZooCache(context.getZooReader(), null);
   }
 
   public SecurityOperation(ServerContext context, Authorizor author, Authenticator authent,

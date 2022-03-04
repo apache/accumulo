@@ -116,7 +116,7 @@ public class FateIT {
 
   @Test(timeout = 30000)
   public void testTransactionStatus() throws Exception {
-    ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
+    ZooReaderWriter zk = szk.getZooReaderWriter();
 
     zk.mkdirs(ZK_ROOT + Constants.ZFATE);
     zk.mkdirs(ZK_ROOT + Constants.ZTABLE_LOCKS);

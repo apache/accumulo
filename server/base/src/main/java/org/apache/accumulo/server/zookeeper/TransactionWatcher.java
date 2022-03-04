@@ -62,7 +62,7 @@ public class TransactionWatcher {
 
     public ZooArbitrator(ServerContext context) {
       this.context = context;
-      rdr = new ZooReader(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
+      rdr = context.getZooReader();
     }
 
     @Override

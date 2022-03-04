@@ -74,7 +74,7 @@ public class RecoveryManager {
             .maximumWeight(10_000_000).weigher((path, exist) -> path.toString().length()).build();
 
     executor = ThreadPools.createScheduledExecutorService(4, "Walog sort starter", false);
-    zooCache = new ZooCache(manager.getContext().getZooReaderWriter(), null);
+    zooCache = new ZooCache(manager.getContext().getZooReader(), null);
     try {
       List<String> workIDs =
           new DistributedWorkQueue(manager.getZooKeeperRoot() + Constants.ZRECOVERY,

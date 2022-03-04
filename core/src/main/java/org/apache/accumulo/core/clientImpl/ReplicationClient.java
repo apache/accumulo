@@ -92,8 +92,7 @@ public class ReplicationClient {
 
     // Get the coordinator port for the manager we're trying to connect to
     try {
-      ZooReader reader =
-          new ZooReader(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
+      ZooReader reader = context.getZooReader();
       replCoordinatorAddr = new String(reader.getData(zkPath), UTF_8);
     } catch (KeeperException | InterruptedException e) {
       log.error("Could not fetch remote coordinator port", e);
