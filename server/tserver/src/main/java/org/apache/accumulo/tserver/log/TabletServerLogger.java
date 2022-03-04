@@ -263,7 +263,7 @@ public class TabletServerLogger {
       return;
     }
     nextLogMaker = ThreadPools.createFixedThreadPool(1, "WALog creator", true);
-    nextLogMaker.submit(new Runnable() {
+    nextLogMaker.execute(new Runnable() {
       @Override
       public void run() {
         final ServerResources conf = tserver.getServerConfig();

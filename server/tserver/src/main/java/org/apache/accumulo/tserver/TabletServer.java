@@ -50,6 +50,7 @@ import java.util.UUID;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -244,7 +245,7 @@ public class TabletServer extends AbstractServer {
     super("tserver", opts, args);
     context = super.getContext();
     context.setupCrypto();
-    this.managerLockCache = new ZooCache(context.getZooReaderWriter(), null);
+    this.managerLockCache = new ZooCache(context.getZooReader(), null);
     final AccumuloConfiguration aconf = getConfiguration();
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + getInstanceID());
@@ -267,7 +268,7 @@ public class TabletServer extends AbstractServer {
       // This thread will calculate and log out the busiest tablets based on ingest count and
       // query count every #{logBusiestTabletsDelay}
       if (numBusyTabletsToLog > 0) {
-        context.getScheduledExecutor()
+        ScheduledFuture<?> future = context.getScheduledExecutor()
             .scheduleWithFixedDelay(Threads.createNamedRunnable("BusyTabletLogger", new Runnable() {
               private BusiestTracker ingestTracker =
                   BusiestTracker.newBusiestIngestTracker(numBusyTabletsToLog);
@@ -292,9 +293,10 @@ public class TabletServer extends AbstractServer {
                 }
               }
             }), logBusyTabletsDelay, logBusyTabletsDelay, TimeUnit.MILLISECONDS);
+        ThreadPools.watchNonCriticalScheduledTask(future);
       }
 
-      context.getScheduledExecutor()
+      ScheduledFuture<?> future = context.getScheduledExecutor()
           .scheduleWithFixedDelay(Threads.createNamedRunnable("TabletRateUpdater", new Runnable() {
             @Override
             public void run() {
@@ -308,6 +310,7 @@ public class TabletServer extends AbstractServer {
               }
             }
           }), 5, 5, TimeUnit.SECONDS);
+      ThreadPools.watchNonCriticalScheduledTask(future);
 
       @SuppressWarnings("deprecation")
       final long walMaxSize = aconf
@@ -359,8 +362,8 @@ public class TabletServer extends AbstractServer {
 
     this.resourceManager = new TabletServerResourceManager(context, this);
     this.security = AuditedSecurityOperation.getInstance(context);
-    context.getScheduledExecutor().scheduleWithFixedDelay(TabletLocator::clearLocators, jitter(),
-        jitter(), TimeUnit.MILLISECONDS);
+    ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
+        TabletLocator::clearLocators, jitter(), jitter(), TimeUnit.MILLISECONDS));
 
     // Create the secret manager
     context.setSecretManager(new AuthenticationTokenSecretManager(context.getInstanceID(),
@@ -378,8 +381,9 @@ public class TabletServer extends AbstractServer {
     clientAddress = HostAndPort.fromParts(getHostname(), 0);
 
     Runnable gcDebugTask = () -> gcLogger.logGCInfo(getConfiguration());
-    context.getScheduledExecutor().scheduleWithFixedDelay(gcDebugTask, 0, TIME_BETWEEN_GC_CHECKS,
-        TimeUnit.MILLISECONDS);
+    ScheduledFuture<?> future = context.getScheduledExecutor().scheduleWithFixedDelay(gcDebugTask,
+        0, TIME_BETWEEN_GC_CHECKS, TimeUnit.MILLISECONDS);
+    ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
   public InstanceId getInstanceID() {
@@ -806,7 +810,7 @@ public class TabletServer extends AbstractServer {
     // if the replication name is ever set, then start replication services
     @SuppressWarnings("deprecation")
     Property p = Property.REPLICATION_NAME;
-    context.getScheduledExecutor().scheduleWithFixedDelay(() -> {
+    ScheduledFuture<?> future = context.getScheduledExecutor().scheduleWithFixedDelay(() -> {
       if (this.replServer == null) {
         if (!getConfiguration().get(p).isEmpty()) {
           log.info(p.getKey() + " was set, starting repl services.");
@@ -814,36 +818,40 @@ public class TabletServer extends AbstractServer {
         }
       }
     }, 0, 5, TimeUnit.SECONDS);
+    ThreadPools.watchNonCriticalScheduledTask(future);
 
     int tabletCheckFrequency = 30 + random.nextInt(31); // random 30-60 minute delay
     // Periodically check that metadata of tablets matches what is held in memory
-    ThreadPools.createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(() -> {
-      final SortedMap<KeyExtent,Tablet> onlineTabletsSnapshot = onlineTablets.snapshot();
+    ThreadPools.watchCriticalScheduledTask(
+        ThreadPools.createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(() -> {
+          final SortedMap<KeyExtent,Tablet> onlineTabletsSnapshot = onlineTablets.snapshot();
 
-      Map<KeyExtent,Long> updateCounts = new HashMap<>();
+          Map<KeyExtent,Long> updateCounts = new HashMap<>();
 
-      // gather updateCounts for each tablet
-      onlineTabletsSnapshot.forEach((ke, tablet) -> {
-        updateCounts.put(ke, tablet.getUpdateCount());
-      });
+          // gather updateCounts for each tablet
+          onlineTabletsSnapshot.forEach((ke, tablet) -> {
+            updateCounts.put(ke, tablet.getUpdateCount());
+          });
 
-      // gather metadata for all tablets readTablets()
-      try (TabletsMetadata tabletsMetadata = getContext().getAmple().readTablets()
-          .forTablets(onlineTabletsSnapshot.keySet()).fetch(FILES, LOGS, ECOMP, PREV_ROW).build()) {
+          // gather metadata for all tablets readTablets()
+          try (TabletsMetadata tabletsMetadata =
+              getContext().getAmple().readTablets().forTablets(onlineTabletsSnapshot.keySet())
+                  .fetch(FILES, LOGS, ECOMP, PREV_ROW).build()) {
 
-        // for each tablet, compare its metadata to what is held in memory
-        tabletsMetadata.forEach(tabletMetadata -> {
-          KeyExtent extent = tabletMetadata.getExtent();
-          Tablet tablet = onlineTabletsSnapshot.get(extent);
-          Long counter = updateCounts.get(extent);
-          tablet.compareTabletInfo(counter, tabletMetadata);
-        });
-      }
-    }, tabletCheckFrequency, tabletCheckFrequency, TimeUnit.MINUTES);
+            // for each tablet, compare its metadata to what is held in memory
+            tabletsMetadata.forEach(tabletMetadata -> {
+              KeyExtent extent = tabletMetadata.getExtent();
+              Tablet tablet = onlineTabletsSnapshot.get(extent);
+              Long counter = updateCounts.get(extent);
+              tablet.compareTabletInfo(counter, tabletMetadata);
+            });
+          }
+        }, tabletCheckFrequency, tabletCheckFrequency, TimeUnit.MINUTES));
 
     final long CLEANUP_BULK_LOADED_CACHE_MILLIS = TimeUnit.MINUTES.toMillis(15);
-    context.getScheduledExecutor().scheduleWithFixedDelay(new BulkImportCacheCleaner(this),
-        CLEANUP_BULK_LOADED_CACHE_MILLIS, CLEANUP_BULK_LOADED_CACHE_MILLIS, TimeUnit.MILLISECONDS);
+    ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
+        new BulkImportCacheCleaner(this), CLEANUP_BULK_LOADED_CACHE_MILLIS,
+        CLEANUP_BULK_LOADED_CACHE_MILLIS, TimeUnit.MILLISECONDS));
 
     HostAndPort managerHost;
     while (!serverStopRequested) {
@@ -968,8 +976,9 @@ public class TabletServer extends AbstractServer {
     Runnable replicationWorkThreadPoolResizer = () -> {
       ThreadPools.resizePool(replicationThreadPool, aconf, Property.REPLICATION_WORKER_THREADS);
     };
-    context.getScheduledExecutor().scheduleWithFixedDelay(replicationWorkThreadPoolResizer, 10, 30,
-        TimeUnit.SECONDS);
+    ScheduledFuture<?> future = context.getScheduledExecutor()
+        .scheduleWithFixedDelay(replicationWorkThreadPoolResizer, 10, 30, TimeUnit.SECONDS);
+    ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
   public String getClientAddressString() {

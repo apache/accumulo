@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
@@ -73,7 +74,7 @@ public class RecoveryManager {
             .maximumWeight(10_000_000).weigher((path, exist) -> path.toString().length()).build();
 
     executor = ThreadPools.createScheduledExecutorService(4, "Walog sort starter", false);
-    zooCache = new ZooCache(manager.getContext().getZooReaderWriter(), null);
+    zooCache = new ZooCache(manager.getContext().getZooReader(), null);
     try {
       List<String> workIDs =
           new DistributedWorkQueue(manager.getZooKeeperRoot() + Constants.ZRECOVERY,
@@ -105,7 +106,8 @@ public class RecoveryManager {
             manager.getVolumeManager(), new Path(source));
 
         if (time > 0) {
-          executor.schedule(this, time, TimeUnit.MILLISECONDS);
+          ScheduledFuture<?> future = executor.schedule(this, time, TimeUnit.MILLISECONDS);
+          ThreadPools.watchNonCriticalScheduledTask(future);
           rescheduled = true;
         } else {
           initiateSort(sortId, source, destination);
@@ -210,8 +212,9 @@ public class RecoveryManager {
             log.info("Starting recovery of {} (in : {}s), tablet {} holds a reference", filename,
                 (delay / 1000), extent);
 
-            executor.schedule(new LogSortTask(closer, filename, dest, sortId), delay,
-                TimeUnit.MILLISECONDS);
+            ScheduledFuture<?> future = executor.schedule(
+                new LogSortTask(closer, filename, dest, sortId), delay, TimeUnit.MILLISECONDS);
+            ThreadPools.watchNonCriticalScheduledTask(future);
             closeTasksQueued.add(sortId);
             recoveryDelay.put(sortId, delay);
           }

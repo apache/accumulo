@@ -19,8 +19,10 @@
 package org.apache.accumulo.server.security.handler;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.matches;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
@@ -45,7 +47,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
-import org.easymock.EasyMock;
 import org.junit.Test;
 
 public class ZKAuthenticatorTest {
@@ -136,15 +137,14 @@ public class ZKAuthenticatorTest {
     // mocking zk interaction
     ServerContext context = MockServerContext.getWithZK(InstanceId.of("example"), "", 30_000);
     ZooReaderWriter zr = createMock(ZooReaderWriter.class);
-    expect(context.getZooReaderWriter()).andReturn(zr).anyTimes();
+    expect(context.getZooReader()).andReturn(zr).anyTimes();
     ZooKeeper zk = createMock(ZooKeeper.class);
-    expect(zk.getChildren(EasyMock.anyObject(), EasyMock.anyObject()))
-        .andReturn(Arrays.asList(principal)).anyTimes();
-    expect(zk.exists(EasyMock.matches("/accumulo/example/users/" + principal),
-        EasyMock.anyObject(Watcher.class))).andReturn(new Stat()).anyTimes();
+    expect(zk.getChildren(anyObject(), anyObject())).andReturn(Arrays.asList(principal)).anyTimes();
+    expect(zk.exists(matches("/accumulo/example/users/" + principal), anyObject(Watcher.class)))
+        .andReturn(new Stat()).anyTimes();
     expect(zr.getZooKeeper()).andReturn(zk).anyTimes();
-    expect(zk.getData(EasyMock.matches("/accumulo/example/users/" + principal),
-        EasyMock.anyObject(), EasyMock.anyObject())).andReturn(newHash).once();
+    expect(zk.getData(matches("/accumulo/example/users/" + principal), anyObject(), anyObject()))
+        .andReturn(newHash).once();
     replay(context, zr, zk);
 
     // creating authenticator
@@ -169,18 +169,18 @@ public class ZKAuthenticatorTest {
     // mocking zk interaction
     ServerContext context = MockServerContext.getWithZK(InstanceId.of("example"), "", 30_000);
     ZooReaderWriter zr = createMock(ZooReaderWriter.class);
+    expect(context.getZooReader()).andReturn(zr).anyTimes();
     expect(context.getZooReaderWriter()).andReturn(zr).anyTimes();
     ZooKeeper zk = createMock(ZooKeeper.class);
-    expect(zk.getChildren(EasyMock.anyObject(), EasyMock.anyObject()))
-        .andReturn(Arrays.asList(principal)).anyTimes();
-    expect(zk.exists(EasyMock.matches("/accumulo/example/users/" + principal),
-        EasyMock.anyObject(Watcher.class))).andReturn(new Stat()).anyTimes();
+    expect(zk.getChildren(anyObject(), anyObject())).andReturn(Arrays.asList(principal)).anyTimes();
+    expect(zk.exists(matches("/accumulo/example/users/" + principal), anyObject(Watcher.class)))
+        .andReturn(new Stat()).anyTimes();
     expect(zr.getZooKeeper()).andReturn(zk).anyTimes();
-    expect(zk.getData(EasyMock.matches("/accumulo/example/users/" + principal),
-        EasyMock.anyObject(), EasyMock.anyObject())).andReturn(outdatedHash).once();
+    expect(zk.getData(matches("/accumulo/example/users/" + principal), anyObject(), anyObject()))
+        .andReturn(outdatedHash).once();
     // expecting that the new hash is pushed to zk
-    expect(zr.putPrivatePersistentData(EasyMock.matches("/accumulo/example/users/" + principal),
-        EasyMock.anyObject(), EasyMock.anyObject())).andReturn(true).once();
+    expect(zr.putPrivatePersistentData(matches("/accumulo/example/users/" + principal), anyObject(),
+        anyObject())).andReturn(true).once();
     replay(context, zr, zk);
 
     // creating authenticator

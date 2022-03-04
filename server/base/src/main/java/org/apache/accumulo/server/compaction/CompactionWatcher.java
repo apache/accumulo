@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.slf4j.LoggerFactory;
 
@@ -122,8 +123,8 @@ public class CompactionWatcher implements Runnable {
 
   public static synchronized void startWatching(ServerContext context) {
     if (!watching) {
-      context.getScheduledExecutor().scheduleWithFixedDelay(
-          new CompactionWatcher(context.getConfiguration()), 10000, 10000, TimeUnit.MILLISECONDS);
+      ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
+          new CompactionWatcher(context.getConfiguration()), 10000, 10000, TimeUnit.MILLISECONDS));
       watching = true;
     }
   }

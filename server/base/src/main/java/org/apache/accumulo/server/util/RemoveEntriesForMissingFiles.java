@@ -156,7 +156,7 @@ public class RemoveEntriesForMissingFiles {
         processing.add(map);
       }
 
-      threadPool.submit(
+      threadPool.execute(
           new CheckFileTask(cache, fs, missing, writer, key, map, processing, exceptionRef));
     }
 

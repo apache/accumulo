@@ -396,7 +396,10 @@ public class Gatherer {
 
         // when all processing is done, check for failed files... and if found starting processing
         // again
-        future.thenRun(this::updateFuture);
+        @SuppressWarnings("unused")
+        CompletableFuture<Void> unused = future.thenRun(() -> {
+          CompletableFuture<ProcessedFiles> unused2 = this.updateFuture();
+        });
       } catch (Exception e) {
         future = CompletableFuture.completedFuture(new ProcessedFiles());
         // force future to have this exception
@@ -449,7 +452,8 @@ public class Gatherer {
 
     @Override
     public synchronized boolean isDone() {
-      updateFuture();
+      @SuppressWarnings("unused")
+      CompletableFuture<ProcessedFiles> unused = updateFuture();
       if (future.isDone()) {
         if (future.isCancelled() || future.isCompletedExceptionally()) {
           return true;
@@ -459,7 +463,7 @@ public class Gatherer {
         if (pf.failedFiles.isEmpty()) {
           return true;
         } else {
-          updateFuture();
+          unused = updateFuture();
         }
       }
 

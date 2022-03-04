@@ -1674,7 +1674,7 @@
                 <arg>-XDcompilePolicy=simple</arg>
                 <arg>
                   -Xplugin:ErrorProne \
-                  -XepExcludedPaths:.*/(proto|thrift|generated-sources)/.* \
+                  -XepExcludedPaths:.*/(proto|thrift|generated-sources|src/test)/.* \
                   -XepDisableWarningsInGeneratedCode \
                   -XepDisableAllWarnings \
                   <!-- error/warning patterns to ignore -->
@@ -1682,6 +1682,7 @@
                   -Xep:CheckReturnValue:OFF \
                   -Xep:MustBeClosedChecker:OFF \
                   -Xep:ReturnValueIgnored:OFF \
+                  -Xep:FutureReturnValueIgnored:ERROR \
                   -Xep:UnicodeInCode:OFF \
                   <!-- error/warning patterns to specifically check -->
                   -Xep:ExpectedExceptionChecker \

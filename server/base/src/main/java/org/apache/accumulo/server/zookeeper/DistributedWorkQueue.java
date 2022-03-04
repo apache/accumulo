@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -60,7 +61,6 @@ public class DistributedWorkQueue {
   private ThreadPoolExecutor threadPool;
   private ZooReaderWriter zoo;
   private String path;
-  private AccumuloConfiguration config;
   private ServerContext context;
   private long timerInitialDelay, timerPeriod;
 
@@ -174,19 +174,14 @@ public class DistributedWorkQueue {
   public DistributedWorkQueue(String path, AccumuloConfiguration config, ServerContext context,
       long timerInitialDelay, long timerPeriod) {
     this.path = path;
-    this.config = config;
     this.context = context;
     this.timerInitialDelay = timerInitialDelay;
     this.timerPeriod = timerPeriod;
-    zoo = new ZooReaderWriter(this.config);
+    zoo = context.getZooReaderWriter();
   }
 
   public ServerContext getContext() {
     return context;
-  }
-
-  public ZooReaderWriter getZooReaderWriter() {
-    return zoo;
   }
 
   public void startProcessing(final Processor processor, ThreadPoolExecutor executorService)
@@ -223,19 +218,20 @@ public class DistributedWorkQueue {
     lookForWork(processor, children);
 
     // Add a little jitter to avoid all the tservers slamming zookeeper at once
-    context.getScheduledExecutor().scheduleWithFixedDelay(new Runnable() {
-      @Override
-      public void run() {
-        log.debug("Looking for work in {}", path);
-        try {
-          lookForWork(processor, zoo.getChildren(path));
-        } catch (KeeperException e) {
-          log.error("Failed to look for work", e);
-        } catch (InterruptedException e) {
-          log.info("Interrupted looking for work", e);
-        }
-      }
-    }, timerInitialDelay, timerPeriod, TimeUnit.MILLISECONDS);
+    ThreadPools.watchCriticalScheduledTask(
+        context.getScheduledExecutor().scheduleWithFixedDelay(new Runnable() {
+          @Override
+          public void run() {
+            log.debug("Looking for work in {}", path);
+            try {
+              lookForWork(processor, zoo.getChildren(path));
+            } catch (KeeperException e) {
+              log.error("Failed to look for work", e);
+            } catch (InterruptedException e) {
+              log.info("Interrupted looking for work", e);
+            }
+          }
+        }, timerInitialDelay, timerPeriod, TimeUnit.MILLISECONDS));
   }
 
   /**
@@ -246,6 +242,7 @@ public class DistributedWorkQueue {
   }
 
   public void addWork(String workId, byte[] data) throws KeeperException, InterruptedException {
+
     if (workId.equalsIgnoreCase(LOCKS_NODE))
       throw new IllegalArgumentException("locks is reserved work id");
 

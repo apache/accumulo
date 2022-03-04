@@ -116,8 +116,7 @@ public class ChangeSecret {
 
   private static void verifyAccumuloIsDown(ServerContext context, String oldPassword)
       throws Exception {
-    ZooReader zooReader = new ZooReaderWriter(context.getZooKeepers(),
-        context.getZooKeepersSessionTimeOut(), oldPassword);
+    ZooReader zooReader = context.getZooReader().asWriter(oldPassword);
     String root = context.getZooKeeperRoot();
     final List<String> ephemerals = new ArrayList<>();
     recurse(zooReader, root, (zoo, path) -> {
@@ -137,10 +136,8 @@ public class ChangeSecret {
 
   private static void rewriteZooKeeperInstance(final ServerContext context,
       final InstanceId newInstanceId, String oldPass, String newPass) throws Exception {
-    final ZooReaderWriter orig = new ZooReaderWriter(context.getZooKeepers(),
-        context.getZooKeepersSessionTimeOut(), oldPass);
-    final ZooReaderWriter new_ = new ZooReaderWriter(context.getZooKeepers(),
-        context.getZooKeepersSessionTimeOut(), newPass);
+    final ZooReaderWriter orig = context.getZooReader().asWriter(oldPass);
+    final ZooReaderWriter new_ = context.getZooReader().asWriter(newPass);
 
     String root = context.getZooKeeperRoot();
     recurse(orig, root, (zoo, path) -> {
@@ -220,8 +217,7 @@ public class ChangeSecret {
   }
 
   private static void deleteInstance(ServerContext context, String oldPass) throws Exception {
-    ZooReaderWriter orig = new ZooReaderWriter(context.getZooKeepers(),
-        context.getZooKeepersSessionTimeOut(), oldPass);
+    ZooReaderWriter orig = context.getZooReader().asWriter(oldPass);
     orig.recursiveDelete("/accumulo/" + context.getInstanceID(), NodeMissingPolicy.SKIP);
   }
 }

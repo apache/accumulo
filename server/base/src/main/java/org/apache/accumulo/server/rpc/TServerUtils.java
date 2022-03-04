@@ -314,20 +314,22 @@ public class TServerUtils {
     final ThreadPoolExecutor pool = ThreadPools.createFixedThreadPool(executorThreads,
         threadTimeOut, TimeUnit.MILLISECONDS, serverName + "-ClientPool", true);
     // periodically adjust the number of threads we need by checking how busy our threads are
-    ThreadPools.createGeneralScheduledExecutorService(conf).scheduleWithFixedDelay(() -> {
-      // there is a minor race condition between sampling the current state of the thread pool and
-      // adjusting it
-      // however, this isn't really an issue, since it adjusts periodically anyway
-      if (pool.getCorePoolSize() <= pool.getActiveCount()) {
-        int larger = pool.getCorePoolSize() + Math.min(pool.getQueue().size(), 2);
-        ThreadPools.resizePool(pool, () -> larger, serverName + "-ClientPool");
-      } else {
-        if (pool.getCorePoolSize() > pool.getActiveCount() + 3) {
-          int smaller = Math.max(executorThreads, pool.getCorePoolSize() - 1);
-          ThreadPools.resizePool(pool, () -> smaller, serverName + "-ClientPool");
-        }
-      }
-    }, timeBetweenThreadChecks, timeBetweenThreadChecks, TimeUnit.MILLISECONDS);
+    ThreadPools.watchCriticalScheduledTask(
+        ThreadPools.createGeneralScheduledExecutorService(conf).scheduleWithFixedDelay(() -> {
+          // there is a minor race condition between sampling the current state of the thread pool
+          // and
+          // adjusting it
+          // however, this isn't really an issue, since it adjusts periodically anyway
+          if (pool.getCorePoolSize() <= pool.getActiveCount()) {
+            int larger = pool.getCorePoolSize() + Math.min(pool.getQueue().size(), 2);
+            ThreadPools.resizePool(pool, () -> larger, serverName + "-ClientPool");
+          } else {
+            if (pool.getCorePoolSize() > pool.getActiveCount() + 3) {
+              int smaller = Math.max(executorThreads, pool.getCorePoolSize() - 1);
+              ThreadPools.resizePool(pool, () -> smaller, serverName + "-ClientPool");
+            }
+          }
+        }, timeBetweenThreadChecks, timeBetweenThreadChecks, TimeUnit.MILLISECONDS));
     return pool;
   }
 

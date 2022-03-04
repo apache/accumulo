@@ -65,7 +65,7 @@ public class ZKPermHandler implements PermissionHandler {
 
   @Override
   public void initialize(ServerContext context) {
-    zooCache = new ZooCache(context.getZooReaderWriter(), null);
+    zooCache = new ZooCache(context.getZooReader(), null);
     zoo = context.getZooReaderWriter();
     InstanceId instanceId = context.getInstanceID();
     ZKUserPath = ZKSecurityTool.getInstancePath(instanceId) + "/users";

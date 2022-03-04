@@ -29,6 +29,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -72,8 +73,8 @@ public class SessionManager {
 
     Runnable r = () -> sweep(maxIdle, maxUpdateIdle);
 
-    context.getScheduledExecutor().scheduleWithFixedDelay(r, 0, Math.max(maxIdle / 2, 1000),
-        TimeUnit.MILLISECONDS);
+    ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(r,
+        0, Math.max(maxIdle / 2, 1000), TimeUnit.MILLISECONDS));
   }
 
   public long createSession(Session session, boolean reserve) {
@@ -282,8 +283,9 @@ public class SessionManager {
         }
       };
 
-      ThreadPools.createGeneralScheduledExecutorService(aconf).schedule(r, delay,
-          TimeUnit.MILLISECONDS);
+      ScheduledFuture<?> future = ThreadPools.createGeneralScheduledExecutorService(aconf)
+          .schedule(r, delay, TimeUnit.MILLISECONDS);
+      ThreadPools.watchNonCriticalScheduledTask(future);
     }
   }
 

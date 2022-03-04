@@ -20,7 +20,6 @@ package org.apache.accumulo.test.functional;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
@@ -52,7 +51,7 @@ public class RenameIT extends AccumuloClusterHarness {
       c.tableOperations().rename(name2, name1);
       params.tableName = name1;
       VerifyIngest.verifyIngest(c, params);
-      FunctionalTestUtils.assertNoDanglingFateLocks((ClientContext) c, getCluster());
+      FunctionalTestUtils.assertNoDanglingFateLocks(getCluster());
     }
   }
 }

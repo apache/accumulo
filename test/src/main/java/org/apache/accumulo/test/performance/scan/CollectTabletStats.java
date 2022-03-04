@@ -233,7 +233,7 @@ public class CollectTabletStats {
       }
 
       for (final KeyExtent ke : tabletsToTest) {
-        threadPool.submit(() -> {
+        threadPool.execute(() -> {
           try {
             calcTabletStats(client, opts.tableName, opts.auths, ke, columns);
           } catch (Exception e) {
@@ -318,7 +318,7 @@ public class CollectTabletStats {
     CountDownLatch finishedSignal = new CountDownLatch(numThreads);
 
     for (Test test : tests) {
-      threadPool.submit(test);
+      threadPool.execute(test);
       test.setSignals(startSignal, finishedSignal);
     }
 

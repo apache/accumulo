@@ -81,6 +81,9 @@ public class Fate<T> {
             try {
               deferTime = op.isReady(tid, environment);
 
+              // Here, deferTime is only used to determine success (zero) or failure (non-zero),
+              // proceeding on success and returning to the while loop on failure.
+              // The value of deferTime is only used as a wait time in ZooStore.unreserve
               if (deferTime == 0) {
                 prevOp = op;
                 if (status == TStatus.SUBMITTED) {
@@ -237,7 +240,7 @@ public class Fate<T> {
     final ThreadPoolExecutor pool =
         ThreadPools.createExecutorService(conf, Property.MANAGER_FATE_THREADPOOL_SIZE, true);
     fatePoolWatcher = ThreadPools.createGeneralScheduledExecutorService(conf);
-    fatePoolWatcher.schedule(() -> {
+    ThreadPools.watchCriticalScheduledTask(fatePoolWatcher.schedule(() -> {
       // resize the pool if the property changed
       ThreadPools.resizePool(pool, conf, Property.MANAGER_FATE_THREADPOOL_SIZE);
       // If the pool grew, then ensure that there is a TransactionRunner for each thread
@@ -259,7 +262,7 @@ public class Fate<T> {
           }
         }
       }
-    }, 3, SECONDS);
+    }, 3, SECONDS));
     executor = pool;
   }
 

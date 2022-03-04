@@ -45,6 +45,7 @@ import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.ServerServices;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCache.ZcStat;
@@ -248,14 +249,15 @@ public class LiveTServerSet implements Watcher {
 
   public synchronized ZooCache getZooCache() {
     if (zooCache == null)
-      zooCache = new ZooCache(context.getZooReaderWriter(), this);
+      zooCache = new ZooCache(context.getZooReader(), this);
     return zooCache;
   }
 
   public synchronized void startListeningForTabletServerChanges() {
     scanServers();
-    this.context.getScheduledExecutor().scheduleWithFixedDelay(this::scanServers, 0, 5000,
-        TimeUnit.MILLISECONDS);
+
+    ThreadPools.watchCriticalScheduledTask(this.context.getScheduledExecutor()
+        .scheduleWithFixedDelay(this::scanServers, 0, 5000, TimeUnit.MILLISECONDS));
   }
 
   public synchronized void scanServers() {

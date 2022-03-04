@@ -82,6 +82,7 @@ import org.apache.accumulo.core.util.tables.TableZooHelper;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
@@ -104,6 +105,7 @@ public class ClientContext implements AccumuloClient {
 
   private final ClientInfo info;
   private InstanceId instanceId;
+  private final ZooReader zooReader;
   private final ZooCache zooCache;
 
   private Credentials creds;
@@ -152,6 +154,7 @@ public class ClientContext implements AccumuloClient {
       AccumuloConfiguration serverConf) {
     this.info = info;
     this.hadoopConf = info.getHadoopConf();
+    zooReader = new ZooReader(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
     zooCache =
         new ZooCacheFactory().getZooCache(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
     this.serverConf = serverConf;
@@ -163,53 +166,6 @@ public class ClientContext implements AccumuloClient {
     this.singletonReservation = Objects.requireNonNull(reservation);
     this.tableops = new TableOperationsImpl(this);
     this.namespaceops = new NamespaceOperationsImpl(this, tableops);
-  }
-
-  /**
-   * Retrieve the instance used to construct this context
-   *
-   * @deprecated since 2.0.0
-   */
-  @Deprecated(since = "2.0.0")
-  public org.apache.accumulo.core.client.Instance getDeprecatedInstance() {
-    final ClientContext context = this;
-    return new org.apache.accumulo.core.client.Instance() {
-      @Override
-      public String getRootTabletLocation() {
-        return context.getRootTabletLocation();
-      }
-
-      @Override
-      public List<String> getMasterLocations() {
-        return context.getManagerLocations();
-      }
-
-      @Override
-      public String getInstanceID() {
-        return context.getInstanceID().canonical();
-      }
-
-      @Override
-      public String getInstanceName() {
-        return context.getInstanceName();
-      }
-
-      @Override
-      public String getZooKeepers() {
-        return context.getZooKeepers();
-      }
-
-      @Override
-      public int getZooKeepersSessionTimeOut() {
-        return context.getZooKeepersSessionTimeOut();
-      }
-
-      @Override
-      public org.apache.accumulo.core.client.Connector getConnector(String principal,
-          AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
-        return org.apache.accumulo.core.client.Connector.from(context);
-      }
-    };
   }
 
   public Ample getAmple() {
@@ -1013,6 +969,11 @@ public class ClientContext implements AccumuloClient {
     public void setProperty(ClientProperty property, Integer value) {
       setProperty(property, Integer.toString(value));
     }
+  }
+
+  public ZooReader getZooReader() {
+    ensureOpen();
+    return zooReader;
   }
 
   public synchronized ThriftTransportPool getTransportPool() {
