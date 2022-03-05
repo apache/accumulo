@@ -128,7 +128,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
       for (int scannerIndex = 0; scannerIndex < NUM_SCANNERS; scannerIndex++) {
         ScannerThread st = new ScannerThread(client, scannerIndex, tableName, latch);
         scanThreadsToClose.add(st);
-        pool.submit(st);
+        pool.execute(st);
       }
 
       // wait for scanners to report a result.

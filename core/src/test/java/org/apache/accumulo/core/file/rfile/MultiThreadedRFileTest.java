@@ -248,7 +248,7 @@ public class MultiThreadedRFileTest {
           }
         };
         for (int i = 0; i < maxThreads; i++) {
-          pool.submit(runnable);
+          pool.execute(runnable);
         }
       } finally {
         pool.shutdown();

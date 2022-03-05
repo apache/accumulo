@@ -64,9 +64,9 @@ public class ManagerTime {
       throw new IOException("Error updating manager time", ex);
     }
 
-    ThreadPools.createGeneralScheduledExecutorService(conf).scheduleWithFixedDelay(
-        Threads.createNamedRunnable("Manager time keeper", () -> run()), 0, SECONDS.toMillis(10),
-        MILLISECONDS);
+    ThreadPools.watchCriticalScheduledTask(ThreadPools.createGeneralScheduledExecutorService(conf)
+        .scheduleWithFixedDelay(Threads.createNamedRunnable("Manager time keeper", () -> run()), 0,
+            SECONDS.toMillis(10), MILLISECONDS));
   }
 
   /**
