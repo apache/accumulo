@@ -26,7 +26,6 @@ import java.util.Formatter;
 import java.util.List;
 
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.TransactionStatus;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -46,8 +45,7 @@ public class FateCommand extends Command {
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
-      throws AccumuloException, AccumuloSecurityException, ParseException, KeeperException,
-      InterruptedException, IOException {
+      throws ParseException, KeeperException, InterruptedException, IOException, AccumuloException {
     String[] args = cl.getArgs();
 
     if (args.length <= 0) {
@@ -56,18 +54,11 @@ public class FateCommand extends Command {
     String cmd = args[0];
     // Only get the Transaction IDs passed in from the command line.
     List<String> txids = new ArrayList<>(cl.getArgList().subList(1, args.length));
-
     if ("fail".equals(cmd)) {
-      if (txids.isEmpty()) {
-        throw new ParseException("Must provide transaction ID");
-      }
-
+      validateArgs(txids);
       shellState.getAccumuloClient().instanceOperations().fateFail(txids);
     } else if ("delete".equals(cmd)) {
-      if (txids.isEmpty()) {
-        throw new ParseException("Must provide transaction ID");
-      }
-
+      validateArgs(txids);
       shellState.getAccumuloClient().instanceOperations().fateDelete(txids);
     } else if ("list".equals(cmd) || "print".equals(cmd)) {
       // Parse TStatus filters for print display
@@ -106,6 +97,12 @@ public class FateCommand extends Command {
     }
 
     return 0;
+  }
+
+  private void validateArgs(List<String> txids) throws ParseException {
+    if (txids.size() <= 0) {
+      throw new ParseException("Must provide transaction ID");
+    }
   }
 
   @Override

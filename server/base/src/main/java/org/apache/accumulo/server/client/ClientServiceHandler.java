@@ -485,7 +485,8 @@ public class ClientServiceHandler implements ClientService.Iface {
         case DELETE: {
           for (String tid : txids) {
             if (admin.prepDelete(zs, zk, managerLockPath, tid)) {
-              admin.deleteLocks(zk, context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS, tid);
+              var lockPath = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS);
+              admin.deleteLocks(zk, lockPath, tid);
             } else {
               throw new TException("Could not delete transaction: " + tid);
             }
@@ -515,9 +516,8 @@ public class ClientServiceHandler implements ClientService.Iface {
               fs.add(TStatus.valueOf(element));
             }
           }
-
-          FateStatus fateStatus = admin.getStatus(zs, zk,
-              context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS, filterTxid, fs);
+          var lockPath = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS);
+          FateStatus fateStatus = admin.getStatus(zs, zk, lockPath, filterTxid, fs);
 
           List<FateTransaction> fateTxs = new ArrayList<>();
           for (TransactionStatus txStatus : fateStatus.getTransactions()) {
