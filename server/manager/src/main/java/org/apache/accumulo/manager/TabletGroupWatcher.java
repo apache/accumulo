@@ -75,6 +75,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ta
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.manager.Manager.TabletGoalState;
 import org.apache.accumulo.manager.state.MergeStats;
 import org.apache.accumulo.manager.state.TableCounts;
@@ -113,8 +114,7 @@ abstract class TabletGroupWatcher extends Thread {
     this.manager = manager;
     this.store = store;
     this.dependentWatcher = dependentWatcher;
-    setName("Watching " + store.name());
-    setDaemon(true);
+    Threads.standardize(this, "Watching " + store.name());
   }
 
   /** Should this {@code TabletGroupWatcher} suspend tablets? */

@@ -38,6 +38,7 @@ import org.apache.accumulo.core.file.blockfile.cache.impl.SizeConstants;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.CacheEntry;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -520,7 +521,7 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
 
     public EvictionThread(LruBlockCache cache) {
       super("LruBlockCache.EvictionThread");
-      setDaemon(true);
+      Threads.standardize(this, "LruBlockCache.EvictionThread");
       this.cache = new WeakReference<>(cache);
     }
 
@@ -561,7 +562,7 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
 
     public StatisticsThread(LruBlockCache lru) {
       super("LruBlockCache.StatisticsThread");
-      setDaemon(true);
+      Threads.standardize(this, "LruBlockCache.StatisticsThread");
       this.lru = lru;
     }
 

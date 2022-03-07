@@ -42,4 +42,10 @@ public class Threads {
     thread.setUncaughtExceptionHandler(UEH);
     return thread;
   }
+
+  public static void standardize(Thread thread, String name) {
+    thread.setName(name);
+    thread.setDaemon(true);
+    thread.setUncaughtExceptionHandler(UEH);
+  }
 }
