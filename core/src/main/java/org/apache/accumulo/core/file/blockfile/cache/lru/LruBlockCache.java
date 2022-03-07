@@ -521,7 +521,7 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
 
     public EvictionThread(LruBlockCache cache) {
       super("LruBlockCache.EvictionThread");
-      Threads.standardize(this, "LruBlockCache.EvictionThread");
+      Threads.applyStandardsToThread(this, "LruBlockCache.EvictionThread");
       this.cache = new WeakReference<>(cache);
     }
 
@@ -562,7 +562,7 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
 
     public StatisticsThread(LruBlockCache lru) {
       super("LruBlockCache.StatisticsThread");
-      Threads.standardize(this, "LruBlockCache.StatisticsThread");
+      Threads.applyStandardsToThread(this, "LruBlockCache.StatisticsThread");
       this.lru = lru;
     }
 

@@ -36,14 +36,13 @@ public class Threads {
   }
 
   public static Thread createThread(String name, OptionalInt priority, Runnable r) {
-    Thread thread = new Thread(TraceUtil.wrap(r), name);
+    Thread thread = new Thread(TraceUtil.wrap(r));
+    applyStandardsToThread(thread, name);
     priority.ifPresent(thread::setPriority);
-    thread.setDaemon(true);
-    thread.setUncaughtExceptionHandler(UEH);
     return thread;
   }
 
-  public static void standardize(Thread thread, String name) {
+  public static void applyStandardsToThread(Thread thread, String name) {
     thread.setName(name);
     thread.setDaemon(true);
     thread.setUncaughtExceptionHandler(UEH);

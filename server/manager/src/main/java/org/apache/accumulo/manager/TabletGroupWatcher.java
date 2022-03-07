@@ -114,7 +114,7 @@ abstract class TabletGroupWatcher extends Thread {
     this.manager = manager;
     this.store = store;
     this.dependentWatcher = dependentWatcher;
-    Threads.standardize(this, "Watching " + store.name());
+    Threads.applyStandardsToThread(this, "Watching " + store.name());
   }
 
   /** Should this {@code TabletGroupWatcher} suspend tablets? */
