@@ -81,34 +81,40 @@ public class AccumuloITBase extends WithTestNames {
   /**
    * If a given IT test has a method that takes longer than a class-set default timeout, declare it
    * failed.
-   *
+   * <p>
    * Note that this provides an upper bound on test times, even in the presence of Test annotations
    * with a timeout. That is, the Test annotation can make the timing tighter but will not be able
    * to allow a timeout that takes longer.
-   *
+   * <p>
    * Defaults to no timeout and can be changed via two mechanisms
-   *
+   * <p>
    * 1) A given IT class can override the defaultTimeoutSeconds method if test methods in that class
    * should have a timeout. 2) The system property "timeout.factor" is used as a multiplier for the
    * class provided default
-   *
-   * Note that if either of these values is '0' tests will run with no timeout. The default class
-   * level timeout is set to 0.
+   * <p>
+   * Note that if either of these values is '0' tests will run with (effectively) no timeout (a
+   * timeout of 5 days will be applied). The default class level timeout is set to 0.
    *
    */
   @RegisterExtension
   Timeout timeout = Timeout.from(() -> {
-    long waitLonger = 1L;
+    int timeoutFactor = 0;
     try {
       String timeoutString = System.getProperty("timeout.factor");
       if (timeoutString != null && !timeoutString.isEmpty()) {
-        waitLonger = Long.parseLong(timeoutString);
+        timeoutFactor = Integer.parseInt(timeoutString);
       }
     } catch (NumberFormatException exception) {
       log.warn("Could not parse timeout.factor, defaulting to no timeout.");
     }
 
-    return Duration.ofSeconds(waitLonger * defaultTimeoutSeconds());
+    // if either value is zero, apply a very long timeout (effectively no timeout)
+    int totalTimeoutSeconds = timeoutFactor * defaultTimeoutSeconds();
+    if (totalTimeoutSeconds == 0) {
+      return Duration.ofDays(5);
+    }
+
+    return Duration.ofSeconds(totalTimeoutSeconds);
   });
 
   /**
