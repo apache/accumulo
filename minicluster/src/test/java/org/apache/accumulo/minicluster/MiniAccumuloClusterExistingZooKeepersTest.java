@@ -18,27 +18,26 @@
  */
 package org.apache.accumulo.minicluster;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.util.Map;
 
+import org.apache.accumulo.WithTestNames;
 import org.apache.commons.io.FileUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.RetryOneTime;
 import org.apache.curator.test.TestingServer;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
-public class MiniAccumuloClusterExistingZooKeepersTest {
+public class MiniAccumuloClusterExistingZooKeepersTest extends WithTestNames {
   private static final File BASE_DIR = new File(System.getProperty("user.dir")
       + "/target/mini-tests/" + MiniAccumuloClusterExistingZooKeepersTest.class.getName());
 
@@ -46,13 +45,10 @@ public class MiniAccumuloClusterExistingZooKeepersTest {
 
   private MiniAccumuloConfig config;
 
-  @Rule
-  public TestName testName = new TestName();
-
-  @Before
+  @BeforeEach
   public void setupTestCluster() {
     assertTrue(BASE_DIR.mkdirs() || BASE_DIR.isDirectory());
-    File testDir = new File(BASE_DIR, testName.getMethodName());
+    File testDir = new File(BASE_DIR, testName());
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());
 

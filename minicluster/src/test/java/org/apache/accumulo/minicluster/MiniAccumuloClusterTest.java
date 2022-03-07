@@ -19,19 +19,21 @@
 package org.apache.accumulo.minicluster;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.io.FileReader;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -52,11 +54,11 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -71,7 +73,7 @@ public class MiniAccumuloClusterTest {
 
   private static MiniAccumuloCluster accumulo;
 
-  @BeforeClass
+  @BeforeAll
   public static void setupMiniCluster() throws Exception {
     File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
     assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
@@ -98,7 +100,8 @@ public class MiniAccumuloClusterTest {
   }
 
   @SuppressWarnings("deprecation")
-  @Test(timeout = 30000)
+  @Test
+  @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
   public void test() throws Exception {
     org.apache.accumulo.core.client.Connector conn = accumulo.getConnector("root", "superSecret");
 
@@ -169,20 +172,21 @@ public class MiniAccumuloClusterTest {
     conn.tableOperations().delete("table1");
   }
 
-  @Rule
-  public TemporaryFolder folder =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File tempDir;
 
   @SuppressWarnings("deprecation")
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
   public void testPerTableClasspath() throws Exception {
 
     org.apache.accumulo.core.client.Connector conn = accumulo.getConnector("root", "superSecret");
 
     conn.tableOperations().create("table2");
 
-    File jarFile = folder.newFile("iterator.jar");
-    FileUtils.copyURLToFile(this.getClass().getResource("/FooFilter.jar"), jarFile);
+    File jarFile = new File(tempDir, "iterator.jar");
+    FileUtils.copyURLToFile(Objects.requireNonNull(this.getClass().getResource("/FooFilter.jar")),
+        jarFile);
 
     conn.instanceOperations().setProperty(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1",
         jarFile.toURI().toString());
@@ -221,7 +225,8 @@ public class MiniAccumuloClusterTest {
     conn.tableOperations().delete("table2");
   }
 
-  @Test(timeout = 10000)
+  @Test
+  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
   public void testDebugPorts() {
 
     Set<Pair<ServerType,Integer>> debugPorts = accumulo.getDebugPorts();
@@ -256,7 +261,7 @@ public class MiniAccumuloClusterTest {
     }
   }
 
-  @AfterClass
+  @AfterAll
   public static void tearDownMiniCluster() throws Exception {
     accumulo.stop();
   }

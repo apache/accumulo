@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.miniclusterImpl;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.io.File;
 import java.util.Collections;
 import java.util.concurrent.Callable;
@@ -25,23 +27,23 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import org.easymock.EasyMock;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class CleanShutdownMacTest {
 
-  @Rule
-  public TemporaryFolder tmpDir =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File tmpDir;
 
   @SuppressWarnings("unchecked")
   @Test
   public void testExecutorServiceShutdown() throws Exception {
-    File tmp = tmpDir.newFolder();
+    // File tmp = tmpDir.newFolder();
+    File tmp = new File(tmpDir, "folder1/");
+    assertTrue(tmp.isDirectory() || tmp.mkdir(), "Failed to make a new sub-directory");
     MiniAccumuloClusterImpl cluster = new MiniAccumuloClusterImpl(tmp, "foo");
 
     ExecutorService mockService = EasyMock.createMock(ExecutorService.class);

@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.miniclusterImpl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.util.HashMap;
@@ -28,29 +28,27 @@ import java.util.Map;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class MiniAccumuloConfigImplTest {
 
-  @Rule
-  public TemporaryFolder tempFolder =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File tempFolder;
 
   @Test
   public void testZookeeperPort() {
 
     // set specific zookeeper port
-    MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password")
-        .setZooKeeperPort(5000).initialize();
+    MiniAccumuloConfigImpl config =
+        new MiniAccumuloConfigImpl(tempFolder, "password").setZooKeeperPort(5000).initialize();
     assertEquals(5000, config.getZooKeeperPort());
 
     // generate zookeeper port
-    config = new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password").initialize();
+    config = new MiniAccumuloConfigImpl(tempFolder, "password").initialize();
     assertTrue(config.getZooKeeperPort() > 0);
   }
 
@@ -58,7 +56,7 @@ public class MiniAccumuloConfigImplTest {
   public void testZooKeeperStartupTime() {
 
     // set specific zookeeper startup time
-    MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password")
+    MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(tempFolder, "password")
         .setZooKeeperStartupTime(5000).initialize();
     assertEquals(5000, config.getZooKeeperStartupTime());
   }
@@ -69,16 +67,15 @@ public class MiniAccumuloConfigImplTest {
     // constructor site config overrides default props
     Map<String,String> siteConfig = new HashMap<>();
     siteConfig.put(Property.INSTANCE_VOLUMES.getKey(), "hdfs://");
-    MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password")
-        .setSiteConfig(siteConfig).initialize();
+    MiniAccumuloConfigImpl config =
+        new MiniAccumuloConfigImpl(tempFolder, "password").setSiteConfig(siteConfig).initialize();
     assertEquals("hdfs://", config.getSiteConfig().get(Property.INSTANCE_VOLUMES.getKey()));
   }
 
   @Test
   public void testMemoryConfig() {
 
-    MiniAccumuloConfigImpl config =
-        new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password").initialize();
+    MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(tempFolder, "password").initialize();
     config.setDefaultMemory(96, MemoryUnit.MEGABYTE);
     assertEquals(96 * 1024 * 1024L, config.getMemory(ServerType.MANAGER));
     assertEquals(96 * 1024 * 1024L, config.getMemory(ServerType.TABLET_SERVER));
