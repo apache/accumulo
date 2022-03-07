@@ -197,6 +197,7 @@ public class FateIT {
   private static TStatus getTxStatus(ZooReaderWriter zrw, long txid)
       throws KeeperException, InterruptedException {
     String txdir = String.format("%s%s/tx_%016x", ZK_ROOT, Constants.ZFATE, txid);
+    szk.getZooKeeper().sync(txdir, null, null);
     return TStatus.valueOf(new String(zrw.getData(txdir), UTF_8));
   }
 

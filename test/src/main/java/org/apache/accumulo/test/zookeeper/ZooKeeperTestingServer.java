@@ -26,10 +26,15 @@ import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.curator.test.TestingServer;
+import org.apache.zookeeper.AsyncCallback.VoidCallback;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.common.PathUtils;
+import org.apache.zookeeper.proto.RequestHeader;
+import org.apache.zookeeper.proto.SyncRequest;
+import org.apache.zookeeper.proto.SyncResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +45,31 @@ import com.google.common.base.Preconditions;
  * is randomly assigned in case multiple instances are created by concurrent tests.
  */
 public class ZooKeeperTestingServer implements AutoCloseable {
+
+  public static class ZooKeeperForTests extends ZooKeeper {
+
+    public ZooKeeperForTests(String connectString, int sessionTimeout, Watcher watcher)
+        throws IOException {
+      super(connectString, sessionTimeout, watcher);
+    }
+
+    @Override
+    public void sync(final String path, VoidCallback cb, Object ctx) {
+      PathUtils.validatePath(path);
+
+      RequestHeader h = new RequestHeader();
+      h.setType(ZooDefs.OpCode.sync);
+      SyncRequest request = new SyncRequest();
+      SyncResponse response = new SyncResponse();
+      request.setPath(path);
+      try {
+        cnxn.submitRequest(h, request, response, null);
+      } catch (InterruptedException e) {
+        throw new RuntimeException("ZK::sync interrupted", e);
+      }
+    }
+
+  }
 
   private static final Logger log = LoggerFactory.getLogger(ZooKeeperTestingServer.class);
 
@@ -82,7 +112,7 @@ public class ZooKeeperTestingServer implements AutoCloseable {
 
       log.info("zookeeper connection string:'{}'", zkServer.getConnectString());
 
-      zoo = new ZooKeeper(zkServer.getConnectString(), 5_000, watchedEvent -> {
+      zoo = new ZooKeeperForTests(zkServer.getConnectString(), 5_000, watchedEvent -> {
         if (watchedEvent.getState() == Watcher.Event.KeeperState.SyncConnected) {
           connectionLatch.countDown();
         }
