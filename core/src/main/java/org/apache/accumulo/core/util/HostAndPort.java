@@ -59,7 +59,7 @@ import java.util.Objects;
  * colons, and port numbers. Full validation of the host field (if desired) is the caller's
  * responsibility.
  */
-public final class HostAndPort implements Serializable {
+public final class HostAndPort implements Serializable, Comparable<HostAndPort> {
   /** Magic value indicating the absence of a port number. */
   private static final int NO_PORT = -1;
 
@@ -279,6 +279,20 @@ public final class HostAndPort implements Serializable {
    */
   public int getPortOrDefault(int defaultPort) {
     return hasPort() ? port : defaultPort;
+  }
+
+  /**
+   * HostAndPort must implement compareTo. As this is a seldom used utiltiy, compareTo simply orders
+   * HostAndPort values using a String compare on the Host value with a secondary integer compare on
+   * the Port if Host values are identical.
+   */
+  @Override
+  public int compareTo(HostAndPort other) {
+    if (this == other) {
+      return 0;
+    }
+    int hostCompareValue = this.getHost().compareTo(other.getHost());
+    return hostCompareValue < 0 ? -1 : hostCompareValue > 0 ? 1 : this.port - other.port;
   }
 
 }
