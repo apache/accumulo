@@ -78,12 +78,13 @@ public class FateAdmin {
         + " available within 'accumulo shell'%n$ fate fail <txid>... | delete"
         + " <txid>... | print [<txid>...]%n%n");
 
-    AdminUtil<Manager> admin = new AdminUtil<>();
+    AdminUtil<Manager> admin = new AdminUtil<>(true);
 
     try (var context = new ServerContext(SiteConfiguration.auto())) {
       final String zkRoot = context.getZooKeeperRoot();
-      String path = zkRoot + Constants.ZFATE;
       var zLockManagerPath = ServiceLock.path(zkRoot + Constants.ZMANAGER_LOCK);
+      var zTableLocksPath = ServiceLock.path(zkRoot + Constants.ZTABLE_LOCKS);
+      String path = zkRoot + Constants.ZFATE;
       ZooReaderWriter zk = context.getZooReaderWriter();
       ZooStore<Manager> zs = new ZooStore<>(path, zk);
 
@@ -98,10 +99,10 @@ public class FateAdmin {
           if (!admin.prepDelete(zs, zk, zLockManagerPath, txid)) {
             System.exit(1);
           }
-          admin.deleteLocks(zk, zkRoot + Constants.ZTABLE_LOCKS, txid);
+          admin.deleteLocks(zk, zTableLocksPath, txid);
         }
       } else if (jc.getParsedCommand().equals("print")) {
-        admin.print(new ReadOnlyStore<>(zs), zk, zkRoot + Constants.ZTABLE_LOCKS);
+        admin.print(new ReadOnlyStore<>(zs), zk, zTableLocksPath);
       }
     }
   }
