@@ -350,8 +350,8 @@ public interface AccumuloClient extends AutoCloseable {
     /**
      * Override default handling of uncaught exceptions in client threads
      *
-     * @param UncaughtExceptionHandler
-     *          implementation
+     * @param ueh
+     *          UncaughtExceptionHandler implementation
      * @return AccumuloClient or Properties
      * @since 2.1.0
      */
