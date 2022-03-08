@@ -826,6 +826,9 @@
                 <Implementation-Build>${mvngit.commit.id}</Implementation-Build>
               </manifestEntries>
             </archive>
+            <excludes>
+              <exclude>**/log4j2-test.properties</exclude>
+            </excludes>
           </configuration>
         </plugin>
         <plugin>
