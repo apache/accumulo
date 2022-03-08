@@ -56,13 +56,6 @@ public class AdminUtil<T> {
   private final boolean exitOnError;
 
   /**
-   * Default constructor
-   */
-  public AdminUtil() {
-    this(true);
-  }
-
-  /**
    * Constructor
    *
    * @param exitOnError
@@ -217,7 +210,7 @@ public class AdminUtil<T> {
   /**
    * Returns a list of the FATE transactions, optionally filtered by transaction id and status. This
    * method does not process lock information, if lock information is desired, use
-   * {@link #getStatus(ReadOnlyTStore, ZooReader, String, Set, EnumSet)}
+   * {@link #getStatus(ReadOnlyTStore, ZooReader, ServiceLockPath, Set, EnumSet)}
    *
    * @param zs
    *          read-only zoostore
@@ -256,8 +249,8 @@ public class AdminUtil<T> {
    * @throws InterruptedException
    *           if process is interrupted.
    */
-  public FateStatus getStatus(ReadOnlyTStore<T> zs, ZooReader zk, String lockPath,
-      Set<Long> filterTxid, EnumSet<TStatus> filterStatus)
+  public FateStatus getStatus(ReadOnlyTStore<T> zs, ZooReader zk,
+      ServiceLock.ServiceLockPath lockPath, Set<Long> filterTxid, EnumSet<TStatus> filterStatus)
       throws KeeperException, InterruptedException {
 
     Map<Long,List<String>> heldLocks = new HashMap<>();
@@ -285,12 +278,12 @@ public class AdminUtil<T> {
    * @throws InterruptedException
    *           if thread interrupt detected while processing.
    */
-  private void findLocks(ZooReader zk, final String lockPath,
+  private void findLocks(ZooReader zk, final ServiceLock.ServiceLockPath lockPath,
       final Map<Long,List<String>> heldLocks, final Map<Long,List<String>> waitingLocks)
       throws KeeperException, InterruptedException {
 
     // stop with exception if lock ids cannot be retrieved from zookeeper
-    List<String> lockedIds = zk.getChildren(lockPath);
+    List<String> lockedIds = zk.getChildren(lockPath.toString());
 
     for (String id : lockedIds) {
 
@@ -408,13 +401,13 @@ public class AdminUtil<T> {
 
   }
 
-  public void print(ReadOnlyTStore<T> zs, ZooReader zk, String lockPath)
+  public void print(ReadOnlyTStore<T> zs, ZooReader zk, ServiceLock.ServiceLockPath lockPath)
       throws KeeperException, InterruptedException {
     print(zs, zk, lockPath, new Formatter(System.out), null, null);
   }
 
-  public void print(ReadOnlyTStore<T> zs, ZooReader zk, String lockPath, Formatter fmt,
-      Set<Long> filterTxid, EnumSet<TStatus> filterStatus)
+  public void print(ReadOnlyTStore<T> zs, ZooReader zk, ServiceLock.ServiceLockPath lockPath,
+      Formatter fmt, Set<Long> filterTxid, EnumSet<TStatus> filterStatus)
       throws KeeperException, InterruptedException {
 
     FateStatus fateStatus = getStatus(zs, zk, lockPath, filterTxid, filterStatus);
@@ -475,8 +468,9 @@ public class AdminUtil<T> {
     return state;
   }
 
-  public boolean prepFail(TStore<T> zs, ZooReaderWriter zk, ServiceLockPath path, String txidStr) {
-    if (!checkGlobalLock(zk, path)) {
+  public boolean prepFail(TStore<T> zs, ZooReaderWriter zk, ServiceLockPath zLockManagerPath,
+      String txidStr) {
+    if (!checkGlobalLock(zk, zLockManagerPath)) {
       return false;
     }
 
@@ -518,10 +512,10 @@ public class AdminUtil<T> {
     return state;
   }
 
-  public void deleteLocks(ZooReaderWriter zk, String path, String txidStr)
+  public void deleteLocks(ZooReaderWriter zk, ServiceLock.ServiceLockPath path, String txidStr)
       throws KeeperException, InterruptedException {
     // delete any locks assoc w/ fate operation
-    List<String> lockedIds = zk.getChildren(path);
+    List<String> lockedIds = zk.getChildren(path.toString());
 
     for (String id : lockedIds) {
       List<String> lockNodes = zk.getChildren(path + "/" + id);
@@ -538,9 +532,9 @@ public class AdminUtil<T> {
   @SuppressFBWarnings(value = "DM_EXIT",
       justification = "TODO - should probably avoid System.exit here; "
           + "this code is used by the fate admin shell command")
-  public boolean checkGlobalLock(ZooReaderWriter zk, ServiceLockPath path) {
+  public boolean checkGlobalLock(ZooReaderWriter zk, ServiceLockPath zLockManagerPath) {
     try {
-      if (ServiceLock.getLockData(zk.getZooKeeper(), path) != null) {
+      if (ServiceLock.getLockData(zk.getZooKeeper(), zLockManagerPath) != null) {
         System.err.println("ERROR: Manager lock is held, not running");
         if (this.exitOnError)
           System.exit(1);

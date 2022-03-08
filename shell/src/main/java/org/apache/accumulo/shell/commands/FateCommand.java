@@ -45,6 +45,7 @@ import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -121,8 +122,8 @@ public class FateCommand extends Command {
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
-      throws AccumuloSecurityException, AccumuloException, ParseException, KeeperException,
-      InterruptedException, IOException {
+      throws ParseException, KeeperException, InterruptedException, IOException, AccumuloException,
+      AccumuloSecurityException {
     ClientContext context = shellState.getContext();
     var siteConfig = SiteConfiguration.auto();
     String[] args = cl.getArgs();
@@ -134,122 +135,28 @@ public class FateCommand extends Command {
 
     AdminUtil<FateCommand> admin = new AdminUtil<>(false);
 
-    String path = context.getZooKeeperRoot() + Constants.ZFATE;
+    String fatePath = context.getZooKeeperRoot() + Constants.ZFATE;
     var managerLockPath = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK);
+    var tableLocksPath = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS);
     ZooReaderWriter zk =
         getZooReaderWriter(context, siteConfig, cl.getOptionValue(secretOption.getOpt()));
-    ZooStore<FateCommand> zs = new ZooStore<>(path, zk);
+    ZooStore<FateCommand> zs = new ZooStore<>(fatePath, zk);
 
     if ("cancel-submitted".equals(cmd)) {
-      if (args.length <= 1) {
-        throw new ParseException("Must provide transaction ID");
-      }
-      for (int i = 1; i < args.length; i++) {
-        Long txid = Long.parseLong(args[i]);
-        shellState.getWriter().flush();
-        String line = shellState.getReader().readLine("Cancel FaTE Tx " + txid + " (yes|no)? ");
-        boolean cancelTx =
-            line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
-        if (cancelTx) {
-          boolean cancelled = ManagerClient.cancelFateOperation(context, txid);
-          if (cancelled) {
-            shellState.getWriter()
-                .println("FaTE transaction " + txid + " was cancelled or already completed.");
-          } else {
-            shellState.getWriter().println(
-                "FaTE transaction " + txid + " was not cancelled, status may have changed.");
-          }
-        } else {
-          shellState.getWriter().println("Not cancelling FaTE transaction " + txid);
-        }
-      }
+      validateArgs(args);
+      failedCommand = cancelSubmittedTxs(shellState, args);
     } else if ("fail".equals(cmd)) {
-      if (args.length <= 1) {
-        throw new ParseException("Must provide transaction ID");
-      }
-      for (int i = 1; i < args.length; i++) {
-        if (!admin.prepFail(zs, zk, managerLockPath, args[i])) {
-          System.out.printf("Could not fail transaction: %s%n", args[i]);
-          failedCommand = true;
-        }
-      }
+      validateArgs(args);
+      failedCommand = failTx(admin, zs, zk, managerLockPath, args);
     } else if ("delete".equals(cmd)) {
-      if (args.length <= 1) {
-        throw new ParseException("Must provide transaction ID");
-      }
-      for (int i = 1; i < args.length; i++) {
-        if (admin.prepDelete(zs, zk, managerLockPath, args[i])) {
-          admin.deleteLocks(zk, context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS, args[i]);
-        } else {
-          System.out.printf("Could not delete transaction: %s%n", args[i]);
-          failedCommand = true;
-        }
-      }
+      validateArgs(args);
+      failedCommand = deleteTx(admin, zs, zk, managerLockPath, args);
     } else if ("list".equals(cmd) || "print".equals(cmd)) {
-      // Parse transaction ID filters for print display
-      Set<Long> filterTxid = null;
-      if (args.length >= 2) {
-        filterTxid = new HashSet<>(args.length);
-        for (int i = 1; i < args.length; i++) {
-          try {
-            Long val = parseTxid(args[i]);
-            filterTxid.add(val);
-          } catch (NumberFormatException nfe) {
-            // Failed to parse, will exit instead of displaying everything since the intention was
-            // to potentially filter some data
-            System.out.printf("Invalid transaction ID format: %s%n", args[i]);
-            return 1;
-          }
-        }
-      }
-
-      // Parse TStatus filters for print display
-      EnumSet<TStatus> filterStatus = null;
-      if (cl.hasOption(statusOption.getOpt())) {
-        filterStatus = EnumSet.noneOf(TStatus.class);
-        String[] tstat = cl.getOptionValues(statusOption.getOpt());
-        for (String element : tstat) {
-          try {
-            filterStatus.add(TStatus.valueOf(element));
-          } catch (IllegalArgumentException iae) {
-            System.out.printf("Invalid transaction status name: %s%n", element);
-            return 1;
-          }
-        }
-      }
-
-      StringBuilder buf = new StringBuilder(8096);
-      Formatter fmt = new Formatter(buf);
-      admin.print(zs, zk, context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS, fmt, filterTxid,
-          filterStatus);
-      shellState.printLines(Collections.singletonList(buf.toString()).iterator(),
-          !cl.hasOption(disablePaginationOpt.getOpt()));
+      printTx(shellState, admin, zs, zk, tableLocksPath, args, cl,
+          cl.hasOption(statusOption.getOpt()));
     } else if ("dump".equals(cmd)) {
-      List<Long> txids;
-
-      if (args.length == 1) {
-        txids = zs.list();
-      } else {
-        txids = new ArrayList<>();
-        for (int i = 1; i < args.length; i++) {
-          txids.add(parseTxid(args[i]));
-        }
-      }
-
-      Gson gson =
-          new GsonBuilder().registerTypeAdapter(ReadOnlyRepo.class, new InterfaceSerializer<>())
-              .registerTypeAdapter(Repo.class, new InterfaceSerializer<>())
-              .registerTypeAdapter(byte[].class, new ByteArraySerializer()).setPrettyPrinting()
-              .create();
-
-      List<FateStack> txStacks = new ArrayList<>();
-
-      for (Long txid : txids) {
-        List<ReadOnlyRepo<FateCommand>> repoStack = zs.getStack(txid);
-        txStacks.add(new FateStack(txid, repoStack));
-      }
-
-      System.out.println(gson.toJson(txStacks));
+      String output = dumpTx(zs, args);
+      System.out.println(output);
     } else {
       throw new ParseException("Invalid command option");
     }
@@ -257,7 +164,119 @@ public class FateCommand extends Command {
     return failedCommand ? 1 : 0;
   }
 
-  protected synchronized ZooReaderWriter getZooReaderWriter(ClientContext context,
+  String dumpTx(ZooStore<FateCommand> zs, String[] args) {
+    List<Long> txids;
+    if (args.length == 1) {
+      txids = zs.list();
+    } else {
+      txids = new ArrayList<>();
+      for (int i = 1; i < args.length; i++) {
+        txids.add(parseTxid(args[i]));
+      }
+    }
+
+    Gson gson = new GsonBuilder()
+        .registerTypeAdapter(ReadOnlyRepo.class, new InterfaceSerializer<>())
+        .registerTypeAdapter(Repo.class, new InterfaceSerializer<>())
+        .registerTypeAdapter(byte[].class, new ByteArraySerializer()).setPrettyPrinting().create();
+
+    List<FateStack> txStacks = new ArrayList<>();
+    for (Long txid : txids) {
+      List<ReadOnlyRepo<FateCommand>> repoStack = zs.getStack(txid);
+      txStacks.add(new FateStack(txid, repoStack));
+    }
+
+    return gson.toJson(txStacks);
+  }
+
+  private void printTx(Shell shellState, AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
+      ZooReaderWriter zk, ServiceLock.ServiceLockPath tableLocksPath, String[] args, CommandLine cl,
+      boolean printStatus) throws InterruptedException, KeeperException, IOException {
+    // Parse transaction ID filters for print display
+    Set<Long> filterTxid = null;
+    if (args.length >= 2) {
+      filterTxid = new HashSet<>(args.length);
+      for (int i = 1; i < args.length; i++) {
+        Long val = parseTxid(args[i]);
+        filterTxid.add(val);
+      }
+    }
+
+    // Parse TStatus filters for print display
+    EnumSet<TStatus> filterStatus = null;
+    if (printStatus) {
+      filterStatus = EnumSet.noneOf(TStatus.class);
+      String[] tstat = cl.getOptionValues(statusOption.getOpt());
+      for (String element : tstat) {
+        filterStatus.add(TStatus.valueOf(element));
+      }
+    }
+
+    StringBuilder buf = new StringBuilder(8096);
+    Formatter fmt = new Formatter(buf);
+    admin.print(zs, zk, tableLocksPath, fmt, filterTxid, filterStatus);
+    shellState.printLines(Collections.singletonList(buf.toString()).iterator(),
+        !cl.hasOption(disablePaginationOpt.getOpt()));
+  }
+
+  private boolean deleteTx(AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
+      ZooReaderWriter zk, ServiceLockPath zLockManagerPath, String[] args)
+      throws InterruptedException, KeeperException {
+    for (int i = 1; i < args.length; i++) {
+      if (admin.prepDelete(zs, zk, zLockManagerPath, args[i])) {
+        admin.deleteLocks(zk, zLockManagerPath, args[i]);
+      } else {
+        System.out.printf("Could not delete transaction: %s%n", args[i]);
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private void validateArgs(String[] args) throws ParseException {
+    if (args.length <= 1) {
+      throw new ParseException("Must provide transaction ID");
+    }
+  }
+
+  private boolean cancelSubmittedTxs(final Shell shellState, String[] args)
+      throws AccumuloException, AccumuloSecurityException {
+    ClientContext context = shellState.getContext();
+    for (int i = 1; i < args.length; i++) {
+      Long txid = Long.parseLong(args[i]);
+      shellState.getWriter().flush();
+      String line = shellState.getReader().readLine("Cancel FaTE Tx " + txid + " (yes|no)? ");
+      boolean cancelTx =
+          line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
+      if (cancelTx) {
+        boolean cancelled = ManagerClient.cancelFateOperation(context, txid);
+        if (cancelled) {
+          shellState.getWriter()
+              .println("FaTE transaction " + txid + " was cancelled or already completed.");
+        } else {
+          shellState.getWriter()
+              .println("FaTE transaction " + txid + " was not cancelled, status may have changed.");
+        }
+      } else {
+        shellState.getWriter().println("Not cancelling FaTE transaction " + txid);
+      }
+    }
+    return true;
+  }
+
+  public boolean failTx(AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs, ZooReaderWriter zk,
+      ServiceLockPath managerLockPath, String[] args) {
+    boolean success = true;
+    for (int i = 1; i < args.length; i++) {
+      if (!admin.prepFail(zs, zk, managerLockPath, args[i])) {
+        System.out.printf("Could not fail transaction: %s%n", args[i]);
+        return !success;
+      }
+    }
+    return success;
+  }
+
+  synchronized ZooReaderWriter getZooReaderWriter(ClientContext context,
       SiteConfiguration siteConfig, String secret) {
 
     if (secret == null) {
