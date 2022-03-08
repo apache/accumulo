@@ -60,26 +60,26 @@ public class CompactionManager {
 
   private static final Logger log = LoggerFactory.getLogger(CompactionManager.class);
 
-  private Iterable<Compactable> compactables;
+  private final Iterable<Compactable> compactables;
   private volatile Map<CompactionServiceId,CompactionService> services;
 
-  private LinkedBlockingQueue<Compactable> compactablesToCheck = new LinkedBlockingQueue<>();
+  private final LinkedBlockingQueue<Compactable> compactablesToCheck = new LinkedBlockingQueue<>();
 
-  private long maxTimeBetweenChecks;
+  private final long maxTimeBetweenChecks;
 
-  private ServerContext context;
+  private final ServerContext context;
 
-  private CompactionServicesConfig currentCfg;
+  private final CompactionServicesConfig currentCfg;
 
   private long lastConfigCheckTime = System.nanoTime();
 
-  private CompactionExecutorsMetrics ceMetrics;
+  private final CompactionExecutorsMetrics ceMetrics;
 
   private String lastDeprecationWarning = "";
 
-  private Map<CompactionExecutorId,ExternalCompactionExecutor> externalExecutors;
+  private final Map<CompactionExecutorId,ExternalCompactionExecutor> externalExecutors;
 
-  private Map<ExternalCompactionId,ExtCompInfo> runningExternalCompactions;
+  private final Map<ExternalCompactionId,ExtCompInfo> runningExternalCompactions;
 
   static class ExtCompInfo {
     final KeyExtent extent;

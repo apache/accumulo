@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.tserver;
 
+import static com.google.common.collect.Iterators.transform;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
@@ -161,7 +162,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Iterators;
 
 public class TabletServer extends AbstractServer {
 
@@ -754,14 +754,9 @@ public class TabletServer extends AbstractServer {
     mincMetrics = new TabletServerMinCMetrics();
     ceMetrics = new CompactionExecutorsMetrics();
     MetricsUtil.initializeProducers(metrics, updateMetrics, scanMetrics, mincMetrics, ceMetrics);
-
-    this.compactionManager = new CompactionManager(new Iterable<Compactable>() {
-      @Override
-      public Iterator<Compactable> iterator() {
-        return Iterators.transform(onlineTablets.snapshot().values().iterator(),
-            Tablet::asCompactable);
-      }
-    }, getContext(), ceMetrics);
+    var tabletIterator = onlineTablets.snapshot().values().iterator();
+    Iterable<Compactable> compactables = () -> transform(tabletIterator, Tablet::asCompactable);
+    this.compactionManager = new CompactionManager(compactables, getContext(), ceMetrics);
     compactionManager.start();
 
     try {
