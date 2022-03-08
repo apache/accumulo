@@ -20,6 +20,7 @@ package org.apache.accumulo.shell.commands;
 
 import static org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -66,6 +67,8 @@ public class FateCommandTest {
     assertFalse(cmd.failTx(helper, zs, zk, managerLockPath, new String[] {"fail", "tx1"}));
     // fail the long configured above
     assertTrue(cmd.failTx(helper, zs, zk, managerLockPath, new String[] {"fail", "12345"}));
+
+    verify(zs);
   }
 
   @Test
@@ -74,9 +77,7 @@ public class FateCommandTest {
     ReadOnlyRepo<FateCommand> ser = EasyMock.createMock(ReadOnlyRepo.class);
     long tid1 = Long.parseLong("12345", 16);
     long tid2 = Long.parseLong("23456", 16);
-    EasyMock.expect(zs.getStatus(tid1)).andReturn(ReadOnlyTStore.TStatus.NEW).once();
     EasyMock.expect(zs.getStack(tid1)).andReturn(List.of(ser)).once();
-    EasyMock.expect(zs.getStatus(tid2)).andReturn(ReadOnlyTStore.TStatus.IN_PROGRESS).once();
     EasyMock.expect(zs.getStack(tid2)).andReturn(List.of(ser)).once();
 
     replay(zs);
@@ -88,6 +89,8 @@ public class FateCommandTest {
     System.out.println(output);
     assertTrue(output.contains("0000000000012345"));
     assertTrue(output.contains("0000000000023456"));
+
+    verify(zs);
   }
 
   static class TestHelper extends AdminUtil<FateCommand> {
