@@ -25,6 +25,8 @@ import org.apache.accumulo.core.trace.TraceUtil;
 
 public class Threads {
 
+  private static UncaughtExceptionHandler UEH = new AccumuloUncaughtExceptionHandler();
+
   public static class AccumuloDaemonThread extends Thread {
 
     public AccumuloDaemonThread(Runnable target, String name) {
@@ -38,11 +40,13 @@ public class Threads {
     }
   }
 
+  public static void setUncaughtExceptionHandler(UncaughtExceptionHandler ueh) {
+    UEH = ueh;
+  }
+
   public static Runnable createNamedRunnable(String name, Runnable r) {
     return new NamedRunnable(name, r);
   }
-
-  private static final UncaughtExceptionHandler UEH = new AccumuloUncaughtExceptionHandler();
 
   public static Thread createThread(String name, Runnable r) {
     return createThread(name, OptionalInt.empty(), r);

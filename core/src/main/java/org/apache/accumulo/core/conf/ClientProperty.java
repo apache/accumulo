@@ -128,7 +128,10 @@ public enum ClientProperty {
       "A list of span receiver classes to send trace spans"),
   @Deprecated(since = "2.1.0", forRemoval = true)
   TRACE_ZOOKEEPER_PATH("trace.zookeeper.path", Constants.ZTRACERS, PropertyType.PATH,
-      "The zookeeper node where tracers are registered", "2.0.0", false);
+      "The zookeeper node where tracers are registered", "2.0.0", false),
+  UNCAUGHT_EXCEPTION_HANDLER("client.uncaught.exception.handler", "", PropertyType.CLASSNAME,
+      "The name of the uncaught exception handler implementation for the client VM", "2.1.0",
+      false);
 
   @Deprecated(since = "2.1.0", forRemoval = true)
   public static final String TRACE_SPAN_RECEIVER_PREFIX = "trace.span.receiver";

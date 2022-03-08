@@ -25,6 +25,8 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 
+import java.lang.Thread.UncaughtExceptionHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -78,11 +80,13 @@ import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.tables.TableZooHelper;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -164,6 +168,19 @@ public class ClientContext implements AccumuloClient {
     this.singletonReservation = Objects.requireNonNull(reservation);
     this.tableops = new TableOperationsImpl(this);
     this.namespaceops = new NamespaceOperationsImpl(this, tableops);
+    String uehClassName = serverConf.get(ClientProperty.UNCAUGHT_EXCEPTION_HANDLER.getKey());
+    if (!StringUtils.isEmpty(uehClassName)) {
+      try {
+        @SuppressWarnings("unchecked")
+        Class<? extends UncaughtExceptionHandler> clazz =
+            (Class<? extends UncaughtExceptionHandler>) Class.forName(uehClassName);
+        Threads.setUncaughtExceptionHandler(clazz.getDeclaredConstructor().newInstance());
+      } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+          | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
+          | SecurityException e) {
+        throw new RuntimeException("Error setting uncaughtExceptionHandler", e);
+      }
+    }
   }
 
   public Ample getAmple() {
@@ -939,6 +956,14 @@ public class ClientContext implements AccumuloClient {
     public void setProperty(ClientProperty property, Integer value) {
       setProperty(property, Integer.toString(value));
     }
+
+    @Override
+    public ClientFactory<T>
+        withUncaughtExceptionHandler(Class<? extends UncaughtExceptionHandler> ueh) {
+      setProperty(ClientProperty.UNCAUGHT_EXCEPTION_HANDLER, ueh.getName());
+      return this;
+    }
+
   }
 
   public ZooReader getZooReader() {
