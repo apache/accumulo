@@ -38,7 +38,7 @@ import org.apache.accumulo.core.file.blockfile.cache.impl.SizeConstants;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.CacheEntry;
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -515,13 +515,12 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
    * <p>
    * Thread is triggered into action by {@link LruBlockCache#runEviction()}
    */
-  private static class EvictionThread extends Thread {
+  private static class EvictionThread extends AccumuloDaemonThread {
     private WeakReference<LruBlockCache> cache;
     private boolean running = false;
 
     public EvictionThread(LruBlockCache cache) {
       super("LruBlockCache.EvictionThread");
-      Threads.applyStandardsToThread(this, "LruBlockCache.EvictionThread");
       this.cache = new WeakReference<>(cache);
     }
 
@@ -557,12 +556,11 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
   /*
    * Statistics thread. Periodically prints the cache statistics to the log.
    */
-  private static class StatisticsThread extends Thread {
+  private static class StatisticsThread extends AccumuloDaemonThread {
     LruBlockCache lru;
 
     public StatisticsThread(LruBlockCache lru) {
       super("LruBlockCache.StatisticsThread");
-      Threads.applyStandardsToThread(this, "LruBlockCache.StatisticsThread");
       this.lru = lru;
     }
 

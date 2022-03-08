@@ -75,7 +75,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ta
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
-import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.apache.accumulo.manager.Manager.TabletGoalState;
 import org.apache.accumulo.manager.state.MergeStats;
 import org.apache.accumulo.manager.state.TableCounts;
@@ -101,7 +101,7 @@ import org.apache.thrift.TException;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterators;
 
-abstract class TabletGroupWatcher extends Thread {
+abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   // Constants used to make sure assignment logging isn't excessive in quantity or size
 
   private final Manager manager;
@@ -111,10 +111,10 @@ abstract class TabletGroupWatcher extends Thread {
   private SortedSet<TServerInstance> lastScanServers = Collections.emptySortedSet();
 
   TabletGroupWatcher(Manager manager, TabletStateStore store, TabletGroupWatcher dependentWatcher) {
+    super("Watching " + store.name());
     this.manager = manager;
     this.store = store;
     this.dependentWatcher = dependentWatcher;
-    Threads.applyStandardsToThread(this, "Watching " + store.name());
   }
 
   /** Should this {@code TabletGroupWatcher} suspend tablets? */
