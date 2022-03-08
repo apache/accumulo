@@ -191,14 +191,8 @@ public class FateCommand extends Command {
     if (args.length >= 2) {
       filterTxid = new HashSet<>(args.length);
       for (int i = 1; i < args.length; i++) {
-        try {
-          Long val = parseTxid(args[i]);
-          filterTxid.add(val);
-        } catch (NumberFormatException nfe) {
-          // Failed to parse, will exit instead of displaying everything since the intention was
-          // to potentially filter some data
-          throw new RuntimeException("Invalid transaction ID format: " + args[i], nfe);
-        }
+        Long val = parseTxid(args[i]);
+        filterTxid.add(val);
       }
     }
 
@@ -208,11 +202,7 @@ public class FateCommand extends Command {
       filterStatus = EnumSet.noneOf(TStatus.class);
       String[] tstat = cl.getOptionValues(statusOption.getOpt());
       for (String element : tstat) {
-        try {
-          filterStatus.add(TStatus.valueOf(element));
-        } catch (IllegalArgumentException iae) {
-          throw new RuntimeException("Invalid transaction status name: " + element, iae);
-        }
+        filterStatus.add(TStatus.valueOf(element));
       }
     }
 
@@ -226,16 +216,15 @@ public class FateCommand extends Command {
   private boolean deleteTx(AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
       ZooReaderWriter zk, ServiceLockPath zLockManagerPath, String[] args)
       throws InterruptedException, KeeperException {
-    boolean success = true;
     for (int i = 1; i < args.length; i++) {
       if (admin.prepDelete(zs, zk, zLockManagerPath, args[i])) {
         admin.deleteLocks(zk, zLockManagerPath, args[i]);
       } else {
         System.out.printf("Could not delete transaction: %s%n", args[i]);
-        return !success;
+        return false;
       }
     }
-    return success;
+    return true;
   }
 
   private void validateArgs(String[] args) throws ParseException {
