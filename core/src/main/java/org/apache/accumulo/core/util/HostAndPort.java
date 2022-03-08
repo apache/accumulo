@@ -283,7 +283,7 @@ public final class HostAndPort implements Serializable, Comparable<HostAndPort> 
   }
 
   /**
-   * HostAndPort must implement compareTo. As this is a seldom used utiltiy, compareTo simply treats
+   * HostAndPort must implement compareTo. As this is a seldom used utility, compareTo simply treats
    * HostAndPort values as Strings.
    */
   @Override
