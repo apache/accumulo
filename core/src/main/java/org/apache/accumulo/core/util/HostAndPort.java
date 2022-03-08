@@ -19,6 +19,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.io.Serializable;
+import java.util.Comparator;
 import java.util.Objects;
 
 /**
@@ -282,17 +283,12 @@ public final class HostAndPort implements Serializable, Comparable<HostAndPort> 
   }
 
   /**
-   * HostAndPort must implement compareTo. As this is a seldom used utiltiy, compareTo simply orders
-   * HostAndPort values using a String compare on the Host value with a secondary integer compare on
-   * the Port if Host values are identical.
+   * HostAndPort must implement compareTo. As this is a seldom used utiltiy, compareTo simply treats
+   * HostAndPort values as Strings.
    */
   @Override
   public int compareTo(HostAndPort other) {
-    if (this == other) {
-      return 0;
-    }
-    int hostCompareValue = this.getHost().compareTo(other.getHost());
-    return hostCompareValue < 0 ? -1 : hostCompareValue > 0 ? 1 : this.port - other.port;
+    return Comparator.nullsFirst(Comparator.comparing(HostAndPort::toString)).compare(this, other);
   }
 
 }

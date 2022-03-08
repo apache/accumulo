@@ -74,6 +74,10 @@ class HostAndPortTest {
     hostAndPort2 = HostAndPort.fromString("2001:db9::1");
     assertTrue(hostAndPort1.compareTo(hostAndPort2) < 0);
     assertTrue(hostAndPort2.compareTo(hostAndPort1) > 0);
+
+    hostAndPort1 = HostAndPort.fromString("2001:db8::1");
+    hostAndPort2 = null;
+    assertTrue(hostAndPort1.compareTo(hostAndPort2) > 0);
   }
 
   @Test
