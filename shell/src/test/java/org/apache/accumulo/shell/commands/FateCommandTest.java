@@ -19,6 +19,9 @@
 package org.apache.accumulo.shell.commands;
 
 import static org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertFalse;
@@ -31,7 +34,6 @@ import org.apache.accumulo.fate.ReadOnlyRepo;
 import org.apache.accumulo.fate.ReadOnlyTStore;
 import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.easymock.EasyMock;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -41,22 +43,22 @@ public class FateCommandTest {
 
   @BeforeClass
   public static void setup() {
-    zk = EasyMock.createMock(ZooReaderWriter.class);
-    managerLockPath = EasyMock.createMock(ServiceLockPath.class);
+    zk = createMock(ZooReaderWriter.class);
+    managerLockPath = createMock(ServiceLockPath.class);
   }
 
   @Test
   public void testFailTx() throws Exception {
-    ZooStore<FateCommand> zs = EasyMock.createMock(ZooStore.class);
+    ZooStore<FateCommand> zs = createMock(ZooStore.class);
     String tidStr = "12345";
     long tid = Long.parseLong(tidStr, 16);
-    EasyMock.expect(zs.getStatus(tid)).andReturn(ReadOnlyTStore.TStatus.NEW).anyTimes();
+    expect(zs.getStatus(tid)).andReturn(ReadOnlyTStore.TStatus.NEW).anyTimes();
     zs.reserve(tid);
-    EasyMock.expectLastCall().once();
+    expectLastCall().once();
     zs.setStatus(tid, ReadOnlyTStore.TStatus.FAILED_IN_PROGRESS);
-    EasyMock.expectLastCall().once();
+    expectLastCall().once();
     zs.unreserve(tid, 0);
-    EasyMock.expectLastCall().once();
+    expectLastCall().once();
 
     TestHelper helper = new TestHelper(true);
 
@@ -73,12 +75,12 @@ public class FateCommandTest {
 
   @Test
   public void testDump() {
-    ZooStore<FateCommand> zs = EasyMock.createMock(ZooStore.class);
-    ReadOnlyRepo<FateCommand> ser = EasyMock.createMock(ReadOnlyRepo.class);
+    ZooStore<FateCommand> zs = createMock(ZooStore.class);
+    ReadOnlyRepo<FateCommand> ser = createMock(ReadOnlyRepo.class);
     long tid1 = Long.parseLong("12345", 16);
     long tid2 = Long.parseLong("23456", 16);
-    EasyMock.expect(zs.getStack(tid1)).andReturn(List.of(ser)).once();
-    EasyMock.expect(zs.getStack(tid2)).andReturn(List.of(ser)).once();
+    expect(zs.getStack(tid1)).andReturn(List.of(ser)).once();
+    expect(zs.getStack(tid2)).andReturn(List.of(ser)).once();
 
     replay(zs);
 
