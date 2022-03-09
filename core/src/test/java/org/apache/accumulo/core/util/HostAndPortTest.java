@@ -24,6 +24,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 
@@ -36,7 +38,7 @@ class HostAndPortTest {
     assertTrue(hostAndPort1.compareTo(hostAndPort2) > 0);
 
     HostAndPort hostPortSame = HostAndPort.fromString("www.test.com");
-    assertTrue(hostAndPort1.compareTo(hostAndPort1) == 0);
+    assertTrue(hostPortSame.compareTo(hostPortSame) == 0);
 
     hostAndPort1 = HostAndPort.fromString("www.example.com");
     hostAndPort2 = HostAndPort.fromString("www.example.com");
@@ -82,59 +84,26 @@ class HostAndPortTest {
 
   @Test
   void testOrder() {
-    Set<HostAndPort> hostPortSet = new TreeSet<>();
-    hostPortSet.add(HostAndPort.fromString("example.info"));
-    hostPortSet.add(HostAndPort.fromString("192.12.2.1:80"));
-    hostPortSet.add(HostAndPort.fromString("example.com:80"));
-    hostPortSet.add(HostAndPort.fromString("a.bb.c.d"));
-    hostPortSet.add(HostAndPort.fromString("12.1.2.1"));
-    hostPortSet.add(HostAndPort.fromString("localhost:0000090"));
-    hostPortSet.add(HostAndPort.fromString("example.com"));
-    hostPortSet.add(HostAndPort.fromString("100.100.100.100"));
-    hostPortSet.add(HostAndPort.fromString("www.example.com"));
-    hostPortSet.add(HostAndPort.fromString("[2001:eb8::1]"));
-    hostPortSet.add(HostAndPort.fromString("localhost:90"));
-    hostPortSet.add(HostAndPort.fromString("[2001:eb8::1]:80"));
-    hostPortSet.add(HostAndPort.fromString("2001:db8::1"));
-    hostPortSet.add(HostAndPort.fromString("100.100.101.100"));
-    hostPortSet.add(HostAndPort.fromString("2001:::1"));
-    hostPortSet.add(HostAndPort.fromString("192.12.2.1"));
-    hostPortSet.add(HostAndPort.fromString("192.12.2.1:81"));
-    hostPortSet.add(HostAndPort.fromString("199.10.1.1:14"));
-    hostPortSet.add(HostAndPort.fromString("10.100.100.100"));
-    hostPortSet.add(HostAndPort.fromString("2.2.2.2:10000"));
-    hostPortSet.add(HostAndPort.fromString("192.12.2.1:79"));
-    hostPortSet.add(HostAndPort.fromString("1.1.1.1:24"));
-    hostPortSet.add(HostAndPort.fromParts("localhost", 000001));
-    hostPortSet.add(HostAndPort.fromString("1.1.1.1"));
-    hostPortSet.add(HostAndPort.fromString("192.12.2.1:79"));
-    hostPortSet.add(HostAndPort.fromString("a.b.c.d"));
-    hostPortSet.add(HostAndPort.fromString("1.100.100.100"));
-    hostPortSet.add(HostAndPort.fromString("2.2.2.2:9999"));
+    Set<HostAndPort> hostPortSet = Stream
+        .of("example.info", "192.12.2.1:80", "example.com:80", "a.bb.c.d", "12.1.2.1",
+            "localhost:0000090", "example.com", "100.100.100.100", "www.example.com",
+            "[2001:eb8::1]", "localhost:90", "[2001:eb8::1]:80", "2001:db8::1", "100.100.101.100",
+            "2001:::1", "192.12.2.1", "192.12.2.1:81", "199.10.1.1:14", "10.100.100.100",
+            "2.2.2.2:10000", "192.12.2.1:79", "1.1.1.1:24", "1.1.1.1", "192.12.2.1:79", "a.b.c.d",
+            "1.100.100.100", "2.2.2.2:9999", "a.b.b.d", "www.example.com", "www.alpha.org",
+            "a.b.c.d:10", "a.b.b.d:10", "a.b.b.d:11")
+        .map(HostAndPort::fromString).collect(Collectors.toCollection(TreeSet::new));
     hostPortSet.add(HostAndPort.fromParts("localhost", 1));
-    hostPortSet.add(HostAndPort.fromString("a.b.b.d"));
-    hostPortSet.add(HostAndPort.fromString("www.example.com"));
-    hostPortSet.add(HostAndPort.fromString("www.alpha.org"));
-    hostPortSet.add(HostAndPort.fromString("a.b.c.d:10"));
-    hostPortSet.add(HostAndPort.fromString("a.b.b.d:10"));
-    hostPortSet.add(HostAndPort.fromString("a.b.b.d:11"));
+    hostPortSet.add(HostAndPort.fromParts("localhost", 000001));
 
-    List<HostAndPort> expected = List.of(HostAndPort.fromString("1.1.1.1"),
-        HostAndPort.fromString("1.1.1.1:24"), HostAndPort.fromString("1.100.100.100"),
-        HostAndPort.fromString("10.100.100.100"), HostAndPort.fromString("100.100.100.100"),
-        HostAndPort.fromString("100.100.101.100"), HostAndPort.fromString("12.1.2.1"),
-        HostAndPort.fromString("192.12.2.1"), HostAndPort.fromString("192.12.2.1:79"),
-        HostAndPort.fromString("192.12.2.1:80"), HostAndPort.fromString("192.12.2.1:81"),
-        HostAndPort.fromString("199.10.1.1:14"), HostAndPort.fromString("2.2.2.2:9999"),
-        HostAndPort.fromString("2.2.2.2:10000"), HostAndPort.fromString("[2001:::1]"),
-        HostAndPort.fromString("[2001:db8::1]"), HostAndPort.fromString("[2001:eb8::1]"),
-        HostAndPort.fromString("[2001:eb8::1]:80"), HostAndPort.fromString("a.b.b.d"),
-        HostAndPort.fromString("a.b.b.d:10"), HostAndPort.fromString("a.b.b.d:11"),
-        HostAndPort.fromString("a.b.c.d"), HostAndPort.fromString("a.b.c.d:10"),
-        HostAndPort.fromString("a.bb.c.d"), HostAndPort.fromString("example.com"),
-        HostAndPort.fromString("example.com:80"), HostAndPort.fromString("example.info"),
-        HostAndPort.fromString("localhost:1"), HostAndPort.fromString("localhost:90"),
-        HostAndPort.fromString("www.alpha.org"), HostAndPort.fromString("www.example.com"));
+    List<HostAndPort> expected = Stream
+        .of("1.1.1.1", "1.1.1.1:24", "1.100.100.100", "10.100.100.100", "100.100.100.100",
+            "100.100.101.100", "12.1.2.1", "192.12.2.1", "192.12.2.1:79", "192.12.2.1:80",
+            "192.12.2.1:81", "199.10.1.1:14", "2.2.2.2:9999", "2.2.2.2:10000", "[2001:::1]",
+            "[2001:db8::1]", "[2001:eb8::1]", "[2001:eb8::1]:80", "a.b.b.d", "a.b.b.d:10",
+            "a.b.b.d:11", "a.b.c.d", "a.b.c.d:10", "a.bb.c.d", "example.com", "example.com:80",
+            "example.info", "localhost:1", "localhost:90", "www.alpha.org", "www.example.com")
+        .map(HostAndPort::fromString).collect(Collectors.toList());
 
     Object[] expectedArray = expected.toArray();
     Object[] hostPortArray = hostPortSet.toArray();
