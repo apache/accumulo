@@ -33,7 +33,6 @@ import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -101,7 +100,7 @@ public class MiniAccumuloClusterTest {
 
   @SuppressWarnings("deprecation")
   @Test
-  @Timeout(value = 30, unit = TimeUnit.SECONDS)
+  @Timeout(30)
   public void test() throws Exception {
     org.apache.accumulo.core.client.Connector conn = accumulo.getConnector("root", "superSecret");
 
@@ -177,7 +176,7 @@ public class MiniAccumuloClusterTest {
 
   @SuppressWarnings("deprecation")
   @Test
-  @Timeout(value = 60, unit = TimeUnit.SECONDS)
+  @Timeout(60)
   public void testPerTableClasspath() throws Exception {
 
     org.apache.accumulo.core.client.Connector conn = accumulo.getConnector("root", "superSecret");
@@ -225,7 +224,7 @@ public class MiniAccumuloClusterTest {
   }
 
   @Test
-  @Timeout(value = 10, unit = TimeUnit.SECONDS)
+  @Timeout(10)
   public void testDebugPorts() {
 
     Set<Pair<ServerType,Integer>> debugPorts = accumulo.getDebugPorts();

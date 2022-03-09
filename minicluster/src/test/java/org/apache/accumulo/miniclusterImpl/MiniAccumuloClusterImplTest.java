@@ -27,7 +27,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
@@ -86,7 +85,7 @@ public class MiniAccumuloClusterImplTest {
   }
 
   @Test
-  @Timeout(value = 10, unit = TimeUnit.SECONDS)
+  @Timeout(10)
   public void testAccurateProcessListReturned() throws Exception {
     Map<ServerType,Collection<ProcessReference>> procs = accumulo.getProcesses();
 
@@ -105,7 +104,7 @@ public class MiniAccumuloClusterImplTest {
   }
 
   @Test
-  @Timeout(value = 60, unit = TimeUnit.SECONDS)
+  @Timeout(60)
   public void saneMonitorInfo() throws Exception {
     ManagerMonitorInfo stats;
     while (true) {
