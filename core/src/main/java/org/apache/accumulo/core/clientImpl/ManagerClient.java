@@ -198,8 +198,8 @@ public class ManagerClient {
 
   public static boolean cancelFateOperation(ClientContext context, Long txid)
       throws AccumuloException, AccumuloSecurityException {
-    ManagerClientService.Client client = null;
     while (true) {
+      ManagerClientService.Client client = null;
       try {
         client = getConnectionWithRetry(context);
         return client.cancelFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), txid);
