@@ -26,7 +26,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 
 import java.lang.Thread.UncaughtExceptionHandler;
-import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -80,7 +79,7 @@ import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.tables.TableZooHelper;
-import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
@@ -134,6 +133,7 @@ public class ClientContext implements AccumuloClient {
   @SuppressWarnings("deprecation")
   private org.apache.accumulo.core.client.admin.ReplicationOperations replicationops = null;
   private final SingletonReservation singletonReservation;
+  private final ThreadPools clientThreadPools;
 
   private void ensureOpen() {
     if (closed) {
@@ -171,21 +171,28 @@ public class ClientContext implements AccumuloClient {
     String uehClassName = serverConf.get(ClientProperty.UNCAUGHT_EXCEPTION_HANDLER.getKey());
     if (!StringUtils.isEmpty(uehClassName)) {
       try {
-        @SuppressWarnings("unchecked")
         Class<? extends UncaughtExceptionHandler> clazz =
-            (Class<? extends UncaughtExceptionHandler>) Class.forName(uehClassName);
-        Threads.setUncaughtExceptionHandler(clazz.getDeclaredConstructor().newInstance());
-      } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-          | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
-          | SecurityException e) {
-        throw new RuntimeException("Error setting uncaughtExceptionHandler", e);
+            Class.forName(uehClassName).asSubclass(UncaughtExceptionHandler.class);
+        clientThreadPools =
+            ThreadPools.getClientThreadPools(clazz.getDeclaredConstructor().newInstance());
+      } catch (Exception e) {
+        throw new IllegalStateException("Error setting uncaughtExceptionHandler", e);
       }
+    } else {
+      clientThreadPools = ThreadPools.getServerThreadPools();
     }
   }
 
   public Ample getAmple() {
     ensureOpen();
     return new AmpleImpl(this);
+  }
+
+  /**
+   * @return ThreadPools instance optionally configured with client UncaughtExceptionHandler
+   */
+  public ThreadPools getClientThreadPools() {
+    return clientThreadPools;
   }
 
   /**

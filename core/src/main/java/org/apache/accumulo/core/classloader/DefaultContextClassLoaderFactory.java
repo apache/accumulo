@@ -20,6 +20,7 @@ package org.apache.accumulo.core.classloader;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
@@ -63,7 +64,12 @@ public class DefaultContextClassLoaderFactory implements ContextClassLoaderFacto
 
   private static void startCleanupThread(final AccumuloConfiguration conf,
       final Supplier<Map<String,String>> contextConfigSupplier) {
-    ScheduledFuture<?> future = ThreadPools.createGeneralScheduledExecutorService(conf)
+    ScheduledFuture<?> future = ThreadPools.getClientThreadPools(new UncaughtExceptionHandler() {
+      @Override
+      public void uncaughtException(Thread arg0, Throwable arg1) {
+        LOG.error("context classloader cleanup thread has failed.", arg1);
+      }
+    }).createGeneralScheduledExecutorService(conf)
         .scheduleWithFixedDelay(Threads.createNamedRunnable(className + "-cleanup", () -> {
           LOG.trace("{}-cleanup thread, properties: {}", className, conf);
           Set<String> contextsInUse = contextConfigSupplier.get().keySet().stream()

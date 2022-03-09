@@ -20,6 +20,7 @@ package org.apache.accumulo.core.clientImpl;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import java.lang.ref.Cleaner.Cleanable;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -29,6 +30,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableDeletedException;
@@ -40,7 +42,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
@@ -65,11 +67,10 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
 
   private ScannerImpl.Reporter reporter;
 
-  private static ThreadPoolExecutor readaheadPool =
-      ThreadPools.createThreadPool(0, Integer.MAX_VALUE, 3L, SECONDS,
-          "Accumulo scanner read ahead thread", new SynchronousQueue<>(), true);
+  private final ThreadPoolExecutor readaheadPool;
+  private final Cleanable cleaner;
 
-  private boolean closed = false;
+  private AtomicBoolean closed = new AtomicBoolean(false);
 
   ScannerIterator(ClientContext context, TableId tableId, Authorizations authorizations,
       Range range, int size, long timeOut, ScannerOptions options, boolean isolated,
@@ -84,6 +85,12 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
     if (!this.options.fetchedColumns.isEmpty()) {
       range = range.bound(this.options.fetchedColumns.first(), this.options.fetchedColumns.last());
     }
+
+    readaheadPool = context.getClientThreadPools().createThreadPool(0, Integer.MAX_VALUE, 3L,
+        SECONDS, "Accumulo scanner read ahead thread", new SynchronousQueue<>(), true);
+
+    cleaner = CleanerUtil.shutdownThreadPoolExecutor(readaheadPool, closed,
+        LoggerFactory.getLogger(ScannerIterator.class));
 
     scanState =
         new ScanState(context, tableId, authorizations, new Range(range), options.fetchedColumns,
@@ -130,11 +137,13 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
       synchronized (scanState) {
         // this is synchronized so its mutually exclusive with readBatch()
         try {
-          closed = true;
+          closed.set(true);
           ThriftScanner.close(scanState);
         } catch (Exception e) {
           LoggerFactory.getLogger(ScannerIterator.class)
               .debug("Exception when closing scan session", e);
+        } finally {
+          cleaner.clean(); // deregister the cleaner as close has been called
         }
       }
     });
@@ -152,7 +161,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
     do {
       synchronized (scanState) {
         // this is synchronized so its mutually exclusive with closing
-        Preconditions.checkState(!closed, "Scanner was closed");
+        Preconditions.checkState(!closed.get(), "Scanner was closed");
         batch = ThriftScanner.scan(scanState.context, scanState, timeOut);
       }
     } while (batch != null && batch.isEmpty());

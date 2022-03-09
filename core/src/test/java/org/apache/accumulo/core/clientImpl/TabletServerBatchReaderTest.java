@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +36,8 @@ public class TabletServerBatchReaderTest {
   @BeforeEach
   public void setup() {
     context = EasyMock.createMock(ClientContext.class);
+    EasyMock.expect(context.getClientThreadPools()).andReturn(ThreadPools.getServerThreadPools());
+    EasyMock.replay(context);
   }
 
   @Test

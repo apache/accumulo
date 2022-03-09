@@ -23,6 +23,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
+import java.lang.ref.Cleaner.Cleanable;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -42,6 +43,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -76,6 +78,7 @@ import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
@@ -87,11 +90,9 @@ import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
+import org.slf4j.LoggerFactory;
 
 class ConditionalWriterImpl implements ConditionalWriter {
-
-  private static ThreadPoolExecutor cleanupThreadPool =
-      ThreadPools.createFixedThreadPool(1, 3, SECONDS, "Conditional Writer Cleanup Thread", true);
 
   private static final int MAX_SLEEP = 30000;
 
@@ -115,6 +116,9 @@ class ConditionalWriterImpl implements ConditionalWriter {
   private DelayQueue<QCMutation> failedMutations = new DelayQueue<>();
   private ScheduledThreadPoolExecutor threadPool;
   private final ScheduledFuture<?> failureTaskFuture;
+  private final ThreadPoolExecutor cleanupThreadPool;
+  private final AtomicBoolean closed = new AtomicBoolean(false);
+  private final Cleanable cleaner;
 
   private class RQIterator implements Iterator<Result> {
 
@@ -242,6 +246,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
         }
 
       }
+      closed.set(true);
+      cleaner.clean();
     }
   }
 
@@ -365,8 +371,12 @@ class ConditionalWriterImpl implements ConditionalWriter {
     this.context = context;
     this.auths = config.getAuthorizations();
     this.ve = new VisibilityEvaluator(config.getAuthorizations());
-    this.threadPool = ThreadPools.createScheduledExecutorService(config.getMaxWriteThreads(),
-        this.getClass().getSimpleName(), false);
+    this.threadPool = context.getClientThreadPools().createScheduledExecutorService(
+        config.getMaxWriteThreads(), this.getClass().getSimpleName(), false);
+    this.cleanupThreadPool = context.getClientThreadPools().createFixedThreadPool(1, 3, SECONDS,
+        "Conditional Writer Cleanup Thread", true);
+    this.cleaner = CleanerUtil.shutdownThreadPoolExecutor(cleanupThreadPool, closed,
+        LoggerFactory.getLogger(ConditionalWriterImpl.class));
     this.locator = new SyncingTabletLocator(context, tableId);
     this.serverQueues = new HashMap<>();
     this.tableId = tableId;
