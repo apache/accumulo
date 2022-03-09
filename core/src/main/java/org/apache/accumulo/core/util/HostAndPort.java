@@ -19,6 +19,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.io.Serializable;
+import java.util.Comparator;
 import java.util.Objects;
 
 /**
@@ -59,7 +60,7 @@ import java.util.Objects;
  * colons, and port numbers. Full validation of the host field (if desired) is the caller's
  * responsibility.
  */
-public final class HostAndPort implements Serializable {
+public final class HostAndPort implements Serializable, Comparable<HostAndPort> {
   /** Magic value indicating the absence of a port number. */
   private static final int NO_PORT = -1;
 
@@ -279,6 +280,18 @@ public final class HostAndPort implements Serializable {
    */
   public int getPortOrDefault(int defaultPort) {
     return hasPort() ? port : defaultPort;
+  }
+
+  /**
+   * HostAndPort must implement compareTo. This method orders HostAndPort values using a String
+   * compare on the Host value with a secondary integer compare on the Port value.
+   */
+  @Override
+  public int compareTo(HostAndPort other) {
+    return Comparator
+        .nullsFirst(
+            Comparator.comparing(HostAndPort::getHost).thenComparingInt(h -> h.getPortOrDefault(0)))
+        .compare(this, other);
   }
 
 }
