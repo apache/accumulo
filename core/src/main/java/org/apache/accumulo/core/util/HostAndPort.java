@@ -283,8 +283,8 @@ public final class HostAndPort implements Serializable, Comparable<HostAndPort> 
   }
 
   /**
-   * HostAndPort must implement compareTo. As this is a seldom used utility, compareTo simply treats
-   * HostAndPort values as Strings.
+   * HostAndPort must implement compareTo. This method orders HostAndPort values using a String
+   * compare on the Host value with a secondary integer compare on the Port value.
    */
   @Override
   public int compareTo(HostAndPort other) {
