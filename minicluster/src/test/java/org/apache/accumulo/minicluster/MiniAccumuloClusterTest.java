@@ -19,6 +19,7 @@
 package org.apache.accumulo.minicluster;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -30,7 +31,6 @@ import java.io.FileReader;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -101,7 +101,7 @@ public class MiniAccumuloClusterTest {
 
   @SuppressWarnings("deprecation")
   @Test
-  @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
+  @Timeout(value = 30, unit = TimeUnit.SECONDS)
   public void test() throws Exception {
     org.apache.accumulo.core.client.Connector conn = accumulo.getConnector("root", "superSecret");
 
@@ -177,7 +177,7 @@ public class MiniAccumuloClusterTest {
 
   @SuppressWarnings("deprecation")
   @Test
-  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
+  @Timeout(value = 60, unit = TimeUnit.SECONDS)
   public void testPerTableClasspath() throws Exception {
 
     org.apache.accumulo.core.client.Connector conn = accumulo.getConnector("root", "superSecret");
@@ -185,8 +185,7 @@ public class MiniAccumuloClusterTest {
     conn.tableOperations().create("table2");
 
     File jarFile = new File(tempDir, "iterator.jar");
-    FileUtils.copyURLToFile(Objects.requireNonNull(this.getClass().getResource("/FooFilter.jar")),
-        jarFile);
+    FileUtils.copyURLToFile(requireNonNull(getClass().getResource("/FooFilter.jar")), jarFile);
 
     conn.instanceOperations().setProperty(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1",
         jarFile.toURI().toString());
@@ -226,7 +225,7 @@ public class MiniAccumuloClusterTest {
   }
 
   @Test
-  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  @Timeout(value = 10, unit = TimeUnit.SECONDS)
   public void testDebugPorts() {
 
     Set<Pair<ServerType,Integer>> debugPorts = accumulo.getDebugPorts();

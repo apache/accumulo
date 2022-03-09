@@ -26,6 +26,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
+import org.apache.accumulo.minicluster.WithTestNames;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -33,7 +34,7 @@ import org.junit.jupiter.api.io.TempDir;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
-public class CleanShutdownMacTest {
+public class CleanShutdownMacTest extends WithTestNames {
 
   @TempDir
   private static File tmpDir;
@@ -41,8 +42,7 @@ public class CleanShutdownMacTest {
   @SuppressWarnings("unchecked")
   @Test
   public void testExecutorServiceShutdown() throws Exception {
-    // File tmp = tmpDir.newFolder();
-    File tmp = new File(tmpDir, "folder1/");
+    File tmp = new File(tmpDir, testName());
     assertTrue(tmp.isDirectory() || tmp.mkdir(), "Failed to make a new sub-directory");
     MiniAccumuloClusterImpl cluster = new MiniAccumuloClusterImpl(tmp, "foo");
 

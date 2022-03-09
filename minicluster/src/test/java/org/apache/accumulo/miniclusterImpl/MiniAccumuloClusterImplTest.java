@@ -86,7 +86,7 @@ public class MiniAccumuloClusterImplTest {
   }
 
   @Test
-  @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+  @Timeout(value = 10, unit = TimeUnit.SECONDS)
   public void testAccurateProcessListReturned() throws Exception {
     Map<ServerType,Collection<ProcessReference>> procs = accumulo.getProcesses();
 
@@ -105,7 +105,7 @@ public class MiniAccumuloClusterImplTest {
   }
 
   @Test
-  @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
+  @Timeout(value = 60, unit = TimeUnit.SECONDS)
   public void saneMonitorInfo() throws Exception {
     ManagerMonitorInfo stats;
     while (true) {
