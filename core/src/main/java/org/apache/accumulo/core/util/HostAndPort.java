@@ -79,6 +79,9 @@ public final class HostAndPort implements Serializable, Comparable<HostAndPort> 
     this.hasBracketlessColons = hasBracketlessColons;
   }
 
+  private static final Comparator<HostAndPort> COMPARATOR = Comparator.nullsFirst(
+      Comparator.comparing(HostAndPort::getHost).thenComparingInt(h -> h.getPortOrDefault(0)));
+
   /**
    * Returns the portion of this {@code HostAndPort} instance that should represent the hostname or
    * IPv4/IPv6 literal.
@@ -288,10 +291,7 @@ public final class HostAndPort implements Serializable, Comparable<HostAndPort> 
    */
   @Override
   public int compareTo(HostAndPort other) {
-    return Comparator
-        .nullsFirst(
-            Comparator.comparing(HostAndPort::getHost).thenComparingInt(h -> h.getPortOrDefault(0)))
-        .compare(this, other);
+    return COMPARATOR.compare(this, other);
   }
 
 }
