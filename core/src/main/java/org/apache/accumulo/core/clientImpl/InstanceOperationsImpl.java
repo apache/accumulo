@@ -218,8 +218,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
     List<String> tservers = getTabletServers();
 
     int numThreads = Math.max(4, Math.min((tservers.size() + compactors.size()) / 10, 256));
-    var executorService = context.getClientThreadPools().createFixedThreadPool(numThreads,
-        "getactivecompactions", false);
+    var executorService =
+        context.threadPools().createFixedThreadPool(numThreads, "getactivecompactions", false);
     try {
       List<Future<List<ActiveCompaction>>> futures = new ArrayList<>();
 

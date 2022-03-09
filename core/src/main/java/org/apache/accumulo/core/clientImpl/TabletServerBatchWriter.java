@@ -202,7 +202,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
   public TabletServerBatchWriter(ClientContext context, BatchWriterConfig config) {
     this.context = context;
-    this.executor = context.getClientThreadPools()
+    this.executor = context.threadPools()
         .createGeneralScheduledExecutorService(this.context.getConfiguration());
     this.failedMutations = new FailedMutations();
     this.maxMem = config.getMaxMemory();
@@ -655,10 +655,10 @@ public class TabletServerBatchWriter implements AutoCloseable {
     public MutationWriter(int numSendThreads) {
       serversMutations = new HashMap<>();
       queued = new HashSet<>();
-      sendThreadPool = context.getClientThreadPools().createFixedThreadPool(numSendThreads,
+      sendThreadPool = context.threadPools().createFixedThreadPool(numSendThreads,
           this.getClass().getName(), false);
       locators = new HashMap<>();
-      binningThreadPool = context.getClientThreadPools().createFixedThreadPool(1, "BinMutations",
+      binningThreadPool = context.threadPools().createFixedThreadPool(1, "BinMutations",
           new SynchronousQueue<>(), false);
       binningThreadPool.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
     }

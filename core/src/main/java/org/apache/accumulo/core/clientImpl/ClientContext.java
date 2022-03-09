@@ -26,6 +26,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 
 import java.lang.Thread.UncaughtExceptionHandler;
+import java.lang.ref.Cleaner.Cleanable;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -33,6 +34,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -62,6 +68,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -78,6 +85,7 @@ import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.util.OpTimer;
+import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.apache.accumulo.core.util.tables.TableZooHelper;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
@@ -124,7 +132,7 @@ public class ClientContext implements AccumuloClient {
   private TCredentials rpcCreds;
   private ThriftTransportPool thriftTransportPool;
 
-  private volatile boolean closed = false;
+  private final AtomicBoolean closed = new AtomicBoolean(false);
 
   private SecurityOperations secops = null;
   private final TableOperationsImpl tableops;
@@ -134,9 +142,13 @@ public class ClientContext implements AccumuloClient {
   private org.apache.accumulo.core.client.admin.ReplicationOperations replicationops = null;
   private final SingletonReservation singletonReservation;
   private final ThreadPools clientThreadPools;
+  private final ThreadPoolExecutor cleanupThreadPool;
+  private final ThreadPoolExecutor scannerReadaheadPool;
+  private final Cleanable cleaner;
+  private final Cleanable scannerPoolCleaner;
 
   private void ensureOpen() {
-    if (closed) {
+    if (closed.get()) {
       throw new IllegalStateException("This client was closed.");
     }
   }
@@ -181,6 +193,20 @@ public class ClientContext implements AccumuloClient {
     } else {
       clientThreadPools = ThreadPools.getServerThreadPools();
     }
+    this.cleanupThreadPool = clientThreadPools.createFixedThreadPool(1, 3, SECONDS,
+        "Conditional Writer Cleanup Thread", true);
+
+    // Register a reference to the executor in case the client does not call close
+    this.cleaner = CleanerUtil.shutdownThreadPoolExecutor(cleanupThreadPool, closed,
+        LoggerFactory.getLogger(ClientContext.class));
+
+    this.scannerReadaheadPool = clientThreadPools.createThreadPool(0, Integer.MAX_VALUE, 3L,
+        SECONDS, "Accumulo scanner read ahead thread", new SynchronousQueue<>(), true);
+
+    // Register a reference to the executor in case the client does not call close
+    this.scannerPoolCleaner = CleanerUtil.shutdownThreadPoolExecutor(scannerReadaheadPool, closed,
+        LoggerFactory.getLogger(ClientContext.class));
+
   }
 
   public Ample getAmple() {
@@ -188,10 +214,18 @@ public class ClientContext implements AccumuloClient {
     return new AmpleImpl(this);
   }
 
+  public Future<List<KeyValue>> submitScannerReadAheadTask(Callable<List<KeyValue>> c) {
+    return scannerReadaheadPool.submit(c);
+  }
+
+  public void executeCleanupTask(Runnable r) {
+    this.cleanupThreadPool.execute(r);
+  }
+
   /**
    * @return ThreadPools instance optionally configured with client UncaughtExceptionHandler
    */
-  public ThreadPools getClientThreadPools() {
+  public ThreadPools threadPools() {
     return clientThreadPools;
   }
 
@@ -753,7 +787,7 @@ public class ClientContext implements AccumuloClient {
 
   @Override
   public void close() {
-    closed = true;
+    closed.compareAndSet(false, true);
     if (thriftTransportPool != null) {
       thriftTransportPool.shutdown();
     }
@@ -761,6 +795,10 @@ public class ClientContext implements AccumuloClient {
       tableZooHelper.close();
     }
     singletonReservation.close();
+    this.scannerReadaheadPool.shutdownNow(); // abort all tasks, client is shutting down
+    this.scannerPoolCleaner.clean();
+    this.cleanupThreadPool.shutdown(); // wait for shutdown tasks to execute
+    this.cleaner.clean();
   }
 
   public static class ClientBuilderImpl<T>
