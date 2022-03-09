@@ -323,14 +323,14 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       long now = System.currentTimeMillis();
       try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.fetchColumnFamily(new Text("colf"));
-        Iterators.size(scanner.iterator());
+        var unusedRetVal = Iterators.size(scanner.iterator());
       }
       long diff = System.currentTimeMillis() - now;
       now = System.currentTimeMillis();
 
       try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.fetchColumnFamily(new Text("colf2"));
-        Iterators.size(scanner.iterator());
+        var unusedRetVal = Iterators.size(scanner.iterator());
       }
       long diff2 = System.currentTimeMillis() - now;
       assertTrue(diff2 < diff);

@@ -86,7 +86,7 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
         client.securityOperations().authenticateUser(creds.getPrincipal(), creds.getToken());
         try (Scanner scan = client.createScanner(RootTable.NAME, Authorizations.EMPTY)) {
           for (Entry<Key,Value> e : scan) {
-            e.hashCode();
+            var unusedRetVal = e.hashCode();
           }
         } catch (RuntimeException e) {
           e.printStackTrace(System.err);

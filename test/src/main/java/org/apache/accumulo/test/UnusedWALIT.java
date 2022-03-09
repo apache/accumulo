@@ -105,7 +105,8 @@ public class UnusedWALIT extends ConfigurableMacBase {
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
 
       // wait for the metadata table to be online
-      Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
+      var unusedRetVal =
+          Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
 
       // check our two sets of data in different logs
       scanSomeData(c, lilTable, 0, 1, 0, 1);

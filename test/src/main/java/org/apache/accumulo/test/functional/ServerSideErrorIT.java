@@ -69,7 +69,7 @@ public class ServerSideErrorIT extends AccumuloClusterHarness {
 
         try {
           for (Entry<Key,Value> entry : scanner) {
-            entry.getKey();
+            var unusedRetVal = entry.getKey();
           }
         } catch (Exception e) {
           caught = true;
@@ -85,7 +85,7 @@ public class ServerSideErrorIT extends AccumuloClusterHarness {
           caught = false;
           try {
             for (Entry<Key,Value> entry : bs) {
-              entry.getKey();
+              var unusedRetVal = entry.getKey();
             }
           } catch (Exception e) {
             caught = true;
@@ -107,7 +107,7 @@ public class ServerSideErrorIT extends AccumuloClusterHarness {
       // should be able to scan now
       try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
         for (Entry<Key,Value> entry : scanner) {
-          entry.getKey();
+          var unusedRetVal = entry.getKey();
         }
 
         // set a nonexistent iterator, should cause scan to fail on server side
@@ -117,7 +117,7 @@ public class ServerSideErrorIT extends AccumuloClusterHarness {
         try {
           for (Entry<Key,Value> entry : scanner) {
             // should error
-            entry.getKey();
+            var unusedRetVal = entry.getKey();
           }
         } catch (Exception e) {
           caught = true;

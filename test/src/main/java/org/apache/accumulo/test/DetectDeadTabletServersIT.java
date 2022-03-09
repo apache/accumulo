@@ -56,7 +56,8 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
   public void test() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       log.info("verifying that everything is up");
-      Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
+      var unusedRetVal =
+          Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
 
       ManagerMonitorInfo stats = getStats(c);
       assertEquals(2, stats.tServerInfo.size());

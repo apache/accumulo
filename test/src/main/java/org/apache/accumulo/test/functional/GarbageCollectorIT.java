@@ -186,7 +186,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       cluster.start();
       // did it recover?
       try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-        Iterators.size(scanner.iterator());
+        var unusedRetVal = Iterators.size(scanner.iterator());
       }
     }
   }

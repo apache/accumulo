@@ -71,7 +71,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
   @Before
   public void checkCluster() throws Exception {
     assumeTrue(getClusterType() == ClusterType.MINI);
-    MiniAccumuloClusterImpl.class.cast(getCluster());
+    var unusedRetVal = MiniAccumuloClusterImpl.class.cast(getCluster());
     fs = FileSystem.get(cluster.getServerContext().getHadoopConf());
   }
 

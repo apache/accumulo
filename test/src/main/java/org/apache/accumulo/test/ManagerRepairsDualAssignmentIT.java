@@ -154,7 +154,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
   private void waitForCleanStore(TabletStateStore store) {
     while (true) {
       try (ClosableIterator<TabletLocationState> iter = store.iterator()) {
-        Iterators.size(iter);
+        var unusedRetVal = Iterators.size(iter);
       } catch (Exception ex) {
         System.out.println(ex);
         UtilWaitThread.sleep(250);

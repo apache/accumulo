@@ -54,7 +54,8 @@ public class CounterSummary {
     if (checkType) {
       String className = summary.getSummarizerConfiguration().getClassName();
       try {
-        getClass().getClassLoader().loadClass(className).asSubclass(CountingSummarizer.class);
+        var unusedRetVal =
+            getClass().getClassLoader().loadClass(className).asSubclass(CountingSummarizer.class);
       } catch (ClassCastException e) {
         throw new IllegalArgumentException(
             className + " is not an instance of " + CountingSummarizer.class.getSimpleName(), e);

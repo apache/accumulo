@@ -490,7 +490,7 @@ public class SampleIT extends AccumuloClusterHarness {
 
       scanner.clearSamplerConfiguration();
       for (Entry<Key,Value> entry : scanner) {
-        entry.getKey();
+        var unusedRetVal = entry.getKey();
       }
 
       if (csc == null) {

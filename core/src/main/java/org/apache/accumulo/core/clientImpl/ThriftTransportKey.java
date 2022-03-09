@@ -91,7 +91,7 @@ public class ThriftTransportKey {
   }
 
   public final void precomputeHashCode() {
-    hashCode();
+    var unusedRetVal = hashCode();
   }
 
   @Override

@@ -91,7 +91,8 @@ public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterHarness {
       // recover
       control.startAllServers(ServerType.TABLET_SERVER);
       // ensure the table is readable
-      Iterators.size(c.createScanner(tableName, Authorizations.EMPTY).iterator());
+      var unusedRetVal =
+          Iterators.size(c.createScanner(tableName, Authorizations.EMPTY).iterator());
 
       // ensure that the recovery was not a merging minor compaction
       try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {

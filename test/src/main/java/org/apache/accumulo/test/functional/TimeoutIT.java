@@ -94,7 +94,7 @@ public class TimeoutIT extends AccumuloClusterHarness {
 
       // should not timeout
       for (Entry<Key,Value> entry : bs) {
-        entry.getKey();
+        var unusedRetVal = entry.getKey();
       }
 
       bs.setTimeout(5, TimeUnit.SECONDS);

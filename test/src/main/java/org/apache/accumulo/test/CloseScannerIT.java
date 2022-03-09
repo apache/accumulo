@@ -58,7 +58,7 @@ public class CloseScannerIT extends AccumuloClusterHarness {
 
           for (int j = 0; j < i % 7 + 1; j++) {
             // only read a little data and quit, this should leave a session open on the tserver
-            Iterators.get(scanner.iterator(), 10);
+            var unusedRetVal = Iterators.get(scanner.iterator(), 10);
           }
         } // when the scanner is closed, all open sessions should be closed
       }

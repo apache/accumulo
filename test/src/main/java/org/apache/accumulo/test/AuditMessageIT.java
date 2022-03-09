@@ -468,7 +468,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
       auditAccumuloClient.tableOperations().offline(OLD_TEST_TABLE_NAME);
     } catch (AccumuloSecurityException ex) {}
     try (Scanner scanner = auditAccumuloClient.createScanner(OLD_TEST_TABLE_NAME, auths)) {
-      scanner.iterator().next().getKey();
+      var unusedRetVal = scanner.iterator().next().getKey();
     } catch (RuntimeException ex) {}
     try {
       auditAccumuloClient.tableOperations().deleteRows(OLD_TEST_TABLE_NAME, new Text("myRow"),

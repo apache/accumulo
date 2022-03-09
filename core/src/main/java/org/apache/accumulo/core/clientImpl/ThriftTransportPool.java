@@ -836,7 +836,7 @@ public class ThriftTransportPool {
   }
 
   void startCheckerThread() {
-    checkThreadFactory.get();
+    var unusedRetVal = checkThreadFactory.get();
   }
 
   private void closeExpiredConnections() {
