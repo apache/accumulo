@@ -102,6 +102,7 @@ class HostAndPortTest {
     hostPortSet.add(HostAndPort.fromString("192.12.2.1:81"));
     hostPortSet.add(HostAndPort.fromString("199.10.1.1:14"));
     hostPortSet.add(HostAndPort.fromString("10.100.100.100"));
+    hostPortSet.add(HostAndPort.fromString("2.2.2.2:10000"));
     hostPortSet.add(HostAndPort.fromString("192.12.2.1:79"));
     hostPortSet.add(HostAndPort.fromString("1.1.1.1:24"));
     hostPortSet.add(HostAndPort.fromParts("localhost", 000001));
@@ -109,6 +110,7 @@ class HostAndPortTest {
     hostPortSet.add(HostAndPort.fromString("192.12.2.1:79"));
     hostPortSet.add(HostAndPort.fromString("a.b.c.d"));
     hostPortSet.add(HostAndPort.fromString("1.100.100.100"));
+    hostPortSet.add(HostAndPort.fromString("2.2.2.2:9999"));
     hostPortSet.add(HostAndPort.fromParts("localhost", 1));
     hostPortSet.add(HostAndPort.fromString("a.b.b.d"));
     hostPortSet.add(HostAndPort.fromString("www.example.com"));
@@ -123,7 +125,8 @@ class HostAndPortTest {
         HostAndPort.fromString("100.100.101.100"), HostAndPort.fromString("12.1.2.1"),
         HostAndPort.fromString("192.12.2.1"), HostAndPort.fromString("192.12.2.1:79"),
         HostAndPort.fromString("192.12.2.1:80"), HostAndPort.fromString("192.12.2.1:81"),
-        HostAndPort.fromString("199.10.1.1:14"), HostAndPort.fromString("[2001:::1]"),
+        HostAndPort.fromString("199.10.1.1:14"), HostAndPort.fromString("2.2.2.2:9999"),
+        HostAndPort.fromString("2.2.2.2:10000"), HostAndPort.fromString("[2001:::1]"),
         HostAndPort.fromString("[2001:db8::1]"), HostAndPort.fromString("[2001:eb8::1]"),
         HostAndPort.fromString("[2001:eb8::1]:80"), HostAndPort.fromString("a.b.b.d"),
         HostAndPort.fromString("a.b.b.d:10"), HostAndPort.fromString("a.b.b.d:11"),
@@ -132,9 +135,6 @@ class HostAndPortTest {
         HostAndPort.fromString("example.com:80"), HostAndPort.fromString("example.info"),
         HostAndPort.fromString("localhost:1"), HostAndPort.fromString("localhost:90"),
         HostAndPort.fromString("www.alpha.org"), HostAndPort.fromString("www.example.com"));
-
-    System.err.println("hostPort: " + hostPortSet);
-    System.err.println("expected: " + expected);
 
     Object[] expectedArray = expected.toArray();
     Object[] hostPortArray = hostPortSet.toArray();

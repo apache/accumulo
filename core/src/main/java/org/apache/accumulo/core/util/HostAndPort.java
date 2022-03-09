@@ -288,7 +288,10 @@ public final class HostAndPort implements Serializable, Comparable<HostAndPort> 
    */
   @Override
   public int compareTo(HostAndPort other) {
-    return Comparator.nullsFirst(Comparator.comparing(HostAndPort::toString)).compare(this, other);
+    return Comparator
+        .nullsFirst(
+            Comparator.comparing(HostAndPort::getHost).thenComparingInt(h -> h.getPortOrDefault(0)))
+        .compare(this, other);
   }
 
 }
