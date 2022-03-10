@@ -114,7 +114,7 @@ public class FateIT {
   private static final Logger LOG = LoggerFactory.getLogger(FateIT.class);
 
   @TempDir
-  private static File tempdir;
+  private static File tempDir;
 
   private static ZooKeeperTestingServer szk = null;
   private static ZooReaderWriter zk = null;
@@ -127,7 +127,7 @@ public class FateIT {
 
   @BeforeAll
   public static void setup() throws Exception {
-    szk = new ZooKeeperTestingServer(tempdir);
+    szk = new ZooKeeperTestingServer(tempDir);
     zk = szk.getZooReaderWriter();
     zk.mkdirs(ZK_ROOT + Constants.ZFATE);
     zk.mkdirs(ZK_ROOT + Constants.ZTABLE_LOCKS);
