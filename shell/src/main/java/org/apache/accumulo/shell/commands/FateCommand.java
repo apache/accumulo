@@ -109,8 +109,15 @@ public class FateCommand extends Command {
     }
   }
 
-  private Option cancel, delete, dump, fail, list, print, secretOption, statusOption,
-      disablePaginationOpt;
+  private Option cancel;
+  private Option delete;
+  private Option dump;
+  private Option fail;
+  private Option list;
+  private Option print;
+  private Option secretOption;
+  private Option statusOption;
+  private Option disablePaginationOpt;
 
   private long parseTxid(String s) {
     if (FateTxId.isFormatedTid(s)) {
@@ -248,7 +255,7 @@ public class FateCommand extends Command {
       throws AccumuloException, AccumuloSecurityException {
     ClientContext context = shellState.getContext();
     for (int i = 1; i < args.length; i++) {
-      Long txid = Long.parseLong(args[i], 16);
+      long txid = Long.parseLong(args[i], 16);
       shellState.getWriter().flush();
       String line = shellState.getReader().readLine("Cancel FaTE Tx " + txid + " (yes|no)? ");
       boolean cancelTx =
