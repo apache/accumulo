@@ -1247,7 +1247,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
         ExecutorService tp = Executors.newFixedThreadPool(5);
         for (int i = 0; i < 5; i++) {
-          tp.submit(new MutatorTask(tableName, client, rows, cw, failed));
+          tp.execute(new MutatorTask(tableName, client, rows, cw, failed));
         }
 
         tp.shutdown();

@@ -238,9 +238,6 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-failsafe-plugin</artifactId>
           <configuration>
-            <additionalClasspathElements>
-              <item>src/main/unpackaged-classpath-files/</item>
-            </additionalClasspathElements>
             <testSourceDirectory>${project.basedir}/src/main/java/</testSourceDirectory>
             <testClassesDirectory>${project.build.directory}/classes/</testClassesDirectory>
             <systemPropertyVariables>
@@ -255,9 +252,6 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <configuration>
-            <additionalClasspathElements>
-              <item>src/main/unpackaged-classpath-files/</item>
-            </additionalClasspathElements>
             <systemPropertyVariables>
               <org.apache.accumulo.test.functional.useCredProviderForIT>${useCredProviderForIT}</org.apache.accumulo.test.functional.useCredProviderForIT>
               <org.apache.accumulo.test.functional.useSslForIT>${useSslForIT}</org.apache.accumulo.test.functional.useSslForIT>

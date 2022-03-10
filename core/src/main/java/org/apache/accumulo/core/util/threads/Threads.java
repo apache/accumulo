@@ -25,6 +25,19 @@ import org.apache.accumulo.core.trace.TraceUtil;
 
 public class Threads {
 
+  public static class AccumuloDaemonThread extends Thread {
+
+    public AccumuloDaemonThread(Runnable target, String name) {
+      super(target, name);
+      configureThread(this, name);
+    }
+
+    public AccumuloDaemonThread(String name) {
+      super(name);
+      configureThread(this, name);
+    }
+  }
+
   public static Runnable createNamedRunnable(String name, Runnable r) {
     return new NamedRunnable(name, r);
   }
@@ -36,10 +49,14 @@ public class Threads {
   }
 
   public static Thread createThread(String name, OptionalInt priority, Runnable r) {
-    Thread thread = new Thread(TraceUtil.wrap(r), name);
+    Thread thread = new AccumuloDaemonThread(TraceUtil.wrap(r), name);
     priority.ifPresent(thread::setPriority);
+    return thread;
+  }
+
+  private static void configureThread(Thread thread, String name) {
+    thread.setName(name);
     thread.setDaemon(true);
     thread.setUncaughtExceptionHandler(UEH);
-    return thread;
   }
 }

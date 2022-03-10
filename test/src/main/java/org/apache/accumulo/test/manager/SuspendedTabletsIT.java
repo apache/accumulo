@@ -410,7 +410,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
             answer.scan(ctx, tableName, metaName);
             return answer;
           });
-          THREAD_POOL.submit(tlsFuture);
+          THREAD_POOL.execute(tlsFuture);
           return tlsFuture.get(5, SECONDS);
         } catch (TimeoutException ex) {
           log.debug("Retrieval timed out", ex);

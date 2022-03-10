@@ -33,6 +33,7 @@ import org.apache.accumulo.core.manager.thrift.TabletLoadState;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.manager.state.Assignment;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
@@ -220,22 +221,24 @@ class AssignmentHandler implements Runnable {
       server.enqueueManagerMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
       long reschedule = Math.min((1L << Math.min(32, retryAttempt)) * 1000, MINUTES.toMillis(10));
       log.warn(String.format("rescheduling tablet load in %.2f seconds", reschedule / 1000.));
-      this.server.getContext().getScheduledExecutor().schedule(new Runnable() {
-        @Override
-        public void run() {
-          log.info("adding tablet {} back to the assignment pool (retry {})", extent, retryAttempt);
-          AssignmentHandler handler = new AssignmentHandler(server, extent, retryAttempt + 1);
-          if (extent.isMeta()) {
-            if (extent.isRootTablet()) {
-              Threads.createThread("Root tablet assignment retry", handler).start();
-            } else {
-              server.resourceManager.addMetaDataAssignment(extent, log, handler);
+      ThreadPools.watchCriticalScheduledTask(
+          this.server.getContext().getScheduledExecutor().schedule(new Runnable() {
+            @Override
+            public void run() {
+              log.info("adding tablet {} back to the assignment pool (retry {})", extent,
+                  retryAttempt);
+              AssignmentHandler handler = new AssignmentHandler(server, extent, retryAttempt + 1);
+              if (extent.isMeta()) {
+                if (extent.isRootTablet()) {
+                  Threads.createThread("Root tablet assignment retry", handler).start();
+                } else {
+                  server.resourceManager.addMetaDataAssignment(extent, log, handler);
+                }
+              } else {
+                server.resourceManager.addAssignment(extent, log, handler);
+              }
             }
-          } else {
-            server.resourceManager.addAssignment(extent, log, handler);
-          }
-        }
-      }, reschedule, TimeUnit.MILLISECONDS);
+          }, reschedule, TimeUnit.MILLISECONDS));
     }
   }
 

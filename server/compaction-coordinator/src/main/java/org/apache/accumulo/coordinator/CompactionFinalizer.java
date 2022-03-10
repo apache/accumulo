@@ -83,8 +83,8 @@ public class CompactionFinalizer {
       processPending();
     });
 
-    schedExecutor.scheduleWithFixedDelay(() -> notifyTservers(), 0, tserverCheckInterval,
-        TimeUnit.MILLISECONDS);
+    ThreadPools.watchCriticalScheduledTask(schedExecutor.scheduleWithFixedDelay(
+        () -> notifyTservers(), 0, tserverCheckInterval, TimeUnit.MILLISECONDS));
   }
 
   public void commitCompaction(ExternalCompactionId ecid, KeyExtent extent, long fileSize,

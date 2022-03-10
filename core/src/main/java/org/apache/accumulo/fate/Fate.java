@@ -20,6 +20,13 @@ package org.apache.accumulo.fate;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.FAILED;
+import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.FAILED_IN_PROGRESS;
+import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.IN_PROGRESS;
+import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.NEW;
+import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.SUBMITTED;
+import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.SUCCESSFUL;
+import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.UNKNOWN;
 
 import java.io.IOException;
 import java.util.EnumSet;
@@ -37,6 +44,7 @@ import org.apache.accumulo.core.util.ShutdownUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.util.UtilWaitThread;
+import org.apache.thrift.TApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,8 +66,7 @@ public class Fate<T> {
   private ScheduledThreadPoolExecutor fatePoolWatcher;
   private ExecutorService executor;
 
-  private static final EnumSet<TStatus> FINISHED_STATES =
-      EnumSet.of(TStatus.FAILED, TStatus.SUCCESSFUL, TStatus.UNKNOWN);
+  private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(FAILED, SUCCESSFUL, UNKNOWN);
 
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
 
@@ -74,7 +81,7 @@ public class Fate<T> {
           tid = store.reserve();
           TStatus status = store.getStatus(tid);
           Repo<T> op = store.top(tid);
-          if (status == TStatus.FAILED_IN_PROGRESS) {
+          if (status == FAILED_IN_PROGRESS) {
             processFailed(tid, op);
           } else {
             Repo<T> prevOp = null;
@@ -86,8 +93,8 @@ public class Fate<T> {
               // The value of deferTime is only used as a wait time in ZooStore.unreserve
               if (deferTime == 0) {
                 prevOp = op;
-                if (status == TStatus.SUBMITTED) {
-                  store.setStatus(tid, TStatus.IN_PROGRESS);
+                if (status == SUBMITTED) {
+                  store.setStatus(tid, IN_PROGRESS);
                 }
                 op = op.call(tid, environment);
               } else
@@ -104,7 +111,7 @@ public class Fate<T> {
               String ret = prevOp.getReturn();
               if (ret != null)
                 store.setProperty(tid, RETURN_PROP, ret);
-              store.setStatus(tid, TStatus.SUCCESSFUL);
+              store.setStatus(tid, SUCCESSFUL);
               doCleanUp(tid);
             } else {
               try {
@@ -181,7 +188,7 @@ public class Fate<T> {
         log.warn(msg, e);
       }
       store.setProperty(tid, EXCEPTION_PROP, e);
-      store.setStatus(tid, TStatus.FAILED_IN_PROGRESS);
+      store.setStatus(tid, FAILED_IN_PROGRESS);
       log.info("Updated status for Repo with {} to FAILED_IN_PROGRESS", tidStr);
     }
 
@@ -193,7 +200,7 @@ public class Fate<T> {
         op = store.top(tid);
       }
 
-      store.setStatus(tid, TStatus.FAILED);
+      store.setStatus(tid, FAILED);
       doCleanUp(tid);
     }
 
@@ -240,7 +247,7 @@ public class Fate<T> {
     final ThreadPoolExecutor pool =
         ThreadPools.createExecutorService(conf, Property.MANAGER_FATE_THREADPOOL_SIZE, true);
     fatePoolWatcher = ThreadPools.createGeneralScheduledExecutorService(conf);
-    fatePoolWatcher.schedule(() -> {
+    ThreadPools.watchCriticalScheduledTask(fatePoolWatcher.schedule(() -> {
       // resize the pool if the property changed
       ThreadPools.resizePool(pool, conf, Property.MANAGER_FATE_THREADPOOL_SIZE);
       // If the pool grew, then ensure that there is a TransactionRunner for each thread
@@ -262,7 +269,7 @@ public class Fate<T> {
           }
         }
       }
-    }, 3, SECONDS);
+    }, 3, SECONDS));
     executor = pool;
   }
 
@@ -276,7 +283,7 @@ public class Fate<T> {
   public void seedTransaction(long tid, Repo<T> repo, boolean autoCleanUp, String goalMessage) {
     store.reserve(tid);
     try {
-      if (store.getStatus(tid) == TStatus.NEW) {
+      if (store.getStatus(tid) == NEW) {
         if (store.top(tid) == null) {
           try {
             log.info("Seeding {} {}", FateTxId.formatTid(tid), goalMessage);
@@ -292,7 +299,7 @@ public class Fate<T> {
 
         store.setProperty(tid, DEBUG_PROP, repo.getDescription());
 
-        store.setStatus(tid, TStatus.SUBMITTED);
+        store.setStatus(tid, SUBMITTED);
       }
     } finally {
       store.unreserve(tid, 0);
@@ -303,6 +310,45 @@ public class Fate<T> {
   // check on the transaction
   public TStatus waitForCompletion(long tid) {
     return store.waitForStatusChange(tid, FINISHED_STATES);
+  }
+
+  /**
+   * Attempts to cancel a running Fate transaction
+   *
+   * @param tid
+   *          transaction id
+   * @return true if transaction transitioned to a failed state or already in a completed state,
+   *         false otherwise
+   */
+  public boolean cancel(long tid) {
+    String tidStr = Long.toHexString(tid);
+    for (int retries = 0; retries < 5; retries++) {
+      if (store.tryReserve(tid)) {
+        try {
+          TStatus status = store.getStatus(tid);
+          log.info("status is: {}", status);
+          if (status == NEW || status == SUBMITTED) {
+            store.setProperty(tid, EXCEPTION_PROP, new TApplicationException(
+                TApplicationException.INTERNAL_ERROR, "Fate transaction cancelled by user"));
+            store.setStatus(tid, FAILED_IN_PROGRESS);
+            log.info(
+                "Updated status for Repo {} to FAILED_IN_PROGRESS because it was cancelled by user",
+                tidStr);
+            return true;
+          } else {
+            log.info("Repo {} cancelled by user but already in progress or finished state", tidStr);
+            return false;
+          }
+        } finally {
+          store.unreserve(tid, 0);
+        }
+      } else {
+        // reserved, lets retry.
+        UtilWaitThread.sleep(500);
+      }
+    }
+    log.info("Unable to reserve transaction {} to cancel it", tid);
+    return false;
   }
 
   // resource cleanup
@@ -332,7 +378,7 @@ public class Fate<T> {
   public String getReturn(long tid) {
     store.reserve(tid);
     try {
-      if (store.getStatus(tid) != TStatus.SUCCESSFUL)
+      if (store.getStatus(tid) != SUCCESSFUL)
         throw new IllegalStateException("Tried to get exception when transaction "
             + FateTxId.formatTid(tid) + " not in successful state");
       return (String) store.getProperty(tid, RETURN_PROP);
@@ -345,7 +391,7 @@ public class Fate<T> {
   public Exception getException(long tid) {
     store.reserve(tid);
     try {
-      if (store.getStatus(tid) != TStatus.FAILED)
+      if (store.getStatus(tid) != FAILED)
         throw new IllegalStateException("Tried to get exception when transaction "
             + FateTxId.formatTid(tid) + " not in failed state");
       return (Exception) store.getProperty(tid, EXCEPTION_PROP);

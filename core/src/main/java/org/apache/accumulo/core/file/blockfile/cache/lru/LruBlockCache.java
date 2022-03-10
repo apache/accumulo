@@ -28,6 +28,7 @@ import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
@@ -37,6 +38,7 @@ import org.apache.accumulo.core.file.blockfile.cache.impl.SizeConstants;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.CacheEntry;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -160,8 +162,9 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
     } else {
       this.evictionThread = null;
     }
-    this.scheduleThreadPool.scheduleAtFixedRate(new StatisticsThread(this), statThreadPeriod,
-        statThreadPeriod, SECONDS);
+    ScheduledFuture<?> future = this.scheduleThreadPool.scheduleAtFixedRate(
+        new StatisticsThread(this), statThreadPeriod, statThreadPeriod, SECONDS);
+    ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
   public long getOverhead() {
@@ -512,13 +515,12 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
    * <p>
    * Thread is triggered into action by {@link LruBlockCache#runEviction()}
    */
-  private static class EvictionThread extends Thread {
+  private static class EvictionThread extends AccumuloDaemonThread {
     private WeakReference<LruBlockCache> cache;
     private boolean running = false;
 
     public EvictionThread(LruBlockCache cache) {
       super("LruBlockCache.EvictionThread");
-      setDaemon(true);
       this.cache = new WeakReference<>(cache);
     }
 
@@ -554,12 +556,11 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
   /*
    * Statistics thread. Periodically prints the cache statistics to the log.
    */
-  private static class StatisticsThread extends Thread {
+  private static class StatisticsThread extends AccumuloDaemonThread {
     LruBlockCache lru;
 
     public StatisticsThread(LruBlockCache lru) {
       super("LruBlockCache.StatisticsThread");
-      setDaemon(true);
       this.lru = lru;
     }
 

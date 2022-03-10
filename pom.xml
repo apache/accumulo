@@ -826,6 +826,9 @@
                 <Implementation-Build>${mvngit.commit.id}</Implementation-Build>
               </manifestEntries>
             </archive>
+            <excludes>
+              <exclude>**/log4j2-test.properties</exclude>
+            </excludes>
           </configuration>
         </plugin>
         <plugin>
@@ -1675,16 +1678,16 @@
                 <arg>-XDcompilePolicy=simple</arg>
                 <arg>
                   -Xplugin:ErrorProne \
-                  -XepExcludedPaths:.*/(proto|thrift|generated-sources)/.* \
+                  -XepExcludedPaths:.*/(proto|thrift|generated-sources|src/test)/.* \
                   -XepDisableWarningsInGeneratedCode \
                   -XepDisableAllWarnings \
-                  <!-- error/warning patterns to ignore -->
-                  -Xep:Incomparable:OFF \
+                  <!-- error patterns to ignore -->
                   -Xep:CheckReturnValue:OFF \
                   -Xep:MustBeClosedChecker:OFF \
                   -Xep:ReturnValueIgnored:OFF \
+                  -Xep:FutureReturnValueIgnored:ERROR \
                   -Xep:UnicodeInCode:OFF \
-                  <!-- error/warning patterns to specifically check -->
+                  <!-- warning patterns to specifically check -->
                   -Xep:ExpectedExceptionChecker \
                   -Xep:MissingOverride \
                   <!-- Items containing 'OFF' are currently flagged by ErrorProne. The 'OFF'
