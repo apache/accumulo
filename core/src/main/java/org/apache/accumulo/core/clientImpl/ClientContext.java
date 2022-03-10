@@ -26,7 +26,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 
 import java.lang.Thread.UncaughtExceptionHandler;
-import java.lang.ref.Cleaner.Cleanable;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -38,7 +37,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -85,7 +83,6 @@ import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.util.OpTimer;
-import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.apache.accumulo.core.util.tables.TableZooHelper;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
@@ -132,7 +129,7 @@ public class ClientContext implements AccumuloClient {
   private TCredentials rpcCreds;
   private ThriftTransportPool thriftTransportPool;
 
-  private final AtomicBoolean closed = new AtomicBoolean(false);
+  private boolean closed = false;
 
   private SecurityOperations secops = null;
   private final TableOperationsImpl tableops;
@@ -144,11 +141,9 @@ public class ClientContext implements AccumuloClient {
   private final ThreadPools clientThreadPools;
   private final ThreadPoolExecutor cleanupThreadPool;
   private final ThreadPoolExecutor scannerReadaheadPool;
-  private final Cleanable cleaner;
-  private final Cleanable scannerPoolCleaner;
 
   private void ensureOpen() {
-    if (closed.get()) {
+    if (closed) {
       throw new IllegalStateException("This client was closed.");
     }
   }
@@ -193,19 +188,12 @@ public class ClientContext implements AccumuloClient {
     } else {
       clientThreadPools = ThreadPools.getServerThreadPools();
     }
+
     this.cleanupThreadPool = clientThreadPools.createFixedThreadPool(1, 3, SECONDS,
         "Conditional Writer Cleanup Thread", true);
 
-    // Register a reference to the executor in case the client does not call close
-    this.cleaner = CleanerUtil.shutdownThreadPoolExecutor(cleanupThreadPool, closed,
-        LoggerFactory.getLogger(ClientContext.class));
-
     this.scannerReadaheadPool = clientThreadPools.createThreadPool(0, Integer.MAX_VALUE, 3L,
         SECONDS, "Accumulo scanner read ahead thread", new SynchronousQueue<>(), true);
-
-    // Register a reference to the executor in case the client does not call close
-    this.scannerPoolCleaner = CleanerUtil.shutdownThreadPoolExecutor(scannerReadaheadPool, closed,
-        LoggerFactory.getLogger(ClientContext.class));
 
   }
 
@@ -787,7 +775,7 @@ public class ClientContext implements AccumuloClient {
 
   @Override
   public void close() {
-    closed.compareAndSet(false, true);
+    closed = true;
     if (thriftTransportPool != null) {
       thriftTransportPool.shutdown();
     }
@@ -796,9 +784,7 @@ public class ClientContext implements AccumuloClient {
     }
     singletonReservation.close();
     this.scannerReadaheadPool.shutdownNow(); // abort all tasks, client is shutting down
-    this.scannerPoolCleaner.clean();
     this.cleanupThreadPool.shutdown(); // wait for shutdown tasks to execute
-    this.cleaner.clean();
   }
 
   public static class ClientBuilderImpl<T>
