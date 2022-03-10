@@ -98,7 +98,7 @@ the tests.
 These tests can be run by providing a system property.  Specific ITs can be run using "-Dit.test" or run all tests using:
 
 ```bash
-mvn clean verify -Dtest=foo -Daccumulo.it.properties=/home/user/my_cluster.properties -Dfailsafe.groups=org.apache.accumulo.test.categories.StandaloneCapableClusterTests -Dspotbugs.skip
+mvn clean verify -Dtest=foo -Daccumulo.it.properties=/home/user/my_cluster.properties -Dfailsafe.groups=StandaloneCapableClusterTests -Dspotbugs.skip
 ```
 
 ### Configuration for Standalone clusters
