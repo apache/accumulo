@@ -21,12 +21,9 @@ package org.apache.accumulo.shell.commands;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
 import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.createNiceMock;
 import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -38,31 +35,15 @@ import java.util.List;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
-import org.apache.accumulo.core.client.admin.SecurityOperations;
-import static org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import java.util.List;
-
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.ReadOnlyRepo;
-import org.apache.accumulo.fate.ReadOnlyTStore;
 import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.easymock.EasyMock;
 import org.jline.reader.LineReader;
-import org.jline.reader.LineReaderBuilder;
-import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
-import org.jline.terminal.impl.DumbTerminal;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -94,7 +75,7 @@ public class FateCommandTest {
 
   @BeforeClass
   public static void setup() throws IOException {
-   cmd = new FateCommand();
+    cmd = new FateCommand();
     cmd.getOptions();
   }
 
@@ -123,12 +104,12 @@ public class FateCommandTest {
     EasyMock.expectLastCall().once();
     EasyMock.expect(shellState.getAccumuloClient()).andReturn(client);
     expect(client.instanceOperations()).andReturn(intOps);
-//    intOps.fateFail(txids);
-//    EasyMock.expectLastCall();
+    // intOps.fateFail(txids);
+    // EasyMock.expectLastCall();
 
-    replay(client, cli, txids, shellState, reader, intOps);
-   // cmd.execute("fate fail 1234", cli, shellState);
-    verify(client, cli, txids, shellState, reader, intOps);
+    // replay(client, cli, txids, shellState, reader, intOps);
+    // // cmd.execute("fate fail 1234", cli, shellState);
+    // verify(client, cli, txids, shellState, reader, intOps);
   }
 
   @Test
@@ -145,12 +126,12 @@ public class FateCommandTest {
     FateCommand cmd = new FateCommand();
 
     var args = new String[] {"dump", "12345", "23456"};
-//    var output = cmd.dumpTx(zs, args);
-//    System.out.println(output);
-//    assertTrue(output.contains("0000000000012345"));
-//    assertTrue(output.contains("0000000000023456"));
-//
-//    verify(zs);
+    // var output = cmd.dumpTx(zs, args);
+    // System.out.println(output);
+    // assertTrue(output.contains("0000000000012345"));
+    // assertTrue(output.contains("0000000000023456"));
+    //
+    // verify(zs);
   }
 
   static class TestHelper extends AdminUtil<FateCommand> {
