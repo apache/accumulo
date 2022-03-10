@@ -24,6 +24,7 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -89,7 +90,7 @@ public class FateCommandTest {
     intOps = createMock(InstanceOperations.class);
     expect(shellState.getAccumuloClient()).andReturn(client);
     String[] args = {"fail", "1234"};
-    List<String> txids = createMock(ArrayList.class);
+    List<String> txids = new ArrayList<>();
 
     // The user we want to remove
     expect(cli.getArgs()).andReturn(args);
@@ -104,12 +105,12 @@ public class FateCommandTest {
     EasyMock.expectLastCall().once();
     EasyMock.expect(shellState.getAccumuloClient()).andReturn(client);
     expect(client.instanceOperations()).andReturn(intOps);
-    // intOps.fateFail(txids);
-    // EasyMock.expectLastCall();
+    intOps.fateFail(txids);
+    EasyMock.expectLastCall().once();
 
-    // replay(client, cli, txids, shellState, reader, intOps);
-    // // cmd.execute("fate fail 1234", cli, shellState);
-    // verify(client, cli, txids, shellState, reader, intOps);
+    replay(client, cli, shellState, reader, intOps);
+    cmd.execute("fate fail 1234", cli, shellState);
+    verify(client, cli, shellState, reader, intOps);
   }
 
   @Test
@@ -123,7 +124,7 @@ public class FateCommandTest {
 
     replay(zs);
 
-    FateCommand cmd = new FateCommand();
+    // FateCommand cmd = new FateCommand();
 
     var args = new String[] {"dump", "12345", "23456"};
     // var output = cmd.dumpTx(zs, args);
