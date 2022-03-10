@@ -79,11 +79,9 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.accumulo.test.constraints.NumericValueConstraint;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
-import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -95,7 +93,6 @@ import org.junit.jupiter.api.function.Executable;
 /**
  * Test different namespace permissions
  */
-@Category(MiniClusterOnlyTests.class)
 @Tag("MiniClusterOnlyTests")
 public class NamespacesIT extends SharedMiniClusterBase {
 

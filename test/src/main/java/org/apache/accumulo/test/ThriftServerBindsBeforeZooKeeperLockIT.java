@@ -40,9 +40,7 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.util.PortUtils;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
-import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -54,7 +52,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * Test class that verifies "HA-capable" servers put up their thrift servers before acquiring their
  * ZK lock.
  */
-@Category({MiniClusterOnlyTests.class})
 @Tag("MiniClusterOnlyTests")
 public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarness {
   private static final Logger LOG =

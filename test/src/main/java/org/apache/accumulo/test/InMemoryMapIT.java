@@ -48,13 +48,11 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.accumulo.test.functional.NativeMapIT;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.MemKey;
 import org.apache.accumulo.tserver.memory.NativeMapLoader;
 import org.easymock.EasyMock;
-import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -83,7 +81,6 @@ import org.slf4j.LoggerFactory;
  * DefaultMap could move to a unit test in tserver, but they are here for convenience of viewing
  * both at the same time.
  */
-@Category(SunnyDayTests.class)
 @Tag("SunnyDayTests")
 public class InMemoryMapIT extends WithTestNames {
 

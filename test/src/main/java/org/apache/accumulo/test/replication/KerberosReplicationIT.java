@@ -52,7 +52,6 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.accumulo.server.replication.ReplicaSystemFactory;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.accumulo.test.functional.KerberosIT;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem;
@@ -60,7 +59,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -77,7 +75,6 @@ import com.google.common.collect.Iterators;
  * Ensure that replication occurs using keytabs instead of password (not to mention SASL)
  */
 @Disabled("Replication ITs are not stable and not currently maintained")
-@Category(MiniClusterOnlyTests.class)
 @Tag("MiniClusterOnlyTests")
 @Deprecated
 public class KerberosReplicationIT extends AccumuloITBase {

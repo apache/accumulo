@@ -40,16 +40,13 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterators;
 
-@Category(MiniClusterOnlyTests.class)
 @Tag("MiniClusterOnlyTests")
 public class TableIT extends AccumuloClusterHarness {
 

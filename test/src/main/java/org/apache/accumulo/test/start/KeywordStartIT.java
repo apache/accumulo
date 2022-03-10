@@ -62,17 +62,14 @@ import org.apache.accumulo.server.util.ZooKeeperMain;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.spi.KeywordExecutable;
-import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.accumulo.tserver.TServerExecutable;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.logger.LogReader;
-import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Category(SunnyDayTests.class)
 @Tag("SunnyDayTests")
 public class KeywordStartIT {
 

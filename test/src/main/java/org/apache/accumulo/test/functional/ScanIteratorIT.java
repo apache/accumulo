@@ -44,10 +44,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -55,7 +53,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Category(SunnyDayTests.class)
 @Tag("SunnyDayTests")
 public class ScanIteratorIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(ScanIteratorIT.class);

@@ -39,13 +39,11 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ZooKeeperBindException;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.accumulo.test.util.CertUtils;
 import org.apache.accumulo.tserver.memory.NativeMapLoader;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -60,7 +58,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * specific configuration. Most tests don't need this level of control and should extend
  * {@link AccumuloClusterHarness} instead.
  */
-@Category(MiniClusterOnlyTests.class)
 @Tag("MiniClusterOnlyTests")
 public class ConfigurableMacBase extends AccumuloITBase {
   public static final Logger log = LoggerFactory.getLogger(ConfigurableMacBase.class);

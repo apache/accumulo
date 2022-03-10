@@ -24,18 +24,15 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.apache.accumulo.WithTestNames;
-import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.accumulo.test.rpc.thrift.SimpleThriftService;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
-import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
-@Category(SunnyDayTests.class)
 @Tag("SunnyDayTests")
 @Timeout(value = 5, unit = SECONDS)
 public class ThriftBehaviorIT extends WithTestNames {

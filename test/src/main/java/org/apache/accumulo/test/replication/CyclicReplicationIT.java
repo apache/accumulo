@@ -54,14 +54,12 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.accumulo.miniclusterImpl.ZooKeeperBindException;
 import org.apache.accumulo.server.replication.ReplicaSystemFactory;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -74,7 +72,6 @@ import com.google.common.collect.Iterables;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Disabled("Replication ITs are not stable and not currently maintained")
-@Category(MiniClusterOnlyTests.class)
 @Tag("MiniClusterOnlyTests")
 @Deprecated
 public class CyclicReplicationIT extends WithTestNames {

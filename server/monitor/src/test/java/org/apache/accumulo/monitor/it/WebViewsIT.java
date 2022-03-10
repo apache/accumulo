@@ -47,7 +47,6 @@ import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.Monitor.MonitorFactory;
 import org.apache.accumulo.monitor.view.WebViews;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.categories.MonitorTests;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
@@ -55,12 +54,12 @@ import org.glassfish.jersey.test.TestProperties;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
 
 /**
  * Basic tests for parameter validation constraints
  */
-@Category(MonitorTests.class)
+@Tag("MonitorTests")
 public class WebViewsIT extends JerseyTest {
 
   @Override

@@ -61,19 +61,16 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
-import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException.NoNodeException;
-import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterators;
 
-@Category(SunnyDayTests.class)
 @Tag("SunnyDayTests")
 public class WALSunnyDayIT extends ConfigurableMacBase {
 

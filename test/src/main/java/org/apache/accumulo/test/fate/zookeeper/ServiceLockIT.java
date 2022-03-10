@@ -44,7 +44,6 @@ import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooSession;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.test.categories.ZooKeeperTestingServerTests;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -54,7 +53,6 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
-import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -66,7 +64,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.Uninterruptibles;
 
-@Category({ZooKeeperTestingServerTests.class})
 @Tag("ZooKeeperTestingServerTests")
 public class ServiceLockIT {
 

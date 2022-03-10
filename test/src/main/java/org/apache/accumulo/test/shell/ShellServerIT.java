@@ -74,8 +74,6 @@ import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
-import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.accumulo.test.compaction.TestCompactionStrategy;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.conf.Configuration;
@@ -84,7 +82,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.tools.DistCp;
 import org.jline.terminal.Terminal;
-import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -99,7 +96,6 @@ import com.google.common.collect.Iterators;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@Category({MiniClusterOnlyTests.class, SunnyDayTests.class})
 @Tag("MiniClusterOnlyTests")
 @Tag("SunnyDayTests")
 public class ShellServerIT extends SharedMiniClusterBase {

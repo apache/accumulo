@@ -84,12 +84,9 @@ import org.apache.accumulo.test.TestIngest.IngestParams;
 import org.apache.accumulo.test.TestMultiTableIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
-import org.apache.accumulo.test.categories.StandaloneCapableClusterTests;
-import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -99,7 +96,6 @@ import com.google.common.collect.Iterators;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@Category({StandaloneCapableClusterTests.class, SunnyDayTests.class})
 @Tag("StandaloneCapableClusterTests")
 @Tag("SunnyDayTests")
 public class ReadWriteIT extends AccumuloClusterHarness {

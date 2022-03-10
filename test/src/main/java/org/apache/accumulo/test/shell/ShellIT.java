@@ -36,14 +36,11 @@ import java.util.TimeZone;
 
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.shell.Shell;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
-import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.DumbTerminal;
-import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -53,7 +50,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Category({MiniClusterOnlyTests.class, SunnyDayTests.class})
 @Tag("MiniClusterOnlyTests")
 @Tag("SunnyDayTests")
 public class ShellIT extends SharedMiniClusterBase {

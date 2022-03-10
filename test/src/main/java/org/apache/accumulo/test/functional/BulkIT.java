@@ -31,17 +31,14 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestIngest.IngestParams;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
-import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 /**
  * Tests Old and New Bulk import
  */
-@Category(SunnyDayTests.class)
 @Tag("SunnyDayTests")
 public class BulkIT extends AccumuloClusterHarness {
 

@@ -42,11 +42,9 @@ import org.apache.accumulo.harness.conf.AccumuloClusterPropertyConfiguration;
 import org.apache.accumulo.harness.conf.StandaloneAccumuloClusterConfiguration;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.categories.StandaloneCapableClusterTests;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -61,7 +59,6 @@ import org.slf4j.LoggerFactory;
  * advanced ITs that do crazy things. For more typical, expected behavior of a cluster see
  * {@link SharedMiniClusterBase}. This instance can be MAC or a standalone instance.
  */
-@Category(StandaloneCapableClusterTests.class)
 @Tag("StandaloneCapableClusterTests")
 public abstract class AccumuloClusterHarness extends AccumuloITBase
     implements MiniClusterConfigurationCallback, ClusterUsers {

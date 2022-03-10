@@ -33,16 +33,13 @@ import java.util.concurrent.Future;
 import org.apache.accumulo.WithTestNames;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.test.categories.ZooKeeperTestingServerTests;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
-import org.junit.experimental.categories.Category;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import com.google.common.hash.Hashing;
 
-@Category({ZooKeeperTestingServerTests.class})
 @Tag("ZooKeeperTestingServerTests")
 public class ZooMutatorIT extends WithTestNames {
 
