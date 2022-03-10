@@ -248,7 +248,7 @@ public class FateCommand extends Command {
       throws AccumuloException, AccumuloSecurityException {
     ClientContext context = shellState.getContext();
     for (int i = 1; i < args.length; i++) {
-      Long txid = Long.parseLong(args[i]);
+      Long txid = Long.parseLong(args[i], 16);
       shellState.getWriter().flush();
       String line = shellState.getReader().readLine("Cancel FaTE Tx " + txid + " (yes|no)? ");
       boolean cancelTx =
