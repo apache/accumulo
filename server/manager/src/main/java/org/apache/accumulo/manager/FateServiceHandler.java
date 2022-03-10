@@ -421,9 +421,17 @@ class FateServiceHandler implements FateService.Iface {
         if (!canMerge)
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
-        Manager.log.debug("Creating merge op: {} {} {}", tableId, startRow, endRow);
-        goalMessage += "Merge table " + tableName + "(" + tableId + ") splits from " + startRow
-            + " to " + endRow;
+        String startRowStr = startRow.toString();
+        String endRowStr = endRow.toString();
+        if (startRowStr.isBlank())
+          startRowStr = "-inf";
+        if (endRowStr.isBlank())
+          endRowStr = "+inf";
+
+        Manager.log.debug("Creating merge op: {} from startRow: {} to endRow: {}", tableId,
+            startRowStr, endRowStr);
+        goalMessage += "Merge table " + tableName + "(" + tableId + ") splits from " + startRowStr
+            + " to " + endRowStr;
         manager.fate.seedTransaction(opid, new TraceRepo<>(
             new TableRangeOp(MergeInfo.Operation.MERGE, namespaceId, tableId, startRow, endRow)),
             autoCleanup, goalMessage);
