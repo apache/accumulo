@@ -24,6 +24,7 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.net.UnknownHostException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -34,6 +35,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
@@ -193,4 +195,32 @@ public class ManagerClient {
       throw new AssertionError(e);
     }
   }
+
+  public static boolean cancelFateOperation(ClientContext context, Long txid)
+      throws AccumuloException, AccumuloSecurityException {
+    while (true) {
+      ManagerClientService.Client client = null;
+      try {
+        client = getConnectionWithRetry(context);
+        return client.cancelFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), txid);
+      } catch (TTransportException tte) {
+        log.debug("ManagerClient request failed, retrying ... ", tte);
+        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+      } catch (ThriftSecurityException e) {
+        throw new AccumuloSecurityException(e.user, e.code, e);
+      } catch (ThriftTableOperationException e) {
+        throw new AccumuloException(e);
+      } catch (ThriftNotActiveServiceException e) {
+        // Let it loop, fetching a new location
+        log.debug("Contacted a Manager which is no longer active, re-creating"
+            + " the connection to the active Manager");
+      } catch (Exception e) {
+        throw new AccumuloException(e);
+      } finally {
+        if (client != null)
+          close(client, context);
+      }
+    }
+  }
+
 }

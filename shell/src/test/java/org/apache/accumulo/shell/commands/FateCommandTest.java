@@ -39,6 +39,17 @@ import java.util.List;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
+import static org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.util.List;
+
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.ReadOnlyRepo;
 import org.apache.accumulo.fate.ReadOnlyTStore;
@@ -116,31 +127,30 @@ public class FateCommandTest {
 //    EasyMock.expectLastCall();
 
     replay(client, cli, txids, shellState, reader, intOps);
-    cmd.execute("fate fail 1234", cli, shellState);
+   // cmd.execute("fate fail 1234", cli, shellState);
     verify(client, cli, txids, shellState, reader, intOps);
-
   }
 
   @Test
   public void testDump() {
-    ZooStore<FateCommand> zs = EasyMock.createMock(ZooStore.class);
-    ReadOnlyRepo<FateCommand> ser = EasyMock.createMock(ReadOnlyRepo.class);
+    ZooStore<FateCommand> zs = createMock(ZooStore.class);
+    ReadOnlyRepo<FateCommand> ser = createMock(ReadOnlyRepo.class);
     long tid1 = Long.parseLong("12345", 16);
     long tid2 = Long.parseLong("23456", 16);
-    EasyMock.expect(zs.getStatus(tid1)).andReturn(ReadOnlyTStore.TStatus.NEW).once();
-    EasyMock.expect(zs.getStack(tid1)).andReturn(List.of(ser)).once();
-    EasyMock.expect(zs.getStatus(tid2)).andReturn(ReadOnlyTStore.TStatus.IN_PROGRESS).once();
-    EasyMock.expect(zs.getStack(tid2)).andReturn(List.of(ser)).once();
+    expect(zs.getStack(tid1)).andReturn(List.of(ser)).once();
+    expect(zs.getStack(tid2)).andReturn(List.of(ser)).once();
 
     replay(zs);
 
     FateCommand cmd = new FateCommand();
 
     var args = new String[] {"dump", "12345", "23456"};
-    // var output = cmd.dumpTx(zs, args);
-    // System.out.println(output);
-    // assertTrue(output.contains("0000000000012345"));
-    // assertTrue(output.contains("0000000000023456"));
+//    var output = cmd.dumpTx(zs, args);
+//    System.out.println(output);
+//    assertTrue(output.contains("0000000000012345"));
+//    assertTrue(output.contains("0000000000023456"));
+//
+//    verify(zs);
   }
 
   static class TestHelper extends AdminUtil<FateCommand> {

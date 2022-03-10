@@ -75,4 +75,13 @@ public interface TStore<T> extends ReadOnlyTStore<T> {
    */
   void delete(long tid);
 
+  /**
+   * Attempt to reserve transaction
+   *
+   * @param tid
+   *          transaction id
+   * @return true if reserved by this call, false if already reserved
+   */
+  boolean tryReserve(long tid);
+
 }

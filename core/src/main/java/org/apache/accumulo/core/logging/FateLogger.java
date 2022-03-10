@@ -56,6 +56,11 @@ public class FateLogger {
       }
 
       @Override
+      public boolean tryReserve(long tid) {
+        return store.tryReserve(tid);
+      }
+
+      @Override
       public void unreserve(long tid, long deferTime) {
         store.unreserve(tid, deferTime);
       }
