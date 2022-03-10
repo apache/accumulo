@@ -1010,6 +1010,7 @@
                 <unusedDeclaredDependency>org.apache.logging.log4j:log4j-web:jar:*</unusedDeclaredDependency>
                 <!-- This should be removed upon completion of migrating junit 4 to 5 -->
                 <unusedDeclaredDependency>org.junit.vintage:junit-vintage-engine:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>org.junit.jupiter:junit-jupiter-engine:jar:*</unusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>

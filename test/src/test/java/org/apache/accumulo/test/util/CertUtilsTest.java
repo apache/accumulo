@@ -29,12 +29,13 @@ import java.security.PublicKey;
 import java.security.SignatureException;
 import java.security.cert.Certificate;
 
+import org.apache.accumulo.WithTestNames;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class CertUtilsTest {
+public class CertUtilsTest extends WithTestNames {
   private static final String KEYSTORE_TYPE = "JKS";
   private static final String PASSWORD = "CertUtilsTestPassword";
   private static final char[] PASSWORD_CHARS = PASSWORD.toCharArray();
@@ -51,7 +52,9 @@ public class CertUtilsTest {
   @Test
   public void createSelfSigned() throws Exception {
     CertUtils certUtils = getUtils();
-    File keyStoreFile = new File(tempDir, "selfsigned.jks");
+    File tempSubDir = new File(tempDir, testName());
+    assertTrue(tempSubDir.isDirectory() || tempSubDir.mkdir());
+    File keyStoreFile = new File(tempSubDir, "selfsigned.jks");
     certUtils.createSelfSignedCert(keyStoreFile, "test", PASSWORD);
 
     KeyStore keyStore = KeyStore.getInstance(KEYSTORE_TYPE);
@@ -66,9 +69,11 @@ public class CertUtilsTest {
   @Test
   public void createPublicSelfSigned() throws Exception {
     CertUtils certUtils = getUtils();
-    File rootKeyStoreFile = new File(tempDir, "root.jks");
+    File tempSubDir = new File(tempDir, testName());
+    assertTrue(tempSubDir.isDirectory() || tempSubDir.mkdir());
+    File rootKeyStoreFile = new File(tempSubDir, "root.jks");
     certUtils.createSelfSignedCert(rootKeyStoreFile, "test", PASSWORD);
-    File publicKeyStoreFile = new File(tempDir, "public.jks");
+    File publicKeyStoreFile = new File(tempSubDir, "public.jks");
     certUtils.createPublicCert(publicKeyStoreFile, "test", rootKeyStoreFile.getAbsolutePath(),
         PASSWORD, "");
 
@@ -88,9 +93,11 @@ public class CertUtilsTest {
   @Test
   public void createSigned() throws Exception {
     CertUtils certUtils = getUtils();
-    File rootKeyStoreFile = new File(tempDir, "root.jks");
+    File tempSubDir = new File(tempDir, testName());
+    assertTrue(tempSubDir.isDirectory() || tempSubDir.mkdir());
+    File rootKeyStoreFile = new File(tempSubDir, "root.jks");
     certUtils.createSelfSignedCert(rootKeyStoreFile, "test", PASSWORD);
-    File signedKeyStoreFile = new File(tempDir, "signed.jks");
+    File signedKeyStoreFile = new File(tempSubDir, "signed.jks");
     certUtils.createSignedCert(signedKeyStoreFile, "test", PASSWORD,
         rootKeyStoreFile.getAbsolutePath(), PASSWORD);
 
@@ -118,15 +125,17 @@ public class CertUtilsTest {
     // this approximates the real life scenario. the client will only have the public key of each
     // cert (the root made by us as below, but the signed cert extracted by the SSL transport)
     CertUtils certUtils = getUtils();
-    File rootKeyStoreFile = new File(tempDir, "root.jks");
+    File tempSubDir = new File(tempDir, testName());
+    assertTrue(tempSubDir.isDirectory() || tempSubDir.mkdir());
+    File rootKeyStoreFile = new File(tempSubDir, "root.jks");
     certUtils.createSelfSignedCert(rootKeyStoreFile, "test", PASSWORD);
-    File publicRootKeyStoreFile = new File(tempDir, "publicroot.jks");
+    File publicRootKeyStoreFile = new File(tempSubDir, "publicroot.jks");
     certUtils.createPublicCert(publicRootKeyStoreFile, "test", rootKeyStoreFile.getAbsolutePath(),
         PASSWORD, "");
-    File signedKeyStoreFile = new File(tempDir, "signed.jks");
+    File signedKeyStoreFile = new File(tempSubDir, "signed.jks");
     certUtils.createSignedCert(signedKeyStoreFile, "test", PASSWORD,
         rootKeyStoreFile.getAbsolutePath(), PASSWORD);
-    File publicSignedKeyStoreFile = new File(tempDir, "publicsigned.jks");
+    File publicSignedKeyStoreFile = new File(tempSubDir, "publicsigned.jks");
     certUtils.createPublicCert(publicSignedKeyStoreFile, "test",
         signedKeyStoreFile.getAbsolutePath(), PASSWORD, "");
 
@@ -154,12 +163,14 @@ public class CertUtilsTest {
     // no reason the keypair we generate for the tservers need to be able to sign anything,
     // but this is a way to make sure the private and public keys created actually correspond.
     CertUtils certUtils = getUtils();
-    File rootKeyStoreFile = new File(tempDir, "root.jks");
+    File tempSubDir = new File(tempDir, testName());
+    assertTrue(tempSubDir.isDirectory() || tempSubDir.mkdir());
+    File rootKeyStoreFile = new File(tempSubDir, "root.jks");
     certUtils.createSelfSignedCert(rootKeyStoreFile, "test", PASSWORD);
-    File signedCaKeyStoreFile = new File(tempDir, "signedca.jks");
+    File signedCaKeyStoreFile = new File(tempSubDir, "signedca.jks");
     certUtils.createSignedCert(signedCaKeyStoreFile, "test", PASSWORD,
         rootKeyStoreFile.getAbsolutePath(), PASSWORD);
-    File signedLeafKeyStoreFile = new File(tempDir, "signedleaf.jks");
+    File signedLeafKeyStoreFile = new File(tempSubDir, "signedleaf.jks");
     certUtils.createSignedCert(signedLeafKeyStoreFile, "test", PASSWORD,
         signedCaKeyStoreFile.getAbsolutePath(), PASSWORD);
 
