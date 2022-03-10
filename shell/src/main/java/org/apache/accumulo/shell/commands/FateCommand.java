@@ -19,7 +19,6 @@
 package org.apache.accumulo.shell.commands;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -34,7 +33,9 @@ import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ManagerClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.AdminUtil;
@@ -44,6 +45,7 @@ import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -120,7 +122,8 @@ public class FateCommand extends Command {
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
-      throws ParseException, KeeperException, InterruptedException, IOException, AccumuloException {
+      throws ParseException, KeeperException, InterruptedException, IOException, AccumuloException,
+      AccumuloSecurityException {
     ClientContext context = shellState.getContext();
     var siteConfig = SiteConfiguration.auto();
     String[] args = cl.getArgs();
@@ -139,7 +142,10 @@ public class FateCommand extends Command {
         getZooReaderWriter(context, siteConfig, cl.getOptionValue(secretOption.getOpt()));
     ZooStore<FateCommand> zs = new ZooStore<>(fatePath, zk);
 
-    if ("fail".equals(cmd)) {
+    if ("cancel-submitted".equals(cmd)) {
+      validateArgs(args);
+      failedCommand = cancelSubmittedTxs(shellState, args);
+    } else if ("fail".equals(cmd)) {
       validateArgs(args);
       failedCommand = failTx(admin, zs, zk, managerLockPath, args);
     } else if ("delete".equals(cmd)) {
@@ -233,6 +239,31 @@ public class FateCommand extends Command {
     }
   }
 
+  private boolean cancelSubmittedTxs(final Shell shellState, String[] args)
+      throws AccumuloException, AccumuloSecurityException {
+    ClientContext context = shellState.getContext();
+    for (int i = 1; i < args.length; i++) {
+      Long txid = Long.parseLong(args[i]);
+      shellState.getWriter().flush();
+      String line = shellState.getReader().readLine("Cancel FaTE Tx " + txid + " (yes|no)? ");
+      boolean cancelTx =
+          line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
+      if (cancelTx) {
+        boolean cancelled = ManagerClient.cancelFateOperation(context, txid);
+        if (cancelled) {
+          shellState.getWriter()
+              .println("FaTE transaction " + txid + " was cancelled or already completed.");
+        } else {
+          shellState.getWriter()
+              .println("FaTE transaction " + txid + " was not cancelled, status may have changed.");
+        }
+      } else {
+        shellState.getWriter().println("Not cancelling FaTE transaction " + txid);
+      }
+    }
+    return true;
+  }
+
   public boolean failTx(AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs, ZooReaderWriter zk,
       ServiceLockPath managerLockPath, String[] args) {
     boolean success = true;
@@ -262,7 +293,8 @@ public class FateCommand extends Command {
 
   @Override
   public String usage() {
-    return getName() + " fail <txid>... | delete <txid>... | print [<txid>...] | dump [<txid>...]";
+    return getName()
+        + "cancel-submitted <txid> | fail <txid>... | delete <txid>... | print [<txid>...] | dump [<txid>...]";
   }
 
   @Override

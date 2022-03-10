@@ -144,6 +144,16 @@ service FateService {
     2:client.ThriftNotActiveServiceException tnase
   )
 
+  // cancel a fate operation
+  bool cancelFateOperation(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+    3:i64 opid
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
+  )
+  
 }
 
 service ManagerClientService extends FateService {
