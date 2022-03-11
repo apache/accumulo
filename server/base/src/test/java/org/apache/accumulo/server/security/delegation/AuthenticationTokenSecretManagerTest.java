@@ -45,7 +45,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.minicluster.WithTestNames;
+import org.apache.accumulo.server.WithTestNames;
 import org.apache.hadoop.security.token.SecretManager.InvalidToken;
 import org.apache.hadoop.security.token.Token;
 import org.junit.jupiter.api.BeforeAll;

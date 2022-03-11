@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.minicluster.WithTestNames;
+import org.apache.accumulo.server.WithTestNames;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.BeforeEach;
