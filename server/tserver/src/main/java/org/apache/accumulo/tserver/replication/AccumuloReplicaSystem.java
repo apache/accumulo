@@ -61,6 +61,7 @@ import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.replication.ReplicaSystem;
 import org.apache.accumulo.server.replication.ReplicaSystemHelper;
@@ -571,7 +572,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     ClientProperty.setAuthenticationToken(properties, token);
 
     return new ClientContext(SingletonReservation.noop(), ClientInfo.from(properties, token),
-        localConf);
+        localConf, Threads.UEH);
   }
 
   protected Set<Integer> consumeWalPrefix(ReplicationTarget target, DataInputStream wal,

@@ -25,7 +25,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 
 public class Threads {
 
-  static final UncaughtExceptionHandler UEH = new AccumuloUncaughtExceptionHandler();
+  public static final UncaughtExceptionHandler UEH = new AccumuloUncaughtExceptionHandler();
 
   public static class AccumuloDaemonThread extends Thread {
 

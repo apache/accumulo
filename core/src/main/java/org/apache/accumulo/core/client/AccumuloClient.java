@@ -355,7 +355,7 @@ public interface AccumuloClient extends AutoCloseable {
      * @return AccumuloClient or Properties
      * @since 2.1.0
      */
-    ClientFactory<T> withUncaughtExceptionHandler(Class<? extends UncaughtExceptionHandler> ueh);
+    ClientFactory<T> withUncaughtExceptionHandler(UncaughtExceptionHandler ueh);
 
     /**
      * Builds AccumuloClient or client Properties
