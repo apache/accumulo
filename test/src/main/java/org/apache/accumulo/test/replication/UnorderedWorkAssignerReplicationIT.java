@@ -255,7 +255,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
       cluster.exec(TabletServer.class);
 
       log.info("TabletServer restarted");
-      var unusedRetVal = Iterators.size(ReplicationTable.getScanner(clientManager).iterator());
+      assertTrue(Iterators.size(ReplicationTable.getScanner(clientManager).iterator()) > 0);
       log.info("TabletServer is online");
 
       log.info("");
@@ -464,8 +464,8 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
       log.info("Restarted the tserver");
 
       // Read the data -- the tserver is back up and running
-      var unusedRetVal = Iterators
-          .size(clientManager.createScanner(managerTable1, Authorizations.EMPTY).iterator());
+      assertTrue(Iterators
+          .size(clientManager.createScanner(managerTable1, Authorizations.EMPTY).iterator()) > 0);
 
       // Wait for both tables to be replicated
       log.info("Waiting for {} for {}", filesFor1, managerTable1);
@@ -600,8 +600,9 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
 
       cluster.exec(TabletServer.class);
 
-      var unusedRetVal = Iterators
-          .size(clientManager.createScanner(managerTable, Authorizations.EMPTY).iterator());
+      assertTrue(
+          Iterators.size(clientManager.createScanner(managerTable, Authorizations.EMPTY).iterator())
+              > 0);
 
       try (var scanner = clientManager.createScanner(ReplicationTable.NAME, Authorizations.EMPTY)) {
         for (Entry<Key,Value> kv : scanner) {
