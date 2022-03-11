@@ -18,8 +18,9 @@
  */
 package org.apache.accumulo.server;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,30 +35,32 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.minicluster.WithTestNames;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
-public class ServerDirsTest {
+public class ServerDirsTest extends WithTestNames {
 
   AccumuloConfiguration conf;
   Configuration hadoopConf = new Configuration();
   ServerDirs constants;
 
-  @Before
+  @BeforeEach
   public void setup() throws IOException {
     String uuid = UUID.randomUUID().toString();
 
-    var vols =
-        init(folder.newFolder(), Arrays.asList(uuid), Arrays.asList(AccumuloDataVersion.get()));
+    File folder = new File(tempDir, testName());
+    assertTrue(folder.isDirectory() || folder.mkdir(), "Failed to create folder");
+
+    var vols = init(folder, List.of(uuid), List.of(AccumuloDataVersion.get()));
 
     ConfigurationCopy copy = new ConfigurationCopy();
     copy.set(Property.INSTANCE_VOLUMES.getKey(), String.join(",", vols));
@@ -65,32 +68,36 @@ public class ServerDirsTest {
     constants = new ServerDirs(conf, hadoopConf);
   }
 
-  @Rule
-  public TemporaryFolder folder =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File tempDir;
 
   @Test
   public void testCheckBaseDirs() throws IOException {
     String uuid1 = UUID.randomUUID().toString();
     String uuid2 = UUID.randomUUID().toString();
 
-    verifyAllPass(
-        init(folder.newFolder(), Arrays.asList(uuid1), Arrays.asList(AccumuloDataVersion.get())));
-    verifyAllPass(init(folder.newFolder(), Arrays.asList(uuid1, uuid1),
+    File[] folders = new File[8];
+    for (int i = 0; i < folders.length; i++) {
+      File newFolder = new File(tempDir, testName() + i);
+      assertTrue(newFolder.isDirectory() || newFolder.mkdir(), "Failed to create folder");
+      folders[i] = newFolder;
+    }
+
+    verifyAllPass(init(folders[0], List.of(uuid1), List.of(AccumuloDataVersion.get())));
+    verifyAllPass(init(folders[1], Arrays.asList(uuid1, uuid1),
         Arrays.asList(AccumuloDataVersion.get(), AccumuloDataVersion.get())));
 
-    verifyError(
-        init(folder.newFolder(), Arrays.asList((String) null), Arrays.asList((Integer) null)));
-    verifyError(init(folder.newFolder(), Arrays.asList(uuid1, uuid2),
+    verifyError(init(folders[2], Arrays.asList((String) null), Arrays.asList((Integer) null)));
+    verifyError(init(folders[3], Arrays.asList(uuid1, uuid2),
         Arrays.asList(AccumuloDataVersion.get(), AccumuloDataVersion.get())));
-    verifyError(init(folder.newFolder(), Arrays.asList(uuid1, uuid1),
+    verifyError(init(folders[4], Arrays.asList(uuid1, uuid1),
         Arrays.asList(AccumuloDataVersion.get(), AccumuloDataVersion.get() - 1)));
-    verifyError(init(folder.newFolder(), Arrays.asList(uuid1, uuid2),
+    verifyError(init(folders[5], Arrays.asList(uuid1, uuid2),
         Arrays.asList(AccumuloDataVersion.get(), AccumuloDataVersion.get() - 1)));
-    verifyError(init(folder.newFolder(), Arrays.asList(uuid1, uuid2, null), Arrays
+    verifyError(init(folders[6], Arrays.asList(uuid1, uuid2, null), Arrays
         .asList(AccumuloDataVersion.get(), AccumuloDataVersion.get(), AccumuloDataVersion.get())));
 
-    verifySomePass(init(folder.newFolder(), Arrays.asList(uuid1, uuid1, null),
+    verifySomePass(init(folders[7], Arrays.asList(uuid1, uuid1, null),
         Arrays.asList(AccumuloDataVersion.get(), AccumuloDataVersion.get(), null)));
   }
 

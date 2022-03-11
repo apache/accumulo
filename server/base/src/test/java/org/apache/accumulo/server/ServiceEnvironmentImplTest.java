@@ -22,22 +22,22 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ServiceEnvironmentImplTest {
   private ServerContext context;
   private AccumuloConfiguration acfg;
   private ServiceEnvironmentImpl serviceEnvironment;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     context = createMock(ServerContext.class);
     acfg = createMock(AccumuloConfiguration.class);
@@ -46,7 +46,7 @@ public class ServiceEnvironmentImplTest {
     serviceEnvironment = new ServiceEnvironmentImpl(context);
   }
 
-  @After
+  @AfterEach
   public void verifyMocks() {
     verify(context, acfg);
   }
