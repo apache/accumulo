@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
@@ -58,7 +59,7 @@ public class CloseScannerIT extends AccumuloClusterHarness {
 
           for (int j = 0; j < i % 7 + 1; j++) {
             // only read a little data and quit, this should leave a session open on the tserver
-            var unusedRetVal = Iterators.get(scanner.iterator(), 10);
+            assertNotNull(Iterators.get(scanner.iterator(), 10));
           }
         } // when the scanner is closed, all open sessions should be closed
       }
