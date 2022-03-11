@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.minicluster;
+package org.apache.accumulo.server;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
