@@ -736,10 +736,9 @@ public class ReplicationIT extends ConfigurableMacBase {
         client.tableOperations().flush(table, null, null, true);
       }
 
-      for (String table : Arrays.asList(MetadataTable.NAME, table1, table2, table3)) {
-        var unusedRetVal =
-            Iterators.size(client.createScanner(table, Authorizations.EMPTY).iterator());
-      }
+      for (String table : Arrays.asList(MetadataTable.NAME, table1, table2, table3))
+        assertTrue(
+            Iterators.size(client.createScanner(table, Authorizations.EMPTY).iterator()) > 0);
     }
   }
 
@@ -1188,8 +1187,8 @@ public class ReplicationIT extends ConfigurableMacBase {
 
       // Make sure we can read all the tables (recovery complete)
       for (String table : Arrays.asList(table1, table2, table3)) {
-        var unusedRetVal =
-            Iterators.size(client.createScanner(table, Authorizations.EMPTY).iterator());
+        assertTrue(
+            Iterators.size(client.createScanner(table, Authorizations.EMPTY).iterator()) > 0);
       }
 
       // Starting the gc will run CloseWriteAheadLogReferences which will first close Statuses
@@ -1435,8 +1434,8 @@ public class ReplicationIT extends ConfigurableMacBase {
 
       // Make sure we can read all the tables (recovery complete)
       for (String table : new String[] {MetadataTable.NAME, table1}) {
-        var unusedRetVal =
-            Iterators.size(client.createScanner(table, Authorizations.EMPTY).iterator());
+        assertTrue(
+            Iterators.size(client.createScanner(table, Authorizations.EMPTY).iterator()) > 0);
       }
 
       log.info("Recovered metadata:");

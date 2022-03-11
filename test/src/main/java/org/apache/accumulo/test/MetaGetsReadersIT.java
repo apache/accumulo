@@ -104,7 +104,7 @@ public class MetaGetsReadersIT extends ConfigurableMacBase {
       long now = System.currentTimeMillis();
 
       try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-        var unusedRetVal = Iterators.size(s.iterator());
+        assertTrue(Iterators.size(s.iterator()) > 0);
       }
 
       long delay = System.currentTimeMillis() - now;

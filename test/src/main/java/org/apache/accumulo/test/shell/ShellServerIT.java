@@ -1461,7 +1461,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       s.addScanIterator(cfg);
 
       Thread thread = new Thread(() -> {
-        var unusedRetVal = Iterators.size(s.iterator());
+        assertTrue(Iterators.size(s.iterator()) > 0);
       });
       thread.start();
 

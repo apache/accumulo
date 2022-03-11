@@ -21,6 +21,7 @@ package org.apache.accumulo.test;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.apache.accumulo.minicluster.ServerType.TABLET_SERVER;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.TimeUnit;
 
@@ -56,8 +57,8 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
   public void test() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       log.info("verifying that everything is up");
-      var unusedRetVal =
-          Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
+      assertTrue(
+          Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator()) > 0);
 
       ManagerMonitorInfo stats = getStats(c);
       assertEquals(2, stats.tServerInfo.size());

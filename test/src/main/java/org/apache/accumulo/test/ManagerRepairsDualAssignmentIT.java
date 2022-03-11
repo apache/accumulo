@@ -20,6 +20,7 @@ package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -154,7 +155,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
   private void waitForCleanStore(TabletStateStore store) {
     while (true) {
       try (ClosableIterator<TabletLocationState> iter = store.iterator()) {
-        var unusedRetVal = Iterators.size(iter);
+        assertTrue(Iterators.size(iter) > 0);
       } catch (Exception ex) {
         System.out.println(ex);
         UtilWaitThread.sleep(250);

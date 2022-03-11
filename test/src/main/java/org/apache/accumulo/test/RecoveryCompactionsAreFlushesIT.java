@@ -19,6 +19,7 @@
 package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Map.Entry;
 
@@ -91,8 +92,7 @@ public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterHarness {
       // recover
       control.startAllServers(ServerType.TABLET_SERVER);
       // ensure the table is readable
-      var unusedRetVal =
-          Iterators.size(c.createScanner(tableName, Authorizations.EMPTY).iterator());
+      assertTrue(Iterators.size(c.createScanner(tableName, Authorizations.EMPTY).iterator()) > 0);
 
       // ensure that the recovery was not a merging minor compaction
       try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {

@@ -107,8 +107,7 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
       final ProcessInfo ts = cluster.exec(TabletServer.class);
 
       // wait for recovery
-      var unusedRetVal =
-          Iterators.size(c.createScanner(tableName, Authorizations.EMPTY).iterator());
+      assertTrue(Iterators.size(c.createScanner(tableName, Authorizations.EMPTY).iterator()) > 0);
       assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
       ts.getProcess().waitFor();
       String result = ts.readStdOut();

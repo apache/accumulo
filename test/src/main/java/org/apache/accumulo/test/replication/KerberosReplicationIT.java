@@ -247,8 +247,8 @@ public class KerberosReplicationIT extends AccumuloITBase {
         log.info("Restarted the tserver");
 
         // Read the data -- the tserver is back up and running and tablets are assigned
-        var unusedRetVal = Iterators
-            .size(primaryclient.createScanner(primaryTable1, Authorizations.EMPTY).iterator());
+        assertTrue(Iterators
+            .size(primaryclient.createScanner(primaryTable1, Authorizations.EMPTY).iterator()) > 0);
 
         // Wait for both tables to be replicated
         log.info("Waiting for {} for {}", filesFor1, primaryTable1);

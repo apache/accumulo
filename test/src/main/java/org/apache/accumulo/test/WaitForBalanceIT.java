@@ -57,8 +57,8 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
   public void test() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       // ensure the metadata table is online
-      var unusedRetVal =
-          Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
+      assertTrue(
+          Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator()) > 0);
       c.instanceOperations().waitForBalance();
       assertTrue(isBalanced(c));
       final String tableName = getUniqueNames(1)[0];

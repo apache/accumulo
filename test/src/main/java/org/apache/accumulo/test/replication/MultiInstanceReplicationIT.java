@@ -250,7 +250,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       cluster.exec(TabletServer.class);
 
       log.info("TabletServer restarted");
-      var unusedRetVal = Iterators.size(ReplicationTable.getScanner(clientManager).iterator());
+      assertTrue(Iterators.size(ReplicationTable.getScanner(clientManager).iterator()) > 0);
       log.info("TabletServer is online");
 
       while (!ReplicationTable.isOnline(clientManager)) {
@@ -462,8 +462,8 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       log.info("Restarted the tserver");
 
       // Read the data -- the tserver is back up and running
-      var unusedRetVal = Iterators
-          .size(clientManager.createScanner(managerTable1, Authorizations.EMPTY).iterator());
+      assertTrue(Iterators
+          .size(clientManager.createScanner(managerTable1, Authorizations.EMPTY).iterator()) > 0);
 
       while (!ReplicationTable.isOnline(clientManager)) {
         log.info("Replication table still offline, waiting");
@@ -595,8 +595,9 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
         Thread.sleep(5000);
       }
 
-      var unusedRetVal = Iterators
-          .size(clientManager.createScanner(managerTable, Authorizations.EMPTY).iterator());
+      assertTrue(
+          Iterators.size(clientManager.createScanner(managerTable, Authorizations.EMPTY).iterator())
+              > 0);
 
       try (var scanner = ReplicationTable.getScanner(clientManager)) {
         for (Entry<Key,Value> kv : scanner) {
