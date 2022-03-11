@@ -196,7 +196,7 @@ public class ManagerClient {
     }
   }
 
-  public static boolean cancelFateOperation(ClientContext context, Long txid)
+  public static boolean cancelFateOperation(ClientContext context, long txid)
       throws AccumuloException, AccumuloSecurityException {
     while (true) {
       ManagerClientService.Client client = null;
