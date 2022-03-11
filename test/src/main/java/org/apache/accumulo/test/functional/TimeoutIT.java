@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 
 import java.util.Collections;
@@ -94,7 +95,7 @@ public class TimeoutIT extends AccumuloClusterHarness {
 
       // should not timeout
       for (Entry<Key,Value> entry : bs) {
-        var unusedRetVal = entry.getKey();
+        assertNotNull(entry.getKey());
       }
 
       bs.setTimeout(5, TimeUnit.SECONDS);

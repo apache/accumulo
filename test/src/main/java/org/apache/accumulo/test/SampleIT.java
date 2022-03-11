@@ -19,6 +19,7 @@
 package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 
 import java.io.IOException;
@@ -490,7 +491,7 @@ public class SampleIT extends AccumuloClusterHarness {
 
       scanner.clearSamplerConfiguration();
       for (Entry<Key,Value> entry : scanner) {
-        var unusedRetVal = entry.getKey();
+        assertNotNull(entry.getKey());
       }
 
       if (csc == null) {
