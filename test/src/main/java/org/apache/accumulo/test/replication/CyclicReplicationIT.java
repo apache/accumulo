@@ -72,7 +72,7 @@ import com.google.common.collect.Iterables;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Disabled("Replication ITs are not stable and not currently maintained")
-@Tag("MiniClusterOnlyTests")
+@Tag("MiniClusterOnly")
 @Deprecated
 public class CyclicReplicationIT extends WithTestNames {
   private static final Logger log = LoggerFactory.getLogger(CyclicReplicationIT.class);

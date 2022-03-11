@@ -50,8 +50,8 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Tag("MiniClusterOnlyTests")
-@Tag("SunnyDayTests")
+@Tag("MiniClusterOnly")
+@Tag("SunnyDay")
 public class ShellIT extends SharedMiniClusterBase {
 
   @Override

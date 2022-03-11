@@ -81,7 +81,7 @@ import org.slf4j.LoggerFactory;
  * DefaultMap could move to a unit test in tserver, but they are here for convenience of viewing
  * both at the same time.
  */
-@Tag("SunnyDayTests")
+@Tag("SunnyDay")
 public class InMemoryMapIT extends WithTestNames {
 
   private static final Logger log = LoggerFactory.getLogger(InMemoryMapIT.class);

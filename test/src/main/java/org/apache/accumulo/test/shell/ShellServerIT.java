@@ -96,8 +96,8 @@ import com.google.common.collect.Iterators;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@Tag("MiniClusterOnlyTests")
-@Tag("SunnyDayTests")
+@Tag("MiniClusterOnly")
+@Tag("SunnyDay")
 public class ShellServerIT extends SharedMiniClusterBase {
 
   @SuppressWarnings("removal")

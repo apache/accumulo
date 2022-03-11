@@ -96,8 +96,8 @@ import com.google.common.collect.Iterators;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@Tag("StandaloneCapableClusterTests")
-@Tag("SunnyDayTests")
+@Tag("StandaloneCapableCluster")
+@Tag("SunnyDay")
 public class ReadWriteIT extends AccumuloClusterHarness {
 
   @Override

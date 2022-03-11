@@ -59,7 +59,7 @@ import org.junit.jupiter.api.Tag;
 /**
  * Basic tests for parameter validation constraints
  */
-@Tag("MonitorTests")
+@Tag("Monitor")
 public class WebViewsIT extends JerseyTest {
 
   @Override

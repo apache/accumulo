@@ -41,7 +41,7 @@ import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterators;
 
-@Tag("MiniClusterOnlyTests")
+@Tag("MiniClusterOnly")
 public class DurabilityIT extends ConfigurableMacBase {
 
   @Override

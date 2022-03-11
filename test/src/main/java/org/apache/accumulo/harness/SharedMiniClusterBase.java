@@ -62,7 +62,7 @@ import org.slf4j.LoggerFactory;
  * the {@link org.junit.jupiter.api.BeforeAll} JUnit annotation and {@link #stopMiniCluster()} in a
  * method annotated with the {@link org.junit.jupiter.api.AfterAll} JUnit annotation.
  */
-@Tag("MiniClusterOnlyTests")
+@Tag("MiniClusterOnly")
 public abstract class SharedMiniClusterBase extends AccumuloITBase implements ClusterUsers {
   private static final Logger log = LoggerFactory.getLogger(SharedMiniClusterBase.class);
   public static final String TRUE = Boolean.toString(true);

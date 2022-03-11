@@ -1550,7 +1550,7 @@
       <!-- Minimal testing profile. (a.k.a. SunnyDay) -->
       <id>sunny</id>
       <properties>
-        <failsafe.groups>SunnyDayTests</failsafe.groups>
+        <failsafe.groups>SunnyDay</failsafe.groups>
       </properties>
     </profile>
     <profile>

@@ -58,7 +58,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * specific configuration. Most tests don't need this level of control and should extend
  * {@link AccumuloClusterHarness} instead.
  */
-@Tag("MiniClusterOnlyTests")
+@Tag("MiniClusterOnly")
 public class ConfigurableMacBase extends AccumuloITBase {
   public static final Logger log = LoggerFactory.getLogger(ConfigurableMacBase.class);
 

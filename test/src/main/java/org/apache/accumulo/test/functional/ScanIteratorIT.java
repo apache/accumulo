@@ -53,7 +53,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Tag("SunnyDayTests")
+@Tag("SunnyDay")
 public class ScanIteratorIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(ScanIteratorIT.class);
 

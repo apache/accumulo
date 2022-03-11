@@ -64,7 +64,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.Uninterruptibles;
 
-@Tag("ZooKeeperTestingServerTests")
+@Tag("ZooKeeperTestingServer")
 public class ServiceLockIT {
 
   @TempDir

@@ -39,7 +39,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Tests Old and New Bulk import
  */
-@Tag("SunnyDayTests")
+@Tag("SunnyDay")
 public class BulkIT extends AccumuloClusterHarness {
 
   private static final int N = 100000;

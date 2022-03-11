@@ -59,7 +59,7 @@ import org.slf4j.LoggerFactory;
  * advanced ITs that do crazy things. For more typical, expected behavior of a cluster see
  * {@link SharedMiniClusterBase}. This instance can be MAC or a standalone instance.
  */
-@Tag("StandaloneCapableClusterTests")
+@Tag("StandaloneCapableCluster")
 public abstract class AccumuloClusterHarness extends AccumuloITBase
     implements MiniClusterConfigurationCallback, ClusterUsers {
   private static final Logger log = LoggerFactory.getLogger(AccumuloClusterHarness.class);

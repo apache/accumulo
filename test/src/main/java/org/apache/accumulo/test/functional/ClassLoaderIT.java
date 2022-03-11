@@ -52,7 +52,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-@Tag("MiniClusterOnlyTests")
+@Tag("MiniClusterOnly")
 public class ClassLoaderIT extends AccumuloClusterHarness {
 
   private static final long ZOOKEEPER_PROPAGATION_TIME = 10_000;

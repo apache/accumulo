@@ -71,7 +71,7 @@ import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterators;
 
-@Tag("SunnyDayTests")
+@Tag("SunnyDay")
 public class WALSunnyDayIT extends ConfigurableMacBase {
 
   private static final Text CF = new Text(new byte[0]);

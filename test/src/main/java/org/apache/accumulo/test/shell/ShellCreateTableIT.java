@@ -60,8 +60,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-@Tag("MiniClusterOnlyTests")
-@Tag("SunnyDayTests")
+@Tag("MiniClusterOnly")
+@Tag("SunnyDay")
 public class ShellCreateTableIT extends SharedMiniClusterBase {
 
   private MockShell ts;

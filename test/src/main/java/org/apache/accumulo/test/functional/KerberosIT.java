@@ -92,7 +92,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * MAC test which uses {@link MiniKdc} to simulate ta secure environment. Can be used as a sanity
  * check for Kerberos/SASL testing.
  */
-@Tag("MiniClusterOnlyTests")
+@Tag("MiniClusterOnly")
 public class KerberosIT extends AccumuloITBase {
   private static final Logger log = LoggerFactory.getLogger(KerberosIT.class);
 

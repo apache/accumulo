@@ -66,7 +66,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Tag("ZooKeeperTestingServerTests")
+@Tag("ZooKeeperTestingServer")
 public class FateIT {
 
   public static class TestOperation extends ManagerRepo {

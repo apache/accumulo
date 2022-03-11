@@ -52,7 +52,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * Test class that verifies "HA-capable" servers put up their thrift servers before acquiring their
  * ZK lock.
  */
-@Tag("MiniClusterOnlyTests")
+@Tag("MiniClusterOnly")
 public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarness {
   private static final Logger LOG =
       LoggerFactory.getLogger(ThriftServerBindsBeforeZooKeeperLockIT.class);

@@ -40,7 +40,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import com.google.common.hash.Hashing;
 
-@Tag("ZooKeeperTestingServerTests")
+@Tag("ZooKeeperTestingServer")
 public class ZooMutatorIT extends WithTestNames {
 
   @TempDir
