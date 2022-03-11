@@ -50,6 +50,7 @@ public class ThriftTransportKey {
         throw new RuntimeException("Cannot use both SSL and SASL thrift transports");
       }
     }
+    final int hashCode = hashCode();
   }
 
   /**
@@ -62,6 +63,7 @@ public class ThriftTransportKey {
     this.timeout = timeout;
     this.sslParams = sslParams;
     this.saslParams = saslParams;
+    final int hashCode = hashCode();
   }
 
   HostAndPort getServer() {
@@ -88,10 +90,6 @@ public class ThriftTransportKey {
     return server.equals(ttk.server) && timeout == ttk.timeout
         && (!isSsl() || (ttk.isSsl() && sslParams.equals(ttk.sslParams)))
         && (!isSasl() || (ttk.isSasl() && saslParams.equals(ttk.saslParams)));
-  }
-
-  public final void precomputeHashCode() {
-    var unusedRetVal = hashCode();
   }
 
   @Override
