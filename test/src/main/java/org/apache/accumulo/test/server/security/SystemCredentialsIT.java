@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.server.security;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.util.Map.Entry;
 
@@ -86,7 +87,7 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
         client.securityOperations().authenticateUser(creds.getPrincipal(), creds.getToken());
         try (Scanner scan = client.createScanner(RootTable.NAME, Authorizations.EMPTY)) {
           for (Entry<Key,Value> e : scan) {
-            var unusedRetVal = e.hashCode();
+            assertNotNull(e.hashCode());
           }
         } catch (RuntimeException e) {
           e.printStackTrace(System.err);
