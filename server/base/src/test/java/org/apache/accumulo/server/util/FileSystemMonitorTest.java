@@ -19,8 +19,8 @@
 package org.apache.accumulo.server.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.accumulo.server.util.FileSystemMonitor.Mount;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,11 +91,11 @@ public class FileSystemMonitorTest {
     expectedCheckedMountPoints.add("/");
     expectedCheckedMountPoints.add("/grid/0");
     for (Mount mount : mounts) {
-      assertTrue("Did not expect to find " + mount,
-          expectedCheckedMountPoints.remove(mount.mountPoint));
+      assertTrue(expectedCheckedMountPoints.remove(mount.mountPoint),
+          "Did not expect to find " + mount);
     }
-    assertEquals("Should not have any extra mount points: " + expectedCheckedMountPoints, 0,
-        expectedCheckedMountPoints.size());
+    assertEquals(0, expectedCheckedMountPoints.size(),
+        "Should not have any extra mount points: " + expectedCheckedMountPoints);
   }
 
 }
