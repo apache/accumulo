@@ -141,7 +141,6 @@ public class ClientContext implements AccumuloClient {
   private final ThreadPools clientThreadPools;
   private ThreadPoolExecutor cleanupThreadPool;
   private ThreadPoolExecutor scannerReadaheadPool;
-  private final UncaughtExceptionHandler ueh;
 
   private void ensureOpen() {
     if (closed) {
@@ -177,18 +176,16 @@ public class ClientContext implements AccumuloClient {
     this.tableops = new TableOperationsImpl(this);
     this.namespaceops = new NamespaceOperationsImpl(this, tableops);
     if (ueh == Threads.UEH) {
-      this.ueh = ueh;
       clientThreadPools = ThreadPools.getServerThreadPools();
     } else {
       // Provide a default UEH that just logs the error
       if (ueh == null) {
-        this.ueh = (t, e) -> {
+        clientThreadPools = ThreadPools.getClientThreadPools((t, e) -> {
           log.error("Caught an Exception in client background thread: {}. Thread is dead.", t, e);
-        };
+        });
       } else {
-        this.ueh = ueh;
+        clientThreadPools = ThreadPools.getClientThreadPools(ueh);
       }
-      clientThreadPools = ThreadPools.getClientThreadPools(ueh);
     }
   }
 
@@ -199,6 +196,7 @@ public class ClientContext implements AccumuloClient {
 
   public synchronized Future<List<KeyValue>>
       submitScannerReadAheadTask(Callable<List<KeyValue>> c) {
+    ensureOpen();
     if (scannerReadaheadPool == null) {
       scannerReadaheadPool = clientThreadPools.createThreadPool(0, Integer.MAX_VALUE, 3L, SECONDS,
           "Accumulo scanner read ahead thread", new SynchronousQueue<>(), true);
@@ -207,6 +205,7 @@ public class ClientContext implements AccumuloClient {
   }
 
   public synchronized void executeCleanupTask(Runnable r) {
+    ensureOpen();
     if (cleanupThreadPool == null) {
       cleanupThreadPool = clientThreadPools.createFixedThreadPool(1, 3, SECONDS,
           "Conditional Writer Cleanup Thread", true);
@@ -218,6 +217,7 @@ public class ClientContext implements AccumuloClient {
    * @return ThreadPools instance optionally configured with client UncaughtExceptionHandler
    */
   public ThreadPools threadPools() {
+    ensureOpen();
     return clientThreadPools;
   }
 
@@ -235,11 +235,6 @@ public class ClientContext implements AccumuloClient {
   public String getPrincipal() {
     ensureOpen();
     return getCredentials().getPrincipal();
-  }
-
-  public UncaughtExceptionHandler getUncaughtExceptionHandler() {
-    ensureOpen();
-    return ueh;
   }
 
   public AuthenticationToken getAuthenticationToken() {
