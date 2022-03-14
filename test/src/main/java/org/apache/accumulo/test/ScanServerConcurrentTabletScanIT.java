@@ -96,7 +96,7 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testScanSameTabletDifferentDataCacheEnabled() throws Exception {
+  public void testScanSameTabletDifferentDataTabletMetadataCacheEnabled() throws Exception {
 
     startScanServer(true);
 
@@ -153,7 +153,7 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testScanSameTabletDifferentDataCacheDisabled() throws Exception {
+  public void testScanSameTabletDifferentDataTabletMetadataCacheDisabled() throws Exception {
 
     startScanServer(false);
 

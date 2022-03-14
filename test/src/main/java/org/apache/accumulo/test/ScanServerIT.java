@@ -206,8 +206,6 @@ public class ScanServerIT extends SharedMiniClusterBase {
       } finally {
         scanner.close();
         scanner2.close();
-        // The close happens asynchronously, wait for the scan server
-        // to become available after the close.
       }
     }
   }
