@@ -29,6 +29,7 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -62,6 +63,7 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -81,6 +83,7 @@ import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanServerDispatcher;
+import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.tables.TableZooHelper;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
@@ -326,14 +329,57 @@ public class ClientContext implements AccumuloClient {
         scanServerDispatcher.init(new ScanServerDispatcher.InitParameters() {
           @Override
           public Map<String,String> getOptions() {
-            // TODO parse options from config
-            return Map.of();
+            Map<String,String> sserverProps = new HashMap<>();
+            info.getProperties().entrySet().forEach(e -> {
+              String name = e.getKey().toString();
+              if (name.startsWith("sserv")) {
+                sserverProps.put(name, e.getValue().toString());
+              }
+            });
+            return sserverProps;
           }
 
           @Override
           public ServiceEnvironment getServiceEnv() {
-            // TODO
-            return null;
+            return new ServiceEnvironment() {
+
+              @Override
+              public String getTableName(TableId tableId) throws TableNotFoundException {
+                return getTableIdToNameMap().get(tableId);
+              }
+
+              @Override
+              public <T> T instantiate(String className, Class<T> base) throws Exception {
+                throw new UnsupportedOperationException();
+              }
+
+              @Override
+              public <T> T instantiate(TableId tableId, String className, Class<T> base)
+                  throws Exception {
+                throw new UnsupportedOperationException();
+              }
+
+              @Override
+              public Configuration getConfiguration() {
+                try {
+                  return new ConfigurationImpl(
+                      new ConfigurationCopy(instanceOperations().getSystemConfiguration()));
+                } catch (Exception e) {
+                  throw new RuntimeException("Error getting system configuration", e);
+                }
+              }
+
+              @Override
+              public Configuration getConfiguration(TableId tableId) {
+                try {
+                  return new ConfigurationImpl(new ConfigurationCopy(
+                      tableOperations().getConfiguration(getTableName(tableId))));
+                } catch (Exception e) {
+                  throw new RuntimeException("Error getting table configuration", e);
+                }
+              }
+
+            };
           }
 
           @Override
