@@ -85,6 +85,7 @@ import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.tables.TableZooHelper;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.accumulo.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
@@ -296,15 +297,17 @@ public class ClientContext implements AccumuloClient {
     String root = this.getZooKeeperRoot() + Constants.ZSSERVERS;
     var addrs = this.getZooCache().getChildren(root);
     for (String addr : addrs) {
-      // check to see if the scan server is alive
-      if (!this.getZooCache().getChildren(root + "/" + addr).isEmpty()) {
-        liveScanServer.add(addr);
+      try {
+        final var zLockPath = ServiceLock.path(root + "/" + addr);
+        ZcStat stat = new ZcStat();
+        byte[] lockData = ServiceLock.getLockData(getZooCache(), zLockPath, stat);
+        if (lockData != null) {
+          liveScanServer.add(addr);
+        }
+      } catch (Exception e) {
+        log.error("Error validating zookeeper scan server node: " + addr, e);
       }
     }
-
-    // TODO something should probably clean up the dead scan servers in ZK... or make the top level
-    // ZK node an ephemeral node
-
     return liveScanServer;
   }
 

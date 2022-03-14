@@ -297,7 +297,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
           getContext().getZooKeeperRoot() + Constants.ZSSERVERS + "/" + getClientAddressString());
 
       try {
-        // TODO: Should this be ephemeral?
+        // Old zk nodes can be cleaned up by ZooZap
         zoo.putPersistentData(zLockPath.toString(), new byte[] {}, NodeExistsPolicy.SKIP);
       } catch (KeeperException e) {
         if (e.code() == KeeperException.Code.NOAUTH) {
