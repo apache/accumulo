@@ -129,7 +129,7 @@ public class ClientContext implements AccumuloClient {
   private TCredentials rpcCreds;
   private ThriftTransportPool thriftTransportPool;
 
-  private boolean closed = false;
+  private volatile boolean closed = false;
 
   private SecurityOperations secops = null;
   private final TableOperationsImpl tableops;
@@ -783,7 +783,7 @@ public class ClientContext implements AccumuloClient {
   }
 
   @Override
-  public void close() {
+  public synchronized void close() {
     closed = true;
     if (thriftTransportPool != null) {
       thriftTransportPool.shutdown();
