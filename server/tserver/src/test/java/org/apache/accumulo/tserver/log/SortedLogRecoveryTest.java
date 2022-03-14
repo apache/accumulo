@@ -27,9 +27,9 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.reset;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -61,6 +61,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.log.SortedLogState;
+import org.apache.accumulo.tserver.WithTestNames;
 import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
@@ -69,15 +70,14 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
-public class SortedLogRecoveryTest {
+public class SortedLogRecoveryTest extends WithTestNames {
 
   static final int bufferSize = 5;
   static final KeyExtent extent = new KeyExtent(TableId.of("table"), null, null);
@@ -87,11 +87,10 @@ public class SortedLogRecoveryTest {
   static ServerContext context;
   static LogSorter logSorter;
 
-  @Rule
-  public TemporaryFolder tempFolder =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File tempDir;
 
-  @Before
+  @BeforeEach
   public void setup() {
     context = EasyMock.createMock(ServerContext.class);
     logSorter = new LogSorter(context, DefaultConfiguration.getInstance());
@@ -166,7 +165,10 @@ public class SortedLogRecoveryTest {
   private List<Mutation> recover(Map<String,KeyValue[]> logs, Set<String> files, KeyExtent extent,
       int bufferSize) throws IOException {
 
-    final String workdir = tempFolder.newFolder().getAbsolutePath();
+    File tempFolder = new File(tempDir, testName());
+    assertTrue(tempFolder.isDirectory() || tempFolder.mkdir(),
+        "Failed to create folder: " + tempFolder);
+    final String workdir = tempFolder.getAbsolutePath();
     try (var fs = VolumeManagerImpl.getLocalForTesting(workdir)) {
       expect(context.getVolumeManager()).andReturn(fs).anyTimes();
       expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())
@@ -1074,8 +1076,8 @@ public class SortedLogRecoveryTest {
     // test all the possible properties for tserver.sort.file. prefix
     String prop = Property.TSERV_WAL_SORT_FILE_PREFIX + "invalid";
     testConfig.set(prop, "snappy");
-    assertThrows("Did not throw IllegalArgumentException for " + prop,
-        IllegalArgumentException.class, () -> new LogSorter(context, testConfig));
+    assertThrows(IllegalArgumentException.class, () -> new LogSorter(context, testConfig),
+        "Did not throw IllegalArgumentException for " + prop);
   }
 
   @Test
@@ -1094,8 +1096,10 @@ public class SortedLogRecoveryTest {
     testConfig.set(prefix + "blocksize", "256B");
     testConfig.set(prefix + "replication", "3");
     LogSorter sorter = new LogSorter(context, testConfig);
-
-    final String workdir = tempFolder.newFolder().getAbsolutePath();
+    File tempFolder = new File(tempDir, testName());
+    assertTrue(tempFolder.isDirectory() || tempFolder.mkdir(),
+        "Failed to create folder: " + tempFolder);
+    final String workdir = tempFolder.getAbsolutePath();
 
     try (var vm = VolumeManagerImpl.getLocalForTesting(workdir)) {
       expect(context.getVolumeManager()).andReturn(vm).anyTimes();

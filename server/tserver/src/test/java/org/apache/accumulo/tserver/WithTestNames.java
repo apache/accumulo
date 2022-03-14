@@ -16,23 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.tserver.log;
+package org.apache.accumulo.tserver;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
 
-import org.apache.accumulo.tserver.logger.LogEvents;
-import org.junit.jupiter.api.Test;
+// This is only for the unit tests and integration tests in this module
+// It must be copied for use in other modules, because tests in one module
+// don't have dependencies on other modules, and we can't put this in a
+// regular, non-test jar, because we don't want to add a dependency on
+// JUnit in a non-test jar
+public class WithTestNames {
 
-public class LogEventsTest {
-  @Test
-  public void testOrdinals() {
-    // Ordinals are used for persistence, so its important they are stable.
+  private String testName;
 
-    LogEvents[] expectedOrder = {LogEvents.OPEN, LogEvents.DEFINE_TABLET, LogEvents.MUTATION,
-        LogEvents.MANY_MUTATIONS, LogEvents.COMPACTION_START, LogEvents.COMPACTION_FINISH};
-
-    for (int i = 0; i < expectedOrder.length; i++) {
-      assertEquals(i, expectedOrder[i].ordinal());
-    }
+  @BeforeEach
+  public void setTestName(TestInfo info) {
+    testName = info.getTestMethod().get().getName();
   }
+
+  protected String testName() {
+    return testName;
+  }
+
 }

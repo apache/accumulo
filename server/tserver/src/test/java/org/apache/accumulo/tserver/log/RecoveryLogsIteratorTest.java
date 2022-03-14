@@ -23,10 +23,10 @@ import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -47,20 +47,20 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.log.SortedLogState;
+import org.apache.accumulo.tserver.WithTestNames;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
-public class RecoveryLogsIteratorTest {
+public class RecoveryLogsIteratorTest extends WithTestNames {
 
   private VolumeManager fs;
   private File workDir;
@@ -68,16 +68,18 @@ public class RecoveryLogsIteratorTest {
   static ServerContext context;
   static LogSorter logSorter;
 
-  @Rule
-  public TemporaryFolder tempFolder =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File tempDir;
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     context = createMock(ServerContext.class);
     logSorter = new LogSorter(context, DefaultConfiguration.getInstance());
 
-    workDir = tempFolder.newFolder();
+    File tempFolder = new File(tempDir, testName());
+    assertTrue(tempFolder.isDirectory() || tempFolder.mkdir(),
+        "Failed to create folder: " + tempFolder);
+    workDir = tempFolder;
     String path = workDir.getAbsolutePath();
     assertTrue(workDir.delete());
     fs = VolumeManagerImpl.getLocalForTesting(path);
@@ -88,7 +90,7 @@ public class RecoveryLogsIteratorTest {
     replay(context);
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws Exception {
     fs.close();
   }
@@ -138,8 +140,8 @@ public class RecoveryLogsIteratorTest {
     try (RecoveryLogsIterator rli = new RecoveryLogsIterator(context, dirs, null, null, false)) {
       while (rli.hasNext()) {
         Entry<LogFileKey,LogFileValue> entry = rli.next();
-        assertEquals("TabletId does not match", 1, entry.getKey().tabletId);
-        assertEquals("Event does not match", DEFINE_TABLET, entry.getKey().event);
+        assertEquals(1, entry.getKey().tabletId, "TabletId does not match");
+        assertEquals(DEFINE_TABLET, entry.getKey().event, "Event does not match");
       }
     }
   }
@@ -161,8 +163,9 @@ public class RecoveryLogsIteratorTest {
 
     createRecoveryDir(logs, dirs, false);
 
-    assertThrows("Finish marker should not be found", IOException.class,
-        () -> new RecoveryLogsIterator(context, dirs, null, null, false));
+    assertThrows(IOException.class,
+        () -> new RecoveryLogsIterator(context, dirs, null, null, false),
+        "Finish marker should not be found");
   }
 
   @Test
@@ -170,9 +173,10 @@ public class RecoveryLogsIteratorTest {
     String destPath = workDir + "/test.rf";
     fs.create(new Path(destPath));
 
-    assertThrows("Finish marker should not be found for a single file.", IOException.class,
-        () -> new RecoveryLogsIterator(context, Collections.singletonList(new Path(destPath)), null,
-            null, false));
+    assertThrows(
+        IOException.class, () -> new RecoveryLogsIterator(context,
+            Collections.singletonList(new Path(destPath)), null, null, false),
+        "Finish marker should not be found for a single file.");
   }
 
   @Test
@@ -192,9 +196,9 @@ public class RecoveryLogsIteratorTest {
 
     createRecoveryDir(logs, dirs, true);
 
-    assertThrows("First log entry is not OPEN so exception should be thrown.",
-        IllegalStateException.class,
-        () -> new RecoveryLogsIterator(context, dirs, null, null, true));
+    assertThrows(IllegalStateException.class,
+        () -> new RecoveryLogsIterator(context, dirs, null, null, true),
+        "First log entry is not OPEN so exception should be thrown.");
   }
 
   @Test
