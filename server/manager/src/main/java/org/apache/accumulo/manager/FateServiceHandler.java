@@ -87,6 +87,7 @@ import org.apache.accumulo.manager.tableOps.tableExport.ExportTable;
 import org.apache.accumulo.manager.tableOps.tableImport.ImportTable;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.manager.state.MergeInfo;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -421,12 +422,8 @@ class FateServiceHandler implements FateService.Iface {
         if (!canMerge)
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
-        String startRowStr = startRow.toString();
-        String endRowStr = endRow.toString();
-        if (startRowStr.isBlank())
-          startRowStr = "-inf";
-        if (endRowStr.isBlank())
-          endRowStr = "+inf";
+        String startRowStr = StringUtils.defaultIfBlank(startRow.toString(), "-inf");
+        String endRowStr = StringUtils.defaultIfBlank(startRow.toString(), "+inf");
 
         Manager.log.debug("Creating merge op: {} from startRow: {} to endRow: {}", tableId,
             startRowStr, endRowStr);
