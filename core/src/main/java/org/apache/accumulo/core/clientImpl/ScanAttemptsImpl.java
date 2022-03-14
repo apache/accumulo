@@ -18,7 +18,10 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.SortedSet;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 
@@ -64,6 +67,31 @@ public class ScanAttemptsImpl {
     private static Comparator<ScanAttempt> COMPARATOR =
         Comparator.comparingLong(ScanAttempt::getTime).reversed()
             .thenComparing(ScanAttempt::getResult).thenComparing(ScanAttempt::hashCode);
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((this.result == null) ? 0 : this.result.hashCode());
+      result = prime * result + (int) (time ^ (time >>> 32));
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj)
+        return true;
+      if (obj == null)
+        return false;
+      if (getClass() != obj.getClass())
+        return false;
+      ScanAttemptImpl other = (ScanAttemptImpl) obj;
+      if (result != other.result)
+        return false;
+      if (time != other.time)
+        return false;
+      return true;
+    }
 
     @Override
     public int compareTo(ScanAttempt o) {

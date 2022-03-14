@@ -19,7 +19,13 @@
 package org.apache.accumulo.core.spi.scan;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.SortedSet;
 
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
@@ -129,7 +135,7 @@ public interface ScanServerDispatcher {
      *          busy. For example if a scan request is sent to scan server with a busy timeout of
      *          50ms and the scan has not started running within that time then the scan server will
      *          not ever run the scan and it will report back busy. If the scan starts running, then
-     *          it will never report back busy. Setting a busy timeout that is <= 0 means that it
+     *          it will never report back busy. Setting a busy timeout that is &le; 0 means that it
      *          will wait indefinitely on the server side for the task to start.
      */
     public UseScanServerAction(String server, Collection<TabletId> tablets, Duration delay,
