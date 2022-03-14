@@ -161,7 +161,7 @@ public class ScanServerTest {
     TabletResolver resolver = tablets::get;
 
     expect(handler.startMultiScan(tinfo, tcreds, tcols, titer, batch, ssio, auths, false, tsc, 30L,
-        classLoaderContext, execHints, resolver, 10)).andReturn(new InitialMultiScan(15, null));
+        classLoaderContext, execHints, resolver, 0L)).andReturn(new InitialMultiScan(15, null));
     expect(handler.continueMultiScan(tinfo, 15, 0L)).andReturn(new MultiScanResult());
     handler.closeMultiScan(tinfo, 15);
 
@@ -184,55 +184,6 @@ public class ScanServerTest {
     assertEquals(15, is.getScanID());
     ss.closeMultiScan(tinfo, is.getScanID());
     verify(handler);
-  }
-
-  @Test
-  public void testBatchScanInUse() throws Exception {
-    handler = createMock(ThriftClientHandler.class);
-
-    TInfo tinfo = createMock(TInfo.class);
-    TCredentials tcreds = createMock(TCredentials.class);
-    List<TRange> ranges = new ArrayList<>();
-    KeyExtent sextent = createMock(KeyExtent.class);
-    Map<KeyExtent,List<TRange>> sextents = new HashMap<>();
-    sextents.put(sextent, ranges);
-    List<TColumn> tcols = new ArrayList<>();
-    List<IterInfo> titer = new ArrayList<>();
-    Map<String,Map<String,String>> ssio = new HashMap<>();
-    List<ByteBuffer> auths = new ArrayList<>();
-    TSamplerConfiguration tsc = createMock(TSamplerConfiguration.class);
-    String classLoaderContext = new String();
-    Map<String,String> execHints = new HashMap<>();
-    Map<KeyExtent,Tablet> tablets = new HashMap<>();
-    TabletResolver resolver = tablets::get;
-
-    expect(handler.startMultiScan(tinfo, tcreds, tcols, titer, sextents, ssio, auths, false, tsc,
-        30L, classLoaderContext, execHints, resolver, 10))
-            .andReturn(new InitialMultiScan(15, null));
-    expect(handler.continueMultiScan(tinfo, 15, 0L)).andReturn(new MultiScanResult());
-    handler.closeMultiScan(tinfo, 15);
-
-    replay(handler);
-
-    TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
-    ss.maxConcurrentScans = 1;
-    ss.loadTablet = true;
-    ss.handler = handler;
-    ss.extent = sextent;
-    ss.resolver = resolver;
-    ss.tablets = new HashMap<>();
-
-    Map<TKeyExtent,List<TRange>> extents = new HashMap<>();
-    extents.put(createMock(TKeyExtent.class), ranges);
-    InitialMultiScan is = ss.startMultiScan(tinfo, tcreds, extents, tcols, titer, ssio, auths,
-        false, tsc, 30L, classLoaderContext, execHints, 0L);
-    assertEquals(15, is.getScanID());
-    ss.continueMultiScan(tinfo, is.getScanID(), 0L);
-    assertEquals(15, is.getScanID());
-    assertThrows(TException.class, () -> {
-      ss.startMultiScan(tinfo, tcreds, extents, tcols, titer, ssio, auths, false, tsc, 30L,
-          classLoaderContext, execHints, 0L);
-    });
   }
 
   @Test

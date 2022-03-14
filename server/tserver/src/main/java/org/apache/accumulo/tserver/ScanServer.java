@@ -232,9 +232,10 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
 
   public ScanServer(ServerOpts opts, String[] args) {
     super(opts, args, true);
-    // Sanity check some configuration settings
 
-    int thriftServerThreads = getConfiguration().getCount(Property.SSERV_MINTHREADS);
+    // Note: The way to control the number of concurrent scans that a ScanServer will
+    // perform is by using Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS or the number
+    // of threads in Property.TSERV_SCAN_EXECUTORS_PREFIX.
 
     long cacheExpiration =
         getConfiguration().getTimeInMillis(Property.SSERV_CACHED_TABLET_METADATA_EXPIRATION);
@@ -296,6 +297,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
           getContext().getZooKeeperRoot() + Constants.ZSSERVERS + "/" + getClientAddressString());
 
       try {
+        // TODO: Should this be ephemeral?
         zoo.putPersistentData(zLockPath.toString(), new byte[] {}, NodeExistsPolicy.SKIP);
       } catch (KeeperException e) {
         if (e.code() == KeeperException.Code.NOAUTH) {
@@ -429,6 +431,10 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
       TabletResourceManager trm =
           resourceManager.createTabletResourceManager(extent, getTableConfiguration(extent));
       TabletData data = new TabletData(tabletMetadata);
+
+      // TODO: Tablet constructor may make changes in the Metadata table, we need to configure
+      // it to not do this as these Tablet objects are meant to be read-only duplicates within
+      // the cluster
       si.setTablet(new Tablet(this, extent, trm, data));
       LOG.debug("loaded tablet: {}", si.getExtent());
       return si;
