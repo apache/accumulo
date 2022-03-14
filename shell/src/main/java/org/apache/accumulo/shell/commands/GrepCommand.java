@@ -72,6 +72,8 @@ public class GrepCommand extends ScanCommand {
 
       scanner.setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
 
+      scanner.setConsistencyLevel(getConsistency(cl));
+
       setupSampling(tableName, cl, shellState, scanner);
       addScanIterators(shellState, cl, scanner, "");
 

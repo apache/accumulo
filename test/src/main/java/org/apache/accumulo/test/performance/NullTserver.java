@@ -132,12 +132,12 @@ public class NullTserver {
     public void closeScan(TInfo tinfo, long scanID) {}
 
     @Override
-    public MultiScanResult continueMultiScan(TInfo tinfo, long scanID) {
+    public MultiScanResult continueMultiScan(TInfo tinfo, long scanID, long busyTimeout) {
       return null;
     }
 
     @Override
-    public ScanResult continueScan(TInfo tinfo, long scanID) {
+    public ScanResult continueScan(TInfo tinfo, long scanID, long busyTimeout) {
       return null;
     }
 
@@ -152,7 +152,7 @@ public class NullTserver {
         Map<TKeyExtent,List<TRange>> batch, List<TColumn> columns, List<IterInfo> ssiList,
         Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
         TSamplerConfiguration tsc, long batchTimeOut, String context,
-        Map<String,String> executionHints) {
+        Map<String,String> executionHints, long busyTimeout) {
       return null;
     }
 
@@ -161,7 +161,7 @@ public class NullTserver {
         TRange range, List<TColumn> columns, int batchSize, List<IterInfo> ssiList,
         Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
         boolean isolated, long readaheadThreshold, TSamplerConfiguration tsc, long batchTimeOut,
-        String classLoaderContext, Map<String,String> executionHints) {
+        String classLoaderContext, Map<String,String> executionHints, long busyTimeout) {
       return null;
     }
 

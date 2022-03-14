@@ -50,6 +50,10 @@ public abstract class ScanTask<T> implements RunnableFuture<T> {
     resultQueue = new ArrayBlockingQueue<>(1);
   }
 
+  protected boolean transitionToRunning() {
+    return runState.compareAndSet(ScanRunState.QUEUED, ScanRunState.RUNNING);
+  }
+
   protected void addResult(Object o) {
     if (state.compareAndSet(INITIAL, ADDED))
       resultQueue.add(o);
@@ -80,10 +84,34 @@ public abstract class ScanTask<T> implements RunnableFuture<T> {
     throw new UnsupportedOperationException();
   }
 
-  @Override
-  public T get(long timeout, TimeUnit unit)
-      throws InterruptedException, ExecutionException, TimeoutException {
+  private String stateString(int state) {
+    String stateStr;
+    switch (state) {
+      case ADDED:
+        stateStr = "ADDED";
+        break;
+      case CANCELED:
+        stateStr = "CANCELED";
+        break;
+      case INITIAL:
+        stateStr = "INITIAL";
+        break;
+      default:
+        stateStr = "UNKNOWN";
+        break;
+    }
+    return stateStr;
+  }
 
+  /**
+   * @param busyTimeout
+   *          when this less than 0 it has no impact. When its greater than 0 and the task is
+   *          queued, then get() will sleep for the specified busyTimeout and if after sleeping its
+   *          still queued it will cancel the task. This behavior allows a scan to queue a scan task
+   *          and give it a short period to either start running or be canceled.
+   */
+  public T get(long busyTimeout, long timeout, TimeUnit unit)
+      throws InterruptedException, ExecutionException, TimeoutException {
     ArrayBlockingQueue<Object> localRQ = resultQueue;
 
     if (isCancelled())
@@ -91,26 +119,32 @@ public abstract class ScanTask<T> implements RunnableFuture<T> {
 
     if (localRQ == null) {
       int st = state.get();
-      String stateStr;
-      switch (st) {
-        case ADDED:
-          stateStr = "ADDED";
-          break;
-        case CANCELED:
-          stateStr = "CANCELED";
-          break;
-        case INITIAL:
-          stateStr = "INITIAL";
-          break;
-        default:
-          stateStr = "UNKNOWN";
-          break;
-      }
       throw new IllegalStateException(
-          "Tried to get result twice [state=" + stateStr + "(" + st + ")]");
+          "Tried to get result twice [state=" + stateString(st) + "(" + st + ")]");
     }
 
-    Object r = localRQ.poll(timeout, unit);
+    Object r;
+    if (busyTimeout > 0 && runState.get() == ScanRunState.QUEUED) {
+      r = localRQ.poll(busyTimeout, unit);
+      if (r == null) {
+        // we did not get anything during the busy timeout, if the task has not started lets try to
+        // keep it from ever starting
+        if (runState.compareAndSet(ScanRunState.QUEUED, ScanRunState.FINISHED)) {
+          // the task was queued and we prevented it from running so lets mark it canceled
+          state.compareAndSet(INITIAL, CANCELED);
+          if (state.get() != CANCELED) {
+            throw new IllegalStateException(
+                "Scan task is in unexpected state " + stateString(state.get()));
+          }
+        } else {
+          // the task is either running or finished so lets try to get the result
+          long waitTime = Math.max(0, timeout - busyTimeout);
+          r = localRQ.poll(waitTime, unit);
+        }
+      }
+    } else {
+      r = localRQ.poll(timeout, unit);
+    }
 
     // could have been canceled while waiting
     if (isCancelled()) {
@@ -127,6 +161,9 @@ public abstract class ScanTask<T> implements RunnableFuture<T> {
     // returned
     resultQueue = null;
 
+    // TODO by not wrapping the error stack information that could be important for debugging is
+    // lost, the error is from a background thread but the stack trace from this foreground thread
+    // is lost.
     if (r instanceof Error)
       throw (Error) r; // don't wrap an Error
 
@@ -136,6 +173,13 @@ public abstract class ScanTask<T> implements RunnableFuture<T> {
     @SuppressWarnings("unchecked")
     T rAsT = (T) r;
     return rAsT;
+  }
+
+  @Override
+  public T get(long timeout, TimeUnit unit)
+      throws InterruptedException, ExecutionException, TimeoutException {
+    // TODO probably no longer makes sense to extend future
+    throw new UnsupportedOperationException();
   }
 
   @Override

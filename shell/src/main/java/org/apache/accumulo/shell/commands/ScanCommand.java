@@ -88,6 +88,15 @@ public class ScanCommand extends Command {
     }
   }
 
+  protected ConsistencyLevel getConsistency(CommandLine cl) {
+    if (cl.hasOption(scanServerOpt.getOpt())) {
+      String arg = cl.getOptionValue(scanServerOpt.getOpt());
+      return ConsistencyLevel.valueOf(arg.toUpperCase());
+    } else {
+      return ConsistencyLevel.IMMEDIATE;
+    }
+  }
+
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {
@@ -125,14 +134,10 @@ public class ScanCommand extends Command {
 
       scanner.setExecutionHints(ShellUtil.parseMapOpt(cl, executionHintsOpt));
 
-      if (cl.hasOption(scanServerOpt.getOpt())) {
-        String arg = cl.getOptionValue(scanServerOpt.getOpt());
-        try {
-          ConsistencyLevel cLevel = ConsistencyLevel.valueOf(arg.toUpperCase());
-          scanner.setConsistencyLevel(cLevel);
-        } catch (IllegalArgumentException e) {
-          Shell.log.error("Consistency Level argument must be immediate or eventual", e);
-        }
+      try {
+        scanner.setConsistencyLevel(getConsistency(cl));
+      } catch (IllegalArgumentException e) {
+        Shell.log.error("Consistency Level argument must be immediate or eventual", e);
       }
 
       // output the records

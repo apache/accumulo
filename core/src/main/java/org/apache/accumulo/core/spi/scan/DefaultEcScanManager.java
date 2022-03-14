@@ -23,9 +23,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.SortedSet;
+import java.util.*;
 
 import org.apache.accumulo.core.data.TabletId;
 
@@ -33,53 +31,57 @@ import com.google.common.hash.Hashing;
 
 public class DefaultEcScanManager implements ScanServerDispatcher {
 
-  private static final ScanServerDispatcherResults NO_SCAN_SERVER_RESULT =
-      new ScanServerDispatcherResults() {
-        @Override
-        public Action getAction(TabletId tablet) {
-          return Action.USE_TABLET_SERVER;
-        }
-
-        @Override
-        public String getScanServer(TabletId tablet) {
-          return null;
-        }
-
-        @Override
-        public Duration getDelay(String server) {
-          // TODO is delay needed if there were prev errors?
-          return Duration.ZERO;
-        }
-      };
-
   private static final SecureRandom RANDOM = new SecureRandom();
   private static final long INITIAL_SLEEP_TIME = 100L;
   private static final long MAX_SLEEP_TIME = 300000L;
   private final int INITIAL_SERVERS = 3;
   private final int MAX_DEPTH = 3;
 
-  @Override
-  public ScanServerDispatcherResults determineActions(DispatcherParameters params) {
+  Duration defaultBusyTimeout;
 
-    if (params.getScanServers().isEmpty()) {
-      return NO_SCAN_SERVER_RESULT;
+  private List<String> orderedScanServers;
+
+  @Override
+  public void init(InitParameters params) {
+    orderedScanServers = new ArrayList<>(params.getScanServers());
+    Collections.sort(orderedScanServers);
+    defaultBusyTimeout = Duration.of(33, ChronoUnit.MILLIS);
+    ;
+  }
+
+  private String getLastSuccessfulScanServer(SortedSet<ScanAttempt> attempts) {
+    if (attempts.isEmpty())
+      return null;
+    var last = attempts.last();
+    if (last.getResult() != ScanAttempt.Result.SUCCESS)
+      return null;
+    var action = last.getAction();
+    if (action instanceof UseScanServerAction) {
+      return ((UseScanServerAction) action).getServer();
+    } else {
+      return null;
     }
 
-    Map<TabletId,String> serversMap = new HashMap<>();
+  }
+
+  @Override
+  public Actions determineActions(DispatcherParameters params) {
+
+    if (orderedScanServers.isEmpty()) {
+      return Actions.from(List.of(new UseTserverAction(params.getTablets())));
+    }
+
     Map<String,Long> sleepTimes = new HashMap<>();
+    Map<String,List<TabletId>> serversTablets = new HashMap<>();
 
     for (TabletId tablet : params.getTablets()) {
 
       SortedSet<ScanAttempt> attempts = params.getScanAttempts().forTablet(tablet);
 
       long sleepTime = 0;
-      String serverToUse;
+      String serverToUse = getLastSuccessfulScanServer(attempts);
 
-      if (!attempts.isEmpty() && attempts.last().getResult() == ScanAttempt.Result.SUCCESS
-          && params.getScanServers().contains(attempts.last().getServer())) {
-        // Stick with what was chosen last time
-        serverToUse = attempts.last().getServer();
-      } else {
+      if (serverToUse == null) {
         int hashCode = hashTablet(tablet);
 
         // TODO handle io errors
@@ -89,43 +91,39 @@ public class DefaultEcScanManager implements ScanServerDispatcher {
         int numServers;
 
         if (busyAttempts < MAX_DEPTH) {
-          numServers = (int) Math.round(INITIAL_SERVERS
-              * Math.pow(params.getOrderedScanServers().size() / (double) INITIAL_SERVERS,
+          numServers = (int) Math.round(
+              INITIAL_SERVERS * Math.pow(orderedScanServers.size() / (double) INITIAL_SERVERS,
                   busyAttempts / (double) MAX_DEPTH));
         } else {
-          numServers = params.getOrderedScanServers().size();
+          numServers = orderedScanServers.size();
         }
 
         int serverIndex =
-            (hashCode + RANDOM.nextInt(numServers)) % params.getOrderedScanServers().size();
-        serverToUse = params.getOrderedScanServers().get(serverIndex);
+            Math.abs(hashCode + RANDOM.nextInt(numServers)) % orderedScanServers.size();
+        serverToUse = orderedScanServers.get(serverIndex);
 
         if (busyAttempts > MAX_DEPTH) {
           sleepTime = (long) (INITIAL_SLEEP_TIME * Math.pow(2, busyAttempts - (MAX_DEPTH + 1)));
           sleepTime = Math.min(sleepTime, MAX_SLEEP_TIME);
         }
       }
-      serversMap.put(tablet, serverToUse);
-      sleepTimes.merge(serverToUse, sleepTime, Long::max);
 
+      serversTablets.computeIfAbsent(serverToUse, k -> new ArrayList<>()).add(tablet);
+      sleepTimes.merge(serverToUse, sleepTime, Long::max);
     }
 
-    return new ScanServerDispatcherResults() {
-      @Override
-      public Action getAction(TabletId tablet) {
-        return Action.USE_SCAN_SERVER;
-      }
+    ArrayList<Action> actions = new ArrayList<>();
 
-      @Override
-      public String getScanServer(TabletId tablet) {
-        return serversMap.get(tablet);
+    serversTablets.forEach((server, tablets) -> {
+      long sleepTime = sleepTimes.getOrDefault(server, 0L);
+      Duration busyTimeout = defaultBusyTimeout;
+      if (sleepTime > 0) {
+        busyTimeout = Duration.of(sleepTime, ChronoUnit.MILLIS);
       }
+      actions.add(new UseScanServerAction(server, tablets, Duration.ZERO, busyTimeout));
+    });
 
-      @Override
-      public Duration getDelay(String server) {
-        return Duration.of(sleepTimes.getOrDefault(server, 0L), ChronoUnit.MILLIS);
-      }
-    };
+    return Actions.from(actions);
   }
 
   private int hashTablet(TabletId tablet) {

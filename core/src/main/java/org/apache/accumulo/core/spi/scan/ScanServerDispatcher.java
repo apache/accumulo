@@ -19,11 +19,7 @@
 package org.apache.accumulo.core.spi.scan;
 
 import java.time.Duration;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
+import java.util.*;
 
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
@@ -42,6 +38,12 @@ public interface ScanServerDispatcher {
     Map<String,String> getOptions();
 
     ServiceEnvironment getServiceEnv();
+
+    /**
+     * @return the set of live ScanServers. Whenever the set changes a new ScanServerDispatcher
+     *         object will be created an initialized.
+     */
+    Set<String> getScanServers();
   }
 
   /**
@@ -65,16 +67,10 @@ public interface ScanServerDispatcher {
     Result getResult();
 
     ScanServerDispatcher.Action getAction();
-
-    String getServer();
-
-    TabletId getTablet();
   }
 
   public interface ScanAttempts {
     Collection<ScanAttempt> all();
-
-    SortedSet<ScanAttempt> forServer(String server);
 
     SortedSet<ScanAttempt> forTablet(TabletId tablet);
   }
@@ -87,37 +83,117 @@ public interface ScanServerDispatcher {
     Collection<TabletId> getTablets();
 
     /**
-     * @return the set of live ScanServers
-     */
-    Set<String> getScanServers();
-
-    /**
-     * @return a list of ScanServers in order (TODO: what type of order?)
-     */
-    List<String> getOrderedScanServers();
-
-    /**
      * @return scan attempt information (TODO: how is this used?)
      */
     ScanAttempts getScanAttempts();
   }
 
-  public enum Action {
-    WAIT, USE_SCAN_SERVER, USE_TABLET_SERVER,
-    // TODO remove... leaving here now to help think through things
-    // USE_FILES ... thinking about this possibility made me change names from scan server specific
-    // to more general eventual consistent handling
+  public static abstract class Action {
+
+    private final Collection<TabletId> tablets;
+
+    protected Action(Collection<TabletId> tablets) {
+      Preconditions.checkArgument(tablets != null && !tablets.isEmpty());
+      this.tablets = tablets;
+    }
+
+    public Collection<TabletId> getTablets() {
+      return tablets;
+    }
+
+    public String toString() {
+      if (getTablets().size() == 1) {
+        return "tablet:" + getTablets().iterator().next();
+      } else {
+        return "#tablets:" + getTablets().size();
+      }
+    }
   }
 
-  // TODO need a better name.. this interface is used to communicate what actions the plugin would
-  // like Accumulo to take for the scan... maybe EcScanActions
-  public interface ScanServerDispatcherResults {
+  public static class UseScanServerAction extends Action {
 
-    Action getAction(TabletId tablet);
+    private final String server;
+    private final Duration delay;
+    private final Duration busyTimeout;
 
-    String getScanServer(TabletId tablet);
+    /**
+     *
+     * @param server
+     *          The scan server address
+     * @param tablets
+     *          The tablets to scan at the given scan server
+     * @param delay
+     *          The amount of time to delay on the client side before trying to do the scan.
+     * @param busyTimeout
+     *          The amount of time to wait for a scan to start on the server side before reporting
+     *          busy. For example if a scan request is sent to scan server with a busy timeout of
+     *          50ms and the scan has not started running within that time then the scan server will
+     *          not ever run the scan and it will report back busy. If the scan starts running, then
+     *          it will never report back busy. Setting a busy timeout that is <= 0 means that it
+     *          will wait indefinitely on the server side for the task to start.
+     */
+    public UseScanServerAction(String server, Collection<TabletId> tablets, Duration delay,
+        Duration busyTimeout) {
+      super(tablets);
+      this.server = Objects.requireNonNull(server);
+      this.delay = delay;
+      this.busyTimeout = busyTimeout;
+    }
 
-    Duration getDelay(String server);
+    public String getServer() {
+      return server;
+    }
+
+    public Duration getDelay() {
+      return delay;
+    }
+
+    public Duration getBusyTimeout() {
+      return busyTimeout;
+    }
+
+    @Override
+    public String toString() {
+      return this.getClass().getSimpleName() + " server:" + server + " delay:" + delay
+          + " busyTimeout:" + busyTimeout + " " + super.toString();
+    }
+  }
+
+  public static class UseTserverAction extends Action {
+    public UseTserverAction(Collection<TabletId> tablets) {
+      super(tablets);
+    }
+
+    @Override
+    public String toString() {
+      return this.getClass().getSimpleName() + " " + super.toString();
+    }
+  }
+
+  public interface Actions extends Iterable<Action> {
+
+    public Optional<Action> getAction(TabletId tablet);
+
+    public static Actions from(Collection<Action> actions) {
+      return new Actions() {
+        @Override
+        public Iterator<Action> iterator() {
+          return actions.iterator();
+        }
+
+        @Override
+        public Optional<Action> getAction(TabletId tablet) {
+          for (Action action : actions) {
+            if (action.getTablets().contains(tablet)) {
+              return Optional.of(action);
+            }
+          }
+
+          return Optional.empty();
+        }
+      };
+    }
+
   }
 
   /**
@@ -128,5 +204,5 @@ public interface ScanServerDispatcher {
    *          parameters for the calculation
    * @return results
    */
-  ScanServerDispatcherResults determineActions(DispatcherParameters params);
+  Actions determineActions(DispatcherParameters params);
 }

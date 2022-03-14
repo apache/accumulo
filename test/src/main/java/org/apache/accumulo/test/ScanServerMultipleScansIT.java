@@ -61,7 +61,6 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
         org.apache.hadoop.conf.Configuration coreSite) {
       cfg.setNumScanServers(1);
       cfg.setProperty(Property.TSERV_SESSION_MAXIDLE, "3s");
-      cfg.setProperty(Property.SSERV_CONCURRENT_SCANS, Integer.toString(NUM_SCANS));
     }
   }
 

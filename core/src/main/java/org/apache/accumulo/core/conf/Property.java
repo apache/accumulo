@@ -411,9 +411,6 @@ public enum Property {
       PropertyType.TIMEDURATION, "The time after which cached tablet metadata will be refreshed.",
       "2.1.0"),
   @Experimental
-  SSERV_CONCURRENT_SCANS("sserver.server.concurrent.scans", "1", PropertyType.COUNT,
-      "The number of concurrent scans that each scan server will permit.", "2.1.0"),
-  @Experimental
   SSERV_PORTSEARCH("sserver.port.search", "true", PropertyType.BOOLEAN,
       "if the ports above are in use, search higher ports until one is available", "2.1.0"),
   @Experimental

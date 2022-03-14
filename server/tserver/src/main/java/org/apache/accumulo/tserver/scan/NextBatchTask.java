@@ -57,7 +57,8 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
       if (isCancelled() || scanSession == null)
         return;
 
-      runState.set(ScanRunState.RUNNING);
+      if (!transitionToRunning())
+        return;
 
       Thread.currentThread()
           .setName("User: " + scanSession.getUser() + " Start: " + scanSession.startTime
