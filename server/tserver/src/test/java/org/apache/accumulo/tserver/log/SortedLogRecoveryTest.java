@@ -165,10 +165,7 @@ public class SortedLogRecoveryTest extends WithTestNames {
   private List<Mutation> recover(Map<String,KeyValue[]> logs, Set<String> files, KeyExtent extent,
       int bufferSize) throws IOException {
 
-    File tempFolder = new File(tempDir, testName());
-    assertTrue(tempFolder.isDirectory() || tempFolder.mkdir(),
-        "Failed to create folder: " + tempFolder);
-    final String workdir = tempFolder.getAbsolutePath();
+    final String workdir = new File(tempDir, testName()).getAbsolutePath();
     try (var fs = VolumeManagerImpl.getLocalForTesting(workdir)) {
       expect(context.getVolumeManager()).andReturn(fs).anyTimes();
       expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())
@@ -1096,10 +1093,8 @@ public class SortedLogRecoveryTest extends WithTestNames {
     testConfig.set(prefix + "blocksize", "256B");
     testConfig.set(prefix + "replication", "3");
     LogSorter sorter = new LogSorter(context, testConfig);
-    File tempFolder = new File(tempDir, testName());
-    assertTrue(tempFolder.isDirectory() || tempFolder.mkdir(),
-        "Failed to create folder: " + tempFolder);
-    final String workdir = tempFolder.getAbsolutePath();
+
+    final String workdir = new File(tempDir, testName()).getAbsolutePath();
 
     try (var vm = VolumeManagerImpl.getLocalForTesting(workdir)) {
       expect(context.getVolumeManager()).andReturn(vm).anyTimes();

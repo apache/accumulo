@@ -26,7 +26,6 @@ import static org.easymock.EasyMock.replay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -76,12 +75,8 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
     context = createMock(ServerContext.class);
     logSorter = new LogSorter(context, DefaultConfiguration.getInstance());
 
-    File tempFolder = new File(tempDir, testName());
-    assertTrue(tempFolder.isDirectory() || tempFolder.mkdir(),
-        "Failed to create folder: " + tempFolder);
-    workDir = tempFolder;
+    workDir = new File(tempDir, testName());
     String path = workDir.getAbsolutePath();
-    assertTrue(workDir.delete());
     fs = VolumeManagerImpl.getLocalForTesting(path);
     expect(context.getVolumeManager()).andReturn(fs).anyTimes();
     expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())

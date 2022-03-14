@@ -72,12 +72,12 @@ public class TestUpgradePathForWALogs extends WithTestNames {
   public void setUp() throws Exception {
     context = createMock(ServerContext.class);
 
+    // Create a new subdirectory for each test
     perTestTempSubDir = new File(tempDir, testName());
     assertTrue(perTestTempSubDir.isDirectory() || perTestTempSubDir.mkdir(),
         "Failed to create folder: " + perTestTempSubDir);
 
-    File workDir = new File(perTestTempSubDir, testName());
-    String path = workDir.getAbsolutePath();
+    String path = perTestTempSubDir.getAbsolutePath();
 
     VolumeManager fs = VolumeManagerImpl.getLocalForTesting(path);
     expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())
