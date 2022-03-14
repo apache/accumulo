@@ -23,9 +23,9 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 import java.util.List;
 import java.util.Map;
@@ -34,8 +34,8 @@ import java.util.function.Predicate;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ZooCachePropertyAccessorTest {
   private static final String PATH = "/root/path/to/props";
@@ -48,7 +48,7 @@ public class ZooCachePropertyAccessorTest {
   private ZooCache zc;
   private ZooCachePropertyAccessor a;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     zc = createMock(ZooCache.class);
     a = new ZooCachePropertyAccessor(zc);

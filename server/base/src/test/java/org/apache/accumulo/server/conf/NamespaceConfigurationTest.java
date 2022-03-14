@@ -24,8 +24,8 @@ import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.List;
 import java.util.Map;
@@ -43,8 +43,8 @@ import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.MockServerContext;
 import org.apache.accumulo.server.ServerContext;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class NamespaceConfigurationTest {
   private static final NamespaceId NSID = NamespaceId.of("namespace");
@@ -58,7 +58,7 @@ public class NamespaceConfigurationTest {
   private ZooCache zc;
   private NamespaceConfiguration c;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     iid = InstanceId.of(UUID.randomUUID());
 

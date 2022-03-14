@@ -18,12 +18,12 @@
  */
 package org.apache.accumulo.server.conf.codec;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Instant;
 import java.util.Arrays;
@@ -31,7 +31,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -157,9 +157,9 @@ public class VersionedPropertiesTest {
     assertEquals(0, vProps.getDataVersion());
 
     // the initial version for write should be 0
-    assertEquals("Initial expected version should be 0", 0, vProps.getNextVersion());
-    assertTrue("timestamp should be now or earlier",
-        vProps.getTimestamp().compareTo(Instant.now()) <= 0);
+    assertEquals(0, vProps.getNextVersion(), "Initial expected version should be 0");
+    assertTrue(vProps.getTimestamp().compareTo(Instant.now()) <= 0,
+        "timestamp should be now or earlier");
   }
 
   @Test

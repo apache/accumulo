@@ -18,19 +18,19 @@
  */
 package org.apache.accumulo.server.util;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.server.util.FileUtil.FileInfo;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class FileInfoTest {
   private Key key1;
   private Key key2;
   private FileInfo info;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     key1 = new Key("row1");
     key2 = new Key("row2");

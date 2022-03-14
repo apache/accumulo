@@ -23,7 +23,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
@@ -32,9 +32,10 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 
 import org.easymock.EasyMock;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +48,7 @@ public class AuthenticationTokenKeyManagerTest {
   private static final int KEY_LENGTH = 64;
   private static KeyGenerator keyGen;
 
-  @BeforeClass
+  @BeforeAll
   public static void setupKeyGenerator() throws Exception {
     // From org.apache.hadoop.security.token.SecretManager
     keyGen = KeyGenerator.getInstance(DEFAULT_HMAC_ALGORITHM);
@@ -57,7 +58,7 @@ public class AuthenticationTokenKeyManagerTest {
   private AuthenticationTokenSecretManager secretManager;
   private ZooAuthenticationKeyDistributor zooDistributor;
 
-  @Before
+  @BeforeEach
   public void setupMocks() {
     secretManager = createMock(AuthenticationTokenSecretManager.class);
     zooDistributor = createMock(ZooAuthenticationKeyDistributor.class);
@@ -138,7 +139,8 @@ public class AuthenticationTokenKeyManagerTest {
 
   }
 
-  @Test(timeout = 30_000)
+  @Test
+  @Timeout(30)
   public void testStopLoop() throws InterruptedException {
     final MockManager keyManager = EasyMock.createMockBuilder(MockManager.class)
         .addMockedMethod("_run").addMockedMethod("updateStateFromCurrentKeys").createMock();
