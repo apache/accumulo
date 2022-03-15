@@ -1710,7 +1710,7 @@ public enum Property {
             || key.startsWith(TABLE_COMPACTION_SELECTOR_OPTS.getKey())));
   }
 
-  private static final EnumSet<Property> fixedProperties = EnumSet.of(
+  public static final EnumSet<Property> fixedProperties = EnumSet.of(
       // port options
       GC_PORT, MANAGER_CLIENTPORT, TSERV_CLIENTPORT,
 

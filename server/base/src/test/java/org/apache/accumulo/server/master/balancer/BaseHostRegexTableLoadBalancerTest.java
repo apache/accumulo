@@ -18,7 +18,12 @@
  */
 package org.apache.accumulo.server.master.balancer;
 
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.replay;
 
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -30,6 +35,7 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.UUID;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
@@ -43,6 +49,7 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
@@ -53,6 +60,10 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
+import org.apache.accumulo.server.conf.codec.VersionedProperties;
+import org.apache.accumulo.server.conf.store.PropCacheId;
+import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 
@@ -158,13 +169,43 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
   }
 
   protected ServerContext createMockContext() {
-    ServerContext mockContext = EasyMock.createMock(ServerContext.class);
+    InstanceId instanceId = InstanceId.of(UUID.randomUUID());
+
+    ServerContext mockContext = createMock(ServerContext.class);
+    PropStore propStore = createMock(ZooPropStore.class);
     expect(mockContext.getProperties()).andReturn(new Properties()).anyTimes();
     expect(mockContext.getZooKeepers()).andReturn("").anyTimes();
     expect(mockContext.getInstanceName()).andReturn("test").anyTimes();
     expect(mockContext.getZooKeepersSessionTimeOut()).andReturn(30).anyTimes();
-    expect(mockContext.getInstanceID()).andReturn(InstanceId.of("1111")).anyTimes();
+    expect(mockContext.getInstanceID()).andReturn(instanceId).anyTimes();
     expect(mockContext.getZooKeeperRoot()).andReturn(Constants.ZROOT + "/1111").anyTimes();
+
+    expect(mockContext.getPropStore()).andReturn(propStore).anyTimes();
+    propStore.registerAsListener(anyObject(), anyObject());
+    expectLastCall().anyTimes();
+
+    expect(propStore
+        .getNodeVersion(eq(PropCacheId.forNamespace(instanceId, NamespaceId.of("+default")))))
+            .andReturn(0).anyTimes();
+    expect(propStore.get(eq(PropCacheId.forNamespace(instanceId, NamespaceId.of("+default")))))
+        .andReturn(new VersionedProperties()).anyTimes();
+
+    expect(propStore.getNodeVersion(eq(PropCacheId.forTable(instanceId, TableId.of("1")))))
+        .andReturn(0).anyTimes();
+    expect(propStore.get(eq(PropCacheId.forTable(instanceId, TableId.of("1")))))
+        .andReturn(new VersionedProperties()).anyTimes();
+
+    expect(propStore.getNodeVersion(eq(PropCacheId.forTable(instanceId, TableId.of("2")))))
+        .andReturn(0).anyTimes();
+    expect(propStore.get(eq(PropCacheId.forTable(instanceId, TableId.of("2")))))
+        .andReturn(new VersionedProperties()).anyTimes();
+
+    expect(propStore.getNodeVersion(eq(PropCacheId.forTable(instanceId, TableId.of("3")))))
+        .andReturn(0).anyTimes();
+    expect(propStore.get(eq(PropCacheId.forTable(instanceId, TableId.of("3")))))
+        .andReturn(new VersionedProperties()).anyTimes();
+
+    replay(propStore);
     return mockContext;
   }
 

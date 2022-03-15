@@ -51,9 +51,9 @@ import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.store.PropCacheId;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -96,7 +96,7 @@ class FileSystemInitializer {
       ServerContext context) throws IOException, InterruptedException, KeeperException {
     SiteConfiguration siteConfig = initConfig.getSiteConf();
     // initialize initial system tables config in zookeeper
-    initSystemTablesConfig();
+    initSystemTablesConfig(context);
 
     Text splitPoint = MetadataSchema.TabletsSection.getRange().getEndKey().getRow();
 
@@ -160,20 +160,23 @@ class FileSystemInitializer {
     }
   }
 
-  private void initSystemTablesConfig() throws IOException, InterruptedException, KeeperException {
-    setTableProperties(RootTable.ID, initConfig.getRootTableConf());
-    setTableProperties(RootTable.ID, initConfig.getRootMetaConf());
-    setTableProperties(MetadataTable.ID, initConfig.getRootMetaConf());
-    setTableProperties(MetadataTable.ID, initConfig.getMetaTableConf());
-    setTableProperties(REPL_TABLE_ID, initConfig.getReplTableConf());
+  private void initSystemTablesConfig(final ServerContext context)
+      throws IOException, InterruptedException, KeeperException {
+    setTableProperties(context, RootTable.ID, initConfig.getRootTableConf());
+    setTableProperties(context, RootTable.ID, initConfig.getRootMetaConf());
+    setTableProperties(context, MetadataTable.ID, initConfig.getRootMetaConf());
+    setTableProperties(context, MetadataTable.ID, initConfig.getMetaTableConf());
+    setTableProperties(context, REPL_TABLE_ID, initConfig.getReplTableConf());
   }
 
-  private void setTableProperties(TableId tableId, HashMap<String,String> props)
-      throws IOException, InterruptedException, KeeperException {
-    for (Map.Entry<String,String> entry : props.entrySet()) {
-      if (!TablePropUtil.setTableProperty(zoo, zkRoot, tableId, entry.getKey(), entry.getValue())) {
-        throw new IOException("Cannot create per-table property " + entry.getKey());
-      }
+  private void setTableProperties(final ServerContext context, TableId tableId,
+      HashMap<String,String> props) throws IOException, InterruptedException, KeeperException {
+    var propStore = context.getPropStore();
+    PropCacheId tableCacheId = PropCacheId.forTable(context, tableId);
+    if (propStore.exists(tableCacheId)) {
+      propStore.putAll(tableCacheId, props);
+    } else {
+      propStore.create(tableCacheId, props);
     }
   }
 

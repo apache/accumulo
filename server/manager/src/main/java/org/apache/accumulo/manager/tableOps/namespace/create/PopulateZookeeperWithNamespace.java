@@ -33,7 +33,7 @@ class PopulateZookeeperWithNamespace extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private NamespaceInfo namespaceInfo;
+  private final NamespaceInfo namespaceInfo;
 
   PopulateZookeeperWithNamespace(NamespaceInfo ti) {
     this.namespaceInfo = ti;
@@ -53,9 +53,8 @@ class PopulateZookeeperWithNamespace extends ManagerRepo {
       Utils.checkNamespaceDoesNotExist(manager.getContext(), namespaceInfo.namespaceName,
           namespaceInfo.namespaceId, TableOperation.CREATE);
 
-      TableManager.prepareNewNamespaceState(manager.getContext().getZooReaderWriter(),
-          manager.getInstanceID(), namespaceInfo.namespaceId, namespaceInfo.namespaceName,
-          NodeExistsPolicy.OVERWRITE);
+      TableManager.prepareNewNamespaceState(manager.getContext(), namespaceInfo.namespaceId,
+          namespaceInfo.namespaceName, NodeExistsPolicy.OVERWRITE);
 
       for (Entry<String,String> entry : namespaceInfo.props.entrySet())
         NamespacePropUtil.setNamespaceProperty(manager.getContext(), namespaceInfo.namespaceId,

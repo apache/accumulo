@@ -57,13 +57,15 @@ import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.conf.SystemConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.conf.ZooConfiguration;
+import org.apache.accumulo.server.conf.store.PropCacheId;
+import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.metadata.ServerAmpleImpl;
 import org.apache.accumulo.server.rpc.SaslServerConnectionParams;
@@ -98,6 +100,8 @@ public class ServerContext extends ClientContext {
   private CryptoService cryptoService = null;
   private ScheduledThreadPoolExecutor sharedScheduledThreadPool = null;
 
+  private final PropStore propStore;
+
   public ServerContext(SiteConfiguration siteConfig) {
     this(new ServerInfo(siteConfig));
   }
@@ -107,6 +111,9 @@ public class ServerContext extends ClientContext {
     this.info = info;
     zooReaderWriter = new ZooReaderWriter(info.getSiteConfiguration());
     serverDirs = info.getServerDirs();
+
+    propStore = new ZooPropStore.Builder(info.getInstanceID(), zooReaderWriter,
+        zooReaderWriter.getSessionTimeout()).build();
   }
 
   /**
@@ -158,10 +165,8 @@ public class ServerContext extends ClientContext {
   @Override
   public AccumuloConfiguration getConfiguration() {
     if (systemConfig == null) {
-      // system configuration uses its own instance of ZooCache
-      // this could be useful to keep its update counter independent
-      ZooCache propCache = new ZooCache(getZooReader(), null);
-      systemConfig = new ZooConfiguration(this, propCache, getSiteConfiguration());
+      systemConfig = new SystemConfiguration(log, this, PropCacheId.forSystem(getInstanceID()),
+          getSiteConfiguration());
     }
     return systemConfig;
   }
@@ -399,7 +404,7 @@ public class ServerContext extends ClientContext {
       String key = entry.getKey();
       log.info("{} = {}", key, (Property.isSensitive(key) ? "<hidden>" : entry.getValue()));
       Property prop = Property.getPropertyByKey(key);
-      if (prop != null && conf.isPropertySet(prop, false)) {
+      if (prop != null && conf.isPropertySet(prop)) {
         if (prop.isDeprecated()) {
           Property replacedBy = prop.replacedBy();
           if (replacedBy != null) {
@@ -462,4 +467,7 @@ public class ServerContext extends ClientContext {
     return sharedScheduledThreadPool;
   }
 
+  public PropStore getPropStore() {
+    return propStore;
+  }
 }

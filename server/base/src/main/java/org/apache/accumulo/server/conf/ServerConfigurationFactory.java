@@ -29,14 +29,18 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.store.PropCacheId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A factor for configurations used by a server process. Instance of this class are thread-safe.
  */
 public class ServerConfigurationFactory extends ServerConfiguration {
+
+  // TODO - would it add clarity if log passed in by caller?
+  private static final Logger log = LoggerFactory.getLogger(ServerConfigurationFactory.class);
 
   private static final Map<InstanceId,Map<TableId,TableConfiguration>> tableConfigs =
       new HashMap<>(1);
@@ -72,21 +76,19 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   private final ServerContext context;
   private final SiteConfiguration siteConfig;
   private final InstanceId instanceID;
-  private ZooCacheFactory zcf = new ZooCacheFactory();
+  private final PropCacheId sysPropCacheId;
 
   public ServerConfigurationFactory(ServerContext context, SiteConfiguration siteConfig) {
     this.context = context;
     this.siteConfig = siteConfig;
     instanceID = context.getInstanceID();
+    sysPropCacheId = PropCacheId.forSystem(instanceID);
+
     addInstanceToCaches(instanceID);
   }
 
   public ServerContext getServerContext() {
     return context;
-  }
-
-  void setZooCacheFactory(ZooCacheFactory zcf) {
-    this.zcf = zcf;
   }
 
   private DefaultConfiguration defaultConfig = null;
@@ -106,12 +108,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   @Override
   public synchronized AccumuloConfiguration getSystemConfiguration() {
     if (systemConfig == null) {
-      // Force the creation of a new ZooCache instead of using a shared one.
-      // This is done so that the ZooCache will update less often, causing the
-      // configuration update count to increment more slowly.
-      ZooCache propCache =
-          zcf.getNewZooCache(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
-      systemConfig = new ZooConfiguration(context, propCache, getSiteConfiguration());
+      systemConfig = new SystemConfiguration(log, context, sysPropCacheId, getSiteConfiguration());
     }
     return systemConfig;
   }
@@ -185,7 +182,6 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     if (conf == null) {
       // changed - include instance in constructor call
       conf = new NamespaceConfiguration(namespaceId, context, getSystemConfiguration());
-      conf.setZooCacheFactory(zcf);
       ConfigCheckUtil.validate(conf);
       synchronized (namespaceConfigs) {
         namespaceConfigs.get(instanceID).put(namespaceId, conf);

@@ -251,8 +251,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
   }
 
   @Override
-  public boolean isPropertySet(Property prop, boolean cacheAndWatch) {
-    return config.containsKey(prop.getKey()) || parent.isPropertySet(prop, cacheAndWatch);
+  public boolean isPropertySet(Property prop) {
+    return config.containsKey(prop.getKey()) || parent.isPropertySet(prop);
   }
 
   @Override

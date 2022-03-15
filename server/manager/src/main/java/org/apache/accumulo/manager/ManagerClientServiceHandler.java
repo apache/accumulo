@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -425,8 +426,10 @@ public class ManagerClientServiceHandler extends FateServiceHandler
     try {
       if (value == null || value.isEmpty()) {
         TablePropUtil.removeTableProperty(manager.getContext(), tableId, property);
-      } else if (!TablePropUtil.setTableProperty(manager.getContext(), tableId, property, value)) {
-        throw new Exception("Invalid table property.");
+      } else if (!TablePropUtil.setTableProperties(manager.getContext(), tableId,
+          Map.of(property, value))) {
+        throw new Exception("Invalid table property, tried to set: tableId: " + tableId.canonical()
+            + " to: " + property + "=" + value);
       }
     } catch (KeeperException.NoNodeException e) {
       // race condition... table no longer exists? This call will throw an exception if the table

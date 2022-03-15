@@ -135,6 +135,34 @@ public class ZooReaderWriter extends ZooReader {
   }
 
   /**
+   * Overwrite a persistent node if the data version matches.
+   *
+   * @param zPath
+   *          the zookeeper path
+   * @param data
+   *          the byte array data
+   * @param expectedVersion
+   *          the expected data version of the zookeeper node.
+   * @return true if the data was set, false if the version does not match expected.
+   * @throws KeeperException
+   *           if a KeeperException occurs (no node most likely)
+   * @throws InterruptedException
+   *           if the zookeeper write is interrupted.
+   */
+  public boolean overwritePersistentData(String zPath, byte[] data, final int expectedVersion)
+      throws KeeperException, InterruptedException {
+    // zk allows null ACLs, but it's probably a bug in Accumulo if we see it used in our code
+    return retryLoop(zk -> {
+      try {
+        zk.setData(zPath, data, expectedVersion);
+        return true;
+      } catch (KeeperException.BadVersionException ex) {
+        return false;
+      }
+    });
+  }
+
+  /**
    * Create a persistent sequential node with the default ACL
    *
    * @return the actual path of the created node

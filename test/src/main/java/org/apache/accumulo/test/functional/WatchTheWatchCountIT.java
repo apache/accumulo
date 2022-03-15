@@ -60,8 +60,8 @@ public class WatchTheWatchCountIT extends ConfigurableMacBase {
       }
       c.tableOperations().list();
       String zooKeepers = ClientProperty.INSTANCE_ZOOKEEPERS.getValue(props);
-      final long MIN = 475L;
-      final long MAX = 900L;
+      final long MIN = 150L; // 475L;
+      final long MAX = 250L; // 900L;
       long total = 0;
       final HostAndPort hostAndPort = HostAndPort.fromString(zooKeepers);
       for (int i = 0; i < 5; i++) {

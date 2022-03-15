@@ -112,7 +112,8 @@ public class VersionedPropEncryptCodecTest {
 
     log.debug("Encoded: {}", encodedBytes);
 
-    VersionedProperties decodedProps = encoder.fromBytes(encodedBytes);
+    // store would increment version on write
+    VersionedProperties decodedProps = encoder.fromBytes(aVersion + 1, encodedBytes);
 
     log.debug("Decoded: {}", decodedProps.print(true));
 
@@ -125,10 +126,6 @@ public class VersionedPropEncryptCodecTest {
     assertEquals(aVersion + 1, decodedProps.getDataVersion());
 
     assertEquals(aVersion + 1, decodedProps.getDataVersion(), "encoded version should be 1 up");
-    assertEquals(vProps.getNextVersion(), decodedProps.getDataVersion(),
-        "version written should be the source next version");
-    assertEquals(aVersion + 2, decodedProps.getNextVersion(),
-        "the next version in decoded should be +2");
 
     assertTrue(vProps.getTimestamp().compareTo(Instant.now()) <= 0,
         "timestamp should be now or earlier");
@@ -163,7 +160,8 @@ public class VersionedPropEncryptCodecTest {
 
     log.debug("len: {}, bytes: {}", encodedBytes.length, encodedBytes);
 
-    VersionedProperties decodedProps = encoder1.fromBytes(encodedBytes);
+    // store would increment version on write
+    VersionedProperties decodedProps = encoder1.fromBytes(aVersion + 1, encodedBytes);
 
     log.debug("Decoded: {}", decodedProps.print(true));
 
@@ -176,10 +174,6 @@ public class VersionedPropEncryptCodecTest {
     assertEquals(aVersion + 1, decodedProps.getDataVersion());
 
     assertEquals(aVersion + 1, decodedProps.getDataVersion(), "encoded version should be 1 up");
-    assertEquals(vProps.getNextVersion(), decodedProps.getDataVersion(),
-        "version written should be the source next version");
-    assertEquals(aVersion + 2, decodedProps.getNextVersion(),
-        "the next version in decoded should be +2");
 
     assertTrue(vProps.getTimestamp().compareTo(Instant.now()) <= 0,
         "timestamp should be now or earlier");
@@ -210,15 +204,15 @@ public class VersionedPropEncryptCodecTest {
     log.debug("Encoded: {}", encodedBytes1);
     log.debug("Encoded: {}", encodedBytes2);
 
-    VersionedProperties from2 = codec1.fromBytes(encodedBytes2);
-    VersionedProperties from1 = codec2.fromBytes(encodedBytes1);
+    VersionedProperties from2 = codec1.fromBytes(0, encodedBytes2);
+    VersionedProperties from1 = codec2.fromBytes(0, encodedBytes1);
 
     assertEquals(from1.getProperties(), from2.getProperties());
 
     VersionedPropCodec codec3 = VersionedPropEncryptCodec.codec(false,
         new VersionedPropEncryptCodec.GCMCipherParams(pass, salt));
 
-    VersionedProperties from3 = codec3.fromBytes(encodedBytes1);
+    VersionedProperties from3 = codec3.fromBytes(0, encodedBytes1);
     assertEquals(from1.getDataVersion(), from3.getDataVersion());
     assertEquals(from1.getProperties(), from3.getProperties());
 

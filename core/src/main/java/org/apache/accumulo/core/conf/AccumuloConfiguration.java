@@ -61,7 +61,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   private volatile EnumMap<Property,PrefixProps> cachedPrefixProps = new EnumMap<>(Property.class);
-  private Lock prefixCacheUpdateLock = new ReentrantLock();
+  private final Lock prefixCacheUpdateLock = new ReentrantLock();
 
   private static final Logger log = LoggerFactory.getLogger(AccumuloConfiguration.class);
 
@@ -95,7 +95,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * Given a property and a deprecated property determine which one to use base on which one is set.
    */
   public Property resolve(Property property, Property deprecatedProperty) {
-    if (isPropertySet(property, true) || !isPropertySet(deprecatedProperty, true)) {
+    if (isPropertySet(property) || !isPropertySet(deprecatedProperty)) {
       return property;
     } else {
       return deprecatedProperty;
@@ -160,15 +160,17 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
 
     PrefixProps prefixProps = cachedPrefixProps.get(property);
 
-    if (prefixProps == null || prefixProps.updateCount != getUpdateCount()) {
+    long currentCount = getUpdateCount();
+
+    if (prefixProps == null || prefixProps.updateCount != currentCount) {
       prefixCacheUpdateLock.lock();
       try {
         // Very important that update count is read before getting properties. Also only read it
         // once.
-        long updateCount = getUpdateCount();
+        long startCount = getUpdateCount();
         prefixProps = cachedPrefixProps.get(property);
 
-        if (prefixProps == null || prefixProps.updateCount != updateCount) {
+        if (prefixProps == null || prefixProps.updateCount != startCount) {
           Map<String,String> propMap = new HashMap<>();
           // The reason this caching exists is to avoid repeatedly making this expensive call.
           getProperties(propMap, key -> key.startsWith(property.getKey()));
@@ -183,7 +185,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
           localPrefixes.putAll(cachedPrefixProps);
 
           // put the updates
-          prefixProps = new PrefixProps(propMap, updateCount);
+          prefixProps = new PrefixProps(propMap, getUpdateCount());
           localPrefixes.put(property, prefixProps);
 
           // make the newly constructed map available
@@ -403,7 +405,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     }
   }
 
-  public boolean isPropertySet(Property prop, boolean cacheAndWatch) {
+  public boolean isPropertySet(Property prop) {
     throw new UnsupportedOperationException();
   }
 
@@ -426,14 +428,14 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
       return null;
     }
 
-    if (!isPropertySet(prop, true) && isPropertySet(deprecatedProp, true)) {
+    if (!isPropertySet(prop) && isPropertySet(deprecatedProp)) {
       if (!depPropWarned) {
         depPropWarned = true;
         log.warn("Property {} is deprecated, use {} instead.", deprecatedProp.getKey(),
             prop.getKey());
       }
       return Integer.valueOf(get(deprecatedProp));
-    } else if (isPropertySet(prop, true) && isPropertySet(deprecatedProp, true) && !depPropWarned) {
+    } else if (isPropertySet(prop) && isPropertySet(deprecatedProp) && !depPropWarned) {
       depPropWarned = true;
       log.warn("Deprecated property {} ignored because {} is set", deprecatedProp.getKey(),
           prop.getKey());
@@ -475,10 +477,10 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
 
       // very important to obtain this before possibly recomputing object
       long uc = getUpdateCount();
-
       RefCount<T> rc = refref.get();
 
       if (rc == null || rc.count != uc) {
+
         T newObj = converter.apply(AccumuloConfiguration.this);
 
         // very important to record the update count that was obtained before recomputing.
@@ -597,4 +599,13 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * this configuration.
    */
   public void invalidateCache() {}
+
+  /**
+   * get a parent configuration or null if it does not exist.
+   *
+   * @since 2.1.0
+   */
+  public AccumuloConfiguration getParent() {
+    return null;
+  }
 }
