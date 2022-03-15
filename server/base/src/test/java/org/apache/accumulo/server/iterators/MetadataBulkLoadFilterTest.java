@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.server.iterators;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -39,7 +39,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.Arbitrator;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class MetadataBulkLoadFilterTest {
   static class TestArbitrator implements Arbitrator {

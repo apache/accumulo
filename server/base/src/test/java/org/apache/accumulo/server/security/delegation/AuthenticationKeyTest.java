@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.server.security.delegation;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -31,8 +31,8 @@ import java.io.IOException;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class AuthenticationKeyTest {
   // From org.apache.hadoop.security.token.SecretManager
@@ -40,7 +40,7 @@ public class AuthenticationKeyTest {
   private static final int KEY_LENGTH = 64;
   private static KeyGenerator keyGen;
 
-  @BeforeClass
+  @BeforeAll
   public static void setupKeyGenerator() throws Exception {
     // From org.apache.hadoop.security.token.SecretManager
     keyGen = KeyGenerator.getInstance(DEFAULT_HMAC_ALGORITHM);

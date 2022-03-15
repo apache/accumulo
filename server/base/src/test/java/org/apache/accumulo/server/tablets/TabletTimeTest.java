@@ -21,17 +21,17 @@ package org.apache.accumulo.server.tablets;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.tablets.TabletTime.LogicalTime;
 import org.apache.accumulo.server.tablets.TabletTime.MillisTime;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TabletTimeTest {
   private static final long TIME = 1234L;
@@ -41,7 +41,7 @@ public class TabletTimeTest {
   private static final MetadataTime l1234 = new MetadataTime(1234, TimeType.LOGICAL);
   private static final MetadataTime l5678 = new MetadataTime(5678, TimeType.LOGICAL);
 
-  @Before
+  @BeforeEach
   public void setUp() {
     mtime = new MillisTime(TIME);
   }

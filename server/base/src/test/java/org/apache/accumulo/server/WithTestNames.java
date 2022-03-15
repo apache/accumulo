@@ -16,24 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.replication.proto;
+package org.apache.accumulo.server;
 
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
 
-import org.apache.accumulo.server.replication.proto.Replication.Status;
-import org.junit.jupiter.api.Test;
+// This is only for the unit tests and integration tests in this module
+// It must be copied for use in other modules, because tests in one module
+// don't have dependencies on other modules, and we can't put this in a
+// regular, non-test jar, because we don't want to add a dependency on
+// JUnit in a non-test jar
+public class WithTestNames {
 
-@Deprecated
-public class StatusTest {
+  private String testName;
 
-  @Test
-  public void equality() {
-    Status replicated = Status.newBuilder().setBegin(Long.MAX_VALUE).setEnd(0).setInfiniteEnd(true)
-        .setClosed(false).build();
-    Status unreplicated = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true)
-        .setClosed(false).build();
+  @BeforeEach
+  public void setTestName(TestInfo info) {
+    testName = info.getTestMethod().get().getName();
+  }
 
-    assertNotEquals(replicated, unreplicated);
+  protected String testName() {
+    return testName;
   }
 
 }
