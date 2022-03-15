@@ -283,8 +283,8 @@ public class SessionManager {
         }
       };
 
-      ScheduledFuture<?> future = ThreadPools.createGeneralScheduledExecutorService(aconf)
-          .schedule(r, delay, TimeUnit.MILLISECONDS);
+      ScheduledFuture<?> future = ThreadPools.getServerThreadPools()
+          .createGeneralScheduledExecutorService(aconf).schedule(r, delay, TimeUnit.MILLISECONDS);
       ThreadPools.watchNonCriticalScheduledTask(future);
     }
   }

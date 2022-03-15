@@ -166,7 +166,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     aconf = getConfiguration();
     setupSecurity();
     watcher = new CompactionWatcher(aconf);
-    var schedExecutor = ThreadPools.createGeneralScheduledExecutorService(aconf);
+    var schedExecutor =
+        ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(aconf);
     startGCLogger(schedExecutor);
     startCancelChecker(schedExecutor, TIME_BETWEEN_CANCEL_CHECKS);
     printStartupMsg();
@@ -178,7 +179,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     aconf = conf;
     setupSecurity();
     watcher = new CompactionWatcher(aconf);
-    var schedExecutor = ThreadPools.createGeneralScheduledExecutorService(aconf);
+    var schedExecutor =
+        ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(aconf);
     startGCLogger(schedExecutor);
     startCancelChecker(schedExecutor, TIME_BETWEEN_CANCEL_CHECKS);
     printStartupMsg();

@@ -200,7 +200,7 @@ public class BulkImport extends ManagerRepo {
 
     AccumuloConfiguration serverConfig = manager.getConfiguration();
     @SuppressWarnings("deprecation")
-    ExecutorService workers = ThreadPools.createExecutorService(serverConfig,
+    ExecutorService workers = ThreadPools.getServerThreadPools().createExecutorService(serverConfig,
         serverConfig.resolve(Property.MANAGER_RENAME_THREADS, Property.MANAGER_BULK_RENAME_THREADS),
         false);
     List<Future<Exception>> results = new ArrayList<>();

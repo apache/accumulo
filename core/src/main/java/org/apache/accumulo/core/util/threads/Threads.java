@@ -25,38 +25,45 @@ import org.apache.accumulo.core.trace.TraceUtil;
 
 public class Threads {
 
+  public static final UncaughtExceptionHandler UEH = new AccumuloUncaughtExceptionHandler();
+
   public static class AccumuloDaemonThread extends Thread {
 
-    public AccumuloDaemonThread(Runnable target, String name) {
+    public AccumuloDaemonThread(Runnable target, String name, UncaughtExceptionHandler ueh) {
       super(target, name);
-      configureThread(this, name);
+      setDaemon(true);
+      setUncaughtExceptionHandler(ueh);
     }
 
     public AccumuloDaemonThread(String name) {
-      super(name);
-      configureThread(this, name);
+      this(name, UEH);
     }
+
+    private AccumuloDaemonThread(String name, UncaughtExceptionHandler ueh) {
+      super(name);
+      setDaemon(true);
+      setUncaughtExceptionHandler(ueh);
+    }
+
   }
 
   public static Runnable createNamedRunnable(String name, Runnable r) {
     return new NamedRunnable(name, r);
   }
 
-  private static final UncaughtExceptionHandler UEH = new AccumuloUncaughtExceptionHandler();
-
   public static Thread createThread(String name, Runnable r) {
-    return createThread(name, OptionalInt.empty(), r);
+    return createThread(name, OptionalInt.empty(), r, UEH);
   }
 
   public static Thread createThread(String name, OptionalInt priority, Runnable r) {
-    Thread thread = new AccumuloDaemonThread(TraceUtil.wrap(r), name);
+    return createThread(name, priority, r, UEH);
+  }
+
+  public static Thread createThread(String name, OptionalInt priority, Runnable r,
+      UncaughtExceptionHandler ueh) {
+    Thread thread = new AccumuloDaemonThread(TraceUtil.wrap(r), name, ueh);
     priority.ifPresent(thread::setPriority);
     return thread;
   }
 
-  private static void configureThread(Thread thread, String name) {
-    thread.setName(name);
-    thread.setDaemon(true);
-    thread.setUncaughtExceptionHandler(UEH);
-  }
 }
