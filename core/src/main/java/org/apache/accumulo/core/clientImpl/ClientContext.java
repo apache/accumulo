@@ -378,20 +378,22 @@ public class ClientContext implements AccumuloClient {
         scanServerDispatcher = impl.getDeclaredConstructor().newInstance();
         scanServerDispatcher.init(new ScanServerDispatcher.InitParameters() {
           @Override
-          public Map<String,String> getOptions() {
-            Map<String,String> sserverProps = new HashMap<>();
-            info.getProperties().entrySet().forEach(e -> {
-              String name = e.getKey().toString();
-              if (name.startsWith("sserv")) {
-                sserverProps.put(name, e.getValue().toString());
-              }
-            });
-            return sserverProps;
+          public Supplier<Map<String,String>> getOptions() {
+            return () -> {
+              Map<String,String> sserverProps = new HashMap<>();
+              ClientProperty
+                  .getPrefix(info.getProperties(),
+                      ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey())
+                  .forEach((k, v) -> {
+                    sserverProps.put(k.toString(), v.toString());
+                  });
+              return sserverProps;
+            };
           }
 
           @Override
-          public ServiceEnvironment getServiceEnv() {
-            return new ServiceEnvironment() {
+          public Supplier<ServiceEnvironment> getServiceEnv() {
+            return () -> new ServiceEnvironment() {
 
               @Override
               public String getTableName(TableId tableId) throws TableNotFoundException {
@@ -433,16 +435,14 @@ public class ClientContext implements AccumuloClient {
           }
 
           @Override
-          public Set<String> getScanServers() {
-            return new HashSet<>(ClientContext.this.getScanServers());
+          public Supplier<Set<String>> getScanServers() {
+            return () -> new HashSet<>(ClientContext.this.getScanServers());
           }
         });
       } catch (Exception e) {
-        throw new RuntimeException("Error creating ScanServerDispatcher implemenation: " + clazz,
+        throw new RuntimeException("Error creating ScanServerDispatcher implementation: " + clazz,
             e);
       }
-    } else {
-      // TODO need to recreate and reinit when the set of scan servers changes.
     }
     return scanServerDispatcher;
   }

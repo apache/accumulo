@@ -34,7 +34,7 @@ import org.apache.accumulo.core.data.TabletId;
 
 import com.google.common.hash.Hashing;
 
-public class DefaultEcScanManager implements ScanServerDispatcher {
+public class DefaultScanServerDispatcher implements ScanServerDispatcher {
 
   private static final SecureRandom RANDOM = new SecureRandom();
   private static final long INITIAL_SLEEP_TIME = 100L;
@@ -42,16 +42,13 @@ public class DefaultEcScanManager implements ScanServerDispatcher {
   private final int INITIAL_SERVERS = 3;
   private final int MAX_DEPTH = 3;
 
+  InitParameters init;
   Duration defaultBusyTimeout;
-
-  private List<String> orderedScanServers;
 
   @Override
   public void init(InitParameters params) {
-    orderedScanServers = new ArrayList<>(params.getScanServers());
-    Collections.sort(orderedScanServers);
+    init = params;
     defaultBusyTimeout = Duration.of(33, ChronoUnit.MILLIS);
-    ;
   }
 
   private String getLastSuccessfulScanServer(SortedSet<ScanAttempt> attempts) {
@@ -71,6 +68,9 @@ public class DefaultEcScanManager implements ScanServerDispatcher {
 
   @Override
   public Actions determineActions(DispatcherParameters params) {
+
+    List<String> orderedScanServers = new ArrayList<>(init.getScanServers().get());
+    Collections.sort(orderedScanServers);
 
     if (orderedScanServers.isEmpty()) {
       return Actions.from(List.of(new UseTserverAction(params.getTablets())));

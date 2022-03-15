@@ -26,6 +26,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
@@ -41,22 +42,21 @@ import com.google.common.base.Preconditions;
 public interface ScanServerDispatcher {
 
   public interface InitParameters {
-    Map<String,String> getOptions();
+    Supplier<Map<String,String>> getOptions();
 
-    ServiceEnvironment getServiceEnv();
+    Supplier<ServiceEnvironment> getServiceEnv();
 
     /**
-     * @return the set of live ScanServers. Whenever the set changes a new ScanServerDispatcher
-     *         object will be created an initialized.
+     * @return the set of live ScanServers.
      */
-    Set<String> getScanServers();
+    Supplier<Set<String>> getScanServers();
   }
 
   /**
    * This method is called once after a ScanDispatcher is instantiated.
    */
   default void init(InitParameters params) {
-    Preconditions.checkArgument(params.getOptions().isEmpty(), "No options expected");
+    Preconditions.checkArgument(params.getOptions().get().isEmpty(), "No options expected");
   }
 
   // this object is used to communicate what the previous actions were attempted, when they were
