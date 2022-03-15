@@ -23,9 +23,9 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -39,19 +39,19 @@ import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.tserver.WithTestNames;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.Path;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "PATH_TRAVERSAL_OUT"},
     justification = "paths not set by user input")
-public class TestUpgradePathForWALogs {
+public class TestUpgradePathForWALogs extends WithTestNames {
 
   // older logs no longer compatible
   private static final String WALOG_FROM_15 = "/walog-from-15.walog";
@@ -63,16 +63,22 @@ public class TestUpgradePathForWALogs {
   private static final AccumuloConfiguration config = DefaultConfiguration.getInstance();
   private ServerContext context;
 
-  @Rule
-  public TemporaryFolder tempFolder =
-      new TemporaryFolder(new File(System.getProperty("user.dir"), "target"));
+  @TempDir
+  private static File tempDir;
 
-  @Before
+  private static File perTestTempSubDir;
+
+  @BeforeEach
   public void setUp() throws Exception {
     context = createMock(ServerContext.class);
-    File workDir = tempFolder.newFolder();
-    String path = workDir.getAbsolutePath();
-    assertTrue(workDir.delete());
+
+    // Create a new subdirectory for each test
+    perTestTempSubDir = new File(tempDir, testName());
+    assertTrue(perTestTempSubDir.isDirectory() || perTestTempSubDir.mkdir(),
+        "Failed to create folder: " + perTestTempSubDir);
+
+    String path = perTestTempSubDir.getAbsolutePath();
+
     VolumeManager fs = VolumeManagerImpl.getLocalForTesting(path);
     expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())
         .anyTimes();
@@ -80,7 +86,7 @@ public class TestUpgradePathForWALogs {
     replay(context);
   }
 
-  @After
+  @AfterEach
   public void tearDown() {
     verify(context);
   }
@@ -91,7 +97,7 @@ public class TestUpgradePathForWALogs {
   @Test
   public void testUpgradeOf15WALog() throws IOException {
     String walogToTest = WALOG_FROM_15;
-    String testPath = tempFolder.getRoot().getAbsolutePath();
+    String testPath = perTestTempSubDir.getAbsolutePath();
 
     try (InputStream walogStream = getClass().getResourceAsStream(walogToTest);
         OutputStream walogInHDFStream = new FileOutputStream(testPath + walogToTest)) {
@@ -111,7 +117,7 @@ public class TestUpgradePathForWALogs {
   @Test
   public void testBasic16WALogRead() throws IOException {
     String walogToTest = WALOG_FROM_16;
-    String testPath = tempFolder.getRoot().getAbsolutePath();
+    String testPath = perTestTempSubDir.getAbsolutePath();
     String destPath = "file://" + testPath + "/manyMaps";
 
     try (InputStream walogStream = getClass().getResourceAsStream(walogToTest);
@@ -135,7 +141,7 @@ public class TestUpgradePathForWALogs {
   @Test
   public void testBasic20WALogRead() throws IOException {
     String walogToTest = WALOG_FROM_20;
-    String testPath = tempFolder.getRoot().getAbsolutePath();
+    String testPath = perTestTempSubDir.getAbsolutePath();
     String destPath = "file://" + testPath + "/manyMaps";
 
     try (InputStream walogStream = getClass().getResourceAsStream(walogToTest);

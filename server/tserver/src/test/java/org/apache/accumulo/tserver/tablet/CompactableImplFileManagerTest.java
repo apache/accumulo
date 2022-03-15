@@ -23,10 +23,10 @@ import static org.apache.accumulo.core.spi.compaction.CompactionKind.SELECTOR;
 import static org.apache.accumulo.core.spi.compaction.CompactionKind.SYSTEM;
 import static org.apache.accumulo.core.spi.compaction.CompactionKind.USER;
 import static org.apache.accumulo.tserver.tablet.CompactableImplFileManagerTest.TestFileManager.SELECTION_EXPIRATION;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -47,7 +47,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.tserver.tablet.CompactableImpl.ChopSelectionStatus;
 import org.apache.accumulo.tserver.tablet.CompactableImpl.FileManager.ChopSelector;
 import org.apache.accumulo.tserver.tablet.CompactableImpl.FileSelectionStatus;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Sets;
 

@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.tserver;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Collections;
 import java.util.Map;
@@ -36,7 +36,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TabletServerSyncCheckTest {
   private static final String DFS_SUPPORT_APPEND = "dfs.support.append";

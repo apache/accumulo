@@ -23,8 +23,8 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.createMockBuilder;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -37,8 +37,8 @@ import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.data.constraints.Constraint.Environment;
 import org.apache.hadoop.io.Text;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterables;
 
@@ -51,7 +51,7 @@ public class ConstraintCheckerTest {
   private Mutation m;
   private Mutation m2;
 
-  @Before
+  @BeforeEach
   public void setup() throws SecurityException {
     cc = createMockBuilder(ConstraintChecker.class).addMockedMethod("getConstraints").createMock();
     constraints = new ArrayList<>();
