@@ -431,11 +431,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
       TabletResourceManager trm =
           resourceManager.createTabletResourceManager(extent, getTableConfiguration(extent));
       TabletData data = new TabletData(tabletMetadata);
-
-      // TODO: Tablet constructor may make changes in the Metadata table, we need to configure
-      // it to not do this as these Tablet objects are meant to be read-only duplicates within
-      // the cluster
-      si.setTablet(new Tablet(this, extent, trm, data));
+      si.setTablet(new Tablet(this, extent, trm, data, true));
       LOG.debug("loaded tablet: {}", si.getExtent());
       return si;
     } else {

@@ -511,12 +511,12 @@ public class TabletServer extends AbstractServer {
     Entry<KeyExtent,TabletData> first = tabletInfo.firstEntry();
     TabletResourceManager newTrm0 = resourceManager.createTabletResourceManager(first.getKey(),
         getTableConfiguration(first.getKey()));
-    newTablets[0] = new Tablet(TabletServer.this, first.getKey(), newTrm0, first.getValue());
+    newTablets[0] = new Tablet(TabletServer.this, first.getKey(), newTrm0, first.getValue(), false);
 
     Entry<KeyExtent,TabletData> last = tabletInfo.lastEntry();
     TabletResourceManager newTrm1 = resourceManager.createTabletResourceManager(last.getKey(),
         getTableConfiguration(last.getKey()));
-    newTablets[1] = new Tablet(TabletServer.this, last.getKey(), newTrm1, last.getValue());
+    newTablets[1] = new Tablet(TabletServer.this, last.getKey(), newTrm1, last.getValue(), false);
 
     // roll tablet stats over into tablet server's statsKeeper object as
     // historical data

@@ -300,7 +300,7 @@ public class Tablet {
   }
 
   public Tablet(final TabletServer tabletServer, final KeyExtent extent,
-      final TabletResourceManager trm, TabletData data)
+      final TabletResourceManager trm, TabletData data, boolean readOnly)
       throws IOException, IllegalArgumentException {
 
     this.tabletServer = tabletServer;
@@ -330,8 +330,11 @@ public class Tablet {
         .isEnabled(extent, this.tableConfiguration);
     TabletFiles tabletPaths =
         new TabletFiles(data.getDirectoryName(), data.getLogEntries(), data.getDataFiles());
-    tabletPaths = VolumeUtil.updateTabletVolumes(tabletServer.getContext(), tabletServer.getLock(),
-        extent, tabletPaths, replicationEnabled);
+
+    if (!readOnly) {
+      tabletPaths = VolumeUtil.updateTabletVolumes(tabletServer.getContext(),
+          tabletServer.getLock(), extent, tabletPaths, replicationEnabled);
+    }
 
     this.dirName = data.getDirectoryName();
 
@@ -355,7 +358,7 @@ public class Tablet {
     tabletMemory = new TabletMemory(this);
 
     // don't bother examining WALs for recovery if Table is being deleted
-    if (!logEntries.isEmpty() && !isBeingDeleted()) {
+    if (!readOnly && !logEntries.isEmpty() && !isBeingDeleted()) {
       TabletLogger.recovering(extent, logEntries);
       final AtomicLong entriesUsedOnTablet = new AtomicLong(0);
       // track max time from walog entries without timestamps
@@ -434,12 +437,14 @@ public class Tablet {
 
     computeNumEntries();
 
-    getDatafileManager().removeFilesAfterScan(data.getScanFiles());
+    if (!readOnly) {
+      getDatafileManager().removeFilesAfterScan(data.getScanFiles());
 
-    // look for hints of a failure on the previous tablet server
-    if (!logEntries.isEmpty()) {
-      // look for any temp files hanging around
-      removeOldTemporaryFiles(data.getExternalCompactions());
+      // look for hints of a failure on the previous tablet server
+      if (!logEntries.isEmpty()) {
+        // look for any temp files hanging around
+        removeOldTemporaryFiles(data.getExternalCompactions());
+      }
     }
 
     this.compactable = new CompactableImpl(this, tabletServer.getCompactionManager(),
