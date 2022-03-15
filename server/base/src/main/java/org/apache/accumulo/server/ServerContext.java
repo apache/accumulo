@@ -56,6 +56,7 @@ import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
@@ -102,7 +103,7 @@ public class ServerContext extends ClientContext {
   }
 
   private ServerContext(ServerInfo info) {
-    super(SingletonReservation.noop(), info, info.getSiteConfiguration());
+    super(SingletonReservation.noop(), info, info.getSiteConfiguration(), Threads.UEH);
     this.info = info;
     zooReaderWriter = new ZooReaderWriter(info.getSiteConfiguration());
     serverDirs = info.getServerDirs();
@@ -455,8 +456,8 @@ public class ServerContext extends ClientContext {
   public synchronized ScheduledThreadPoolExecutor getScheduledExecutor() {
     if (sharedScheduledThreadPool == null) {
       sharedScheduledThreadPool =
-          (ScheduledThreadPoolExecutor) ThreadPools.createExecutorService(getConfiguration(),
-              Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE, true);
+          (ScheduledThreadPoolExecutor) ThreadPools.getServerThreadPools().createExecutorService(
+              getConfiguration(), Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE, true);
     }
     return sharedScheduledThreadPool;
   }

@@ -127,7 +127,7 @@ public class CompactionCoordinator extends AbstractServer
   protected CompactionCoordinator(ServerOpts opts, String[] args) {
     super("compaction-coordinator", opts, args);
     aconf = getConfiguration();
-    schedExecutor = ThreadPools.createGeneralScheduledExecutorService(aconf);
+    schedExecutor = ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(aconf);
     compactionFinalizer = createCompactionFinalizer(schedExecutor);
     tserverSet = createLiveTServerSet();
     setupSecurity();
@@ -139,7 +139,7 @@ public class CompactionCoordinator extends AbstractServer
   protected CompactionCoordinator(ServerOpts opts, String[] args, AccumuloConfiguration conf) {
     super("compaction-coordinator", opts, args);
     aconf = conf;
-    schedExecutor = ThreadPools.createGeneralScheduledExecutorService(aconf);
+    schedExecutor = ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(aconf);
     compactionFinalizer = createCompactionFinalizer(schedExecutor);
     tserverSet = createLiveTServerSet();
     setupSecurity();
@@ -319,8 +319,8 @@ public class CompactionCoordinator extends AbstractServer
   }
 
   private void updateSummaries() {
-    ExecutorService executor =
-        ThreadPools.createFixedThreadPool(10, "Compaction Summary Gatherer", false);
+    ExecutorService executor = ThreadPools.getServerThreadPools().createFixedThreadPool(10,
+        "Compaction Summary Gatherer", false);
     try {
       Set<String> queuesSeen = new ConcurrentSkipListSet<>();
 

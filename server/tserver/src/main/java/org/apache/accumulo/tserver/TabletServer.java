@@ -771,8 +771,8 @@ public class TabletServer extends AbstractServer {
       throw new RuntimeException(e);
     }
 
-    ThreadPoolExecutor distWorkQThreadPool =
-        ThreadPools.createExecutorService(getConfiguration(), Property.TSERV_WORKQ_THREADS, true);
+    ThreadPoolExecutor distWorkQThreadPool = ThreadPools.getServerThreadPools()
+        .createExecutorService(getConfiguration(), Property.TSERV_WORKQ_THREADS, true);
 
     bulkFailedCopyQ =
         new DistributedWorkQueue(getContext().getZooKeeperRoot() + Constants.ZBULK_FAILED_COPYQ,
@@ -806,8 +806,8 @@ public class TabletServer extends AbstractServer {
 
     int tabletCheckFrequency = 30 + random.nextInt(31); // random 30-60 minute delay
     // Periodically check that metadata of tablets matches what is held in memory
-    ThreadPools.watchCriticalScheduledTask(
-        ThreadPools.createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(() -> {
+    ThreadPools.watchCriticalScheduledTask(ThreadPools.getServerThreadPools()
+        .createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(() -> {
           final SortedMap<KeyExtent,Tablet> onlineTabletsSnapshot = onlineTablets.snapshot();
 
           Map<KeyExtent,Long> updateCounts = new HashMap<>();
@@ -951,7 +951,7 @@ public class TabletServer extends AbstractServer {
     }
 
     // Start the pool to handle outgoing replications
-    final ThreadPoolExecutor replicationThreadPool = ThreadPools
+    final ThreadPoolExecutor replicationThreadPool = ThreadPools.getServerThreadPools()
         .createExecutorService(getConfiguration(), Property.REPLICATION_WORKER_THREADS, false);
     replWorker.setExecutor(replicationThreadPool);
     replWorker.run();
