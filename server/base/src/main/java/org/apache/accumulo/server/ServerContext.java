@@ -112,8 +112,7 @@ public class ServerContext extends ClientContext {
     zooReaderWriter = new ZooReaderWriter(info.getSiteConfiguration());
     serverDirs = info.getServerDirs();
 
-    propStore = new ZooPropStore.Builder(info.getInstanceID(), zooReaderWriter,
-        zooReaderWriter.getSessionTimeout()).build();
+    propStore = ZooPropStore.initialize(info.getInstanceID(), zooReaderWriter);
   }
 
   /**

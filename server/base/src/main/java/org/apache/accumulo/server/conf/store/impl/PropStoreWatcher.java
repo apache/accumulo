@@ -32,6 +32,7 @@ import org.apache.accumulo.server.conf.store.PropCacheId;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,27 +95,29 @@ public class PropStoreWatcher implements Watcher {
   public void process(final WatchedEvent event) {
 
     String path;
+    PropCacheId propCacheId;
     switch (event.getType()) {
       case NodeDataChanged:
         path = event.getPath();
         log.trace("handle change event for path: {}", path);
-        PropCacheId.fromPath(path).ifPresent(this::signalZkChangeEvent);
+        propCacheId = PropCacheId.fromPath(path);
+        if (propCacheId != null) {
+          signalZkChangeEvent(propCacheId);
+        }
         break;
       case NodeDeleted:
         path = event.getPath();
         log.trace("handle delete event for path: {}", path);
-        PropCacheId.fromPath(path).ifPresent(cacheId -> {
+        propCacheId = PropCacheId.fromPath(path);
+        if (propCacheId != null) {
           // notify listeners
-          Set<PropChangeListener> snapshot = getListenerSnapshot(cacheId);
+          Set<PropChangeListener> snapshot = getListenerSnapshot(propCacheId);
           if (snapshot != null) {
             executorService
-                .submit(new PropStoreEventTask.PropStoreDeleteEventTask(cacheId, snapshot));
+                .submit(new PropStoreEventTask.PropStoreDeleteEventTask(propCacheId, snapshot));
           }
-
-          listenerCleanup(cacheId);
-
-        });
-
+          listenerCleanup(propCacheId);
+        }
         break;
       case None:
         Event.KeeperState state = event.getState();
@@ -163,7 +166,7 @@ public class PropStoreWatcher implements Watcher {
    *          the cache id
    */
   @SuppressWarnings("FutureReturnValueIgnored") // currently, tasks are fire and forget
-  public void signalZkChangeEvent(final PropCacheId propCacheId) {
+  public void signalZkChangeEvent(@NonNull final PropCacheId propCacheId) {
     log.trace("signal ZooKeeper change event: {}", propCacheId);
     Set<PropChangeListener> snapshot = getListenerSnapshot(propCacheId);
     log.trace("Sending change event to: {}", snapshot);

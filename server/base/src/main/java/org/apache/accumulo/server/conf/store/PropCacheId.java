@@ -26,15 +26,15 @@ import static org.apache.accumulo.core.Constants.ZTABLE_CONF;
 
 import java.util.Comparator;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.StringJoiner;
 
+import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Provides a strongly-typed id for storing properties in ZooKeeper. The path in ZooKeeper is
@@ -44,7 +44,9 @@ import org.checkerframework.checker.nullness.qual.NonNull;
  * Provides utility methods from constructing different id based on type and methods to parse a
  * ZooKeeper path and return a prop cache id.
  */
-public class PropCacheId implements Comparable<PropCacheId> {
+public class PropCacheId extends AbstractId<PropCacheId> {
+
+  private static final long serialVersionUID = 1L;
 
   public static final String PROP_NODE_NAME = "encoded_props";
 
@@ -64,6 +66,7 @@ public class PropCacheId implements Comparable<PropCacheId> {
 
   private PropCacheId(final String path, final IdType idType, final NamespaceId namespaceId,
       final TableId tableId) {
+    super(path);
     this.path = path;
     this.idType = idType;
     this.namespaceId = namespaceId;
@@ -156,7 +159,7 @@ public class PropCacheId implements Comparable<PropCacheId> {
    *          the path
    * @return the prop cache id
    */
-  public static Optional<PropCacheId> fromPath(final String path) {
+  public static @Nullable PropCacheId fromPath(final String path) {
     String[] tokens = path.split("/");
 
     InstanceId instanceId = InstanceId.of(tokens[IID_TOKEN_POSITION]);
@@ -165,15 +168,14 @@ public class PropCacheId implements Comparable<PropCacheId> {
 
     switch (type) {
       case SYSTEM:
-        return Optional.of(PropCacheId.forSystem(instanceId));
+        return PropCacheId.forSystem(instanceId);
       case NAMESPACE:
-        return Optional
-            .of(PropCacheId.forNamespace(instanceId, NamespaceId.of(tokens[ID_TOKEN_POSITION])));
+        return PropCacheId.forNamespace(instanceId, NamespaceId.of(tokens[ID_TOKEN_POSITION]));
       case TABLE:
-        return Optional.of(PropCacheId.forTable(instanceId, TableId.of(tokens[ID_TOKEN_POSITION])));
+        return PropCacheId.forTable(instanceId, TableId.of(tokens[ID_TOKEN_POSITION]));
       case UNKNOWN:
       default:
-        return Optional.empty();
+        return null;
     }
   }
 
@@ -214,14 +216,13 @@ public class PropCacheId implements Comparable<PropCacheId> {
         .compare(this, other);
   }
 
-  // TODO - remove optional and return null.
   /**
    * If the prop cache is for a namespace, return the namespace id.
    *
    * @return the namespace id.
    */
-  public Optional<NamespaceId> getNamespaceId() {
-    return Optional.ofNullable(namespaceId);
+  public @Nullable NamespaceId getNamespaceId() {
+    return namespaceId;
   }
 
   /**
@@ -229,8 +230,8 @@ public class PropCacheId implements Comparable<PropCacheId> {
    *
    * @return the table id.
    */
-  public Optional<TableId> getTableId() {
-    return Optional.ofNullable(tableId);
+  public @Nullable TableId getTableId() {
+    return tableId;
   }
 
   @Override
@@ -246,26 +247,6 @@ public class PropCacheId implements Comparable<PropCacheId> {
   @Override
   public int hashCode() {
     return Objects.hash(path);
-  }
-
-  @Override
-  public String toString() {
-    switch (idType) {
-      case SYSTEM:
-        return new StringJoiner(", ", PropCacheId.class.getSimpleName() + "[", "]")
-            .add("idType=System").toString();
-      case NAMESPACE:
-        return new StringJoiner(", ", PropCacheId.class.getSimpleName() + "[", "]")
-            .add("idType=Namespace").add("namespaceId=" + namespaceId).toString();
-      case TABLE:
-        return new StringJoiner(", ", PropCacheId.class.getSimpleName() + "[", "]")
-            .add("idType=Table").add("tableId=" + tableId).toString();
-      default:
-        return new StringJoiner(", ", PropCacheId.class.getSimpleName() + "[", "]")
-            .add("idType=" + idType).add("namespaceId=" + namespaceId).add("tableId=" + tableId)
-            .add("path='" + path + "'").toString();
-    }
-
   }
 
   /**

@@ -167,10 +167,10 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
       try {
         // Very important that update count is read before getting properties. Also only read it
         // once.
-        long startCount = getUpdateCount();
+        long updateCount = getUpdateCount();
         prefixProps = cachedPrefixProps.get(property);
 
-        if (prefixProps == null || prefixProps.updateCount != startCount) {
+        if (prefixProps == null || prefixProps.updateCount != updateCount) {
           Map<String,String> propMap = new HashMap<>();
           // The reason this caching exists is to avoid repeatedly making this expensive call.
           getProperties(propMap, key -> key.startsWith(property.getKey()));

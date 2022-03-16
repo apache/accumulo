@@ -27,10 +27,11 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Iterator;
-import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -139,22 +140,22 @@ public class PropCacheIdTest {
   @Test
   public void fromPath() {
 
-    Optional<PropCacheId> t1 = PropCacheId
+    PropCacheId t1 = PropCacheId
         .fromPath("/accumulo/3f9976c6-3bf1-41ab-9751-1b0a9be3551d/tables/t1/conf/encoded_props");
-    assertTrue(t1.isPresent());
-    assertTrue(t1.get().getNamespaceId().isEmpty());
-    assertEquals(TableId.of("t1"), t1.get().getTableId().orElse(TableId.of("zzzz")));
+    assertNotNull(t1);
+    assertNull(t1.getNamespaceId());
+    assertEquals(TableId.of("t1"), t1.getTableId());
 
-    Optional<PropCacheId> n1 = PropCacheId.fromPath(
+    PropCacheId n1 = PropCacheId.fromPath(
         "/accumulo/3f9976c6-3bf1-41ab-9751-1b0a9be3551d/namespaces/n1/conf/encoded_props");
-    assertTrue(n1.isPresent());
-    assertEquals(NamespaceId.of("n1"), n1.get().getNamespaceId().orElse(NamespaceId.of("zzzz")));
-    assertTrue(n1.get().getTableId().isEmpty());
+    assertNotNull(n1);
+    assertEquals(NamespaceId.of("n1"), n1.getNamespaceId());
+    assertNull(n1.getTableId());
 
-    Optional<PropCacheId> s1 =
+    PropCacheId s1 =
         PropCacheId.fromPath("/accumulo/3f9976c6-3bf1-41ab-9751-1b0a9be3551d/config/encoded_props");
-    assertTrue(s1.isPresent());
-    assertTrue(s1.get().getNamespaceId().isEmpty());
-    assertTrue(s1.get().getTableId().isEmpty());
+    assertNotNull(s1);
+    assertNull(s1.getNamespaceId());
+    assertNull(s1.getTableId());
   }
 }

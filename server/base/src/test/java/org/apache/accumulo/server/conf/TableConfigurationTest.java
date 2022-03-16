@@ -90,17 +90,17 @@ public class TableConfigurationTest {
     expect(propStore.get(eq(sysId))).andReturn(sysProps).times(2);
     expect(propStore.getNodeVersion(eq(sysId))).andReturn(1).once();
 
-    PropCacheId nsId = PropCacheId.forNamespace(instanceId, NID);
+    PropCacheId propNsId = PropCacheId.forNamespace(instanceId, NID);
     VersionedProperties nsProps = new VersionedProperties(2, Instant.now(),
         Map.of(TABLE_FILE_MAX.getKey(), "21", TABLE_BLOOM_ENABLED.getKey(), "false"));
-    expect(propStore.get(eq(nsId))).andReturn(nsProps).once();
-    expect(propStore.getNodeVersion(eq(nsId))).andReturn(2).once();
+    expect(propStore.get(eq(propNsId))).andReturn(nsProps).once();
+    expect(propStore.getNodeVersion(eq(propNsId))).andReturn(2).once();
 
-    PropCacheId tableId = PropCacheId.forTable(instanceId, TID);
+    PropCacheId propTableId = PropCacheId.forTable(instanceId, TID);
     VersionedProperties tableProps =
         new VersionedProperties(3, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
-    expect(propStore.get(eq(tableId))).andReturn(tableProps).once();
-    expect(propStore.getNodeVersion(eq(tableId))).andReturn(3).once();
+    expect(propStore.get(eq(propTableId))).andReturn(tableProps).once();
+    expect(propStore.getNodeVersion(eq(propTableId))).andReturn(3).once();
 
     ConfigurationCopy defaultConfig =
         new ConfigurationCopy(Map.of(TABLE_BLOOM_SIZE.getKey(), TABLE_BLOOM_SIZE.getDefaultValue(),
@@ -109,11 +109,17 @@ public class TableConfigurationTest {
     replay(propStore);
 
     SystemConfiguration sysConfig = new SystemConfiguration(log, context, sysId, defaultConfig);
-    nsConfig = new NamespaceConfiguration(nsId.getNamespaceId().orElseThrow(
-        () -> new IllegalStateException("missing test namespaceId")), context, sysConfig);
-    tableConfig = new TableConfiguration(context,
-        tableId.getTableId().orElseThrow(() -> new IllegalStateException("missing test tableId")),
-        nsConfig);
+    NamespaceId nsid = propNsId.getNamespaceId();
+    if (nsid == null) {
+      throw new IllegalStateException("missing test namespaceId");
+    }
+    nsConfig = new NamespaceConfiguration(nsid, context, sysConfig);
+
+    TableId tid = propTableId.getTableId();
+    if (tid == null) {
+      throw new IllegalStateException("missing test tableId");
+    }
+    tableConfig = new TableConfiguration(context, tid, nsConfig);
 
   }
 

@@ -46,7 +46,7 @@ public class NamespaceConfiguration extends ZooBasedConfiguration {
     String key = property.getKey();
 
     var namespaceId = getCacheId().getNamespaceId();
-    if (namespaceId.isPresent() && namespaceId.get().equals(Namespace.ACCUMULO.id())
+    if (namespaceId != null && namespaceId.equals(Namespace.ACCUMULO.id())
         && isIteratorOrConstraint(key)) {
       // ignore iterators from parent if system namespace
       return null;
@@ -72,21 +72,24 @@ public class NamespaceConfiguration extends ZooBasedConfiguration {
     // exclude system iterators/constraints from the system namespace
     // so they don't affect the metadata or root tables.
     if (getNamespaceId().equals(Namespace.ACCUMULO.id()))
-      parentFilter = key -> isIteratorOrConstraint(key) ? false : filter.test(key);
+      parentFilter = key -> !isIteratorOrConstraint(key) && filter.test(key);
 
-    getParent().getProperties(props, parentFilter != null ? parentFilter : filter);
+    getParent().getProperties(props, parentFilter);
 
     Map<String,String> theseProps = getSnapshot();
     for (Map.Entry<String,String> p : theseProps.entrySet()) {
-      if (filter.test(p.getKey()) && p.getValue() != null) {
+      if (filter != null && filter.test(p.getKey()) && p.getValue() != null) {
         props.put(p.getKey(), p.getValue());
       }
     }
   }
 
   protected NamespaceId getNamespaceId() {
-    return getCacheId().getNamespaceId().orElseThrow(
-        () -> new IllegalArgumentException("Invalid request for namespace id on " + getCacheId()));
+    NamespaceId id = getCacheId().getNamespaceId();
+    if (id == null) {
+      throw new IllegalArgumentException("Invalid request for namespace id on " + getCacheId());
+    }
+    return id;
   }
 
   static boolean isIteratorOrConstraint(String key) {
