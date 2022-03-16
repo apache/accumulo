@@ -112,24 +112,28 @@ public class CleanUpIT extends SharedMiniClusterBase {
         fail("Not seeing expected threads. Saw " + threadCount);
       }
 
-      org.apache.accumulo.core.util.CleanUp.shutdownNow(conn);
-
-      Mutation m2 = new Mutation("r2");
-      m2.put("cf1", "cq1", 1, "6");
-
-      bw.addMutation(m1);
-      assertThrows(MutationsRejectedException.class, bw::flush);
-
-      // expect this to fail also, want to clean up batch writer threads
-      assertThrows(MutationsRejectedException.class, bw::close);
-
+      // explicitly close the scanner to verify that the scanner throws after close when iterated
+      scanner.close();
       assertThrows(IllegalStateException.class, () -> Iterables.size(scanner));
+    }
 
-      threadCount = countThreads();
-      if (threadCount > 0) {
-        printThreadNames();
-        fail("Threads did not go away. Saw " + threadCount);
-      }
+    // close the scanners before closing the client, because the scanners need the client's cleanup
+    // thread pool to execute their cleanup tasks when they are closed, so they don't block
+    org.apache.accumulo.core.util.CleanUp.shutdownNow(conn);
+
+    Mutation m2 = new Mutation("r2");
+    m2.put("cf1", "cq1", 1, "6");
+
+    bw.addMutation(m1);
+    assertThrows(MutationsRejectedException.class, bw::flush);
+
+    // expect this to fail also, want to clean up batch writer threads
+    assertThrows(MutationsRejectedException.class, bw::close);
+
+    var threadCount = countThreads();
+    if (threadCount > 0) {
+      printThreadNames();
+      fail("Threads did not go away. Saw " + threadCount);
     }
   }
 
