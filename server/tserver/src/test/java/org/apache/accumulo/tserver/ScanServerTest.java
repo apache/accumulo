@@ -24,8 +24,8 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.partialMockBuilder;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -52,7 +52,7 @@ import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.tserver.session.ScanSession.TabletResolver;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.thrift.TException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ScanServerTest {
 
