@@ -19,9 +19,9 @@
 package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.util.UUID;
@@ -50,9 +50,9 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,7 +66,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 2 * 60;
+    return 60 * 2;
   }
 
   @Override
@@ -78,7 +78,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     conf.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
-  @Before
+  @BeforeEach
   public void setupMetadataPermission() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       rootHasWritePermission = client.securityOperations().hasTablePermission("root",
@@ -92,7 +92,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     }
   }
 
-  @After
+  @AfterEach
   public void resetMetadataPermission() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       // Final state doesn't match the original
@@ -128,15 +128,14 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
       fs.create(new Path(emptyWalog.toURI())).close();
 
-      assertTrue("root user did not have write permission to metadata table",
-          client.securityOperations().hasTablePermission("root", MetadataTable.NAME,
-              TablePermission.WRITE));
+      assertTrue(client.securityOperations().hasTablePermission("root", MetadataTable.NAME,
+          TablePermission.WRITE), "root user did not have write permission to metadata table");
 
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
 
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
-      assertNotNull("Table ID was null", tableId);
+      assertNotNull(tableId, "Table ID was null");
 
       LogEntry logEntry =
           new LogEntry(new KeyExtent(tableId, null, null), 0, emptyWalog.toURI().toString());
@@ -188,15 +187,14 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
           DfsLogger.LOG_FILE_HEADER_V4.length() / 2);
       wal.close();
 
-      assertTrue("root user did not have write permission to metadata table",
-          client.securityOperations().hasTablePermission("root", MetadataTable.NAME,
-              TablePermission.WRITE));
+      assertTrue(client.securityOperations().hasTablePermission("root", MetadataTable.NAME,
+          TablePermission.WRITE), "root user did not have write permission to metadata table");
 
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
 
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
-      assertNotNull("Table ID was null", tableId);
+      assertNotNull(tableId, "Table ID was null");
 
       LogEntry logEntry = new LogEntry(null, 0, partialHeaderWalog.toURI().toString());
 

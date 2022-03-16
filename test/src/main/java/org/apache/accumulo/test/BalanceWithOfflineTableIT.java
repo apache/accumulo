@@ -31,14 +31,14 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 // ACCUMULO-3692
 public class BalanceWithOfflineTableIT extends ConfigurableMacBase {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 120;
+    return 60 * 2;
   }
 
   @Override
@@ -83,7 +83,7 @@ public class BalanceWithOfflineTableIT extends ConfigurableMacBase {
         c.instanceOperations().waitForBalance();
         return true;
       });
-      wait.get((2 * defaultTimeoutSeconds()) / 3, TimeUnit.SECONDS);
+      wait.get((2L * defaultTimeoutSeconds()) / 3, TimeUnit.SECONDS);
       log.info("Balance succeeded with an offline table");
     }
   }

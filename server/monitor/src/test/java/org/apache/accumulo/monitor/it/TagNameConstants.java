@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.categories;
+package org.apache.accumulo.monitor.it;
 
-/**
- * Interface to be used with JUnit Category annotation to denote that the IntegrationTest requires
- * the use of a ZooKeeperTestingServer.
- */
-public interface ZooKeeperTestingServerTests {}
+public class TagNameConstants {
+  public static final String MONITOR = "Monitor";
+}

@@ -34,9 +34,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * This test verifies that when a lot of files are bulk imported into a table with one tablet and
@@ -45,18 +45,18 @@ import org.junit.Test;
 public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
 
   @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 2;
+  }
+
+  @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.TSERV_MAJC_DELAY, "1s");
   }
 
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 2 * 60;
-  }
-
   private String majcDelay;
 
-  @Before
+  @BeforeEach
   public void alterConfig() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       majcDelay = client.instanceOperations().getSystemConfiguration()
@@ -69,7 +69,7 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
     }
   }
 
-  @After
+  @AfterEach
   public void resetConfig() throws Exception {
     if (majcDelay != null) {
       try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {

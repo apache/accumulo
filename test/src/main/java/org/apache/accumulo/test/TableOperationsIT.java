@@ -19,10 +19,10 @@
 package org.apache.accumulo.test;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -63,9 +63,9 @@ import org.apache.accumulo.test.functional.BadIterator;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Sets;
 
@@ -75,16 +75,16 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   private static final int MAX_TABLE_NAME_LEN = 1024;
 
   @Override
-  public int defaultTimeoutSeconds() {
+  protected int defaultTimeoutSeconds() {
     return 90;
   }
 
-  @Before
+  @BeforeEach
   public void setup() {
     accumuloClient = Accumulo.newClient().from(getClientProps()).build();
   }
 
-  @After
+  @AfterEach
   public void checkForDanglingFateLocks() {
     if (getClusterType() == ClusterType.MINI) {
       FunctionalTestUtils.assertNoDanglingFateLocks(getCluster());
@@ -251,11 +251,11 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     Collection<Text> clonedSplits = tops.listSplits(clonedTable);
     Set<Text> expectedSplits = Sets.newHashSet(new Text("b"), new Text("c"), new Text("d"));
     for (Text clonedSplit : clonedSplits) {
-      assertTrue("Encountered unexpected split on the cloned table: " + clonedSplit,
-          expectedSplits.remove(clonedSplit));
+      assertTrue(expectedSplits.remove(clonedSplit),
+          "Encountered unexpected split on the cloned table: " + clonedSplit);
     }
-    assertTrue("Did not find all expected splits on the cloned table: " + expectedSplits,
-        expectedSplits.isEmpty());
+    assertTrue(expectedSplits.isEmpty(),
+        "Did not find all expected splits on the cloned table: " + expectedSplits);
   }
 
   /** Compare only the row, column family and column qualifier. */
@@ -286,7 +286,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       Map<Key,Value> actual = new TreeMap<>();
       for (Map.Entry<Key,Value> entry : scanner)
         actual.put(entry.getKey(), entry.getValue());
-      assertTrue("Should be empty. Actual is " + actual, actual.isEmpty());
+      assertTrue(actual.isEmpty(), "Should be empty. Actual is " + actual);
       accumuloClient.tableOperations().delete(tableName);
     }
   }

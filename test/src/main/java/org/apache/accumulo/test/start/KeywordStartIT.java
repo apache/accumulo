@@ -18,10 +18,11 @@
  */
 package org.apache.accumulo.test.start;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
+import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.File;
 import java.lang.reflect.Method;
@@ -62,16 +63,15 @@ import org.apache.accumulo.server.util.ZooKeeperMain;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.spi.KeywordExecutable;
-import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.accumulo.tserver.TServerExecutable;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.logger.LogReader;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Category(SunnyDayTests.class)
+@Tag(SUNNY_DAY)
 public class KeywordStartIT {
 
   private final Logger log = LoggerFactory.getLogger(getClass());
@@ -153,21 +153,21 @@ public class KeywordStartIT {
         log.warn("Missing class for keyword '{}'", expectIter.next());
       }
     }
-    assertFalse("Missing expected classes", moreExpected);
+    assertFalse(moreExpected, "Missing expected classes");
     boolean moreActual = actualIter.hasNext();
     if (moreActual) {
       while (actualIter.hasNext()) {
         log.warn("Extra class found with keyword '{}'", actualIter.next());
       }
     }
-    assertFalse("Found additional unexpected classes", moreActual);
+    assertFalse(moreActual, "Found additional unexpected classes");
   }
 
   @Test
   @SuppressWarnings("deprecation")
   public void checkHasMain() {
-    assertFalse("Sanity check for test failed. Somehow the test class has a main method",
-        hasMain(this.getClass()));
+    assertFalse(hasMain(this.getClass()),
+        "Sanity check for test failed. Somehow the test class has a main method");
 
     HashSet<Class<?>> expectSet = new HashSet<>();
     expectSet.add(Admin.class);
@@ -187,7 +187,7 @@ public class KeywordStartIT {
     expectSet.add(ZooKeeperMain.class);
 
     for (Class<?> c : expectSet) {
-      assertTrue("Class " + c.getName() + " is missing a main method!", hasMain(c));
+      assertTrue(hasMain(c), "Class " + c.getName() + " is missing a main method!");
     }
 
   }

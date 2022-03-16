@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -39,21 +39,21 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterators;
 
 public class CreateAndUseIT extends AccumuloClusterHarness {
 
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
-  }
-
   private static NewTableConfiguration ntc;
 
-  @BeforeClass
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 4;
+  }
+
+  @BeforeAll
   public static void createData() {
     SortedSet<Text> splits = new TreeSet<>();
 
@@ -93,7 +93,7 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
 
           ei++;
         }
-        assertEquals("Did not see expected number of rows", 257, ei);
+        assertEquals(257, ei, "Did not see expected number of rows");
       }
     }
   }
@@ -134,7 +134,7 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
         bs.setRanges(ranges);
         Iterator<Entry<Key,Value>> iter = bs.iterator();
         int count = Iterators.size(iter);
-        assertEquals("Did not expect to find any entries", 0, count);
+        assertEquals(0, count, "Did not expect to find any entries");
       }
     }
   }

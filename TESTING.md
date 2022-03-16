@@ -56,7 +56,7 @@ the WriteAheadLogIT:
 mvn clean verify -Dit.test=WriteAheadLogIT -Dtest=foo -Dspotbugs.skip
 ```
 
-## SunnyDay (`SunnyDayTests`)
+## SunnyDay (`SunnyDay`)
 
 This test category represents a minimal set of tests chosen to verify the basic
 functionality of Accumulo. These would typically be run prior to submitting a
@@ -70,7 +70,7 @@ To run all the Sunny day tests, run:
 mvn clean verify -Psunny
 ```
 
-## MiniAccumuloCluster (`MiniClusterOnlyTests`)
+## MiniAccumuloCluster (`MiniClusterOnly`)
 
 These tests use MiniAccumuloCluster (MAC) which is a multi-process "implementation" of Accumulo, managed
 through Java APIs. This MiniAccumuloCluster has the ability to use the local filesystem or Apache Hadoop's
@@ -88,7 +88,7 @@ To run all the Mini tests, run:
 mvn clean verify -Dspotbugs.skip
 ```
 
-## Standalone Cluster (`StandaloneCapableClusterTests`)
+## Standalone Cluster (`StandaloneCapableCluster`)
 
 A standalone Accumulo cluster can also be configured for use by most tests. Not all the integration tests are good
 candidates to run against a standalone cluster, and some of them require classes in the test jar.  Copy the
@@ -98,7 +98,7 @@ the tests.
 These tests can be run by providing a system property.  Specific ITs can be run using "-Dit.test" or run all tests using:
 
 ```bash
-mvn clean verify -Dtest=foo -Daccumulo.it.properties=/home/user/my_cluster.properties -Dfailsafe.groups=org.apache.accumulo.test.categories.StandaloneCapableClusterTests -Dspotbugs.skip
+mvn clean verify -Dtest=foo -Daccumulo.it.properties=/home/user/my_cluster.properties -Dfailsafe.groups=StandaloneCapableCluster -Dspotbugs.skip
 ```
 
 ### Configuration for Standalone clusters

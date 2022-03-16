@@ -18,11 +18,11 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -50,7 +50,7 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,10 +100,10 @@ public class ImportExportIT extends AccumuloClusterHarness {
       fs.deleteOnExit(baseDir);
       if (fs.exists(baseDir)) {
         log.info("{} exists on filesystem, deleting", baseDir);
-        assertTrue("Failed to deleted " + baseDir, fs.delete(baseDir, true));
+        assertTrue(fs.delete(baseDir, true), "Failed to deleted " + baseDir);
       }
       log.info("Creating {}", baseDir);
-      assertTrue("Failed to create " + baseDir, fs.mkdirs(baseDir));
+      assertTrue(fs.mkdirs(baseDir), "Failed to create " + baseDir);
       Path exportDir = new Path(baseDir, "export");
       fs.deleteOnExit(exportDir);
       Path importDirA = new Path(baseDir, "import-a");
@@ -111,7 +111,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
       fs.deleteOnExit(importDirA);
       fs.deleteOnExit(importDirB);
       for (Path p : new Path[] {exportDir, importDirA, importDirB}) {
-        assertTrue("Failed to create " + baseDir, fs.mkdirs(p));
+        assertTrue(fs.mkdirs(p), "Failed to create " + baseDir);
       }
 
       Set<String> importDirs = Set.of(importDirA.toString(), importDirB.toString());
@@ -129,7 +129,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
       // Make sure the distcp.txt file that exporttable creates is available
       Path distcp = new Path(exportDir, "distcp.txt");
       fs.deleteOnExit(distcp);
-      assertTrue("Distcp file doesn't exist", fs.exists(distcp));
+      assertTrue(fs.exists(distcp), "Distcp file doesn't exist");
       FSDataInputStream is = fs.open(distcp);
       BufferedReader reader = new BufferedReader(new InputStreamReader(is));
 
@@ -138,10 +138,10 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
       while ((line = reader.readLine()) != null) {
         Path p = new Path(line.substring(5));
-        assertTrue("File doesn't exist: " + p, fs.exists(p));
+        assertTrue(fs.exists(p), "File doesn't exist: " + p);
         Path importDir = importDirAry[random.nextInt(importDirAry.length)];
         Path dest = new Path(importDir, p.getName());
-        assertFalse("Did not expect " + dest + " to exist", fs.exists(dest));
+        assertFalse(fs.exists(dest), "Did not expect " + dest + " to exist");
         FileUtil.copy(fs, p, fs, dest, false, fs.getConf());
       }
 
@@ -173,11 +173,11 @@ public class ImportExportIT extends AccumuloClusterHarness {
             // The file should be an absolute URI (file:///...), not a relative path
             // (/b-000.../I000001.rf)
             String fileUri = k.getColumnQualifier().toString();
-            assertFalse("Imported files should have absolute URIs, not relative: " + fileUri,
-                looksLikeRelativePath(fileUri));
+            assertFalse(looksLikeRelativePath(fileUri),
+                "Imported files should have absolute URIs, not relative: " + fileUri);
           } else if (k.getColumnFamily().equals(ServerColumnFamily.NAME)) {
-            assertFalse("Server directory should have absolute URI, not relative: " + value,
-                looksLikeRelativePath(value));
+            assertFalse(looksLikeRelativePath(value),
+                "Server directory should have absolute URI, not relative: " + value);
           } else {
             fail("Got expected pair: " + k + "=" + fileEntry.getValue());
           }
@@ -196,15 +196,15 @@ public class ImportExportIT extends AccumuloClusterHarness {
     Iterator<Entry<Key,Value>> src =
         client.createScanner(srcTable, Authorizations.EMPTY).iterator(),
         dest = client.createScanner(destTable, Authorizations.EMPTY).iterator();
-    assertTrue("Could not read any data from source table", src.hasNext());
-    assertTrue("Could not read any data from destination table", dest.hasNext());
+    assertTrue(src.hasNext(), "Could not read any data from source table");
+    assertTrue(dest.hasNext(), "Could not read any data from destination table");
     while (src.hasNext() && dest.hasNext()) {
       Entry<Key,Value> orig = src.next(), copy = dest.next();
       assertEquals(orig.getKey(), copy.getKey());
       assertEquals(orig.getValue(), copy.getValue());
     }
-    assertFalse("Source table had more data to read", src.hasNext());
-    assertFalse("Dest table had more data to read", dest.hasNext());
+    assertFalse(src.hasNext(), "Source table had more data to read");
+    assertFalse(dest.hasNext(), "Dest table had more data to read");
   }
 
   private boolean looksLikeRelativePath(String uri) {

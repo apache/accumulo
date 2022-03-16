@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.test.compaction;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -42,7 +42,7 @@ import org.apache.accumulo.tserver.compaction.CompactionStrategy;
 import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
 import org.apache.accumulo.tserver.compaction.WriteParameters;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterators;
 
@@ -50,7 +50,7 @@ import com.google.common.collect.Iterators;
 public class ConfigurableMajorCompactionIT extends ConfigurableMacBase {
 
   @Override
-  public int defaultTimeoutSeconds() {
+  protected int defaultTimeoutSeconds() {
     return 30;
   }
 

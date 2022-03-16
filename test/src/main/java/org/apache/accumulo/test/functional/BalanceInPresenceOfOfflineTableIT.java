@@ -19,8 +19,8 @@
 package org.apache.accumulo.test.functional;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -54,9 +54,9 @@ import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,7 +66,8 @@ import org.slf4j.LoggerFactory;
  */
 public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
-  private static Logger log = LoggerFactory.getLogger(BalanceInPresenceOfOfflineTableIT.class);
+  private static final Logger log =
+      LoggerFactory.getLogger(BalanceInPresenceOfOfflineTableIT.class);
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -80,18 +81,13 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
     }
   }
 
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 10 * 60;
-  }
-
   private static final int NUM_SPLITS = 200;
 
   private String UNUSED_TABLE, TEST_TABLE;
 
   private AccumuloClient accumuloClient;
 
-  @Before
+  @BeforeEach
   public void setupTables() throws AccumuloException, AccumuloSecurityException,
       TableExistsException, TableNotFoundException {
     accumuloClient = Accumulo.newClient().from(getClientProps()).build();
@@ -101,8 +97,8 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
         break;
       UtilWaitThread.sleep(TimeUnit.SECONDS.toMillis(2));
     }
-    assumeTrue("Not enough tservers to run test",
-        accumuloClient.instanceOperations().getTabletServers().size() >= 2);
+    assumeTrue(accumuloClient.instanceOperations().getTabletServers().size() >= 2,
+        "Not enough tservers to run test");
 
     // set up splits
     final SortedSet<Text> splits = new TreeSet<>();
@@ -127,7 +123,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
         Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
   }
 
-  @After
+  @AfterEach
   public void closeClient() {
     accumuloClient.close();
   }
@@ -211,7 +207,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
       balancingWorked = true;
     }
 
-    assertTrue("did not properly balance", balancingWorked);
+    assertTrue(balancingWorked, "did not properly balance");
   }
 
 }
