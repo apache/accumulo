@@ -39,9 +39,9 @@ import org.apache.accumulo.core.replication.thrift.WalEdits;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Lists;
 
@@ -52,7 +52,7 @@ public class BatchWriterReplicationReplayerTest {
   private AccumuloConfiguration conf;
   private BatchWriter bw;
 
-  @Before
+  @BeforeEach
   public void setUpContext() {
     conf = createMock(AccumuloConfiguration.class);
     bw = createMock(BatchWriter.class);
@@ -60,7 +60,7 @@ public class BatchWriterReplicationReplayerTest {
     expect(context.getConfiguration()).andReturn(conf).anyTimes();
   }
 
-  @After
+  @AfterEach
   public void verifyMock() {
     verify(context, conf, bw);
   }

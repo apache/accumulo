@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map;
 
@@ -26,7 +26,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.tserver.compaction.CompactionPlan;
 import org.apache.accumulo.tserver.compaction.WriteParameters;
 import org.easymock.EasyMock;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("removal")
 public class TabletTest {

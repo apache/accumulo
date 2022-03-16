@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.tserver;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.apache.accumulo.core.data.Value;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class MemValueTest {
 

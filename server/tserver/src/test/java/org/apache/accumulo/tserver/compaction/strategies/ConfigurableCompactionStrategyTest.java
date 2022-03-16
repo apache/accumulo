@@ -19,8 +19,8 @@
 package org.apache.accumulo.tserver.compaction.strategies;
 
 import static org.apache.accumulo.core.conf.ConfigurationTypeHelper.getFixedMemoryAsBytes;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -36,7 +36,7 @@ import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer.Ove
 import org.apache.accumulo.core.compaction.CompactionSettings;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ConfigurableCompactionStrategyTest {
 
