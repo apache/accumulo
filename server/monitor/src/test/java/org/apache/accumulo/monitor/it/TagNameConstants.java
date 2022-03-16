@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.monitor;
+package org.apache.accumulo.monitor.it;
 
 public class TagNameConstants {
   public static final String MONITOR = "Monitor";

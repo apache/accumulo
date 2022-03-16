@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.monitor.it;
 
-import static org.apache.accumulo.monitor.TagNameConstants.MONITOR;
+import static org.apache.accumulo.monitor.it.TagNameConstants.MONITOR;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;

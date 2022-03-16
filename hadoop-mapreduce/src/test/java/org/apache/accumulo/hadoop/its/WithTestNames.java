@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.hadoop;
+package org.apache.accumulo.hadoop.its;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;

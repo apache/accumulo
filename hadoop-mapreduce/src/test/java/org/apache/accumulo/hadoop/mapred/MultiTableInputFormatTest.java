@@ -32,7 +32,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.hadoop.WithTestNames;
+import org.apache.accumulo.hadoop.its.WithTestNames;
 import org.apache.accumulo.hadoop.mapreduce.InputFormatBuilder;
 import org.apache.accumulo.hadoopImpl.mapreduce.InputTableConfig;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;
