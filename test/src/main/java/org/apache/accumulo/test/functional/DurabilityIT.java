@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -41,7 +42,7 @@ import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterators;
 
-@Tag("MiniClusterOnly")
+@Tag(MINI_CLUSTER_ONLY)
 public class DurabilityIT extends ConfigurableMacBase {
 
   @Override

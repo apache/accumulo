@@ -29,7 +29,7 @@ import java.security.PublicKey;
 import java.security.SignatureException;
 import java.security.cert.Certificate;
 
-import org.apache.accumulo.WithTestNames;
+import org.apache.accumulo.harness.WithTestNames;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 

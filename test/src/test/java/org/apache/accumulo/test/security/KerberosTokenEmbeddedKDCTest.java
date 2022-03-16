@@ -24,9 +24,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 
-import org.apache.accumulo.WithTestNames;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.harness.TestingKdc;
+import org.apache.accumulo.harness.WithTestNames;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.security.UserGroupInformation;

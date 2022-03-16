@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -65,7 +66,7 @@ import org.slf4j.LoggerFactory;
  * This test verifies the default permissions so a clean instance must be used. A shared instance
  * might not be representative of a fresh installation.
  */
-@Tag("MiniClusterOnly")
+@Tag(MINI_CLUSTER_ONLY)
 public class PermissionsIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(PermissionsIT.class);
 

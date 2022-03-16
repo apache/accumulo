@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.replication;
 
+import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -75,7 +76,7 @@ import com.google.common.collect.Iterators;
  * Ensure that replication occurs using keytabs instead of password (not to mention SASL)
  */
 @Disabled("Replication ITs are not stable and not currently maintained")
-@Tag("MiniClusterOnly")
+@Tag(MINI_CLUSTER_ONLY)
 @Deprecated
 public class KerberosReplicationIT extends AccumuloITBase {
   private static final Logger log = LoggerFactory.getLogger(KerberosIT.class);

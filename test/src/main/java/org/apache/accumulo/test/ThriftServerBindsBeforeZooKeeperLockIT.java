@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test;
 
+import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.Socket;
@@ -52,7 +54,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * Test class that verifies "HA-capable" servers put up their thrift servers before acquiring their
  * ZK lock.
  */
-@Tag("MiniClusterOnly")
+@Tag(MINI_CLUSTER_ONLY)
 public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarness {
   private static final Logger LOG =
       LoggerFactory.getLogger(ThriftServerBindsBeforeZooKeeperLockIT.class);

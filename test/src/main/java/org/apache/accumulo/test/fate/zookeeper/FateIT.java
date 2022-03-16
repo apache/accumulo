@@ -25,6 +25,7 @@ import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.IN_PROGRESS;
 import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.NEW;
 import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.SUBMITTED;
 import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.SUCCESSFUL;
+import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
@@ -66,7 +67,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Tag("ZooKeeperTestingServer")
+@Tag(ZOOKEEPER_TESTING_SERVER)
 public class FateIT {
 
   public static class TestOperation extends ManagerRepo {

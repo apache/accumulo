@@ -21,6 +21,8 @@ package org.apache.accumulo.test.shell;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.newBufferedReader;
 import static java.util.Objects.requireNonNull;
+import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -60,8 +62,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-@Tag("MiniClusterOnly")
-@Tag("SunnyDay")
+@Tag(MINI_CLUSTER_ONLY)
+@Tag(SUNNY_DAY)
 public class ShellCreateTableIT extends SharedMiniClusterBase {
 
   private MockShell ts;
@@ -90,7 +92,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
   }
 
   @AfterAll
-  public static void tearDownAfterClass() {
+  public static void tearDownAfterAll() {
     SharedMiniClusterBase.stopMiniCluster();
   }
 

@@ -19,6 +19,7 @@
 package org.apache.accumulo.harness;
 
 import static java.lang.StackWalker.Option.RETAIN_CLASS_REFERENCE;
+import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
@@ -52,8 +53,8 @@ import org.slf4j.LoggerFactory;
  * testing see {@link AccumuloClusterHarness}
  *
  * There isn't a good way to build this off of the {@link AccumuloClusterHarness} (as would be the
- * logical place) because we need to start the MiniAccumuloCluster in a static BeforeClass-annotated
- * method. Because it is static and invoked before any other BeforeClass methods in the
+ * logical place) because we need to start the MiniAccumuloCluster in a static BeforeAll-annotated
+ * method. Because it is static and invoked before any other BeforeAll methods in the
  * implementation, the actual test classes can't expose any information to tell the base class that
  * it is to perform the one-MAC-per-class semantics.
  *
@@ -62,7 +63,7 @@ import org.slf4j.LoggerFactory;
  * the {@link org.junit.jupiter.api.BeforeAll} JUnit annotation and {@link #stopMiniCluster()} in a
  * method annotated with the {@link org.junit.jupiter.api.AfterAll} JUnit annotation.
  */
-@Tag("MiniClusterOnly")
+@Tag(MINI_CLUSTER_ONLY)
 public abstract class SharedMiniClusterBase extends AccumuloITBase implements ClusterUsers {
   private static final Logger log = LoggerFactory.getLogger(SharedMiniClusterBase.class);
   public static final String TRUE = Boolean.toString(true);

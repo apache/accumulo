@@ -20,6 +20,8 @@ package org.apache.accumulo.test.shell;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -96,8 +98,8 @@ import com.google.common.collect.Iterators;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@Tag("MiniClusterOnly")
-@Tag("SunnyDay")
+@Tag(MINI_CLUSTER_ONLY)
+@Tag(SUNNY_DAY)
 public class ShellServerIT extends SharedMiniClusterBase {
 
   @SuppressWarnings("removal")
@@ -147,7 +149,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   @AfterAll
-  public static void tearDownAfterClass() {
+  public static void tearDownAfterAll() {
     SharedMiniClusterBase.stopMiniCluster();
   }
 

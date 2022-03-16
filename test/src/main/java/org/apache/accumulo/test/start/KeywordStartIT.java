@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.start;
 
+import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -70,7 +71,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Tag("SunnyDay")
+@Tag(SUNNY_DAY)
 public class KeywordStartIT {
 
   private final Logger log = LoggerFactory.getLogger(getClass());

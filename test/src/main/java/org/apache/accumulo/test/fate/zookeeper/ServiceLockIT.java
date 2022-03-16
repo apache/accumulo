@@ -19,7 +19,7 @@
 package org.apache.accumulo.test.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.concurrent.TimeUnit.MINUTES;
+import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -64,7 +64,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.Uninterruptibles;
 
-@Tag("ZooKeeperTestingServer")
+@Tag(ZOOKEEPER_TESTING_SERVER)
 public class ServiceLockIT {
 
   @TempDir
@@ -410,7 +410,7 @@ public class ServiceLockIT {
   }
 
   @Test
-  @Timeout(value = 1, unit = MINUTES)
+  @Timeout(60)
   public void testLockSerial() throws Exception {
     var parent = ServiceLock.path("/zlretryLockSerial");
 
@@ -576,7 +576,7 @@ public class ServiceLockIT {
   }
 
   @Test
-  @Timeout(value = 1, unit = MINUTES)
+  @Timeout(60)
   public void testLockParallel() throws Exception {
     var parent = ServiceLock.path("/zlParallel");
 

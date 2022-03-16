@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
+
 import java.io.IOException;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -39,7 +41,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Tests Old and New Bulk import
  */
-@Tag("SunnyDay")
+@Tag(SUNNY_DAY)
 public class BulkIT extends AccumuloClusterHarness {
 
   private static final int N = 100000;

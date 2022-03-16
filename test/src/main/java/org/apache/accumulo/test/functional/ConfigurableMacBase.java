@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedOutputStream;
@@ -58,7 +59,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * specific configuration. Most tests don't need this level of control and should extend
  * {@link AccumuloClusterHarness} instead.
  */
-@Tag("MiniClusterOnly")
+@Tag(MINI_CLUSTER_ONLY)
 public class ConfigurableMacBase extends AccumuloITBase {
   public static final Logger log = LoggerFactory.getLogger(ConfigurableMacBase.class);
 

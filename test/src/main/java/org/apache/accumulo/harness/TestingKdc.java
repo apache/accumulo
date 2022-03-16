@@ -62,8 +62,7 @@ public class TestingKdc {
     File targetDir = new File(System.getProperty("user.dir"), "target");
     if (!targetDir.exists())
       assertTrue(targetDir.mkdirs());
-    assertTrue(targetDir.exists() && targetDir.isDirectory(),
-        "Could not find Maven target directory: " + targetDir);
+    assertTrue(targetDir.isDirectory(), "Could not find Maven target directory: " + targetDir);
 
     // Create the directories: target/kerberos/minikdc
     File kdcDir = new File(new File(targetDir, "kerberos"), "minikdc");

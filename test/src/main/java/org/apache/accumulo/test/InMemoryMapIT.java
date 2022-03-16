@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -35,7 +36,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.accumulo.WithTestNames;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
@@ -47,6 +47,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.harness.WithTestNames;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.functional.NativeMapIT;
 import org.apache.accumulo.tserver.InMemoryMap;
@@ -81,7 +82,7 @@ import org.slf4j.LoggerFactory;
  * DefaultMap could move to a unit test in tserver, but they are here for convenience of viewing
  * both at the same time.
  */
-@Tag("SunnyDay")
+@Tag(SUNNY_DAY)
 public class InMemoryMapIT extends WithTestNames {
 
   private static final Logger log = LoggerFactory.getLogger(InMemoryMapIT.class);

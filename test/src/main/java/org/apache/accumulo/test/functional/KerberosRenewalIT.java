@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.apache.accumulo.test.functional.KerberosRenewalIT.TEST_DURATION_MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -69,7 +70,7 @@ import com.google.common.collect.Iterables;
  * MAC test which uses {@link MiniKdc} to simulate ta secure environment. Can be used as a sanity
  * check for Kerberos/SASL testing.
  */
-@Tag("MiniClusterOnly")
+@Tag(MINI_CLUSTER_ONLY)
 public class KerberosRenewalIT extends AccumuloITBase {
   private static final Logger log = LoggerFactory.getLogger(KerberosRenewalIT.class);
 

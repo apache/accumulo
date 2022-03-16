@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.security.SecureRandom;
 import java.time.Duration;
 
-import org.apache.accumulo.WithTestNames;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.slf4j.Logger;
@@ -39,6 +38,11 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class AccumuloITBase extends WithTestNames {
   public static final SecureRandom random = new SecureRandom();
   private static final Logger log = LoggerFactory.getLogger(AccumuloITBase.class);
+
+  public static final String STANDALONE_CAPABLE_CLUSTER = "StandaloneCapableCluster";
+  public static final String SUNNY_DAY = "SunnyDay";
+  public static final String MINI_CLUSTER_ONLY = "MiniClusterOnly";
+  public static final String ZOOKEEPER_TESTING_SERVER = "ZooKeeperTestingServer";
 
   public String[] getUniqueNames(int num) {
     String[] names = new String[num];

@@ -20,6 +20,7 @@ package org.apache.accumulo.harness;
 
 import static com.google.common.base.Preconditions.checkState;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.harness.AccumuloITBase.STANDALONE_CAPABLE_CLUSTER;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.IOException;
@@ -59,7 +60,7 @@ import org.slf4j.LoggerFactory;
  * advanced ITs that do crazy things. For more typical, expected behavior of a cluster see
  * {@link SharedMiniClusterBase}. This instance can be MAC or a standalone instance.
  */
-@Tag("StandaloneCapableCluster")
+@Tag(STANDALONE_CAPABLE_CLUSTER)
 public abstract class AccumuloClusterHarness extends AccumuloITBase
     implements MiniClusterConfigurationCallback, ClusterUsers {
   private static final Logger log = LoggerFactory.getLogger(AccumuloClusterHarness.class);

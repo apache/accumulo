@@ -1159,7 +1159,7 @@
                 <module name="JavadocMethod">
                   <property name="allowMissingParamTags" value="true" />
                   <property name="allowMissingReturnTag" value="true" />
-                  <property name="allowedAnnotations" value="Override,Test,BeforeClass,AfterClass,Before,After" />
+                  <property name="allowedAnnotations" value="Override,Test,BeforeClass,AfterClass,Before,After,BeforeAll,AfterAll,BeforeEach,AfterEach" />
                 </module>
                 <module name="MissingOverrideCheck" />
               </module>
