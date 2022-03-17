@@ -29,37 +29,37 @@ public interface PropStore {
   /**
    * Test that a node for properties exists without throwing a KeeperException.
    *
-   * @param PropCacheId
+   * @param propCacheKey
    *          the prop cache id
    * @return true if the property node exists, false otherwise.
    * @throws PropStoreException
    *           if the check fails due to interrupt.
    */
-  boolean exists(PropCacheId PropCacheId);
+  boolean exists(PropCacheKey propCacheKey);
 
   /**
    * Return the data version of the encoded property node.
    *
-   * @param PropCacheId
+   * @param propCacheKey
    *          the prop cache id
    * @return the data version or -1 if the version cannot be determined.
    * @throws PropStoreException
    *           if the call to data store fails.
    */
-  int getNodeVersion(PropCacheId PropCacheId);
+  int getNodeVersion(PropCacheKey propCacheKey);
 
   /**
    * Create an initial entry for the PropCacheId. If properties already exist, they are not
    * modified.
    *
-   * @param PropCacheId
+   * @param propCacheKey
    *          the prop cache id
    * @param props
    *          a map of property k,v pairs
    * @throws PropStoreException
    *           if the updates fails because of an underlying store exception
    */
-  void create(PropCacheId PropCacheId, Map<String,String> props);
+  void create(PropCacheKey propCacheKey, Map<String,String> props);
 
   /**
    *
@@ -70,42 +70,42 @@ public interface PropStore {
    *           if the updates fails because of an underlying store exception
    */
   @Nullable
-  VersionedProperties get(PropCacheId propCacheId);
+  VersionedProperties get(PropCacheKey propCacheId);
 
   /**
    * Adds or updates current properties. If the property currently exists it is overwritten,
    * otherwise it is added.
    *
-   * @param propCacheId
+   * @param propCacheKey
    *          the prop cache id
    * @param props
    *          a map of property k,v pairs
    * @throws PropStoreException
    *           if the values cannot be written or if an underlying store exception occurs.
    */
-  void putAll(PropCacheId propCacheId, Map<String,String> props);
+  void putAll(PropCacheKey propCacheKey, Map<String,String> props);
 
   /**
    * Delete the store node from the underlying store.
    *
-   * @param propCacheId
+   * @param propCacheKey
    *          the prop cache id
    * @throws PropStoreException
    *           if the updates fails because of an underlying store exception
    */
-  void delete(PropCacheId propCacheId);
+  void delete(PropCacheKey propCacheKey);
 
   /**
    * Deletes individual properties specified by the set of keys.
    *
-   * @param propCacheId
+   * @param propCacheKey
    *          the prop cache id
    * @param keys
    *          a set of keys.
    * @throws PropStoreException
    *           if the values cannot be deleted or if an underlying store exception occurs.
    */
-  void removeProperties(PropCacheId propCacheId, Collection<String> keys);
+  void removeProperties(PropCacheKey propCacheKey, Collection<String> keys);
 
   /**
    * External processes can register for notifications if the properties change. Normally processes
@@ -117,11 +117,11 @@ public interface PropStore {
    * but listeners should not perform lengthy operations on the notification to prevent delaying
    * other listeners from receive timely notification of the changes detected.
    *
-   * @param propCacheId
+   * @param propCacheKey
    *          the prop cache id
    * @param listener
    *          a listener
    */
-  void registerAsListener(PropCacheId propCacheId, PropChangeListener listener);
+  void registerAsListener(PropCacheKey propCacheKey, PropChangeListener listener);
 
 }

@@ -39,7 +39,7 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
-import org.apache.accumulo.server.conf.store.PropCacheId;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -98,7 +98,7 @@ public class ConfigConverter {
   }
 
   public void convertSys() {
-    var sysId = PropCacheId.forSystem(instanceId);
+    var sysPropKey = PropCacheKey.forSystem(instanceId);
     var zkPathSysConfig = zkBasePath + Constants.ZCONFIG;
 
     Map<String,String> props = readLegacyProps(zkPathSysConfig);
@@ -114,7 +114,7 @@ public class ConfigConverter {
 
     log.info("system props: {} -> {}", props, renamedProps);
 
-    writeConverted(sysId, renamedProps, zkPathSysConfig);
+    writeConverted(sysPropKey, renamedProps, zkPathSysConfig);
 
     // delete - the confirmation and then delete done in two steps so that the removal is atomic.
     // If the props were deleted as confirmed
@@ -129,7 +129,7 @@ public class ConfigConverter {
         log.info("NS:{} base path: {}", namespace, zkPropBasePath);
         Map<String,String> props = readLegacyProps(zkPropBasePath);
         log.info("Namespace props: {} - {}", namespace, props);
-        writeConverted(PropCacheId.forNamespace(instanceId, NamespaceId.of(namespace)), props,
+        writeConverted(PropCacheKey.forNamespace(instanceId, NamespaceId.of(namespace)), props,
             zkPropBasePath);
       }
     } catch (KeeperException ex) {
@@ -150,7 +150,7 @@ public class ConfigConverter {
         log.info("table:{} base path: {}", table, zkPropBasePath);
         Map<String,String> props = readLegacyProps(zkPropBasePath);
         log.info("table props: {} - {}", table, props);
-        writeConverted(PropCacheId.forTable(instanceId, TableId.of(table)), props, zkPropBasePath);
+        writeConverted(PropCacheKey.forTable(instanceId, TableId.of(table)), props, zkPropBasePath);
       }
     } catch (KeeperException ex) {
       throw new IllegalStateException(
@@ -201,16 +201,16 @@ public class ConfigConverter {
     return props;
   }
 
-  private void writeConverted(final PropCacheId propCacheId, final Map<String,String> props,
+  private void writeConverted(final PropCacheKey propCacheKey, final Map<String,String> props,
       final String legacyBasePath) {
 
     // will throw PropStoreException if create fails.
-    propStore.create(propCacheId, props);
+    propStore.create(propCacheKey, props);
 
     // confirm
     Map<String,String> confirmed = new TreeMap<>();
     Map<String,String> rejected = new TreeMap<>();
-    VersionedProperties readSysProps = propStore.get(propCacheId);
+    VersionedProperties readSysProps = propStore.get(propCacheKey);
     if (readSysProps == null) {
       return;
     }
@@ -226,15 +226,15 @@ public class ConfigConverter {
         }
       } catch (KeeperException ex) {
         throw new IllegalStateException(
-            "Failed to read property: " + e.getKey() + " during conversion to: " + propCacheId);
+            "Failed to read property: " + e.getKey() + " during conversion to: " + propCacheKey);
       } catch (InterruptedException ex) {
         Thread.currentThread().interrupt();
         throw new IllegalStateException(
-            "Interrupt received conversing properties for " + propCacheId);
+            "Interrupt received conversing properties for " + propCacheKey);
       }
     }
 
-    log.info("Converter results for id: {} - confirmed: {}, rejected: {}", propCacheId, confirmed,
+    log.info("Converter results for id: {} - confirmed: {}, rejected: {}", propCacheKey, confirmed,
         rejected);
 
   }

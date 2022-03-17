@@ -26,8 +26,8 @@ import static org.apache.accumulo.core.Constants.ZTABLE_CONF;
 
 import java.util.Comparator;
 import java.util.Objects;
+import java.util.StringJoiner;
 
-import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
@@ -44,9 +44,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * Provides utility methods from constructing different id based on type and methods to parse a
  * ZooKeeper path and return a prop cache id.
  */
-public class PropCacheId extends AbstractId<PropCacheId> {
-
-  private static final long serialVersionUID = 1L;
+public class PropCacheKey implements Comparable<PropCacheKey> {
 
   public static final String PROP_NODE_NAME = "encoded_props";
 
@@ -64,9 +62,8 @@ public class PropCacheId extends AbstractId<PropCacheId> {
   private final NamespaceId namespaceId;
   private final TableId tableId;
 
-  private PropCacheId(final String path, final IdType idType, final NamespaceId namespaceId,
+  private PropCacheKey(final String path, final IdType idType, final NamespaceId namespaceId,
       final TableId tableId) {
-    super(path);
     this.path = path;
     this.idType = idType;
     this.namespaceId = namespaceId;
@@ -80,7 +77,7 @@ public class PropCacheId extends AbstractId<PropCacheId> {
    *          the system context specifying the instance id
    * @return a prop cache id for system properties,
    */
-  public static PropCacheId forSystem(final ServerContext context) {
+  public static PropCacheKey forSystem(final ServerContext context) {
     return forSystem(context.getInstanceID());
   }
 
@@ -91,8 +88,8 @@ public class PropCacheId extends AbstractId<PropCacheId> {
    *          the instance id.
    * @return a prop cache id for system properties,
    */
-  public static PropCacheId forSystem(final InstanceId instanceId) {
-    return new PropCacheId(ZooUtil.getRoot(instanceId) + ZCONFIG + "/" + PROP_NODE_NAME,
+  public static PropCacheKey forSystem(final InstanceId instanceId) {
+    return new PropCacheKey(ZooUtil.getRoot(instanceId) + ZCONFIG + "/" + PROP_NODE_NAME,
         IdType.SYSTEM, null, null);
   }
 
@@ -105,7 +102,7 @@ public class PropCacheId extends AbstractId<PropCacheId> {
    *          the namespace id
    * @return a prop cache id a namespaces properties,
    */
-  public static PropCacheId forNamespace(final ServerContext context,
+  public static PropCacheKey forNamespace(final ServerContext context,
       final NamespaceId namespaceId) {
     return forNamespace(context.getInstanceID(), namespaceId);
   }
@@ -119,10 +116,11 @@ public class PropCacheId extends AbstractId<PropCacheId> {
    *          the namespace id
    * @return a prop cache id a namespaces properties,
    */
-  public static PropCacheId forNamespace(final InstanceId instanceId,
+  public static PropCacheKey forNamespace(final InstanceId instanceId,
       final NamespaceId namespaceId) {
-    return new PropCacheId(ZooUtil.getRoot(instanceId) + ZNAMESPACES + "/" + namespaceId.canonical()
-        + ZNAMESPACE_CONF + "/" + PROP_NODE_NAME, IdType.NAMESPACE, namespaceId, null);
+    return new PropCacheKey(ZooUtil.getRoot(instanceId) + ZNAMESPACES + "/"
+        + namespaceId.canonical() + ZNAMESPACE_CONF + "/" + PROP_NODE_NAME, IdType.NAMESPACE,
+        namespaceId, null);
   }
 
   /**
@@ -134,7 +132,7 @@ public class PropCacheId extends AbstractId<PropCacheId> {
    *          the table id
    * @return a prop cache id a namespaces properties,
    */
-  public static PropCacheId forTable(final ServerContext context, final TableId tableId) {
+  public static PropCacheKey forTable(final ServerContext context, final TableId tableId) {
     return forTable(context.getInstanceID(), tableId);
   }
 
@@ -147,8 +145,8 @@ public class PropCacheId extends AbstractId<PropCacheId> {
    *          the table id
    * @return a prop cache id a namespaces properties,
    */
-  public static PropCacheId forTable(final InstanceId instanceId, final TableId tableId) {
-    return new PropCacheId(ZooUtil.getRoot(instanceId) + ZTABLES + "/" + tableId.canonical()
+  public static PropCacheKey forTable(final InstanceId instanceId, final TableId tableId) {
+    return new PropCacheKey(ZooUtil.getRoot(instanceId) + ZTABLES + "/" + tableId.canonical()
         + ZTABLE_CONF + "/" + PROP_NODE_NAME, IdType.TABLE, null, tableId);
   }
 
@@ -159,7 +157,7 @@ public class PropCacheId extends AbstractId<PropCacheId> {
    *          the path
    * @return the prop cache id
    */
-  public static @Nullable PropCacheId fromPath(final String path) {
+  public static @Nullable PropCacheKey fromPath(final String path) {
     String[] tokens = path.split("/");
 
     InstanceId instanceId = InstanceId.of(tokens[IID_TOKEN_POSITION]);
@@ -168,11 +166,11 @@ public class PropCacheId extends AbstractId<PropCacheId> {
 
     switch (type) {
       case SYSTEM:
-        return PropCacheId.forSystem(instanceId);
+        return PropCacheKey.forSystem(instanceId);
       case NAMESPACE:
-        return PropCacheId.forNamespace(instanceId, NamespaceId.of(tokens[ID_TOKEN_POSITION]));
+        return PropCacheKey.forNamespace(instanceId, NamespaceId.of(tokens[ID_TOKEN_POSITION]));
       case TABLE:
-        return PropCacheId.forTable(instanceId, TableId.of(tokens[ID_TOKEN_POSITION]));
+        return PropCacheKey.forTable(instanceId, TableId.of(tokens[ID_TOKEN_POSITION]));
       case UNKNOWN:
       default:
         return null;
@@ -211,8 +209,8 @@ public class PropCacheId extends AbstractId<PropCacheId> {
   }
 
   @Override
-  public int compareTo(@NonNull PropCacheId other) {
-    return Comparator.comparing(PropCacheId::getIdType).thenComparing(PropCacheId::getPath)
+  public int compareTo(@NonNull PropCacheKey other) {
+    return Comparator.comparing(PropCacheKey::getIdType).thenComparing(PropCacheKey::getPath)
         .compare(this, other);
   }
 
@@ -240,13 +238,33 @@ public class PropCacheId extends AbstractId<PropCacheId> {
       return true;
     if (o == null || getClass() != o.getClass())
       return false;
-    PropCacheId that = (PropCacheId) o;
+    PropCacheKey that = (PropCacheKey) o;
     return path.equals(that.path);
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(path);
+  }
+
+  @Override
+  public String toString() {
+    switch (idType) {
+      case SYSTEM:
+        return new StringJoiner(", ", PropCacheKey.class.getSimpleName() + "[", "]")
+            .add("idType=System").toString();
+      case NAMESPACE:
+        return new StringJoiner(", ", PropCacheKey.class.getSimpleName() + "[", "]")
+            .add("idType=Namespace").add("namespaceId=" + namespaceId).toString();
+      case TABLE:
+        return new StringJoiner(", ", PropCacheKey.class.getSimpleName() + "[", "]")
+            .add("idType=Table").add("tableId=" + tableId).toString();
+      default:
+        return new StringJoiner(", ", PropCacheKey.class.getSimpleName() + "[", "]")
+            .add("idType=" + idType).add("namespaceId=" + namespaceId).add("tableId=" + tableId)
+            .add("path='" + path + "'").toString();
+    }
+
   }
 
   /**

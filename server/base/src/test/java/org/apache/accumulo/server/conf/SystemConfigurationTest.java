@@ -43,7 +43,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
-import org.apache.accumulo.server.conf.store.PropCacheId;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.junit.jupiter.api.BeforeEach;
@@ -77,19 +77,19 @@ public class SystemConfigurationTest {
     propStore.registerAsListener(anyObject(), anyObject());
     expectLastCall().anyTimes();
 
-    PropCacheId sysId = PropCacheId.forSystem(instanceId);
+    PropCacheKey sysPropKey = PropCacheKey.forSystem(instanceId);
     VersionedProperties sysProps =
         new VersionedProperties(1, Instant.now(), Map.of(GC_PORT.getKey(), "1234",
             TSERV_SCAN_MAX_OPENFILES.getKey(), "19", TABLE_BLOOM_ENABLED.getKey(), "true"));
-    expect(propStore.get(eq(sysId))).andReturn(sysProps).times(2);
-    expect(propStore.getNodeVersion(eq(sysId))).andReturn(1).once();
+    expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).times(2);
+    expect(propStore.getNodeVersion(eq(sysPropKey))).andReturn(1).once();
     replay(propStore);
 
     ConfigurationCopy defaultConfig =
         new ConfigurationCopy(Map.of(TABLE_BLOOM_SIZE.getKey(), TABLE_BLOOM_SIZE.getDefaultValue(),
             TABLE_DURABILITY.getKey(), TABLE_DURABILITY.getDefaultValue()));
 
-    sysConfig = new SystemConfiguration(log, context, sysId, defaultConfig);
+    sysConfig = new SystemConfiguration(log, context, sysPropKey, defaultConfig);
   }
 
   @Test
@@ -101,7 +101,7 @@ public class SystemConfigurationTest {
   @Test
   public void testFromFixed() {
 
-    var sysCacheId = PropCacheId.forSystem(instanceId);
+    var sysPropKey = PropCacheKey.forSystem(instanceId);
 
     assertEquals("9997", sysConfig.get(TSERV_CLIENTPORT)); // default
     assertEquals("1234", sysConfig.get(GC_PORT)); // fixed sys config
@@ -120,11 +120,11 @@ public class SystemConfigurationTest {
     VersionedProperties sysUpdateProps = new VersionedProperties(2, Instant.now(),
         Map.of(GC_PORT.getKey(), "3456", TSERV_SCAN_MAX_OPENFILES.getKey(), "27",
             TABLE_BLOOM_ENABLED.getKey(), "false", TABLE_BLOOM_SIZE.getKey(), "2048"));
-    expect(propStore.get(eq(sysCacheId))).andReturn(sysUpdateProps).anyTimes();
-    expect(propStore.getNodeVersion(eq(sysCacheId))).andReturn(2).anyTimes();
+    expect(propStore.get(eq(sysPropKey))).andReturn(sysUpdateProps).anyTimes();
+    expect(propStore.getNodeVersion(eq(sysPropKey))).andReturn(2).anyTimes();
     replay(propStore);
 
-    sysConfig.zkChangeEvent(sysCacheId);
+    sysConfig.zkChangeEvent(sysPropKey);
 
     assertEquals("9997", sysConfig.get(TSERV_CLIENTPORT)); // default
     assertEquals("1234", sysConfig.get(GC_PORT)); // fixed sys config

@@ -30,7 +30,7 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.store.PropCacheId;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,13 +76,13 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   private final ServerContext context;
   private final SiteConfiguration siteConfig;
   private final InstanceId instanceID;
-  private final PropCacheId sysPropCacheId;
+  private final PropCacheKey sysPropCacheKey;
 
   public ServerConfigurationFactory(ServerContext context, SiteConfiguration siteConfig) {
     this.context = context;
     this.siteConfig = siteConfig;
     instanceID = context.getInstanceID();
-    sysPropCacheId = PropCacheId.forSystem(instanceID);
+    sysPropCacheKey = PropCacheKey.forSystem(instanceID);
 
     addInstanceToCaches(instanceID);
   }
@@ -108,7 +108,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   @Override
   public synchronized AccumuloConfiguration getSystemConfiguration() {
     if (systemConfig == null) {
-      systemConfig = new SystemConfiguration(log, context, sysPropCacheId, getSiteConfiguration());
+      systemConfig = new SystemConfiguration(log, context, sysPropCacheKey, getSiteConfiguration());
     }
     return systemConfig;
   }

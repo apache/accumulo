@@ -20,7 +20,7 @@ package org.apache.accumulo.server.conf.store.impl;
 
 import java.util.Set;
 
-import org.apache.accumulo.server.conf.store.PropCacheId;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
 
 /**
@@ -29,57 +29,57 @@ import org.apache.accumulo.server.conf.store.PropChangeListener;
  */
 public abstract class PropStoreEventTask implements Runnable {
 
-  private final PropCacheId propCacheId;
+  private final PropCacheKey propCacheKey;
   private final Set<PropChangeListener> listeners;
 
-  private PropStoreEventTask(final PropCacheId propCacheId,
+  private PropStoreEventTask(final PropCacheKey propCacheKey,
       final Set<PropChangeListener> listeners) {
-    this.propCacheId = propCacheId;
+    this.propCacheKey = propCacheKey;
     this.listeners = listeners;
   }
 
   public static class PropStoreZkChangeEventTask extends PropStoreEventTask {
 
-    PropStoreZkChangeEventTask(final PropCacheId propCacheId,
+    PropStoreZkChangeEventTask(final PropCacheKey propCacheKey,
         final Set<PropChangeListener> listeners) {
-      super(propCacheId, listeners);
+      super(propCacheKey, listeners);
     }
 
     @Override
     public void run() {
-      super.listeners.forEach(listener -> listener.zkChangeEvent(super.propCacheId));
+      super.listeners.forEach(listener -> listener.zkChangeEvent(super.propCacheKey));
     }
   }
 
   public static class PropStoreCacheChangeEventTask extends PropStoreEventTask {
 
-    PropStoreCacheChangeEventTask(final PropCacheId propCacheId,
+    PropStoreCacheChangeEventTask(final PropCacheKey propCacheKey,
         final Set<PropChangeListener> listeners) {
-      super(propCacheId, listeners);
+      super(propCacheKey, listeners);
     }
 
     @Override
     public void run() {
-      super.listeners.forEach(listener -> listener.cacheChangeEvent(super.propCacheId));
+      super.listeners.forEach(listener -> listener.cacheChangeEvent(super.propCacheKey));
     }
   }
 
   public static class PropStoreDeleteEventTask extends PropStoreEventTask {
 
-    PropStoreDeleteEventTask(final PropCacheId propCacheId,
+    PropStoreDeleteEventTask(final PropCacheKey propCacheKey,
         final Set<PropChangeListener> listeners) {
-      super(propCacheId, listeners);
+      super(propCacheKey, listeners);
     }
 
     @Override
     public void run() {
-      super.listeners.forEach(listener -> listener.deleteEvent(super.propCacheId));
+      super.listeners.forEach(listener -> listener.deleteEvent(super.propCacheKey));
     }
   }
 
   public static class PropStoreConnectionEventTask extends PropStoreEventTask {
 
-    PropStoreConnectionEventTask(final PropCacheId propCacheId,
+    PropStoreConnectionEventTask(final PropCacheKey propCacheKey,
         final Set<PropChangeListener> listeners) {
       super(null, listeners);
     }

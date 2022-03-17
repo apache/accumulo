@@ -24,7 +24,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.server.conf.store.PropCacheId;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.conf.util.ConfigConverter;
 import org.apache.accumulo.server.conf.util.ConfigPropertyPrinter;
@@ -96,7 +96,7 @@ public class ConvertPropsDevIT extends AccumuloClusterHarness {
     var codec = ZooPropStore.getCodec();
 
     Stat stat = new Stat();
-    byte[] bytes = zrw.getData(PropCacheId.forSystem(getServerContext()).getPath(), stat);
+    byte[] bytes = zrw.getData(PropCacheKey.forSystem(getServerContext()).getPath(), stat);
     log.info("versioned props: {}", codec.fromBytes(stat.getVersion(), bytes));
 
     ConfigPropertyPrinter printer = new ConfigPropertyPrinter();

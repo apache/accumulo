@@ -24,7 +24,7 @@ import java.util.Map;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.store.PropCacheId;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +34,7 @@ public class NamespacePropUtil {
     if (!Property.isTablePropertyValid(property, value))
       return false;
 
-    context.getPropStore().putAll(PropCacheId.forNamespace(context, namespaceId),
+    context.getPropStore().putAll(PropCacheKey.forNamespace(context, namespaceId),
         Map.of(property, value));
 
     return true;
@@ -46,7 +46,7 @@ public class NamespacePropUtil {
     LoggerFactory.getLogger(NamespacePropUtil.class).warn("Request to remove property: {}",
         property);
 
-    context.getPropStore().removeProperties(PropCacheId.forNamespace(context, namespaceId),
+    context.getPropStore().removeProperties(PropCacheKey.forNamespace(context, namespaceId),
         List.of(property));
   }
 }

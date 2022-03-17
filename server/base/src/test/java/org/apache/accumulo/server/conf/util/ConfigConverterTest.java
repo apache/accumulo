@@ -44,7 +44,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
-import org.apache.accumulo.server.conf.store.PropCacheId;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.BeforeEach;
@@ -83,13 +83,13 @@ public class ConfigConverterTest {
 
   @Test
   public void emptySysTest() throws Exception {
-    var sysPropId = PropCacheId.forSystem(IID);
+    var sysPropKey = PropCacheKey.forSystem(IID);
 
     expect(zrw.getChildren(eq(zkSysConfig))).andReturn(List.of()).anyTimes();
-    propStore.create(eq(sysPropId), anyObject());
+    propStore.create(eq(sysPropKey), anyObject());
     expectLastCall().anyTimes();
 
-    expect(propStore.get(eq(sysPropId))).andReturn(new VersionedProperties(Map.of()));
+    expect(propStore.get(eq(sysPropKey))).andReturn(new VersionedProperties(Map.of()));
 
     replay(context, zrw, propStore);
 
@@ -135,17 +135,18 @@ public class ConfigConverterTest {
     try {
       // system config
       expect(zrw.getChildren(eq(zkSysConfig)))
-          .andReturn(List.of("table.split.threshold", "gc.port.client", PropCacheId.PROP_NODE_NAME))
+          .andReturn(
+              List.of("table.split.threshold", "gc.port.client", PropCacheKey.PROP_NODE_NAME))
           .anyTimes();
       expect(zrw.getData(eq(zkSysConfig + "/table.split.threshold")))
           .andReturn("512M".getBytes(UTF_8)).anyTimes(); // a valid table prop
       expect(zrw.getData(eq(zkSysConfig + "/gc.port.client"))).andReturn("9898".getBytes(UTF_8))
           .anyTimes(); // a fixed prop
 
-      propStore.create(eq(PropCacheId.forSystem(instanceId)), anyObject());
+      propStore.create(eq(PropCacheKey.forSystem(instanceId)), anyObject());
       expectLastCall().anyTimes();
 
-      expect(propStore.get(eq(PropCacheId.forSystem(instanceId))))
+      expect(propStore.get(eq(PropCacheKey.forSystem(instanceId))))
           .andReturn(new VersionedProperties(
               Map.of("table.split.threshold", "512M", "gc.port.client", "9898")));
 
@@ -158,7 +159,7 @@ public class ConfigConverterTest {
       mockZkProp(zkNamespaces, NamespaceId.of("1"), Constants.ZNAMESPACE_CONF,
           Map.of("table.split.threshold", "768M"));
 
-      propStore.create(eq(PropCacheId.forNamespace(instanceId, NamespaceId.of("+default"))),
+      propStore.create(eq(PropCacheKey.forNamespace(instanceId, NamespaceId.of("+default"))),
           anyObject());
       expectLastCall().anyTimes();
 
@@ -227,15 +228,15 @@ public class ConfigConverterTest {
 
   @Test
   public void sortIdTest() {
-    Map<PropCacheId,String> m = new TreeMap<>();
+    Map<PropCacheKey,String> m = new TreeMap<>();
 
-    m.put(PropCacheId.forNamespace(IID, NamespaceId.of("+default")), "");
-    m.put(PropCacheId.forTable(IID, TableId.of("+r")), "");
-    m.put(PropCacheId.forTable(IID, TableId.of("+rep")), "");
-    m.put(PropCacheId.forTable(IID, TableId.of("1")), "");
-    m.put(PropCacheId.forNamespace(IID, NamespaceId.of("+accumulo")), "");
-    m.put(PropCacheId.forTable(IID, TableId.of("!0")), "");
-    m.put(PropCacheId.forSystem(IID), "");
+    m.put(PropCacheKey.forNamespace(IID, NamespaceId.of("+default")), "");
+    m.put(PropCacheKey.forTable(IID, TableId.of("+r")), "");
+    m.put(PropCacheKey.forTable(IID, TableId.of("+rep")), "");
+    m.put(PropCacheKey.forTable(IID, TableId.of("1")), "");
+    m.put(PropCacheKey.forNamespace(IID, NamespaceId.of("+accumulo")), "");
+    m.put(PropCacheKey.forTable(IID, TableId.of("!0")), "");
+    m.put(PropCacheKey.forSystem(IID), "");
 
     m.forEach((k, v) -> log.info("{}", k));
 

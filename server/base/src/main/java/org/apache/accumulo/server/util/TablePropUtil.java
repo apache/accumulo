@@ -25,7 +25,7 @@ import java.util.Map;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.store.PropCacheId;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.zookeeper.KeeperException;
 
 public class TablePropUtil {
@@ -35,7 +35,7 @@ public class TablePropUtil {
     Map<String,String> tempProps = new HashMap<>(props);
     tempProps.entrySet().removeIf(e -> !Property.isTablePropertyValid(e.getKey(), e.getValue()));
 
-    context.getPropStore().putAll(PropCacheId.forTable(context, tableId), props);
+    context.getPropStore().putAll(PropCacheKey.forTable(context, tableId), props);
     return true;
   }
   //
@@ -51,7 +51,7 @@ public class TablePropUtil {
   // }
 
   public static void removeTableProperty(ServerContext context, TableId tableId, String property) {
-    context.getPropStore().removeProperties(PropCacheId.forTable(context, tableId),
+    context.getPropStore().removeProperties(PropCacheKey.forTable(context, tableId),
         List.of(property));
   }
 }

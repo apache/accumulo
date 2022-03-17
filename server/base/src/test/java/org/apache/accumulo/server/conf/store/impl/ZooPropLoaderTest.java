@@ -52,7 +52,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedPropGzipCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
-import org.apache.accumulo.server.conf.store.PropCacheId;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.easymock.Capture;
@@ -69,7 +69,7 @@ public class ZooPropLoaderTest {
   private CaffeineCacheTest.TestTicker ticker;
   private InstanceId instanceId;
   private ServerContext context;
-  private PropCacheId propCacheId;
+  private PropCacheKey propCacheKey;
   private VersionedPropCodec propCodec;
 
   // mocks
@@ -84,7 +84,7 @@ public class ZooPropLoaderTest {
     ticker = new CaffeineCacheTest.TestTicker();
     instanceId = InstanceId.of(UUID.randomUUID());
 
-    propCacheId = PropCacheId.forSystem(instanceId);
+    propCacheKey = PropCacheKey.forSystem(instanceId);
     propCodec = VersionedPropGzipCodec.codec(true);
 
     // mocks
@@ -112,7 +112,7 @@ public class ZooPropLoaderTest {
 
     VersionedProperties defaultProps = new VersionedProperties();
 
-    expect(zrw.getData(eq(propCacheId.getPath()), anyObject(), anyObject()))
+    expect(zrw.getData(eq(propCacheKey.getPath()), anyObject(), anyObject()))
         .andReturn(propCodec.toBytes(defaultProps)).anyTimes();
 
     cacheMetrics.addLoadTime(anyLong());
@@ -120,7 +120,7 @@ public class ZooPropLoaderTest {
 
     replay(context, zrw, propStoreWatcher, cacheMetrics);
 
-    assertNotNull(loader.load(propCacheId));
+    assertNotNull(loader.load(propCacheKey));
   }
 
   // from cache loader
@@ -136,9 +136,9 @@ public class ZooPropLoaderTest {
 
     VersionedProperties defaultProps = new VersionedProperties();
 
-    expect(zrw.getStatus(propCacheId.getPath())).andThrow(new KeeperException.NoNodeException() {})
+    expect(zrw.getStatus(propCacheKey.getPath())).andThrow(new KeeperException.NoNodeException() {})
         .anyTimes();
-    expect(zrw.getData(eq(propCacheId.getPath()), anyObject(), anyObject()))
+    expect(zrw.getData(eq(propCacheKey.getPath()), anyObject(), anyObject()))
         .andReturn(propCodec.toBytes(defaultProps)).once();
 
     cacheMetrics.addLoadTime(anyLong());
@@ -150,11 +150,11 @@ public class ZooPropLoaderTest {
         new CaffeineCache.Builder(loader, cacheMetrics).withTicker(ticker).build();
 
     // load into cache
-    assertNotNull(cache.get(propCacheId));
+    assertNotNull(cache.get(propCacheKey));
 
     // read cached entry - load count should not change.
     ticker.advance(1, TimeUnit.MINUTES);
-    assertNotNull(cache.get(propCacheId));
+    assertNotNull(cache.get(propCacheKey));
   }
 
   // TODO - may be just an exception on Zk read.
@@ -174,10 +174,10 @@ public class ZooPropLoaderTest {
   @Test
   public void loadFailTest() throws Exception {
 
-    expect(zrw.getData(eq(propCacheId.getPath()), anyObject(), anyObject()))
+    expect(zrw.getData(eq(propCacheKey.getPath()), anyObject(), anyObject()))
         .andThrow(new KeeperException.NoNodeException("force no node exception")).once();
 
-    propStoreWatcher.signalZkChangeEvent(eq(propCacheId));
+    propStoreWatcher.signalZkChangeEvent(eq(propCacheKey));
     expectLastCall();
 
     cacheMetrics.incrZkError();
@@ -188,7 +188,7 @@ public class ZooPropLoaderTest {
     CaffeineCache cache =
         new CaffeineCache.Builder(loader, cacheMetrics).withTicker(ticker).build();
 
-    assertNull(cache.get(propCacheId));
+    assertNull(cache.get(propCacheKey));
 
     log.info("Metrics: {}", cacheMetrics);
   }
@@ -203,7 +203,7 @@ public class ZooPropLoaderTest {
 
     VersionedProperties defaultProps = new VersionedProperties();
 
-    expect(zrw.getData(eq(propCacheId.getPath()), anyObject(), anyObject()))
+    expect(zrw.getData(eq(propCacheKey.getPath()), anyObject(), anyObject()))
         .andReturn(propCodec.toBytes(defaultProps)).times(2);
 
     cacheMetrics.addLoadTime(anyLong());
@@ -218,12 +218,12 @@ public class ZooPropLoaderTest {
         new CaffeineCache.Builder(loader, cacheMetrics).withTicker(ticker).build();
 
     // load cache
-    assertNotNull(cache.get(propCacheId));
+    assertNotNull(cache.get(propCacheKey));
 
     ticker.advance(70, TimeUnit.MINUTES);
     cache.cleanUp();
 
-    assertNotNull(cache.get(propCacheId));
+    assertNotNull(cache.get(propCacheKey));
 
   }
 
@@ -239,23 +239,23 @@ public class ZooPropLoaderTest {
 
     final VersionedProperties defaultProps = new VersionedProperties();
 
-    expect(zrw.getData(eq(propCacheId.getPath()), anyObject(), anyObject()))
+    expect(zrw.getData(eq(propCacheKey.getPath()), anyObject(), anyObject()))
         .andReturn(propCodec.toBytes(defaultProps)).once();
 
     Stat stat = new Stat();
     stat.setVersion(123); // set different version so reload triggered
-    expect(zrw.getStatus(propCacheId.getPath())).andReturn(stat).once();
+    expect(zrw.getStatus(propCacheKey.getPath())).andReturn(stat).once();
 
-    expect(zrw.getData(eq(propCacheId.getPath()), anyObject(), anyObject()))
+    expect(zrw.getData(eq(propCacheKey.getPath()), anyObject(), anyObject()))
         .andThrow(new KeeperException.NoNodeException("forced no node")).anyTimes();
 
-    propStoreWatcher.signalZkChangeEvent(eq(propCacheId));
+    propStoreWatcher.signalZkChangeEvent(eq(propCacheKey));
     expectLastCall().anyTimes();
 
-    propStoreWatcher.signalZkChangeEvent(eq(PropCacheId.forSystem(instanceId)));
+    propStoreWatcher.signalZkChangeEvent(eq(PropCacheKey.forSystem(instanceId)));
     expectLastCall().anyTimes();
 
-    propStoreWatcher.signalCacheChangeEvent(eq(PropCacheId.forSystem(instanceId)));
+    propStoreWatcher.signalCacheChangeEvent(eq(PropCacheKey.forSystem(instanceId)));
     expectLastCall().anyTimes();
 
     cacheMetrics.addLoadTime(anyLong());
@@ -273,19 +273,19 @@ public class ZooPropLoaderTest {
         new CaffeineCache.Builder(loader, cacheMetrics).withTicker(ticker).build();
 
     // prime cache
-    assertNotNull(cache.get(propCacheId));
+    assertNotNull(cache.get(propCacheKey));
 
     ticker.advance(5, TimeUnit.MINUTES);
     cache.cleanUp();
 
     // read cached value
-    assertNotNull(cache.get(propCacheId));
+    assertNotNull(cache.get(propCacheKey));
 
     // advance so refresh called.
     ticker.advance(20, TimeUnit.MINUTES);
     cache.cleanUp();
 
-    assertNotNull(cache.get(propCacheId));
+    assertNotNull(cache.get(propCacheKey));
 
     try {
       // yield so async thread completes.
@@ -294,7 +294,7 @@ public class ZooPropLoaderTest {
       // empty
     }
 
-    assertNull(cache.get(propCacheId));
+    assertNull(cache.get(propCacheKey));
   }
 
   @Test
@@ -305,20 +305,20 @@ public class ZooPropLoaderTest {
     CaffeineCache cache =
         new CaffeineCache.Builder(loader, cacheMetrics).withTicker(ticker).build();
 
-    assertNull(cache.getWithoutCaching(propCacheId));
+    assertNull(cache.getWithoutCaching(propCacheKey));
 
   }
 
   @Test
   public void removeTest() throws Exception {
-    final PropCacheId sysPropId = PropCacheId.forSystem(instanceId);
-    final PropCacheId tableId = PropCacheId.forTable(instanceId, TableId.of("t1"));
+    final PropCacheKey sysPropKey = PropCacheKey.forSystem(instanceId);
+    final PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TableId.of("t1"));
 
     VersionedProperties defaultProps = new VersionedProperties();
 
-    expect(zrw.getData(eq(sysPropId.getPath()), anyObject(), anyObject()))
+    expect(zrw.getData(eq(sysPropKey.getPath()), anyObject(), anyObject()))
         .andReturn(propCodec.toBytes(defaultProps)).once();
-    expect(zrw.getData(eq(tableId.getPath()), anyObject(), anyObject()))
+    expect(zrw.getData(eq(tablePropKey.getPath()), anyObject(), anyObject()))
         .andReturn(propCodec.toBytes(defaultProps)).once();
 
     cacheMetrics.addLoadTime(anyLong());
@@ -330,27 +330,27 @@ public class ZooPropLoaderTest {
         new CaffeineCache.Builder(loader, cacheMetrics).withTicker(ticker).build();
 
     // load into cache
-    assertNotNull(cache.get(sysPropId));
-    assertNotNull(cache.get(tableId));
+    assertNotNull(cache.get(sysPropKey));
+    assertNotNull(cache.get(tablePropKey));
 
-    cache.remove(tableId);
+    cache.remove(tablePropKey);
     cache.cleanUp();
 
     // verify retrieved from cache without loading.
-    assertNotNull(cache.getWithoutCaching(sysPropId));
-    assertNull(cache.getWithoutCaching(tableId));
+    assertNotNull(cache.getWithoutCaching(sysPropKey));
+    assertNull(cache.getWithoutCaching(tablePropKey));
   }
 
   @Test
   public void removeAllTest() throws Exception {
-    final PropCacheId sysPropId = PropCacheId.forSystem(instanceId);
-    final PropCacheId tableId = PropCacheId.forTable(instanceId, TableId.of("t1"));
+    final PropCacheKey sysPropKey = PropCacheKey.forSystem(instanceId);
+    final PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TableId.of("t1"));
 
     VersionedProperties defaultProps = new VersionedProperties();
 
-    expect(zrw.getData(eq(sysPropId.getPath()), anyObject(), anyObject()))
+    expect(zrw.getData(eq(sysPropKey.getPath()), anyObject(), anyObject()))
         .andReturn(propCodec.toBytes(defaultProps)).once();
-    expect(zrw.getData(eq(tableId.getPath()), anyObject(), anyObject()))
+    expect(zrw.getData(eq(tablePropKey.getPath()), anyObject(), anyObject()))
         .andReturn(propCodec.toBytes(defaultProps)).once();
 
     cacheMetrics.addLoadTime(anyLong());
@@ -362,15 +362,15 @@ public class ZooPropLoaderTest {
         new CaffeineCache.Builder(loader, cacheMetrics).withTicker(ticker).build();
 
     // load into cache
-    assertNotNull(cache.get(sysPropId));
-    assertNotNull(cache.get(tableId));
+    assertNotNull(cache.get(sysPropKey));
+    assertNotNull(cache.get(tablePropKey));
 
     cache.removeAll();
     cache.cleanUp();
 
     // verify retrieved from cache without loading.
-    assertNull(cache.getWithoutCaching(sysPropId));
-    assertNull(cache.getWithoutCaching(tableId));
+    assertNull(cache.getWithoutCaching(sysPropKey));
+    assertNull(cache.getWithoutCaching(tablePropKey));
   }
 
   @Test
@@ -381,7 +381,7 @@ public class ZooPropLoaderTest {
         new CaffeineCache.Builder(loader, cacheMetrics).withTicker(ticker).build();
 
     // load into cache
-    assertNull(cache.getWithoutCaching(propCacheId));
+    assertNull(cache.getWithoutCaching(propCacheKey));
   }
 
   @Test
@@ -391,7 +391,7 @@ public class ZooPropLoaderTest {
 
     // first call loads cache
     Capture<Stat> stat = newCapture();
-    expect(zrw.getData(eq(propCacheId.getPath()), anyObject(), capture(stat))).andAnswer(() -> {
+    expect(zrw.getData(eq(propCacheKey.getPath()), anyObject(), capture(stat))).andAnswer(() -> {
       Stat s = stat.getValue();
       s.setCtime(System.currentTimeMillis());
       s.setMtime(System.currentTimeMillis());
@@ -403,7 +403,7 @@ public class ZooPropLoaderTest {
 
     Stat expectedStat = new Stat();
     expectedStat.setVersion(0);
-    expect(zrw.getStatus(propCacheId.getPath())).andReturn(expectedStat).times(2);
+    expect(zrw.getStatus(propCacheKey.getPath())).andReturn(expectedStat).times(2);
 
     cacheMetrics.addLoadTime(anyLong());
     expectLastCall().times(1);
@@ -416,27 +416,27 @@ public class ZooPropLoaderTest {
         new CaffeineCache.Builder(loader, cacheMetrics).withTicker(ticker).build();
 
     // load cache
-    log.info("received: {}", cache.get(propCacheId));
+    log.info("received: {}", cache.get(propCacheKey));
 
     ticker.advance(REFRESH_MIN + 1, TimeUnit.MINUTES);
 
-    assertNotNull(cache.get(propCacheId));
+    assertNotNull(cache.get(propCacheKey));
 
     ticker.advance(REFRESH_MIN / 2, TimeUnit.MINUTES);
 
-    assertNotNull(cache.get(propCacheId));
+    assertNotNull(cache.get(propCacheKey));
 
     Thread.sleep(100);
 
     ticker.advance(REFRESH_MIN + 1, TimeUnit.MINUTES);
 
-    assertNotNull(cache.get(propCacheId));
+    assertNotNull(cache.get(propCacheKey));
 
     Thread.sleep(100);
 
     ticker.advance(1, TimeUnit.MINUTES);
 
-    assertNotNull(cache.get(propCacheId));
+    assertNotNull(cache.get(propCacheKey));
 
   }
 
@@ -452,7 +452,7 @@ public class ZooPropLoaderTest {
 
     Capture<Stat> stat = newCapture();
 
-    expect(zrw.getData(eq(propCacheId.getPath()), capture(propStoreWatcherCapture), capture(stat)))
+    expect(zrw.getData(eq(propCacheKey.getPath()), capture(propStoreWatcherCapture), capture(stat)))
         .andAnswer(() -> {
           Stat s = stat.getValue();
           s.setCtime(System.currentTimeMillis());
@@ -466,22 +466,23 @@ public class ZooPropLoaderTest {
     // make it look like version on ZK has advanced.
     Stat stat2 = new Stat();
     stat2.setVersion(initialVersion + 3); // initSysProps 123, on write 124
-    expect(zrw.getStatus(propCacheId.getPath())).andReturn(stat2).once();
+    expect(zrw.getStatus(propCacheKey.getPath())).andReturn(stat2).once();
 
     Capture<Stat> stat3 = newCapture();
 
-    expect(zrw.getData(eq(propCacheId.getPath()), capture(propStoreWatcherCapture), capture(stat3)))
-        .andAnswer(() -> {
-          Stat s = stat3.getValue();
-          s.setCtime(System.currentTimeMillis());
-          s.setMtime(System.currentTimeMillis());
-          s.setVersion(initialVersion + 4);
-          stat3.setValue(s);
-          return propCodec.toBytes(new VersionedProperties(initialVersion + 3, Instant.now(),
-              Map.of(Property.TABLE_SPLIT_THRESHOLD.getKey(), "12G")));
-        }).once();
+    expect(
+        zrw.getData(eq(propCacheKey.getPath()), capture(propStoreWatcherCapture), capture(stat3)))
+            .andAnswer(() -> {
+              Stat s = stat3.getValue();
+              s.setCtime(System.currentTimeMillis());
+              s.setMtime(System.currentTimeMillis());
+              s.setVersion(initialVersion + 4);
+              stat3.setValue(s);
+              return propCodec.toBytes(new VersionedProperties(initialVersion + 3, Instant.now(),
+                  Map.of(Property.TABLE_SPLIT_THRESHOLD.getKey(), "12G")));
+            }).once();
 
-    propStoreWatcher.signalCacheChangeEvent(eq(propCacheId));
+    propStoreWatcher.signalCacheChangeEvent(eq(propCacheKey));
     expectLastCall();
 
     cacheMetrics.addLoadTime(anyLong());
@@ -499,11 +500,11 @@ public class ZooPropLoaderTest {
         new CaffeineCache.Builder(loader, cacheMetrics).withTicker(ticker).build();
 
     // prime cache
-    assertNotNull(cache.get(propCacheId));
+    assertNotNull(cache.get(propCacheKey));
 
     ticker.advance(REFRESH_MIN + 1, TimeUnit.MINUTES);
     // first call after refresh return original and schedules update
-    var originalProps = cache.get(propCacheId);
+    var originalProps = cache.get(propCacheKey);
     assertNotNull(originalProps);
     assertEquals("7G", originalProps.getProperties().get(Property.TABLE_SPLIT_THRESHOLD.getKey()));
 
@@ -511,7 +512,7 @@ public class ZooPropLoaderTest {
     Thread.sleep(50);
 
     // refresh should have loaded updated value;
-    var updatedProps = cache.get(propCacheId);
+    var updatedProps = cache.get(propCacheKey);
     log.info("Updated props: {}", updatedProps == null ? "null" : updatedProps.print(true));
 
     assertNotNull(updatedProps);
@@ -540,7 +541,7 @@ public class ZooPropLoaderTest {
     Capture<Stat> stat = newCapture();
 
     // first call loads cache
-    expect(zrw.getData(eq(propCacheId.getPath()), anyObject(), capture(stat))).andAnswer(() -> {
+    expect(zrw.getData(eq(propCacheKey.getPath()), anyObject(), capture(stat))).andAnswer(() -> {
       Stat s = stat.getValue();
       s.setCtime(System.currentTimeMillis());
       s.setMtime(System.currentTimeMillis());
@@ -554,7 +555,7 @@ public class ZooPropLoaderTest {
     stat2.setMtime(System.currentTimeMillis());
     stat2.setVersion(expectedVersion);
 
-    expect(zrw.getStatus(propCacheId.getPath())).andReturn(stat2).once();
+    expect(zrw.getStatus(propCacheKey.getPath())).andReturn(stat2).once();
 
     cacheMetrics.addLoadTime(anyLong());
     expectLastCall().times(1);
@@ -567,18 +568,18 @@ public class ZooPropLoaderTest {
         new CaffeineCache.Builder(loader, cacheMetrics).withTicker(ticker).build();
 
     // prime cache
-    cache.get(propCacheId);
+    cache.get(propCacheKey);
 
     ticker.advance(30, TimeUnit.MINUTES);
     cache.cleanUp();
 
-    VersionedProperties vPropsRead = cache.get(propCacheId);
+    VersionedProperties vPropsRead = cache.get(propCacheKey);
 
     assertNotNull(vPropsRead);
 
     try {
       Thread.sleep(250);
-      cache.get(propCacheId);
+      cache.get(propCacheKey);
     } catch (InterruptedException ex) {
       // empty
     }
@@ -598,7 +599,7 @@ public class ZooPropLoaderTest {
 
     // first call loads cache
     Capture<Stat> stat = newCapture();
-    expect(zrw.getData(eq(propCacheId.getPath()), anyObject(), capture(stat))).andAnswer(() -> {
+    expect(zrw.getData(eq(propCacheKey.getPath()), anyObject(), capture(stat))).andAnswer(() -> {
       Stat s = stat.getValue();
       s.setCtime(System.currentTimeMillis());
       s.setMtime(System.currentTimeMillis());
@@ -610,13 +611,13 @@ public class ZooPropLoaderTest {
 
     Stat expectedStat = new Stat();
     expectedStat.setVersion(0);
-    expect(zrw.getStatus(propCacheId.getPath()))
+    expect(zrw.getStatus(propCacheKey.getPath()))
         .andThrow(new KeeperException.NoNodeException("force no node exception")).once();
 
-    propStoreWatcher.signalZkChangeEvent(eq(propCacheId));
+    propStoreWatcher.signalZkChangeEvent(eq(propCacheKey));
     expectLastCall().anyTimes();
 
-    expect(zrw.getData(eq(propCacheId.getPath()), anyObject(), anyObject()))
+    expect(zrw.getData(eq(propCacheKey.getPath()), anyObject(), anyObject()))
         .andThrow(new KeeperException.NoNodeException("force no node exception")).once();
 
     cacheMetrics.addLoadTime(anyLong());
@@ -632,14 +633,14 @@ public class ZooPropLoaderTest {
         new CaffeineCache.Builder(loader, cacheMetrics).withTicker(ticker).build();
 
     // load cache
-    log.info("received: {}", cache.get(propCacheId));
+    log.info("received: {}", cache.get(propCacheKey));
 
     ticker.advance(REFRESH_MIN + 1, TimeUnit.MINUTES);
 
-    assertNotNull(cache.get(propCacheId)); // returns current and queues async refresh
+    assertNotNull(cache.get(propCacheKey)); // returns current and queues async refresh
 
     Thread.sleep(100);
-    assertNull(cache.get(propCacheId)); // on exception, the loader should return null
+    assertNull(cache.get(propCacheKey)); // on exception, the loader should return null
 
   }
 

@@ -46,7 +46,7 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.SystemConfiguration;
 import org.apache.accumulo.server.conf.ZooBasedConfiguration;
-import org.apache.accumulo.server.conf.store.PropCacheId;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
@@ -176,12 +176,12 @@ public class ZooBasedConfigIT {
 
     ZooPropStore.initSysProps(context, Map.of());
 
-    PropCacheId idA = PropCacheId.forTable(INSTANCE_ID, tidA);
+    PropCacheKey propKey = PropCacheKey.forTable(INSTANCE_ID, tidA);
 
-    ZooPropStore.createInitialProps(context, idA,
+    ZooPropStore.createInitialProps(context, propKey,
         Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
 
-    ZooBasedConfiguration zbc = new SystemConfiguration(log, context, idA, parent);
+    ZooBasedConfiguration zbc = new SystemConfiguration(log, context, propKey, parent);
 
     assertNotNull(zbc.getSnapshot());
     assertEquals("true", zbc.get(Property.TABLE_BLOOM_ENABLED));
@@ -197,11 +197,11 @@ public class ZooBasedConfigIT {
 
     ZooPropStore.initSysProps(context, Map.of());
 
-    PropCacheId idA = PropCacheId.forTable(INSTANCE_ID, tidA);
+    PropCacheKey propKey = PropCacheKey.forTable(INSTANCE_ID, tidA);
 
-    ZooPropStore.createInitialProps(context, idA, Map.of());
+    ZooPropStore.createInitialProps(context, propKey, Map.of());
 
-    ZooBasedConfiguration zbc = new SystemConfiguration(log, context, idA, parent);
+    ZooBasedConfiguration zbc = new SystemConfiguration(log, context, propKey, parent);
 
     assertNotNull(zbc.getSnapshot());
     assertEquals("false", zbc.get(Property.TABLE_BLOOM_ENABLED));
@@ -215,8 +215,8 @@ public class ZooBasedConfigIT {
 
     ZooPropStore.initSysProps(context, Map.of());
 
-    PropCacheId propCacheId = PropCacheId.forTable(INSTANCE_ID, tidA);
-    ZooBasedConfiguration zbc = new SystemConfiguration(log, context, propCacheId, parent);
+    PropCacheKey propKey = PropCacheKey.forTable(INSTANCE_ID, tidA);
+    ZooBasedConfiguration zbc = new SystemConfiguration(log, context, propKey, parent);
 
     // node not created - returns null.
     assertNull(zbc.getSnapshot());
@@ -231,15 +231,15 @@ public class ZooBasedConfigIT {
 
     ZooPropStore.initSysProps(context, Map.of());
 
-    PropCacheId idA = PropCacheId.forTable(INSTANCE_ID, tidA);
+    PropCacheKey tableAPropKey = PropCacheKey.forTable(INSTANCE_ID, tidA);
 
     TestListener testListener = new TestListener();
-    propStore.registerAsListener(idA, testListener);
+    propStore.registerAsListener(tableAPropKey, testListener);
 
-    ZooPropStore.createInitialProps(context, idA,
+    ZooPropStore.createInitialProps(context, tableAPropKey,
         Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
 
-    ZooBasedConfiguration zbc = new SystemConfiguration(log, context, idA, parent);
+    ZooBasedConfiguration zbc = new SystemConfiguration(log, context, tableAPropKey, parent);
 
     assertNotNull(zbc.getSnapshot());
     assertEquals("true", zbc.get(Property.TABLE_BLOOM_ENABLED));
@@ -251,8 +251,8 @@ public class ZooBasedConfigIT {
 
     // force clean-up and cache activity to get async unload to occur.
     ((ZooPropStore) propStore).cleanUp();
-    PropCacheId idB = PropCacheId.forTable(INSTANCE_ID, tidB);
-    ZooPropStore.createInitialProps(context, idB, Map.of());
+    PropCacheKey tableBPropKey = PropCacheKey.forTable(INSTANCE_ID, tidB);
+    ZooPropStore.createInitialProps(context, tableBPropKey, Map.of());
     Thread.sleep(150);
 
     int changeCount = testListener.getZkChangeCount();
@@ -260,8 +260,8 @@ public class ZooBasedConfigIT {
     // force an "external update" directly in ZK - emulates a change external to the prop store.
     // just echoing the same data - but it will update the ZooKeeper node data version.
     Stat stat = new Stat();
-    byte[] bytes = zrw.getData(idA.getPath(), stat);
-    zrw.overwritePersistentData(idA.getPath(), bytes, stat.getVersion());
+    byte[] bytes = zrw.getData(tableAPropKey.getPath(), stat);
+    zrw.overwritePersistentData(tableAPropKey.getPath(), bytes, stat.getVersion());
 
     // allow ZooKeeper notification time to propagate
 
@@ -308,20 +308,20 @@ public class ZooBasedConfigIT {
     }
 
     @Override
-    public void zkChangeEvent(PropCacheId id) {
-      log.debug("Received zkChangeEvent for {}", id);
+    public void zkChangeEvent(PropCacheKey propCacheKey) {
+      log.debug("Received zkChangeEvent for {}", propCacheKey);
       zkChangeCount.incrementAndGet();
     }
 
     @Override
-    public void cacheChangeEvent(PropCacheId id) {
-      log.debug("Received cacheChangeEvent for {}", id);
+    public void cacheChangeEvent(PropCacheKey propCacheKey) {
+      log.debug("Received cacheChangeEvent for {}", propCacheKey);
       cacheChangeCount.incrementAndGet();
     }
 
     @Override
-    public void deleteEvent(PropCacheId id) {
-      log.debug("Received deleteEvent for: {}", id);
+    public void deleteEvent(PropCacheKey propCacheKey) {
+      log.debug("Received deleteEvent for: {}", propCacheKey);
       deleteCount.incrementAndGet();
     }
 

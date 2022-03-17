@@ -29,7 +29,7 @@ import java.util.function.Predicate;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.store.PropCacheId;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.PropStoreException;
@@ -52,22 +52,22 @@ public class ZooBasedConfiguration extends AccumuloConfiguration implements Prop
 
   protected final Logger log;
   private final AccumuloConfiguration parent;
-  private final PropCacheId propCacheId;
+  private final PropCacheKey propCacheKey;
   private final PropStore propStore;
 
   private final AtomicReference<PropSnapshot> snapshotRef = new AtomicReference<>(null);
 
-  public ZooBasedConfiguration(Logger log, ServerContext context, PropCacheId propCacheId,
+  public ZooBasedConfiguration(Logger log, ServerContext context, PropCacheKey propCacheKey,
       AccumuloConfiguration parent) {
     this.log = requireNonNull(log, "a Logger must be supplied");
     requireNonNull(context, "the context cannot be null");
-    this.propCacheId = requireNonNull(propCacheId, "a PropCacheId must be supplied");
+    this.propCacheKey = requireNonNull(propCacheKey, "a PropCacheId must be supplied");
     this.parent = requireNonNull(parent, "An AccumuloConfiguration parent must be supplied");
 
     this.propStore =
         requireNonNull(context.getPropStore(), "The PropStore must be supplied and exist");
 
-    propStore.registerAsListener(propCacheId, this);
+    propStore.registerAsListener(propCacheKey, this);
 
     snapshotRef.set(updateSnapshot());
 
@@ -102,8 +102,8 @@ public class ZooBasedConfiguration extends AccumuloConfiguration implements Prop
       count += dataVersion;
     }
 
-    log.trace("update count result for: {} - data version: {} update: {}", propCacheId, dataVersion,
-        count);
+    log.trace("update count result for: {} - data version: {} update: {}", propCacheKey,
+        dataVersion, count);
     return count;
   }
 
@@ -112,8 +112,8 @@ public class ZooBasedConfiguration extends AccumuloConfiguration implements Prop
     return parent;
   }
 
-  public PropCacheId getCacheId() {
-    return propCacheId;
+  public PropCacheKey getPropCacheKey() {
+    return propCacheKey;
   }
 
   @Override
@@ -137,7 +137,7 @@ public class ZooBasedConfiguration extends AccumuloConfiguration implements Prop
 
     Map<String,String> theseProps = getSnapshot();
 
-    log.trace("getProperties() for: {} filter: {}, have: {}, passed: {}", getCacheId(), filter,
+    log.trace("getProperties() for: {} filter: {}, have: {}, passed: {}", getPropCacheKey(), filter,
         theseProps, props);
 
     for (Map.Entry<String,String> p : theseProps.entrySet()) {
@@ -196,7 +196,7 @@ public class ZooBasedConfiguration extends AccumuloConfiguration implements Prop
 
       long startCount;
       do {
-        startCount = propStore.getNodeVersion(propCacheId);
+        startCount = propStore.getNodeVersion(propCacheKey);
         propsRead = doRead();
         if (propsRead.getDataVersion() == startCount) {
           snapshotRef.set(propsRead);
@@ -209,28 +209,28 @@ public class ZooBasedConfiguration extends AccumuloConfiguration implements Prop
       updateLock.unlock();
     }
     throw new IllegalStateException(
-        "Failed to read property updates for " + propCacheId + " after " + retryCount + " tries");
+        "Failed to read property updates for " + propCacheKey + " after " + retryCount + " tries");
 
   }
 
   private PropSnapshot doRead() throws PropStoreException {
 
-    var vProps = propStore.get(propCacheId);
-    log.trace("doRead() - updateSnapshot() for {}, returned: {}", propCacheId, vProps);
+    var vProps = propStore.get(propCacheKey);
+    log.trace("doRead() - updateSnapshot() for {}, returned: {}", propCacheKey, vProps);
     if (vProps == null) {
       // TODO - this could return marker instead?
       // return new PropSnapshot(INVALID_DATA, Map.of());
-      throw new IllegalStateException("Properties for " + propCacheId + " do not exist");
+      throw new IllegalStateException("Properties for " + propCacheKey + " do not exist");
     } else {
       return new PropSnapshot(vProps.getDataVersion(), vProps.getProperties());
     }
   }
 
   @Override
-  public void zkChangeEvent(PropCacheId watchedId) {
-    if (propCacheId.equals(watchedId)) {
+  public void zkChangeEvent(final PropCacheKey propCacheKey) {
+    if (this.propCacheKey.equals(propCacheKey)) {
       log.debug("Received zookeeper property change event for {} - current version: {}",
-          propCacheId,
+          this.propCacheKey,
           snapshotRef.get() != null ? snapshotRef.get().getDataVersion() : "no data version set");
       // snapshotRef.set(new PropSnapshot(INVALID_DATA_VER, Map.of()));
       snapshotRef.set(null);
@@ -238,9 +238,10 @@ public class ZooBasedConfiguration extends AccumuloConfiguration implements Prop
   }
 
   @Override
-  public void cacheChangeEvent(PropCacheId watchedId) {
-    if (propCacheId.equals(watchedId)) {
-      log.debug("Received cache property change event for {} - current version: {}", propCacheId,
+  public void cacheChangeEvent(final PropCacheKey propCacheKey) {
+    if (this.propCacheKey.equals(propCacheKey)) {
+      log.debug("Received cache property change event for {} - current version: {}",
+          this.propCacheKey,
           snapshotRef.get() != null ? snapshotRef.get().getDataVersion() : "no data version set");
       // snapshotRef.set(new PropSnapshot(INVALID_DATA_VER, Map.of()));
       snapshotRef.set(null);
@@ -248,11 +249,11 @@ public class ZooBasedConfiguration extends AccumuloConfiguration implements Prop
   }
 
   @Override
-  public void deleteEvent(PropCacheId watchedId) {
-    if (propCacheId.equals(watchedId)) {
+  public void deleteEvent(PropCacheKey propCacheKey) {
+    if (this.propCacheKey.equals(propCacheKey)) {
       // snapshotRef.set(new PropSnapshot(INVALID_DATA_VER, Map.of()));
       snapshotRef.set(null);
-      log.info("Received property delete event for {}", propCacheId);
+      log.info("Received property delete event for {}", this.propCacheKey);
     }
   }
 

@@ -39,7 +39,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.server.MockServerContext;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
-import org.apache.accumulo.server.conf.store.PropCacheId;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.junit.jupiter.api.AfterEach;
@@ -101,9 +101,9 @@ public class ServerConfigurationFactoryTest {
 
   @Test
   public void testGetConfiguration() {
-    expect(propStore.get(eq(PropCacheId.forSystem(IID))))
+    expect(propStore.get(eq(PropCacheKey.forSystem(IID))))
         .andReturn(new VersionedProperties(Map.of())).anyTimes();
-    expect(propStore.getNodeVersion(eq(PropCacheId.forSystem(IID)))).andReturn(0).anyTimes();
+    expect(propStore.getNodeVersion(eq(PropCacheKey.forSystem(IID)))).andReturn(0).anyTimes();
     ready();
     AccumuloConfiguration c = scf.getSystemConfiguration();
     assertNotNull(c);
@@ -113,17 +113,17 @@ public class ServerConfigurationFactoryTest {
 
   @Test
   public void testGetNamespaceConfiguration() {
-    expect(propStore.get(eq(PropCacheId.forSystem(IID))))
+    expect(propStore.get(eq(PropCacheKey.forSystem(IID))))
         .andReturn(new VersionedProperties(Map.of())).anyTimes();
     ready();
     reset(context);
     PropStore propStore = createMock(ZooPropStore.class);
-    expect(propStore.get(eq(PropCacheId.forSystem(IID))))
+    expect(propStore.get(eq(PropCacheKey.forSystem(IID))))
         .andReturn(new VersionedProperties(Map.of())).anyTimes();
-    expect(propStore.getNodeVersion(eq(PropCacheId.forSystem(IID)))).andReturn(0).anyTimes();
-    expect(propStore.get(eq(PropCacheId.forNamespace(IID, NSID))))
+    expect(propStore.getNodeVersion(eq(PropCacheKey.forSystem(IID)))).andReturn(0).anyTimes();
+    expect(propStore.get(eq(PropCacheKey.forNamespace(IID, NSID))))
         .andReturn(new VersionedProperties(Map.of())).anyTimes();
-    expect(propStore.getNodeVersion(eq(PropCacheId.forNamespace(IID, NSID)))).andReturn(0)
+    expect(propStore.getNodeVersion(eq(PropCacheKey.forNamespace(IID, NSID)))).andReturn(0)
         .anyTimes();
 
     propStore.registerAsListener(anyObject(), anyObject());

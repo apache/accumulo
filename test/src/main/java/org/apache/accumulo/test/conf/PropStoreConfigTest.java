@@ -30,7 +30,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.store.PropCacheId;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.conf.util.ConfigPropertyPrinter;
@@ -74,7 +74,7 @@ public class PropStoreConfigTest extends AccumuloClusterHarness {
 
     ConfigPropertyPrinter propertyPrinter = new ConfigPropertyPrinter();
 
-    log.info(" ****** Sys: {}", propStore.get(PropCacheId.forSystem(context)));
+    log.info(" ****** Sys: {}", propStore.get(PropCacheKey.forSystem(context)));
 
     propertyPrinter.print(context, null, false);
 

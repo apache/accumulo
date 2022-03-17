@@ -43,7 +43,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedPropGzipCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
-import org.apache.accumulo.server.conf.store.PropCacheId;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.zookeeper.WatchedEvent;
@@ -84,12 +84,12 @@ public class PropStoreEventTest {
   @Test
   public void zkChangeEventTest() throws Exception {
 
-    PropCacheId tid = PropCacheId.forTable(instanceId, TableId.of("a1"));
+    PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TableId.of("a1"));
 
     PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
 
     WatchedEvent zkEvent = createMock(WatchedEvent.class);
-    expect(zkEvent.getPath()).andReturn(tid.getPath()).once();
+    expect(zkEvent.getPath()).andReturn(tablePropKey.getPath()).once();
     expect(zkEvent.getType()).andReturn(Watcher.Event.EventType.NodeDataChanged);
     replay(context, zrw, readyMonitor, zkEvent);
 
@@ -97,7 +97,7 @@ public class PropStoreEventTest {
 
     StoreTestListener listener = new StoreTestListener();
 
-    propStore.registerAsListener(tid, listener);
+    propStore.registerAsListener(tablePropKey, listener);
 
     watcher.process(zkEvent);
 
@@ -109,12 +109,12 @@ public class PropStoreEventTest {
   @Test
   public void deleteEventTest() throws Exception {
 
-    PropCacheId tid = PropCacheId.forTable(instanceId, TableId.of("a1"));
+    PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TableId.of("a1"));
 
     PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
 
     WatchedEvent zkEvent = createMock(WatchedEvent.class);
-    expect(zkEvent.getPath()).andReturn(tid.getPath()).once();
+    expect(zkEvent.getPath()).andReturn(tablePropKey.getPath()).once();
     expect(zkEvent.getType()).andReturn(Watcher.Event.EventType.NodeDeleted);
     replay(context, zrw, readyMonitor, zkEvent);
 
@@ -122,7 +122,7 @@ public class PropStoreEventTest {
 
     StoreTestListener listener = new StoreTestListener();
 
-    propStore.registerAsListener(tid, listener);
+    propStore.registerAsListener(tablePropKey, listener);
 
     watcher.process(zkEvent);
 
@@ -134,7 +134,7 @@ public class PropStoreEventTest {
   @Test
   public void disconnectEventTest() throws Exception {
 
-    PropCacheId tid = PropCacheId.forTable(instanceId, TableId.of("a1"));
+    PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TableId.of("a1"));
 
     PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
 
@@ -151,7 +151,7 @@ public class PropStoreEventTest {
 
     StoreTestListener listener = new StoreTestListener();
 
-    propStore.registerAsListener(tid, listener);
+    propStore.registerAsListener(tablePropKey, listener);
 
     watcher.process(zkEvent);
 
@@ -163,7 +163,7 @@ public class PropStoreEventTest {
   @Test
   public void closedEventTest() throws Exception {
 
-    PropCacheId tid = PropCacheId.forTable(instanceId, TableId.of("a1"));
+    PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TableId.of("a1"));
 
     PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
 
@@ -182,7 +182,7 @@ public class PropStoreEventTest {
 
     StoreTestListener listener = new StoreTestListener();
 
-    propStore.registerAsListener(tid, listener);
+    propStore.registerAsListener(tablePropKey, listener);
 
     watcher.process(zkEvent);
 
@@ -193,13 +193,13 @@ public class PropStoreEventTest {
     log.info("Ready: {}", readyMonitor);
 
     // TODO how to mock so connect state shows closed?
-    // propStore.get(tid);
+    // propStore.get(tablePropKey);
   }
 
   @Test
   public void cacheChangeEventTest() throws Exception {
 
-    PropCacheId tid = PropCacheId.forTable(instanceId, TableId.of("a1"));
+    PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TableId.of("a1"));
 
     PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
 
@@ -209,9 +209,9 @@ public class PropStoreEventTest {
 
     StoreTestListener listener = new StoreTestListener();
 
-    propStore.registerAsListener(tid, listener);
+    propStore.registerAsListener(tablePropKey, listener);
 
-    watcher.signalCacheChangeEvent(tid);
+    watcher.signalCacheChangeEvent(tablePropKey);
 
     Thread.sleep(150);
 
@@ -220,7 +220,7 @@ public class PropStoreEventTest {
 
   @Test
   public void validateWatcherSetTest() throws Exception {
-    PropCacheId tid = PropCacheId.forTable(instanceId, TableId.of("a1"));
+    PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TableId.of("a1"));
 
     Map<String,String> props1 =
         Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "1234", TABLE_FILE_BLOCK_SIZE.getKey(), "512M");
@@ -229,7 +229,7 @@ public class PropStoreEventTest {
     Capture<Stat> stat = newCapture();
 
     // first call loads cache
-    expect(zrw.getData(eq(tid.getPath()), anyObject(), capture(stat))).andAnswer(() -> {
+    expect(zrw.getData(eq(tablePropKey.getPath()), anyObject(), capture(stat))).andAnswer(() -> {
       Stat s = stat.getValue();
       s.setCtime(System.currentTimeMillis());
       s.setMtime(System.currentTimeMillis());
@@ -250,12 +250,13 @@ public class PropStoreEventTest {
     CaffeineCache cache = new CaffeineCache.Builder(loader, metrics).build();
 
     // load cache
-    var read1 = cache.get(tid);
+    var read1 = cache.get(tablePropKey);
     assertNotNull(read1);
     assertEquals("1234", read1.getProperties().get(TABLE_BULK_MAX_TABLETS.getKey()));
     assertEquals("512M", read1.getProperties().get(TABLE_FILE_BLOCK_SIZE.getKey()));
 
-    watcher.process(new WatchedEvent(Watcher.Event.EventType.NodeDataChanged, null, tid.getPath()));
+    watcher.process(
+        new WatchedEvent(Watcher.Event.EventType.NodeDataChanged, null, tablePropKey.getPath()));
 
   }
 
@@ -267,17 +268,17 @@ public class PropStoreEventTest {
     private int connectionEventCount = 0;
 
     @Override
-    public void zkChangeEvent(PropCacheId id) {
+    public void zkChangeEvent(PropCacheKey propCacheKey) {
       zkChangeEventCount++;
     }
 
     @Override
-    public void cacheChangeEvent(PropCacheId id) {
+    public void cacheChangeEvent(PropCacheKey propCacheKey) {
       cacheChangeEventCount++;
     }
 
     @Override
-    public void deleteEvent(PropCacheId id) {
+    public void deleteEvent(PropCacheKey propCacheKey) {
       deleteEventCount++;
     }
 

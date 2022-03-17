@@ -37,7 +37,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.store.PropCacheId;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.conf.util.ConfigConverter;
@@ -448,16 +448,16 @@ public class ConvertPropsZKTest {
     replay(context);
 
     ConfigConverter.convert(context, true);
-    var sysProps = propStore.get(PropCacheId.forSystem(instanceId));
+    var sysPropKey = propStore.get(PropCacheKey.forSystem(instanceId));
 
-    log.info("SYS: {}", sysProps);
+    log.info("SYS: {}", sysPropKey);
 
     // read converted
     String zkPathTableBase = ZooUtil.getRoot(instanceId) + Constants.ZTABLES;
 
     List<String> tables = zrw.getChildren(zkPathTableBase);
     for (String table : tables) {
-      var vp = propStore.get(PropCacheId.forTable(instanceId, TableId.of(table)));
+      var vp = propStore.get(PropCacheKey.forTable(instanceId, TableId.of(table)));
       log.info("table:{} props: {}", table, vp);
       assertNotNull(vp);
 

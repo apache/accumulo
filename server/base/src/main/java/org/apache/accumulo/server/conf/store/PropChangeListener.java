@@ -23,18 +23,18 @@ public interface PropChangeListener {
   /**
    * Signal that a ZooKeeper data change event occurred and that the data has changed.
    */
-  void zkChangeEvent(final PropCacheId id);
+  void zkChangeEvent(final PropCacheKey propCacheKey);
 
   /**
    * Signal that a cache change event occurred - cache change events occur on eviction or
    * invalidation of the cache entry. The underlying data may or may not have changed.
    */
-  void cacheChangeEvent(final PropCacheId id);
+  void cacheChangeEvent(final PropCacheKey propCacheKey);
 
   /**
    * Signal that the node had been deleted from ZooKeeper.
    */
-  void deleteEvent(final PropCacheId id);
+  void deleteEvent(final PropCacheKey propCacheKey);
 
   /**
    * A ZooKeeper connection event (session closed, expired...) and that

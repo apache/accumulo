@@ -28,7 +28,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.accumulo.server.conf.store.PropCacheId;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -63,7 +63,7 @@ public class PropStoreWatcher implements Watcher {
   private final ReentrantReadWriteLock.WriteLock listenerWriteLock = listenerLock.writeLock();
 
   // access should be guarded by acquiring the listener read or write lock
-  private final Map<PropCacheId,Set<PropChangeListener>> listeners = new HashMap<>();
+  private final Map<PropCacheKey,Set<PropChangeListener>> listeners = new HashMap<>();
 
   private final ReadyMonitor zkReadyMonitor;
 
@@ -71,10 +71,10 @@ public class PropStoreWatcher implements Watcher {
     this.zkReadyMonitor = zkReadyMonitor;
   }
 
-  public void registerListener(final PropCacheId propCacheId, final PropChangeListener listener) {
+  public void registerListener(final PropCacheKey propCacheKey, final PropChangeListener listener) {
     listenerWriteLock.lock();
     try {
-      Set<PropChangeListener> set = listeners.computeIfAbsent(propCacheId, s -> new HashSet<>());
+      Set<PropChangeListener> set = listeners.computeIfAbsent(propCacheKey, s -> new HashSet<>());
       set.add(listener);
     } finally {
       listenerWriteLock.unlock();
@@ -94,28 +94,28 @@ public class PropStoreWatcher implements Watcher {
   public void process(final WatchedEvent event) {
 
     String path;
-    PropCacheId propCacheId;
+    PropCacheKey propCacheKey;
     switch (event.getType()) {
       case NodeDataChanged:
         path = event.getPath();
         log.trace("handle change event for path: {}", path);
-        propCacheId = PropCacheId.fromPath(path);
-        if (propCacheId != null) {
-          signalZkChangeEvent(propCacheId);
+        propCacheKey = PropCacheKey.fromPath(path);
+        if (propCacheKey != null) {
+          signalZkChangeEvent(propCacheKey);
         }
         break;
       case NodeDeleted:
         path = event.getPath();
         log.trace("handle delete event for path: {}", path);
-        propCacheId = PropCacheId.fromPath(path);
-        if (propCacheId != null) {
+        propCacheKey = PropCacheKey.fromPath(path);
+        if (propCacheKey != null) {
           // notify listeners
-          Set<PropChangeListener> snapshot = getListenerSnapshot(propCacheId);
+          Set<PropChangeListener> snapshot = getListenerSnapshot(propCacheKey);
           if (snapshot != null) {
             executorService
-                .execute(new PropStoreEventTask.PropStoreDeleteEventTask(propCacheId, snapshot));
+                .execute(new PropStoreEventTask.PropStoreDeleteEventTask(propCacheKey, snapshot));
           }
-          listenerCleanup(propCacheId);
+          listenerCleanup(propCacheKey);
         }
         break;
       case None:
@@ -157,36 +157,36 @@ public class PropStoreWatcher implements Watcher {
   }
 
   /**
-   * Execute a task to notify registered listeners that the propCacheId node received an event
+   * Execute a task to notify registered listeners that the propCacheKey node received an event
    * notification from ZooKeeper and should be updated. The process can be initiated either by a
    * ZooKeeper notification or a change detected in the cache based on a ZooKeeper event.
    *
-   * @param propCacheId
+   * @param propCacheKey
    *          the cache id
    */
-  public void signalZkChangeEvent(@NonNull final PropCacheId propCacheId) {
-    log.trace("signal ZooKeeper change event: {}", propCacheId);
-    Set<PropChangeListener> snapshot = getListenerSnapshot(propCacheId);
+  public void signalZkChangeEvent(@NonNull final PropCacheKey propCacheKey) {
+    log.trace("signal ZooKeeper change event: {}", propCacheKey);
+    Set<PropChangeListener> snapshot = getListenerSnapshot(propCacheKey);
     log.trace("Sending change event to: {}", snapshot);
     if (snapshot != null) {
       executorService
-          .execute(new PropStoreEventTask.PropStoreZkChangeEventTask(propCacheId, snapshot));
+          .execute(new PropStoreEventTask.PropStoreZkChangeEventTask(propCacheKey, snapshot));
     }
   }
 
   /**
-   * Execute a task to notify registered listeners that the propCacheId node change was detected
+   * Execute a task to notify registered listeners that the propCacheKey node change was detected
    * should be updated.
    *
-   * @param propCacheId
+   * @param propCacheKey
    *          the cache id
    */
-  public void signalCacheChangeEvent(final PropCacheId propCacheId) {
-    log.trace("cache change event: {}", propCacheId);
-    Set<PropChangeListener> snapshot = getListenerSnapshot(propCacheId);
+  public void signalCacheChangeEvent(final PropCacheKey propCacheKey) {
+    log.trace("cache change event: {}", propCacheKey);
+    Set<PropChangeListener> snapshot = getListenerSnapshot(propCacheKey);
     if (snapshot != null) {
       executorService
-          .execute(new PropStoreEventTask.PropStoreCacheChangeEventTask(propCacheId, snapshot));
+          .execute(new PropStoreEventTask.PropStoreCacheChangeEventTask(propCacheKey, snapshot));
     }
   }
 
@@ -194,13 +194,13 @@ public class PropStoreWatcher implements Watcher {
    * Clean-up the active listeners set when an entry is removed from the cache, remove it from the
    * active listeners.
    *
-   * @param propCacheId
+   * @param propCacheKey
    *          the cache id
    */
-  public void listenerCleanup(final PropCacheId propCacheId) {
+  public void listenerCleanup(final PropCacheKey propCacheKey) {
     listenerWriteLock.lock();
     try {
-      listeners.remove(propCacheId);
+      listeners.remove(propCacheKey);
     } finally {
       listenerWriteLock.unlock();
     }
@@ -210,16 +210,16 @@ public class PropStoreWatcher implements Watcher {
    * Get an immutable snapshot of the listeners for a prop cache id. The set is intended for
    * notification of changes for a specific prop cache id.
    *
-   * @param PropCacheId
+   * @param propCacheKey
    *          the prop cache id
    * @return an immutable copy of listeners.
    */
-  private Set<PropChangeListener> getListenerSnapshot(final PropCacheId PropCacheId) {
+  private Set<PropChangeListener> getListenerSnapshot(final PropCacheKey propCacheKey) {
 
     Set<PropChangeListener> snapshot = null;
     listenerReadLock.lock();
     try {
-      Set<PropChangeListener> set = listeners.get(PropCacheId);
+      Set<PropChangeListener> set = listeners.get(propCacheKey);
       if (set != null) {
         snapshot = Set.copyOf(set);
       }

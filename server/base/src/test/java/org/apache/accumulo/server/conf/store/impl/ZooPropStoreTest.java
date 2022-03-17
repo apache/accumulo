@@ -49,7 +49,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedPropGzipCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
-import org.apache.accumulo.server.conf.store.PropCacheId;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.PropStoreException;
 import org.apache.zookeeper.KeeperException;
@@ -88,10 +88,10 @@ public class ZooPropStoreTest {
   @Test
   public void initSysPropsTest() throws Exception {
     // checks for system props existence
-    expect(zrw.exists(PropCacheId.forSystem(instanceId).getPath())).andReturn(false).once();
+    expect(zrw.exists(PropCacheKey.forSystem(instanceId).getPath())).andReturn(false).once();
 
     Capture<byte[]> bytes = newCapture();
-    expect(zrw.putPersistentData(eq(PropCacheId.forSystem(instanceId).getPath()), capture(bytes),
+    expect(zrw.putPersistentData(eq(PropCacheKey.forSystem(instanceId).getPath()), capture(bytes),
         anyObject())).andReturn(true).once();
 
     replay(context, zrw);
@@ -109,16 +109,16 @@ public class ZooPropStoreTest {
   @Test
   public void create() throws Exception {
 
-    PropCacheId id1 = PropCacheId.forTable(instanceId, TableId.of("id1"));
+    PropCacheKey propCacheKey = PropCacheKey.forTable(instanceId, TableId.of("propCacheKey"));
 
-    expect(zrw.putPersistentData(eq(id1.getPath()), anyObject(), anyObject())).andReturn(true)
-        .once();
+    expect(zrw.putPersistentData(eq(propCacheKey.getPath()), anyObject(), anyObject()))
+        .andReturn(true).once();
 
     replay(context, zrw);
 
     PropStore propStore = new ZooPropStore.Builder(context).build();
 
-    propStore.create(id1, Map.of());
+    propStore.create(propCacheKey, Map.of());
   }
 
   /**
@@ -130,22 +130,22 @@ public class ZooPropStoreTest {
   @Test
   public void getTest() throws Exception {
 
-    PropCacheId id1 = PropCacheId.forTable(instanceId, TableId.of("id1"));
+    PropCacheKey propCacheKey = PropCacheKey.forTable(instanceId, TableId.of("propCacheKey"));
 
     var vProps = new VersionedProperties(Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
 
     // expect one ZooKeeper call - subsequent calls should load from cache.
-    expect(zrw.getData(eq(id1.getPath()), anyObject(PropStoreWatcher.class), anyObject()))
+    expect(zrw.getData(eq(propCacheKey.getPath()), anyObject(PropStoreWatcher.class), anyObject()))
         .andReturn(VersionedPropGzipCodec.codec(true).toBytes(vProps)).once();
 
     replay(context, zrw);
 
     PropStore propStore = new ZooPropStore.Builder(context).build();
 
-    assertNotNull(propStore.get(id1)); // first call will fetch from ZooKeeper
-    assertNotNull(propStore.get(id1)); // next call will fetch from cache.
+    assertNotNull(propStore.get(propCacheKey)); // first call will fetch from ZooKeeper
+    assertNotNull(propStore.get(propCacheKey)); // next call will fetch from cache.
 
-    var p = propStore.get(id1);
+    var p = propStore.get(propCacheKey);
     if (p == null) {
       fail("Did not get expected versioned properties - instead got null;");
     } else {
@@ -156,7 +156,7 @@ public class ZooPropStoreTest {
   @Test
   public void versionTest() throws Exception {
 
-    PropCacheId tid = PropCacheId.forTable(instanceId, TableId.of("table1"));
+    PropCacheKey propCacheKey = PropCacheKey.forTable(instanceId, TableId.of("table1"));
     Map<String,String> props =
         Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "1234", TABLE_FILE_BLOCK_SIZE.getKey(), "512M");
 
@@ -165,7 +165,7 @@ public class ZooPropStoreTest {
 
     // force version mismatch between zk and props.
     var expectedVersion = 99;
-    expect(zrw.getData(eq(tid.getPath()), capture(propStoreWatcherCapture), capture(stat)))
+    expect(zrw.getData(eq(propCacheKey.getPath()), capture(propStoreWatcherCapture), capture(stat)))
         .andAnswer(() -> {
           Stat s = stat.getValue();
           s.setCtime(System.currentTimeMillis());
@@ -178,7 +178,7 @@ public class ZooPropStoreTest {
     replay(context, zrw);
 
     PropStore propStore = new ZooPropStore.Builder(context).build();
-    var vProps = propStore.get(tid);
+    var vProps = propStore.get(propCacheKey);
     assertNotNull(vProps);
     assertEquals(expectedVersion, vProps.getDataVersion());
   }
@@ -192,27 +192,28 @@ public class ZooPropStoreTest {
   @Test
   public void putAllTest() throws Exception {
 
-    PropCacheId tid = PropCacheId.forTable(instanceId, TableId.of("table1"));
+    PropCacheKey propCacheKey = PropCacheKey.forTable(instanceId, TableId.of("table1"));
 
     var initialProps = new VersionedProperties(0, Instant.now(),
         Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "1234", TABLE_FILE_BLOCK_SIZE.getKey(), "512M"));
 
     // not cached - will load from ZooKeeper
-    expect(zrw.getData(eq(tid.getPath()), anyObject(Stat.class)))
+    expect(zrw.getData(eq(propCacheKey.getPath()), anyObject(Stat.class)))
         .andReturn(propCodec.toBytes(initialProps)).once();
 
     Capture<byte[]> bytes = newCapture();
-    expect(zrw.overwritePersistentData(eq(tid.getPath()), capture(bytes), eq(0))).andAnswer(() -> {
-      var stored = propCodec.fromBytes(0, bytes.getValue());
-      assertEquals(3, stored.getProperties().size());
-      // overwritten
-      assertEquals("4321", stored.getProperties().get(TABLE_BULK_MAX_TABLETS.getKey()));
-      // unchanged
-      assertEquals("512M", stored.getProperties().get(TABLE_FILE_BLOCK_SIZE.getKey()));
-      // new
-      assertEquals("123M", stored.getProperties().get(TABLE_SPLIT_THRESHOLD.getKey()));
-      return true;
-    }).once();
+    expect(zrw.overwritePersistentData(eq(propCacheKey.getPath()), capture(bytes), eq(0)))
+        .andAnswer(() -> {
+          var stored = propCodec.fromBytes(0, bytes.getValue());
+          assertEquals(3, stored.getProperties().size());
+          // overwritten
+          assertEquals("4321", stored.getProperties().get(TABLE_BULK_MAX_TABLETS.getKey()));
+          // unchanged
+          assertEquals("512M", stored.getProperties().get(TABLE_FILE_BLOCK_SIZE.getKey()));
+          // new
+          assertEquals("123M", stored.getProperties().get(TABLE_SPLIT_THRESHOLD.getKey()));
+          return true;
+        }).once();
 
     replay(context, zrw);
 
@@ -221,7 +222,7 @@ public class ZooPropStoreTest {
     Map<String,String> updateProps =
         Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "4321", TABLE_SPLIT_THRESHOLD.getKey(), "123M");
 
-    propStore.putAll(tid, updateProps);
+    propStore.putAll(propCacheKey, updateProps);
 
     verify(zrw);
   }
@@ -229,7 +230,7 @@ public class ZooPropStoreTest {
   @Test
   public void removeTest() throws Exception {
 
-    PropCacheId tid = PropCacheId.forTable(instanceId, TableId.of("table1"));
+    PropCacheKey propCacheKey = PropCacheKey.forTable(instanceId, TableId.of("table1"));
 
     var initialProps = new VersionedProperties(123, Instant.now(),
         Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "1234", TABLE_FILE_BLOCK_SIZE.getKey(), "512M"));
@@ -237,7 +238,7 @@ public class ZooPropStoreTest {
     // not cached - will load from ZooKeeper
     Capture<Stat> stat = newCapture();
 
-    expect(zrw.getData(eq(tid.getPath()), capture(stat))).andAnswer(() -> {
+    expect(zrw.getData(eq(propCacheKey.getPath()), capture(stat))).andAnswer(() -> {
       Stat s = stat.getValue();
       s.setVersion(123);
       stat.setValue(s);
@@ -245,7 +246,7 @@ public class ZooPropStoreTest {
     }).once();
 
     Capture<byte[]> bytes = newCapture();
-    expect(zrw.overwritePersistentData(eq(tid.getPath()), capture(bytes), eq(123)))
+    expect(zrw.overwritePersistentData(eq(propCacheKey.getPath()), capture(bytes), eq(123)))
         .andAnswer(() -> {
           var stored = propCodec.fromBytes(124, bytes.getValue());
           assertEquals(1, stored.getProperties().size());
@@ -265,18 +266,18 @@ public class ZooPropStoreTest {
     Set<String> deleteNames =
         Set.of(TABLE_BULK_MAX_TABLETS.getKey(), TABLE_SPLIT_THRESHOLD.getKey());
 
-    propStore.removeProperties(tid, deleteNames);
+    propStore.removeProperties(propCacheKey, deleteNames);
     verify(zrw);
   }
 
   @Test
   public void removeWithExceptionsTest() throws Exception {
 
-    PropCacheId tid = PropCacheId.forTable(instanceId, TableId.of("table1"));
+    PropCacheKey propCacheKey = PropCacheKey.forTable(instanceId, TableId.of("table1"));
 
     // return "bad data"
     Capture<Stat> stat = newCapture();
-    expect(zrw.getData(eq(tid.getPath()), capture(stat))).andAnswer(() -> {
+    expect(zrw.getData(eq(propCacheKey.getPath()), capture(stat))).andAnswer(() -> {
       Stat s = stat.getValue();
       s.setCtime(System.currentTimeMillis());
       s.setMtime(System.currentTimeMillis());
@@ -287,9 +288,9 @@ public class ZooPropStoreTest {
     }).once();
 
     // mock throwing exceptions
-    expect(zrw.getData(eq(tid.getPath()), anyObject(Stat.class)))
+    expect(zrw.getData(eq(propCacheKey.getPath()), anyObject(Stat.class)))
         .andThrow(new KeeperException.NoNodeException("mock forced no node")).once();
-    expect(zrw.getData(eq(tid.getPath()), anyObject(Stat.class)))
+    expect(zrw.getData(eq(propCacheKey.getPath()), anyObject(Stat.class)))
         .andThrow(new InterruptedException("mock forced interrupt exception")).once();
 
     replay(context, zrw);
@@ -300,17 +301,20 @@ public class ZooPropStoreTest {
         Set.of(TABLE_BULK_MAX_TABLETS.getKey(), TABLE_SPLIT_THRESHOLD.getKey());
 
     // Parse error converted to PropStoreException
-    assertThrows(PropStoreException.class, () -> propStore.removeProperties(tid, deleteNames));
+    assertThrows(PropStoreException.class,
+        () -> propStore.removeProperties(propCacheKey, deleteNames));
     // ZK exception converted to PropStoreException
-    assertThrows(PropStoreException.class, () -> propStore.removeProperties(tid, deleteNames));
+    assertThrows(PropStoreException.class,
+        () -> propStore.removeProperties(propCacheKey, deleteNames));
     // InterruptException converted to PropStoreException
-    assertThrows(PropStoreException.class, () -> propStore.removeProperties(tid, deleteNames));
+    assertThrows(PropStoreException.class,
+        () -> propStore.removeProperties(propCacheKey, deleteNames));
   }
 
   @Test
   public void validateWatcherSetTest() throws Exception {
 
-    PropCacheId tid = PropCacheId.forTable(instanceId, TableId.of("table1"));
+    PropCacheKey propCacheKey = PropCacheKey.forTable(instanceId, TableId.of("table1"));
     Map<String,String> props =
         Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "1234", TABLE_FILE_BLOCK_SIZE.getKey(), "512M");
 
@@ -318,7 +322,7 @@ public class ZooPropStoreTest {
     Capture<Stat> stat = newCapture();
 
     // first call loads cache
-    expect(zrw.getData(eq(tid.getPath()), capture(propStoreWatcherCapture), capture(stat)))
+    expect(zrw.getData(eq(propCacheKey.getPath()), capture(propStoreWatcherCapture), capture(stat)))
         .andAnswer(() -> {
           Stat s = stat.getValue();
           s.setCtime(System.currentTimeMillis());
@@ -330,7 +334,7 @@ public class ZooPropStoreTest {
 
     // watcher change (re)loads cache on next get call.
 
-    expect(zrw.getData(eq(tid.getPath()), capture(propStoreWatcherCapture), capture(stat)))
+    expect(zrw.getData(eq(propCacheKey.getPath()), capture(propStoreWatcherCapture), capture(stat)))
         .andAnswer(() -> {
           Stat s = stat.getValue();
           s.setCtime(System.currentTimeMillis());
@@ -344,16 +348,16 @@ public class ZooPropStoreTest {
 
     PropStore propStore = new ZooPropStore.Builder(context).build();
 
-    assertNotNull(propStore.get(tid));
+    assertNotNull(propStore.get(propCacheKey));
 
     // second call should return from cache - not zookeeper.
-    assertNotNull(propStore.get(tid));
+    assertNotNull(propStore.get(propCacheKey));
 
     PropStoreWatcher capturedMonitor = propStoreWatcherCapture.getValue();
-    capturedMonitor.signalZkChangeEvent(tid);
+    capturedMonitor.signalZkChangeEvent(propCacheKey);
     Thread.sleep(150);
 
-    assertNotNull(propStore.get(tid));
+    assertNotNull(propStore.get(propCacheKey));
 
   }
 
@@ -366,44 +370,44 @@ public class ZooPropStoreTest {
    */
   @Test
   public void getNoNodeTest() throws Exception {
-    PropCacheId id1 = PropCacheId.forTable(instanceId, TableId.of("id1"));
+    PropCacheKey propCacheKey = PropCacheKey.forTable(instanceId, TableId.of("propCacheKey"));
 
-    expect(zrw.getData(eq(id1.getPath()), anyObject(PropStoreWatcher.class), anyObject()))
+    expect(zrw.getData(eq(propCacheKey.getPath()), anyObject(PropStoreWatcher.class), anyObject()))
         .andThrow(new KeeperException.NoNodeException("testing - forced no node")).anyTimes();
 
     replay(context, zrw);
     PropStore propStore = new ZooPropStore.Builder(context).build();
-    assertNull(propStore.get(id1));
+    assertNull(propStore.get(propCacheKey));
 
   }
 
   @Test
   public void deleteTest() throws Exception {
 
-    PropCacheId id1 = PropCacheId.forTable(instanceId, TableId.of("id1"));
+    PropCacheKey propCacheKey = PropCacheKey.forTable(instanceId, TableId.of("propCacheKey"));
 
     var vProps = new VersionedProperties(Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
 
     // expect first call to load cache.
-    expect(zrw.getData(eq(id1.getPath()), anyObject(PropStoreWatcher.class), anyObject()))
+    expect(zrw.getData(eq(propCacheKey.getPath()), anyObject(PropStoreWatcher.class), anyObject()))
         .andReturn(VersionedPropGzipCodec.codec(true).toBytes(vProps)).once();
 
-    zrw.delete(eq(id1.getPath()));
+    zrw.delete(eq(propCacheKey.getPath()));
     expectLastCall().once();
 
     replay(context, zrw);
 
     PropStore propStore = new ZooPropStore.Builder(context).build();
 
-    assertNotNull(propStore.get(id1)); // first call will fetch from ZooKeeper
-    assertNotNull(propStore.get(id1)); // next call will fetch from cache.
-    var p = propStore.get(id1);
+    assertNotNull(propStore.get(propCacheKey)); // first call will fetch from ZooKeeper
+    assertNotNull(propStore.get(propCacheKey)); // next call will fetch from cache.
+    var p = propStore.get(propCacheKey);
     if (p == null) {
       fail("Did not get expected versioned properties - instead got null;");
     } else {
       assertEquals("true", p.getProperties().get(Property.TABLE_BLOOM_ENABLED.getKey()));
     }
-    propStore.delete(id1);
+    propStore.delete(propCacheKey);
     Thread.sleep(50);
   }
 

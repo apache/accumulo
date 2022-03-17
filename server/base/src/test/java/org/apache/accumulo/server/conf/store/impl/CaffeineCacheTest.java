@@ -40,7 +40,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
-import org.apache.accumulo.server.conf.store.PropCacheId;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,7 +57,7 @@ public class CaffeineCacheTest {
   private ZooPropLoader zooPropLoader;
   private TestTicker ticker;
 
-  private PropCacheId tableId;
+  private PropCacheKey tablePropKey;
   private VersionedProperties vProps;
 
   private CaffeineCache cache = null;
@@ -72,7 +72,7 @@ public class CaffeineCacheTest {
     PropStoreMetrics cacheMetrics = new PropStoreMetrics();
     MetricsUtil.initializeProducers(cacheMetrics);
 
-    tableId = PropCacheId.forTable(instanceId,
+    tablePropKey = PropCacheKey.forTable(instanceId,
         TableId.of("t" + ThreadLocalRandom.current().nextInt(1, 1000)));
 
     Map<String,String> props =
@@ -98,10 +98,10 @@ public class CaffeineCacheTest {
 
   @Test
   public void getTest() {
-    expect(zooPropLoader.load(eq(tableId))).andReturn(vProps).once();
+    expect(zooPropLoader.load(eq(tablePropKey))).andReturn(vProps).once();
     replay(context, propStoreWatcher, zooPropLoader);
-    assertNotNull(cache.get(tableId)); // will call load
-    assertNotNull(cache.get(tableId)); // will read from cache
+    assertNotNull(cache.get(tablePropKey)); // will call load
+    assertNotNull(cache.get(tablePropKey)); // will read from cache
   }
 
   /**
@@ -111,48 +111,48 @@ public class CaffeineCacheTest {
       justification = "random used for testing with variable names")
   @Test
   public void getNoCacheTest() {
-    PropCacheId tableId2 = PropCacheId.forTable(instanceId,
+    PropCacheKey table2PropKey = PropCacheKey.forTable(instanceId,
         TableId.of("t2" + ThreadLocalRandom.current().nextInt(1, 1000)));
 
-    expect(zooPropLoader.load(eq(tableId2))).andReturn(vProps).once();
+    expect(zooPropLoader.load(eq(table2PropKey))).andReturn(vProps).once();
 
     replay(context, propStoreWatcher, zooPropLoader);
-    var props = cache.getWithoutCaching(tableId);
+    var props = cache.getWithoutCaching(tablePropKey);
     assertNull(props);
 
-    assertNotNull(cache.get(tableId2)); // load into cache
-    assertNotNull(cache.getWithoutCaching(tableId2)); // read from cache - no load call.
+    assertNotNull(cache.get(table2PropKey)); // load into cache
+    assertNotNull(cache.getWithoutCaching(table2PropKey)); // read from cache - no load call.
   }
 
   @Test
   public void removeTest() {
-    expect(zooPropLoader.load(eq(tableId))).andReturn(vProps).times(2);
+    expect(zooPropLoader.load(eq(tablePropKey))).andReturn(vProps).times(2);
     replay(context, propStoreWatcher, zooPropLoader);
-    assertNotNull(cache.get(tableId)); // will call load
-    cache.remove(tableId);
-    assertNotNull(cache.get(tableId)); // will call load again
+    assertNotNull(cache.get(tablePropKey)); // will call load
+    cache.remove(tablePropKey);
+    assertNotNull(cache.get(tablePropKey)); // will call load again
   }
 
   @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
       justification = "random used for testing with variable names")
   @Test
   public void removeAllTest() {
-    PropCacheId tableId2 = PropCacheId.forTable(instanceId,
+    PropCacheKey table2PropKey = PropCacheKey.forTable(instanceId,
         TableId.of("t2" + ThreadLocalRandom.current().nextInt(1, 1000)));
 
-    expect(zooPropLoader.load(eq(tableId))).andReturn(vProps).once();
-    expect(zooPropLoader.load(eq(tableId2))).andReturn(vProps).once();
+    expect(zooPropLoader.load(eq(tablePropKey))).andReturn(vProps).once();
+    expect(zooPropLoader.load(eq(table2PropKey))).andReturn(vProps).once();
 
     replay(context, propStoreWatcher, zooPropLoader);
 
-    assertNotNull(cache.get(tableId)); // will call load
-    assertNotNull(cache.get(tableId2)); // will call load
+    assertNotNull(cache.get(tablePropKey)); // will call load
+    assertNotNull(cache.get(table2PropKey)); // will call load
 
     cache.removeAll();
 
     // check that values are not in cache - will not call load
-    assertNull(cache.getWithoutCaching(tableId));
-    assertNull(cache.getWithoutCaching(tableId2));
+    assertNull(cache.getWithoutCaching(tablePropKey));
+    assertNull(cache.getWithoutCaching(table2PropKey));
   }
 
   VersionedProperties asyncProps() {
@@ -163,42 +163,42 @@ public class CaffeineCacheTest {
   @Test
   public void refreshTest() throws Exception {
 
-    expect(zooPropLoader.load(eq(tableId))).andReturn(vProps).once();
+    expect(zooPropLoader.load(eq(tablePropKey))).andReturn(vProps).once();
 
     CompletableFuture future = CompletableFuture.supplyAsync(this::asyncProps);
 
-    expect(zooPropLoader.asyncReload(eq(tableId), eq(vProps), anyObject())).andReturn(future)
+    expect(zooPropLoader.asyncReload(eq(tablePropKey), eq(vProps), anyObject())).andReturn(future)
         .once();
 
     replay(context, propStoreWatcher, zooPropLoader);
-    assertNotNull(cache.get(tableId)); // will call load and place into cache
+    assertNotNull(cache.get(tablePropKey)); // will call load and place into cache
 
     ticker.advance(30, TimeUnit.MINUTES);
     cache.cleanUp();
-    assertNotNull(cache.get(tableId)); // will async check stat and then reload
+    assertNotNull(cache.get(tablePropKey)); // will async check stat and then reload
   }
 
   @SuppressWarnings({"rawtypes"})
   @Test
   public void expireTest() {
-    expect(zooPropLoader.load(eq(tableId))).andReturn(vProps).times(2);
+    expect(zooPropLoader.load(eq(tablePropKey))).andReturn(vProps).times(2);
 
     CompletableFuture future = CompletableFuture.supplyAsync(this::asyncProps);
 
     replay(context, propStoreWatcher, zooPropLoader);
-    assertNotNull(cache.get(tableId)); // will call load
+    assertNotNull(cache.get(tablePropKey)); // will call load
 
     ticker.advance(90, TimeUnit.MINUTES);
     cache.cleanUp();
-    assertNotNull(cache.get(tableId)); // expired - will call load.
+    assertNotNull(cache.get(tablePropKey)); // expired - will call load.
   }
 
   @Test
   public void getExceptionTest() {
-    expect(zooPropLoader.load(eq(tableId)))
+    expect(zooPropLoader.load(eq(tablePropKey)))
         .andThrow(new IllegalStateException("forced test exception")).once();
     replay(context, propStoreWatcher, zooPropLoader);
-    assertNull(cache.get(tableId)); // will call load
+    assertNull(cache.get(tablePropKey)); // will call load
   }
 
   public static class TestTicker implements Ticker {

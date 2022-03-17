@@ -40,7 +40,7 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
-import org.apache.accumulo.server.conf.store.PropCacheId;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.impl.CaffeineCache;
 import org.apache.accumulo.server.conf.store.impl.PropStoreMetrics;
 import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
@@ -150,8 +150,8 @@ public class CaffeineCacheZkTest {
     VersionedProperties vProps = new VersionedProperties(props);
 
     // directly create prop node - simulate existing properties.
-    PropCacheId propCacheId = PropCacheId.forTable(INSTANCE_ID, tIdA);
-    var created = zrw.putPersistentData(propCacheId.getPath(),
+    PropCacheKey propCacheKey = PropCacheKey.forTable(INSTANCE_ID, tIdA);
+    var created = zrw.putPersistentData(propCacheKey.getPath(),
         ZooPropStore.getCodec().toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
 
     assertTrue("expected properties to be created", created);
@@ -166,7 +166,7 @@ public class CaffeineCacheZkTest {
         new ZooPropLoader(zrw, ZooPropStore.getCodec(), propStoreWatcher, cacheMetrics);
     CaffeineCache cache = new CaffeineCache.Builder(propLoader, cacheMetrics).build();
 
-    VersionedProperties readProps = cache.get(propCacheId);
+    VersionedProperties readProps = cache.get(propCacheKey);
 
     if (readProps == null) {
       fail("Received null for versioned properties");
@@ -180,14 +180,14 @@ public class CaffeineCacheZkTest {
   public void watcherTest() throws Exception {
     ZooKeeper zk = zrw.getZooKeeper();
 
-    PropCacheId propCacheId = PropCacheId.forTable(INSTANCE_ID, tIdA);
+    PropCacheKey propCacheKey = PropCacheKey.forTable(INSTANCE_ID, tIdA);
 
     log.trace("add watcher");
     Watcher watcherA = new TestWatcher(zooKeeper, "WATCHER_A");
-    zk.exists(propCacheId.getPath(), watcherA);
+    zk.exists(propCacheKey.getPath(), watcherA);
 
     log.trace("create");
-    zk.create(propCacheId.getPath(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+    zk.create(propCacheKey.getPath(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
         CreateMode.PERSISTENT);
 
     try {
@@ -197,7 +197,7 @@ public class CaffeineCacheZkTest {
     }
 
     log.trace("Set data to empty byte array - version 0");
-    zk.setData(propCacheId.getPath(), new byte[0], 0);
+    zk.setData(propCacheKey.getPath(), new byte[0], 0);
 
     try {
       Thread.sleep(100);
@@ -206,7 +206,7 @@ public class CaffeineCacheZkTest {
     }
 
     log.trace("Set data to empty byte array - version 1");
-    zk.setData(propCacheId.getPath(), new byte[0], 1);
+    zk.setData(propCacheKey.getPath(), new byte[0], 1);
     try {
       Thread.sleep(100);
     } catch (InterruptedException ex) {
@@ -214,7 +214,7 @@ public class CaffeineCacheZkTest {
     }
     try {
       log.debug("Deleting watchers.");
-      zk.removeWatches(propCacheId.getPath(), watcherA, Watcher.WatcherType.Data, false);
+      zk.removeWatches(propCacheKey.getPath(), watcherA, Watcher.WatcherType.Data, false);
     } catch (Exception ex) {
       log.info("error on watcher delete");
     }
@@ -225,7 +225,7 @@ public class CaffeineCacheZkTest {
     }
 
     log.info("Set data to empty byte array - version 2");
-    zk.setData(propCacheId.getPath(), new byte[0], 2);
+    zk.setData(propCacheKey.getPath(), new byte[0], 2);
 
     try {
       Thread.sleep(500);

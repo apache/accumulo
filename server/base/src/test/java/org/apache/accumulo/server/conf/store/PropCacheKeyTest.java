@@ -21,7 +21,7 @@ package org.apache.accumulo.server.conf.store;
 import static org.apache.accumulo.core.Constants.ZCONFIG;
 import static org.apache.accumulo.core.Constants.ZNAMESPACES;
 import static org.apache.accumulo.core.Constants.ZTABLES;
-import static org.apache.accumulo.server.conf.store.PropCacheId.PROP_NODE_NAME;
+import static org.apache.accumulo.server.conf.store.PropCacheKey.PROP_NODE_NAME;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
@@ -44,17 +44,17 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PropCacheIdTest {
-  private static final Logger log = LoggerFactory.getLogger(PropCacheIdTest.class);
+public class PropCacheKeyTest {
+  private static final Logger log = LoggerFactory.getLogger(PropCacheKeyTest.class);
 
   private final InstanceId instanceId = InstanceId.of(UUID.randomUUID());
 
   @Test
   public void systemType() {
-    var name = PropCacheId.forSystem(instanceId);
-    log.info("name: {}", name);
-    assertTrue(name.getPath().endsWith(ZCONFIG + "/" + PROP_NODE_NAME));
-    assertEquals(PropCacheId.IdType.SYSTEM, name.getIdType());
+    var propKey = PropCacheKey.forSystem(instanceId);
+    log.info("name: {}", propKey);
+    assertTrue(propKey.getPath().endsWith(ZCONFIG + "/" + PROP_NODE_NAME));
+    assertEquals(PropCacheKey.IdType.SYSTEM, propKey.getIdType());
   }
 
   @Test
@@ -63,21 +63,22 @@ public class PropCacheIdTest {
     expect(context.getInstanceID()).andReturn(instanceId).once();
     replay(context);
 
-    var name = PropCacheId.forSystem(context);
-    log.info("name: {}", name);
-    assertTrue(name.getPath().endsWith(ZCONFIG + "/" + PROP_NODE_NAME));
-    assertEquals(PropCacheId.IdType.SYSTEM, name.getIdType());
+    var propKey = PropCacheKey.forSystem(context);
+    log.info("propKey: {}", propKey);
+    assertTrue(propKey.getPath().endsWith(ZCONFIG + "/" + PROP_NODE_NAME));
+    assertEquals(PropCacheKey.IdType.SYSTEM, propKey.getIdType());
 
     verify(context);
   }
 
   @Test
   public void namespaceType() {
-    var name = PropCacheId.forNamespace(instanceId, NamespaceId.of("a"));
-    log.info("name: {}", name);
-    assertTrue(name.getPath().endsWith(PROP_NODE_NAME) && name.getPath().contains(ZNAMESPACES));
-    assertEquals(PropCacheId.IdType.NAMESPACE, name.getIdType());
-    log.info("name: {}", name);
+    var propKey = PropCacheKey.forNamespace(instanceId, NamespaceId.of("a"));
+    log.info("propKey: {}", propKey);
+    assertTrue(
+        propKey.getPath().endsWith(PROP_NODE_NAME) && propKey.getPath().contains(ZNAMESPACES));
+    assertEquals(PropCacheKey.IdType.NAMESPACE, propKey.getIdType());
+    log.info("propKey: {}", propKey);
   }
 
   @Test
@@ -86,42 +87,43 @@ public class PropCacheIdTest {
     expect(context.getInstanceID()).andReturn(instanceId).once();
     replay(context);
 
-    var name = PropCacheId.forNamespace(context, NamespaceId.of("a"));
-    assertTrue(name.getPath().endsWith(PROP_NODE_NAME) && name.getPath().contains(ZNAMESPACES));
-    assertEquals(PropCacheId.IdType.NAMESPACE, name.getIdType());
+    var propKey = PropCacheKey.forNamespace(context, NamespaceId.of("a"));
+    assertTrue(
+        propKey.getPath().endsWith(PROP_NODE_NAME) && propKey.getPath().contains(ZNAMESPACES));
+    assertEquals(PropCacheKey.IdType.NAMESPACE, propKey.getIdType());
 
     verify(context);
   }
 
   @Test
   public void tableType() {
-    var name = PropCacheId.forTable(instanceId, TableId.of("a"));
-    log.info("name: {}", name);
-    assertTrue(name.getPath().endsWith(PROP_NODE_NAME) && name.getPath().contains(ZTABLES));
-    assertEquals(PropCacheId.IdType.TABLE, name.getIdType());
-    log.info("name: {}", name);
+    var propKey = PropCacheKey.forTable(instanceId, TableId.of("a"));
+    log.info("propKey: {}", propKey);
+    assertTrue(propKey.getPath().endsWith(PROP_NODE_NAME) && propKey.getPath().contains(ZTABLES));
+    assertEquals(PropCacheKey.IdType.TABLE, propKey.getIdType());
+    log.info("propKey: {}", propKey);
   }
 
   @Test
   public void sortTest() {
-    Set<PropCacheId> nodes = new TreeSet<>();
-    nodes.add(PropCacheId.forTable(instanceId, TableId.of("z1")));
-    nodes.add(PropCacheId.forTable(instanceId, TableId.of("a1")));
-    nodes.add(PropCacheId.forTable(instanceId, TableId.of("x1")));
-    nodes.add(PropCacheId.forNamespace(instanceId, NamespaceId.of("z2")));
-    nodes.add(PropCacheId.forNamespace(instanceId, NamespaceId.of("a2")));
-    nodes.add(PropCacheId.forNamespace(instanceId, NamespaceId.of("x2")));
+    Set<PropCacheKey> nodes = new TreeSet<>();
+    nodes.add(PropCacheKey.forTable(instanceId, TableId.of("z1")));
+    nodes.add(PropCacheKey.forTable(instanceId, TableId.of("a1")));
+    nodes.add(PropCacheKey.forTable(instanceId, TableId.of("x1")));
+    nodes.add(PropCacheKey.forNamespace(instanceId, NamespaceId.of("z2")));
+    nodes.add(PropCacheKey.forNamespace(instanceId, NamespaceId.of("a2")));
+    nodes.add(PropCacheKey.forNamespace(instanceId, NamespaceId.of("x2")));
 
-    nodes.add(PropCacheId.forSystem(instanceId));
+    nodes.add(PropCacheKey.forSystem(instanceId));
 
-    Iterator<PropCacheId> iterator = nodes.iterator();
-    assertEquals(PropCacheId.IdType.SYSTEM, iterator.next().getIdType());
-    assertEquals(PropCacheId.IdType.NAMESPACE, iterator.next().getIdType());
-    assertEquals(PropCacheId.IdType.NAMESPACE, iterator.next().getIdType());
-    assertEquals(PropCacheId.IdType.NAMESPACE, iterator.next().getIdType());
-    assertEquals(PropCacheId.IdType.TABLE, iterator.next().getIdType());
-    assertEquals(PropCacheId.IdType.TABLE, iterator.next().getIdType());
-    assertEquals(PropCacheId.IdType.TABLE, iterator.next().getIdType());
+    Iterator<PropCacheKey> iterator = nodes.iterator();
+    assertEquals(PropCacheKey.IdType.SYSTEM, iterator.next().getIdType());
+    assertEquals(PropCacheKey.IdType.NAMESPACE, iterator.next().getIdType());
+    assertEquals(PropCacheKey.IdType.NAMESPACE, iterator.next().getIdType());
+    assertEquals(PropCacheKey.IdType.NAMESPACE, iterator.next().getIdType());
+    assertEquals(PropCacheKey.IdType.TABLE, iterator.next().getIdType());
+    assertEquals(PropCacheKey.IdType.TABLE, iterator.next().getIdType());
+    assertEquals(PropCacheKey.IdType.TABLE, iterator.next().getIdType());
 
     // rewind.
     iterator = nodes.iterator();
@@ -140,20 +142,20 @@ public class PropCacheIdTest {
   @Test
   public void fromPath() {
 
-    PropCacheId t1 = PropCacheId
+    PropCacheKey t1 = PropCacheKey
         .fromPath("/accumulo/3f9976c6-3bf1-41ab-9751-1b0a9be3551d/tables/t1/conf/encoded_props");
     assertNotNull(t1);
     assertNull(t1.getNamespaceId());
     assertEquals(TableId.of("t1"), t1.getTableId());
 
-    PropCacheId n1 = PropCacheId.fromPath(
+    PropCacheKey n1 = PropCacheKey.fromPath(
         "/accumulo/3f9976c6-3bf1-41ab-9751-1b0a9be3551d/namespaces/n1/conf/encoded_props");
     assertNotNull(n1);
     assertEquals(NamespaceId.of("n1"), n1.getNamespaceId());
     assertNull(n1.getTableId());
 
-    PropCacheId s1 =
-        PropCacheId.fromPath("/accumulo/3f9976c6-3bf1-41ab-9751-1b0a9be3551d/config/encoded_props");
+    PropCacheKey s1 = PropCacheKey
+        .fromPath("/accumulo/3f9976c6-3bf1-41ab-9751-1b0a9be3551d/config/encoded_props");
     assertNotNull(s1);
     assertNull(s1.getNamespaceId());
     assertNull(s1.getTableId());

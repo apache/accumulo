@@ -33,7 +33,7 @@ import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedPropGzipCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCache;
-import org.apache.accumulo.server.conf.store.PropCacheId;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.PropStoreException;
@@ -126,7 +126,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    */
   public static void instancePathInit(final InstanceId instanceId, final ZooReaderWriter zrw)
       throws InterruptedException, KeeperException {
-    var sysPropPath = PropCacheId.forSystem(instanceId).getPath();
+    var sysPropPath = PropCacheKey.forSystem(instanceId).getPath();
     VersionedProperties vProps = new VersionedProperties();
     try {
       var created =
@@ -142,9 +142,9 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   }
 
   @Override
-  public boolean exists(final PropCacheId propCacheId) throws PropStoreException {
+  public boolean exists(final PropCacheKey propCacheKey) throws PropStoreException {
     try {
-      if (zrw.exists(propCacheId.getPath())) {
+      if (zrw.exists(propCacheKey.getPath())) {
         return true;
       }
 
@@ -158,18 +158,18 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   }
 
   @Override
-  public int getNodeVersion(final PropCacheId propCacheId) {
+  public int getNodeVersion(final PropCacheKey propCacheKey) {
     try {
-      Stat s = zrw.getStatus(propCacheId.getPath());
+      Stat s = zrw.getStatus(propCacheKey.getPath());
       if (s != null) {
         return s.getVersion();
       }
-      throw new PropStoreException("Invalid request for node version for " + propCacheId, null);
+      throw new PropStoreException("Invalid request for node version for " + propCacheKey, null);
     } catch (KeeperException ex) {
-      throw new PropStoreException("Could not get node version for " + propCacheId, ex);
+      throw new PropStoreException("Could not get node version for " + propCacheKey, ex);
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
-      throw new PropStoreException("Interrupted getting node status for " + propCacheId, ex);
+      throw new PropStoreException("Interrupted getting node status for " + propCacheKey, ex);
     }
   }
 
@@ -184,8 +184,8 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    */
   public synchronized static void initSysProps(final ServerContext context,
       final Map<String,String> initProps) {
-    PropCacheId sysPropsId = PropCacheId.forSystem(context.getInstanceID());
-    createInitialProps(context, sysPropsId, initProps);
+    PropCacheKey sysPropKey = PropCacheKey.forSystem(context.getInstanceID());
+    createInitialProps(context, sysPropKey, initProps);
   }
 
   /**
@@ -194,27 +194,27 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    *
    * @param context
    *          the system context
-   * @param propCacheId
+   * @param propCacheKey
    *          a prop id
    * @param props
    *          initial properties
    */
-  public static void createInitialProps(final ServerContext context, final PropCacheId propCacheId,
-      Map<String,String> props) {
+  public static void createInitialProps(final ServerContext context,
+      final PropCacheKey propCacheKey, Map<String,String> props) {
 
     try {
       ZooReaderWriter zrw = context.getZooReaderWriter();
-      if (zrw.exists(propCacheId.getPath())) {
+      if (zrw.exists(propCacheKey.getPath())) {
         return;
       }
       VersionedProperties vProps = new VersionedProperties(props);
-      zrw.putPersistentData(propCacheId.getPath(), codec.toBytes(vProps),
+      zrw.putPersistentData(propCacheKey.getPath(), codec.toBytes(vProps),
           ZooUtil.NodeExistsPolicy.FAIL);
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
-      throw new PropStoreException("Interrupted creating node " + propCacheId, ex);
+      throw new PropStoreException("Interrupted creating node " + propCacheKey, ex);
     } catch (Exception ex) {
-      throw new PropStoreException("Failed to create node " + propCacheId, ex);
+      throw new PropStoreException("Failed to create node " + propCacheKey, ex);
     }
   }
 
@@ -223,28 +223,28 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   }
 
   @Override
-  public void create(PropCacheId propCacheId, Map<String,String> props) {
+  public void create(PropCacheKey propCacheKey, Map<String,String> props) {
 
     try {
       VersionedProperties vProps = new VersionedProperties(props);
-      String path = propCacheId.getPath();
+      String path = propCacheKey.getPath();
       zrw.putPersistentData(path, codec.toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
     } catch (IOException | KeeperException | InterruptedException ex) {
-      throw new PropStoreException("Failed to serialize properties for " + propCacheId, ex);
+      throw new PropStoreException("Failed to serialize properties for " + propCacheKey, ex);
     }
   }
 
   @Override
-  public @Nullable VersionedProperties get(final PropCacheId propCacheId)
+  public @Nullable VersionedProperties get(final PropCacheKey propCacheKey)
       throws PropStoreException {
     try {
 
       checkZkConnection(); // if ZK not connected, block, do not just return a cached value.
-      propStoreWatcher.registerListener(propCacheId, this);
-      return cache.get(propCacheId);
+      propStoreWatcher.registerListener(propCacheKey, this);
+      return cache.get(propCacheKey);
 
     } catch (Exception ex) {
-      throw new PropStoreException("read from prop store get() failed for: " + propCacheId, ex);
+      throw new PropStoreException("read from prop store get() failed for: " + propCacheKey, ex);
     }
   }
 
@@ -259,7 +259,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    * value(s) will be the set to the values provided by the last thread to complete. The order is
    * indeterminate.
    *
-   * @param propCacheId
+   * @param propCacheKey
    *          the prop cache id
    * @param props
    *          a map of property k,v pairs
@@ -267,68 +267,68 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    *           if the values cannot be written or if an underlying store exception occurs.
    */
   @Override
-  public void putAll(PropCacheId propCacheId, Map<String,String> props) {
-    mutateVersionedProps(propCacheId, VersionedProperties::addOrUpdate, props);
+  public void putAll(PropCacheKey propCacheKey, Map<String,String> props) {
+    mutateVersionedProps(propCacheKey, VersionedProperties::addOrUpdate, props);
   }
 
   @Override
-  public void removeProperties(PropCacheId propCacheId, Collection<String> keys) {
-    mutateVersionedProps(propCacheId, VersionedProperties::remove, keys);
+  public void removeProperties(PropCacheKey propCacheKey, Collection<String> keys) {
+    mutateVersionedProps(propCacheKey, VersionedProperties::remove, keys);
   }
 
   @Override
-  public void delete(PropCacheId propCacheId) throws PropStoreException {
-    Objects.requireNonNull(propCacheId, "prop store delete() - Must provide propCacheId");
+  public void delete(PropCacheKey propCacheKey) throws PropStoreException {
+    Objects.requireNonNull(propCacheKey, "prop store delete() - Must provide propCacheId");
     try {
-      log.trace("called delete() for: {}", propCacheId);
-      final String path = propCacheId.getPath();
+      log.trace("called delete() for: {}", propCacheKey);
+      final String path = propCacheKey.getPath();
       zrw.delete(path);
-      cache.remove(propCacheId);
+      cache.remove(propCacheKey);
     } catch (KeeperException | InterruptedException ex) {
-      throw new PropStoreException("Failed to delete properties for propCacheId " + propCacheId,
+      throw new PropStoreException("Failed to delete properties for propCacheId " + propCacheKey,
           ex);
     }
   }
 
-  private <T> void mutateVersionedProps(PropCacheId propCacheId,
+  private <T> void mutateVersionedProps(PropCacheKey propCacheKey,
       BiFunction<VersionedProperties,T,VersionedProperties> action, T changes) {
 
-    log.trace("mutateVersionedProps called for: {}", propCacheId);
+    log.trace("mutateVersionedProps called for: {}", propCacheKey);
 
     try {
 
-      VersionedProperties vProps = cache.getWithoutCaching(propCacheId);
+      VersionedProperties vProps = cache.getWithoutCaching(propCacheKey);
       if (vProps == null) {
-        vProps = readPropsFromZk(propCacheId);
+        vProps = readPropsFromZk(propCacheKey);
       }
 
       for (int attempts = 3; attempts > 0; --attempts) {
 
         VersionedProperties updates = action.apply(vProps, changes);
 
-        if (zrw.overwritePersistentData(propCacheId.getPath(), codec.toBytes(updates),
+        if (zrw.overwritePersistentData(propCacheKey.getPath(), codec.toBytes(updates),
             updates.getDataVersion())) {
           return;
         }
         Thread.sleep(20); // small pause to get thread to yield.
         // re-read from zookeeper to ensure the latest version.
-        vProps = readPropsFromZk(propCacheId);
+        vProps = readPropsFromZk(propCacheKey);
       }
-      throw new PropStoreException("failed to remove properties to zooKeeper for " + propCacheId,
+      throw new PropStoreException("failed to remove properties to zooKeeper for " + propCacheKey,
           null);
     } catch (IllegalArgumentException | IOException ex) {
-      throw new PropStoreException("Codec failed to decode / encode properties for " + propCacheId,
+      throw new PropStoreException("Codec failed to decode / encode properties for " + propCacheKey,
           ex);
     } catch (InterruptedException | KeeperException ex) {
       if (ex instanceof InterruptedException) {
         Thread.currentThread().interrupt();
       }
-      throw new PropStoreException("failed to remove properties to zooKeeper for " + propCacheId,
+      throw new PropStoreException("failed to remove properties to zooKeeper for " + propCacheKey,
           ex);
     }
   }
 
-  public void putAllOld(final PropCacheId propCacheId, final Map<String,String> props)
+  public void putAllOld(final PropCacheKey propCacheId, final Map<String,String> props)
       throws PropStoreException {
 
     VersionedProperties updates = null;
@@ -372,47 +372,47 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     }
   }
 
-  public void removePropertiesOld(PropCacheId propCacheId, Collection<String> keys)
+  public void removePropertiesOld(PropCacheKey propCacheKey, Collection<String> keys)
       throws PropStoreException {
 
-    log.trace("removeProperties called for: {}, {} ", propCacheId, keys);
+    log.trace("removeProperties called for: {}, {} ", propCacheKey, keys);
 
     try {
 
-      VersionedProperties vProps = cache.getWithoutCaching(propCacheId);
+      VersionedProperties vProps = cache.getWithoutCaching(propCacheKey);
       if (vProps == null) {
-        vProps = readPropsFromZk(propCacheId);
+        vProps = readPropsFromZk(propCacheKey);
       }
 
       for (int attempts = 3; attempts > 0; --attempts) {
 
         VersionedProperties updates = vProps.remove(keys);
 
-        if (zrw.overwritePersistentData(propCacheId.getPath(), codec.toBytes(updates),
+        if (zrw.overwritePersistentData(propCacheKey.getPath(), codec.toBytes(updates),
             updates.getDataVersion())) {
           return;
         }
         Thread.sleep(20); // small pause to get thread to yield.
         // re-read from zookeeper to ensure the latest version.
-        vProps = readPropsFromZk(propCacheId);
+        vProps = readPropsFromZk(propCacheKey);
       }
-      throw new PropStoreException("failed to remove properties to zooKeeper for " + propCacheId,
+      throw new PropStoreException("failed to remove properties to zooKeeper for " + propCacheKey,
           null);
     } catch (IllegalArgumentException | IOException ex) {
-      throw new PropStoreException("Codec failed to decode / encode properties for " + propCacheId,
+      throw new PropStoreException("Codec failed to decode / encode properties for " + propCacheKey,
           ex);
     } catch (InterruptedException | KeeperException ex) {
       if (ex instanceof InterruptedException) {
         Thread.currentThread().interrupt();
       }
-      throw new PropStoreException("failed to remove properties to zooKeeper for " + propCacheId,
+      throw new PropStoreException("failed to remove properties to zooKeeper for " + propCacheKey,
           ex);
     }
   }
 
   @Override
-  public void registerAsListener(PropCacheId propCacheId, PropChangeListener listener) {
-    propStoreWatcher.registerListener(propCacheId, listener);
+  public void registerAsListener(PropCacheKey propCacheKey, PropChangeListener listener) {
+    propStoreWatcher.registerListener(propCacheKey, listener);
   }
 
   private void checkZkConnection() throws PropStoreException {
@@ -435,9 +435,9 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   }
 
   @Override
-  public void zkChangeEvent(PropCacheId id) {
-    log.trace("Received change event from ZooKeeper for: {} removed from cache", id);
-    cache.remove(id);
+  public void zkChangeEvent(PropCacheKey propCacheKey) {
+    log.trace("Received change event from ZooKeeper for: {} removed from cache", propCacheKey);
+    cache.remove(propCacheKey);
   }
 
   /**
@@ -445,19 +445,19 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    * change is also sent to external listeners of the need to take action, but for the prop store,
    * no additional action is required.
    *
-   * @param id
+   * @param propCacheKey
    *          the prop cache id.
    */
   @Override
-  public void cacheChangeEvent(PropCacheId id) {
-    log.trace("zkChangeEvent: {}", id);
+  public void cacheChangeEvent(PropCacheKey propCacheKey) {
+    log.trace("zkChangeEvent: {}", propCacheKey);
     // noop - cache already reflects change
   }
 
   @Override
-  public void deleteEvent(PropCacheId id) {
-    log.trace("deleteEvent: {}", id);
-    cache.remove(id);
+  public void deleteEvent(PropCacheKey propCacheKey) {
+    log.trace("deleteEvent: {}", propCacheKey);
+    cache.remove(propCacheKey);
   }
 
   @Override
@@ -475,8 +475,8 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   /**
    * Read and decode property node from ZooKeeper.
    *
-   * @param propCacheId
-   *          the propCacheId
+   * @param propCacheKey
+   *          the propCacheKey
    * @return the decoded properties.
    * @throws KeeperException
    *           if a ZooKeeper exception occurs to allow caller to decide on action.
@@ -487,11 +487,11 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    *           if an interrupt occurs. The interrupt status is reasserted and usually best to not
    *           otherwise try to handle the exception.
    */
-  private VersionedProperties readPropsFromZk(PropCacheId propCacheId)
+  private VersionedProperties readPropsFromZk(PropCacheKey propCacheKey)
       throws KeeperException, IOException {
     try {
       Stat stat = new Stat();
-      byte[] bytes = zrw.getData(propCacheId.getPath(), stat);
+      byte[] bytes = zrw.getData(propCacheKey.getPath(), stat);
       return codec.fromBytes(stat.getVersion(), bytes);
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();

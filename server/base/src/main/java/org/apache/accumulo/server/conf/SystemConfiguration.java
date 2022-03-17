@@ -24,16 +24,16 @@ import java.util.Objects;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.store.PropCacheId;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.slf4j.Logger;
 
 public class SystemConfiguration extends ZooBasedConfiguration {
 
   private final RuntimeFixedProperties fixedProperties;
 
-  public SystemConfiguration(Logger log, ServerContext context, PropCacheId propCacheId,
+  public SystemConfiguration(Logger log, ServerContext context, PropCacheKey propCacheKey,
       AccumuloConfiguration parent) {
-    super(log, context, propCacheId, parent);
+    super(log, context, propCacheKey, parent);
     var sysProps = getSnapshot();
     fixedProperties = new RuntimeFixedProperties(context.getSiteConfiguration(),
         Objects.requireNonNullElseGet(sysProps, Map::of));

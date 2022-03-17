@@ -43,7 +43,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
-import org.apache.accumulo.server.conf.store.PropCacheId;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.junit.jupiter.api.BeforeEach;
@@ -75,11 +75,11 @@ public class NamespaceConfigurationTest {
     parent = createMock(AccumuloConfiguration.class);
     reset(propStore);
 
-    var nsCacheId = PropCacheId.forNamespace(iid, NSID);
-    expect(propStore.get(eq(nsCacheId))).andReturn(new VersionedProperties(123, Instant.now(),
+    var nsCacheKey = PropCacheKey.forNamespace(iid, NSID);
+    expect(propStore.get(eq(nsCacheKey))).andReturn(new VersionedProperties(123, Instant.now(),
         Map.of(Property.INSTANCE_SECRET.getKey(), "sekrit"))).anyTimes();
-    expect(propStore.getNodeVersion(eq(nsCacheId))).andReturn(123).anyTimes();
-    propStore.registerAsListener(eq(nsCacheId), anyObject());
+    expect(propStore.getNodeVersion(eq(nsCacheKey))).andReturn(123).anyTimes();
+    propStore.registerAsListener(eq(nsCacheKey), anyObject());
     expectLastCall().anyTimes();
 
     replay(propStore, context);
@@ -120,10 +120,11 @@ public class NamespaceConfigurationTest {
   @Test
   public void testGet_SkipParentIfAccumuloNS() {
     reset(propStore);
-    var nsId = PropCacheId.forNamespace(iid, Namespace.ACCUMULO.id());
-    expect(propStore.get(eq(nsId))).andReturn(new VersionedProperties(Map.of("a", "b"))).anyTimes();
-    expect(propStore.getNodeVersion(eq(nsId))).andReturn(0).anyTimes();
-    propStore.registerAsListener(eq(nsId), anyObject());
+    var nsPropKey = PropCacheKey.forNamespace(iid, Namespace.ACCUMULO.id());
+    expect(propStore.get(eq(nsPropKey))).andReturn(new VersionedProperties(Map.of("a", "b")))
+        .anyTimes();
+    expect(propStore.getNodeVersion(eq(nsPropKey))).andReturn(0).anyTimes();
+    propStore.registerAsListener(eq(nsPropKey), anyObject());
     expectLastCall().anyTimes();
     replay(propStore);
 
@@ -143,13 +144,13 @@ public class NamespaceConfigurationTest {
     replay(parent);
     reset(propStore);
 
-    var nsCacheId = PropCacheId.forNamespace(iid, NSID);
-    expect(propStore.get(eq(nsCacheId)))
+    var nsPropKey = PropCacheKey.forNamespace(iid, NSID);
+    expect(propStore.get(eq(nsPropKey)))
         .andReturn(
             new VersionedProperties(123, Instant.now(), Map.of("foo", "bar", "tick", "tock")))
         .anyTimes();
-    expect(propStore.getNodeVersion(eq(nsCacheId))).andReturn(123).anyTimes();
-    propStore.registerAsListener(eq(nsCacheId), anyObject());
+    expect(propStore.getNodeVersion(eq(nsPropKey))).andReturn(123).anyTimes();
+    propStore.registerAsListener(eq(nsPropKey), anyObject());
     expectLastCall().anyTimes();
 
     replay(propStore);

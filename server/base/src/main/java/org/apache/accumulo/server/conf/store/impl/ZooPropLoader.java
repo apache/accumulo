@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
-import org.apache.accumulo.server.conf.store.PropCacheId;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.zookeeper.data.Stat;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.CacheLoader;
 
-public class ZooPropLoader implements CacheLoader<PropCacheId,VersionedProperties> {
+public class ZooPropLoader implements CacheLoader<PropCacheKey,VersionedProperties> {
 
   private static final Logger log = LoggerFactory.getLogger(ZooPropLoader.class);
 
@@ -54,14 +54,14 @@ public class ZooPropLoader implements CacheLoader<PropCacheId,VersionedPropertie
   }
 
   @Override
-  public @Nullable VersionedProperties load(PropCacheId propCacheId) {
+  public @Nullable VersionedProperties load(PropCacheKey propCacheKey) {
     try {
-      log.trace("load called for {}", propCacheId);
+      log.trace("load called for {}", propCacheKey);
 
       long startNanos = System.nanoTime();
 
       Stat stat = new Stat();
-      byte[] bytes = zrw.getData(propCacheId.getPath(), propStoreWatcher, stat);
+      byte[] bytes = zrw.getData(propCacheKey.getPath(), propStoreWatcher, stat);
       var vProps = propCodec.fromBytes(stat.getVersion(), bytes);
 
       metrics.addLoadTime(
@@ -70,35 +70,36 @@ public class ZooPropLoader implements CacheLoader<PropCacheId,VersionedPropertie
       return vProps;
     } catch (Exception ex) {
       metrics.incrZkError();
-      log.info("Failed to load properties for: {} from ZooKeeper, returning null", propCacheId, ex);
-      propStoreWatcher.signalZkChangeEvent(propCacheId);
+      log.info("Failed to load properties for: {} from ZooKeeper, returning null", propCacheKey,
+          ex);
+      propStoreWatcher.signalZkChangeEvent(propCacheKey);
       return null;
     }
   }
 
   @Override
-  public CompletableFuture<? extends VersionedProperties> asyncLoad(PropCacheId propCacheId,
+  public CompletableFuture<? extends VersionedProperties> asyncLoad(PropCacheKey propCacheKey,
       Executor executor) {
-    log.trace("asyncLoad called for key: {}", propCacheId);
-    return CacheLoader.super.asyncLoad(propCacheId, executor);
+    log.trace("asyncLoad called for key: {}", propCacheKey);
+    return CacheLoader.super.asyncLoad(propCacheKey, executor);
   }
 
   @Override
-  public CompletableFuture<? extends VersionedProperties> asyncReload(PropCacheId propCacheId,
+  public CompletableFuture<? extends VersionedProperties> asyncReload(PropCacheKey propCacheKey,
       VersionedProperties oldValue, Executor executor) throws Exception {
-    log.trace("asyncReload called for key: {}", propCacheId);
+    log.trace("asyncReload called for key: {}", propCacheKey);
     metrics.incrRefresh();
 
-    return CompletableFuture.supplyAsync(() -> loadIfDifferentVersion(propCacheId, oldValue),
+    return CompletableFuture.supplyAsync(() -> loadIfDifferentVersion(propCacheKey, oldValue),
         executor);
   }
 
   @Override
-  public @Nullable VersionedProperties reload(PropCacheId propCacheId, VersionedProperties oldValue)
-      throws Exception {
-    log.trace("reload called for: {}", propCacheId);
+  public @Nullable VersionedProperties reload(PropCacheKey propCacheKey,
+      VersionedProperties oldValue) throws Exception {
+    log.trace("reload called for: {}", propCacheKey);
     metrics.incrRefresh();
-    return loadIfDifferentVersion(propCacheId, oldValue);
+    return loadIfDifferentVersion(propCacheKey, oldValue);
   }
 
   /**
@@ -115,7 +116,7 @@ public class ZooPropLoader implements CacheLoader<PropCacheId,VersionedPropertie
    * @return versioned properties that match the values stored in ZooKeeper, or null if the
    *         properties cannot be retrieved.
    */
-  private @Nullable VersionedProperties loadIfDifferentVersion(PropCacheId propCacheId,
+  private @Nullable VersionedProperties loadIfDifferentVersion(PropCacheKey propCacheId,
       VersionedProperties currentValue) {
     requireNonNull(propCacheId, "propCacheId cannot be null");
     try {

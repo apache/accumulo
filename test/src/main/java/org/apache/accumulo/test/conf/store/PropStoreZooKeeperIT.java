@@ -46,7 +46,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedPropGzipCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
-import org.apache.accumulo.server.conf.store.PropCacheId;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.PropStoreException;
@@ -146,13 +146,13 @@ public class PropStoreZooKeeperIT {
 
     ZooPropStore propStore = new ZooPropStore.Builder(context).build();
 
-    PropCacheId tableA = PropCacheId.forTable(INSTANCE_ID, tIdA);
+    PropCacheKey propKey = PropCacheKey.forTable(INSTANCE_ID, tIdA);
 
     // read from ZK
-    assertNull(zooKeeper.exists(tableA.getPath(), false));
+    assertNull(zooKeeper.exists(propKey.getPath(), false));
     // read from cache
-    assertNotNull(zooKeeper.exists(tableA.getPath(), false));
-    assertNotNull(propStore.get(tableA));
+    assertNotNull(zooKeeper.exists(propKey.getPath(), false));
+    assertNotNull(propStore.get(propKey));
 
   }
 
@@ -161,14 +161,14 @@ public class PropStoreZooKeeperIT {
 
     PropStore propStore = new ZooPropStore.Builder(context).build();
 
-    PropCacheId tableA = PropCacheId.forTable(INSTANCE_ID, tIdA);
+    PropCacheKey propKey = PropCacheKey.forTable(INSTANCE_ID, tIdA);
 
-    assertNull(zooKeeper.exists(tableA.getPath(), false)); // check node does not exist in ZK
+    assertNull(zooKeeper.exists(propKey.getPath(), false)); // check node does not exist in ZK
 
-    assertNotNull(zooKeeper.exists(tableA.getPath(), false)); // check nod created
-    assertThrows(PropStoreException.class, () -> propStore.create(tableA, null));
+    assertNotNull(zooKeeper.exists(propKey.getPath(), false)); // check nod created
+    assertThrows(PropStoreException.class, () -> propStore.create(propKey, null));
 
-    assertNotNull(propStore.get(tableA));
+    assertNotNull(propStore.get(propKey));
   }
 
   @Test
@@ -177,21 +177,21 @@ public class PropStoreZooKeeperIT {
 
     PropStore propStore = new ZooPropStore.Builder(context).build();
 
-    PropCacheId tableA = PropCacheId.forTable(INSTANCE_ID, TableId.of("A"));
+    PropCacheKey propKey = PropCacheKey.forTable(INSTANCE_ID, TableId.of("A"));
     Map<String,String> initialProps = new HashMap<>();
     initialProps.put(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
-    propStore.create(tableA, initialProps);
+    propStore.create(propKey, initialProps);
 
-    VersionedProperties vProps = propStore.get(tableA);
+    VersionedProperties vProps = propStore.get(propKey);
     assertNotNull(vProps);
     assertEquals("true", vProps.getProperties().get(Property.TABLE_BLOOM_ENABLED.getKey()));
 
     // check using direct read from ZK
-    byte[] bytes = zooKeeper.getData(tableA.getPath(), false, new Stat());
+    byte[] bytes = zooKeeper.getData(propKey.getPath(), false, new Stat());
     var readFromZk = propCodec.fromBytes(0, bytes);
-    var propsA = propStore.get(tableA);
+    var propsA = propStore.get(propKey);
     if (propsA == null) {
-      fail("unexpected null for versioned properties for tableA");
+      fail("unexpected null for versioned properties for propKey");
     }
     assertEquals(readFromZk.getProperties(), propsA.getProperties());
   }
@@ -203,16 +203,16 @@ public class PropStoreZooKeeperIT {
 
     TestChangeListener listener = new TestChangeListener();
 
-    PropCacheId tableA = PropCacheId.forTable(INSTANCE_ID, TableId.of("A"));
-    propStore.registerAsListener(tableA, listener);
+    PropCacheKey propKey = PropCacheKey.forTable(INSTANCE_ID, TableId.of("A"));
+    propStore.registerAsListener(propKey, listener);
 
     Map<String,String> initialProps = new HashMap<>();
     initialProps.put(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
-    propStore.create(tableA, initialProps);
+    propStore.create(propKey, initialProps);
 
-    var props1 = propStore.get(tableA);
+    var props1 = propStore.get(propKey);
     if (props1 == null) {
-      fail("unexpected null for versioned properties for tableA");
+      fail("unexpected null for versioned properties for propKey");
     }
     assertEquals("true", props1.getProperties().get(Property.TABLE_BLOOM_ENABLED.getKey()));
 
@@ -224,16 +224,16 @@ public class PropStoreZooKeeperIT {
 
     log.trace("calling update()");
 
-    propStore.putAll(tableA, updateProps);
+    propStore.putAll(propKey, updateProps);
 
     // allow change notification to propagate
     Thread.sleep(150);
 
     log.trace("calling get()");
 
-    var props2 = propStore.get(tableA);
+    var props2 = propStore.get(propKey);
     if (props2 == null) {
-      fail("unexpected null for versioned properties for tableA");
+      fail("unexpected null for versioned properties for propKey");
     }
     // validate version changed on write.
     int version1 = props2.getDataVersion();
@@ -242,19 +242,19 @@ public class PropStoreZooKeeperIT {
 
     assertTrue(version0 < version1);
 
-    assertNotNull(propStore.get(tableA));
+    assertNotNull(propStore.get(propKey));
     assertEquals(2, props2.getProperties().size());
     assertEquals("false", props2.getProperties().get(Property.TABLE_BLOOM_ENABLED.getKey()));
     assertEquals("5", props2.getProperties().get(Property.TABLE_MAJC_RATIO.getKey()));
 
-    propStore.removeProperties(tableA,
+    propStore.removeProperties(propKey,
         Collections.singletonList(Property.TABLE_MAJC_RATIO.getKey()));
     Thread.sleep(150);
     // validate version changed on write
 
-    var props3 = propStore.get(tableA);
+    var props3 = propStore.get(propKey);
     if (props3 == null) {
-      fail("unexpected null for versioned properties for tableA");
+      fail("unexpected null for versioned properties for propKey");
     }
     log.trace("current props: {}", props3.print(true));
 
@@ -267,9 +267,9 @@ public class PropStoreZooKeeperIT {
     // allow change to propagate
     Thread.sleep(150);
 
-    var props4 = propStore.get(tableA);
+    var props4 = propStore.get(propKey);
     if (props4 == null) {
-      fail("unexpected null for versioned properties for tableA");
+      fail("unexpected null for versioned properties for propKey");
     }
     assertEquals(1, props4.getProperties().size());
     assertEquals("false", props4.getProperties().get(Property.TABLE_BLOOM_ENABLED.getKey()));
@@ -277,8 +277,8 @@ public class PropStoreZooKeeperIT {
 
     log.trace("changed count: {}", listener.changeCounts);
 
-    assertEquals(2, (int) listener.getChangeCounts().get(tableA));
-    assertNull(listener.getDeleteCounts().get(tableA));
+    assertEquals(2, (int) listener.getChangeCounts().get(propKey));
+    assertNull(listener.getDeleteCounts().get(propKey));
 
   }
 
@@ -286,20 +286,20 @@ public class PropStoreZooKeeperIT {
   public void deleteTest() {
     PropStore propStore = new ZooPropStore.Builder(context).build();
 
-    PropCacheId tableA = PropCacheId.forTable(INSTANCE_ID, TableId.of("A"));
-    PropCacheId tableB = PropCacheId.forTable(INSTANCE_ID, TableId.of("B"));
+    PropCacheKey tableAPropKey = PropCacheKey.forTable(INSTANCE_ID, TableId.of("A"));
+    PropCacheKey tableBPropKey = PropCacheKey.forTable(INSTANCE_ID, TableId.of("B"));
 
     Map<String,String> initialProps = new HashMap<>();
     initialProps.put(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
-    propStore.create(tableA, initialProps);
-    propStore.create(tableB, initialProps);
+    propStore.create(tableAPropKey, initialProps);
+    propStore.create(tableBPropKey, initialProps);
 
-    assertNotNull(propStore.get(tableA));
-    assertNotNull(propStore.get(tableB));
+    assertNotNull(propStore.get(tableAPropKey));
+    assertNotNull(propStore.get(tableBPropKey));
 
-    var props1 = propStore.get(tableA);
+    var props1 = propStore.get(tableAPropKey);
     if (props1 == null) {
-      fail("unexpected null for versioned properties for tableA");
+      fail("unexpected null for versioned properties for tableAPropKey");
     }
     assertEquals("true", props1.getProperties().get(Property.TABLE_BLOOM_ENABLED.getKey()));
 
@@ -322,47 +322,47 @@ public class PropStoreZooKeeperIT {
 
     TestChangeListener listener = new TestChangeListener();
 
-    PropCacheId tableA = PropCacheId.forTable(INSTANCE_ID, TableId.of("A"));
-    PropCacheId tableB = PropCacheId.forTable(INSTANCE_ID, TableId.of("B"));
+    PropCacheKey tableAPropKey = PropCacheKey.forTable(INSTANCE_ID, TableId.of("A"));
+    PropCacheKey tableBPropKey = PropCacheKey.forTable(INSTANCE_ID, TableId.of("B"));
 
-    propStore.registerAsListener(tableA, listener);
-    propStore.registerAsListener(tableB, listener);
+    propStore.registerAsListener(tableAPropKey, listener);
+    propStore.registerAsListener(tableBPropKey, listener);
 
     Map<String,String> initialProps = new HashMap<>();
     initialProps.put(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
-    propStore.create(tableA, initialProps);
-    propStore.create(tableB, initialProps);
+    propStore.create(tableAPropKey, initialProps);
+    propStore.create(tableBPropKey, initialProps);
 
-    var propsA = propStore.get(tableA);
+    var propsA = propStore.get(tableAPropKey);
     if (propsA == null) {
-      fail("unexpected null for versioned properties for tableA");
+      fail("unexpected null for versioned properties for tableAPropKey");
     }
 
-    var propsB = propStore.get(tableB);
+    var propsB = propStore.get(tableBPropKey);
     if (propsB == null) {
-      fail("unexpected null for versioned properties for tableB");
+      fail("unexpected null for versioned properties for tableBPropKey");
     }
 
     assertEquals("true", propsA.getProperties().get(Property.TABLE_BLOOM_ENABLED.getKey()));
 
     // use 3nd prop store - change will propagate via ZooKeeper
     PropStore propStore2 = new ZooPropStore.Builder(context).build();
-    propStore2.delete(tableA);
+    propStore2.delete(tableAPropKey);
 
-    log.trace("After delete on 2nd store for table: {}", tableA);
+    log.trace("After delete on 2nd store for table: {}", tableAPropKey);
 
     Thread.sleep(150);
 
-    assertNull(propStore.get(tableA));
-    assertNotNull(propStore.get(tableB));
+    assertNull(propStore.get(tableAPropKey));
+    assertNotNull(propStore.get(tableBPropKey));
 
     // validate change count not triggered
-    assertNull(listener.getChangeCounts().get(tableA));
-    assertNull(listener.getChangeCounts().get(tableB));
+    assertNull(listener.getChangeCounts().get(tableAPropKey));
+    assertNull(listener.getChangeCounts().get(tableBPropKey));
 
     // validate delete only for table A
-    assertEquals(1, (int) listener.getDeleteCounts().get(tableA));
-    assertNull(listener.getChangeCounts().get(tableA));
+    assertEquals(1, (int) listener.getDeleteCounts().get(tableAPropKey));
+    assertNull(listener.getChangeCounts().get(tableAPropKey));
   }
 
   /**
@@ -376,21 +376,21 @@ public class PropStoreZooKeeperIT {
 
     TestChangeListener listener = new TestChangeListener();
 
-    PropCacheId tableA = PropCacheId.forTable(INSTANCE_ID, TableId.of("A"));
-    PropCacheId tableB = PropCacheId.forTable(INSTANCE_ID, TableId.of("B"));
+    PropCacheKey tableAPropKey = PropCacheKey.forTable(INSTANCE_ID, TableId.of("A"));
+    PropCacheKey tableBPropKey = PropCacheKey.forTable(INSTANCE_ID, TableId.of("B"));
 
-    propStore.registerAsListener(tableA, listener);
-    propStore.registerAsListener(tableB, listener);
+    propStore.registerAsListener(tableAPropKey, listener);
+    propStore.registerAsListener(tableBPropKey, listener);
 
     Map<String,String> initialProps = new HashMap<>();
     initialProps.put(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
-    propStore.create(tableA, initialProps);
-    propStore.create(tableB, initialProps);
+    propStore.create(tableAPropKey, initialProps);
+    propStore.create(tableBPropKey, initialProps);
 
-    assertNotNull(propStore.get(tableA));
-    assertNotNull(propStore.get(tableB));
+    assertNotNull(propStore.get(tableAPropKey));
+    assertNotNull(propStore.get(tableBPropKey));
 
-    VersionedProperties firstRead = propStore.get(tableA);
+    VersionedProperties firstRead = propStore.get(tableAPropKey);
     if (firstRead == null) {
       fail("first read unexpected returned null");
       return;
@@ -409,14 +409,14 @@ public class PropStoreZooKeeperIT {
 
     byte[] updatedBytes = propCodec.toBytes(pendingProps);
     // force external write to ZooKeeper
-    context.getZooReaderWriter().overwritePersistentData(tableA.getPath(), updatedBytes,
+    context.getZooReaderWriter().overwritePersistentData(tableAPropKey.getPath(), updatedBytes,
         firstRead.getDataVersion());
 
     Thread.sleep(150);
 
     log.trace("Test - waiting for event");
 
-    VersionedProperties updateRead = propStore.get(tableA);
+    VersionedProperties updateRead = propStore.get(tableAPropKey);
     if (updateRead == null) {
       fail("update read failed with unexpected null");
       return;
@@ -438,22 +438,22 @@ public class PropStoreZooKeeperIT {
 
   private static class TestChangeListener implements PropChangeListener {
 
-    private final Map<PropCacheId,Integer> changeCounts = new ConcurrentHashMap<>();
-    private final Map<PropCacheId,Integer> deleteCounts = new ConcurrentHashMap<>();
+    private final Map<PropCacheKey,Integer> changeCounts = new ConcurrentHashMap<>();
+    private final Map<PropCacheKey,Integer> deleteCounts = new ConcurrentHashMap<>();
 
     @Override
-    public void zkChangeEvent(PropCacheId id) {
-      changeCounts.merge(id, 1, Integer::sum);
+    public void zkChangeEvent(PropCacheKey propCacheKey) {
+      changeCounts.merge(propCacheKey, 1, Integer::sum);
     }
 
     @Override
-    public void cacheChangeEvent(PropCacheId id) {
-      changeCounts.merge(id, 1, Integer::sum);
+    public void cacheChangeEvent(PropCacheKey propCacheKey) {
+      changeCounts.merge(propCacheKey, 1, Integer::sum);
     }
 
     @Override
-    public void deleteEvent(PropCacheId id) {
-      deleteCounts.merge(id, 1, Integer::sum);
+    public void deleteEvent(PropCacheKey propCacheKey) {
+      deleteCounts.merge(propCacheKey, 1, Integer::sum);
     }
 
     @Override
@@ -461,11 +461,11 @@ public class PropStoreZooKeeperIT {
 
     }
 
-    public Map<PropCacheId,Integer> getChangeCounts() {
+    public Map<PropCacheKey,Integer> getChangeCounts() {
       return changeCounts;
     }
 
-    public Map<PropCacheId,Integer> getDeleteCounts() {
+    public Map<PropCacheKey,Integer> getDeleteCounts() {
       return deleteCounts;
     }
   }

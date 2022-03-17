@@ -63,7 +63,7 @@ import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.SystemConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.conf.store.PropCacheId;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -164,7 +164,7 @@ public class ServerContext extends ClientContext {
   @Override
   public AccumuloConfiguration getConfiguration() {
     if (systemConfig == null) {
-      systemConfig = new SystemConfiguration(log, this, PropCacheId.forSystem(getInstanceID()),
+      systemConfig = new SystemConfiguration(log, this, PropCacheKey.forSystem(getInstanceID()),
           getSiteConfiguration());
     }
     return systemConfig;

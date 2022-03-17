@@ -39,7 +39,7 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
-import org.apache.accumulo.server.conf.store.PropCacheId;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.zookeeper.KeeperException;
@@ -129,7 +129,7 @@ public class ConfigPropertyPrinter implements KeywordExecutable {
         byte[] bytes;
 
         try {
-          bytes = zrw.getData(PropCacheId.forSystem(context).getPath(), stat);
+          bytes = zrw.getData(PropCacheKey.forSystem(context).getPath(), stat);
           VersionedProperties sysProps =
               ZooPropStore.getCodec().fromBytes(stat.getVersion(), bytes);
           printProps(writer, "System", sysProps);
@@ -140,7 +140,7 @@ public class ConfigPropertyPrinter implements KeywordExecutable {
         for (Map.Entry<String,String> e : namespaces.entrySet()) {
           try {
             bytes = zrw.getData(
-                PropCacheId.forNamespace(context, NamespaceId.of(e.getValue())).getPath(), stat);
+                PropCacheKey.forNamespace(context, NamespaceId.of(e.getValue())).getPath(), stat);
             VersionedProperties nsProps =
                 ZooPropStore.getCodec().fromBytes(stat.getVersion(), bytes);
             printProps(writer, e.getKey(), nsProps);
@@ -151,7 +151,7 @@ public class ConfigPropertyPrinter implements KeywordExecutable {
 
         for (Map.Entry<String,String> e : tables.entrySet()) {
           try {
-            bytes = zrw.getData(PropCacheId.forTable(context, TableId.of(e.getValue())).getPath(),
+            bytes = zrw.getData(PropCacheKey.forTable(context, TableId.of(e.getValue())).getPath(),
                 stat);
             VersionedProperties tsProps =
                 ZooPropStore.getCodec().fromBytes(stat.getVersion(), bytes);
