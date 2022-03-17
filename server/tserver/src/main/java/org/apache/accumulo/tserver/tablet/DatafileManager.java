@@ -247,7 +247,7 @@ class DatafileManager {
       }
     }
 
-    metadataUpdateCount.updateAndGet(oldCount -> oldCount.incrementStart());
+    metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementStart);
     // do not place any code here between above stmt and try{}finally
     try {
       synchronized (tablet) {
@@ -267,7 +267,7 @@ class DatafileManager {
         TabletLogger.bulkImported(tablet.getExtent(), entry.getKey());
       }
     } finally {
-      metadataUpdateCount.updateAndGet(oldCount -> oldCount.incrementFinish());
+      metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementFinish);
     }
 
     return newFiles.keySet();
@@ -363,7 +363,7 @@ class DatafileManager {
       tablet.finishClearingUnusedLogs();
     }
 
-    metadataUpdateCount.updateAndGet(oldCount -> oldCount.incrementStart());
+    metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementStart);
     // do not place any code here between above stmt and try{}finally
     try {
 
@@ -397,7 +397,7 @@ class DatafileManager {
         t2 = System.currentTimeMillis();
       }
     } finally {
-      metadataUpdateCount.updateAndGet(oldCount -> oldCount.incrementFinish());
+      metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementFinish);
     }
 
     TabletLogger.flushed(tablet.getExtent(), newFile);
@@ -443,7 +443,7 @@ class DatafileManager {
 
     Long compactionIdToWrite = null;
 
-    metadataUpdateCount.updateAndGet(oldCount -> oldCount.incrementStart());
+    metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementStart);
     // do not place any code here between above stmt and try{}finally
     try {
 
@@ -491,7 +491,7 @@ class DatafileManager {
       removeFilesAfterScan(filesInUseByScans);
 
     } finally {
-      metadataUpdateCount.updateAndGet(oldCount -> oldCount.incrementFinish());
+      metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementFinish);
     }
 
     if (log.isTraceEnabled()) {
