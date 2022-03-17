@@ -18,13 +18,13 @@
  */
 package org.apache.accumulo.shell;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Properties;
 
 import org.apache.accumulo.core.conf.ClientProperty;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.beust.jcommander.JCommander;
 
@@ -32,7 +32,7 @@ public class ShellOptionsJCTest {
 
   ShellOptionsJC options;
 
-  @Before
+  @BeforeEach
   public void setup() {
     options = new ShellOptionsJC();
   }
