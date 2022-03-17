@@ -90,7 +90,6 @@ public class PropStoreWatcher implements Watcher {
    * @param event
    *          ZooKeeper event.
    */
-  @SuppressWarnings("FutureReturnValueIgnored") // currently, tasks are fire and forget
   @Override
   public void process(final WatchedEvent event) {
 
@@ -114,7 +113,7 @@ public class PropStoreWatcher implements Watcher {
           Set<PropChangeListener> snapshot = getListenerSnapshot(propCacheId);
           if (snapshot != null) {
             executorService
-                .submit(new PropStoreEventTask.PropStoreDeleteEventTask(propCacheId, snapshot));
+                .execute(new PropStoreEventTask.PropStoreDeleteEventTask(propCacheId, snapshot));
           }
           listenerCleanup(propCacheId);
         }
@@ -127,7 +126,7 @@ public class PropStoreWatcher implements Watcher {
           case Disconnected:
             log.debug("ZooKeeper disconnected event received");
             zkReadyMonitor.clearReady();
-            executorService.submit(new PropStoreEventTask.PropStoreConnectionEventTask(null,
+            executorService.execute(new PropStoreEventTask.PropStoreConnectionEventTask(null,
                 getAllListenersSnapshot()));
             break;
 
@@ -143,7 +142,7 @@ public class PropStoreWatcher implements Watcher {
             log.info("ZooKeeper connection closed event received");
             zkReadyMonitor.clearReady();
             zkReadyMonitor.setClosed(); // terminal condition
-            executorService.submit(new PropStoreEventTask.PropStoreConnectionEventTask(null,
+            executorService.execute(new PropStoreEventTask.PropStoreConnectionEventTask(null,
                 getAllListenersSnapshot()));
             break;
 
@@ -158,38 +157,36 @@ public class PropStoreWatcher implements Watcher {
   }
 
   /**
-   * Submit task to notify registered listeners that the propCacheId node received an event
+   * Execute a task to notify registered listeners that the propCacheId node received an event
    * notification from ZooKeeper and should be updated. The process can be initiated either by a
    * ZooKeeper notification or a change detected in the cache based on a ZooKeeper event.
    *
    * @param propCacheId
    *          the cache id
    */
-  @SuppressWarnings("FutureReturnValueIgnored") // currently, tasks are fire and forget
   public void signalZkChangeEvent(@NonNull final PropCacheId propCacheId) {
     log.trace("signal ZooKeeper change event: {}", propCacheId);
     Set<PropChangeListener> snapshot = getListenerSnapshot(propCacheId);
     log.trace("Sending change event to: {}", snapshot);
     if (snapshot != null) {
       executorService
-          .submit(new PropStoreEventTask.PropStoreZkChangeEventTask(propCacheId, snapshot));
+          .execute(new PropStoreEventTask.PropStoreZkChangeEventTask(propCacheId, snapshot));
     }
   }
 
   /**
-   * Submit task to notify registered listeners that the propCacheId node change was detected should
-   * be updated.
+   * Execute a task to notify registered listeners that the propCacheId node change was detected
+   * should be updated.
    *
    * @param propCacheId
    *          the cache id
    */
-  @SuppressWarnings("FutureReturnValueIgnored") // currently, tasks are fire and forget
   public void signalCacheChangeEvent(final PropCacheId propCacheId) {
     log.trace("cache change event: {}", propCacheId);
     Set<PropChangeListener> snapshot = getListenerSnapshot(propCacheId);
     if (snapshot != null) {
       executorService
-          .submit(new PropStoreEventTask.PropStoreCacheChangeEventTask(propCacheId, snapshot));
+          .execute(new PropStoreEventTask.PropStoreCacheChangeEventTask(propCacheId, snapshot));
     }
   }
 

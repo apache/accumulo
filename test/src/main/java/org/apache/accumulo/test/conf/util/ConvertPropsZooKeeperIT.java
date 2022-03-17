@@ -24,6 +24,7 @@ import static org.apache.accumulo.core.Constants.ZNAMESPACES;
 import static org.apache.accumulo.core.Constants.ZNAMESPACE_CONF;
 import static org.apache.accumulo.core.Constants.ZTABLES;
 import static org.apache.accumulo.core.Constants.ZTABLE_CONF;
+import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
 import static org.easymock.EasyMock.createNiceMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
@@ -37,14 +38,12 @@ import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.conf.util.ConfigConverter;
-import org.apache.accumulo.test.categories.ZooKeeperTestingServerTests;
 import org.apache.accumulo.test.conf.store.PropStoreZooKeeperIT;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.KeeperException;
@@ -56,12 +55,12 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Category({ZooKeeperTestingServerTests.class})
+@Tag(ZOOKEEPER_TESTING_SERVER)
 public class ConvertPropsZooKeeperIT {
 
   private static final Logger log = LoggerFactory.getLogger(PropStoreZooKeeperIT.class);
@@ -70,9 +69,6 @@ public class ConvertPropsZooKeeperIT {
   private static ZooKeeper zooKeeper;
   private static ZooReaderWriter zrw;
   private static ServerContext context;
-
-  private final TableId tIdA = TableId.of("A");
-  private final TableId tIdB = TableId.of("B");
 
   @ClassRule
   public static final TemporaryFolder TEMP =
@@ -132,7 +128,7 @@ public class ConvertPropsZooKeeperIT {
   }
 
   @Test
-  public void convertAndDeleteTest() throws Exception {
+  public void convertAndDeleteTest() {
 
     replay(context);
 
@@ -154,14 +150,15 @@ public class ConvertPropsZooKeeperIT {
 
   private static class FullZkConfigProps {
 
-    private String sysConfigRootPath = ZooUtil.getRoot(context.getInstanceID()) + ZCONFIG + "/";
-    private String nsConfigRootPath = ZooUtil.getRoot(context.getInstanceID()) + ZNAMESPACES;
-    private String tableConfigRootPath = ZooUtil.getRoot(context.getInstanceID()) + ZTABLES;
+    private final String sysConfigRootPath =
+        ZooUtil.getRoot(context.getInstanceID()) + ZCONFIG + "/";
+    private final String nsConfigRootPath = ZooUtil.getRoot(context.getInstanceID()) + ZNAMESPACES;
+    private final String tableConfigRootPath = ZooUtil.getRoot(context.getInstanceID()) + ZTABLES;
 
-    private String sysSplitThresholdVal = "123M";
-    private String sysGcPortVal = "19123";
+    private final String sysSplitThresholdVal = "123M";
+    private final String sysGcPortVal = "19123";
 
-    private String nsSplitThresholdVal = "245M";
+    private final String nsSplitThresholdVal = "245M";
 
     public void populate() {
       populateSys();

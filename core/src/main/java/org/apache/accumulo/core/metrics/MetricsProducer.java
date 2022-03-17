@@ -429,7 +429,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>Timer</td>
  * <td></td>
  * </tr>
-  * <!-- replication -->
+ * <!-- replication -->
  * <tr>
  * <td>ReplicationQueue</td>
  * <td>Stat</td>
