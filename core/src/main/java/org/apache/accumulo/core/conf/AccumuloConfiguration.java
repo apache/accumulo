@@ -185,7 +185,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
           localPrefixes.putAll(cachedPrefixProps);
 
           // put the updates
-          prefixProps = new PrefixProps(propMap, getUpdateCount());
+          prefixProps = new PrefixProps(propMap, updateCount);
           localPrefixes.put(property, prefixProps);
 
           // make the newly constructed map available

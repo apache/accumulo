@@ -429,7 +429,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>Timer</td>
  * <td></td>
  * </tr>
- * <!-- replication -->
+  * <!-- replication -->
  * <tr>
  * <td>ReplicationQueue</td>
  * <td>Stat</td>
@@ -528,6 +528,42 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>Stat</td>
  * <td>{@link #METRICS_THRIFT_EXECUTE}</td>
  * <td>Distribution Summary</td>
+ * <td></td>
+ * </tr>
+ * <!-- ZooKeeper property cache -->
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_PROPSTORE_LOAD_TIMER}</td>
+ * <td>Timer</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_PROPSTORE_REFRESH_COUNT}</td>
+ * <td>Counter</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_PROPSTORE_REFRESH_LOAD_COUNT}</td>
+ * <td>Counter</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_PROPSTORE_EVICTION_COUNT}</td>
+ * <td>Counter</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_PROPSTORE_ZK_ERROR_COUNT}</td>
+ * <td>Counter</td>
  * <td></td>
  * </tr>
  * </table>
