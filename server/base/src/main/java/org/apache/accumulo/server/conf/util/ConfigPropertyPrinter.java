@@ -69,7 +69,7 @@ public class ConfigPropertyPrinter implements KeywordExecutable {
 
   @Override
   public String keyword() {
-    return "config-property-print";
+    return "print-config";
   }
 
   @Override

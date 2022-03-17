@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.server.conf.store.impl;
 
+import static java.util.stream.Collectors.collectingAndThen;
+import static java.util.stream.Collectors.toSet;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,7 +28,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
@@ -126,8 +128,8 @@ public class PropStoreWatcher implements Watcher {
           case Disconnected:
             log.debug("ZooKeeper disconnected event received");
             zkReadyMonitor.clearReady();
-            executorService.execute(new PropStoreEventTask.PropStoreConnectionEventTask(null,
-                getAllListenersSnapshot()));
+            executorService.execute(
+                new PropStoreEventTask.PropStoreConnectionEventTask(getAllListenersSnapshot()));
             break;
 
           // okay
@@ -142,8 +144,8 @@ public class PropStoreWatcher implements Watcher {
             log.info("ZooKeeper connection closed event received");
             zkReadyMonitor.clearReady();
             zkReadyMonitor.setClosed(); // terminal condition
-            executorService.execute(new PropStoreEventTask.PropStoreConnectionEventTask(null,
-                getAllListenersSnapshot()));
+            executorService.execute(
+                new PropStoreEventTask.PropStoreConnectionEventTask(getAllListenersSnapshot()));
             break;
 
           default:
@@ -238,16 +240,12 @@ public class PropStoreWatcher implements Watcher {
    */
   private Set<PropChangeListener> getAllListenersSnapshot() {
 
-    Set<PropChangeListener> snapshot;
     listenerReadLock.lock();
     try {
-
-      snapshot = listeners.keySet().stream().flatMap(key -> listeners.get(key).stream())
-          .collect(Collectors.toSet());
-
+      return listeners.keySet().stream().flatMap(key -> listeners.get(key).stream())
+          .collect(collectingAndThen(toSet(), Collections::unmodifiableSet));
     } finally {
       listenerReadLock.unlock();
     }
-    return Collections.unmodifiableSet(snapshot);
   }
 }
