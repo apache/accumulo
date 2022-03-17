@@ -133,10 +133,6 @@ public class FateCommand extends Command {
       AccumuloSecurityException {
     ClientContext context = shellState.getContext();
     var siteConfig = SiteConfiguration.auto();
-    String[] args = cl.getArgs();
-    if (args.length <= 0) {
-      throw new ParseException("Must provide a command to execute");
-    }
     boolean failedCommand = false;
 
     AdminUtil<FateCommand> admin = new AdminUtil<>(false);
