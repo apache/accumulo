@@ -18,9 +18,8 @@
  */
 package org.apache.accumulo.hadoopImpl.mapreduce;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -28,7 +27,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -41,7 +39,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class BatchInputSplitTest {
 
@@ -64,7 +62,7 @@ public class BatchInputSplitTest {
     assertEquals(split.getTableName(), newSplit.getTableName());
     assertEquals(split.getTableId(), newSplit.getTableId());
     assertEquals(split.getRanges(), newSplit.getRanges());
-    assertTrue(Arrays.equals(split.getLocations(), newSplit.getLocations()));
+    assertArrayEquals(split.getLocations(), newSplit.getLocations());
   }
 
   @Test

@@ -20,7 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static java.util.Collections.singletonMap;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
 import java.util.Map.Entry;
@@ -46,9 +46,9 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,17 +58,17 @@ public class LargeRowIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(LargeRowIT.class);
 
   @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 4;
+  }
+
+  @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setMemory(ServerType.TABLET_SERVER, cfg.getMemory(ServerType.TABLET_SERVER) * 2,
         MemoryUnit.BYTE);
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "10ms");
     cfg.setSiteConfig(siteConfig);
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
   }
 
   private static final int SEED = 42;
@@ -82,7 +82,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
   private int timeoutFactor = 1;
   private String tservMajcDelay;
 
-  @Before
+  @BeforeEach
   public void getTimeoutFactor() throws Exception {
     try {
       timeoutFactor = Integer.parseInt(System.getProperty("timeout.factor"));
@@ -91,7 +91,8 @@ public class LargeRowIT extends AccumuloClusterHarness {
           System.getProperty("timeout.factor"));
     }
 
-    assertTrue("Timeout factor must be greater than or equal to 1", timeoutFactor >= 1);
+    assertTrue(timeoutFactor >= 1,
+        "org.apache.accumulo.Timeout factor must be greater than or equal to 1");
 
     String[] names = getUniqueNames(2);
     REG_TABLE_NAME = names[0];
@@ -104,7 +105,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
     }
   }
 
-  @After
+  @AfterEach
   public void resetMajcDelay() throws Exception {
     if (tservMajcDelay != null) {
       try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {

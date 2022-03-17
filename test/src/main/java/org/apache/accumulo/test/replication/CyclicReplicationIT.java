@@ -18,19 +18,20 @@
  */
 package org.apache.accumulo.test.replication;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -46,25 +47,24 @@ import org.apache.accumulo.core.iterators.LongCombiner.Type;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.harness.Timeout;
+import org.apache.accumulo.harness.WithTestNames;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.accumulo.miniclusterImpl.ZooKeeperBindException;
 import org.apache.accumulo.server.replication.ReplicaSystemFactory;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.rules.TestName;
-import org.junit.rules.Timeout;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,33 +72,32 @@ import com.google.common.collect.Iterables;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@Ignore("Replication ITs are not stable and not currently maintained")
-@Category(MiniClusterOnlyTests.class)
+@Disabled("Replication ITs are not stable and not currently maintained")
+@Tag(MINI_CLUSTER_ONLY)
 @Deprecated
-public class CyclicReplicationIT {
+public class CyclicReplicationIT extends WithTestNames {
   private static final Logger log = LoggerFactory.getLogger(CyclicReplicationIT.class);
 
-  @Rule
-  public Timeout getTimeout() {
-    int scalingFactor = 1;
+  @RegisterExtension
+  Timeout timeout = Timeout.from(() -> {
+    long waitLonger = 1L;
     try {
-      scalingFactor = Integer.parseInt(System.getProperty("timeout.factor"));
+      String timeoutString = System.getProperty("timeout.factor");
+      if (timeoutString != null && !timeoutString.isEmpty()) {
+        waitLonger = Long.parseLong(timeoutString);
+      }
     } catch (NumberFormatException exception) {
       log.warn("Could not parse timeout.factor, not scaling timeout");
     }
 
-    return new Timeout(scalingFactor * 10, TimeUnit.MINUTES);
-  }
-
-  @Rule
-  public TestName testName = new TestName();
+    return Duration.ofMinutes(waitLonger * 10);
+  });
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   private File createTestDir(String name) {
     File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
     assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
-    File testDir =
-        new File(baseDir, this.getClass().getName() + "_" + testName.getMethodName() + "_" + name);
+    File testDir = new File(baseDir, this.getClass().getName() + "_" + testName() + "_" + name);
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());
     return testDir;
@@ -129,10 +128,10 @@ public class CyclicReplicationIT {
       Map<String,String> peerSiteConfig = new HashMap<>();
       peerSiteConfig.put(Property.INSTANCE_RPC_SSL_ENABLED.getKey(), "true");
       String keystorePath = primarySiteConfig.get(Property.RPC_SSL_KEYSTORE_PATH.getKey());
-      assertNotNull("Keystore Path was null", keystorePath);
+      assertNotNull(keystorePath, "Keystore Path was null");
       peerSiteConfig.put(Property.RPC_SSL_KEYSTORE_PATH.getKey(), keystorePath);
       String truststorePath = primarySiteConfig.get(Property.RPC_SSL_TRUSTSTORE_PATH.getKey());
-      assertNotNull("Truststore Path was null", truststorePath);
+      assertNotNull(truststorePath, "Truststore Path was null");
       peerSiteConfig.put(Property.RPC_SSL_TRUSTSTORE_PATH.getKey(), truststorePath);
 
       // Passwords might be stored in CredentialProvider

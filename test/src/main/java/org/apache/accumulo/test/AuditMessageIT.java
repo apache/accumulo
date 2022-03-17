@@ -19,9 +19,9 @@
 package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -55,9 +55,9 @@ import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -80,7 +80,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
   private static final Authorizations auths = new Authorizations("private", "public");
 
   @Override
-  public int defaultTimeoutSeconds() {
+  protected int defaultTimeoutSeconds() {
     return 60;
   }
 
@@ -163,7 +163,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
     }
   }
 
-  @Before
+  @BeforeEach
   public void resetInstance() throws Exception {
     client = Accumulo.newClient().from(getClientProperties()).build();
 
@@ -173,7 +173,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
     getAuditMessages("setup");
   }
 
-  @After
+  @AfterEach
   public void cleanUp() throws Exception {
     removeUsersAndTables();
     client.close();

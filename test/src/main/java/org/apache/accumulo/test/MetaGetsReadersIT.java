@@ -19,8 +19,8 @@
 package org.apache.accumulo.test;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -48,15 +48,15 @@ import com.google.common.collect.Iterators;
 public class MetaGetsReadersIT extends ConfigurableMacBase {
 
   @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 2;
+  }
+
+  @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
     cfg.setProperty(Property.TSERV_SCAN_MAX_OPENFILES, "2");
     cfg.setProperty(Property.TABLE_BLOCKCACHE_ENABLED, "false");
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 2 * 60;
   }
 
   private static Thread slowScan(final AccumuloClient c, final String tableName,
@@ -109,7 +109,7 @@ public class MetaGetsReadersIT extends ConfigurableMacBase {
 
       long delay = System.currentTimeMillis() - now;
       System.out.println("Delay = " + delay);
-      assertTrue("metadata table scan was slow", delay < 1000);
+      assertTrue(delay < 1000, "metadata table scan was slow");
       assertFalse(stop.get());
       stop.set(true);
       t1.interrupt();

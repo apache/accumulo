@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Base64;
 import java.util.HashSet;
@@ -43,9 +43,9 @@ import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,12 +72,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 10 * 60;
-  }
-
-  @Before
+  @BeforeEach
   public void alterConfig() throws Exception {
     if (getClusterType() == ClusterType.MINI) {
       return;
@@ -95,7 +90,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
     }
   }
 
-  @After
+  @AfterEach
   public void resetConfig() throws Exception {
     if (majcDelay != null) {
       try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
@@ -181,8 +176,8 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
         }
       }
 
-      assertTrue("Number of WALs seen was less than expected " + allWalsSeen.size(),
-          allWalsSeen.size() >= 50);
+      assertTrue(allWalsSeen.size() >= 50,
+          "Number of WALs seen was less than expected " + allWalsSeen.size());
 
       // the total number of closed write ahead logs should get small
       int closedLogs = countClosedWals(context);
@@ -223,7 +218,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
     }
 
     log.debug("It took {} attempt(s) to find {} open WALs", attempts, open);
-    assertTrue("Open WALs not in expected range " + open, open > 0 && open < 4);
+    assertTrue(open > 0 && open < 4, "Open WALs not in expected range " + open);
   }
 
   private int countClosedWals(ServerContext c) throws Exception {

@@ -18,13 +18,13 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.start.TestMain;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class StartIT extends AccumuloClusterHarness {
 

@@ -19,10 +19,10 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -45,8 +45,8 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -68,6 +68,11 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class HalfDeadTServerIT extends ConfigurableMacBase {
 
   @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 4;
+  }
+
+  @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     // configure only one tserver from mini; mini won't less us configure 0, so instead, we will
     // start only 1, and kill it to start our own in the desired simulation environment
@@ -77,16 +82,11 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
     cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.FALSE.toString());
   }
 
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
-  }
-
   private static final AtomicBoolean sharedLibBuilt = new AtomicBoolean(false);
 
   @SuppressFBWarnings(value = "COMMAND_INJECTION",
       justification = "command executed is not from user input")
-  @BeforeClass
+  @BeforeAll
   public static void buildSharedLib() throws IOException, InterruptedException {
     String root = System.getProperty("user.dir");
     String source = root + "/src/test/c/fake_disk_failure.c";
@@ -156,7 +156,7 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
   @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "COMMAND_INJECTION"},
       justification = "path provided by test; command args provided by test")
   public String test(int seconds, boolean expectTserverDied) throws Exception {
-    assumeTrue("Shared library did not build", sharedLibBuilt.get());
+    assumeTrue(sharedLibBuilt.get(), "Shared library did not build");
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       while (client.instanceOperations().getTabletServers().isEmpty()) {
         // wait until the tserver that we need to kill is running

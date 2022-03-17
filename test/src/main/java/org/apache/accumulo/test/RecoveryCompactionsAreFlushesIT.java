@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.util.Map.Entry;
 
@@ -39,7 +39,7 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterators;
 
@@ -47,13 +47,13 @@ import com.google.common.collect.Iterators;
 public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterHarness {
 
   @Override
-  public boolean canRunTest(ClusterType type) {
-    return type == ClusterType.MINI;
+  protected int defaultTimeoutSeconds() {
+    return 60 * 3;
   }
 
   @Override
-  public int defaultTimeoutSeconds() {
-    return 180;
+  public boolean canRunTest(ClusterType type) {
+    return type == ClusterType.MINI;
   }
 
   @Override

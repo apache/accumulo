@@ -19,10 +19,10 @@
 package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.io.FileReader;
@@ -81,7 +81,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException.NoNodeException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -90,11 +90,6 @@ public class VolumeIT extends ConfigurableMacBase {
   private File volDirBase;
   private Path v1, v2, v3;
   private List<String> expected = new ArrayList<>();
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 10 * 60;
-  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -412,12 +407,12 @@ public class VolumeIT extends ConfigurableMacBase {
 
     File v1f = new File(v1.toUri());
     File v8f = new File(new File(v1.getParent().toUri()), "v8");
-    assertTrue("Failed to rename " + v1f + " to " + v8f, v1f.renameTo(v8f));
+    assertTrue(v1f.renameTo(v8f), "Failed to rename " + v1f + " to " + v8f);
     Path v8 = new Path(v8f.toURI());
 
     File v2f = new File(v2.toUri());
     File v9f = new File(new File(v2.getParent().toUri()), "v9");
-    assertTrue("Failed to rename " + v2f + " to " + v9f, v2f.renameTo(v9f));
+    assertTrue(v2f.renameTo(v9f), "Failed to rename " + v2f + " to " + v9f);
     Path v9 = new Path(v9f.toURI());
 
     updateConfig(config -> {

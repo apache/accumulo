@@ -19,8 +19,8 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,7 +46,7 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
 
@@ -58,11 +58,6 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
     cfg.setProperty(Property.TSERV_MAJC_DELAY, "50ms");
     cfg.setMemory(ServerType.TABLET_SERVER, cfg.getMemory(ServerType.TABLET_SERVER) * 3,
         MemoryUnit.BYTE);
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 10 * 60;
   }
 
   @Test
@@ -108,7 +103,7 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
         }
       }
 
-      assertEquals("Unassigned tablets were not assigned within 60 seconds", 0, unassignedTablets);
+      assertEquals(0, unassignedTablets, "Unassigned tablets were not assigned within 60 seconds");
 
       // Compute online tablets per tserver
       List<Integer> counts = new ArrayList<>();
@@ -119,11 +114,12 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
         }
         counts.add(count);
       }
-      assertTrue("Expected to have at least two TabletServers", counts.size() > 1);
+      assertTrue(counts.size() > 1, "Expected to have at least two TabletServers");
       for (int i = 1; i < counts.size(); i++) {
         int diff = Math.abs(counts.get(0) - counts.get(i));
-        assertTrue("Expected difference in tablets to be less than or equal to " + counts.size()
-            + " but was " + diff + ". Counts " + counts, diff <= tservers.size());
+        assertTrue(diff <= tservers.size(),
+            "Expected difference in tablets to be less than or equal to " + counts.size()
+                + " but was " + diff + ". Counts " + counts);
       }
     }
   }

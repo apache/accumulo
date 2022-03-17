@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.test.iterator;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Set;
@@ -35,14 +35,14 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.hadoop.io.Text;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class RegExTest {
 
   private static TreeMap<Key,Value> data = new TreeMap<>();
 
-  @BeforeClass
+  @BeforeAll
   public static void setupTests() {
 
     ArrayList<Character> chars = new ArrayList<>();
@@ -67,7 +67,7 @@ public class RegExTest {
   }
 
   private void assertMatches(Pattern regex, Object val) throws Exception {
-    assertTrue(" " + val + " does not match " + regex, regex.matcher(val.toString()).matches());
+    assertTrue(regex.matcher(val.toString()).matches(), " " + val + " does not match " + regex);
   }
 
   @Test
@@ -136,6 +136,6 @@ public class RegExTest {
       counter++;
     }
 
-    assertEquals("scan did not return the expected number of entries", expected, counter);
+    assertEquals(expected, counter, "scan did not return the expected number of entries");
   }
 }

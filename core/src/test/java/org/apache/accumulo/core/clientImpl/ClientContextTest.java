@@ -53,7 +53,7 @@ public class ClientContextTest {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "provided keystoreUrl path isn't user provided")
   @BeforeAll
-  public static void setUpBeforeClass() {
+  public static void setUpBeforeAll() {
     URL keystoreUrl = ClientContextTest.class.getResource(keystoreName);
     assertNotNull(keystoreUrl, "Could not find " + keystoreName);
     keystore = new File(keystoreUrl.getFile());

@@ -18,11 +18,12 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
+import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -54,11 +55,10 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.hadoop.io.Text;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,16 +66,16 @@ import org.slf4j.LoggerFactory;
  * This test verifies the default permissions so a clean instance must be used. A shared instance
  * might not be representative of a fresh installation.
  */
-@Category(MiniClusterOnlyTests.class)
+@Tag(MINI_CLUSTER_ONLY)
 public class PermissionsIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(PermissionsIT.class);
 
   @Override
-  public int defaultTimeoutSeconds() {
+  protected int defaultTimeoutSeconds() {
     return 90;
   }
 
-  @Before
+  @BeforeEach
   public void limitToMini() throws Exception {
     assumeTrue(getClusterType() == ClusterType.MINI);
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
@@ -565,10 +565,10 @@ public class PermissionsIT extends AccumuloClusterHarness {
         test_user_client.securityOperations().grantSystemPermission(testUser.getPrincipal(),
             SystemPermission.CREATE_TABLE);
         loginAs(rootUser);
-        assertTrue("Test user should have CREATE_TABLE", root_client.securityOperations()
-            .hasSystemPermission(testUser.getPrincipal(), SystemPermission.CREATE_TABLE));
-        assertTrue("Test user should have GRANT", root_client.securityOperations()
-            .hasSystemPermission(testUser.getPrincipal(), SystemPermission.GRANT));
+        assertTrue(root_client.securityOperations().hasSystemPermission(testUser.getPrincipal(),
+            SystemPermission.CREATE_TABLE), "Test user should have CREATE_TABLE");
+        assertTrue(root_client.securityOperations().hasSystemPermission(testUser.getPrincipal(),
+            SystemPermission.GRANT), "Test user should have GRANT");
         root_client.securityOperations().revokeSystemPermission(testUser.getPrincipal(),
             SystemPermission.CREATE_TABLE);
         break;

@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.Socket;
 import java.util.Properties;
@@ -29,7 +29,7 @@ import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +39,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class WatchTheWatchCountIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(WatchTheWatchCountIT.class);
 
-  public int defaultOverrideSeconds() {
+  @Override
+  protected int defaultTimeoutSeconds() {
     return 60;
   }
 
@@ -81,8 +82,8 @@ public class WatchTheWatchCountIT extends ConfigurableMacBase {
         }
       }
 
-      assertTrue("Expected number of watchers to be contained in (" + MIN + ", " + MAX
-          + "), but actually was " + total, total > MIN && total < MAX);
+      assertTrue(total > MIN && total < MAX, "Expected number of watchers to be contained in ("
+          + MIN + ", " + MAX + "), but actually was " + total);
 
     }
   }

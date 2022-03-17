@@ -20,8 +20,8 @@ package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FLUSH_ID;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -204,10 +204,10 @@ public class FunctionalTestUtils {
 
   public static void assertNoDanglingFateLocks(AccumuloCluster cluster) {
     FateStatus fateStatus = getFateStatus(cluster);
-    assertEquals("Dangling FATE locks : " + fateStatus.getDanglingHeldLocks(), 0,
-        fateStatus.getDanglingHeldLocks().size());
-    assertEquals("Dangling FATE locks : " + fateStatus.getDanglingWaitingLocks(), 0,
-        fateStatus.getDanglingWaitingLocks().size());
+    assertEquals(0, fateStatus.getDanglingHeldLocks().size(),
+        "Dangling FATE locks : " + fateStatus.getDanglingHeldLocks());
+    assertEquals(0, fateStatus.getDanglingWaitingLocks().size(),
+        "Dangling FATE locks : " + fateStatus.getDanglingWaitingLocks());
   }
 
   private static FateStatus getFateStatus(AccumuloCluster cluster) {

@@ -16,10 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.categories;
+package org.apache.accumulo.hadoop.its;
 
-/**
- * Interface to be used with JUnit Category annotation to represent the integration test is for
- * testing Accumulo's Monitor
- */
-public interface MonitorTests {}
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
+
+// This is only for the unit tests and integration tests in this module
+// It must be copied for use in other modules, because tests in one module
+// don't have dependencies on other modules, and we can't put this in a
+// regular, non-test jar, because we don't want to add a dependency on
+// JUnit in a non-test jar
+public class WithTestNames {
+
+  private String testName;
+
+  @BeforeEach
+  public void setTestName(TestInfo info) {
+    testName = info.getTestMethod().get().getName();
+  }
+
+  public String testName() {
+    return testName;
+  }
+
+}
