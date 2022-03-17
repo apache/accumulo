@@ -71,8 +71,8 @@ class DatafileManager {
   private final Object bulkFileImportLock = new Object();
 
   // These must be incremented before and after datafileSizes and metadata table updates
-  private AtomicLong metadataUpdatesStarted = new AtomicLong();
-  private AtomicLong metadataUpdatesCompleted = new AtomicLong();
+  private final AtomicLong metadataUpdatesStarted = new AtomicLong();
+  private final AtomicLong metadataUpdatesCompleted = new AtomicLong();
 
   DatafileManager(Tablet tablet, SortedMap<StoredTabletFile,DataFileValue> datafileSizes) {
     this.datafileSizes.putAll(datafileSizes);
