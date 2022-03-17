@@ -29,7 +29,8 @@ public class MetadataUpdateCount {
     this.finishedCount = finishedCount;
   }
 
-  @Override public boolean equals(Object o) {
+  @Override
+  public boolean equals(Object o) {
     if (this == o)
       return true;
     if (o == null || getClass() != o.getClass())
@@ -38,14 +39,15 @@ public class MetadataUpdateCount {
     return startedCount == that.startedCount && finishedCount == that.finishedCount;
   }
 
-  @Override public int hashCode() {
+  @Override
+  public int hashCode() {
     return Objects.hash(startedCount, finishedCount);
   }
 
   /**
    * @return true if the counters were acquired while a metadata table update was being made
    */
-  public boolean overlapsUpdate(){
+  public boolean overlapsUpdate() {
     return startedCount != finishedCount;
   }
 

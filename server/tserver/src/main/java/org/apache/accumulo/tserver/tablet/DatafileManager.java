@@ -266,10 +266,9 @@ class DatafileManager {
       for (Entry<StoredTabletFile,DataFileValue> entry : newFiles.entrySet()) {
         TabletLogger.bulkImported(tablet.getExtent(), entry.getKey());
       }
-    }finally {
+    } finally {
       metadataUpdatesCompleted.incrementAndGet();
     }
-
 
     return newFiles.keySet();
   }
@@ -373,8 +372,8 @@ class DatafileManager {
           // the purpose of making this update use the new commit session, instead of the old one
           // passed in, is because the new one will reference the logs used by current memory...
 
-          tablet.getTabletServer()
-              .minorCompactionFinished(tablet.getTabletMemory().getCommitSession(), commitSession.getWALogSeq() + 2);
+          tablet.getTabletServer().minorCompactionFinished(
+              tablet.getTabletMemory().getCommitSession(), commitSession.getWALogSeq() + 2);
           break;
         } catch (IOException e) {
           log.error("Failed to write to write-ahead log " + e.getMessage() + " will retry", e);
@@ -397,10 +396,9 @@ class DatafileManager {
 
         t2 = System.currentTimeMillis();
       }
-    }finally {
+    } finally {
       metadataUpdatesCompleted.incrementAndGet();
     }
-
 
     TabletLogger.flushed(tablet.getExtent(), newFile);
 
@@ -453,10 +451,12 @@ class DatafileManager {
         t1 = System.currentTimeMillis();
 
         Preconditions.checkState(datafileSizes.keySet().containsAll(oldDatafiles),
-            "Compacted files %s are not a subset of tablet files %s", oldDatafiles, datafileSizes.keySet());
+            "Compacted files %s are not a subset of tablet files %s", oldDatafiles,
+            datafileSizes.keySet());
         if (dfv.getNumEntries() > 0) {
           Preconditions.checkState(!datafileSizes.containsKey(newFile),
-              "New compaction file %s already exist in tablet files %s", newFile, datafileSizes.keySet());
+              "New compaction file %s already exist in tablet files %s", newFile,
+              datafileSizes.keySet());
         }
 
         tablet.incrementDataSourceDeletions();
@@ -490,10 +490,9 @@ class DatafileManager {
       tablet.setLastCompactionID(compactionIdToWrite);
       removeFilesAfterScan(filesInUseByScans);
 
-    }finally {
+    } finally {
       metadataUpdatesCompleted.incrementAndGet();
     }
-
 
     if (log.isTraceEnabled()) {
       log.trace(String.format("MajC finish lock %.2f secs", (t2 - t1) / 1000.0));

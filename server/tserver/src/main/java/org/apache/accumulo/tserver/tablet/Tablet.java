@@ -1439,23 +1439,27 @@ public class Tablet {
     }
   }
 
-  public synchronized void compareTabletInfo(MetadataUpdateCount updateCounter, TabletMetadata tabletMetadata) {
+  public synchronized void compareTabletInfo(MetadataUpdateCount updateCounter,
+      TabletMetadata tabletMetadata) {
     if (isClosed() || isClosing()) {
       return;
     }
 
-    if(updateCounter.overlapsUpdate() || !updateCounter.equals(this.getUpdateCount())) {
+    if (updateCounter.overlapsUpdate() || !updateCounter.equals(this.getUpdateCount())) {
       // for these cases do not even bother checking if the files are the same
       return;
     }
 
-      if (!tabletMetadata.getFilesMap().equals(getDatafileManager().getDatafileSizes())) {
-        // the counters are modified outside of locks before and after metadata operations so its very important to do the following check after the above check to very nothing has changed in the entire time period including the check above
-        if(updateCounter.equals(this.getUpdateCount())) {
-          String msg = "Data files in " + extent + " differ from in-memory data " + tabletMetadata.getFilesMap() + " " + getDatafileManager().getDatafileSizes();
-          log.error(msg);
-        }
+    if (!tabletMetadata.getFilesMap().equals(getDatafileManager().getDatafileSizes())) {
+      // the counters are modified outside of locks before and after metadata operations so its very
+      // important to do the following check after the above check to very nothing has changed in
+      // the entire time period including the check above
+      if (updateCounter.equals(this.getUpdateCount())) {
+        String msg = "Data files in " + extent + " differ from in-memory data "
+            + tabletMetadata.getFilesMap() + " " + getDatafileManager().getDatafileSizes();
+        log.error(msg);
       }
+    }
 
     // if counter did change, don't compare metadata and try again later
   }
