@@ -1451,9 +1451,9 @@ public class Tablet {
     }
 
     if (!tabletMetadata.getFilesMap().equals(getDatafileManager().getDatafileSizes())) {
-      // the counters are modified outside of locks before and after metadata operations so its very
-      // important to do the following check after the above check to very nothing has changed in
-      // the entire time period including the check above
+      // the counters are modified outside of locks before and after metadata operations and data
+      // file updates so its very important to do the following check after the above check to
+      // verify nothing has changed in the entire time period including the check above
       if (updateCounter.equals(this.getUpdateCount())) {
         String msg = "Data files in " + extent + " differ from in-memory data "
             + tabletMetadata.getFilesMap() + " " + getDatafileManager().getDatafileSizes();
