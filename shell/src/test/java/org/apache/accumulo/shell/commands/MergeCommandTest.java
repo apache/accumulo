@@ -18,16 +18,17 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class MergeCommandTest {
 
   @Test
   public void testBeginRowHelp() {
-    assertTrue("-b should say it is exclusive",
-        new MergeCommand().getOptions().getOption("b").getDescription().contains("(exclusive)"));
+    assertTrue(
+        new MergeCommand().getOptions().getOption("b").getDescription().contains("(exclusive)"),
+        "-b should say it is exclusive");
   }
 
 }

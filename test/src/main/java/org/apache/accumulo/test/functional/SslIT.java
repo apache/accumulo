@@ -26,7 +26,7 @@ import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Do a selection of ITs with SSL turned on that cover a range of different connection scenarios.
@@ -34,16 +34,17 @@ import org.junit.Test;
  * -DuseSslForIT`
  */
 public class SslIT extends ConfigurableMacBase {
+
   @Override
-  public int defaultTimeoutSeconds() {
-    return 6 * 60;
+  protected int defaultTimeoutSeconds() {
+    return 60 * 6;
   }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     super.configure(cfg, hadoopCoreSite);
     configureForSsl(cfg,
-        getSslDir(createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName())));
+        getSslDir(createTestDir(this.getClass().getName() + "_" + this.testName())));
   }
 
   @Test
@@ -75,7 +76,7 @@ public class SslIT extends ConfigurableMacBase {
     try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
       BulkIT.runTest(client, ClientInfo.from(props), cluster.getFileSystem(),
           new Path(getCluster().getConfig().getDir().getAbsolutePath(), "tmp"),
-          getUniqueNames(1)[0], this.getClass().getName(), testName.getMethodName(), true);
+          getUniqueNames(1)[0], this.getClass().getName(), testName(), true);
     }
   }
 

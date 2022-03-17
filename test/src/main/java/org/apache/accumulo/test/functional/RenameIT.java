@@ -24,13 +24,13 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class RenameIT extends AccumuloClusterHarness {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 2 * 60;
+    return 60 * 2;
   }
 
   @Test

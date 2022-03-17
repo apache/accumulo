@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.test.mapred;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -52,9 +52,8 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -160,9 +159,8 @@ public class TokenFileIT extends AccumuloClusterHarness {
 
   }
 
-  @Rule
-  public TemporaryFolder folder =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File tempDir;
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @Test
@@ -181,7 +179,8 @@ public class TokenFileIT extends AccumuloClusterHarness {
         }
       }
 
-      File tf = folder.newFile("root_test.pw");
+      File tf = new File(tempDir, "root_test.pw");
+      assertTrue(tf.createNewFile(), "Failed to create file: " + tf);
       try (PrintStream out = new PrintStream(tf)) {
         String outString = new Credentials(getAdminPrincipal(), getAdminToken()).serialize();
         out.println(outString);

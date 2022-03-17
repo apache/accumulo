@@ -19,8 +19,8 @@
 package org.apache.accumulo.shell;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -30,18 +30,16 @@ import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.io.Text;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class ShellUtilTest {
 
-  @Rule
-  public TemporaryFolder folder =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File tempDir;
 
   // String with 3 lines, with one empty line
   private static final String FILEDATA = "line1\n\nline2";
@@ -51,7 +49,7 @@ public class ShellUtilTest {
 
   @Test
   public void testWithoutDecode() throws IOException {
-    File testFile = new File(folder.getRoot(), "testFileNoDecode.txt");
+    File testFile = new File(tempDir, "testFileNoDecode.txt");
     FileUtils.writeStringToFile(testFile, FILEDATA, UTF_8);
     List<Text> output = ShellUtil.scanFile(testFile.getAbsolutePath(), false);
     assertEquals(List.of(new Text("line1"), new Text("line2")), output);
@@ -59,7 +57,7 @@ public class ShellUtilTest {
 
   @Test
   public void testWithDecode() throws IOException {
-    File testFile = new File(folder.getRoot(), "testFileWithDecode.txt");
+    File testFile = new File(tempDir, "testFileWithDecode.txt");
     FileUtils.writeStringToFile(testFile, B64_FILEDATA, UTF_8);
     List<Text> output = ShellUtil.scanFile(testFile.getAbsolutePath(), true);
     assertEquals(List.of(new Text("line1"), new Text("line2")), output);

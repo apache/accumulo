@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -51,15 +51,15 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterators;
 
 public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
 
   @Override
-  public int defaultTimeoutSeconds() {
-    return 5 * 60;
+  protected int defaultTimeoutSeconds() {
+    return 60 * 5;
   }
 
   @Override

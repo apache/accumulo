@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.test.replication;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -50,13 +50,13 @@ import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.easymock.EasyMock;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterables;
 
-@Ignore("Replication ITs are not stable and not currently maintained")
+@Disabled("Replication ITs are not stable and not currently maintained")
 @Deprecated
 public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
 
@@ -77,7 +77,7 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
 
   }
 
-  @Before
+  @BeforeEach
   public void initialize() throws Exception {
     client = Accumulo.newClient().from(getClientProperties()).build();
     rcrr = new MockRemoveCompleteReplicationRecords(client);

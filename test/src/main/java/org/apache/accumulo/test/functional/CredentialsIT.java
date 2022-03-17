@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -43,9 +43,9 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class CredentialsIT extends AccumuloClusterHarness {
 
@@ -54,11 +54,11 @@ public class CredentialsIT extends AccumuloClusterHarness {
   private String password;
 
   @Override
-  public int defaultTimeoutSeconds() {
-    return 2 * 60;
+  protected int defaultTimeoutSeconds() {
+    return 60 * 2;
   }
 
-  @Before
+  @BeforeEach
   public void createLocalUser() throws AccumuloException, AccumuloSecurityException {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       ClusterUser user = getUser(0);
@@ -77,7 +77,7 @@ public class CredentialsIT extends AccumuloClusterHarness {
     }
   }
 
-  @After
+  @AfterEach
   public void deleteLocalUser() throws Exception {
     if (saslEnabled) {
       ClusterUser root = getAdminUser();

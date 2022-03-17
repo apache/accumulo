@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -46,9 +46,9 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * Test that objects in IteratorEnvironment returned from the server are as expected.
@@ -56,13 +56,13 @@ import org.junit.Test;
 public class IteratorEnvIT extends AccumuloClusterHarness {
 
   @Override
-  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setNumTservers(1);
+  protected int defaultTimeoutSeconds() {
+    return 60;
   }
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    cfg.setNumTservers(1);
   }
 
   private AccumuloClient client;
@@ -180,12 +180,12 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
       throw new RuntimeException("Test failed - Error getting Table ID");
   }
 
-  @Before
+  @BeforeEach
   public void setup() {
     client = Accumulo.newClient().from(getClientProps()).build();
   }
 
-  @After
+  @AfterEach
   public void finish() {
     if (client != null)
       client.close();

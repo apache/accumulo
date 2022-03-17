@@ -19,7 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -37,14 +37,19 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
 public class DeleteEverythingIT extends AccumuloClusterHarness {
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -53,14 +58,9 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
     cfg.setSiteConfig(siteConfig);
   }
 
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
-  }
-
   private String majcDelay;
 
-  @Before
+  @BeforeEach
   public void updateMajcDelay() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       majcDelay =
@@ -73,7 +73,7 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
     }
   }
 
-  @After
+  @AfterEach
   public void resetMajcDelay() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
@@ -103,7 +103,7 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
       try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(new Range());
         int count = Iterators.size(scanner.iterator());
-        assertEquals("count == " + count, 0, count);
+        assertEquals(0, count, "count == " + count);
         c.tableOperations().flush(tableName, null, null, true);
 
         c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1.0");

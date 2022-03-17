@@ -25,12 +25,12 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class BatchWriterIT extends AccumuloClusterHarness {
 
   @Override
-  public int defaultTimeoutSeconds() {
+  protected int defaultTimeoutSeconds() {
     return 30;
   }
 

@@ -23,7 +23,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static org.apache.hadoop.minikdc.MiniKdc.JAVA_SECURITY_KRB5_CONF;
 import static org.apache.hadoop.minikdc.MiniKdc.SUN_SECURITY_KRB5_DEBUG;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -66,8 +66,7 @@ public class MiniClusterHarness {
 
   public MiniAccumuloClusterImpl create(AccumuloITBase testBase, AuthenticationToken token,
       TestingKdc kdc, MiniClusterConfigurationCallback configCallback) throws Exception {
-    return create(testBase.getClass().getName(), testBase.testName.getMethodName(), token,
-        configCallback, kdc);
+    return create(testBase.getClass().getName(), testBase.testName(), token, configCallback, kdc);
   }
 
   public MiniAccumuloClusterImpl create(String testClassName, String testMethodName,

@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.TreeSet;
 
@@ -35,7 +35,7 @@ import org.apache.hadoop.fs.FsShell;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +49,7 @@ public class BulkImportSequentialRowsIT extends AccumuloClusterHarness {
   private static final long NV = 42000;
 
   @Override
-  public int defaultTimeoutSeconds() {
+  protected int defaultTimeoutSeconds() {
     return 60;
   }
 
@@ -89,11 +89,11 @@ public class BulkImportSequentialRowsIT extends AccumuloClusterHarness {
       GenerateSequentialRFile.main(new String[] {"-f", rfile.toUri().toString(), "-nr",
           Long.toString(NR), "-nv", Long.toString(NV)});
 
-      assertTrue("Expected that " + rfile + " exists, but it does not", fs.exists(rfile));
+      assertTrue(fs.exists(rfile), "Expected that " + rfile + " exists, but it does not");
 
       FsShell fsShell = new FsShell(fs.getConf());
-      assertEquals("Failed to chmod " + rootPath, 0,
-          fsShell.run(new String[] {"-chmod", "-R", "777", rootPath.toString()}));
+      assertEquals(0, fsShell.run(new String[] {"-chmod", "-R", "777", rootPath.toString()}),
+          "Failed to chmod " + rootPath);
 
       // Add some splits
       to.addSplits(tableName, getSplits());

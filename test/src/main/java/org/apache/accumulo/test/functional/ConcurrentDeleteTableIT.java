@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -48,7 +48,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
 
@@ -57,7 +57,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 7 * 60;
+    return 60 * 7;
   }
 
   @Test
@@ -104,8 +104,9 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
           future.get();
         }
 
-        assertThrows("Expected table " + table + " to be gone.", TableNotFoundException.class,
-            () -> c.createScanner(table, Authorizations.EMPTY));
+        assertThrows(TableNotFoundException.class,
+            () -> c.createScanner(table, Authorizations.EMPTY),
+            "Expected table " + table + " to be gone.");
 
         FunctionalTestUtils.assertNoDanglingFateLocks(getCluster());
       }
@@ -208,8 +209,9 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
           future.get();
         }
 
-        assertThrows("Expected table " + table + " to be gone.", TableNotFoundException.class,
-            () -> c.createScanner(table, Authorizations.EMPTY));
+        assertThrows(TableNotFoundException.class,
+            () -> c.createScanner(table, Authorizations.EMPTY),
+            "Expected table " + table + " to be gone.");
 
         FunctionalTestUtils.assertNoDanglingFateLocks(getCluster());
       }

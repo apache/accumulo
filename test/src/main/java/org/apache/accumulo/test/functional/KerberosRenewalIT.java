@@ -19,7 +19,9 @@
 package org.apache.accumulo.test.functional;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.junit.Assert.assertEquals;
+import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.apache.accumulo.test.functional.KerberosRenewalIT.TEST_DURATION_MINUTES;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map;
 import java.util.Map.Entry;
@@ -48,17 +50,17 @@ import org.apache.accumulo.harness.MiniClusterHarness;
 import org.apache.accumulo.harness.TestingKdc;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.minikdc.MiniKdc;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +70,7 @@ import com.google.common.collect.Iterables;
  * MAC test which uses {@link MiniKdc} to simulate ta secure environment. Can be used as a sanity
  * check for Kerberos/SASL testing.
  */
-@Category(MiniClusterOnlyTests.class)
+@Tag(MINI_CLUSTER_ONLY)
 public class KerberosRenewalIT extends AccumuloITBase {
   private static final Logger log = LoggerFactory.getLogger(KerberosRenewalIT.class);
 
@@ -77,12 +79,17 @@ public class KerberosRenewalIT extends AccumuloITBase {
   private static ClusterUser rootUser;
 
   private static final long TICKET_LIFETIME = MINUTES.toMillis(6); // Anything less seems to fail
-                                                                   // when
-  // generating the ticket
+                                                                   // when generating the ticket
   private static final long TICKET_TEST_LIFETIME = MINUTES.toMillis(8); // Run a test for 8 mins
-  private static final long TEST_DURATION = 9 * 60_000; // The test should finish within 9 mins
 
-  @BeforeClass
+  public static final int TEST_DURATION_MINUTES = 9; // The test should finish within 9 mins
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * TEST_DURATION_MINUTES;
+  }
+
+  @BeforeAll
   public static void startKdc() throws Exception {
     // 30s renewal time window
     kdc =
@@ -95,7 +102,7 @@ public class KerberosRenewalIT extends AccumuloITBase {
     rootUser = kdc.getRootUser();
   }
 
-  @AfterClass
+  @AfterAll
   public static void stopKdc() {
     if (kdc != null) {
       kdc.stop();
@@ -105,14 +112,9 @@ public class KerberosRenewalIT extends AccumuloITBase {
     }
   }
 
-  @Override
-  public int defaultTimeoutSeconds() {
-    return (int) TEST_DURATION / 1000;
-  }
-
   private MiniAccumuloClusterImpl mac;
 
-  @Before
+  @BeforeEach
   public void startMac() throws Exception {
     MiniClusterHarness harness = new MiniClusterHarness();
     mac = harness.create(this, new PasswordToken("unused"), kdc,
@@ -137,7 +139,7 @@ public class KerberosRenewalIT extends AccumuloITBase {
     UserGroupInformation.setConfiguration(conf);
   }
 
-  @After
+  @AfterEach
   public void stopMac() throws Exception {
     if (mac != null) {
       mac.stop();
@@ -145,7 +147,8 @@ public class KerberosRenewalIT extends AccumuloITBase {
   }
 
   // Intentionally setting the Test annotation timeout. We do not want to scale the timeout.
-  @Test(timeout = TEST_DURATION)
+  @Test
+  @Timeout(value = TEST_DURATION_MINUTES, unit = MINUTES)
   public void testReadAndWriteThroughTicketLifetime() throws Exception {
     // Attempt to use Accumulo for a duration of time that exceeds the Kerberos ticket lifetime.
     // This is a functional test to verify that Accumulo services renew their ticket.
@@ -185,7 +188,7 @@ public class KerberosRenewalIT extends AccumuloITBase {
    */
   private void createReadWriteDrop(AccumuloClient client) throws TableNotFoundException,
       AccumuloSecurityException, AccumuloException, TableExistsException {
-    final String table = testName.getMethodName() + "_table";
+    final String table = testName() + "_table";
     client.tableOperations().create(table);
     try (BatchWriter bw = client.createBatchWriter(table)) {
       Mutation m = new Mutation("a");
@@ -195,8 +198,9 @@ public class KerberosRenewalIT extends AccumuloITBase {
     client.tableOperations().compact(table, new CompactionConfig().setFlush(true).setWait(true));
     try (Scanner s = client.createScanner(table, Authorizations.EMPTY)) {
       Entry<Key,Value> entry = Iterables.getOnlyElement(s);
-      assertEquals("Did not find the expected key", 0,
-          new Key("a", "b", "c").compareTo(entry.getKey(), PartialKey.ROW_COLFAM_COLQUAL));
+      assertEquals(0,
+          new Key("a", "b", "c").compareTo(entry.getKey(), PartialKey.ROW_COLFAM_COLQUAL),
+          "Did not find the expected key");
       assertEquals("d", entry.getValue().toString());
       client.tableOperations().delete(table);
     }

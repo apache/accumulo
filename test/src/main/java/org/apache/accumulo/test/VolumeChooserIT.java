@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -59,7 +59,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class VolumeChooserIT extends ConfigurableMacBase {
 
@@ -89,7 +89,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 120;
+    return 60 * 2;
   }
 
   @Override
@@ -156,8 +156,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
       int i = 0;
       for (Entry<Key,Value> entry : scanner) {
-        assertEquals("Data read is not data written", alpha_rows[i++],
-            entry.getKey().getRow().toString());
+        assertEquals(alpha_rows[i++], entry.getKey().getRow().toString(),
+            "Data read is not data written");
       }
     }
   }
@@ -193,16 +193,14 @@ public class VolumeChooserIT extends ConfigurableMacBase {
             inVolume = true;
           }
         }
-        assertTrue(
-            "Data not written to the correct volumes.  " + entry.getKey().getColumnQualifier(),
-            inVolume);
+        assertTrue(inVolume,
+            "Data not written to the correct volumes.  " + entry.getKey().getColumnQualifier());
         fileCount++;
       }
     }
-    assertEquals(
-        "Did not see all the volumes. volumes: " + volumes + " volumes seen: " + volumesSeen,
-        volumes.size(), volumesSeen.size());
-    assertEquals("Wrong number of files", 26, fileCount);
+    assertEquals(volumes.size(), volumesSeen.size(),
+        "Did not see all the volumes. volumes: " + volumes + " volumes seen: " + volumesSeen);
+    assertEquals(26, fileCount, "Wrong number of files");
   }
 
   public static void verifyNoVolumes(AccumuloClient accumuloClient, Range tableRange)
@@ -258,9 +256,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
             volumesSeen.add(volume);
           inVolume = true;
         }
-        assertTrue(
-            "Data not written to the correct volumes.  " + entry.getKey().getColumnQualifier(),
-            inVolume);
+        assertTrue(inVolume,
+            "Data not written to the correct volumes.  " + entry.getKey().getColumnQualifier());
       }
     }
   }

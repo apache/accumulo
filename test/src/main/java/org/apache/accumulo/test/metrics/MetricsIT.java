@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.test.metrics;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.HashMap;
 import java.util.List;
@@ -41,9 +41,9 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.metrics.TestStatsDSink.Metric;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import io.micrometer.core.instrument.MeterRegistry;
 
@@ -51,12 +51,17 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
 
   private static TestStatsDSink sink;
 
-  @BeforeClass
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
+
+  @BeforeAll
   public static void before() throws Exception {
     sink = new TestStatsDSink();
   }
 
-  @AfterClass
+  @AfterAll
   public static void after() throws Exception {
     sink.close();
   }
@@ -74,11 +79,6 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     Map<String,String> sysProps = Map.of(TestStatsDRegistryFactory.SERVER_HOST, "127.0.0.1",
         TestStatsDRegistryFactory.SERVER_PORT, Integer.toString(sink.getPort()));
     cfg.setSystemProperties(sysProps);
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
   }
 
   @Test
@@ -118,8 +118,8 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
             }
           });
     }
-    assertTrue("Did not see all expected metric names, missing: " + expectedMetricNames.values(),
-        expectedMetricNames.isEmpty());
+    assertTrue(expectedMetricNames.isEmpty(),
+        "Did not see all expected metric names, missing: " + expectedMetricNames.values());
   }
 
   private void doWorkToGenerateMetrics() throws Exception {

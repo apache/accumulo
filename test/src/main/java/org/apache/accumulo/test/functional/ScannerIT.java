@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -35,7 +35,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ScannerIT extends AccumuloClusterHarness {
 
@@ -106,10 +106,9 @@ public class ScannerIT extends AccumuloClusterHarness {
         nanosWithNoWait += System.nanoTime() - startTime;
 
         // The "no-wait" time should be much less than the "wait-time"
-        assertTrue(
+        assertTrue(nanosWithNoWait < nanosWithWait,
             "Expected less time to be taken with immediate readahead (" + nanosWithNoWait
-                + ") than without immediate readahead (" + nanosWithWait + ")",
-            nanosWithNoWait < nanosWithWait);
+                + ") than without immediate readahead (" + nanosWithWait + ")");
       }
     }
   }

@@ -21,10 +21,11 @@ package org.apache.accumulo.test.functional;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Arrays;
 import java.util.List;
@@ -53,10 +54,10 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.util.SlowOps;
 import org.apache.zookeeper.KeeperException;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,27 +90,27 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
   private SlowOps slowOps;
 
-  @Before
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 4;
+  }
+
+  @BeforeEach
   public void setup() {
     client = Accumulo.newClient().from(getClientProps()).build();
     context = (ClientContext) client;
     secret = cluster.getSiteConfiguration().get(Property.INSTANCE_SECRET);
-    maxWaitMillis = Math.max(MINUTES.toMillis(1), defaultTimeoutSeconds() * 1000 / 2);
+    maxWaitMillis = Math.max(MINUTES.toMillis(1), SECONDS.toMillis(defaultTimeoutSeconds()) / 2);
   }
 
-  @After
+  @AfterEach
   public void closeClient() {
     client.close();
   }
 
-  @AfterClass
+  @AfterAll
   public static void cleanup() {
     pool.shutdownNow();
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
   }
 
   /**
@@ -128,7 +129,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     SlowOps.setExpectedCompactions(client, 1);
     slowOps = new SlowOps(client, tableName, maxWaitMillis);
 
-    assertEquals("verify table online after created", TableState.ONLINE, getTableState(tableName));
+    assertEquals(TableState.ONLINE, getTableState(tableName), "verify table online after created");
 
     OnLineCallable onlineOp = new OnLineCallable(tableName);
 
@@ -138,12 +139,12 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     log.trace("Online 1 in {} ms", NANOSECONDS.toMillis(timing1.runningTime()));
 
-    assertEquals("verify table is still online", TableState.ONLINE, getTableState(tableName));
+    assertEquals(TableState.ONLINE, getTableState(tableName), "verify table is still online");
 
     // verify that offline then online functions as expected.
 
     client.tableOperations().offline(tableName, true);
-    assertEquals("verify table is offline", TableState.OFFLINE, getTableState(tableName));
+    assertEquals(TableState.OFFLINE, getTableState(tableName), "verify table is offline");
 
     onlineOp = new OnLineCallable(tableName);
 
@@ -153,7 +154,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     log.trace("Online 2 in {} ms", NANOSECONDS.toMillis(timing2.runningTime()));
 
-    assertEquals("verify table is back online", TableState.ONLINE, getTableState(tableName));
+    assertEquals(TableState.ONLINE, getTableState(tableName), "verify table is back online");
 
     // launch a full table compaction with the slow iterator to ensure table lock is acquired and
     // held by the compaction
@@ -168,12 +169,12 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     OnlineOpTiming timing3 = task.get();
 
-    assertTrue("online should take less time than expected compaction time",
-        timing3.runningTime() < MILLISECONDS.toNanos(NUM_ROWS * SLOW_SCAN_SLEEP_MS));
+    assertTrue(timing3.runningTime() < MILLISECONDS.toNanos(NUM_ROWS * SLOW_SCAN_SLEEP_MS),
+        "online should take less time than expected compaction time");
 
-    assertEquals("verify table is still online", TableState.ONLINE, getTableState(tableName));
+    assertEquals(TableState.ONLINE, getTableState(tableName), "verify table is still online");
 
-    assertTrue("Find FATE operation for table", findFate(tableName));
+    assertTrue(findFate(tableName), "Find FATE operation for table");
 
     // test complete, cancel compaction and move on.
     client.tableOperations().cancelCompaction(tableName);
@@ -211,7 +212,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
   }
 
   /**
-   * Validate the the AdminUtil.getStatus works correctly after refactor and validate that
+   * Validate the AdminUtil.getStatus works correctly after refactor and validate that
    * getTransactionStatus can be called without lock map(s). The test starts a long running fate
    * transaction (slow compaction) and the calls AdminUtil functions to get the FATE.
    */
@@ -225,8 +226,8 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     try {
 
-      assertEquals("verify table online after created", TableState.ONLINE,
-          getTableState(tableName));
+      assertEquals(TableState.ONLINE, getTableState(tableName),
+          "verify table online after created");
 
       tableId = context.getTableId(tableName);
 
@@ -301,7 +302,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       }
     }
 
-    assertTrue("Number of fates matches should be > 0", matchCount > 0);
+    assertTrue(matchCount > 0, "Number of fates matches should be > 0");
 
     try {
 
