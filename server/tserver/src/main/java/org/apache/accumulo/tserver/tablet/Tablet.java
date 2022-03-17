@@ -1450,14 +1450,15 @@ public class Tablet {
       return;
     }
 
-    if (!tabletMetadata.getFilesMap().equals(getDatafileManager().getDatafileSizes())) {
+    var dataFileSizes = getDatafileManager().getDatafileSizes();
+
+    if (!tabletMetadata.getFilesMap().equals(dataFileSizes)) {
       // the counters are modified outside of locks before and after metadata operations and data
       // file updates so its very important to do the following check after the above check to
       // verify nothing has changed in the entire time period including the check above
       if (updateCounter.equals(this.getUpdateCount())) {
-        String msg = "Data files in " + extent + " differ from in-memory data "
-            + tabletMetadata.getFilesMap() + " " + getDatafileManager().getDatafileSizes();
-        log.error(msg);
+        log.error("Data files in {} differ from in-memory data {} {}", extent,
+            tabletMetadata.getFilesMap(), dataFileSizes);
       }
     }
 
