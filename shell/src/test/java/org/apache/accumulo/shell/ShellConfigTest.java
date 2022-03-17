@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.shell;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -34,9 +34,9 @@ import org.jline.reader.LineReaderBuilder;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.DumbTerminal;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,7 +65,7 @@ public class ShellConfigTest {
   File config;
   private static final Logger log = LoggerFactory.getLogger(ShellConfigTest.class);
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     out = System.out;
     output = new TestOutputStream();
@@ -78,7 +78,7 @@ public class ShellConfigTest {
     shell.setLogErrorsToConsole();
   }
 
-  @After
+  @AfterEach
   public void teardown() throws Exception {
     shell.shutdown();
     output.clear();
@@ -105,15 +105,15 @@ public class ShellConfigTest {
   @Test
   public void testHelp() throws IOException {
     assertFalse(shell.config(args("--help")));
-    assertTrue("Did not print usage", output.get().startsWith("Usage"));
+    assertTrue(output.get().startsWith("Usage"), "Did not print usage");
   }
 
   @Test
   public void testBadArg() throws IOException {
     assertFalse(shell.config(args("--bogus")));
     // JCommander versions after 1.60 will cause the Shell to detect the arg as Unrecognized option
-    assertTrue("Did not print Error", output.get().startsWith("ERROR"));
-    assertTrue("Did not print usage", output.get().contains("Usage"));
+    assertTrue(output.get().startsWith("ERROR"), "Did not print Error");
+    assertTrue(output.get().contains("Usage"), "Did not print usage");
   }
 
 }

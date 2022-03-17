@@ -31,13 +31,13 @@ import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.easymock.EasyMock;
 import org.jline.reader.LineReader;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class SetIterCommandTest {
   private SetIterCommand cmd;
 
-  @Before
+  @BeforeEach
   public void setup() {
     cmd = new SetIterCommand();
 
