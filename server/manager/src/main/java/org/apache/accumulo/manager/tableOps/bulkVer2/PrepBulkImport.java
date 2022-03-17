@@ -186,9 +186,8 @@ public class PrepBulkImport extends ManagerRepo {
     String value = manager.getContext().getTableConfiguration(bulkInfo.tableId)
         .get(Property.TABLE_BULK_MAX_TABLETS);
     if (value == null) {
-      value = Property.TABLE_BULK_MAX_TABLETS.getDefaultValue();
-      log.info("Property not found " + Property.TABLE_BULK_MAX_TABLETS + " using default: " + value
-          + " for tableId: " + bulkInfo.tableId + " using default: " + value);
+      throw new IllegalStateException("The property: " + Property.TABLE_BULK_MAX_TABLETS.getKey()
+          + " was not found for tableId: " + bulkInfo.tableId);
     }
 
     int maxTablets = Integer.parseInt(value);
