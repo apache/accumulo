@@ -84,9 +84,9 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     ZooPropLoader propLoader = new ZooPropLoader(zrw, codec, propStoreWatcher, cacheMetrics);
 
     if (ticker == null) {
-      cache = new CaffeineCache.Builder(propLoader, cacheMetrics).build();
+      cache = new PropCacheCaffeineImpl.Builder(propLoader, cacheMetrics).build();
     } else {
-      cache = new CaffeineCache.Builder(propLoader, cacheMetrics).withTicker(ticker).build();
+      cache = new PropCacheCaffeineImpl.Builder(propLoader, cacheMetrics).withTicker(ticker).build();
     }
 
     try {
@@ -469,7 +469,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   /** for testing - force Caffeine housekeeping to run. */
   @VisibleForTesting
   public void cleanUp() {
-    ((CaffeineCache) cache).cleanUp();
+    ((PropCacheCaffeineImpl) cache).cleanUp();
   }
 
   /**

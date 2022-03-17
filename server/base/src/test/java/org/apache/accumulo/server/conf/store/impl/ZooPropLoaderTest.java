@@ -23,7 +23,7 @@ import static org.apache.accumulo.core.conf.Property.MANAGER_CLIENTPORT;
 import static org.apache.accumulo.core.conf.Property.TSERV_CLIENTPORT;
 import static org.apache.accumulo.core.conf.Property.TSERV_NATIVEMAP_ENABLED;
 import static org.apache.accumulo.core.conf.Property.TSERV_SCAN_MAX_OPENFILES;
-import static org.apache.accumulo.server.conf.store.impl.CaffeineCache.REFRESH_MIN;
+import static org.apache.accumulo.server.conf.store.impl.PropCacheCaffeineImpl.REFRESH_MIN;
 import static org.easymock.EasyMock.anyLong;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.capture;
@@ -146,8 +146,8 @@ public class ZooPropLoaderTest {
 
     replay(context, zrw, propStoreWatcher, cacheMetrics);
 
-    CaffeineCache cache =
-        new CaffeineCache.Builder(loader, cacheMetrics).withTicker(ticker).build();
+    PropCacheCaffeineImpl cache =
+        new PropCacheCaffeineImpl.Builder(loader, cacheMetrics).withTicker(ticker).build();
 
     // load into cache
     assertNotNull(cache.get(propCacheKey));
@@ -185,8 +185,8 @@ public class ZooPropLoaderTest {
 
     replay(context, zrw, propStoreWatcher, cacheMetrics);
 
-    CaffeineCache cache =
-        new CaffeineCache.Builder(loader, cacheMetrics).withTicker(ticker).build();
+    PropCacheCaffeineImpl cache =
+        new PropCacheCaffeineImpl.Builder(loader, cacheMetrics).withTicker(ticker).build();
 
     assertNull(cache.get(propCacheKey));
 
@@ -214,8 +214,8 @@ public class ZooPropLoaderTest {
 
     replay(context, zrw, propStoreWatcher, cacheMetrics);
 
-    CaffeineCache cache =
-        new CaffeineCache.Builder(loader, cacheMetrics).withTicker(ticker).build();
+    PropCacheCaffeineImpl cache =
+        new PropCacheCaffeineImpl.Builder(loader, cacheMetrics).withTicker(ticker).build();
 
     // load cache
     assertNotNull(cache.get(propCacheKey));
@@ -269,8 +269,8 @@ public class ZooPropLoaderTest {
 
     replay(context, zrw, propStoreWatcher, cacheMetrics);
 
-    CaffeineCache cache =
-        new CaffeineCache.Builder(loader, cacheMetrics).withTicker(ticker).build();
+    PropCacheCaffeineImpl cache =
+        new PropCacheCaffeineImpl.Builder(loader, cacheMetrics).withTicker(ticker).build();
 
     // prime cache
     assertNotNull(cache.get(propCacheKey));
@@ -302,8 +302,8 @@ public class ZooPropLoaderTest {
 
     replay(context, zrw, propStoreWatcher, cacheMetrics);
 
-    CaffeineCache cache =
-        new CaffeineCache.Builder(loader, cacheMetrics).withTicker(ticker).build();
+    PropCacheCaffeineImpl cache =
+        new PropCacheCaffeineImpl.Builder(loader, cacheMetrics).withTicker(ticker).build();
 
     assertNull(cache.getWithoutCaching(propCacheKey));
 
@@ -326,8 +326,8 @@ public class ZooPropLoaderTest {
 
     replay(context, zrw, propStoreWatcher, cacheMetrics);
 
-    CaffeineCache cache =
-        new CaffeineCache.Builder(loader, cacheMetrics).withTicker(ticker).build();
+    PropCacheCaffeineImpl cache =
+        new PropCacheCaffeineImpl.Builder(loader, cacheMetrics).withTicker(ticker).build();
 
     // load into cache
     assertNotNull(cache.get(sysPropKey));
@@ -358,8 +358,8 @@ public class ZooPropLoaderTest {
 
     replay(context, zrw, propStoreWatcher, cacheMetrics);
 
-    CaffeineCache cache =
-        new CaffeineCache.Builder(loader, cacheMetrics).withTicker(ticker).build();
+    PropCacheCaffeineImpl cache =
+        new PropCacheCaffeineImpl.Builder(loader, cacheMetrics).withTicker(ticker).build();
 
     // load into cache
     assertNotNull(cache.get(sysPropKey));
@@ -377,8 +377,8 @@ public class ZooPropLoaderTest {
   public void getWithoutCachingNotPresentTest() {
     replay(context, zrw, propStoreWatcher, cacheMetrics);
 
-    CaffeineCache cache =
-        new CaffeineCache.Builder(loader, cacheMetrics).withTicker(ticker).build();
+    PropCacheCaffeineImpl cache =
+        new PropCacheCaffeineImpl.Builder(loader, cacheMetrics).withTicker(ticker).build();
 
     // load into cache
     assertNull(cache.getWithoutCaching(propCacheKey));
@@ -412,8 +412,8 @@ public class ZooPropLoaderTest {
 
     replay(context, zrw, propStoreWatcher, cacheMetrics);
 
-    CaffeineCache cache =
-        new CaffeineCache.Builder(loader, cacheMetrics).withTicker(ticker).build();
+    PropCacheCaffeineImpl cache =
+        new PropCacheCaffeineImpl.Builder(loader, cacheMetrics).withTicker(ticker).build();
 
     // load cache
     log.info("received: {}", cache.get(propCacheKey));
@@ -496,8 +496,8 @@ public class ZooPropLoaderTest {
 
     replay(context, zrw, propStoreWatcher, cacheMetrics);
 
-    CaffeineCache cache =
-        new CaffeineCache.Builder(loader, cacheMetrics).withTicker(ticker).build();
+    PropCacheCaffeineImpl cache =
+        new PropCacheCaffeineImpl.Builder(loader, cacheMetrics).withTicker(ticker).build();
 
     // prime cache
     assertNotNull(cache.get(propCacheKey));
@@ -564,8 +564,8 @@ public class ZooPropLoaderTest {
 
     replay(context, zrw, propStoreWatcher, cacheMetrics, mockProps);
 
-    CaffeineCache cache =
-        new CaffeineCache.Builder(loader, cacheMetrics).withTicker(ticker).build();
+    PropCacheCaffeineImpl cache =
+        new PropCacheCaffeineImpl.Builder(loader, cacheMetrics).withTicker(ticker).build();
 
     // prime cache
     cache.get(propCacheKey);
@@ -629,8 +629,8 @@ public class ZooPropLoaderTest {
 
     replay(context, zrw, propStoreWatcher, cacheMetrics);
 
-    CaffeineCache cache =
-        new CaffeineCache.Builder(loader, cacheMetrics).withTicker(ticker).build();
+    PropCacheCaffeineImpl cache =
+        new PropCacheCaffeineImpl.Builder(loader, cacheMetrics).withTicker(ticker).build();
 
     // load cache
     log.info("received: {}", cache.get(propCacheKey));

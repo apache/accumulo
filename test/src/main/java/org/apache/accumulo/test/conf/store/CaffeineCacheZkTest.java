@@ -41,7 +41,7 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
-import org.apache.accumulo.server.conf.store.impl.CaffeineCache;
+import org.apache.accumulo.server.conf.store.impl.PropCacheCaffeineImpl;
 import org.apache.accumulo.server.conf.store.impl.PropStoreMetrics;
 import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
 import org.apache.accumulo.server.conf.store.impl.ReadyMonitor;
@@ -164,7 +164,7 @@ public class CaffeineCacheZkTest {
 
     ZooPropLoader propLoader =
         new ZooPropLoader(zrw, ZooPropStore.getCodec(), propStoreWatcher, cacheMetrics);
-    CaffeineCache cache = new CaffeineCache.Builder(propLoader, cacheMetrics).build();
+    PropCacheCaffeineImpl cache = new PropCacheCaffeineImpl.Builder(propLoader, cacheMetrics).build();
 
     VersionedProperties readProps = cache.get(propCacheKey);
 

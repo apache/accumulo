@@ -247,7 +247,7 @@ public class PropStoreEventTest {
 
     ZooPropLoader loader = new ZooPropLoader(zrw, propCodec, watcher, metrics);
 
-    CaffeineCache cache = new CaffeineCache.Builder(loader, metrics).build();
+    PropCacheCaffeineImpl cache = new PropCacheCaffeineImpl.Builder(loader, metrics).build();
 
     // load cache
     var read1 = cache.get(tablePropKey);

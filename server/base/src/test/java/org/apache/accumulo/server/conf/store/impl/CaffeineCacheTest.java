@@ -60,7 +60,7 @@ public class CaffeineCacheTest {
   private PropCacheKey tablePropKey;
   private VersionedProperties vProps;
 
-  private CaffeineCache cache = null;
+  private PropCacheCaffeineImpl cache = null;
 
   @BeforeEach
   @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
@@ -87,7 +87,7 @@ public class CaffeineCacheTest {
 
     expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
 
-    cache = new CaffeineCache.Builder(zooPropLoader, cacheMetrics).withTicker(ticker).build();
+    cache = new PropCacheCaffeineImpl.Builder(zooPropLoader, cacheMetrics).withTicker(ticker).build();
 
   }
 

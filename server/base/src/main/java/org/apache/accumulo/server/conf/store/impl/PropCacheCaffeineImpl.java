@@ -37,12 +37,12 @@ import com.github.benmanes.caffeine.cache.RemovalCause;
 import com.github.benmanes.caffeine.cache.Ticker;
 import com.google.common.annotations.VisibleForTesting;
 
-public class CaffeineCache implements PropCache {
+public class PropCacheCaffeineImpl implements PropCache {
 
   public static final TimeUnit BASE_TIME_UNITS = TimeUnit.MINUTES;
   public static final int REFRESH_MIN = 15;
   public static final int EXPIRE_MIN = 60;
-  private static final Logger log = LoggerFactory.getLogger(CaffeineCache.class);
+  private static final Logger log = LoggerFactory.getLogger(PropCacheCaffeineImpl.class);
   private static final Executor executor = ThreadPools.getServerThreadPools().createThreadPool(1,
       20, 60, TimeUnit.SECONDS, "cache-refresh", false);
 
@@ -50,7 +50,7 @@ public class CaffeineCache implements PropCache {
 
   private final LoadingCache<PropCacheKey,VersionedProperties> cache;
 
-  private CaffeineCache(final CacheLoader<PropCacheKey,VersionedProperties> cacheLoader,
+  private PropCacheCaffeineImpl(final CacheLoader<PropCacheKey,VersionedProperties> cacheLoader,
       final PropStoreMetrics metrics, final Ticker ticker) {
     this.metrics = metrics;
 
@@ -131,8 +131,8 @@ public class CaffeineCache implements PropCache {
       this.metrics = metrics;
     }
 
-    public CaffeineCache build() {
-      return new CaffeineCache(zooPropLoader, metrics, ticker);
+    public PropCacheCaffeineImpl build() {
+      return new PropCacheCaffeineImpl(zooPropLoader, metrics, ticker);
     }
 
     public Builder withTicker(final Ticker ticker) {
