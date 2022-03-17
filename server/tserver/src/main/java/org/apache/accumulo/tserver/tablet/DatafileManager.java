@@ -33,6 +33,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -69,12 +70,12 @@ class DatafileManager {
   // ensure we only have one reader/writer of our bulk file notes at at time
   private final Object bulkFileImportLock = new Object();
 
-  // This must be incremented whenever datafileSizes is mutated
-  private long updateCount;
+  // These must be incremented before and after datafileSizes and metadata table updates
+  private AtomicLong metadataUpdatesStarted = new AtomicLong();
+  private AtomicLong metadataUpdatesCompleted = new AtomicLong();
 
   DatafileManager(Tablet tablet, SortedMap<StoredTabletFile,DataFileValue> datafileSizes) {
     this.datafileSizes.putAll(datafileSizes);
-    this.updateCount = 0L;
     this.tablet = tablet;
   }
 
@@ -246,23 +247,29 @@ class DatafileManager {
       }
     }
 
-    synchronized (tablet) {
-      for (Entry<StoredTabletFile,DataFileValue> tpath : newFiles.entrySet()) {
-        if (datafileSizes.containsKey(tpath.getKey())) {
-          log.error("Adding file that is already in set {}", tpath.getKey());
+    metadataUpdatesStarted.incrementAndGet();
+    // do not place any code here between above stmt and try{}finally
+    try {
+      synchronized (tablet) {
+        for (Entry<StoredTabletFile,DataFileValue> tpath : newFiles.entrySet()) {
+          if (datafileSizes.containsKey(tpath.getKey())) {
+            log.error("Adding file that is already in set {}", tpath.getKey());
+          }
+          datafileSizes.put(tpath.getKey(), tpath.getValue());
         }
-        datafileSizes.put(tpath.getKey(), tpath.getValue());
+
+        tablet.getTabletResources().importedMapFiles();
+
+        tablet.computeNumEntries();
       }
-      updateCount++;
 
-      tablet.getTabletResources().importedMapFiles();
-
-      tablet.computeNumEntries();
+      for (Entry<StoredTabletFile,DataFileValue> entry : newFiles.entrySet()) {
+        TabletLogger.bulkImported(tablet.getExtent(), entry.getKey());
+      }
+    }finally {
+      metadataUpdatesCompleted.incrementAndGet();
     }
 
-    for (Entry<StoredTabletFile,DataFileValue> entry : newFiles.entrySet()) {
-      TabletLogger.bulkImported(tablet.getExtent(), entry.getKey());
-    }
 
     return newFiles.keySet();
   }
@@ -357,36 +364,43 @@ class DatafileManager {
       tablet.finishClearingUnusedLogs();
     }
 
-    do {
-      try {
-        // the purpose of making this update use the new commit session, instead of the old one
-        // passed in, is because the new one will reference the logs used by current memory...
+    metadataUpdatesStarted.incrementAndGet();
+    // do not place any code here between above stmt and try{}finally
+    try {
 
-        tablet.getTabletServer().minorCompactionFinished(
-            tablet.getTabletMemory().getCommitSession(), commitSession.getWALogSeq() + 2);
-        break;
-      } catch (IOException e) {
-        log.error("Failed to write to write-ahead log " + e.getMessage() + " will retry", e);
-        sleepUninterruptibly(1, TimeUnit.SECONDS);
-      }
-    } while (true);
+      do {
+        try {
+          // the purpose of making this update use the new commit session, instead of the old one
+          // passed in, is because the new one will reference the logs used by current memory...
 
-    synchronized (tablet) {
-      t1 = System.currentTimeMillis();
-
-      if (dfv.getNumEntries() > 0 && newFile.isPresent()) {
-        StoredTabletFile newFileStored = newFile.get();
-        if (datafileSizes.containsKey(newFileStored)) {
-          log.error("Adding file that is already in set {}", newFileStored);
+          tablet.getTabletServer()
+              .minorCompactionFinished(tablet.getTabletMemory().getCommitSession(), commitSession.getWALogSeq() + 2);
+          break;
+        } catch (IOException e) {
+          log.error("Failed to write to write-ahead log " + e.getMessage() + " will retry", e);
+          sleepUninterruptibly(1, TimeUnit.SECONDS);
         }
-        datafileSizes.put(newFileStored, dfv);
-        updateCount++;
+      } while (true);
+
+      synchronized (tablet) {
+        t1 = System.currentTimeMillis();
+
+        if (dfv.getNumEntries() > 0 && newFile.isPresent()) {
+          StoredTabletFile newFileStored = newFile.get();
+          if (datafileSizes.containsKey(newFileStored)) {
+            log.error("Adding file that is already in set {}", newFileStored);
+          }
+          datafileSizes.put(newFileStored, dfv);
+        }
+
+        tablet.flushComplete(flushId);
+
+        t2 = System.currentTimeMillis();
       }
-
-      tablet.flushComplete(flushId);
-
-      t2 = System.currentTimeMillis();
+    }finally {
+      metadataUpdatesCompleted.incrementAndGet();
     }
+
 
     TabletLogger.flushed(tablet.getExtent(), newFile);
 
@@ -431,49 +445,55 @@ class DatafileManager {
 
     Long compactionIdToWrite = null;
 
-    synchronized (tablet) {
-      t1 = System.currentTimeMillis();
+    metadataUpdatesStarted.incrementAndGet();
+    // do not place any code here between above stmt and try{}finally
+    try {
 
-      Preconditions.checkState(datafileSizes.keySet().containsAll(oldDatafiles),
-          "Compacted files %s are not a subset of tablet files %s", oldDatafiles,
-          datafileSizes.keySet());
-      if (dfv.getNumEntries() > 0) {
-        Preconditions.checkState(!datafileSizes.containsKey(newFile),
-            "New compaction file %s already exist in tablet files %s", newFile,
-            datafileSizes.keySet());
+      synchronized (tablet) {
+        t1 = System.currentTimeMillis();
+
+        Preconditions.checkState(datafileSizes.keySet().containsAll(oldDatafiles),
+            "Compacted files %s are not a subset of tablet files %s", oldDatafiles, datafileSizes.keySet());
+        if (dfv.getNumEntries() > 0) {
+          Preconditions.checkState(!datafileSizes.containsKey(newFile),
+              "New compaction file %s already exist in tablet files %s", newFile, datafileSizes.keySet());
+        }
+
+        tablet.incrementDataSourceDeletions();
+
+        datafileSizes.keySet().removeAll(oldDatafiles);
+
+        if (dfv.getNumEntries() > 0) {
+          datafileSizes.put(newFile, dfv);
+          // could be used by a follow on compaction in a multipass compaction
+        }
+
+        tablet.computeNumEntries();
+
+        lastLocation = tablet.resetLastLocation();
+
+        if (compactionId != null && Collections.disjoint(selectedFiles, datafileSizes.keySet())) {
+          compactionIdToWrite = compactionId;
+        }
+
+        t2 = System.currentTimeMillis();
       }
 
-      tablet.incrementDataSourceDeletions();
+      // known consistency issue between minor and major compactions - see ACCUMULO-18
+      Set<StoredTabletFile> filesInUseByScans = waitForScansToFinish(oldDatafiles);
+      if (!filesInUseByScans.isEmpty())
+        log.debug("Adding scan refs to metadata {} {}", extent, filesInUseByScans);
+      ManagerMetadataUtil.replaceDatafiles(tablet.getContext(), extent, oldDatafiles,
+          filesInUseByScans, newFile, compactionIdToWrite, dfv,
+          tablet.getTabletServer().getClientAddressString(), lastLocation,
+          tablet.getTabletServer().getLock(), ecid);
+      tablet.setLastCompactionID(compactionIdToWrite);
+      removeFilesAfterScan(filesInUseByScans);
 
-      datafileSizes.keySet().removeAll(oldDatafiles);
-
-      if (dfv.getNumEntries() > 0) {
-        datafileSizes.put(newFile, dfv);
-        // could be used by a follow on compaction in a multipass compaction
-      }
-      updateCount++;
-
-      tablet.computeNumEntries();
-
-      lastLocation = tablet.resetLastLocation();
-
-      if (compactionId != null && Collections.disjoint(selectedFiles, datafileSizes.keySet())) {
-        compactionIdToWrite = compactionId;
-      }
-
-      t2 = System.currentTimeMillis();
+    }finally {
+      metadataUpdatesCompleted.incrementAndGet();
     }
 
-    // known consistency issue between minor and major compactions - see ACCUMULO-18
-    Set<StoredTabletFile> filesInUseByScans = waitForScansToFinish(oldDatafiles);
-    if (!filesInUseByScans.isEmpty())
-      log.debug("Adding scan refs to metadata {} {}", extent, filesInUseByScans);
-    ManagerMetadataUtil.replaceDatafiles(tablet.getContext(), extent, oldDatafiles,
-        filesInUseByScans, newFile, compactionIdToWrite, dfv,
-        tablet.getTabletServer().getClientAddressString(), lastLocation,
-        tablet.getTabletServer().getLock(), ecid);
-    tablet.setLastCompactionID(compactionIdToWrite);
-    removeFilesAfterScan(filesInUseByScans);
 
     if (log.isTraceEnabled()) {
       log.trace(String.format("MajC finish lock %.2f secs", (t2 - t1) / 1000.0));
@@ -500,8 +520,8 @@ class DatafileManager {
     return datafileSizes.size();
   }
 
-  public long getUpdateCount() {
-    return updateCount;
+  public MetadataUpdateCount getUpdateCount() {
+    return new MetadataUpdateCount(metadataUpdatesStarted.get(), metadataUpdatesCompleted.get());
   }
 
 }

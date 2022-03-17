@@ -810,7 +810,7 @@ public class TabletServer extends AbstractServer {
         .createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(() -> {
           final SortedMap<KeyExtent,Tablet> onlineTabletsSnapshot = onlineTablets.snapshot();
 
-          Map<KeyExtent,Long> updateCounts = new HashMap<>();
+          Map<KeyExtent,MetadataUpdateCount> updateCounts = new HashMap<>();
 
           // gather updateCounts for each tablet
           onlineTabletsSnapshot.forEach((ke, tablet) -> {
@@ -826,7 +826,7 @@ public class TabletServer extends AbstractServer {
             tabletsMetadata.forEach(tabletMetadata -> {
               KeyExtent extent = tabletMetadata.getExtent();
               Tablet tablet = onlineTabletsSnapshot.get(extent);
-              Long counter = updateCounts.get(extent);
+              MetadataUpdateCount counter = updateCounts.get(extent);
               tablet.compareTabletInfo(counter, tabletMetadata);
             });
           }
