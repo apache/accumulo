@@ -72,6 +72,7 @@ import com.google.common.annotations.VisibleForTesting;
  * about the request. To prevent problems like this, an Arbitrator is used. Before starting any new
  * request, the tablet server checks the Arbitrator to see if the request is still valid.
  */
+@Deprecated
 public class BulkImport extends ManagerRepo {
   public static final String FAILURES_TXT = "failures.txt";
 
@@ -199,7 +200,6 @@ public class BulkImport extends ManagerRepo {
     final UniqueNameAllocator namer = manager.getUniqueNameAllocator();
 
     AccumuloConfiguration serverConfig = manager.getConfiguration();
-    @SuppressWarnings("deprecation")
     ExecutorService workers = ThreadPools.getServerThreadPools().createExecutorService(serverConfig,
         serverConfig.resolve(Property.MANAGER_RENAME_THREADS, Property.MANAGER_BULK_RENAME_THREADS),
         false);

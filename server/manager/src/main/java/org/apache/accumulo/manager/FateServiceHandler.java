@@ -110,6 +110,7 @@ class FateServiceHandler implements FateService.Iface {
     return manager.fate.startTransaction();
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   public void executeFateOperation(TInfo tinfo, TCredentials c, long opid, FateOperation op,
       List<ByteBuffer> arguments, Map<String,String> options, boolean autoCleanup)

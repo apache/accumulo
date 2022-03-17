@@ -77,6 +77,7 @@ import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
 import org.junit.Test;
 
+@SuppressWarnings("deprecation")
 public class BulkFailureIT extends AccumuloClusterHarness {
 
   interface Loader {

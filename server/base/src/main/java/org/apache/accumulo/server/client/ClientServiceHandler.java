@@ -324,6 +324,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
+  @Deprecated
   public List<String> bulkImportFiles(TInfo tinfo, final TCredentials credentials, final long tid,
       final String tableId, final List<String> files, final String errorDir, final boolean setTime)
       throws ThriftSecurityException, ThriftTableOperationException, TException {

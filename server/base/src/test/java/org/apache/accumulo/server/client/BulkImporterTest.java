@@ -50,6 +50,7 @@ import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
 
+@Deprecated
 public class BulkImporterTest {
 
   static final SortedSet<KeyExtent> fakeMetaData = new TreeSet<>();

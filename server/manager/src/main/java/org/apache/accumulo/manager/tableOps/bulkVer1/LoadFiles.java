@@ -59,6 +59,7 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Deprecated
 class LoadFiles extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;

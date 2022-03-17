@@ -25,6 +25,7 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 
+@Deprecated
 public class CompleteBulkImport extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
