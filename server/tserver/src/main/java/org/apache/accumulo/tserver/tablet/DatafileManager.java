@@ -33,7 +33,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -70,9 +70,8 @@ class DatafileManager {
   // ensure we only have one reader/writer of our bulk file notes at at time
   private final Object bulkFileImportLock = new Object();
 
-  // These must be incremented before and after datafileSizes and metadata table updates
-  private final AtomicLong metadataUpdatesStarted = new AtomicLong();
-  private final AtomicLong metadataUpdatesCompleted = new AtomicLong();
+  // This must be incremented before and after datafileSizes and metadata table updates
+  private final AtomicReference<MetadataUpdateCount> metadataUpdateCount = new AtomicReference<>(new MetadataUpdateCount(0L,0L));
 
   DatafileManager(Tablet tablet, SortedMap<StoredTabletFile,DataFileValue> datafileSizes) {
     this.datafileSizes.putAll(datafileSizes);
@@ -247,7 +246,7 @@ class DatafileManager {
       }
     }
 
-    metadataUpdatesStarted.incrementAndGet();
+    metadataUpdateCount.updateAndGet(oldCount -> oldCount.incrementStart());
     // do not place any code here between above stmt and try{}finally
     try {
       synchronized (tablet) {
@@ -267,7 +266,7 @@ class DatafileManager {
         TabletLogger.bulkImported(tablet.getExtent(), entry.getKey());
       }
     } finally {
-      metadataUpdatesCompleted.incrementAndGet();
+      metadataUpdateCount.updateAndGet(oldCount -> oldCount.incrementFinish());
     }
 
     return newFiles.keySet();
@@ -363,7 +362,7 @@ class DatafileManager {
       tablet.finishClearingUnusedLogs();
     }
 
-    metadataUpdatesStarted.incrementAndGet();
+    metadataUpdateCount.updateAndGet(oldCount -> oldCount.incrementStart());
     // do not place any code here between above stmt and try{}finally
     try {
 
@@ -397,7 +396,7 @@ class DatafileManager {
         t2 = System.currentTimeMillis();
       }
     } finally {
-      metadataUpdatesCompleted.incrementAndGet();
+      metadataUpdateCount.updateAndGet(oldCount -> oldCount.incrementFinish());
     }
 
     TabletLogger.flushed(tablet.getExtent(), newFile);
@@ -443,7 +442,7 @@ class DatafileManager {
 
     Long compactionIdToWrite = null;
 
-    metadataUpdatesStarted.incrementAndGet();
+    metadataUpdateCount.updateAndGet(oldCount -> oldCount.incrementStart());
     // do not place any code here between above stmt and try{}finally
     try {
 
@@ -491,7 +490,7 @@ class DatafileManager {
       removeFilesAfterScan(filesInUseByScans);
 
     } finally {
-      metadataUpdatesCompleted.incrementAndGet();
+      metadataUpdateCount.updateAndGet(oldCount -> oldCount.incrementFinish());
     }
 
     if (log.isTraceEnabled()) {
@@ -520,7 +519,7 @@ class DatafileManager {
   }
 
   public MetadataUpdateCount getUpdateCount() {
-    return new MetadataUpdateCount(metadataUpdatesStarted.get(), metadataUpdatesCompleted.get());
+    return metadataUpdateCount.get();
   }
 
 }

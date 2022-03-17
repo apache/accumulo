@@ -51,4 +51,11 @@ public class MetadataUpdateCount {
     return startedCount != finishedCount;
   }
 
+  public MetadataUpdateCount incrementStart() {
+    return  new MetadataUpdateCount(startedCount+1, finishedCount);
+  }
+
+  public MetadataUpdateCount incrementFinish() {
+    return  new MetadataUpdateCount(startedCount, finishedCount+1);
+  }
 }
