@@ -87,7 +87,8 @@ public class CaffeineCacheTest {
 
     expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
 
-    cache = new PropCacheCaffeineImpl.Builder(zooPropLoader, cacheMetrics).withTicker(ticker).build();
+    cache =
+        new PropCacheCaffeineImpl.Builder(zooPropLoader, cacheMetrics).withTicker(ticker).build();
 
   }
 

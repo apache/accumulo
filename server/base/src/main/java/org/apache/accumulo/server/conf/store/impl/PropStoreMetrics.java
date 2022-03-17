@@ -65,13 +65,13 @@ public class PropStoreMetrics implements MetricsProducer {
   }
 
   public PropStoreMetrics() {
-    log.info("Creating PropStore metrics");
+    log.debug("Creating PropStore metrics");
   }
 
   public void addLoadTime(final long value) {
-    log.info("Load time: {}", value);
+    log.trace("Load time: {}", value);
     load.record(Duration.ofMillis(value));
-    log.info("Load count: {} time:{}", load.count(), load.totalTime(TimeUnit.MILLISECONDS));
+    log.trace("Load count: {} time:{}", load.count(), load.totalTime(TimeUnit.MILLISECONDS));
   }
 
   public void incrRefresh() {

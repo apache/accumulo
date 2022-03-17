@@ -164,7 +164,8 @@ public class CaffeineCacheZkTest {
 
     ZooPropLoader propLoader =
         new ZooPropLoader(zrw, ZooPropStore.getCodec(), propStoreWatcher, cacheMetrics);
-    PropCacheCaffeineImpl cache = new PropCacheCaffeineImpl.Builder(propLoader, cacheMetrics).build();
+    PropCacheCaffeineImpl cache =
+        new PropCacheCaffeineImpl.Builder(propLoader, cacheMetrics).build();
 
     VersionedProperties readProps = cache.get(propCacheKey);
 

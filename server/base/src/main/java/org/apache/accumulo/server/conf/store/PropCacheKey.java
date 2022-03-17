@@ -35,6 +35,8 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Provides a strongly-typed id for storing properties in ZooKeeper. The path in ZooKeeper is
@@ -47,6 +49,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class PropCacheKey implements Comparable<PropCacheKey> {
 
   public static final String PROP_NODE_NAME = "encoded_props";
+
+  private static final Logger log = LoggerFactory.getLogger(PropCacheKey.class);
 
   // indices for path.split();
   public static final int TYPE_TOKEN_POSITION = 3;
@@ -160,7 +164,13 @@ public class PropCacheKey implements Comparable<PropCacheKey> {
   public static @Nullable PropCacheKey fromPath(final String path) {
     String[] tokens = path.split("/");
 
-    InstanceId instanceId = InstanceId.of(tokens[IID_TOKEN_POSITION]);
+    InstanceId instanceId;
+    try {
+      instanceId = InstanceId.of(tokens[IID_TOKEN_POSITION]);
+    } catch (ArrayIndexOutOfBoundsException ex) {
+      log.warn("Path '{}' is an invalid path for a property cache key", path);
+      return null;
+    }
 
     IdType type = extractType(tokens);
 

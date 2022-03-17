@@ -86,7 +86,8 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     if (ticker == null) {
       cache = new PropCacheCaffeineImpl.Builder(propLoader, cacheMetrics).build();
     } else {
-      cache = new PropCacheCaffeineImpl.Builder(propLoader, cacheMetrics).withTicker(ticker).build();
+      cache =
+          new PropCacheCaffeineImpl.Builder(propLoader, cacheMetrics).withTicker(ticker).build();
     }
 
     try {
