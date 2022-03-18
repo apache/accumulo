@@ -285,7 +285,7 @@ public class FateCommandTest {
       output.clear();
       System.setOut(out);
       if (config.exists()) {
-        config.delete();
+        assertTrue(config.delete());
       }
     }
   }
