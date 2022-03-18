@@ -26,7 +26,7 @@ import java.util.List;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.ScanType;
-import org.apache.accumulo.core.util.Duration;
+import org.apache.accumulo.core.util.DurationFormat;
 
 class ActiveScanIterator implements Iterator<String> {
 
@@ -44,11 +44,12 @@ class ActiveScanIterator implements Iterator<String> {
         final List<ActiveScan> asl = instanceOps.getActiveScans(tserver);
 
         for (ActiveScan as : asl) {
+          var dur = new DurationFormat(as.getAge(), "");
+          var dur2 = new DurationFormat(as.getLastContactTime(), "");
           scans.add(String.format(
               "%21s |%21s |%9s |%9s |%7s |%6s |%8s |%8s |%10s |%20s |%10s |%20s |%10s | %s",
-              tserver, as.getClient(), Duration.format(as.getAge(), "", "-"),
-              Duration.format(as.getLastContactTime(), "", "-"), as.getState(), as.getType(),
-              as.getUser(), as.getTable(), as.getColumns(), as.getAuthorizations(),
+              tserver, as.getClient(), dur, dur2, as.getState(), as.getType(), as.getUser(),
+              as.getTable(), as.getColumns(), as.getAuthorizations(),
               (as.getType() == ScanType.SINGLE ? as.getTablet() : "N/A"), as.getScanid(),
               as.getSsiList(), as.getSsio()));
         }

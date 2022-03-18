@@ -18,40 +18,64 @@
  */
 package org.apache.accumulo.core.util;
 
-public class Duration {
+public class DurationFormat {
+  private final String str;
 
-  public static String format(long time) {
-    return format(time, "&nbsp;", "&mdash;");
-  }
-
-  public static String format(long time, String space, String zero) {
+  public DurationFormat(long time, String space) {
+    String dash = "-";
     long ms, sec, min, hr, day, yr;
-    ms = sec = min = hr = day = yr = -1;
-    if (time == 0)
-      return zero;
+
+    if (time == 0) {
+      str = dash;
+      return;
+    }
+
     ms = time % 1000;
     time /= 1000;
-    if (time == 0)
-      return String.format("%dms", ms);
+
+    if (time == 0) {
+      str = String.format("%dms", ms);
+      return;
+    }
+
     sec = time % 60;
     time /= 60;
-    if (time == 0)
-      return String.format("%ds" + space + "%dms", sec, ms);
+
+    if (time == 0) {
+      str = String.format("%ds" + space + "%dms", sec, ms);
+      return;
+    }
+
     min = time % 60;
     time /= 60;
-    if (time == 0)
-      return String.format("%dm" + space + "%ds", min, sec);
+
+    if (time == 0) {
+      str = String.format("%dm" + space + "%ds", min, sec);
+      return;
+    }
+
     hr = time % 24;
     time /= 24;
-    if (time == 0)
-      return String.format("%dh" + space + "%dm", hr, min);
+
+    if (time == 0) {
+      str = String.format("%dh" + space + "%dm", hr, min);
+      return;
+    }
+
     day = time % 365;
     time /= 365;
-    if (time == 0)
-      return String.format("%dd" + space + "%dh", day, hr);
-    yr = time;
-    return String.format("%dy" + space + "%dd", yr, day);
 
+    if (time == 0) {
+      str = String.format("%dd" + space + "%dh", day, hr);
+      return;
+    }
+    yr = time;
+
+    str = String.format("%dy" + space + "%dd", yr, day);
   }
 
+  @Override
+  public String toString() {
+    return str;
+  }
 }

@@ -31,7 +31,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
-import org.apache.accumulo.core.util.Duration;
+import org.apache.accumulo.core.util.DurationFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,11 +87,12 @@ class ActiveCompactionHelper {
     String host = ac.getHost().getAddress() + ":" + ac.getHost().getPort() + hostSuffix;
 
     try {
+      var dur = new DurationFormat(ac.getAge(), "");
       return String.format(
-          "%21s | %9s | %5s | %6s | %5s | %5s | %15s | %-40s | %5s | %35s | %9s | %s", host,
-          Duration.format(ac.getAge(), "", "-"), ac.getType(), ac.getReason(),
-          shortenCount(ac.getEntriesRead()), shortenCount(ac.getEntriesWritten()), ac.getTable(),
-          ac.getTablet(), ac.getInputFiles().size(), output, iterList, iterOpts);
+          "%21s | %9s | %5s | %6s | %5s | %5s | %15s | %-40s | %5s | %35s | %9s | %s", host, dur,
+          ac.getType(), ac.getReason(), shortenCount(ac.getEntriesRead()),
+          shortenCount(ac.getEntriesWritten()), ac.getTable(), ac.getTablet(),
+          ac.getInputFiles().size(), output, iterList, iterOpts);
     } catch (TableNotFoundException e) {
       return "ERROR " + e.getMessage();
     }
