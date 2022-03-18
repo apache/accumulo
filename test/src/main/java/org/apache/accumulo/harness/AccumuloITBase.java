@@ -111,19 +111,18 @@ public class AccumuloITBase extends WithTestNames {
     }
 
     // if either value is zero, apply a very long timeout (effectively no timeout)
-    int totalTimeoutSeconds = timeoutFactor * defaultTimeoutSeconds();
-    if (totalTimeoutSeconds == 0) {
+    if (timeoutFactor == 0 || defaultTimeoutDuration().isZero()) {
       return Duration.ofDays(5);
     }
 
-    return Duration.ofSeconds(totalTimeoutSeconds);
+    return defaultTimeoutDuration().multipliedBy(timeoutFactor);
   });
 
   /**
    * Time to wait per-method before declaring a timeout, in seconds.
    */
-  protected int defaultTimeoutSeconds() {
-    return 60 * 10;
+  protected Duration defaultTimeoutDuration() {
+    return Duration.ofMinutes(10);
   }
 
   @SuppressFBWarnings(value = "UI_INHERITANCE_UNSAFE_GETRESOURCE", justification = "for testing")
