@@ -378,22 +378,21 @@ public class ClientContext implements AccumuloClient {
         scanServerDispatcher = impl.getDeclaredConstructor().newInstance();
         scanServerDispatcher.init(new ScanServerDispatcher.InitParameters() {
           @Override
-          public Supplier<Map<String,String>> getOptions() {
-            return () -> {
-              Map<String,String> sserverProps = new HashMap<>();
-              ClientProperty
-                  .getPrefix(info.getProperties(),
-                      ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey())
-                  .forEach((k, v) -> {
-                    sserverProps.put(k.toString(), v.toString());
-                  });
-              return sserverProps;
-            };
+          public Map<String,String> getOptions() {
+            Map<String,String> sserverProps = new HashMap<>();
+            ClientProperty.getPrefix(info.getProperties(),
+                ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey()).forEach((k, v) -> {
+                  sserverProps.put(
+                      k.toString().substring(
+                          ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey().length()),
+                      v.toString());
+                });
+            return sserverProps;
           }
 
           @Override
-          public Supplier<ServiceEnvironment> getServiceEnv() {
-            return () -> new ServiceEnvironment() {
+          public ServiceEnvironment getServiceEnv() {
+            return new ServiceEnvironment() {
 
               @Override
               public String getTableName(TableId tableId) throws TableNotFoundException {
@@ -430,7 +429,6 @@ public class ClientContext implements AccumuloClient {
                   throw new RuntimeException("Error getting table configuration", e);
                 }
               }
-
             };
           }
 

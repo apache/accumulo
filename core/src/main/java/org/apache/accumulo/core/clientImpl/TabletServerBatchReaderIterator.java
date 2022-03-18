@@ -21,6 +21,7 @@ package org.apache.accumulo.core.clientImpl;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -38,6 +39,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -291,13 +293,17 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   }
 
   private void processFailures(Map<KeyExtent,List<Range>> failures, ResultReceiver receiver,
-      List<Column> columns)
+      List<Column> columns, Duration scanServerDispatcherDelay)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     if (log.isTraceEnabled())
       log.trace("Failed to execute multiscans against {} tablets, retrying...", failures.size());
 
     try {
-      Thread.sleep(failSleepTime);
+      if (scanServerDispatcherDelay != null) {
+        Thread.sleep(scanServerDispatcherDelay.toMillis());
+      } else {
+        Thread.sleep(failSleepTime);
+      }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
 
@@ -336,26 +342,21 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     private List<Column> columns;
     private int semaphoreSize;
     private final long busyTimeout;
-    private final ScanServerDispatcher.Action action;
-
-    private long getBusyTimeout(ScanServerDispatcher.Action action) {
-      if (action != null && action instanceof ScanServerDispatcher.UseScanServerAction) {
-        return ((ScanServerDispatcher.UseScanServerAction) action).getBusyTimeout().toMillis();
-      }
-
-      return 0L;
-    }
+    private final ScanAttemptsImpl.ScanAttemptReporter reporter;
+    private final Duration scanServerDispatcherDelay;
 
     QueryTask(String tsLocation, Map<KeyExtent,List<Range>> tabletsRanges,
         Map<KeyExtent,List<Range>> failures, ResultReceiver receiver, List<Column> columns,
-        ScanServerDispatcher.Action action) {
+        long busyTimeout, ScanAttemptsImpl.ScanAttemptReporter reporter,
+        Duration scanServerDispatcherDelay) {
       this.tsLocation = tsLocation;
       this.tabletsRanges = tabletsRanges;
       this.receiver = receiver;
       this.columns = columns;
       this.failures = failures;
-      this.busyTimeout = getBusyTimeout(action);
-      this.action = action;
+      this.busyTimeout = busyTimeout;
+      this.reporter = reporter;
+      this.scanServerDispatcherDelay = scanServerDispatcherDelay;
     }
 
     void setSemaphore(Semaphore semaphore, int semaphoreSize) {
@@ -378,10 +379,6 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         }
         doLookup(context, tsLocation, tabletsRanges, tsFailures, unscanned, receiver, columns,
             options, authorizations, timeoutTracker, busyTimeout);
-        if (action != null) {
-          scanAttempts.add(action, System.currentTimeMillis(),
-              ScanServerDispatcher.ScanAttempt.Result.SUCCESS);
-        }
 
         if (!tsFailures.isEmpty()) {
           locator.invalidateCache(tsFailures.keySet());
@@ -400,14 +397,13 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           locator.invalidateCache(context, tsLocation);
         }
         log.debug("IOException thrown", e);
-        if (action != null) {
-          ScanServerDispatcher.ScanAttempt.Result result =
-              ScanServerDispatcher.ScanAttempt.Result.IO_ERROR;
-          if (e.getCause() instanceof ScanServerBusyException) {
-            result = ScanServerDispatcher.ScanAttempt.Result.BUSY;
-          }
-          scanAttempts.add(action, System.currentTimeMillis(), result);
+
+        ScanServerDispatcher.ScanAttempt.Result result =
+            ScanServerDispatcher.ScanAttempt.Result.ERROR;
+        if (e.getCause() instanceof ScanServerBusyException) {
+          result = ScanServerDispatcher.ScanAttempt.Result.BUSY;
         }
+        reporter.report(result);
       } catch (AccumuloSecurityException e) {
         e.setTableInfo(getTableInfo());
         log.debug("AccumuloSecurityException thrown", e);
@@ -436,7 +432,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           if (fatalException == null && !failures.isEmpty()) {
             // there were some failures
             try {
-              processFailures(failures, receiver, columns);
+              processFailures(failures, receiver, columns, scanServerDispatcherDelay);
             } catch (TableNotFoundException | AccumuloException e) {
               log.debug("{}", e.getMessage(), e);
               fatalException = e;
@@ -492,10 +488,18 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     int maxTabletsPerRequest = Integer.MAX_VALUE;
 
-    Map<String,ScanServerDispatcher.Action> serverActions = new HashMap<>();
+    AtomicReference<ScanServerDispatcher.Actions> serverActions = new AtomicReference<>();
+
+    long busyTimeout = 0;
+    Duration scanServerDispatcherDelay = null;
+    Map<String,ScanAttemptsImpl.ScanAttemptReporter> reporters = Map.of();
 
     if (options.getConsistencyLevel().equals(ConsistencyLevel.EVENTUAL)) {
-      binnedRanges = rebinToScanServers(binnedRanges, serverActions);
+      var scanServerData = rebinToScanServers(binnedRanges);
+      busyTimeout = scanServerData.actions.getBusyTimeout().toMillis();
+      reporters = scanServerData.reporters;
+      scanServerDispatcherDelay = scanServerData.actions.getDelay();
+      binnedRanges = scanServerData.binnedRanges;
     } else {
       // when there are lots of threads and a few tablet servers
       // it is good to break request to tablet servers up, the
@@ -536,12 +540,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     for (final String tsLocation : locations) {
 
-      ScanServerDispatcher.Action action = serverActions.get(tsLocation);
-
       final Map<KeyExtent,List<Range>> tabletsRanges = binnedRanges.get(tsLocation);
       if (maxTabletsPerRequest == Integer.MAX_VALUE || tabletsRanges.size() == 1) {
-        QueryTask queryTask =
-            new QueryTask(tsLocation, tabletsRanges, failures, receiver, columns, action);
+        QueryTask queryTask = new QueryTask(tsLocation, tabletsRanges, failures, receiver, columns,
+            busyTimeout, reporters.getOrDefault(tsLocation, r -> {}), scanServerDispatcherDelay);
         queryTasks.add(queryTask);
       } else {
         HashMap<KeyExtent,List<Range>> tabletSubset = new HashMap<>();
@@ -549,15 +551,16 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           tabletSubset.put(entry.getKey(), entry.getValue());
           if (tabletSubset.size() >= maxTabletsPerRequest) {
             QueryTask queryTask =
-                new QueryTask(tsLocation, tabletSubset, failures, receiver, columns, action);
+                new QueryTask(tsLocation, tabletSubset, failures, receiver, columns, busyTimeout,
+                    reporters.getOrDefault(tsLocation, r -> {}), scanServerDispatcherDelay);
             queryTasks.add(queryTask);
             tabletSubset = new HashMap<>();
           }
         }
 
         if (!tabletSubset.isEmpty()) {
-          QueryTask queryTask =
-              new QueryTask(tsLocation, tabletSubset, failures, receiver, columns, action);
+          QueryTask queryTask = new QueryTask(tsLocation, tabletSubset, failures, receiver, columns,
+              busyTimeout, reporters.getOrDefault(tsLocation, r -> {}), scanServerDispatcherDelay);
           queryTasks.add(queryTask);
         }
       }
@@ -572,9 +575,13 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     }
   }
 
-  private Map<String,Map<KeyExtent,List<Range>>> rebinToScanServers(
-      Map<String,Map<KeyExtent,List<Range>>> binnedRanges,
-      Map<String,ScanServerDispatcher.Action> serverActions) {
+  private static class ScanServerData {
+    Map<String,Map<KeyExtent,List<Range>>> binnedRanges;
+    ScanServerDispatcher.Actions actions;
+    Map<String,ScanAttemptsImpl.ScanAttemptReporter> reporters;
+  }
+
+  private ScanServerData rebinToScanServers(Map<String,Map<KeyExtent,List<Range>>> binnedRanges) {
     ScanServerDispatcher ecsm = context.getScanServerDispatcher();
 
     List<TabletIdImpl> tabletIds =
@@ -592,8 +599,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           }
 
           @Override
-          public ScanServerDispatcher.ScanAttempts getScanAttempts() {
-            return scanAttemptsSnapshot;
+          public Collection<? extends ScanServerDispatcher.ScanAttempt>
+              getAttempts(TabletId tabletId) {
+            return scanAttemptsSnapshot.getOrDefault(tabletId, Set.of());
           }
         };
 
@@ -611,67 +619,37 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges2 = new HashMap<>();
 
-    Set<TabletId> tabletsSeen = new HashSet<>();
+    Map<String,ScanAttemptsImpl.ScanAttemptReporter> reporters = new HashMap<>();
 
-    if (log.isTraceEnabled()) {
-      for (ScanServerDispatcher.Action action : actions) {
-        log.trace("Scan server dispatch action : {}" + action);
+    for (TabletIdImpl tabletId : tabletIds) {
+      KeyExtent extent = tabletId.toKeyExtent();
+      String serverToUse = actions.getScanServer(tabletId);
+      boolean isScanServer = serverToUse != null;
+      if (serverToUse == null) {
+        // no scan server was given so use the tablet server
+        serverToUse = extentToTserverMap.get(extent);
+        log.trace("For tablet {} scan server dispatcher chose tablet_server", tabletId);
+      } else {
+        log.trace("For tablet {} scan server dispatcher chose scan_server:{}", tabletId,
+            serverToUse);
       }
+
+      var rangeMap = binnedRanges2.computeIfAbsent(serverToUse, k -> new HashMap<>());
+      List<Range> ranges = extentToRangesMap.get(extent);
+      rangeMap.put(extent, ranges);
+
+      var server = serverToUse;
+      reporters.computeIfAbsent(serverToUse, k -> scanAttempts.createReporter(server, tabletId));
     }
 
-    for (ScanServerDispatcher.Action action : actions) {
-      if (action instanceof ScanServerDispatcher.UseScanServerAction) {
-        var ussAction = (ScanServerDispatcher.UseScanServerAction) action;
-        String server = ussAction.getServer();
+    ScanServerData ssd = new ScanServerData();
 
-        var rangeMap = binnedRanges2.computeIfAbsent(server, k -> new HashMap<>());
-
-        // TODO need to act on the delay!
-
-        serverActions.put(server, action);
-
-        for (TabletId tablet : action.getTablets()) {
-          if (tabletsSeen.add(tablet)) {
-            KeyExtent extent = ((TabletIdImpl) tablet).toKeyExtent();
-            List<Range> ranges = extentToRangesMap.get(extent);
-            if (ranges != null) {
-              rangeMap.put(extent, ranges);
-            } else {
-              // TODO warn?? plugin gave back a tablet it was not given
-            }
-          } else {
-            // TODO warn?? plugin mapped a tablet to multiple servers
-          }
-        }
-      } else if (action instanceof ScanServerDispatcher.UseTserverAction) {
-        for (TabletId tablet : action.getTablets()) {
-          if (tabletsSeen.add(tablet)) {
-            KeyExtent extent = ((TabletIdImpl) tablet).toKeyExtent();
-            String server = extentToTserverMap.get(extent);
-            List<Range> ranges = extentToRangesMap.get(extent);
-            if (ranges != null) {
-              binnedRanges2.computeIfAbsent(server, k -> new HashMap<>()).put(extent, ranges);
-            } else {
-              // TODO warn?? plugin gave back a tablet it was not given
-            }
-          } else {
-            // TODO warn?? plugin mapped a tablet to multiple servers
-          }
-        }
-      }
-    }
-
-    for (TabletIdImpl tablet : tabletIds) {
-      if (!tabletsSeen.contains(tablet)) {
-        // This tablet was not seen in the actions returned by the plugin so just send it to the
-        // tserver
-        // TODO log warn/debug???
-        String server = extentToTserverMap.get(tablet.toKeyExtent());
-        binnedRanges2.computeIfAbsent(server, k -> new HashMap<>()).put(tablet.toKeyExtent(),
-            extentToRangesMap.get(tablet.toKeyExtent()));
-      }
-    }
-    return binnedRanges2;
+    ssd.binnedRanges = binnedRanges2;
+    ssd.actions = actions;
+    ssd.reporters = reporters;
+    log.trace("Scan server dispatcher chose delay:{} busyTimeout:{}", actions.getDelay(),
+        actions.getBusyTimeout());
+    return ssd;
   }
 
   static void trackScanning(Map<KeyExtent,List<Range>> failures,

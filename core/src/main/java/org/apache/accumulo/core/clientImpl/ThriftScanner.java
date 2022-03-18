@@ -23,16 +23,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.SortedSet;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
@@ -185,6 +176,8 @@ public class ThriftScanner {
     Map<String,String> executionHints;
 
     ScanAttemptsImpl scanAttempts;
+
+    Duration busyTimeout;
 
     public ScanState(ClientContext context, TableId tableId, Authorizations authorizations,
         Range range, SortedSet<Column> fetchedColumns, int size,
@@ -482,70 +475,78 @@ public class ThriftScanner {
       return null;
 
     if (scanState.runOnScanServer) {
-      var tabletId = new TabletIdImpl(loc.tablet_extent);
-
-      var params = new ScanServerDispatcher.DispatcherParameters() {
-
-        // obtain a snapshot once and always use it
-        ScanServerDispatcher.ScanAttempts attempts = scanState.scanAttempts.snapshot();
-
-        @Override
-        public List<TabletId> getTablets() {
-          return List.of(tabletId);
-        }
-
-        @Override
-        public ScanServerDispatcher.ScanAttempts getScanAttempts() {
-          return attempts;
-        }
-      };
-
-      ScanServerDispatcher.Actions actions =
-          context.getScanServerDispatcher().determineActions(params);
 
       TabletLocation newLoc;
 
-      Optional<ScanServerDispatcher.Action> action = actions.getAction(tabletId);
+      var tabletId = new TabletIdImpl(loc.tablet_extent);
 
-      Duration delay = null;
-      Duration busyTimeout = null;
-      if (!action.isEmpty() && action.get() instanceof ScanServerDispatcher.UseScanServerAction) {
-        // TODO what to use for session?
-        ScanServerDispatcher.UseScanServerAction ussAction =
-            (ScanServerDispatcher.UseScanServerAction) action.get();
-        newLoc = new TabletLocation(loc.tablet_extent,
-            ((ScanServerDispatcher.UseScanServerAction) action.get()).getServer(), "none");
-        delay = ussAction.getDelay();
-        busyTimeout = ussAction.getBusyTimeout();
+      if (scanState.scanID != null && scanState.prevLoc != null
+          && scanState.prevLoc.tablet_session.equals("scan_server")
+          && scanState.prevLoc.tablet_extent.equals(loc.tablet_extent)) {
+        // this is the case of continuing a scan on a scan server for the same tablet, so lets not
+        // call the scan server dispatcher and just go back to the previous scan server
+        newLoc = scanState.prevLoc;
+        log.trace(
+            "For tablet {} continuing scan on scan server {} without consulting scan server dispatcher, using busyTimeout {}",
+            loc.tablet_extent, newLoc.tablet_location, scanState.busyTimeout);
       } else {
-        // TODO the delay for the tserver is not being properly handled
-        newLoc = loc;
-        delay = Duration.ZERO;
-        busyTimeout = Duration.ZERO;
-      }
+        // obtain a snapshot once and always use it
+        var attempts = scanState.scanAttempts.snapshot();
 
-      if (!delay.isZero()) {
-        try {
-          Thread.sleep(delay.toMillis());
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          throw new RuntimeException(e);
+        var params = new ScanServerDispatcher.DispatcherParameters() {
+
+          @Override
+          public List<TabletId> getTablets() {
+            return List.of(tabletId);
+          }
+
+          @Override
+          public Collection<? extends ScanServerDispatcher.ScanAttempt>
+              getAttempts(TabletId tabletId) {
+            return attempts.getOrDefault(tabletId, Set.of());
+          }
+        };
+
+        ScanServerDispatcher.Actions actions =
+            context.getScanServerDispatcher().determineActions(params);
+
+        Duration delay = null;
+
+        String scanServer = actions.getScanServer(tabletId);
+        if (scanServer != null) {
+          newLoc = new TabletLocation(loc.tablet_extent, scanServer, "scan_server");
+          delay = actions.getDelay();
+          scanState.busyTimeout = actions.getBusyTimeout();
+          log.trace(
+              "For tablet {} scan server dispatcher chose scan_server:{} delay:{} busyTimeout:{}",
+              loc.tablet_extent, scanServer, delay, scanState.busyTimeout);
+        } else {
+          newLoc = loc;
+          delay = actions.getDelay();
+          scanState.busyTimeout = Duration.ZERO;
+          log.trace("For tablet {} scan server dispatcher chose tablet_server", loc.tablet_extent);
+        }
+
+        if (!delay.isZero()) {
+          try {
+            Thread.sleep(delay.toMillis());
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+          }
         }
       }
 
+      var reporter = scanState.scanAttempts.createReporter(newLoc.tablet_location, tabletId);
+
       try {
-        // TODO action could be empty
-        var ret = scanRpc(newLoc, scanState, context, busyTimeout.toMillis());
-        scanState.scanAttempts.add(action.get(), System.currentTimeMillis(),
-            ScanServerDispatcher.ScanAttempt.Result.SUCCESS);
+        var ret = scanRpc(newLoc, scanState, context, scanState.busyTimeout.toMillis());
         return ret;
       } catch (ScanServerBusyException ssbe) {
-        scanState.scanAttempts.add(action.get(), System.currentTimeMillis(),
-            ScanServerDispatcher.ScanAttempt.Result.BUSY);
+        reporter.report(ScanServerDispatcher.ScanAttempt.Result.BUSY);
         throw ssbe;
       } catch (Exception e) {
-        scanState.scanAttempts.add(action.get(), System.currentTimeMillis(),
-            ScanServerDispatcher.ScanAttempt.Result.ERROR);
+        reporter.report(ScanServerDispatcher.ScanAttempt.Result.ERROR);
         throw e;
       }
     } else {
