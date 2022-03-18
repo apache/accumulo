@@ -40,11 +40,11 @@ public class DefaultScanServerDispatcher implements ScanServerDispatcher {
 
   private static final SecureRandom RANDOM = new SecureRandom();
 
-  private Duration initialBusyTimeout;
-  private Duration maxBusyTimeout;
+  protected Duration initialBusyTimeout;
+  protected Duration maxBusyTimeout;
 
-  private int initialServers;
-  private int maxDepth;
+  protected int initialServers;
+  protected int maxDepth;
 
   private Supplier<List<String>> orderedScanServersSupplier;
 

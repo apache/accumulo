@@ -21,32 +21,39 @@ package org.apache.accumulo.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
+import java.util.Properties;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.clientImpl.ThriftScanner.ScanTimedOutException;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.scan.DefaultScanServerDispatcher;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ReadWriteIT;
+import org.apache.accumulo.test.functional.SlowIterator;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -59,7 +66,12 @@ public class ScanServerIT extends SharedMiniClusterBase {
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg,
         org.apache.hadoop.conf.Configuration coreSite) {
       cfg.setNumScanServers(1);
+
+      // Timeout scan sessions after being idle for 3 seconds
       cfg.setProperty(Property.TSERV_SESSION_MAXIDLE, "3s");
+
+      // Configure the scan server to only have 1 scan executor thread. This means
+      // that the scan server will run scans serially, not concurrently.
       cfg.setProperty(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS, "1");
     }
   }
@@ -135,7 +147,6 @@ public class ScanServerIT extends SharedMiniClusterBase {
     }
   }
 
-  // TODO: This test currently fails, but we could change the client code to make it work.
   @Test
   public void testScanOfflineTable() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
@@ -163,51 +174,91 @@ public class ScanServerIT extends SharedMiniClusterBase {
     }
   }
 
+  public static class TimeOutEarlyScanServerDispatcher extends DefaultScanServerDispatcher {
+
+    @Override
+    public void init(InitParameters params) {
+      super.init(params);
+      var opts = params.getOptions();
+      initialBusyTimeout = Duration.parse(opts.getOrDefault("initialBusyTimeout", "PT0.100S"));
+      maxBusyTimeout = Duration.parse(opts.getOrDefault("maxBusyTimeout", "PT1.000S"));
+    }
+
+  }
+
   @Test
   public void testScanServerBusy() throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = getUniqueNames(1)[0];
 
-      client.tableOperations().create(tableName);
+    // Configure the client to use a different scan server dispatcher class that has
+    // lower timeout values
+    Properties props = getClientProps();
+    props.put(ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey(),
+        TimeOutEarlyScanServerDispatcher.class.getName());
 
-      ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 0, tableName);
-
-      client.tableOperations().flush(tableName, null, null, true);
-
-      Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY);
-      scanner.setRange(new Range());
-      scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-      // We only inserted 100 rows, default batch size is 1000. If we don't set the
-      // batch size lower, then the server side code will automatically close the
-      // scanner on the first call to continueScan. We want to keep it open, so lower the batch
-      // size.
-      scanner.setBatchSize(10);
-      Iterator<Entry<Key,Value>> iter = scanner.iterator();
-      iter.next();
-      iter.next();
-      // At this point the tablet server will time out this scan after TSERV_SESSION_MAXIDLE
-      // Start up another scanner and set it to time out in 1s. It should fail because there
-      // is no scan server available to run the scan.
-      Scanner scanner2 = client.createScanner(tableName, Authorizations.EMPTY);
-      scanner2.setRange(new Range());
-      scanner2.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-      scanner2.setTimeout(1, TimeUnit.SECONDS);
-      Iterator<Entry<Key,Value>> iter2 = scanner2.iterator();
-      try {
-        iter2.hasNext();
-        assertNotNull(iter2.next());
-        fail("Expecting ScanTimedOutException");
-      } catch (RuntimeException e) {
-        if (e.getCause() instanceof ScanTimedOutException) {
-          // success
-        } else {
-          fail("Expecting ScanTimedOutException");
-        }
-      } finally {
-        scanner.close();
-        scanner2.close();
-      }
+    String tName = null;
+    try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
+      tName = getUniqueNames(1)[0];
+      client.tableOperations().create(tName);
+      ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 0, tName);
+      client.tableOperations().flush(tName, null, null, true);
     }
+    
+    final String tableName = tName;
+    Thread t1 = new Thread(() -> {
+      try (AccumuloClient c = Accumulo.newClient().from(props).build()) {
+        Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
+        IteratorSetting slow = new IteratorSetting(30, "slow", SlowIterator.class);
+        SlowIterator.setSleepTime(slow, 30000);
+        scanner.addScanIterator(slow);      
+        scanner.setRange(new Range());
+        scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
+        // We only inserted 100 rows, default batch size is 1000. If we don't set the
+        // batch size lower, then the server side code will automatically close the
+        // scanner on the first call to continueScan because it will have consumed all
+        // of the data. We want to keep it open, so lower the batch size.
+        scanner.setBatchSize(1);
+        Iterator<Entry<Key,Value>> iter = scanner.iterator();
+        while (iter.hasNext()) {
+          assertNotNull(iter.next());
+        }
+      } catch (TableNotFoundException e) {
+        fail("Table not found");
+      }
+    }, "first-scan");
+
+    Thread t2 = new Thread(() -> {
+      try (AccumuloClient c = Accumulo.newClient().from(props).build()) {
+        // At this point the tablet server will time out this scan after TSERV_SESSION_MAXIDLE
+        // Start up another scanner and set it to time out in 1s. It should fail because there
+        // is no scan server available to run the scan.
+        Scanner scanner2 = c.createScanner(tableName, Authorizations.EMPTY);
+        scanner2.setRange(new Range());
+        scanner2.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
+        scanner2.setBatchSize(1);
+        Iterator<Entry<Key,Value>> iter2 = scanner2.iterator();
+        try {
+          while (iter2.hasNext()) {
+            assertNotNull(iter2.next());
+          }
+          fail("Expecting ScanTimedOutException");
+        } catch (RuntimeException e) {
+          if (e.getCause() instanceof ScanTimedOutException) {
+            // success
+          } else {
+            fail("Expecting ScanTimedOutException");
+          }
+        }
+      } catch (TableNotFoundException e) {
+        fail("Table not found");
+      }
+    }, "second-scan");
+    
+    t1.start();
+    t2.start();
+    
+    t2.join();
+    t1.interrupt();
+    t1.join();
   }
 
 }
