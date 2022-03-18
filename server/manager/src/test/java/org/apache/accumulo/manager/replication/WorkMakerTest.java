@@ -18,12 +18,12 @@
  */
 package org.apache.accumulo.manager.replication;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @Deprecated
 public class WorkMakerTest {
