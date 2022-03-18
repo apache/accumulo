@@ -16,14 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.conf.store;
+package org.apache.accumulo.server.util;
 
-public class PropStoreException extends IllegalStateException {
+import java.util.Collection;
+import java.util.Map;
 
-  private static final long serialVersionUID = 1;
+import org.apache.accumulo.core.data.AbstractId;
+import org.apache.accumulo.server.ServerContext;
 
-  public PropStoreException(final String message, Exception ex) {
-    super(message, ex);
-  }
+public interface PropUtil {
+
+  void setProperties(final ServerContext context, final AbstractId<?> id,
+      final Map<String,String> props);
+
+  void removeProperties(final ServerContext context, final AbstractId<?> id,
+      final Collection<String> propertyNames);
 
 }

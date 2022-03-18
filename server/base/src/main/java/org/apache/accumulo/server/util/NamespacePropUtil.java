@@ -18,35 +18,43 @@
  */
 package org.apache.accumulo.server.util;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
-import org.apache.zookeeper.KeeperException;
-import org.slf4j.LoggerFactory;
 
-public class NamespacePropUtil {
-  public static boolean setNamespaceProperty(ServerContext context, NamespaceId namespaceId,
-      String property, String value) throws KeeperException, InterruptedException {
-    if (!Property.isTablePropertyValid(property, value))
-      return false;
+public class NamespacePropUtil implements PropUtil {
 
-    context.getPropStore().putAll(PropCacheKey.forNamespace(context, namespaceId),
-        Map.of(property, value));
+  private NamespaceId namespaceId;
 
-    return true;
+  private NamespacePropUtil() {}
+
+  public static NamespacePropUtil factory() {
+    return new NamespacePropUtil();
   }
 
-  public static void removeNamespaceProperty(ServerContext context, NamespaceId namespaceId,
-      String property) {
+  @Override
+  public void setProperties(ServerContext context, AbstractId<?> namespaceId,
+      Map<String,String> properties) {
+    for (Map.Entry<String,String> prop : properties.entrySet()) {
+      // TODO reconcile with TablePropUtil on invalid, this throws exception, table ignores
+      if (!Property.isTablePropertyValid(prop.getKey(), prop.getValue())) {
+        throw new IllegalArgumentException("Invalid table property for namespace: " + namespaceId
+            + " name: " + prop.getKey() + ", value: " + prop.getValue());
+      }
+    }
+    context.getPropStore().putAll(PropCacheKey.forNamespace(context, (NamespaceId) namespaceId),
+        properties);
+  }
 
-    LoggerFactory.getLogger(NamespacePropUtil.class).warn("Request to remove property: {}",
-        property);
-
-    context.getPropStore().removeProperties(PropCacheKey.forNamespace(context, namespaceId),
-        List.of(property));
+  @Override
+  public void removeProperties(ServerContext context, AbstractId<?> namespaceId,
+      Collection<String> propertyNames) {
+    context.getPropStore().removeProperties(
+        PropCacheKey.forNamespace(context, (NamespaceId) namespaceId), propertyNames);
   }
 }

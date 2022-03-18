@@ -81,6 +81,7 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.tserverOps.ShutdownTServer;
 import org.apache.accumulo.server.client.ClientServiceHandler;
+import org.apache.accumulo.server.conf.store.PropStoreException;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
@@ -398,21 +399,25 @@ public class ManagerClientServiceHandler extends FateServiceHandler
 
     try {
       if (value == null) {
-        NamespacePropUtil.removeNamespaceProperty(manager.getContext(), namespaceId, property);
+        NamespacePropUtil.factory().removeProperties(manager.getContext(), namespaceId,
+            List.of(property));
       } else {
-        NamespacePropUtil.setNamespaceProperty(manager.getContext(), namespaceId, property, value);
+        NamespacePropUtil.factory().setProperties(manager.getContext(), namespaceId,
+            Map.of(property, value));
       }
-    } catch (KeeperException.NoNodeException e) {
-      // race condition... namespace no longer exists? This call will throw an exception if the
-      // namespace was deleted:
+    } catch (PropStoreException ex) {
+      if (ex.getCause() instanceof KeeperException.NoNodeException) {
+        // race condition... namespace no longer exists? This call will throw an exception if the
+        // namespace was deleted:
+        ClientServiceHandler.checkNamespaceId(manager.getContext(), namespace, op);
+        log.info("Error altering namespace property", ex);
+        throw new ThriftTableOperationException(namespaceId.canonical(), namespace, op,
+            TableOperationExceptionType.OTHER, "Problem altering namespaceproperty");
+      }
       ClientServiceHandler.checkNamespaceId(manager.getContext(), namespace, op);
-      log.info("Error altering namespace property", e);
+      log.info("Error altering namespace property", ex);
       throw new ThriftTableOperationException(namespaceId.canonical(), namespace, op,
           TableOperationExceptionType.OTHER, "Problem altering namespaceproperty");
-    } catch (Exception e) {
-      log.error("Problem altering namespace property", e);
-      throw new ThriftTableOperationException(namespaceId.canonical(), namespace, op,
-          TableOperationExceptionType.OTHER, "Problem altering namespace property");
     }
   }
 
@@ -425,23 +430,25 @@ public class ManagerClientServiceHandler extends FateServiceHandler
 
     try {
       if (value == null || value.isEmpty()) {
-        TablePropUtil.removeTableProperty(manager.getContext(), tableId, property);
-      } else if (!TablePropUtil.setTableProperties(manager.getContext(), tableId,
-          Map.of(property, value))) {
-        throw new Exception("Invalid table property, tried to set: tableId: " + tableId.canonical()
-            + " to: " + property + "=" + value);
+        TablePropUtil.factory().removeProperties(manager.getContext(), tableId, List.of(property));
+      } else {
+        TablePropUtil.factory().setProperties(manager.getContext(), tableId,
+            Map.of(property, value));
       }
-    } catch (KeeperException.NoNodeException e) {
-      // race condition... table no longer exists? This call will throw an exception if the table
-      // was deleted:
-      ClientServiceHandler.checkTableId(manager.getContext(), tableName, op);
-      log.info("Error altering table property", e);
+    } catch (PropStoreException ex) {
+      log.warn("Invalid table property, tried to set: tableId: " + tableId.canonical() + " to: "
+          + property + "=" + value);
+      if (ex.getCause() instanceof KeeperException.NoNodeException) {
+        // race condition... table no longer exists? This call will throw an exception if the table
+        // was deleted:
+        ClientServiceHandler.checkTableId(manager.getContext(), tableName, op);
+        log.info("Error altering table property", ex);
+        throw new ThriftTableOperationException(tableId.canonical(), tableName, op,
+            TableOperationExceptionType.OTHER, "Problem altering table property");
+      }
       throw new ThriftTableOperationException(tableId.canonical(), tableName, op,
-          TableOperationExceptionType.OTHER, "Problem altering table property");
-    } catch (Exception e) {
-      log.error("Problem altering table property", e);
-      throw new ThriftTableOperationException(tableId.canonical(), tableName, op,
-          TableOperationExceptionType.OTHER, "Problem altering table property");
+          TableOperationExceptionType.OTHER, "Invalid table property, tried to set: tableId: "
+              + tableId.canonical() + " to: " + property + "=" + value);
     }
   }
 

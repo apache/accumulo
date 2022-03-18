@@ -26,6 +26,7 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TableInfo;
 import org.apache.accumulo.manager.tableOps.Utils;
+import org.apache.accumulo.server.conf.store.PropStoreException;
 import org.apache.accumulo.server.util.TablePropUtil;
 
 class PopulateZookeeper extends ManagerRepo {
@@ -57,8 +58,10 @@ class PopulateZookeeper extends ManagerRepo {
       manager.getTableManager().addTable(tableInfo.getTableId(), tableInfo.getNamespaceId(),
           tableInfo.getTableName());
 
-      if (!TablePropUtil.setTableProperties(manager.getContext(), tableInfo.getTableId(),
-          tableInfo.props)) {
+      try {
+        TablePropUtil.factory().setProperties(manager.getContext(), tableInfo.getTableId(),
+            tableInfo.props);
+      } catch (PropStoreException ex) {
         throw new ThriftTableOperationException(null, tableInfo.getTableName(),
             TableOperation.CREATE, TableOperationExceptionType.OTHER,
             "Property or value not valid for create " + tableInfo.getTableName() + " in "

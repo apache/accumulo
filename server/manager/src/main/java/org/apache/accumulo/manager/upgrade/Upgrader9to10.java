@@ -53,7 +53,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
-import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
@@ -73,6 +72,7 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.store.PropStoreException;
 import org.apache.accumulo.server.conf.util.ConfigConverter;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
@@ -159,16 +159,12 @@ public class Upgrader9to10 implements Upgrader {
    */
   private void setMetaTableProps(ServerContext context) {
     try {
-      TablePropUtil.setTableProperties(context, RootTable.ID,
-          Map.of(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
-              SimpleCompactionDispatcher.class.getName(),
-              Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "root"));
-
-      TablePropUtil.setTableProperties(context, MetadataTable.ID,
-          Map.of(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
-              SimpleCompactionDispatcher.class.getName(),
-              Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "meta"));
-    } catch (KeeperException | InterruptedException e) {
+      TablePropUtil.factory().setProperties(context, RootTable.ID, Map.of(
+          Property.TABLE_COMPACTION_DISPATCHER.getKey(), SimpleCompactionDispatcher.class.getName(),
+          Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "root",
+          Property.TABLE_COMPACTION_DISPATCHER.getKey(), SimpleCompactionDispatcher.class.getName(),
+          Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "meta"));
+    } catch (PropStoreException e) {
       throw new RuntimeException("Unable to set system table properties", e);
     }
   }

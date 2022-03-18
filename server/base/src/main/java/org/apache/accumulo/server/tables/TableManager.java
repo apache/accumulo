@@ -227,7 +227,7 @@ public class TableManager {
         + Constants.ZTABLE_CONF;
     zoo.recursiveCopyPersistentOverwrite(srcTablePath, newTablePath);
 
-    TablePropUtil.setTableProperties(context, tableId, propertiesToSet);
+    TablePropUtil.factory().setProperties(context, tableId, propertiesToSet);
 
     for (String prop : propertiesToExclude)
       zoo.recursiveDelete(Constants.ZROOT + "/" + instanceID + Constants.ZTABLES + "/" + tableId

@@ -18,40 +18,47 @@
  */
 package org.apache.accumulo.server.util;
 
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
-import org.apache.zookeeper.KeeperException;
+import org.apache.accumulo.server.conf.store.PropStoreException;
 
-public class TablePropUtil {
+public class TablePropUtil implements PropUtil {
 
-  public static boolean setTableProperties(ServerContext context, TableId tableId,
-      final Map<String,String> props) throws KeeperException, InterruptedException {
+  private TablePropUtil() {}
+
+  public static TablePropUtil factory() {
+    return new TablePropUtil();
+  }
+
+  /**
+   * Helper method to set provided properties for the provided table.
+   *
+   * @throws PropStoreException
+   *           if an underlying exception (KeeperException, InterruptException) or other failure to
+   *           read properties from the cache / backend store
+   */
+  @Override
+  public void setProperties(ServerContext context, AbstractId<?> tableId,
+      Map<String,String> props) {
     Map<String,String> tempProps = new HashMap<>(props);
+    // TODO reconcile with NamespacePropUtil on invalid, this ignores, namespace throws exception
     tempProps.entrySet().removeIf(e -> !Property.isTablePropertyValid(e.getKey(), e.getValue()));
 
-    context.getPropStore().putAll(PropCacheKey.forTable(context, tableId), props);
-    return true;
+    context.getPropStore().putAll(PropCacheKey.forTable(context, (TableId) tableId), props);
   }
-  //
-  // public static boolean setTableProperty(final ServerContext context, String zkRoot,
-  // TableId tableId, String property, String value) throws KeeperException, InterruptedException {
-  //
-  // if (!Property.isTablePropertyValid(property, value))
-  // return false;
-  //
-  // context.getPropStore().putAll(PropCacheId.forTable(context, tableId), Map.of(property, value));
-  //
-  // return true;
-  // }
 
-  public static void removeTableProperty(ServerContext context, TableId tableId, String property) {
-    context.getPropStore().removeProperties(PropCacheKey.forTable(context, tableId),
-        List.of(property));
+  @Override
+  public void removeProperties(final ServerContext context, final AbstractId<?> tableId,
+      Collection<String> propertyNames) {
+    context.getPropStore().removeProperties(PropCacheKey.forTable(context, (TableId) tableId),
+        propertyNames);
   }
+
 }
