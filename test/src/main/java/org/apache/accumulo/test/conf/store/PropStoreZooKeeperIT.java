@@ -21,12 +21,11 @@ package org.apache.accumulo.test.conf.store;
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -59,14 +58,13 @@ import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.easymock.EasyMock;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,15 +80,14 @@ public class PropStoreZooKeeperIT {
   private final TableId tIdA = TableId.of("A");
   private final TableId tIdB = TableId.of("B");
 
-  @ClassRule
-  public static final TemporaryFolder TEMP =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File tempDir;
 
-  @BeforeClass
-  public static void setupZk() throws Exception {
+  @BeforeAll
+  public static void setupZk() {
 
     // using default zookeeper port - we don't have a full configuration
-    testZk = new ZooKeeperTestingServer(TEMP.newFolder());
+    testZk = new ZooKeeperTestingServer(tempDir);
     zooKeeper = testZk.getZooKeeper();
     ZooReaderWriter zrw = testZk.getZooReaderWriter();
 
@@ -101,12 +98,12 @@ public class PropStoreZooKeeperIT {
     replay(context);
   }
 
-  @AfterClass
+  @AfterAll
   public static void shutdownZK() throws Exception {
     testZk.close();
   }
 
-  @Before
+  @BeforeEach
   public void setupZnodes() {
     testZk.initPaths(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZCONFIG);
     try {
@@ -132,7 +129,7 @@ public class PropStoreZooKeeperIT {
     }
   }
 
-  @After
+  @AfterEach
   public void cleanupZnodes() {
     try {
       ZKUtil.deleteRecursive(zooKeeper, "/accumulo");
@@ -191,7 +188,7 @@ public class PropStoreZooKeeperIT {
     var readFromZk = propCodec.fromBytes(0, bytes);
     var propsA = propStore.get(propKey);
     if (propsA == null) {
-      fail("unexpected null for versioned properties for propKey");
+      throw new IllegalStateException("unexpected null for versioned properties for propKey");
     }
     assertEquals(readFromZk.getProperties(), propsA.getProperties());
   }
@@ -212,8 +209,9 @@ public class PropStoreZooKeeperIT {
 
     var props1 = propStore.get(propKey);
     if (props1 == null) {
-      fail("unexpected null for versioned properties for propKey");
+      throw new IllegalStateException("unexpected null for versioned properties for propKey");
     }
+
     assertEquals("true", props1.getProperties().get(Property.TABLE_BLOOM_ENABLED.getKey()));
 
     int version0 = props1.getDataVersion();
@@ -233,7 +231,7 @@ public class PropStoreZooKeeperIT {
 
     var props2 = propStore.get(propKey);
     if (props2 == null) {
-      fail("unexpected null for versioned properties for propKey");
+      throw new IllegalStateException("unexpected null for versioned properties for propKey");
     }
     // validate version changed on write.
     int version1 = props2.getDataVersion();
@@ -254,7 +252,7 @@ public class PropStoreZooKeeperIT {
 
     var props3 = propStore.get(propKey);
     if (props3 == null) {
-      fail("unexpected null for versioned properties for propKey");
+      throw new IllegalStateException("unexpected null for versioned properties for propKey");
     }
     log.trace("current props: {}", props3.print(true));
 
@@ -269,7 +267,7 @@ public class PropStoreZooKeeperIT {
 
     var props4 = propStore.get(propKey);
     if (props4 == null) {
-      fail("unexpected null for versioned properties for propKey");
+      throw new IllegalStateException("unexpected null for versioned properties for propKey");
     }
     assertEquals(1, props4.getProperties().size());
     assertEquals("false", props4.getProperties().get(Property.TABLE_BLOOM_ENABLED.getKey()));
@@ -299,10 +297,9 @@ public class PropStoreZooKeeperIT {
 
     var props1 = propStore.get(tableAPropKey);
     if (props1 == null) {
-      fail("unexpected null for versioned properties for tableAPropKey");
+      throw new IllegalStateException("unexpected null for versioned properties for tableAPropKey");
     }
     assertEquals("true", props1.getProperties().get(Property.TABLE_BLOOM_ENABLED.getKey()));
-
   }
 
   /**
@@ -335,12 +332,12 @@ public class PropStoreZooKeeperIT {
 
     var propsA = propStore.get(tableAPropKey);
     if (propsA == null) {
-      fail("unexpected null for versioned properties for tableAPropKey");
+      throw new IllegalStateException("unexpected null for versioned properties for tableAPropKey");
     }
 
     var propsB = propStore.get(tableBPropKey);
     if (propsB == null) {
-      fail("unexpected null for versioned properties for tableBPropKey");
+      throw new IllegalStateException("unexpected null for versioned properties for tableBPropKey");
     }
 
     assertEquals("true", propsA.getProperties().get(Property.TABLE_BLOOM_ENABLED.getKey()));
@@ -392,8 +389,7 @@ public class PropStoreZooKeeperIT {
 
     VersionedProperties firstRead = propStore.get(tableAPropKey);
     if (firstRead == null) {
-      fail("first read unexpected returned null");
-      return;
+      throw new IllegalStateException("first read unexpected returned null");
     }
     assertEquals("true", firstRead.getProperties().get(Property.TABLE_BLOOM_ENABLED.getKey()));
 
@@ -418,8 +414,7 @@ public class PropStoreZooKeeperIT {
 
     VersionedProperties updateRead = propStore.get(tableAPropKey);
     if (updateRead == null) {
-      fail("update read failed with unexpected null");
-      return;
+      throw new IllegalStateException("update read failed with unexpected null");
     }
     log.trace("Re-read: {}", updateRead.print(true));
 

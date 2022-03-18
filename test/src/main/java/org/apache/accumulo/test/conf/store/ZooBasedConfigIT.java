@@ -24,11 +24,11 @@ import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.reset;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.util.Map;
@@ -58,14 +58,13 @@ import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.easymock.EasyMock;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,15 +88,14 @@ public class ZooBasedConfigIT {
   private PropStore propStore;
   private AccumuloConfiguration parent;
 
-  @ClassRule
-  public static final TemporaryFolder TEMP =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File tempDir;
 
-  @BeforeClass
-  public static void setupZk() throws Exception {
+  @BeforeAll
+  public static void setupZk() {
 
     // using default zookeeper port - we don't have a full configuration
-    testZk = new ZooKeeperTestingServer(TEMP.newFolder());
+    testZk = new ZooKeeperTestingServer(tempDir);
     zooKeeper = testZk.getZooKeeper();
     zrw = testZk.getZooReaderWriter();
 
@@ -105,12 +103,12 @@ public class ZooBasedConfigIT {
 
   }
 
-  @AfterClass
+  @AfterAll
   public static void shutdownZK() throws Exception {
     testZk.close();
   }
 
-  @Before
+  @BeforeEach
   public void initPaths() {
     testZk.initPaths(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZCONFIG);
 
@@ -160,7 +158,7 @@ public class ZooBasedConfigIT {
 
   }
 
-  @After
+  @AfterEach
   public void cleanupZnodes() {
     try {
       ZKUtil.deleteRecursive(zooKeeper, "/accumulo");

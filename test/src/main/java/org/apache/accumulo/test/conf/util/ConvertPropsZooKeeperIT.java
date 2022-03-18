@@ -49,14 +49,13 @@ import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooKeeper;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,15 +69,14 @@ public class ConvertPropsZooKeeperIT {
   private static ZooReaderWriter zrw;
   private static ServerContext context;
 
-  @ClassRule
-  public static final TemporaryFolder TEMP =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File tempDir;
 
-  @BeforeClass
-  public static void setupZk() throws Exception {
+  @BeforeAll
+  public static void setupZk() {
 
     // using default zookeeper port - we don't have a full configuration
-    testZk = new ZooKeeperTestingServer(TEMP.newFolder());
+    testZk = new ZooKeeperTestingServer(tempDir);
     zooKeeper = testZk.getZooKeeper();
     zooKeeper.addAuthInfo("digest", "accumulo:test".getBytes(UTF_8));
 
@@ -100,12 +98,12 @@ public class ConvertPropsZooKeeperIT {
 
   }
 
-  @AfterClass
+  @AfterAll
   public static void shutdownZK() throws Exception {
     testZk.close();
   }
 
-  @Before
+  @BeforeEach
   public void setupZnodes() {
     try {
       zrw.putPersistentData(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZCONFIG, new byte[0],
@@ -118,7 +116,7 @@ public class ConvertPropsZooKeeperIT {
     }
   }
 
-  @After
+  @AfterEach
   public void cleanupZnodes() {
     try {
       ZKUtil.deleteRecursive(zooKeeper, "/accumulo");

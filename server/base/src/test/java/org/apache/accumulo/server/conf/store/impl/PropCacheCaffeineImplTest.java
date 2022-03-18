@@ -49,7 +49,7 @@ import com.github.benmanes.caffeine.cache.Ticker;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class CaffeineCacheTest {
+public class PropCacheCaffeineImplTest {
 
   private InstanceId instanceId;
   private ServerContext context;

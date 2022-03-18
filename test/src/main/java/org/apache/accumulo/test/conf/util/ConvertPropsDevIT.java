@@ -29,10 +29,10 @@ import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.conf.util.ConfigConverter;
 import org.apache.accumulo.server.conf.util.ConfigPropertyPrinter;
 import org.apache.zookeeper.data.Stat;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,17 +42,17 @@ public class ConvertPropsDevIT extends AccumuloClusterHarness {
 
   private AccumuloClient client;
 
-  @AfterClass
+  @AfterAll
   public static void cleanup() {
 
   }
 
-  @Before
+  @BeforeEach
   public void setup() {
     client = Accumulo.newClient().from(getClientProps()).build();
   }
 
-  @After
+  @AfterEach
   public void closeClient() {
     client.close();
   }

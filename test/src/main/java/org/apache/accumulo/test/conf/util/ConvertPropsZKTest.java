@@ -23,8 +23,8 @@ import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVE
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -45,39 +45,37 @@ import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooKeeper;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Tag(ZOOKEEPER_TESTING_SERVER)
 public class ConvertPropsZKTest {
 
-  @ClassRule
-  public static final TemporaryFolder TEMP =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File tempDir;
   private static final Logger log = LoggerFactory.getLogger(ConvertPropsZooKeeperIT.class);
   private static ZooKeeperTestingServer testZk = null;
   private static ZooKeeper zooKeeper;
   private static ZooReaderWriter zrw;
   private InstanceId instanceId = null;
 
-  @BeforeClass
-  public static void setupZk() throws Exception {
+  @BeforeAll
+  public static void setupZk() {
 
     // using default zookeeper port - we don't have a full configuration
-    testZk = new ZooKeeperTestingServer(TEMP.newFolder());
+    testZk = new ZooKeeperTestingServer(tempDir);
     zooKeeper = testZk.getZooKeeper();
     zrw = testZk.getZooReaderWriter();
   }
 
-  @AfterClass
+  @AfterAll
   public static void shutdownZK() throws Exception {
     testZk.close();
   }
@@ -416,12 +414,12 @@ public class ConvertPropsZKTest {
     return names;
   }
 
-  @Before
+  @BeforeEach
   public void testSetup() {
     instanceId = InstanceId.of(UUID.randomUUID());
   }
 
-  @After
+  @AfterEach
   public void cleanupZnodes() {
     try {
       ZKUtil.deleteRecursive(zooKeeper, Constants.ZROOT);

@@ -66,7 +66,7 @@ public class ZooPropLoaderTest {
 
   private static final Logger log = LoggerFactory.getLogger(ZooPropLoaderTest.class);
 
-  private CaffeineCacheTest.TestTicker ticker;
+  private PropCacheCaffeineImplTest.TestTicker ticker;
   private InstanceId instanceId;
   private ServerContext context;
   private PropCacheKey propCacheKey;
@@ -81,7 +81,7 @@ public class ZooPropLoaderTest {
 
   @BeforeEach
   public void initCommonMocks() {
-    ticker = new CaffeineCacheTest.TestTicker();
+    ticker = new PropCacheCaffeineImplTest.TestTicker();
     instanceId = InstanceId.of(UUID.randomUUID());
 
     propCacheKey = PropCacheKey.forSystem(instanceId);

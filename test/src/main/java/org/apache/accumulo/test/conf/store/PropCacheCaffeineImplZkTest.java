@@ -24,8 +24,8 @@ import static org.apache.accumulo.core.conf.Property.TSERV_CLIENTPORT;
 import static org.apache.accumulo.core.conf.Property.TSERV_NATIVEMAP_ENABLED;
 import static org.apache.accumulo.core.conf.Property.TSERV_SCAN_MAX_OPENFILES;
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.util.HashMap;
@@ -56,21 +56,20 @@ import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.easymock.EasyMock;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Tag(ZOOKEEPER_TESTING_SERVER)
-public class CaffeineCacheZkTest {
+public class PropCacheCaffeineImplZkTest {
 
-  private static final Logger log = LoggerFactory.getLogger(CaffeineCacheZkTest.class);
+  private static final Logger log = LoggerFactory.getLogger(PropCacheCaffeineImplZkTest.class);
   private static final InstanceId INSTANCE_ID = InstanceId.of(UUID.randomUUID());
 
   private static ZooKeeperTestingServer testZk = null;
@@ -81,14 +80,13 @@ public class CaffeineCacheZkTest {
   private final TableId tIdB = TableId.of("B");
   private final PropStoreMetrics cacheMetrics = new PropStoreMetrics();
 
-  @ClassRule
-  public static final TemporaryFolder TEMP =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File tempDir;
 
-  @BeforeClass
-  public static void setupZk() throws Exception {
+  @BeforeAll
+  public static void setupZk() {
     // using default zookeeper port - we don't have a full configuration
-    testZk = new ZooKeeperTestingServer(TEMP.newFolder());
+    testZk = new ZooKeeperTestingServer(tempDir);
     zooKeeper = testZk.getZooKeeper();
 
     zrw = testZk.getZooReaderWriter();
@@ -99,12 +97,12 @@ public class CaffeineCacheZkTest {
     EasyMock.replay(context);
   }
 
-  @AfterClass
+  @AfterAll
   public static void shutdownZK() throws Exception {
     testZk.close();
   }
 
-  @Before
+  @BeforeEach
   public void setupZnodes() {
     testZk.initPaths(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZCONFIG);
     try {
@@ -130,7 +128,7 @@ public class CaffeineCacheZkTest {
     }
   }
 
-  @After
+  @AfterEach
   public void cleanupZnodes() {
     try {
       ZKUtil.deleteRecursive(zooKeeper, "/accumulo");
@@ -154,7 +152,7 @@ public class CaffeineCacheZkTest {
     var created = zrw.putPersistentData(propCacheKey.getPath(),
         ZooPropStore.getCodec().toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
 
-    assertTrue("expected properties to be created", created);
+    assertTrue(created, "expected properties to be created");
 
     ReadyMonitor readyMonitor = new ReadyMonitor("test", zooKeeper.getSessionTimeout());
 
@@ -171,9 +169,10 @@ public class CaffeineCacheZkTest {
 
     if (readProps == null) {
       fail("Received null for versioned properties");
+    } else {
+      log.info("Props read from cache: {}", readProps.print(true));
     }
 
-    log.info("Props read from cache: {}", readProps.print(true));
   }
 
   // TODO - remove - this is not testing but was used for development?

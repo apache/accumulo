@@ -20,7 +20,7 @@ package org.apache.accumulo.test.conf;
 
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map;
 
@@ -34,10 +34,10 @@ import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.conf.util.ConfigPropertyPrinter;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,12 +49,12 @@ public class PropStoreConfigTest extends AccumuloClusterHarness {
 
   private AccumuloClient accumuloClient;
 
-  @Before
+  @BeforeEach
   public void setup() {
     accumuloClient = Accumulo.newClient().from(getClientProps()).build();
   }
 
-  @AfterClass
+  @AfterAll
   public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
   }
