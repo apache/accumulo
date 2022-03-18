@@ -164,7 +164,7 @@ public class ServerContext extends ClientContext {
   @Override
   public AccumuloConfiguration getConfiguration() {
     if (systemConfig == null) {
-      systemConfig = new SystemConfiguration(log, this, PropCacheKey.forSystem(getInstanceID()),
+      systemConfig = new SystemConfiguration(this, PropCacheKey.forSystem(getInstanceID()),
           getSiteConfiguration());
     }
     return systemConfig;

@@ -179,7 +179,7 @@ public class ZooBasedConfigIT {
     ZooPropStore.createInitialProps(context, propKey,
         Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
 
-    ZooBasedConfiguration zbc = new SystemConfiguration(log, context, propKey, parent);
+    ZooBasedConfiguration zbc = new SystemConfiguration(context, propKey, parent);
 
     assertNotNull(zbc.getSnapshot());
     assertEquals("true", zbc.get(Property.TABLE_BLOOM_ENABLED));
@@ -199,7 +199,7 @@ public class ZooBasedConfigIT {
 
     ZooPropStore.createInitialProps(context, propKey, Map.of());
 
-    ZooBasedConfiguration zbc = new SystemConfiguration(log, context, propKey, parent);
+    ZooBasedConfiguration zbc = new SystemConfiguration(context, propKey, parent);
 
     assertNotNull(zbc.getSnapshot());
     assertEquals("false", zbc.get(Property.TABLE_BLOOM_ENABLED));
@@ -214,7 +214,7 @@ public class ZooBasedConfigIT {
     ZooPropStore.initSysProps(context, Map.of());
 
     PropCacheKey propKey = PropCacheKey.forTable(INSTANCE_ID, tidA);
-    ZooBasedConfiguration zbc = new SystemConfiguration(log, context, propKey, parent);
+    ZooBasedConfiguration zbc = new SystemConfiguration(context, propKey, parent);
 
     // node not created - returns null.
     assertNull(zbc.getSnapshot());
@@ -237,7 +237,7 @@ public class ZooBasedConfigIT {
     ZooPropStore.createInitialProps(context, tableAPropKey,
         Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
 
-    ZooBasedConfiguration zbc = new SystemConfiguration(log, context, tableAPropKey, parent);
+    ZooBasedConfiguration zbc = new SystemConfiguration(context, tableAPropKey, parent);
 
     assertNotNull(zbc.getSnapshot());
     assertEquals("true", zbc.get(Property.TABLE_BLOOM_ENABLED));

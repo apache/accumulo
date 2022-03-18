@@ -108,8 +108,7 @@ public class TableConfigurationTest {
 
     replay(propStore);
 
-    SystemConfiguration sysConfig =
-        new SystemConfiguration(log, context, sysPropKey, defaultConfig);
+    SystemConfiguration sysConfig = new SystemConfiguration(context, sysPropKey, defaultConfig);
     NamespaceId nsid = nsPropKey.getNamespaceId();
     if (nsid == null) {
       throw new IllegalStateException("missing test namespaceId");

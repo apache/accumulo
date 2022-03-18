@@ -107,8 +107,7 @@ public class ZooBasedConfigurationTest {
 
     replay(context, propStore, parent);
 
-    ZooBasedConfiguration configuration =
-        new SystemConfiguration(log, context, tablePropKey, parent);
+    ZooBasedConfiguration configuration = new SystemConfiguration(context, tablePropKey, parent);
 
     assertNotNull(configuration);
 
@@ -158,7 +157,7 @@ public class ZooBasedConfigurationTest {
 
     AccumuloConfiguration defaultConfig = new ConfigurationCopy(DefaultConfiguration.getInstance());
 
-    ZooBasedConfiguration zbc = new SystemConfiguration(log, context, tablePropKey, defaultConfig);
+    ZooBasedConfiguration zbc = new SystemConfiguration(context, tablePropKey, defaultConfig);
     Map<String,String> readProps = zbc.getSnapshot();
 
     assertNotNull(zbc.getSnapshot());

@@ -31,16 +31,11 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * A factor for configurations used by a server process. Instance of this class are thread-safe.
  */
 public class ServerConfigurationFactory extends ServerConfiguration {
-
-  // TODO - would it add clarity if log passed in by caller?
-  private static final Logger log = LoggerFactory.getLogger(ServerConfigurationFactory.class);
 
   private static final Map<InstanceId,Map<TableId,TableConfiguration>> tableConfigs =
       new HashMap<>(1);
@@ -108,7 +103,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   @Override
   public synchronized AccumuloConfiguration getSystemConfiguration() {
     if (systemConfig == null) {
-      systemConfig = new SystemConfiguration(log, context, sysPropCacheKey, getSiteConfiguration());
+      systemConfig = new SystemConfiguration(context, sysPropCacheKey, getSiteConfiguration());
     }
     return systemConfig;
   }

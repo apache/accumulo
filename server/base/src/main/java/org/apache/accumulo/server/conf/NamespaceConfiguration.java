@@ -76,12 +76,8 @@ public class NamespaceConfiguration extends ZooBasedConfiguration {
 
     getParent().getProperties(props, parentFilter);
 
-    Map<String,String> theseProps = getSnapshot();
-    for (Map.Entry<String,String> p : theseProps.entrySet()) {
-      if (filter != null && filter.test(p.getKey()) && p.getValue() != null) {
-        props.put(p.getKey(), p.getValue());
-      }
-    }
+    getSnapshot().entrySet().stream().filter(e -> filter.test(e.getKey()) && e.getValue() != null)
+        .forEach(e -> props.put(e.getKey(), e.getValue()));
   }
 
   protected NamespaceId getNamespaceId() {

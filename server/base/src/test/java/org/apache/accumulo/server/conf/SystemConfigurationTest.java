@@ -89,7 +89,7 @@ public class SystemConfigurationTest {
         new ConfigurationCopy(Map.of(TABLE_BLOOM_SIZE.getKey(), TABLE_BLOOM_SIZE.getDefaultValue(),
             TABLE_DURABILITY.getKey(), TABLE_DURABILITY.getDefaultValue()));
 
-    sysConfig = new SystemConfiguration(log, context, sysPropKey, defaultConfig);
+    sysConfig = new SystemConfiguration(context, sysPropKey, defaultConfig);
   }
 
   @Test
