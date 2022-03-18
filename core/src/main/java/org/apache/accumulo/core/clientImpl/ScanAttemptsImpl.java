@@ -18,12 +18,15 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.data.TabletId;
-import org.apache.accumulo.core.spi.scan.ScanServerDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanServerDispatcher.ScanAttempt;
 
 import com.google.common.collect.Collections2;
