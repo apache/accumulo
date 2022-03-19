@@ -162,10 +162,11 @@ public class ZooBasedConfiguration extends AccumuloConfiguration implements Prop
   }
 
   public Map<String,String> getSnapshot() {
-    if (snapshotRef.get() == null) {
+    var snap = snapshotRef.get();
+    if (snap == null) {
       return updateSnapshot().getProps();
     }
-    return snapshotRef.get().getProps();
+    return snap.getProps();
   }
 
   @Override
@@ -213,7 +214,7 @@ public class ZooBasedConfiguration extends AccumuloConfiguration implements Prop
 
   }
 
-  private PropSnapshot doRead() throws PropStoreException {
+  private @NonNull PropSnapshot doRead() throws PropStoreException {
 
     var vProps = propStore.get(propCacheKey);
     log.trace("doRead() - updateSnapshot() for {}, returned: {}", propCacheKey, vProps);
@@ -227,33 +228,35 @@ public class ZooBasedConfiguration extends AccumuloConfiguration implements Prop
   }
 
   @Override
-  public void zkChangeEvent(final PropCacheKey propCacheKey) {
-    if (this.propCacheKey.equals(propCacheKey)) {
-      log.debug("Received zookeeper property change event for {} - current version: {}",
-          this.propCacheKey,
-          snapshotRef.get() != null ? snapshotRef.get().getDataVersion() : "no data version set");
-      // snapshotRef.set(new PropSnapshot(INVALID_DATA_VER, Map.of()));
+  public void zkChangeEvent(final PropCacheKey eventPropKey) {
+    if (propCacheKey.equals(eventPropKey)) {
+      if (log.isDebugEnabled()) {
+        var snap = snapshotRef.get();
+        log.debug("Received zookeeper property change event for {} - current version: {}",
+            propCacheKey, snap != null ? snap.getDataVersion() : "no data version set");
+      }
       snapshotRef.set(null);
     }
   }
 
   @Override
-  public void cacheChangeEvent(final PropCacheKey propCacheKey) {
-    if (this.propCacheKey.equals(propCacheKey)) {
-      log.debug("Received cache property change event for {} - current version: {}",
-          this.propCacheKey,
-          snapshotRef.get() != null ? snapshotRef.get().getDataVersion() : "no data version set");
-      // snapshotRef.set(new PropSnapshot(INVALID_DATA_VER, Map.of()));
+  public void cacheChangeEvent(final PropCacheKey eventPropKey) {
+    if (propCacheKey.equals(eventPropKey)) {
+      if (log.isDebugEnabled()) {
+        var snap = snapshotRef.get();
+        log.debug("Received cache property change event for {} - current version: {}", propCacheKey,
+            snap != null ? snap.getDataVersion() : "no data version set");
+      }
       snapshotRef.set(null);
     }
   }
 
   @Override
-  public void deleteEvent(PropCacheKey propCacheKey) {
-    if (this.propCacheKey.equals(propCacheKey)) {
+  public void deleteEvent(final PropCacheKey eventPropKey) {
+    if (propCacheKey.equals(eventPropKey)) {
       // snapshotRef.set(new PropSnapshot(INVALID_DATA_VER, Map.of()));
       snapshotRef.set(null);
-      log.info("Received property delete event for {}", this.propCacheKey);
+      log.info("Received property delete event for {}", propCacheKey);
     }
   }
 
