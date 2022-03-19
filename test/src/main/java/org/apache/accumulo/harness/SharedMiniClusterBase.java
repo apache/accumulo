@@ -19,7 +19,8 @@
 package org.apache.accumulo.harness;
 
 import static java.lang.StackWalker.Option.RETAIN_CLASS_REFERENCE;
-import static org.junit.Assert.assertTrue;
+import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.lang.StackWalker.StackFrame;
@@ -37,11 +38,10 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,17 +51,17 @@ import org.slf4j.LoggerFactory;
  * testing see {@link AccumuloClusterHarness}
  *
  * There isn't a good way to build this off of the {@link AccumuloClusterHarness} (as would be the
- * logical place) because we need to start the MiniAccumuloCluster in a static BeforeClass-annotated
- * method. Because it is static and invoked before any other BeforeClass methods in the
+ * logical place) because we need to start the MiniAccumuloCluster in a static BeforeAll-annotated
+ * method. Because it is static and invoked before any other BeforeAll methods in the
  * implementation, the actual test classes can't expose any information to tell the base class that
  * it is to perform the one-MAC-per-class semantics.
  *
  * Implementations of this class must be sure to invoke {@link #startMiniCluster()} or
  * {@link #startMiniClusterWithConfig(MiniClusterConfigurationCallback)} in a method annotated with
- * the {@link org.junit.BeforeClass} JUnit annotation and {@link #stopMiniCluster()} in a method
- * annotated with the {@link org.junit.AfterClass} JUnit annotation.
+ * the {@link org.junit.jupiter.api.BeforeAll} JUnit annotation and {@link #stopMiniCluster()} in a
+ * method annotated with the {@link org.junit.jupiter.api.AfterAll} JUnit annotation.
  */
-@Category(MiniClusterOnlyTests.class)
+@Tag(MINI_CLUSTER_ONLY)
 public abstract class SharedMiniClusterBase extends AccumuloITBase implements ClusterUsers {
   private static final Logger log = LoggerFactory.getLogger(SharedMiniClusterBase.class);
   public static final String TRUE = Boolean.toString(true);
@@ -188,8 +188,7 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
   @Override
   public ClusterUser getUser(int offset) {
     if (krb == null) {
-      String user =
-          SharedMiniClusterBase.class.getName() + "_" + testName.getMethodName() + "_" + offset;
+      String user = SharedMiniClusterBase.class.getName() + "_" + testName() + "_" + offset;
       // Password is the username
       return new ClusterUser(user, user);
     } else {

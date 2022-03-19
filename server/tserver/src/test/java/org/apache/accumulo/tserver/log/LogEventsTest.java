@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.tserver.log;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.apache.accumulo.tserver.logger.LogEvents;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class LogEventsTest {
   @Test

@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
+
 import java.io.IOException;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -31,16 +33,15 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestIngest.IngestParams;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
-import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 /**
  * Tests Old and New Bulk import
  */
-@Category(SunnyDayTests.class)
+@Tag(SUNNY_DAY)
 public class BulkIT extends AccumuloClusterHarness {
 
   private static final int N = 100000;
@@ -48,7 +49,7 @@ public class BulkIT extends AccumuloClusterHarness {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 4 * 60;
+    return 60 * 4;
   }
 
   @Test
@@ -56,7 +57,7 @@ public class BulkIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       runTest(client, getClientInfo(), getCluster().getFileSystem(),
           getCluster().getTemporaryPath(), getUniqueNames(1)[0], this.getClass().getName(),
-          testName.getMethodName(), false);
+          testName(), false);
     }
   }
 
@@ -65,7 +66,7 @@ public class BulkIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       runTest(client, getClientInfo(), getCluster().getFileSystem(),
           getCluster().getTemporaryPath(), getUniqueNames(1)[0], this.getClass().getName(),
-          testName.getMethodName(), true);
+          testName(), true);
     }
   }
 

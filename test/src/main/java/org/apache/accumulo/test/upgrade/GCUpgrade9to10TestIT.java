@@ -19,10 +19,10 @@
 package org.apache.accumulo.test.upgrade;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -56,7 +56,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
   private static final String OUR_SECRET = "itsreallysecret";
@@ -64,8 +64,8 @@ public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
   private static final Upgrader9to10 upgrader = new Upgrader9to10();
 
   @Override
-  public int defaultTimeoutSeconds() {
-    return 5 * 60;
+  protected int defaultTimeoutSeconds() {
+    return 60 * 5;
   }
 
   @Override
@@ -128,8 +128,8 @@ public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
     // ensure test quality by making sure we have enough candidates to
     // exceed the batch size at least ten times
     long numBatches = numberOfEntries * longpathname.length() / Upgrader9to10.CANDIDATE_BATCH_SIZE;
-    assertTrue("Expected numBatches between 10 and 15, but was " + numBatches,
-        numBatches > 10 && numBatches < 15);
+    assertTrue(numBatches > 10 && numBatches < 15,
+        "Expected numBatches between 10 and 15, but was " + numBatches);
 
     Ample.DataLevel level = Ample.DataLevel.USER;
 

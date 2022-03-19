@@ -30,10 +30,10 @@ import static org.apache.accumulo.test.functional.BasicSummarizer.DELETES_STAT;
 import static org.apache.accumulo.test.functional.BasicSummarizer.MAX_TIMESTAMP_STAT;
 import static org.apache.accumulo.test.functional.BasicSummarizer.MIN_TIMESTAMP_STAT;
 import static org.apache.accumulo.test.functional.BasicSummarizer.TOTAL_STAT;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -88,21 +88,21 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.hadoop.io.Text;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 public class SummaryIT extends SharedMiniClusterBase {
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() throws Exception {
     SharedMiniClusterBase.startMiniCluster();
   }
 
-  @AfterClass
+  @AfterAll
   public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
   }
@@ -127,10 +127,10 @@ public class SummaryIT extends SharedMiniClusterBase {
   private void checkSummaries(Collection<Summary> summaries, SummarizerConfiguration sc, int total,
       int missing, int extra, Object... kvs) {
     Summary summary = Iterables.getOnlyElement(summaries);
-    assertEquals("total wrong", total, summary.getFileStatistics().getTotal());
-    assertEquals("missing wrong", missing, summary.getFileStatistics().getMissing());
-    assertEquals("extra wrong", extra, summary.getFileStatistics().getExtra());
-    assertEquals("deleted wrong", 0, summary.getFileStatistics().getDeleted());
+    assertEquals(total, summary.getFileStatistics().getTotal(), "total wrong");
+    assertEquals(missing, summary.getFileStatistics().getMissing(), "missing wrong");
+    assertEquals(extra, summary.getFileStatistics().getExtra(), "extra wrong");
+    assertEquals(0, summary.getFileStatistics().getDeleted(), "deleted wrong");
     assertEquals(sc, summary.getSummarizerConfiguration());
     Map<String,Long> expected = new HashMap<>();
     for (int i = 0; i < kvs.length; i += 2) {
@@ -226,7 +226,7 @@ public class SummaryIT extends SharedMiniClusterBase {
       assertEquals(1, summary.getFileStatistics().getTotal());
       assertEquals(1, summary.getFileStatistics().getExtra());
       long total = summary.getStatistics().get(TOTAL_STAT);
-      assertTrue("Total " + total + " out of expected range", total > 0 && total <= 10_000);
+      assertTrue(total > 0 && total <= 10_000, "Total " + total + " out of expected range");
 
       // test adding and removing
       c.tableOperations().removeSummarizers(table, sc -> sc.getClassName().contains("foo"));
@@ -392,9 +392,10 @@ public class SummaryIT extends SharedMiniClusterBase {
       checkSummary(summaries, sc2, "len=14", 100_000L);
 
       // Ensure a bad regex fails fast.
-      assertThrows("Bad regex should have caused exception", PatternSyntaxException.class,
+      assertThrows(PatternSyntaxException.class,
           () -> c.tableOperations().summaries(table)
-              .withMatchingConfiguration(".*KeySizeSummarizer {maxLen=256}.*").retrieve());
+              .withMatchingConfiguration(".*KeySizeSummarizer {maxLen=256}.*").retrieve(),
+          "Bad regex should have caused exception");
     }
   }
 
@@ -616,8 +617,9 @@ public class SummaryIT extends SharedMiniClusterBase {
       }
 
       c.tableOperations().flush(table, null, null, true);
-      assertThrows("Expected server side failure and did not see it", AccumuloServerException.class,
-          () -> c.tableOperations().summaries(table).retrieve());
+      assertThrows(AccumuloServerException.class,
+          () -> c.tableOperations().summaries(table).retrieve(),
+          "Expected server side failure and did not see it");
     }
   }
 
@@ -643,10 +645,9 @@ public class SummaryIT extends SharedMiniClusterBase {
 
       try (AccumuloClient c2 =
           Accumulo.newClient().from(c.properties()).as("user1", passTok).build()) {
-        var e = assertThrows(
-            "Expected operation to fail because user does not have permission to get summaries",
-            AccumuloSecurityException.class,
-            () -> c2.tableOperations().summaries(table).retrieve());
+        var e = assertThrows(AccumuloSecurityException.class,
+            () -> c2.tableOperations().summaries(table).retrieve(),
+            "Expected operation to fail because user does not have permission to get summaries");
         assertEquals(SecurityErrorCode.PERMISSION_DENIED, e.getSecurityErrorCode());
 
         c.securityOperations().grantTablePermission("user1", table, TablePermission.GET_SUMMARIES);
@@ -836,7 +837,7 @@ public class SummaryIT extends SharedMiniClusterBase {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
 
       SummaryRetriever summaryRetriever = c.tableOperations().summaries(testTableName);
-      assertThrows(TableNotFoundException.class, () -> summaryRetriever.retrieve());
+      assertThrows(TableNotFoundException.class, summaryRetriever::retrieve);
       var summarizerConf = SummarizerConfiguration.builder(VisibilitySummarizer.class).build();
       assertThrows(TableNotFoundException.class,
           () -> c.tableOperations().addSummarizers(testTableName, summarizerConf));
@@ -853,16 +854,16 @@ public class SummaryIT extends SharedMiniClusterBase {
       c.tableOperations().create(testTableName);
       c.tableOperations().addSummarizers(testTableName, sc1);
       c.tableOperations().addSummarizers(testTableName, sc1);
-      assertThrows("adding second summarizer with same id should fail",
-          IllegalArgumentException.class,
-          () -> c.tableOperations().addSummarizers(testTableName, sc2));
+      assertThrows(IllegalArgumentException.class,
+          () -> c.tableOperations().addSummarizers(testTableName, sc2),
+          "adding second summarizer with same id should fail");
 
       c.tableOperations().removeSummarizers(testTableName, sc -> true);
       assertEquals(0, c.tableOperations().listSummarizers(testTableName).size());
 
-      assertThrows("adding two summarizers at the same time with same id should fail",
-          IllegalArgumentException.class,
-          () -> c.tableOperations().addSummarizers(testTableName, sc1, sc2));
+      assertThrows(IllegalArgumentException.class,
+          () -> c.tableOperations().addSummarizers(testTableName, sc1, sc2),
+          "adding two summarizers at the same time with same id should fail");
       assertEquals(0, c.tableOperations().listSummarizers(testTableName).size());
 
       c.tableOperations().offline(testTableName, true);
@@ -906,8 +907,8 @@ public class SummaryIT extends SharedMiniClusterBase {
         assertEquals(famCounts, cs.getCounters());
         FileStatistics fileStats = summaries.get(0).getFileStatistics();
         assertEquals(0, fileStats.getInaccurate());
-        assertTrue("Saw " + fileStats.getTotal() + " files expected >=10",
-            fileStats.getTotal() >= 10);
+        assertTrue(fileStats.getTotal() >= 10,
+            "Saw " + fileStats.getTotal() + " files expected >=10");
       }
     }
   }

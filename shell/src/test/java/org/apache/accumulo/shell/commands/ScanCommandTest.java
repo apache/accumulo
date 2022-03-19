@@ -18,28 +18,30 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ScanCommandTest {
 
   @Test
   public void testBeginRowHelp() {
-    assertTrue("-b should say it is inclusive",
-        new ScanCommand().getOptions().getOption("b").getDescription().contains("row (inclusive)"));
+    assertTrue(
+        new ScanCommand().getOptions().getOption("b").getDescription().contains("row (inclusive)"),
+        "-b should say it is inclusive");
   }
 
   @Test
   public void testCFRowHelp() {
-    assertTrue("Column Family",
-        new ScanCommand().getOptions().getOption("cf").getDescription().contains("family"));
+    assertTrue(new ScanCommand().getOptions().getOption("cf").getDescription().contains("family"),
+        "Column Family");
   }
 
   @Test
   public void testCQHelp() {
-    assertTrue("Column Qualifier",
-        new ScanCommand().getOptions().getOption("cq").getDescription().contains("qualifier"));
+    assertTrue(
+        new ScanCommand().getOptions().getOption("cq").getDescription().contains("qualifier"),
+        "Column Qualifier");
   }
 
 }

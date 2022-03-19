@@ -18,9 +18,8 @@
  */
 package org.apache.accumulo.test.compaction;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -173,8 +172,8 @@ public class ExternalCompactionTestUtils {
     try (Scanner scanner = client.createScanner(table1)) {
       int count = 0;
       for (Entry<Key,Value> entry : scanner) {
-        assertTrue(String.format("%s %s %d != 0", entry.getValue(), "%", modulus),
-            Integer.parseInt(entry.getValue().toString()) % modulus == 0);
+        assertEquals(0, Integer.parseInt(entry.getValue().toString()) % modulus,
+            String.format("%s %s %d != 0", entry.getValue(), "%", modulus));
         count++;
       }
 

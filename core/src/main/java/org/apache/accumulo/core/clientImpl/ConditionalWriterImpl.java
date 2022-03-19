@@ -40,7 +40,6 @@ import java.util.concurrent.Delayed;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
@@ -89,9 +88,6 @@ import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
 
 class ConditionalWriterImpl implements ConditionalWriter {
-
-  private static ThreadPoolExecutor cleanupThreadPool =
-      ThreadPools.createFixedThreadPool(1, 3, SECONDS, "Conditional Writer Cleanup Thread", true);
 
   private static final int MAX_SLEEP = 30000;
 
@@ -365,8 +361,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
     this.context = context;
     this.auths = config.getAuthorizations();
     this.ve = new VisibilityEvaluator(config.getAuthorizations());
-    this.threadPool = ThreadPools.createScheduledExecutorService(config.getMaxWriteThreads(),
-        this.getClass().getSimpleName(), false);
+    this.threadPool = context.threadPools().createScheduledExecutorService(
+        config.getMaxWriteThreads(), this.getClass().getSimpleName(), false);
     this.locator = new SyncingTabletLocator(context, tableId);
     this.serverQueues = new HashMap<>();
     this.tableId = tableId;
@@ -803,7 +799,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
   @Override
   public void close() {
     threadPool.shutdownNow();
-    cleanupThreadPool.execute(Threads.createNamedRunnable("ConditionalWriterCleanupTask",
+    context.executeCleanupTask(Threads.createNamedRunnable("ConditionalWriterCleanupTask",
         new CleanupTask(getActiveSessions())));
   }
 

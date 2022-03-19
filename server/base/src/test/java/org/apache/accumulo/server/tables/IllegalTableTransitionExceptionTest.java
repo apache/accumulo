@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.server.tables;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class IllegalTableTransitionExceptionTest {
 

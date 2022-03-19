@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.hadoopImpl.mapreduce;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
 import java.util.Optional;
@@ -28,8 +28,8 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.hadoop.mapreduce.InputFormatBuilder;
 import org.apache.hadoop.mapred.JobConf;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /*
  This unit tests ClassLoaderContext and ExecuteHints functionality
@@ -77,7 +77,7 @@ public class InputFormatBuilderTest {
   private InputTableConfig tableQueryConfig;
   private InputFormatBuilderImplTest<InputFormatBuilderTest> formatBuilderTest;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     tableQueryConfig = new InputTableConfig();
     formatBuilderTest = new InputFormatBuilderImplTest<>(InputFormatBuilderTest.class);

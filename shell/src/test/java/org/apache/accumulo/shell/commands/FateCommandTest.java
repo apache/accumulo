@@ -18,35 +18,44 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.ReadOnlyRepo;
 import org.apache.accumulo.fate.ZooStore;
+import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.shell.Shell;
+import org.apache.accumulo.shell.ShellConfigTest.TestOutputStream;
 import org.apache.commons.cli.CommandLine;
-import org.easymock.EasyMock;
 import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
+import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.jline.terminal.impl.DumbTerminal;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class FateCommandTest {
   private static FateCommand cmd;
@@ -57,27 +66,48 @@ public class FateCommandTest {
   private static AccumuloClient client;
   private static InstanceOperations intOps;
 
-  private static ByteArrayOutputStream baos;
+  public static class TestFateCommand extends FateCommand {
 
-  private static SettableInputStream input;
-
-  static class SettableInputStream extends InputStream {
-    ByteArrayInputStream bais;
+    private boolean dumpCalled = false;
+    private boolean deleteCalled = false;
+    private boolean failCalled = false;
+    private boolean cancelCalled = false;
+    private boolean printCalled = false;
 
     @Override
-    public int read() throws IOException {
-      return bais.read();
+    public String getName() {
+      return "fate";
     }
 
-    public void set(String in) {
-      bais = new ByteArrayInputStream(in.getBytes(UTF_8));
+    @Override
+    protected void cancelSubmittedTxs(Shell shellState, String[] args)
+        throws AccumuloException, AccumuloSecurityException {
+      cancelCalled = true;
     }
+
+    @Override
+    protected void printTx(Shell shellState, String[] args, CommandLine cl, boolean printStatus)
+        throws IOException, AccumuloException {
+      printCalled = true;
+    }
+
+    public void reset() {
+      dumpCalled = false;
+      deleteCalled = false;
+      failCalled = false;
+      cancelCalled = false;
+      printCalled = false;
+    }
+
   }
 
-  @BeforeClass
-  public static void setup() throws IOException {
-    cmd = new FateCommand();
-    cmd.getOptions();
+  private static ZooReaderWriter zk;
+  private static ServiceLockPath managerLockPath;
+
+  @BeforeAll
+  public static void setup() {
+    zk = createMock(ZooReaderWriter.class);
+    managerLockPath = createMock(ServiceLockPath.class);
   }
 
   @Test
@@ -88,6 +118,7 @@ public class FateCommandTest {
     reader = createMock(LineReader.class);
     pw = createMock(PrintWriter.class);
     intOps = createMock(InstanceOperations.class);
+    TestFateCommand cmd = new TestFateCommand();
     expect(shellState.getAccumuloClient()).andReturn(client);
     String[] args = {"fail", "1234"};
     List<String> txids = new ArrayList<>();
@@ -102,11 +133,11 @@ public class FateCommandTest {
     expect(shellState.getReader()).andReturn(reader);
     expect(shellState.getWriter()).andReturn(pw);
     pw.flush();
-    EasyMock.expectLastCall().once();
-    EasyMock.expect(shellState.getAccumuloClient()).andReturn(client);
+    expectLastCall().once();
+    expect(shellState.getAccumuloClient()).andReturn(client);
     expect(client.instanceOperations()).andReturn(intOps);
     intOps.fateFail(txids);
-    EasyMock.expectLastCall().once();
+    expectLastCall().once();
 
     replay(client, cli, shellState, reader, intOps);
     cmd.execute("fate fail 1234", cli, shellState);
@@ -133,6 +164,108 @@ public class FateCommandTest {
     // assertTrue(output.contains("0000000000023456"));
     //
     // verify(zs);
+  }
+
+  @Test
+  public void testCommandLineOptions() throws Exception {
+    PrintStream out = System.out;
+    TestOutputStream output = new TestOutputStream();
+    System.setOut(new PrintStream(output));
+    File config = Files.createTempFile(null, null).toFile();
+    Terminal terminal = new DumbTerminal(new FileInputStream(FileDescriptor.in), output);
+    terminal.setSize(new Size(80, 24));
+    LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
+    Shell shell = new Shell(reader);
+    shell.setLogErrorsToConsole();
+    try {
+      assertTrue(shell.config("--config-file", config.toString(), "-zh", "127.0.0.1:2181", "-zi",
+          "test", "-u", "test", "-p", "password"));
+      TestFateCommand cmd = new TestFateCommand();
+      shell.commandFactory.clear();
+      shell.commandFactory.put("fate", cmd);
+      shell.execCommand("fate -?", true, false);
+      Shell.log.info("{}", output.get());
+      shell.execCommand("fate --help", true, false);
+      shell.execCommand("fate cancel", true, false);
+      assertFalse(cmd.cancelCalled);
+      cmd.reset();
+      shell.execCommand("fate -cancel", true, false);
+      assertFalse(cmd.cancelCalled);
+      cmd.reset();
+      shell.execCommand("fate -cancel 12345", true, false);
+      assertTrue(cmd.cancelCalled);
+      cmd.reset();
+      shell.execCommand("fate --cancel-submitted 12345 67890", true, false);
+      assertTrue(cmd.cancelCalled);
+      cmd.reset();
+      shell.execCommand("fate delete", true, false);
+      assertFalse(cmd.deleteCalled);
+      cmd.reset();
+      shell.execCommand("fate -delete", true, false);
+      assertFalse(cmd.deleteCalled);
+      cmd.reset();
+      shell.execCommand("fate -delete 12345", true, false);
+      assertTrue(cmd.deleteCalled);
+      cmd.reset();
+      shell.execCommand("fate --delete 12345 67890", true, false);
+      assertTrue(cmd.deleteCalled);
+      cmd.reset();
+      shell.execCommand("fate dump", true, false);
+      assertFalse(cmd.dumpCalled);
+      cmd.reset();
+      shell.execCommand("fate -dump", true, false);
+      assertTrue(cmd.dumpCalled);
+      cmd.reset();
+      shell.execCommand("fate -dump 12345", true, false);
+      assertTrue(cmd.dumpCalled);
+      cmd.reset();
+      shell.execCommand("fate --dump 12345 67890", true, false);
+      assertTrue(cmd.dumpCalled);
+      cmd.reset();
+      shell.execCommand("fate fail", true, false);
+      assertFalse(cmd.failCalled);
+      cmd.reset();
+      shell.execCommand("fate -fail", true, false);
+      assertFalse(cmd.failCalled);
+      cmd.reset();
+      shell.execCommand("fate -fail 12345", true, false);
+      assertTrue(cmd.failCalled);
+      cmd.reset();
+      shell.execCommand("fate --fail 12345 67890", true, false);
+      assertTrue(cmd.failCalled);
+      cmd.reset();
+      shell.execCommand("fate print", true, false);
+      assertFalse(cmd.printCalled);
+      cmd.reset();
+      shell.execCommand("fate -print", true, false);
+      assertTrue(cmd.printCalled);
+      cmd.reset();
+      shell.execCommand("fate --print", true, false);
+      assertTrue(cmd.printCalled);
+      cmd.reset();
+      shell.execCommand("fate --print 12345 67890", true, false);
+      assertTrue(cmd.printCalled);
+      cmd.reset();
+      shell.execCommand("fate list", true, false);
+      assertFalse(cmd.printCalled);
+      cmd.reset();
+      shell.execCommand("fate -list", true, false);
+      assertTrue(cmd.printCalled);
+      cmd.reset();
+      shell.execCommand("fate --list", true, false);
+      assertTrue(cmd.printCalled);
+      cmd.reset();
+      shell.execCommand("fate --list 12345 67890", true, false);
+      assertTrue(cmd.printCalled);
+      cmd.reset();
+    } finally {
+      shell.shutdown();
+      output.clear();
+      System.setOut(out);
+      if (config.exists()) {
+        assertTrue(config.delete());
+      }
+    }
   }
 
   static class TestHelper extends AdminUtil<FateCommand> {

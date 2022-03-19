@@ -56,7 +56,6 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
-import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
@@ -223,7 +222,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
     int numThreads = Math.max(4, Math.min((tservers.size() + compactors.size()) / 10, 256));
     var executorService =
-        ThreadPools.createFixedThreadPool(numThreads, "getactivecompactions", false);
+        context.threadPools().createFixedThreadPool(numThreads, "getactivecompactions", false);
     try {
       List<Future<List<ActiveCompaction>>> futures = new ArrayList<>();
 

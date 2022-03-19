@@ -244,9 +244,10 @@ public class Fate<T> {
    * Launches the specified number of worker threads.
    */
   public void startTransactionRunners(AccumuloConfiguration conf) {
-    final ThreadPoolExecutor pool =
-        ThreadPools.createExecutorService(conf, Property.MANAGER_FATE_THREADPOOL_SIZE, true);
-    fatePoolWatcher = ThreadPools.createGeneralScheduledExecutorService(conf);
+    final ThreadPoolExecutor pool = ThreadPools.getServerThreadPools().createExecutorService(conf,
+        Property.MANAGER_FATE_THREADPOOL_SIZE, true);
+    fatePoolWatcher =
+        ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(conf);
     ThreadPools.watchCriticalScheduledTask(fatePoolWatcher.schedule(() -> {
       // resize the pool if the property changed
       ThreadPools.resizePool(pool, conf, Property.MANAGER_FATE_THREADPOOL_SIZE);

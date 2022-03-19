@@ -56,6 +56,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Durability;
@@ -438,10 +439,10 @@ public class TabletServer extends AbstractServer {
           sleepUninterruptibly(getConfiguration().getTimeInMillis(Property.TSERV_MAJC_DELAY),
               TimeUnit.MILLISECONDS);
 
-          List<DfsLogger> closedCopy;
+          final List<DfsLogger> closedCopy;
 
           synchronized (closedLogs) {
-            closedCopy = copyClosedLogs(closedLogs);
+            closedCopy = List.copyOf(closedLogs);
           }
 
           // bail early now if we're shutting down
@@ -771,8 +772,8 @@ public class TabletServer extends AbstractServer {
       throw new RuntimeException(e);
     }
 
-    ThreadPoolExecutor distWorkQThreadPool =
-        ThreadPools.createExecutorService(getConfiguration(), Property.TSERV_WORKQ_THREADS, true);
+    ThreadPoolExecutor distWorkQThreadPool = ThreadPools.getServerThreadPools()
+        .createExecutorService(getConfiguration(), Property.TSERV_WORKQ_THREADS, true);
 
     bulkFailedCopyQ =
         new DistributedWorkQueue(getContext().getZooKeeperRoot() + Constants.ZBULK_FAILED_COPYQ,
@@ -806,8 +807,8 @@ public class TabletServer extends AbstractServer {
 
     int tabletCheckFrequency = 30 + random.nextInt(31); // random 30-60 minute delay
     // Periodically check that metadata of tablets matches what is held in memory
-    ThreadPools.watchCriticalScheduledTask(
-        ThreadPools.createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(() -> {
+    ThreadPools.watchCriticalScheduledTask(ThreadPools.getServerThreadPools()
+        .createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(() -> {
           final SortedMap<KeyExtent,Tablet> onlineTabletsSnapshot = onlineTablets.snapshot();
 
           Map<KeyExtent,Long> updateCounts = new HashMap<>();
@@ -951,7 +952,7 @@ public class TabletServer extends AbstractServer {
     }
 
     // Start the pool to handle outgoing replications
-    final ThreadPoolExecutor replicationThreadPool = ThreadPools
+    final ThreadPoolExecutor replicationThreadPool = ThreadPools.getServerThreadPools()
         .createExecutorService(getConfiguration(), Property.REPLICATION_WORKER_THREADS, false);
     replWorker.setExecutor(replicationThreadPool);
     replWorker.run();
@@ -1241,12 +1242,7 @@ public class TabletServer extends AbstractServer {
   // is used because its very import to know the order in which WALs were closed when deciding if a
   // WAL is eligible for removal. Maintaining the order that logs were used in is currently a simple
   // task because there is only one active log at a time.
-  LinkedHashSet<DfsLogger> closedLogs = new LinkedHashSet<>();
-
-  @VisibleForTesting
-  interface ReferencedRemover {
-    void removeInUse(Set<DfsLogger> candidates);
-  }
+  final LinkedHashSet<DfsLogger> closedLogs = new LinkedHashSet<>();
 
   /**
    * For a closed WAL to be eligible for removal it must be unreferenced AND all closed WALs older
@@ -1255,10 +1251,10 @@ public class TabletServer extends AbstractServer {
    */
   @VisibleForTesting
   static Set<DfsLogger> findOldestUnreferencedWals(List<DfsLogger> closedLogs,
-      ReferencedRemover referencedRemover) {
+      Consumer<Set<DfsLogger>> referencedRemover) {
     LinkedHashSet<DfsLogger> unreferenced = new LinkedHashSet<>(closedLogs);
 
-    referencedRemover.removeInUse(unreferenced);
+    referencedRemover.accept(unreferenced);
 
     Iterator<DfsLogger> closedIter = closedLogs.iterator();
     Iterator<DfsLogger> unrefIter = unreferenced.iterator();
@@ -1279,25 +1275,15 @@ public class TabletServer extends AbstractServer {
     return eligible;
   }
 
-  @VisibleForTesting
-  static List<DfsLogger> copyClosedLogs(LinkedHashSet<DfsLogger> closedLogs) {
-    List<DfsLogger> closedCopy = new ArrayList<>(closedLogs.size());
-    for (DfsLogger dfsLogger : closedLogs) {
-      // very important this copy maintains same order ..
-      closedCopy.add(dfsLogger);
-    }
-    return Collections.unmodifiableList(closedCopy);
-  }
-
   private void markUnusedWALs() {
 
     List<DfsLogger> closedCopy;
 
     synchronized (closedLogs) {
-      closedCopy = copyClosedLogs(closedLogs);
+      closedCopy = List.copyOf(closedLogs);
     }
 
-    ReferencedRemover refRemover = candidates -> {
+    Consumer<Set<DfsLogger>> refRemover = candidates -> {
       for (Tablet tablet : getOnlineTablets().values()) {
         tablet.removeInUseLogs(candidates);
         if (candidates.isEmpty()) {

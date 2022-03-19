@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.harness.conf;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -123,8 +123,8 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
         String keytab = conf.get(ACCUMULO_STANDALONE_USER_KEYTABS_KEY + suffix);
         if (keytab != null) {
           File keytabFile = new File(keytab);
-          assertTrue("Keytab doesn't exist: " + keytabFile,
-              keytabFile.exists() && keytabFile.isFile());
+          assertTrue(keytabFile.exists() && keytabFile.isFile(),
+              "Keytab doesn't exist: " + keytabFile);
           clusterUsers.add(new ClusterUser(entry.getValue(), keytabFile));
         } else {
           String password = conf.get(ACCUMULO_STANDALONE_USER_PASSWORDS_KEY + suffix);

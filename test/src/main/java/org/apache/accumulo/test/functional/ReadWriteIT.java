@@ -18,10 +18,12 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.apache.accumulo.harness.AccumuloITBase.STANDALONE_CAPABLE_CLUSTER;
+import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -84,13 +86,11 @@ import org.apache.accumulo.test.TestIngest.IngestParams;
 import org.apache.accumulo.test.TestMultiTableIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
-import org.apache.accumulo.test.categories.StandaloneCapableClusterTests;
-import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,8 +98,15 @@ import com.google.common.collect.Iterators;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@Category({StandaloneCapableClusterTests.class, SunnyDayTests.class})
+@Tag(STANDALONE_CAPABLE_CLUSTER)
+@Tag(SUNNY_DAY)
 public class ReadWriteIT extends AccumuloClusterHarness {
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 6;
+  }
+
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
@@ -110,11 +117,6 @@ public class ReadWriteIT extends AccumuloClusterHarness {
   static final int ROWS = 100000;
   static final int COLS = 1;
   static final String COLF = "colf";
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 6 * 60;
-  }
 
   @Test
   public void invalidInstanceName() {
@@ -227,7 +229,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
   public void multiTableTest() throws Exception {
     // Write to multiple tables
     final ClusterControl control = cluster.getClusterControl();
-    final String prefix = getClass().getSimpleName() + "_" + testName.getMethodName();
+    final String prefix = getClass().getSimpleName() + "_" + testName();
     ExecutorService svc = Executors.newFixedThreadPool(2);
     Future<Integer> p1 = svc.submit(() -> {
       try {

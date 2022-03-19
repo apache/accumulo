@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.replication;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map.Entry;
 import java.util.UUID;
@@ -41,20 +41,20 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.manager.replication.FinishedWorkUpdater;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterables;
 
-@Ignore("Replication ITs are not stable and not currently maintained")
+@Disabled("Replication ITs are not stable and not currently maintained")
 @Deprecated
 public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
 
   private AccumuloClient client;
   private FinishedWorkUpdater updater;
 
-  @Before
+  @BeforeEach
   public void configureUpdater() {
     client = Accumulo.newClient().from(getClientProperties()).build();
     updater = new FinishedWorkUpdater(client);

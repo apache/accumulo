@@ -18,12 +18,12 @@
  */
 package org.apache.accumulo.server.security;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -35,8 +35,8 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.security.UserImpersonation.AlwaysTrueSet;
 import org.apache.accumulo.server.security.UserImpersonation.UsersWithHosts;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.base.Joiner;
 
@@ -45,7 +45,7 @@ public class UserImpersonationTest {
   private ConfigurationCopy cc;
   private AccumuloConfiguration conf;
 
-  @Before
+  @BeforeEach
   public void setup() {
     cc = new ConfigurationCopy(new HashMap<>());
     conf = new AccumuloConfiguration() {
@@ -126,7 +126,7 @@ public class UserImpersonationTest {
     UserImpersonation impersonation = new UserImpersonation(conf);
 
     UsersWithHosts uwh = impersonation.get(server);
-    assertNull("Impersonation config should be drive by user element, not host", uwh);
+    assertNull(uwh, "Impersonation config should be drive by user element, not host");
   }
 
   @Test

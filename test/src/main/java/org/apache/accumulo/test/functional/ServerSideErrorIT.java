@@ -39,13 +39,13 @@ import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ServerSideErrorIT extends AccumuloClusterHarness {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 2 * 60;
+    return 60 * 2;
   }
 
   @Test

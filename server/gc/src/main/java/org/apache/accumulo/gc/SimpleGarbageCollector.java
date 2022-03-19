@@ -286,8 +286,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
       minimizeDeletes(confirmedDeletes, processedDeletes, fs);
 
-      ExecutorService deleteThreadPool =
-          ThreadPools.createExecutorService(getConfiguration(), Property.GC_DELETE_THREADS, false);
+      ExecutorService deleteThreadPool = ThreadPools.getServerThreadPools()
+          .createExecutorService(getConfiguration(), Property.GC_DELETE_THREADS, false);
 
       final List<Pair<Path,Path>> replacements = getContext().getVolumeReplacements();
 

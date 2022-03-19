@@ -20,14 +20,16 @@ package org.apache.accumulo.test.shell;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeFalse;
-import static org.junit.Assume.assumeTrue;
+import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -74,8 +76,6 @@ import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
-import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.accumulo.test.compaction.TestCompactionStrategy;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.conf.Configuration;
@@ -84,14 +84,12 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.tools.DistCp;
 import org.jline.terminal.Terminal;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,7 +98,8 @@ import com.google.common.collect.Iterators;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@Category({MiniClusterOnlyTests.class, SunnyDayTests.class})
+@Tag(MINI_CLUSTER_ONLY)
+@Tag(SUNNY_DAY)
 public class ShellServerIT extends SharedMiniClusterBase {
 
   @SuppressWarnings("removal")
@@ -113,9 +112,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   private static String rootPath;
 
-  @Rule
-  public TestName name = new TestName();
-
   private static class ShellServerITConfigCallback implements MiniClusterConfigurationCallback {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
@@ -127,7 +123,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
     }
   }
 
-  @BeforeClass
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
+
+  @BeforeAll
   public static void setupMiniCluster() throws Exception {
     SharedMiniClusterBase.startMiniClusterWithConfig(new ShellServerITConfigCallback());
     rootPath = getMiniClusterDir().getAbsolutePath();
@@ -140,26 +141,21 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   }
 
-  @Before
+  @BeforeEach
   public void setupShell() throws Exception {
     ts = new MockShell(getPrincipal(), getRootPassword(),
         getCluster().getConfig().getInstanceName(), getCluster().getConfig().getZooKeepers(),
         getCluster().getConfig().getClientPropsFile());
   }
 
-  @AfterClass
-  public static void tearDownAfterClass() {
+  @AfterAll
+  public static void tearDownAfterAll() {
     SharedMiniClusterBase.stopMiniCluster();
   }
 
-  @After
+  @AfterEach
   public void tearDownShell() {
     ts.shell.shutdown();
-  }
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 60;
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
@@ -210,7 +206,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       }
     } else {
       String[] distCpArgs = {"-f", exportUri + "/distcp.txt", import_};
-      assertEquals("Failed to run distcp: " + Arrays.toString(distCpArgs), 0, cp.run(distCpArgs));
+      assertEquals(0, cp.run(distCpArgs), "Failed to run distcp: " + Arrays.toString(distCpArgs));
     }
     ts.exec("importtable " + table2 + " " + import_, true);
     ts.exec("config -t " + table2 + " -np", true, "345M", true);
@@ -540,8 +536,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     long now = System.currentTimeMillis();
     ts.exec("sleep 0.2", true);
     long diff = System.currentTimeMillis() - now;
-    assertTrue("Diff was actually " + diff, diff >= 200);
-    assertTrue("Diff was actually " + diff, diff < 600);
+    assertTrue(diff >= 200, "Diff was actually " + diff);
+    assertTrue(diff < 600, "Diff was actually " + diff);
   }
 
   @Test
@@ -572,7 +568,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
         sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
       }
     }
-    assertTrue("Could not successfully see updated authoriations", passed);
+    assertTrue(passed, "Could not successfully see updated authoriations");
     ts.exec("insert a b c d -l foo");
     ts.exec("scan", true, "[foo]");
     ts.exec("scan -s bar", true, "[foo]", false);
@@ -581,11 +577,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void getAuths() throws Exception {
-    assumeFalse("test skipped for kerberos", getToken() instanceof KerberosToken);
+    assumeFalse(getToken() instanceof KerberosToken, "test skipped for kerberos");
 
     // create two users with different auths
     for (int i = 1; i <= 2; i++) {
-      String userName = name.getMethodName() + "user" + i;
+      String userName = testName() + "user" + i;
       String password = "password" + i;
       String auths = "auth" + i + "A,auth" + i + "B";
       ts.exec("createuser " + userName, true);
@@ -713,13 +709,13 @@ public class ShellServerIT extends SharedMiniClusterBase {
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       accumuloClient.tableOperations().getConfiguration(table).forEach((key, value) -> {
         if (key.equals("table.custom.description"))
-          assertEquals("Initial property was not set correctly", "description", value);
+          assertEquals("description", value, "Initial property was not set correctly");
 
         if (key.equals("table.custom.testProp"))
-          assertEquals("Initial property was not set correctly", "testProp", value);
+          assertEquals("testProp", value, "Initial property was not set correctly");
 
         if (key.equals(Property.TABLE_SPLIT_THRESHOLD.getKey()))
-          assertEquals("Initial property was not set correctly", "10K", value);
+          assertEquals("10K", value, "Initial property was not set correctly");
       });
     }
     ts.exec("deletetable -f " + table);
@@ -752,7 +748,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     List<String> oldFiles = getFiles(tableId);
 
     // at this point there are 4 files in the default tablet
-    assertEquals("Files that were found: " + oldFiles, 4, oldFiles.size());
+    assertEquals(4, oldFiles.size(), "Files that were found: " + oldFiles);
 
     // compact some data:
     ts.exec("compact -b g -e z -w");
@@ -1026,11 +1022,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
       log.info("More than 3 files were found, compacting before proceeding");
       ts.exec("compact -w -t " + table);
       files = getFiles(tableId);
-      assertEquals("Expected to only find 3 files after compaction: " + files, 3, files.size());
+      assertEquals(3, files.size(), "Expected to only find 3 files after compaction: " + files);
     }
 
     assertNotNull(files);
-    assertEquals("Found the following files: " + files, 3, files.size());
+    assertEquals(3, files.size(), "Found the following files: " + files);
     ts.exec("deleterows -t " + table + " -b row5 -e row7");
     assertEquals(2, countFiles(tableId));
     ts.exec("deletetable -f " + table);
@@ -1482,7 +1478,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       }
       thread.join();
 
-      assertFalse("Could not find any active scans over table " + table, scans.isEmpty());
+      assertFalse(scans.isEmpty(), "Could not find any active scans over table " + table);
 
       for (String scan : scans) {
         if (!scan.contains("RUNNING")) {
@@ -1490,8 +1486,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
           continue;
         }
         String[] parts = scan.split("\\|");
-        assertEquals("Expected 14 colums, but found " + parts.length + " instead for '"
-            + Arrays.toString(parts) + "'", 14, parts.length);
+        assertEquals(14, parts.length, "Expected 14 colums, but found " + parts.length
+            + " instead for '" + Arrays.toString(parts) + "'");
         String tserver = parts[0].trim();
         // TODO: any way to tell if the client address is accurate? could be local IP, host,
         // loopback...?
@@ -1691,8 +1687,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void scansWithClassLoaderContext() throws IOException {
 
-    assertThrows("ValueReversingIterator already on the classpath", ClassNotFoundException.class,
-        () -> Class.forName(VALUE_REVERSING_ITERATOR));
+    assertThrows(ClassNotFoundException.class, () -> Class.forName(VALUE_REVERSING_ITERATOR),
+        "ValueReversingIterator already on the classpath");
 
     final String tableName = getUniqueNames(1)[0];
 
@@ -1969,12 +1965,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   private static void assertMatches(String output, String pattern) {
     var p = Pattern.compile(pattern).asMatchPredicate();
-    assertTrue("Pattern " + pattern + " did not match output : " + output, p.test(output));
+    assertTrue(p.test(output), "Pattern " + pattern + " did not match output : " + output);
   }
 
   private static void assertNotContains(String output, String subsequence) {
-    assertFalse("Expected '" + subsequence + "' would not occur in output : " + output,
-        output.contains(subsequence));
+    assertFalse(output.contains(subsequence),
+        "Expected '" + subsequence + "' would not occur in output : " + output);
   }
 
   @Test

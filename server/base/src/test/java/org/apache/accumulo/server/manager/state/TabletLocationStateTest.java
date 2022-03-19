@@ -21,12 +21,12 @@ package org.apache.accumulo.server.manager.state;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collection;
 import java.util.Set;
@@ -36,15 +36,15 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.hadoop.io.Text;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TabletLocationStateTest {
   private static final Collection<String> innerWalogs = new java.util.HashSet<>();
   private static final Collection<Collection<String>> walogs = new java.util.HashSet<>();
 
-  @BeforeClass
+  @BeforeAll
   public static void setUpClass() {
     walogs.add(innerWalogs);
     innerWalogs.add("somelog");
@@ -56,7 +56,7 @@ public class TabletLocationStateTest {
   private TServerInstance last;
   private TabletLocationState tls;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     keyExtent = createMock(KeyExtent.class);
     future = createMock(TServerInstance.class);

@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicLong;
@@ -46,26 +46,26 @@ import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.hadoop.io.Text;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.FixMethodOrder;
-import org.junit.Test;
-import org.junit.runners.MethodSorters;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 
 // the shutdown test should sort last, so other tests don't break
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
+@TestMethodOrder(MethodOrderer.MethodName.class)
 public class ManagerApiIT extends SharedMiniClusterBase {
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 60;
-  }
 
   private static Credentials rootUser;
   private static Credentials regularUser;
   private static Credentials privilegedUser;
 
-  @BeforeClass
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
+
+  @BeforeAll
   public static void setup() throws Exception {
     // need to pretend to be a server, so we can bypass all of
     // the singleton resource management in this test
@@ -82,7 +82,7 @@ public class ManagerApiIT extends SharedMiniClusterBase {
     }
   }
 
-  @AfterClass
+  @AfterAll
   public static void teardown() throws Exception {
     SharedMiniClusterBase.stopMiniCluster();
   }
@@ -242,8 +242,7 @@ public class ManagerApiIT extends SharedMiniClusterBase {
   }
 
   private static void expectPermissionDenied(
-      Function<TCredentials,ClientExec<ManagerClientService.Client>> op, Credentials user)
-      throws Exception {
+      Function<TCredentials,ClientExec<ManagerClientService.Client>> op, Credentials user) {
     AccumuloSecurityException e =
         assertThrows(AccumuloSecurityException.class, () -> expectPermissionSuccess(op, user));
     assertSame(SecurityErrorCode.PERMISSION_DENIED, e.getSecurityErrorCode());

@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,7 +43,7 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -133,7 +133,7 @@ public class ListTabletsCommandTest {
     idMap.put(tableName, tableId.canonical());
     EasyMock.expect(tableOps.tableIdMap()).andReturn(idMap);
 
-    assertEquals("Incorrect number of rows: " + rows, rows.size(), 3);
+    assertEquals(rows.size(), 3, "Incorrect number of rows: " + rows);
 
     EasyMock.replay(client, context, tableOps, instOps, shellState);
     cmd.execute("listTablets -t " + tableName, cli, shellState);

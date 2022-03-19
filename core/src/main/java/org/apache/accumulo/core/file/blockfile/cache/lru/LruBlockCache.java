@@ -102,8 +102,8 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
   private final EvictionThread evictionThread;
 
   /** Statistics thread schedule pool (for heavy debugging, could remove) */
-  private final ScheduledExecutorService scheduleThreadPool =
-      ThreadPools.createScheduledExecutorService(1, "LRUBlockCacheStats", true);
+  private final ScheduledExecutorService scheduleThreadPool = ThreadPools.getServerThreadPools()
+      .createScheduledExecutorService(1, "LRUBlockCacheStats", true);
 
   /** Current size of cache */
   private final AtomicLong size;

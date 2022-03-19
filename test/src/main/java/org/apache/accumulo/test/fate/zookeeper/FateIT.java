@@ -25,13 +25,14 @@ import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.IN_PROGRESS;
 import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.NEW;
 import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.SUBMITTED;
 import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.SUCCESSFUL;
+import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.util.UUID;
@@ -55,19 +56,18 @@ import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.categories.ZooKeeperTestingServerTests;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.KeeperException;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Category({ZooKeeperTestingServerTests.class})
+@Tag(ZOOKEEPER_TESTING_SERVER)
 public class FateIT {
 
   public static class TestOperation extends ManagerRepo {
@@ -114,9 +114,8 @@ public class FateIT {
 
   private static final Logger LOG = LoggerFactory.getLogger(FateIT.class);
 
-  @ClassRule
-  public static final TemporaryFolder TEMP =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File tempDir;
 
   private static ZooKeeperTestingServer szk = null;
   private static ZooReaderWriter zk = null;
@@ -127,9 +126,9 @@ public class FateIT {
   private static CountDownLatch callStarted;
   private static CountDownLatch finishCall;
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() throws Exception {
-    szk = new ZooKeeperTestingServer(TEMP.newFolder());
+    szk = new ZooKeeperTestingServer(tempDir);
     zk = szk.getZooReaderWriter();
     zk.mkdirs(ZK_ROOT + Constants.ZFATE);
     zk.mkdirs(ZK_ROOT + Constants.ZTABLE_LOCKS);
@@ -138,12 +137,13 @@ public class FateIT {
     zk.mkdirs(ZK_ROOT + Constants.ZTABLES + "/" + TID.canonical());
   }
 
-  @AfterClass
+  @AfterAll
   public static void teardown() throws Exception {
     szk.close();
   }
 
-  @Test(timeout = 30000)
+  @Test
+  @Timeout(30)
   public void testTransactionStatus() throws Exception {
 
     final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);

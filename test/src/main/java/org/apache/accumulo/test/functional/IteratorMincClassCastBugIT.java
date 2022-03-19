@@ -44,7 +44,7 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Tests iterator class hierarchy bug. The failure condition of this test is to hang on the flush
@@ -53,15 +53,15 @@ import org.junit.Test;
 public class IteratorMincClassCastBugIT extends AccumuloClusterHarness {
 
   @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
+
+  @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     // this bug only shows up when not using native maps
     cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, "false");
     cfg.setNumTservers(1);
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
   }
 
   @Test

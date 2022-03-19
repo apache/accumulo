@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.server.conf.codec;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -33,7 +33,7 @@ import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -124,14 +124,14 @@ public class VersionedPropEncryptCodecTest {
     // validate encoded version incremented.
     assertEquals(aVersion + 1, decodedProps.getDataVersion());
 
-    assertEquals("encoded version should be 1 up", aVersion + 1, decodedProps.getDataVersion());
-    assertEquals("version written should be the source next version", vProps.getNextVersion(),
-        decodedProps.getDataVersion());
-    assertEquals("the next version in decoded should be +2", aVersion + 2,
-        decodedProps.getNextVersion());
+    assertEquals(aVersion + 1, decodedProps.getDataVersion(), "encoded version should be 1 up");
+    assertEquals(vProps.getNextVersion(), decodedProps.getDataVersion(),
+        "version written should be the source next version");
+    assertEquals(aVersion + 2, decodedProps.getNextVersion(),
+        "the next version in decoded should be +2");
 
-    assertTrue("timestamp should be now or earlier",
-        vProps.getTimestamp().compareTo(Instant.now()) <= 0);
+    assertTrue(vProps.getTimestamp().compareTo(Instant.now()) <= 0,
+        "timestamp should be now or earlier");
 
   }
 
@@ -175,14 +175,14 @@ public class VersionedPropEncryptCodecTest {
     // validate encoded version incremented.
     assertEquals(aVersion + 1, decodedProps.getDataVersion());
 
-    assertEquals("encoded version should be 1 up", aVersion + 1, decodedProps.getDataVersion());
-    assertEquals("version written should be the source next version", vProps.getNextVersion(),
-        decodedProps.getDataVersion());
-    assertEquals("the next version in decoded should be +2", aVersion + 2,
-        decodedProps.getNextVersion());
+    assertEquals(aVersion + 1, decodedProps.getDataVersion(), "encoded version should be 1 up");
+    assertEquals(vProps.getNextVersion(), decodedProps.getDataVersion(),
+        "version written should be the source next version");
+    assertEquals(aVersion + 2, decodedProps.getNextVersion(),
+        "the next version in decoded should be +2");
 
-    assertTrue("timestamp should be now or earlier",
-        vProps.getTimestamp().compareTo(Instant.now()) <= 0);
+    assertTrue(vProps.getTimestamp().compareTo(Instant.now()) <= 0,
+        "timestamp should be now or earlier");
 
   }
 
