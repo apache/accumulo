@@ -70,11 +70,11 @@ public class FateCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws ParseException, KeeperException, InterruptedException, IOException, AccumuloException,
       AccumuloSecurityException {
-    String[] args = cl.getArgs();
-
-    if (args.length <= 0) {
-      throw new ParseException("Must provide a command to execute");
-    }
+    // String[] args = cl.getArgs();
+    //
+    // if (args.length <= 0) {
+    // throw new ParseException("Must provide a command to execute");
+    // }
 
     if (cl.hasOption(cancel.getOpt())) {
       String[] txids = cl.getOptionValues(cancel.getOpt());
@@ -83,11 +83,11 @@ public class FateCommand extends Command {
     } else if (cl.hasOption(fail.getOpt())) {
       String[] txids = cl.getOptionValues(fail.getOpt());
       validateArgs(txids);
-      shellState.getAccumuloClient().instanceOperations().fateFail(Arrays.asList(txids));
+      failTx(shellState, txids);
     } else if (cl.hasOption(delete.getOpt())) {
       String[] txids = cl.getOptionValues(delete.getOpt());
       validateArgs(txids);
-      shellState.getAccumuloClient().instanceOperations().fateDelete(Arrays.asList(txids));
+      deleteTx(shellState, txids);
     } else if (cl.hasOption(list.getOpt())) {
       printTx(shellState, cl.getOptionValues(list.getOpt()), cl,
           cl.hasOption(statusOption.getOpt()));
@@ -95,20 +95,31 @@ public class FateCommand extends Command {
       printTx(shellState, cl.getOptionValues(print.getOpt()), cl,
           cl.hasOption(statusOption.getOpt()));
     } else if (cl.hasOption(dump.getOpt())) {
-      String[] txids = cl.getOptionValues(dump.getOpt());
-      List<TransactionStatus> txStatuses = shellState.getAccumuloClient().instanceOperations()
-          .fateStatus(Arrays.asList(txids), null);
-
-      if (txStatuses.isEmpty())
-        shellState.getWriter().println(" No transactions to dump");
-
-      for (var tx : txStatuses) {
-        shellState.getWriter().println(tx.getStackInfo());
-      }
+      dumpTx(shellState, cl.getOptionValues(dump.getOpt()));
     } else {
       throw new ParseException("Invalid command option");
     }
     return 0;
+  }
+
+  public void failTx(Shell shellState, String[] args) throws AccumuloException {
+    shellState.getAccumuloClient().instanceOperations().fateFail(Arrays.asList(args));
+  }
+
+  protected void deleteTx(Shell shellState, String[] args) throws AccumuloException {
+    shellState.getAccumuloClient().instanceOperations().fateDelete(Arrays.asList(args));
+  }
+
+  protected void dumpTx(Shell shellState, String[] args) throws AccumuloException {
+    List<TransactionStatus> txStatuses =
+        shellState.getAccumuloClient().instanceOperations().fateStatus(Arrays.asList(args), null);
+
+    if (txStatuses.isEmpty())
+      shellState.getWriter().println(" No transactions to dump");
+
+    for (var tx : txStatuses) {
+      shellState.getWriter().println(tx.getStackInfo());
+    }
   }
 
   protected void printTx(Shell shellState, String[] args, CommandLine cl, boolean printStatus)
