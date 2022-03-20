@@ -70,11 +70,6 @@ public class FateCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws ParseException, KeeperException, InterruptedException, IOException, AccumuloException,
       AccumuloSecurityException {
-    // String[] args = cl.getArgs();
-    //
-    // if (args.length <= 0) {
-    // throw new ParseException("Must provide a command to execute");
-    // }
 
     if (cl.hasOption(cancel.getOpt())) {
       String[] txids = cl.getOptionValues(cancel.getOpt());

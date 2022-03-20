@@ -18,33 +18,39 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import static org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
-import org.apache.accumulo.fate.AdminUtil;
-import org.apache.accumulo.fate.ReadOnlyRepo;
-import org.apache.accumulo.fate.ZooStore;
-import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.client.admin.TransactionStatus;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.ShellConfigTest.TestOutputStream;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+import org.apache.zookeeper.KeeperException;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.terminal.Size;
@@ -54,16 +60,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class FateCommandTest {
-  private static FateCommand cmd;
-  private static Shell shellState;
-  private static LineReader reader;
-  private static Terminal terminal;
-  private static PrintWriter pw;
-  private static AccumuloClient client;
-  private static InstanceOperations intOps;
 
   public static class TestFateCommand extends FateCommand {
-
     private boolean dumpCalled = false;
     private boolean deleteCalled = false;
     private boolean failCalled = false;
@@ -107,72 +105,61 @@ public class FateCommandTest {
       cancelCalled = false;
       printCalled = false;
     }
-
   }
-
-  private static ZooReaderWriter zk;
-  private static ServiceLockPath managerLockPath;
 
   @BeforeAll
-  public static void setup() {
-    zk = createMock(ZooReaderWriter.class);
-    managerLockPath = createMock(ServiceLockPath.class);
-  }
+  public static void setup() {}
 
   @Test
   public void testFailTx() throws Exception {
-    client = createMock(AccumuloClient.class);
-    CommandLine cli = createMock(CommandLine.class);
-    shellState = createMock(Shell.class);
-    reader = createMock(LineReader.class);
-    pw = createMock(PrintWriter.class);
-    intOps = createMock(InstanceOperations.class);
-    TestFateCommand cmd = new TestFateCommand();
-    expect(shellState.getAccumuloClient()).andReturn(client);
-    String[] args = {"fail", "1234"};
-    List<String> txids = new ArrayList<>();
+    AccumuloClient client = createMock(AccumuloClient.class);
+    Shell shellState = createMock(Shell.class);
+    InstanceOperations intOps = createMock(InstanceOperations.class);
+    var args = new String[] {"--fail", "12345"};
 
-    // The user we want to remove
-    expect(cli.getArgs()).andReturn(args);
-    expect(cli.getArgList()).andReturn(List.of(args));
-    expect(List.of(args).subList(1, args.length)).andReturn(txids);
+    FateCommand cmd = new FateCommand();
+    Options opts = cmd.getOptions();
+    CommandLineParser parser = new DefaultParser();
+    CommandLine cli = parser.parse(opts, args);
 
-    expect(client.whoami()).andReturn("root");
-
-    expect(shellState.getReader()).andReturn(reader);
-    expect(shellState.getWriter()).andReturn(pw);
-    pw.flush();
-    expectLastCall().once();
     expect(shellState.getAccumuloClient()).andReturn(client);
     expect(client.instanceOperations()).andReturn(intOps);
-    intOps.fateFail(txids);
+    intOps.fateFail(Arrays.asList(cli.getOptionValues("fail")));
     expectLastCall().once();
 
-    // replay(client, cli, shellState, reader, intOps);
-    // //cmd.execute("fate --fail 1234", cli, shellState);
-    // verify(client, cli, shellState, reader, intOps);
+    replay(client, shellState, intOps);
+    cmd.execute("fate --fail 1234", cli, shellState);
+    verify(client, shellState, intOps);
   }
 
   @Test
-  public void testDump() {
-    ZooStore<FateCommand> zs = createMock(ZooStore.class);
-    ReadOnlyRepo<FateCommand> ser = createMock(ReadOnlyRepo.class);
-    long tid1 = Long.parseLong("12345", 16);
-    long tid2 = Long.parseLong("23456", 16);
-    expect(zs.getStack(tid1)).andReturn(List.of(ser)).once();
-    expect(zs.getStack(tid2)).andReturn(List.of(ser)).once();
+  public void testDump() throws AccumuloException, AccumuloSecurityException, ParseException,
+      IOException, InterruptedException, KeeperException {
+    AccumuloClient client = createMock(AccumuloClient.class);
+    Shell shellState = createMock(Shell.class);
+    InstanceOperations intOps = createMock(InstanceOperations.class);
+    PrintWriter pw = createMock(PrintWriter.class);
+    List<TransactionStatus> txstatus = new ArrayList<>();
+    var args = new String[] {"--dump", "12345"};
 
-    replay(zs);
+    FateCommand cmd = new FateCommand();
+    Options opts = cmd.getOptions();
+    CommandLineParser parser = new DefaultParser();
+    CommandLine cli = parser.parse(opts, args);
 
-    // FateCommand cmd = new FateCommand();
+    expect(shellState.getAccumuloClient()).andReturn(client).anyTimes();
+    expect(shellState.getWriter()).andReturn(pw);
+    expect(client.instanceOperations()).andReturn(intOps).anyTimes();
 
-    var args = new String[] {"dump", "12345", "23456"};
-    // var output = cmd.dumpTx(zs, args);
-    // System.out.println(output);
-    // assertTrue(output.contains("0000000000012345"));
-    // assertTrue(output.contains("0000000000023456"));
-    //
-    // verify(zs);
+    txstatus.add(new TransactionStatus(Long.parseLong("1234"), null, null, Collections.emptyList(),
+        Collections.emptyList(), null, System.currentTimeMillis(), null));
+    expect(intOps.fateStatus(Arrays.asList(cli.getOptionValues("dump")), null)).andReturn(txstatus);
+    pw.println(txstatus.get(0).getStackInfo());
+    expectLastCall().once();
+
+    replay(shellState, pw, client, intOps);
+    cmd.execute("fate --dump 1234", cli, shellState);
+    verify(shellState, pw, client, intOps);
   }
 
   @Test
@@ -274,18 +261,6 @@ public class FateCommandTest {
       if (config.exists()) {
         assertTrue(config.delete());
       }
-    }
-  }
-
-  static class TestHelper extends AdminUtil<FateCommand> {
-
-    public TestHelper(boolean exitOnError) {
-      super(exitOnError);
-    }
-
-    @Override
-    public boolean checkGlobalLock(ZooReaderWriter zk, ServiceLockPath zLockManagerPath) {
-      return true;
     }
   }
 }
