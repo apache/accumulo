@@ -78,7 +78,8 @@ class DatafileManager {
   DatafileManager(Tablet tablet, SortedMap<StoredTabletFile,DataFileValue> datafileSizes) {
     this.datafileSizes.putAll(datafileSizes);
     this.tablet = tablet;
-    this.metadataUpdateCount = new AtomicReference<>(new MetadataUpdateCount(tablet.getExtent(), 0L, 0L));
+    this.metadataUpdateCount =
+        new AtomicReference<>(new MetadataUpdateCount(tablet.getExtent(), 0L, 0L));
   }
 
   private final Set<TabletFile> filesToDeleteAfterScan = new HashSet<>();
