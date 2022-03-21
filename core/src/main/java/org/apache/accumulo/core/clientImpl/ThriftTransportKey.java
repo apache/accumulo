@@ -63,7 +63,7 @@ public class ThriftTransportKey {
     this.timeout = timeout;
     this.sslParams = sslParams;
     this.saslParams = saslParams;
-    final int hashCode = hashCode();
+    this.hash = Objects.hash(server, timeout, sslParams, saslParams);
   }
 
   HostAndPort getServer() {
