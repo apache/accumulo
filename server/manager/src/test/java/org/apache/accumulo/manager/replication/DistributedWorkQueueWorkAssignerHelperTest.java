@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.manager.replication;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map.Entry;
 import java.util.UUID;
@@ -28,7 +28,7 @@ import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.common.PathUtils;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @Deprecated
 public class DistributedWorkQueueWorkAssignerHelperTest {

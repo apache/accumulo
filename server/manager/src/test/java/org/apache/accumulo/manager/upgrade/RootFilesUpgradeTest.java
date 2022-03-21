@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.manager.upgrade;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -32,21 +32,20 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.fs.RandomVolumeChooser;
+import org.apache.accumulo.manager.WithTestNames;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.fs.Path;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
-public class RootFilesUpgradeTest {
+public class RootFilesUpgradeTest extends WithTestNames {
 
-  @Rule
-  public TemporaryFolder tempFolder =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File tempDir;
 
   static void rename(VolumeManager fs, Path src, Path dst) throws IOException {
     if (!fs.rename(src, dst)) {
@@ -90,12 +89,12 @@ public class RootFilesUpgradeTest {
       }
     }
 
-    TestWrapper(VolumeManager vm, AccumuloConfiguration conf, String compactName,
+    TestWrapper(VolumeManager vm, AccumuloConfiguration conf, String dirName, String compactName,
         String... inputFiles) throws IOException {
       this.vm = vm;
       this.conf = conf;
 
-      rootTabletDir = new File(tempFolder.newFolder(), "accumulo/tables/+r/root_tablet");
+      rootTabletDir = new File(tempDir, dirName + "/accumulo/tables/+r/root_tablet");
       assertTrue(rootTabletDir.mkdirs() || rootTabletDir.isDirectory());
       oldDatafiles = new HashSet<>();
       for (String filename : inputFiles) {
@@ -163,29 +162,40 @@ public class RootFilesUpgradeTest {
 
     try (var vm = VolumeManagerImpl.getLocalForTesting("file:///")) {
 
-      TestWrapper wrapper = new TestWrapper(vm, conf, "A00004.rf", "A00002.rf", "F00003.rf");
+      String[] uniqueDirNames = getUniqueNames(4);
+
+      TestWrapper wrapper =
+          new TestWrapper(vm, conf, uniqueDirNames[0], "A00004.rf", "A00002.rf", "F00003.rf");
       wrapper.prepareReplacement();
       wrapper.renameReplacement();
       wrapper.finishReplacement();
       wrapper.assertFiles("A00004.rf");
 
-      wrapper = new TestWrapper(vm, conf, "A00004.rf", "A00002.rf", "F00003.rf");
+      wrapper = new TestWrapper(vm, conf, uniqueDirNames[1], "A00004.rf", "A00002.rf", "F00003.rf");
       wrapper.prepareReplacement();
       wrapper.cleanupReplacement("A00002.rf", "F00003.rf");
       wrapper.assertFiles("A00002.rf", "F00003.rf");
 
-      wrapper = new TestWrapper(vm, conf, "A00004.rf", "A00002.rf", "F00003.rf");
+      wrapper = new TestWrapper(vm, conf, uniqueDirNames[2], "A00004.rf", "A00002.rf", "F00003.rf");
       wrapper.prepareReplacement();
       wrapper.renameReplacement();
       wrapper.cleanupReplacement("A00004.rf");
       wrapper.assertFiles("A00004.rf");
 
-      wrapper = new TestWrapper(vm, conf, "A00004.rf", "A00002.rf", "F00003.rf");
+      wrapper = new TestWrapper(vm, conf, uniqueDirNames[3], "A00004.rf", "A00002.rf", "F00003.rf");
       wrapper.prepareReplacement();
       wrapper.renameReplacement();
       wrapper.finishReplacement();
       wrapper.cleanupReplacement("A00004.rf");
       wrapper.assertFiles("A00004.rf");
     }
+  }
+
+  public String[] getUniqueNames(int numOfNames) {
+    String[] result = new String[numOfNames];
+    for (int i = 0; i < result.length; i++) {
+      result[i] = testName() + i;
+    }
+    return result;
   }
 }
