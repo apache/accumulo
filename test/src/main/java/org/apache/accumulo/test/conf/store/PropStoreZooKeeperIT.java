@@ -138,6 +138,9 @@ public class PropStoreZooKeeperIT {
     }
   }
 
+  /**
+   * Verify that when a config node does not exist, null is returned instead of an exception.
+   */
   @Test
   public void createNoProps() throws PropStoreException, InterruptedException, KeeperException {
 
@@ -147,9 +150,8 @@ public class PropStoreZooKeeperIT {
 
     // read from ZK
     assertNull(zooKeeper.exists(propKey.getPath(), false));
-    // read from cache
-    assertNotNull(zooKeeper.exists(propKey.getPath(), false));
-    assertNotNull(propStore.get(propKey));
+    // read from store
+    assertNull(propStore.get(propKey));
 
   }
 
@@ -162,7 +164,10 @@ public class PropStoreZooKeeperIT {
 
     assertNull(zooKeeper.exists(propKey.getPath(), false)); // check node does not exist in ZK
 
-    assertNotNull(zooKeeper.exists(propKey.getPath(), false)); // check nod created
+    propStore.create(propKey, Map.of());
+    Thread.sleep(25); // yield.
+
+    assertNotNull(zooKeeper.exists(propKey.getPath(), false)); // check not created
     assertThrows(PropStoreException.class, () -> propStore.create(propKey, null));
 
     assertNotNull(propStore.get(propKey));
