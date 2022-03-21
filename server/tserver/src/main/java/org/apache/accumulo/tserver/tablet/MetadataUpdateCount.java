@@ -18,13 +18,18 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+
 import java.util.Objects;
 
 public class MetadataUpdateCount {
+  private final KeyExtent extent;
   private final long startedCount;
   private final long finishedCount;
 
-  MetadataUpdateCount(long startedCount, long finishedCount) {
+
+  MetadataUpdateCount(KeyExtent extent, long startedCount, long finishedCount) {
+    this.extent = Objects.requireNonNull(extent);
     this.startedCount = startedCount;
     this.finishedCount = finishedCount;
   }
@@ -44,6 +49,10 @@ public class MetadataUpdateCount {
     return Objects.hash(startedCount, finishedCount);
   }
 
+  public KeyExtent getExtent(){
+    return extent;
+  }
+
   /**
    * @return true if the counters were acquired while a metadata table update was being made
    */
@@ -52,11 +61,11 @@ public class MetadataUpdateCount {
   }
 
   public MetadataUpdateCount incrementStart() {
-    return new MetadataUpdateCount(startedCount + 1, finishedCount);
+    return new MetadataUpdateCount(extent,startedCount + 1, finishedCount);
   }
 
   public MetadataUpdateCount incrementFinish() {
-    return new MetadataUpdateCount(startedCount, finishedCount + 1);
+    return new MetadataUpdateCount(extent, startedCount, finishedCount + 1);
   }
 
   @Override

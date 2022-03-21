@@ -1439,8 +1439,21 @@ public class Tablet {
     }
   }
 
+  /**
+   * Checks that tablet metadata from the metadata table matches what this tablet has in memory.  The caller of this method must acquire the updateCounter parameter before acquiring the tabletMetadata.
+   *
+   * @param updateCounter used to check for conucurrent updates in which case this check is a no-op.  See {@link #getUpdateCount()}
+   * @param tabletMetadata the metadata for this tablet that was acquired from the metadata table.
+   */
   public synchronized void compareTabletInfo(MetadataUpdateCount updateCounter,
       TabletMetadata tabletMetadata) {
+
+    // verify the given counter is for this tablet, if this check fail it indicates a bug in the calling code
+    Preconditions.checkArgument(updateCounter.getExtent().equals(getExtent()), "Counter had unexpected extent %s != %s", updateCounter.getExtent(), getExtent());
+
+    // verify the given tablet metadata is for this tablet, if this check fail it indicates a bug in the calling code
+    Preconditions.checkArgument(tabletMetadata.getExtent().equals(getExtent()), "Tablet metadata had unexpected extent %s != %s", tabletMetadata.getExtent(), getExtent());
+
     if (isClosed() || isClosing()) {
       log.trace("AMCC Tablet {} was closed, so skipping check", tabletMetadata.getExtent());
       return;

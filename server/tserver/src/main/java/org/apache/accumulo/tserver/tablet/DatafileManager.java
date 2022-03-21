@@ -73,12 +73,12 @@ class DatafileManager {
   // This must be incremented before and after datafileSizes and metadata table updates. These
   // counts allow detection of overlapping operation w/o placing a lock around metadata table
   // updates and datafileSizes updates.
-  private final AtomicReference<MetadataUpdateCount> metadataUpdateCount =
-      new AtomicReference<>(new MetadataUpdateCount(0L, 0L));
+  private final AtomicReference<MetadataUpdateCount> metadataUpdateCount;
 
   DatafileManager(Tablet tablet, SortedMap<StoredTabletFile,DataFileValue> datafileSizes) {
     this.datafileSizes.putAll(datafileSizes);
     this.tablet = tablet;
+    this.metadataUpdateCount = new AtomicReference<>(new MetadataUpdateCount(tablet.getExtent(), 0L, 0L));
   }
 
   private final Set<TabletFile> filesToDeleteAfterScan = new HashSet<>();
