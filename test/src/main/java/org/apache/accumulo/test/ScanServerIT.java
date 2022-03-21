@@ -18,11 +18,10 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -54,9 +53,9 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.accumulo.test.functional.SlowIterator;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class ScanServerIT extends SharedMiniClusterBase {
 
@@ -76,7 +75,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
     }
   }
 
-  @BeforeClass
+  @BeforeAll
   public static void start() throws Exception {
     ScanServerITConfiguration c = new ScanServerITConfiguration();
     SharedMiniClusterBase.startMiniClusterWithConfig(c);
@@ -92,7 +91,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
     }
   }
 
-  @AfterClass
+  @AfterAll
   public static void stop() throws Exception {
     SharedMiniClusterBase.stopMiniCluster();
   }
@@ -202,14 +201,14 @@ public class ScanServerIT extends SharedMiniClusterBase {
       ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 0, tName);
       client.tableOperations().flush(tName, null, null, true);
     }
-    
+
     final String tableName = tName;
     Thread t1 = new Thread(() -> {
       try (AccumuloClient c = Accumulo.newClient().from(props).build()) {
         Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
         IteratorSetting slow = new IteratorSetting(30, "slow", SlowIterator.class);
         SlowIterator.setSleepTime(slow, 30000);
-        scanner.addScanIterator(slow);      
+        scanner.addScanIterator(slow);
         scanner.setRange(new Range());
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         // We only inserted 100 rows, default batch size is 1000. If we don't set the
@@ -252,10 +251,10 @@ public class ScanServerIT extends SharedMiniClusterBase {
         fail("Table not found");
       }
     }, "second-scan");
-    
+
     t1.start();
     t2.start();
-    
+
     t2.join();
     t1.interrupt();
     t1.join();

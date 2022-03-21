@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -45,9 +45,9 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.zookeeper.KeeperException;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
 
@@ -63,14 +63,14 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
     }
   }
 
-  @BeforeClass
+  @BeforeAll
   public static void start() throws Exception {
     ScanServerConcurrentTabletScanITConfiguration c =
         new ScanServerConcurrentTabletScanITConfiguration();
     SharedMiniClusterBase.startMiniClusterWithConfig(c);
   }
 
-  @AfterClass
+  @AfterAll
   public static void stop() throws Exception {
     SharedMiniClusterBase.stopMiniCluster();
   }
