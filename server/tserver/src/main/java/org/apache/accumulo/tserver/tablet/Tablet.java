@@ -1467,8 +1467,6 @@ public class Tablet {
       log.trace("AMCC Tablet {} files in memory are same as in metadata table {}",
           tabletMetadata.getExtent(), updateCounter);
     }
-
-    // if counter did change, don't compare metadata and try again later
   }
 
   /**
