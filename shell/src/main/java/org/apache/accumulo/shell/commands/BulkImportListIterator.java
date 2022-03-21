@@ -25,7 +25,7 @@ import java.util.List;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.BulkImportStatus;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-import org.apache.accumulo.core.util.Duration;
+import org.apache.accumulo.core.util.DurationFormat;
 
 public class BulkImportListIterator implements Iterator<String> {
 
@@ -51,8 +51,8 @@ public class BulkImportListIterator implements Iterator<String> {
 
   private String format(BulkImportStatus status) {
     long diff = System.currentTimeMillis() - status.startTime;
-    return String.format("%25s | %4s | %s", status.filename, Duration.format(diff, " ", "-"),
-        status.state);
+    var dur = new DurationFormat(diff, " ");
+    return String.format("%25s | %4s | %s", status.filename, dur, status.state);
   }
 
   @Override
