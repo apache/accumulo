@@ -452,31 +452,28 @@ public class AuditMessageIT extends ConfigurableMacBase {
     // We don't want the thrown exceptions to stop our tests, and we are not testing that the
     // Exceptions are thrown.
 
-    assertThrows(AccumuloSecurityException.class,
-        () -> auditAccumuloClient.tableOperations().create(NEW_TEST_TABLE_NAME));
-
-    assertThrows(AccumuloSecurityException.class, () -> auditAccumuloClient.tableOperations()
-        .rename(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME));
+    final var tableOps = auditAccumuloClient.tableOperations();
+    assertThrows(AccumuloSecurityException.class, () -> tableOps.create(NEW_TEST_TABLE_NAME));
 
     assertThrows(AccumuloSecurityException.class,
-        () -> auditAccumuloClient.tableOperations().clone(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME,
-            false, Collections.emptyMap(), Collections.emptySet()));
+        () -> tableOps.rename(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME));
 
-    assertThrows(AccumuloSecurityException.class,
-        () -> auditAccumuloClient.tableOperations().delete(OLD_TEST_TABLE_NAME));
+    assertThrows(AccumuloSecurityException.class, () -> tableOps.clone(OLD_TEST_TABLE_NAME,
+        NEW_TEST_TABLE_NAME, false, Collections.emptyMap(), Collections.emptySet()));
 
-    assertThrows(AccumuloSecurityException.class,
-        () -> auditAccumuloClient.tableOperations().offline(OLD_TEST_TABLE_NAME));
+    assertThrows(AccumuloSecurityException.class, () -> tableOps.delete(OLD_TEST_TABLE_NAME));
+
+    assertThrows(AccumuloSecurityException.class, () -> tableOps.offline(OLD_TEST_TABLE_NAME));
 
     try (Scanner scanner = auditAccumuloClient.createScanner(OLD_TEST_TABLE_NAME, auths)) {
       assertThrows(RuntimeException.class, () -> scanner.iterator().next().getKey());
     }
 
-    assertThrows(AccumuloSecurityException.class, () -> auditAccumuloClient.tableOperations()
-        .deleteRows(OLD_TEST_TABLE_NAME, new Text("myRow"), new Text("myRow~")));
+    assertThrows(AccumuloSecurityException.class,
+        () -> tableOps.deleteRows(OLD_TEST_TABLE_NAME, new Text("myRow"), new Text("myRow~")));
 
-    assertThrows(AccumuloSecurityException.class, () -> auditAccumuloClient.tableOperations()
-        .flush(OLD_TEST_TABLE_NAME, new Text("myRow"), new Text("myRow~"), false));
+    assertThrows(AccumuloSecurityException.class,
+        () -> tableOps.flush(OLD_TEST_TABLE_NAME, new Text("myRow"), new Text("myRow~"), false));
 
     // ... that will do for now.
     // End of testing activities
