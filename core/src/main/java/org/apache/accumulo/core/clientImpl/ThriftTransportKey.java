@@ -35,7 +35,7 @@ public class ThriftTransportKey {
   private final SslConnectionParams sslParams;
   private final SaslConnectionParams saslParams;
 
-  private int hash = -1;
+  private final int hash;
 
   @VisibleForTesting
   public ThriftTransportKey(HostAndPort server, long timeout, ClientContext context) {
@@ -50,7 +50,7 @@ public class ThriftTransportKey {
         throw new RuntimeException("Cannot use both SSL and SASL thrift transports");
       }
     }
-    final int hashCode = hashCode();
+    hash = Objects.hash(server, timeout, sslParams, saslParams);
   }
 
   /**
