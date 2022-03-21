@@ -41,7 +41,7 @@ public class BigRootTabletIT extends AccumuloClusterHarness {
   // buffers
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(4);
   }
 

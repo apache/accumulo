@@ -38,7 +38,7 @@ import org.junit.jupiter.api.Test;
 public class BalanceWithOfflineTableIT extends ConfigurableMacBase {
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
   }
 
@@ -84,7 +84,7 @@ public class BalanceWithOfflineTableIT extends ConfigurableMacBase {
         c.instanceOperations().waitForBalance();
         return true;
       });
-      wait.get((2L * defaultTimeoutDuration().toSeconds()) / 3, TimeUnit.SECONDS);
+      wait.get((2L * defaultTimeout().toSeconds()) / 3, TimeUnit.SECONDS);
       log.info("Balance succeeded with an offline table");
     }
   }

@@ -155,7 +155,7 @@ public class CompactionIT extends AccumuloClusterHarness {
   private static final int MAX_DATA = 1000;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(4);
   }
 
@@ -474,7 +474,7 @@ public class CompactionIT extends AccumuloClusterHarness {
           executor.execute(r);
         }
         executor.shutdown();
-        executor.awaitTermination(defaultTimeoutDuration().toSeconds(), SECONDS);
+        executor.awaitTermination(defaultTimeout().toSeconds(), SECONDS);
         assertFalse(fail.get(),
             "Failed to successfully run all threads, Check the test output for error");
       }

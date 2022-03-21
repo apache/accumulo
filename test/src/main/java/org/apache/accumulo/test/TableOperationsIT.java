@@ -76,7 +76,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   private static final int MAX_TABLE_NAME_LEN = 1024;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofSeconds(90);
   }
 

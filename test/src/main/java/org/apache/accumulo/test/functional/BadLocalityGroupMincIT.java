@@ -41,7 +41,7 @@ import com.google.common.collect.Iterables;
 public class BadLocalityGroupMincIT extends AccumuloClusterHarness {
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(1);
   }
 

@@ -51,7 +51,7 @@ public class YieldScannersIT extends AccumuloClusterHarness {
   private static final char START_ROW = 'a';
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(1);
   }
 

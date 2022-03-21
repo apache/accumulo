@@ -57,7 +57,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
   private final int NUM_TABLES = 2;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(7);
   }
 

@@ -60,7 +60,7 @@ import org.junit.jupiter.api.Test;
 public class ExistingMacIT extends ConfigurableMacBase {
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(4);
   }
 

@@ -53,7 +53,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
   private static TestStatsDSink sink;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(1);
   }
 

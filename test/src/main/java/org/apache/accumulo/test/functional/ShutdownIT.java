@@ -40,7 +40,7 @@ import org.junit.jupiter.api.Test;
 public class ShutdownIT extends ConfigurableMacBase {
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
   }
 

@@ -73,7 +73,7 @@ public class RowHashIT extends ConfigurableMacBase {
   static final String output_cq = "cq-MD4BASE64";
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(1);
   }
 

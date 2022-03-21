@@ -61,7 +61,7 @@ public class RecoveryWithEmptyRFileIT extends ConfigurableMacBase {
   private static final int COLS = 1;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
   }
 

@@ -65,7 +65,7 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
   private boolean saslEnabled;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(1);
   }
 

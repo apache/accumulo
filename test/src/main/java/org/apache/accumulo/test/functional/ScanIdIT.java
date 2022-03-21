@@ -98,7 +98,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
   private static final Map<Integer,Value> resultsByWorker = new ConcurrentHashMap<>();
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(1);
   }
 

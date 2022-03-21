@@ -59,7 +59,7 @@ public class VisibilityIT extends AccumuloClusterHarness {
   Authorizations origAuths = null;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
   }
 

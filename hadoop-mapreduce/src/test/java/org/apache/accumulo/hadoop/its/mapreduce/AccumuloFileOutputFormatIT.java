@@ -73,7 +73,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
           .addOption("modulus", "3");
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(4);
   }
 

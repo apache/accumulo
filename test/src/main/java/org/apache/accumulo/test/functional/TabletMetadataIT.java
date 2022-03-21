@@ -45,7 +45,7 @@ public class TabletMetadataIT extends ConfigurableMacBase {
   private static final int NUM_TSERVERS = 3;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
   }
 

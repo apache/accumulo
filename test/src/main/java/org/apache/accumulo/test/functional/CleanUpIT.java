@@ -56,7 +56,7 @@ public class CleanUpIT extends SharedMiniClusterBase {
   private static final Logger log = LoggerFactory.getLogger(CleanUpIT.class);
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofSeconds(30);
   }
 

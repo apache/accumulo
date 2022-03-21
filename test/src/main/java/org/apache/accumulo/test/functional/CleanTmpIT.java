@@ -54,7 +54,7 @@ public class CleanTmpIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(CleanTmpIT.class);
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(4);
   }
 

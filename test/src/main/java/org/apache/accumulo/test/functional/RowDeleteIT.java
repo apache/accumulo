@@ -49,7 +49,7 @@ import com.google.common.collect.Iterators;
 public class RowDeleteIT extends AccumuloClusterHarness {
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(1);
   }
 

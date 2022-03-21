@@ -50,7 +50,7 @@ public class ScanFlushWithTimeIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(ScanFlushWithTimeIT.class);
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
   }
 

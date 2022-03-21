@@ -54,7 +54,7 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
   private String tableName;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
   }
 

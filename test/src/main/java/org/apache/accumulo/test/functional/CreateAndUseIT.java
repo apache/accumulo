@@ -50,7 +50,7 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
   private static NewTableConfiguration ntc;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(4);
   }
 

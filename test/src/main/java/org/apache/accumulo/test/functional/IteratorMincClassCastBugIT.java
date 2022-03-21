@@ -54,7 +54,7 @@ import org.junit.jupiter.api.Test;
 public class IteratorMincClassCastBugIT extends AccumuloClusterHarness {
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(1);
   }
 

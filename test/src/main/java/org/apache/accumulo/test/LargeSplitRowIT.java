@@ -55,7 +55,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(LargeSplitRowIT.class);
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(1);
   }
 

@@ -56,7 +56,7 @@ import com.google.common.collect.Iterators;
 public class UnusedWALIT extends ConfigurableMacBase {
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(4);
   }
 

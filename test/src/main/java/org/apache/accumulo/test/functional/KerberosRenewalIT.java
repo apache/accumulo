@@ -85,7 +85,7 @@ public class KerberosRenewalIT extends AccumuloITBase {
   public static final int TEST_DURATION_MINUTES = 9; // The test should finish within 9 mins
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(TEST_DURATION_MINUTES);
   }
 

@@ -42,7 +42,7 @@ import org.junit.jupiter.api.Test;
 public class ManagerAssignmentIT extends AccumuloClusterHarness {
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
   }
 

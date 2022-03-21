@@ -44,7 +44,7 @@ public class ScanRangeIT extends AccumuloClusterHarness {
   private static final int ROW_LIMIT = 100;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
   }
 

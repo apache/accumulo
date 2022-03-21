@@ -41,7 +41,7 @@ public class WatchTheWatchCountIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(WatchTheWatchCountIT.class);
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(1);
   }
 

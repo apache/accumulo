@@ -49,7 +49,7 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(TableConfigurationUpdateIT.class);
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
   }
 

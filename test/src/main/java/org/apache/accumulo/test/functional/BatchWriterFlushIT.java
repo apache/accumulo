@@ -60,7 +60,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
   private static final int NUM_THREADS = 3;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofSeconds(90);
   }
 

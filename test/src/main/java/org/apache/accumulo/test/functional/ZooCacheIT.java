@@ -42,7 +42,7 @@ public class ZooCacheIT extends ConfigurableMacBase {
   private static File testDir;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
   }
 

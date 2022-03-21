@@ -103,7 +103,7 @@ public class NamespacesIT extends SharedMiniClusterBase {
   private static final int MAX_NAMESPACE_LEN = 1024;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(1);
   }
 

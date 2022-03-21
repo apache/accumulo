@@ -89,7 +89,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
   private int timeoutFactor = 1;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(6);
   }
 

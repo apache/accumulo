@@ -52,7 +52,7 @@ import org.junit.jupiter.api.Test;
 public class MaxOpenIT extends AccumuloClusterHarness {
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(3);
   }
 

@@ -45,7 +45,7 @@ public class BulkImportVolumeIT extends AccumuloClusterHarness {
   Path v1, v2;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(1);
   }
 

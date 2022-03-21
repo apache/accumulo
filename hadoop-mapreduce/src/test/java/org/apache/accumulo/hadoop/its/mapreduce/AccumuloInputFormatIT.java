@@ -85,7 +85,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
   AccumuloClient client;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(4);
   }
 

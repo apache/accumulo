@@ -65,7 +65,7 @@ public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
   private static final Upgrader9to10 upgrader = new Upgrader9to10();
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(5);
   }
 

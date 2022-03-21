@@ -92,7 +92,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class BulkNewIT extends SharedMiniClusterBase {
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(4);
   }
 

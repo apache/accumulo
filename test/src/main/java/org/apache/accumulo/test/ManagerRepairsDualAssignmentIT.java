@@ -59,7 +59,7 @@ import com.google.common.collect.Iterators;
 public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(5);
   }
 

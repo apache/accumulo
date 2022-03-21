@@ -81,7 +81,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
   private static final Authorizations auths = new Authorizations("private", "public");
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(1);
   }
 

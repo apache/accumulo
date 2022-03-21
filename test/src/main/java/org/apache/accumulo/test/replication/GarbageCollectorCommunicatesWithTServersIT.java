@@ -87,7 +87,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
   private final int GC_PERIOD_SECONDS = 1;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
   }
 

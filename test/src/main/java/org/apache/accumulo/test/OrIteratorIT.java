@@ -54,7 +54,7 @@ public class OrIteratorIT extends AccumuloClusterHarness {
   private static final String EMPTY = "";
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(1);
   }
 

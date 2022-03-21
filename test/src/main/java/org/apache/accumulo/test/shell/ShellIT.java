@@ -58,7 +58,7 @@ import org.slf4j.LoggerFactory;
 public class ShellIT extends SharedMiniClusterBase {
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(3);
   }
 

@@ -51,7 +51,7 @@ public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(ScanSessionTimeOutIT.class);
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(1);
   }
 

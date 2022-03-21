@@ -61,7 +61,7 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(BadDeleteMarkersCreatedIT.class);
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
   }
 

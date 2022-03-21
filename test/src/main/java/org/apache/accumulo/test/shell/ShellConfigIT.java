@@ -47,7 +47,7 @@ public class ShellConfigIT extends AccumuloClusterHarness {
   private String origPropValue;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofSeconds(30);
   }
 

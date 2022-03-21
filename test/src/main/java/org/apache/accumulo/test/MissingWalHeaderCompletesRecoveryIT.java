@@ -66,7 +66,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
   private boolean rootHasWritePermission;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
   }
 

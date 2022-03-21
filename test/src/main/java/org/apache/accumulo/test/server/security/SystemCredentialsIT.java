@@ -47,7 +47,7 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
   private static final int SCAN_FAILED = 7, AUTHENICATION_FAILED = 8;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(1);
   }
 

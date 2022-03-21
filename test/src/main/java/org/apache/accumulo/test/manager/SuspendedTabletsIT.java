@@ -89,7 +89,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
   private ProcessReference metadataTserverProcess;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(5);
   }
 

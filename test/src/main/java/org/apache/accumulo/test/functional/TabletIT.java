@@ -47,7 +47,7 @@ public class TabletIT extends AccumuloClusterHarness {
   private static final int N = 1000;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
   }
 

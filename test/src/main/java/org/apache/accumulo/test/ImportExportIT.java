@@ -69,7 +69,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(ImportExportIT.class);
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(1);
   }
 

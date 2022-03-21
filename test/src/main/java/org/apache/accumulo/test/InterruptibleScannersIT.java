@@ -42,7 +42,7 @@ import com.google.common.collect.Iterators;
 public class InterruptibleScannersIT extends AccumuloClusterHarness {
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(1);
   }
 

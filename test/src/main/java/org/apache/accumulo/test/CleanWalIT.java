@@ -55,7 +55,7 @@ public class CleanWalIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(CleanWalIT.class);
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(4);
   }
 

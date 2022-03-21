@@ -62,7 +62,7 @@ public class ManagerApiIT extends SharedMiniClusterBase {
   private static Credentials privilegedUser;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(1);
   }
 

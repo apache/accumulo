@@ -103,7 +103,7 @@ public class KerberosIT extends AccumuloITBase {
   private static ClusterUser rootUser;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(5);
   }
 

@@ -32,7 +32,7 @@ import org.junit.jupiter.api.Test;
 public class BatchWriterIT extends AccumuloClusterHarness {
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofSeconds(30);
   }
 

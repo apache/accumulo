@@ -125,7 +125,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(1);
   }
 

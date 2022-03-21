@@ -34,7 +34,7 @@ import org.junit.jupiter.api.Test;
 public class SslWithClientAuthIT extends SslIT {
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(8);
   }
 

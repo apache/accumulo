@@ -50,7 +50,7 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
   private static final int NUM_SPLITS = 50;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
   }
 

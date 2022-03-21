@@ -56,7 +56,7 @@ import com.google.common.collect.Iterables;
 public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
   }
 

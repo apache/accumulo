@@ -111,17 +111,17 @@ public class AccumuloITBase extends WithTestNames {
     }
 
     // if either value is zero, apply a very long timeout (effectively no timeout)
-    if (timeoutFactor == 0 || defaultTimeoutDuration().isZero()) {
+    if (timeoutFactor == 0 || defaultTimeout().isZero()) {
       return Duration.ofDays(5);
     }
 
-    return defaultTimeoutDuration().multipliedBy(timeoutFactor);
+    return defaultTimeout().multipliedBy(timeoutFactor);
   });
 
   /**
    * Time to wait per-method before declaring a timeout, in seconds.
    */
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(10);
   }
 

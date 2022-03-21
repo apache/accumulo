@@ -50,7 +50,7 @@ public class BulkImportSequentialRowsIT extends AccumuloClusterHarness {
   private static final long NV = 42000;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(1);
   }
 

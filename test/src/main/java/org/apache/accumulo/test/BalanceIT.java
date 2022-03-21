@@ -34,7 +34,7 @@ public class BalanceIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(BalanceIT.class);
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(1);
   }
 

@@ -51,7 +51,7 @@ import com.google.common.collect.Iterators;
 public class ConfigurableMajorCompactionIT extends ConfigurableMacBase {
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofSeconds(30);
   }
 

@@ -50,7 +50,7 @@ public class MetaSplitIT extends AccumuloClusterHarness {
   private Collection<Text> metadataSplits = null;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(3);
   }
 

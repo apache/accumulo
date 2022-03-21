@@ -65,7 +65,7 @@ public class MapReduceIT extends ConfigurableMacBase {
   static final String output_cfcq = input_cf + ":" + output_cq;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(1);
   }
 

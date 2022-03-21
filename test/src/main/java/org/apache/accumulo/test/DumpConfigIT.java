@@ -45,7 +45,7 @@ public class DumpConfigIT extends ConfigurableMacBase {
   private static File tempDir;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
   }
 

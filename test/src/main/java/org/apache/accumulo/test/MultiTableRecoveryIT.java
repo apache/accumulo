@@ -51,7 +51,7 @@ import com.google.common.collect.Iterators;
 public class MultiTableRecoveryIT extends ConfigurableMacBase {
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(5);
   }
 

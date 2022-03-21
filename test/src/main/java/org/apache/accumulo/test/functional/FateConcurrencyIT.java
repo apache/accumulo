@@ -91,7 +91,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
   private SlowOps slowOps;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(4);
   }
 
@@ -100,7 +100,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     client = Accumulo.newClient().from(getClientProps()).build();
     context = (ClientContext) client;
     secret = cluster.getSiteConfiguration().get(Property.INSTANCE_SECRET);
-    maxWaitMillis = Math.max(MINUTES.toMillis(1), defaultTimeoutDuration().toMillis() / 2);
+    maxWaitMillis = Math.max(MINUTES.toMillis(1), defaultTimeout().toMillis() / 2);
   }
 
   @AfterEach

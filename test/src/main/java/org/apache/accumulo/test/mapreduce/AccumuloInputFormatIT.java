@@ -79,7 +79,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
   org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat inputFormat;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(4);
   }
 

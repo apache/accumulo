@@ -107,7 +107,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
   private static final Logger log = LoggerFactory.getLogger(ConditionalWriterIT.class);
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
   }
 

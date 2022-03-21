@@ -55,7 +55,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class MonitorSslIT extends ConfigurableMacBase {
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(6);
   }
 

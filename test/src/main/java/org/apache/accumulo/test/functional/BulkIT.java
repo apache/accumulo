@@ -49,7 +49,7 @@ public class BulkIT extends AccumuloClusterHarness {
   private static final int COUNT = 5;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(4);
   }
 

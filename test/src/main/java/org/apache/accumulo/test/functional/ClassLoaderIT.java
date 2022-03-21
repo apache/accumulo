@@ -62,7 +62,7 @@ public class ClassLoaderIT extends AccumuloClusterHarness {
   private String rootPath;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
   }
 

@@ -55,7 +55,7 @@ public class CredentialsIT extends AccumuloClusterHarness {
   private String password;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
   }
 

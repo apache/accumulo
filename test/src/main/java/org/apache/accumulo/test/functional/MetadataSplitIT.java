@@ -37,7 +37,7 @@ import org.junit.jupiter.api.Test;
 public class MetadataSplitIT extends ConfigurableMacBase {
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
   }
 

@@ -89,7 +89,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
   private String systemPreferredVolumes;
 
   @Override
-  protected Duration defaultTimeoutDuration() {
+  protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
   }
 
