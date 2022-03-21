@@ -94,8 +94,6 @@ public class ThriftTransportKey {
 
   @Override
   public int hashCode() {
-    if (hash == -1)
-      hash = Objects.hash(server, timeout, sslParams, saslParams);
     return hash;
   }
 
