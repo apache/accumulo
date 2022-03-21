@@ -70,7 +70,9 @@ class DatafileManager {
   // ensure we only have one reader/writer of our bulk file notes at at time
   private final Object bulkFileImportLock = new Object();
 
-  // This must be incremented before and after datafileSizes and metadata table updates
+  // This must be incremented before and after datafileSizes and metadata table updates. These
+  // counts allow detection of overlapping operation w/o placing a lock around metadata table
+  // updates and datafileSizes updates.
   private final AtomicReference<MetadataUpdateCount> metadataUpdateCount =
       new AtomicReference<>(new MetadataUpdateCount(0L, 0L));
 

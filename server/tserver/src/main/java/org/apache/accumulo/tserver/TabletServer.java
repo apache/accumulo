@@ -813,7 +813,7 @@ public class TabletServer extends AbstractServer {
 
           Map<KeyExtent,MetadataUpdateCount> updateCounts = new HashMap<>();
 
-          // gather updateCounts for each tablet
+          // gather updateCounts for each tablet before reading tablet metadata
           onlineTabletsSnapshot.forEach((ke, tablet) -> {
             updateCounts.put(ke, tablet.getUpdateCount());
           });

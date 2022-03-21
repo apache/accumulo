@@ -58,4 +58,9 @@ public class MetadataUpdateCount {
   public MetadataUpdateCount incrementFinish() {
     return new MetadataUpdateCount(startedCount, finishedCount + 1);
   }
+
+  @Override
+  public String toString() {
+    return "[startedCount:" + startedCount + ",finishedCount:" + finishedCount + "]";
+  }
 }

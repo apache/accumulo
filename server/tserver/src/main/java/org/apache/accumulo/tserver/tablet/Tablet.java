@@ -1442,24 +1442,30 @@ public class Tablet {
   public synchronized void compareTabletInfo(MetadataUpdateCount updateCounter,
       TabletMetadata tabletMetadata) {
     if (isClosed() || isClosing()) {
-      return;
-    }
-
-    if (updateCounter.overlapsUpdate() || !updateCounter.equals(this.getUpdateCount())) {
-      // for these cases do not even bother checking if the files are the same
+      log.trace("AMCC Tablet {} was closed, so skipping check", tabletMetadata.getExtent());
       return;
     }
 
     var dataFileSizes = getDatafileManager().getDatafileSizes();
 
     if (!tabletMetadata.getFilesMap().equals(dataFileSizes)) {
-      // the counters are modified outside of locks before and after metadata operations and data
-      // file updates so its very important to do the following check after the above check to
-      // verify nothing has changed in the entire time period including the check above
-      if (updateCounter.equals(this.getUpdateCount())) {
-        log.error("Data files in {} differ from in-memory data {} {}", extent,
-            tabletMetadata.getFilesMap(), dataFileSizes);
+      // The counters are modified outside of locks before and after tablet metadata operations and
+      // data file updates so its very important to aquire the 2nd counts after doing the equality
+      // check above. If the counts are the same (as the ones acquired before reading metadata
+      // table) after the equality check above then we know the tablet did not do any updates while
+      // we were reading metadata and then comparing.
+      var latestCount = this.getUpdateCount();
+      if (updateCounter.overlapsUpdate() || !updateCounter.equals(latestCount)) {
+        log.trace(
+            "AMCC Tablet {} may have been updating its metadata while it was being read for check, so skipping check {} {}",
+            tabletMetadata.getExtent(), updateCounter, latestCount);
+      } else {
+        log.error("AMCC Data files in {} differ from in-memory data {} {} {} {}", extent,
+            tabletMetadata.getFilesMap(), dataFileSizes, updateCounter, latestCount);
       }
+    } else {
+      log.trace("AMCC Tablet {} files in memory are same as in metadata table {}",
+          tabletMetadata.getExtent(), updateCounter);
     }
 
     // if counter did change, don't compare metadata and try again later
