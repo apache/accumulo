@@ -39,18 +39,7 @@ public class ThriftTransportKey {
 
   @VisibleForTesting
   public ThriftTransportKey(HostAndPort server, long timeout, ClientContext context) {
-    requireNonNull(server, "location is null");
-    this.server = server;
-    this.timeout = timeout;
-    this.sslParams = context.getClientSslParams();
-    this.saslParams = context.getSaslParams();
-    if (saslParams != null) {
-      // TSasl and TSSL transport factories don't play nicely together
-      if (sslParams != null) {
-        throw new RuntimeException("Cannot use both SSL and SASL thrift transports");
-      }
-    }
-    hash = Objects.hash(server, timeout, sslParams, saslParams);
+    this(server, timeout, context.getClientSslParams(), context.getSaslParams());
   }
 
   /**
@@ -63,6 +52,12 @@ public class ThriftTransportKey {
     this.timeout = timeout;
     this.sslParams = sslParams;
     this.saslParams = saslParams;
+    if (saslParams != null) {
+      // TSasl and TSSL transport factories don't play nicely together
+      if (sslParams != null) {
+        throw new RuntimeException("Cannot use both SSL and SASL thrift transports");
+      }
+    }
     this.hash = Objects.hash(server, timeout, sslParams, saslParams);
   }
 
