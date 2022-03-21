@@ -833,7 +833,6 @@ public class ThriftTransportPool {
     log.debug("Set thrift transport pool idle time to {}", time);
   }
 
-  // TODO consider re-working after #2554 is merged
   void startCheckerThread() {
     final Thread thread = checkThreadFactory.get();
   }
