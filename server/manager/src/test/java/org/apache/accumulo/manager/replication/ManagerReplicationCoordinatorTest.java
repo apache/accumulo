@@ -22,8 +22,8 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Collections;
 import java.util.TreeSet;
@@ -36,7 +36,7 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @Deprecated
 public class ManagerReplicationCoordinatorTest {

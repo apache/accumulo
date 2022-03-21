@@ -24,10 +24,10 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -64,7 +64,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -194,8 +194,8 @@ public class Upgrader9to10Test {
     List<Mutation> results = new ArrayList<>();
 
     setupMocks(c, fs, map, results);
-    assertFalse("Invalid Relative path check",
-        Upgrader9to10.checkForRelativePaths(c, fs, tableName, volumeUpgrade));
+    assertFalse(Upgrader9to10.checkForRelativePaths(c, fs, tableName, volumeUpgrade),
+        "Invalid Relative path check");
     assertTrue(results.isEmpty());
   }
 
@@ -333,7 +333,7 @@ public class Upgrader9to10Test {
       }
     }
 
-    assertEquals("Replacements should have update for every delete", deleteCount, updateCount);
+    assertEquals(deleteCount, updateCount, "Replacements should have update for every delete");
   }
 
   @Test

@@ -16,35 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.manager.metrics.fate;
+package org.apache.accumulo.manager;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
 
-import org.junit.jupiter.api.Test;
+// This is only for the unit tests and integration tests in this module
+// It must be copied for use in other modules, because tests in one module
+// don't have dependencies on other modules, and we can't put this in a
+// regular, non-test jar, because we don't want to add a dependency on
+// JUnit in a non-test jar
+public class WithTestNames {
 
-public class FateMetricValuesTest {
+  private String testName;
 
-  @Test
-  public void defaultValueTest() {
-
-    FateMetricValues v = FateMetricValues.builder().build();
-
-    assertEquals(0, v.getCurrentFateOps());
-    assertEquals(0, v.getZkFateChildOpsTotal());
-    assertEquals(0, v.getZkConnectionErrors());
+  @BeforeEach
+  public void setTestName(TestInfo info) {
+    testName = info.getTestMethod().get().getName();
   }
 
-  @Test
-  public void valueTest() {
-
-    FateMetricValues.Builder builder = FateMetricValues.builder();
-
-    FateMetricValues v =
-        builder.withCurrentFateOps(1).withZkFateChildOpsTotal(2).withZkConnectionErrors(3).build();
-
-    assertEquals(1, v.getCurrentFateOps());
-    assertEquals(2, v.getZkFateChildOpsTotal());
-    assertEquals(3, v.getZkConnectionErrors());
-
+  protected String testName() {
+    return testName;
   }
+
 }

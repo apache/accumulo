@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.compact;
 
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.UUID;
 
@@ -35,7 +35,7 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.delete.PreDeleteTable;
 import org.apache.accumulo.server.ServerContext;
 import org.easymock.EasyMock;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CompactionDriverTest {
 
@@ -69,10 +69,10 @@ public class CompactionDriverTest {
     var e = assertThrows(AcceptableThriftTableOperationException.class,
         () -> driver.isReady(tableIdLong, manager));
 
-    assertTrue(e.getTableId().equals(tableId.toString()));
-    assertTrue(e.getOp().equals(TableOperation.COMPACT));
-    assertTrue(e.getType().equals(TableOperationExceptionType.OTHER));
-    assertTrue(e.getDescription().equals(TableOperationsImpl.COMPACTION_CANCELED_MSG));
+    assertEquals(e.getTableId(), tableId.toString());
+    assertEquals(e.getOp(), TableOperation.COMPACT);
+    assertEquals(e.getType(), TableOperationExceptionType.OTHER);
+    assertEquals(TableOperationsImpl.COMPACTION_CANCELED_MSG, e.getDescription());
 
     EasyMock.verify(manager, ctx, zrw);
   }
@@ -110,10 +110,10 @@ public class CompactionDriverTest {
     var e = assertThrows(AcceptableThriftTableOperationException.class,
         () -> driver.isReady(tableIdLong, manager));
 
-    assertTrue(e.getTableId().equals(tableId.toString()));
-    assertTrue(e.getOp().equals(TableOperation.COMPACT));
-    assertTrue(e.getType().equals(TableOperationExceptionType.OTHER));
-    assertTrue(e.getDescription().equals(TableOperationsImpl.TABLE_DELETED_MSG));
+    assertEquals(e.getTableId(), tableId.toString());
+    assertEquals(e.getOp(), TableOperation.COMPACT);
+    assertEquals(e.getType(), TableOperationExceptionType.OTHER);
+    assertEquals(TableOperationsImpl.TABLE_DELETED_MSG, e.getDescription());
 
     EasyMock.verify(manager, ctx, zrw);
   }

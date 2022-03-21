@@ -18,8 +18,9 @@
  */
 package org.apache.accumulo.manager.tableOps;
 
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,7 +34,7 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tserverOps.ShutdownTServer;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.easymock.EasyMock;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ShutdownTServerTest {
 
@@ -64,7 +65,7 @@ public class ShutdownTServerTest {
 
     // FATE op is not ready
     long wait = op.isReady(tid, manager);
-    assertTrue("Expected wait to be greater than 0", wait > 0);
+    assertTrue(wait > 0, "Expected wait to be greater than 0");
 
     EasyMock.verify(tserverCnxn, manager);
 
@@ -86,10 +87,10 @@ public class ShutdownTServerTest {
 
     // FATE op is not ready
     wait = op.isReady(tid, manager);
-    assertTrue("Expected wait to be 0", wait == 0);
+    assertEquals(0, wait, "Expected wait to be 0");
 
     Repo<Manager> op2 = op.call(tid, manager);
-    assertNull("Expected no follow on step", op2);
+    assertNull(op2, "Expected no follow on step");
 
     EasyMock.verify(tserverCnxn, manager);
   }
