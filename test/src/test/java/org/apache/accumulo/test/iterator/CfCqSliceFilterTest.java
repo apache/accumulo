@@ -31,16 +31,15 @@ import org.apache.accumulo.core.iterators.user.CfCqSliceOpts;
 import org.apache.accumulo.iteratortest.IteratorTestCaseFinder;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
-import org.apache.accumulo.iteratortest.junit4.BaseJUnit4IteratorTest;
+import org.apache.accumulo.iteratortest.junit5.BaseJUnit5IteratorTest;
 import org.apache.accumulo.iteratortest.testcases.IteratorTestCase;
-import org.junit.runners.Parameterized.Parameters;
 
 import com.google.common.collect.Iterables;
 
 /**
  * Iterator test harness tests for CfCqSliceFilter
  */
-public class CfCqSliceFilterTest extends BaseJUnit4IteratorTest {
+public class CfCqSliceFilterTest extends BaseJUnit5IteratorTest {
 
   // Default is inclusive on min and max
   public static final String MIN_CF = "f";
@@ -48,16 +47,29 @@ public class CfCqSliceFilterTest extends BaseJUnit4IteratorTest {
   public static final String MIN_CQ = "q";
   public static final String MAX_CQ = "y";
 
-  @Parameters
-  public static Object[][] parameters() {
-    IteratorTestInput input = getIteratorInput();
-    IteratorTestOutput output = getIteratorOutput();
-    List<IteratorTestCase> tests = IteratorTestCaseFinder.findAllTestCases();
-    return BaseJUnit4IteratorTest.createParameters(input, output, tests);
-  }
-
   private static final TreeMap<Key,Value> INPUT_DATA = createInputData();
   private static final TreeMap<Key,Value> OUTPUT_DATA = createOutputData();
+
+  @Override
+  protected IteratorTestInput getIteratorInput() {
+    HashMap<String,String> options = new HashMap<>();
+    options.put(CfCqSliceOpts.OPT_MIN_CF, MIN_CF);
+    options.put(CfCqSliceOpts.OPT_MAX_CF, MAX_CF);
+    options.put(CfCqSliceOpts.OPT_MIN_CQ, MIN_CQ);
+    options.put(CfCqSliceOpts.OPT_MAX_CQ, MAX_CQ);
+
+    return new IteratorTestInput(CfCqSliceFilter.class, options, new Range(), INPUT_DATA);
+  }
+
+  @Override
+  protected IteratorTestOutput getIteratorOutput() {
+    return new IteratorTestOutput(OUTPUT_DATA);
+  }
+
+  @Override
+  protected List<IteratorTestCase> getIteratorTestCases() {
+    return IteratorTestCaseFinder.findAllTestCases();
+  }
 
   private static TreeMap<Key,Value> createInputData() {
     TreeMap<Key,Value> data = new TreeMap<>();
@@ -104,24 +116,4 @@ public class CfCqSliceFilterTest extends BaseJUnit4IteratorTest {
 
     return data;
   }
-
-  private static IteratorTestInput getIteratorInput() {
-    HashMap<String,String> options = new HashMap<>();
-    options.put(CfCqSliceOpts.OPT_MIN_CF, MIN_CF);
-    options.put(CfCqSliceOpts.OPT_MAX_CF, MAX_CF);
-    options.put(CfCqSliceOpts.OPT_MIN_CQ, MIN_CQ);
-    options.put(CfCqSliceOpts.OPT_MAX_CQ, MAX_CQ);
-
-    return new IteratorTestInput(CfCqSliceFilter.class, options, new Range(), INPUT_DATA);
-  }
-
-  private static IteratorTestOutput getIteratorOutput() {
-    return new IteratorTestOutput(OUTPUT_DATA);
-  }
-
-  public CfCqSliceFilterTest(IteratorTestInput input, IteratorTestOutput expectedOutput,
-      IteratorTestCase testCase) {
-    super(input, expectedOutput, testCase);
-  }
-
 }

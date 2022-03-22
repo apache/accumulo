@@ -30,14 +30,13 @@ import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput.TestOutcome;
-import org.apache.accumulo.iteratortest.junit4.BaseJUnit4IteratorTest;
+import org.apache.accumulo.iteratortest.junit5.BaseJUnit5IteratorTest;
 import org.apache.accumulo.iteratortest.testcases.IteratorTestCase;
-import org.junit.runners.Parameterized.Parameters;
 
 /**
  * A Basic test asserting that the framework is functional.
  */
-public class JUnitFrameworkTest extends BaseJUnit4IteratorTest {
+public class JUnitFrameworkTest extends BaseJUnit5IteratorTest {
 
   /**
    * An IteratorTestCase implementation that returns the original input without any external action.
@@ -57,15 +56,22 @@ public class JUnitFrameworkTest extends BaseJUnit4IteratorTest {
 
   }
 
-  @Parameters
-  public static Object[][] parameters() {
-    IteratorTestInput input = getIteratorInput();
-    IteratorTestOutput output = getIteratorOutput();
-    List<IteratorTestCase> tests = Collections.singletonList(new NoopIteratorTestCase());
-    return BaseJUnit4IteratorTest.createParameters(input, output, tests);
+  private static final TreeMap<Key,Value> DATA = createData();
+
+  @Override
+  protected IteratorTestInput getIteratorInput() {
+    return new IteratorTestInput(IdentityIterator.class, Collections.emptyMap(), new Range(), DATA);
   }
 
-  private static final TreeMap<Key,Value> DATA = createData();
+  @Override
+  protected IteratorTestOutput getIteratorOutput() {
+    return new IteratorTestOutput(DATA);
+  }
+
+  @Override
+  protected List<IteratorTestCase> getIteratorTestCases() {
+    return List.of(new NoopIteratorTestCase());
+  }
 
   private static TreeMap<Key,Value> createData() {
     TreeMap<Key,Value> data = new TreeMap<>();
@@ -73,19 +79,6 @@ public class JUnitFrameworkTest extends BaseJUnit4IteratorTest {
     data.put(new Key("2", "a", ""), new Value("2a"));
     data.put(new Key("3", "a", ""), new Value("3a"));
     return data;
-  }
-
-  private static IteratorTestInput getIteratorInput() {
-    return new IteratorTestInput(IdentityIterator.class, Collections.emptyMap(), new Range(), DATA);
-  }
-
-  private static IteratorTestOutput getIteratorOutput() {
-    return new IteratorTestOutput(DATA);
-  }
-
-  public JUnitFrameworkTest(IteratorTestInput input, IteratorTestOutput expectedOutput,
-      IteratorTestCase testCase) {
-    super(input, expectedOutput, testCase);
   }
 
   /**

@@ -20,6 +20,7 @@ package org.apache.accumulo.test.iterator;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -31,27 +32,33 @@ import org.apache.accumulo.core.iterators.user.AgeOffFilter;
 import org.apache.accumulo.iteratortest.IteratorTestCaseFinder;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
-import org.apache.accumulo.iteratortest.junit4.BaseJUnit4IteratorTest;
+import org.apache.accumulo.iteratortest.junit5.BaseJUnit5IteratorTest;
 import org.apache.accumulo.iteratortest.testcases.IteratorTestCase;
-import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Iterator test harness tests for AgeOffFilter
  */
-public class AgeOffFilterTest extends BaseJUnit4IteratorTest {
+public class AgeOffFilterTest extends BaseJUnit5IteratorTest {
   private static final long NOW = 12345678; // arbitrary base time
   private static final long TTL = 30_000; // 30 seconds
 
-  @Parameters
-  public static Object[][] parameters() {
-    var opts = createOpts();
-    var input = createInputData(opts);
-    var output = createOutputData(input);
-    assertEquals(15, input.getInput().size());
-    assertEquals(10, output.getOutput().size());
+  private static final TreeMap<Key,Value> INPUT_DATA = createInputData();
+  private static final TreeMap<Key,Value> OUTPUT_DATA = createOutputData();
 
-    var tests = IteratorTestCaseFinder.findAllTestCases();
-    return BaseJUnit4IteratorTest.createParameters(input, output, tests);
+  @Override
+  protected IteratorTestInput getIteratorInput() {
+    var opts = createOpts();
+    return new IteratorTestInput(AgeOffFilter.class, opts, new Range(), INPUT_DATA);
+  }
+
+  @Override
+  protected IteratorTestOutput getIteratorOutput() {
+    return new IteratorTestOutput(OUTPUT_DATA);
+  }
+
+  @Override
+  protected List<IteratorTestCase> getIteratorTestCases() {
+    return IteratorTestCaseFinder.findAllTestCases();
   }
 
   // set up the iterator
@@ -64,7 +71,7 @@ public class AgeOffFilterTest extends BaseJUnit4IteratorTest {
 
   // create data with timestamps greater than, equal to, and less than NOW
   // the ones that would be dropped are ones that are older than NOW - TTL
-  private static IteratorTestInput createInputData(Map<String,String> opts) {
+  private static TreeMap<Key,Value> createInputData() {
     TreeMap<Key,Value> data = new TreeMap<>();
     final Value value = new Value("a");
 
@@ -84,20 +91,16 @@ public class AgeOffFilterTest extends BaseJUnit4IteratorTest {
     data.put(new Key("a", "a", "c", NOW - 32_000), value); // Will drop
     data.put(new Key("a", "a", "d", NOW - 32_000), value);
 
-    return new IteratorTestInput(AgeOffFilter.class, opts, new Range(), data);
+    assertEquals(15, data.size());
+    return data;
   }
 
   // create expected output data
   // data should include all input data except those older than the time at NOW - TTL
-  private static IteratorTestOutput createOutputData(IteratorTestInput input) {
-    var data = new TreeMap<Key,Value>(input.getInput());
+  private static TreeMap<Key,Value> createOutputData() {
+    TreeMap<Key,Value> data = new TreeMap<>(INPUT_DATA);
     data.entrySet().removeIf(e -> e.getKey().getTimestamp() < NOW - TTL);
-    return new IteratorTestOutput(data);
+    assertEquals(10, data.size());
+    return data;
   }
-
-  public AgeOffFilterTest(IteratorTestInput input, IteratorTestOutput expectedOutput,
-      IteratorTestCase testCase) {
-    super(input, expectedOutput, testCase);
-  }
-
 }

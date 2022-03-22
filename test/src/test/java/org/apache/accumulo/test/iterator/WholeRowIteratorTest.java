@@ -20,8 +20,8 @@ package org.apache.accumulo.test.iterator;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
@@ -32,26 +32,32 @@ import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.iteratortest.IteratorTestCaseFinder;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
-import org.apache.accumulo.iteratortest.junit4.BaseJUnit4IteratorTest;
+import org.apache.accumulo.iteratortest.junit5.BaseJUnit5IteratorTest;
 import org.apache.accumulo.iteratortest.testcases.IteratorTestCase;
 import org.apache.hadoop.io.Text;
-import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Framework tests for {@link WholeRowIterator}.
  */
-public class WholeRowIteratorTest extends BaseJUnit4IteratorTest {
-
-  @Parameters
-  public static Object[][] parameters() {
-    IteratorTestInput input = getIteratorInput();
-    IteratorTestOutput output = getIteratorOutput();
-    List<IteratorTestCase> tests = IteratorTestCaseFinder.findAllTestCases();
-    return BaseJUnit4IteratorTest.createParameters(input, output, tests);
-  }
+public class WholeRowIteratorTest extends BaseJUnit5IteratorTest {
 
   private static final TreeMap<Key,Value> INPUT_DATA = createInputData();
   private static final TreeMap<Key,Value> OUTPUT_DATA = createOutputData();
+
+  @Override
+  protected IteratorTestInput getIteratorInput() {
+    return new IteratorTestInput(WholeRowIterator.class, Map.of(), new Range(), INPUT_DATA);
+  }
+
+  @Override
+  protected IteratorTestOutput getIteratorOutput() {
+    return new IteratorTestOutput(OUTPUT_DATA);
+  }
+
+  @Override
+  protected List<IteratorTestCase> getIteratorTestCases() {
+    return IteratorTestCaseFinder.findAllTestCases();
+  }
 
   private static TreeMap<Key,Value> createInputData() {
     TreeMap<Key,Value> data = new TreeMap<>();
@@ -136,19 +142,4 @@ public class WholeRowIteratorTest extends BaseJUnit4IteratorTest {
 
     return data;
   }
-
-  private static IteratorTestInput getIteratorInput() {
-    return new IteratorTestInput(WholeRowIterator.class, Collections.emptyMap(), new Range(),
-        INPUT_DATA);
-  }
-
-  private static IteratorTestOutput getIteratorOutput() {
-    return new IteratorTestOutput(OUTPUT_DATA);
-  }
-
-  public WholeRowIteratorTest(IteratorTestInput input, IteratorTestOutput expectedOutput,
-      IteratorTestCase testCase) {
-    super(input, expectedOutput, testCase);
-  }
-
 }

@@ -38,21 +38,37 @@ import org.apache.accumulo.iteratortest.IteratorTestCaseFinder;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
 import org.apache.accumulo.iteratortest.environments.SimpleIteratorEnvironment;
-import org.apache.accumulo.iteratortest.junit4.BaseJUnit4IteratorTest;
+import org.apache.accumulo.iteratortest.junit5.BaseJUnit5IteratorTest;
 import org.apache.accumulo.iteratortest.testcases.IteratorTestCase;
-import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Iterator test harness tests for SummingCombiner
  */
-public class SummingCombinerTest extends BaseJUnit4IteratorTest {
+public class SummingCombinerTest extends BaseJUnit5IteratorTest {
 
-  @Parameters
-  public static Object[][] parameters() {
-    IteratorTestInput input = getIteratorInput();
-    IteratorTestOutput output = getIteratorOutput();
-    List<IteratorTestCase> tests = IteratorTestCaseFinder.findAllTestCases();
-    return BaseJUnit4IteratorTest.createParameters(input, output, tests);
+  @Override
+  protected IteratorTestInput getIteratorInput() {
+    IteratorSetting setting = new IteratorSetting(50, SummingCombiner.class);
+    LongCombiner.setEncodingType(setting, LongCombiner.Type.STRING);
+    Combiner.setCombineAllColumns(setting, true);
+    Combiner.setReduceOnFullCompactionOnly(setting, false);
+    return new IteratorTestInput(SummingCombiner.class, setting.getOptions(), new Range(),
+        INPUT_DATA, new SimpleIteratorEnvironment() {
+          @Override
+          public IteratorScope getIteratorScope() {
+            return IteratorScope.majc;
+          }
+        });
+  }
+
+  @Override
+  protected IteratorTestOutput getIteratorOutput() {
+    return new IteratorTestOutput(OUTPUT_DATA);
+  }
+
+  @Override
+  protected List<IteratorTestCase> getIteratorTestCases() {
+    return IteratorTestCaseFinder.findAllTestCases();
   }
 
   private static final TreeMap<Key,Value> INPUT_DATA = createInputData();
@@ -117,28 +133,4 @@ public class SummingCombinerTest extends BaseJUnit4IteratorTest {
 
     return data;
   }
-
-  private static IteratorTestInput getIteratorInput() {
-    IteratorSetting setting = new IteratorSetting(50, SummingCombiner.class);
-    LongCombiner.setEncodingType(setting, LongCombiner.Type.STRING);
-    Combiner.setCombineAllColumns(setting, true);
-    Combiner.setReduceOnFullCompactionOnly(setting, false);
-    return new IteratorTestInput(SummingCombiner.class, setting.getOptions(), new Range(),
-        INPUT_DATA, new SimpleIteratorEnvironment() {
-          @Override
-          public IteratorScope getIteratorScope() {
-            return IteratorScope.majc;
-          }
-        });
-  }
-
-  private static IteratorTestOutput getIteratorOutput() {
-    return new IteratorTestOutput(OUTPUT_DATA);
-  }
-
-  public SummingCombinerTest(IteratorTestInput input, IteratorTestOutput expectedOutput,
-      IteratorTestCase testCase) {
-    super(input, expectedOutput, testCase);
-  }
-
 }
