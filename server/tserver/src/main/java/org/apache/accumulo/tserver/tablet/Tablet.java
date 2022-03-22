@@ -1463,6 +1463,10 @@ public class Tablet {
     Preconditions.checkArgument(tabletMetadata.getExtent().equals(getExtent()),
         "Tablet metadata had unexpected extent %s != %s", tabletMetadata.getExtent(), getExtent());
 
+    // All of the log messages in this method have the AMCC acronym which means Accumulo Metadata
+    // Consistency Check.  AMCC was added to the log messages to make grep/search for all log
+    // message from this method easy to find.
+
     if (isClosed() || isClosing()) {
       log.trace("AMCC Tablet {} was closed, so skipping check", tabletMetadata.getExtent());
       return;
