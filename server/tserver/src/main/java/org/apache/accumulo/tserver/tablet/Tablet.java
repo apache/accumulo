@@ -1472,7 +1472,7 @@ public class Tablet {
 
     if (!tabletMetadata.getFilesMap().equals(dataFileSizes)) {
       // The counters are modified outside of locks before and after tablet metadata operations and
-      // data file updates so its very important to aquire the 2nd counts after doing the equality
+      // data file updates so, it's very important to acquire the 2nd counts after doing the equality
       // check above. If the counts are the same (as the ones acquired before reading metadata
       // table) after the equality check above then we know the tablet did not do any updates while
       // we were reading metadata and then comparing.
