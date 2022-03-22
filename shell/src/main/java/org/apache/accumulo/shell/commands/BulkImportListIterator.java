@@ -33,11 +33,11 @@ public class BulkImportListIterator implements Iterator<String> {
 
   public BulkImportListIterator(List<String> tservers, ManagerMonitorInfo stats) {
     List<String> result = new ArrayList<>();
-    for (BulkImportStatus status : stats.bulkImports) {
+    for (BulkImportStatus status : stats.getBulkImports()) {
       result.add(format(status));
     }
     if (!tservers.isEmpty()) {
-      for (TabletServerStatus tserver : stats.tServerInfo) {
+      for (TabletServerStatus tserver : stats.getTServerInfo()) {
         if (tservers.contains(tserver.name)) {
           result.add(tserver.name + ":");
           for (BulkImportStatus status : tserver.bulkImports) {
