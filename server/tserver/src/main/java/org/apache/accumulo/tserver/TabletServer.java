@@ -29,6 +29,8 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.UnknownHostException;
 import java.security.SecureRandom;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -163,6 +165,9 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterators;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 public class TabletServer extends AbstractServer {
 
@@ -809,27 +814,40 @@ public class TabletServer extends AbstractServer {
     // Periodically check that metadata of tablets matches what is held in memory
     ThreadPools.watchCriticalScheduledTask(ThreadPools.getServerThreadPools()
         .createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(() -> {
-          final SortedMap<KeyExtent,Tablet> onlineTabletsSnapshot = onlineTablets.snapshot();
+          Instant start = Instant.now();
+          Span mdScanSpan = TraceUtil.startSpan(this.getClass(), "metadataScan");
+          try (Scope scope = mdScanSpan.makeCurrent()) {
+            final SortedMap<KeyExtent,Tablet> onlineTabletsSnapshot = onlineTablets.snapshot();
 
-          Map<KeyExtent,Long> updateCounts = new HashMap<>();
+            Map<KeyExtent,Long> updateCounts = new HashMap<>();
 
-          // gather updateCounts for each tablet
-          onlineTabletsSnapshot.forEach((ke, tablet) -> {
-            updateCounts.put(ke, tablet.getUpdateCount());
-          });
-
-          // gather metadata for all tablets readTablets()
-          try (TabletsMetadata tabletsMetadata =
-              getContext().getAmple().readTablets().forTablets(onlineTabletsSnapshot.keySet())
-                  .fetch(FILES, LOGS, ECOMP, PREV_ROW).build()) {
-
-            // for each tablet, compare its metadata to what is held in memory
-            tabletsMetadata.forEach(tabletMetadata -> {
-              KeyExtent extent = tabletMetadata.getExtent();
-              Tablet tablet = onlineTabletsSnapshot.get(extent);
-              Long counter = updateCounts.get(extent);
-              tablet.compareTabletInfo(counter, tabletMetadata);
+            // gather updateCounts for each tablet
+            onlineTabletsSnapshot.forEach((ke, tablet) -> {
+              updateCounts.put(ke, tablet.getUpdateCount());
             });
+
+            // gather metadata for all tablets readTablets()
+            try (TabletsMetadata tabletsMetadata =
+                getContext().getAmple().readTablets().forTablets(onlineTabletsSnapshot.keySet())
+                    .fetch(FILES, LOGS, ECOMP, PREV_ROW).build()) {
+
+              // for each tablet, compare its metadata to what is held in memory
+              tabletsMetadata.forEach(tabletMetadata -> {
+                KeyExtent extent = tabletMetadata.getExtent();
+                Tablet tablet = onlineTabletsSnapshot.get(extent);
+                Long counter = updateCounts.get(extent);
+                tablet.compareTabletInfo(counter, tabletMetadata);
+              });
+            }
+          } finally {
+            mdScanSpan.end();
+            Instant end = Instant.now();
+            Duration duration = Duration.between(start, end);
+            log.debug("Metadata scan took {}ms", duration.toMillis());
+            if (duration.toMinutes() > 5) {
+              log.warn(
+                  "Metadata scan is taking too long. Performance of all activities will be severely hindered!");
+            }
           }
         }, tabletCheckFrequency, tabletCheckFrequency, TimeUnit.MINUTES));
 
