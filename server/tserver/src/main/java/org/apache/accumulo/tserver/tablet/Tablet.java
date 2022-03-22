@@ -1483,7 +1483,8 @@ public class Tablet {
       var latestCount = this.getUpdateCount();
       if (updateCounter.overlapsUpdate() || !updateCounter.equals(latestCount)) {
         log.trace(
-            "AMCC Tablet {} may have been updating its metadata while it was being read for check, so skipping check {} {}",
+            "AMCC Tablet {} may have been updating its metadata while it was being read for " +
+                "check, so skipping check {} {}",
             tabletMetadata.getExtent(), updateCounter, latestCount);
       } else {
         log.error("AMCC Data files in {} differ from in-memory data {} {} {} {}", extent,
