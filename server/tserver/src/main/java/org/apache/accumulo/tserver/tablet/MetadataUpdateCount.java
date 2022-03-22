@@ -22,6 +22,14 @@ import java.util.Objects;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 
+/**
+ * The tablet server does periodic consistency checks to see if what is in the metadata table agrees
+ * with what each tablet has in memory. When doing these checks its very important to know if the
+ * tablet severs read from the metadata table overlaps in time with any tablet metadata table
+ * updates. These counts allow that to be known. For example if these counts are acquired twice for
+ * a tablet and are the same both times it means that no metadata table updates occurred between the
+ * two acquisition times.
+ */
 public class MetadataUpdateCount {
   private final KeyExtent extent;
   private final long startedCount;

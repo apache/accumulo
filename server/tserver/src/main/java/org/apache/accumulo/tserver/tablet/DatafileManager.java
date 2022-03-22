@@ -71,8 +71,12 @@ class DatafileManager {
   private final Object bulkFileImportLock = new Object();
 
   // This must be incremented before and after datafileSizes and metadata table updates. These
-  // counts allow detection of overlapping operation w/o placing a lock around metadata table
-  // updates and datafileSizes updates.
+  // counts allow detection of overlapping operations w/o placing a lock around metadata table
+  // updates and datafileSizes updates. There is a periodic metadata consistency check that runs in
+  // the tablet server against all tablets. This check compares what a tablet object has in memory
+  // to what is in the metadata table to ensure they are in agreement. Inorder to avoid false
+  // positives, when this consistency check runs its needs to know if it overlaps in time with any
+  // metadata updates made by the tablet. The consistency check uses these counts to know that.
   private final AtomicReference<MetadataUpdateCount> metadataUpdateCount;
 
   DatafileManager(Tablet tablet, SortedMap<StoredTabletFile,DataFileValue> datafileSizes) {
@@ -250,6 +254,7 @@ class DatafileManager {
       }
     }
 
+    // increment start count before metadata update AND updating in memory map of files
     metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementStart);
     // do not place any code here between above stmt and try{}finally
     try {
@@ -270,6 +275,7 @@ class DatafileManager {
         TabletLogger.bulkImported(tablet.getExtent(), entry.getKey());
       }
     } finally {
+      // increment finish count after metadata update AND updating in memory map of files
       metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementFinish);
     }
 
@@ -366,6 +372,7 @@ class DatafileManager {
       tablet.finishClearingUnusedLogs();
     }
 
+    // increment start count before metadata update AND updating in memory map of files
     metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementStart);
     // do not place any code here between above stmt and try{}finally
     try {
@@ -400,6 +407,7 @@ class DatafileManager {
         t2 = System.currentTimeMillis();
       }
     } finally {
+      // increment finish count after metadata update AND updating in memory map of files
       metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementFinish);
     }
 
@@ -446,6 +454,7 @@ class DatafileManager {
 
     Long compactionIdToWrite = null;
 
+    // increment start count before metadata update AND updating in memory map of files
     metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementStart);
     // do not place any code here between above stmt and try{}finally
     try {
@@ -494,6 +503,7 @@ class DatafileManager {
       removeFilesAfterScan(filesInUseByScans);
 
     } finally {
+      // increment finish count after metadata update AND updating in memory map of files
       metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementFinish);
     }
 
