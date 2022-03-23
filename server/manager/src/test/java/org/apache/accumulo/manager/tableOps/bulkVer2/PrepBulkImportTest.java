@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.bulkVer2;
 
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -46,7 +46,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.manager.tableOps.bulkVer2.PrepBulkImport.TabletIterFactory;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -150,8 +150,8 @@ public class PrepBulkImportTest {
   public void runExceptionTest(List<KeyExtent> loadRanges, List<KeyExtent> tabletRanges) {
     String message = "expected " + toRangeStrings(loadRanges) + " to fail against "
         + toRangeStrings(tabletRanges);
-    assertThrows(message, AcceptableThriftTableOperationException.class,
-        () -> runTest(loadRanges, tabletRanges));
+    assertThrows(AcceptableThriftTableOperationException.class,
+        () -> runTest(loadRanges, tabletRanges), message);
   }
 
   @Test
@@ -185,7 +185,7 @@ public class PrepBulkImportTest {
   }
 
   @Test
-  public void testException() throws Exception {
+  public void testException() {
     for (List<KeyExtent> loadRanges : powerSet(nke(null, "b"), nke("b", "m"), nke("m", "r"),
         nke("r", "v"), nke("v", null))) {
 
@@ -274,6 +274,6 @@ public class PrepBulkImportTest {
     var exception = assertThrows(ThriftTableOperationException.class,
         () -> runTest(loadRanges, createExtents(tablets), maxTablets));
     String message = exception.toString();
-    assertTrue(expectedMessage + " -- " + message, exception.toString().contains(expectedMessage));
+    assertTrue(exception.toString().contains(expectedMessage), expectedMessage + " -- " + message);
   }
 }

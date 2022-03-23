@@ -23,8 +23,8 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -44,18 +44,18 @@ import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.hadoop.fs.Path;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 @Deprecated
-@Ignore("Replication Tests are not stable and not currently maintained")
+@Disabled("Replication Tests are not stable and not currently maintained")
 public class UnorderedWorkAssignerTest {
 
   private AccumuloClient client;
   private UnorderedWorkAssigner assigner;
 
-  @Before
+  @BeforeEach
   public void init() {
     AccumuloConfiguration conf = createMock(AccumuloConfiguration.class);
     client = createMock(AccumuloClient.class);
@@ -105,9 +105,9 @@ public class UnorderedWorkAssignerTest {
     verify(workQueue);
 
     Set<String> queuedWork = assigner.getQueuedWork();
-    assertEquals("Expected existing work and queued work to be the same size", existingWork.size(),
-        queuedWork.size());
-    assertTrue("Expected all existing work to be queued", queuedWork.containsAll(existingWork));
+    assertEquals(existingWork.size(), queuedWork.size(),
+        "Expected existing work and queued work to be the same size");
+    assertTrue(queuedWork.containsAll(existingWork), "Expected all existing work to be queued");
   }
 
   @Test
@@ -132,7 +132,7 @@ public class UnorderedWorkAssignerTest {
     assigner.cleanupFinishedWork();
 
     verify(cache, client);
-    assertTrue("Queued work was not emptied", queuedWork.isEmpty());
+    assertTrue(queuedWork.isEmpty(), "Queued work was not emptied");
   }
 
 }

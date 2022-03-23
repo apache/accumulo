@@ -22,7 +22,7 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -38,8 +38,8 @@ import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 @Deprecated
 public class SequentialWorkAssignerTest {
@@ -47,7 +47,7 @@ public class SequentialWorkAssignerTest {
   private AccumuloClient client;
   private SequentialWorkAssigner assigner;
 
-  @Before
+  @BeforeEach
   public void init() {
     AccumuloConfiguration conf = createMock(AccumuloConfiguration.class);
     client = createMock(AccumuloClient.class);

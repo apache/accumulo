@@ -127,26 +127,37 @@ public class FateCommand extends Command {
     }
   }
 
+  protected String getZKRoot(ClientContext context) {
+    return context.getZooKeeperRoot();
+  }
+
+  synchronized ZooReaderWriter getZooReaderWriter(ClientContext context, String secret) {
+    if (secret == null) {
+      secret = SiteConfiguration.auto().get(Property.INSTANCE_SECRET);
+    }
+    return context.getZooReader().asWriter(secret);
+  }
+
+  protected ZooStore<FateCommand> getZooStore(String fateZkPath, ZooReaderWriter zrw)
+      throws KeeperException, InterruptedException {
+    return new ZooStore<FateCommand>(fateZkPath, zrw);
+  }
+
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws ParseException, KeeperException, InterruptedException, IOException, AccumuloException,
       AccumuloSecurityException {
     ClientContext context = shellState.getContext();
-    var siteConfig = SiteConfiguration.auto();
-    String[] args = cl.getArgs();
-    if (args.length <= 0) {
-      throw new ParseException("Must provide a command to execute");
-    }
     boolean failedCommand = false;
 
     AdminUtil<FateCommand> admin = new AdminUtil<>(false);
 
-    String fatePath = context.getZooKeeperRoot() + Constants.ZFATE;
-    var managerLockPath = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK);
-    var tableLocksPath = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS);
-    ZooReaderWriter zk =
-        getZooReaderWriter(context, siteConfig, cl.getOptionValue(secretOption.getOpt()));
-    ZooStore<FateCommand> zs = new ZooStore<>(fatePath, zk);
+    String zkRoot = getZKRoot(context);
+    String fatePath = zkRoot + Constants.ZFATE;
+    var managerLockPath = ServiceLock.path(zkRoot + Constants.ZMANAGER_LOCK);
+    var tableLocksPath = ServiceLock.path(zkRoot + Constants.ZTABLE_LOCKS);
+    ZooReaderWriter zk = getZooReaderWriter(context, cl.getOptionValue(secretOption.getOpt()));
+    ZooStore<FateCommand> zs = getZooStore(fatePath, zk);
 
     if (cl.hasOption(cancel.getOpt())) {
       String[] txids = cl.getOptionValues(cancel.getOpt());
@@ -201,7 +212,7 @@ public class FateCommand extends Command {
     return gson.toJson(txStacks);
   }
 
-  private void printTx(Shell shellState, AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
+  protected void printTx(Shell shellState, AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
       ZooReaderWriter zk, ServiceLock.ServiceLockPath tableLocksPath, String[] args, CommandLine cl,
       boolean printStatus) throws InterruptedException, KeeperException, IOException {
     // Parse transaction ID filters for print display
@@ -231,7 +242,7 @@ public class FateCommand extends Command {
         !cl.hasOption(disablePaginationOpt.getOpt()));
   }
 
-  private boolean deleteTx(AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
+  protected boolean deleteTx(AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
       ZooReaderWriter zk, ServiceLockPath zLockManagerPath, String[] args)
       throws InterruptedException, KeeperException {
     for (int i = 1; i < args.length; i++) {
@@ -246,12 +257,12 @@ public class FateCommand extends Command {
   }
 
   private void validateArgs(String[] args) throws ParseException {
-    if (args.length <= 1) {
+    if (args.length < 1) {
       throw new ParseException("Must provide transaction ID");
     }
   }
 
-  private boolean cancelSubmittedTxs(final Shell shellState, String[] args)
+  protected boolean cancelSubmittedTxs(final Shell shellState, String[] args)
       throws AccumuloException, AccumuloSecurityException {
     ClientContext context = shellState.getContext();
     for (int i = 1; i < args.length; i++) {
@@ -286,16 +297,6 @@ public class FateCommand extends Command {
       }
     }
     return success;
-  }
-
-  synchronized ZooReaderWriter getZooReaderWriter(ClientContext context,
-      SiteConfiguration siteConfig, String secret) {
-
-    if (secret == null) {
-      secret = siteConfig.get(Property.INSTANCE_SECRET);
-    }
-
-    return context.getZooReader().asWriter(secret);
   }
 
   @Override

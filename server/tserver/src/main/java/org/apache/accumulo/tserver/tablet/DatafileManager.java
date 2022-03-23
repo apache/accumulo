@@ -66,7 +66,7 @@ class DatafileManager {
       Collections.synchronizedMap(new TreeMap<>());
   private final Tablet tablet;
 
-  // ensure we only have one reader/writer of our bulk file notes at at time
+  // ensure we only have one reader/writer of our bulk file notes at a time
   private final Object bulkFileImportLock = new Object();
 
   // This must be incremented whenever datafileSizes is mutated

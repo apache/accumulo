@@ -20,7 +20,6 @@ package org.apache.accumulo.test.functional;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
-import static org.apache.accumulo.test.functional.KerberosRenewalIT.TEST_DURATION_MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map;
