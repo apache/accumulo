@@ -810,7 +810,7 @@ public class TabletServer extends AbstractServer {
     }, 0, 5, TimeUnit.SECONDS);
     ThreadPools.watchNonCriticalScheduledTask(future);
 
-    int tabletCheckFrequency = 30 + random.nextInt(31); // random 30-60 minute delay
+    long tabletCheckFrequency = aconf.getTimeInMillis(Property.TSERV_HEALTH_CHECK_FREQ);
     // Periodically check that metadata of tablets matches what is held in memory
     ThreadPools.watchCriticalScheduledTask(ThreadPools.getServerThreadPools()
         .createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(() -> {
@@ -824,7 +824,7 @@ public class TabletServer extends AbstractServer {
           });
 
           Instant start = Instant.now();
-          Duration duration = Duration.ZERO;
+          Duration duration;
           int tabletCount = 0;
           Span mdScanSpan = TraceUtil.startSpan(this.getClass(), "metadataScan");
           try (Scope scope = mdScanSpan.makeCurrent()) {
@@ -847,14 +847,8 @@ public class TabletServer extends AbstractServer {
               log.debug("Metadata scan took {}ms for {} tablets read.", duration.toMillis(),
                   tabletCount);
             }
-          } finally {
-            if (duration.toMinutes() > 1) {
-              log.warn(
-                  "Metadata scan took {}ms for {} tablets. Performance of all activities will be severely hindered!",
-                  duration.toMillis(), tabletCount);
-            }
           }
-        }, tabletCheckFrequency, tabletCheckFrequency, TimeUnit.MINUTES));
+        }, tabletCheckFrequency, tabletCheckFrequency, TimeUnit.MILLISECONDS));
 
     final long CLEANUP_BULK_LOADED_CACHE_MILLIS = TimeUnit.MINUTES.toMillis(15);
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
