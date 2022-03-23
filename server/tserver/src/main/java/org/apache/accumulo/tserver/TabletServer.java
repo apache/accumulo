@@ -836,12 +836,13 @@ public class TabletServer extends AbstractServer {
               duration = Duration.between(start, Instant.now());
 
               // for each tablet, compare its metadata to what is held in memory
-              tabletsMetadata.forEach(tabletMetadata -> {
+              for (var tabletMetadata : tabletsMetadata) {
+                tabletCount++;
                 KeyExtent extent = tabletMetadata.getExtent();
                 Tablet tablet = onlineTabletsSnapshot.get(extent);
                 Long counter = updateCounts.get(extent);
                 tablet.compareTabletInfo(counter, tabletMetadata);
-              });
+              }
 
               log.debug("Metadata scan took {}ms for {} tablets read.", duration.toMillis(),
                   tabletCount);
