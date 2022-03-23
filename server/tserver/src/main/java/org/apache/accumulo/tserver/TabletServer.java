@@ -814,22 +814,26 @@ public class TabletServer extends AbstractServer {
     // Periodically check that metadata of tablets matches what is held in memory
     ThreadPools.watchCriticalScheduledTask(ThreadPools.getServerThreadPools()
         .createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(() -> {
+          final SortedMap<KeyExtent,Tablet> onlineTabletsSnapshot = onlineTablets.snapshot();
+
+          Map<KeyExtent,Long> updateCounts = new HashMap<>();
+
+          // gather updateCounts for each tablet
+          onlineTabletsSnapshot.forEach((ke, tablet) -> {
+            updateCounts.put(ke, tablet.getUpdateCount());
+          });
+
           Instant start = Instant.now();
+          Duration duration = Duration.ZERO;
+          int tabletCount = 0;
           Span mdScanSpan = TraceUtil.startSpan(this.getClass(), "metadataScan");
           try (Scope scope = mdScanSpan.makeCurrent()) {
-            final SortedMap<KeyExtent,Tablet> onlineTabletsSnapshot = onlineTablets.snapshot();
-
-            Map<KeyExtent,Long> updateCounts = new HashMap<>();
-
-            // gather updateCounts for each tablet
-            onlineTabletsSnapshot.forEach((ke, tablet) -> {
-              updateCounts.put(ke, tablet.getUpdateCount());
-            });
-
             // gather metadata for all tablets readTablets()
             try (TabletsMetadata tabletsMetadata =
                 getContext().getAmple().readTablets().forTablets(onlineTabletsSnapshot.keySet())
                     .fetch(FILES, LOGS, ECOMP, PREV_ROW).build()) {
+              mdScanSpan.end();
+              duration = Duration.between(start, Instant.now());
 
               // for each tablet, compare its metadata to what is held in memory
               tabletsMetadata.forEach(tabletMetadata -> {
@@ -838,15 +842,15 @@ public class TabletServer extends AbstractServer {
                 Long counter = updateCounts.get(extent);
                 tablet.compareTabletInfo(counter, tabletMetadata);
               });
+
+              log.debug("Metadata scan took {}ms for {} tablets read.", duration.toMillis(),
+                  tabletCount);
             }
           } finally {
-            mdScanSpan.end();
-            Instant end = Instant.now();
-            Duration duration = Duration.between(start, end);
-            log.debug("Metadata scan took {}ms", duration.toMillis());
-            if (duration.toMinutes() > 5) {
+            if (duration.toMinutes() > 1) {
               log.warn(
-                  "Metadata scan is taking too long. Performance of all activities will be severely hindered!");
+                  "Metadata scan took {}ms for {} tablets. Performance of all activities will be severely hindered!",
+                  duration.toMillis(), tabletCount);
             }
           }
         }, tabletCheckFrequency, tabletCheckFrequency, TimeUnit.MINUTES));
