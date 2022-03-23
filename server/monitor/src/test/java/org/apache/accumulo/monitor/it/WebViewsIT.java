@@ -23,8 +23,8 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -52,10 +52,10 @@ import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
 import org.glassfish.jersey.test.TestProperties;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 /**
  * Basic tests for parameter validation constraints
@@ -81,7 +81,7 @@ public class WebViewsIT extends JerseyTest {
 
   private static AtomicReference<Monitor> monitor = new AtomicReference<>(null);
 
-  @BeforeClass
+  @BeforeAll
   public static void createMocks() throws TableNotFoundException {
     ServerContext contextMock = createMock(ServerContext.class);
     expect(contextMock.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
@@ -97,7 +97,7 @@ public class WebViewsIT extends JerseyTest {
     monitor.set(monitorMock);
   }
 
-  @AfterClass
+  @AfterAll
   public static void finishMocks() {
     Monitor m = monitor.get();
     verify(m.getContext(), m);
@@ -111,7 +111,7 @@ public class WebViewsIT extends JerseyTest {
   @Test
   public void testGetTablesConstraintViolations() {
     Response output = target("tables/f+o*o").request().get();
-    assertEquals("should return status 400", 400, output.getStatus());
+    assertEquals(400, output.getStatus(), "should return status 400");
   }
 
   /**
@@ -132,7 +132,7 @@ public class WebViewsIT extends JerseyTest {
     // response.
     // Our silly HashMapWriter registered in the configure method gets wired in and used here.
     Response output = target("tables/foo").request().get();
-    assertEquals("should return status 200", 200, output.getStatus());
+    assertEquals(200, output.getStatus(), "should return status 200");
     String responseBody = output.readEntity(String.class);
     assertTrue(responseBody.contains("tableID=foo") && responseBody.contains("table=bar"));
   }
@@ -144,11 +144,11 @@ public class WebViewsIT extends JerseyTest {
   public void testGetTracesSummaryValidationConstraint() {
     // Test upper bounds of constraint
     Response output = target("trace/summary").queryParam("minutes", 5000000).request().get();
-    assertEquals("should return status 400", 400, output.getStatus());
+    assertEquals(400, output.getStatus(), "should return status 400");
 
     // Test lower bounds of constraint
     output = target("trace/summary").queryParam("minutes", -27).request().get();
-    assertEquals("should return status 400", 400, output.getStatus());
+    assertEquals(400, output.getStatus(), "should return status 400");
   }
 
   /**
