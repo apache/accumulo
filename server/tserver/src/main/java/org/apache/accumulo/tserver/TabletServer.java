@@ -847,7 +847,7 @@ public class TabletServer extends AbstractServer {
           }
 
           log.debug("Metadata scan took {}ms for {} tablets read.", duration.toMillis(),
-              tabletCount);
+              onlineTabletsSnapshot.keySet().size());
         }
       }
     });
