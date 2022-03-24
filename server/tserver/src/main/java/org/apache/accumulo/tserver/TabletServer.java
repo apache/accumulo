@@ -827,7 +827,6 @@ public class TabletServer extends AbstractServer {
 
       Instant start = Instant.now();
       Duration duration;
-      int tabletCount = 0;
       Span mdScanSpan = TraceUtil.startSpan(this.getClass(), "metadataScan");
       try (Scope scope = mdScanSpan.makeCurrent()) {
         // gather metadata for all tablets readTablets()
@@ -836,18 +835,16 @@ public class TabletServer extends AbstractServer {
                 .fetch(FILES, LOGS, ECOMP, PREV_ROW).build()) {
           mdScanSpan.end();
           duration = Duration.between(start, Instant.now());
+          log.debug("Metadata scan took {}ms for {} tablets read.", duration.toMillis(),
+              onlineTabletsSnapshot.keySet().size());
 
           // for each tablet, compare its metadata to what is held in memory
           for (var tabletMetadata : tabletsMetadata) {
-            tabletCount++;
             KeyExtent extent = tabletMetadata.getExtent();
             Tablet tablet = onlineTabletsSnapshot.get(extent);
             Long counter = updateCounts.get(extent);
             tablet.compareTabletInfo(counter, tabletMetadata);
           }
-
-          log.debug("Metadata scan took {}ms for {} tablets read.", duration.toMillis(),
-              onlineTabletsSnapshot.keySet().size());
         }
       }
     });
