@@ -32,7 +32,7 @@ import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.rest.tables.CompactionsTypes;
 import org.apache.accumulo.monitor.rest.trace.RecoveryStatusInformation;
 import org.easymock.EasyMock;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TabletServerInformationTest {
 
