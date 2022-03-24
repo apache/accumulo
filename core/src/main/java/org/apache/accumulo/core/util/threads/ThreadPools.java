@@ -166,6 +166,13 @@ public class ThreadPools {
     CRITICAL_RUNNING_TASKS.add(future);
   }
 
+  public static void watchCriticalFixedDelay(AccumuloConfiguration aconf, long intervalMillis,
+      Runnable runnable) {
+    ScheduledFuture<?> future = getServerThreadPools().createGeneralScheduledExecutorService(aconf)
+        .scheduleWithFixedDelay(runnable, intervalMillis, intervalMillis, TimeUnit.MILLISECONDS);
+    CRITICAL_RUNNING_TASKS.add(future);
+  }
+
   public static void watchNonCriticalScheduledTask(ScheduledFuture<?> future) {
     NON_CRITICAL_RUNNING_TASKS.add(future);
   }
