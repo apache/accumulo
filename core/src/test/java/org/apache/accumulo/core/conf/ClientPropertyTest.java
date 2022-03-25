@@ -78,4 +78,9 @@ public class ClientPropertyTest {
     assertThrows(IllegalStateException.class,
         () -> ClientProperty.BATCH_WRITER_LATENCY_MAX.getBytes(props));
   }
+
+  @Test
+  public void validateThrowsNPEOnNullProperties() {
+    assertThrows(NullPointerException.class, () -> ClientProperty.validate(null));
+  }
 }
