@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -59,6 +60,8 @@ import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -71,6 +74,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * have to find the logs and grep the bits we need out.
  */
 public class AuditMessageIT extends ConfigurableMacBase {
+
+  private static final Logger log = LoggerFactory.getLogger(AuditMessageIT.class);
 
   private static final String AUDIT_USER_1 = "AuditUser1";
   private static final String AUDIT_USER_2 = "AuditUser2";
@@ -466,7 +471,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
     assertThrows(AccumuloSecurityException.class, () -> tableOps.offline(OLD_TEST_TABLE_NAME));
 
     try (Scanner scanner = auditAccumuloClient.createScanner(OLD_TEST_TABLE_NAME, auths)) {
-      assertThrows(RuntimeException.class, () -> scanner.iterator().next().getKey());
+      Iterator<Map.Entry<Key,Value>> iterator = scanner.iterator();
+      assertThrows(RuntimeException.class, iterator::next);
     }
 
     assertThrows(AccumuloSecurityException.class,
