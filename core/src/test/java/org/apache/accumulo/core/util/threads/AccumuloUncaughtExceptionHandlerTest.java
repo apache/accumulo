@@ -19,13 +19,13 @@
 package org.apache.accumulo.core.util.threads;
 
 import static org.apache.accumulo.core.util.threads.AccumuloUncaughtExceptionHandler.isError;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class AccumuloUncaughtExceptionHandlerTest {
 

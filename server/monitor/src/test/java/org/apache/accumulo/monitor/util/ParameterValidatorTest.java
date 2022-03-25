@@ -18,12 +18,12 @@
  */
 package org.apache.accumulo.monitor.util;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.regex.Pattern;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Basic tests for ParameterValidator
@@ -46,15 +46,15 @@ public class ParameterValidatorTest {
   @Test
   public void testServerRegex() {
     Pattern p = Pattern.compile(ParameterValidator.HOSTNAME_PORT_REGEX);
-    assertTrue("Did not match hostname with dots", p.matcher("ab3cd.12d34.3xyz.net:12").matches());
-    assertTrue("Did not match hostname with dash",
-        p.matcher("abcd.123.server-foo.com:56789").matches());
-    assertTrue("Did not match hostname and port",
-        p.matcher("abcd.123.server-foo.com:1234").matches());
-    assertTrue("Did not match all numeric and port", p.matcher("127.0.0.1:9999").matches());
-    assertTrue("Did not match all numeric and port", p.matcher("ServerName:9999").matches());
+    assertTrue(p.matcher("ab3cd.12d34.3xyz.net:12").matches(), "Did not match hostname with dots");
+    assertTrue(p.matcher("abcd.123.server-foo.com:56789").matches(),
+        "Did not match hostname with dash");
+    assertTrue(p.matcher("abcd.123.server-foo.com:1234").matches(),
+        "Did not match hostname and port");
+    assertTrue(p.matcher("127.0.0.1:9999").matches(), "Did not match all numeric and port");
+    assertTrue(p.matcher("ServerName:9999").matches(), "Did not match all numeric and port");
 
-    assertFalse("Port number required", p.matcher("127.0.0.1").matches());
+    assertFalse(p.matcher("127.0.0.1").matches(), "Port number required");
     assertFalse(p.matcher("abcd.1234.*.xyz").matches());
     assertFalse(p.matcher("abcd.1234.;xyz").matches());
     assertFalse(p.matcher("abcd.12{3}4.xyz").matches());
