@@ -28,6 +28,8 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.rfile.RFile;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -45,6 +47,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
 
+import static org.apache.accumulo.core.conf.ConfigurationTypeHelper.getMemoryAsBytes;
+
 /**
  * Iterates over multiple sorted recovery logs merging them into a single sorted stream.
  */
@@ -61,6 +65,9 @@ public class RecoveryLogsIterator
    */
   public RecoveryLogsIterator(ServerContext context, List<Path> recoveryLogDirs, LogFileKey start,
       LogFileKey end, boolean checkFirstKey) throws IOException {
+    var conf = context.getConfiguration();
+    var indexCacheSize = getMemoryAsBytes(conf.get(Property.TSERV_INDEXCACHE_SIZE));
+    var dataCacheSize = getMemoryAsBytes(conf.get(Property.TSERV_DATACACHE_SIZE));
 
     List<Iterator<Entry<Key,Value>>> iterators = new ArrayList<>(recoveryLogDirs.size());
     scanners = new ArrayList<>();
@@ -79,7 +86,8 @@ public class RecoveryLogsIterator
 
       for (Path log : logFiles) {
         var scanner = RFile.newScanner().from(log.toString()).withFileSystem(fs)
-            .withTableProperties(context.getConfiguration()).build();
+            .withTableProperties(context.getConfiguration()).withDataCache(dataCacheSize)
+            .withIndexCache(indexCacheSize).build();
 
         scanner.setRange(range);
         Iterator<Entry<Key,Value>> scanIter = scanner.iterator();
