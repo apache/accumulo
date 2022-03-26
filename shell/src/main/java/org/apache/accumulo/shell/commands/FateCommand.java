@@ -94,8 +94,8 @@ public class FateCommand extends Command {
 
   protected void dumpTx(Shell shellState, String[] args) throws AccumuloException {
 
-    if(args == null) {
-      args = new String[]{};
+    if (args == null) {
+      args = new String[] {};
     }
 
     List<TransactionStatus> txStatuses =
@@ -120,8 +120,8 @@ public class FateCommand extends Command {
     StringBuilder sb = new StringBuilder(8096);
     Formatter fmt = new Formatter(sb);
 
-    if(args == null) {
-      args = new String[]{};
+    if (args == null) {
+      args = new String[] {};
     }
 
     List<TransactionStatus> txStatuses = shellState.getAccumuloClient().instanceOperations()
