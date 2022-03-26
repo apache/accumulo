@@ -142,7 +142,7 @@ public class FateCommand extends Command {
   protected void cancelSubmittedTxs(final Shell shellState, String[] args)
       throws AccumuloException, AccumuloSecurityException {
     ClientContext context = shellState.getContext();
-    
+
     for (String arg : args) {
       long txid = Long.parseLong(arg, 16);
       shellState.getWriter().flush();
