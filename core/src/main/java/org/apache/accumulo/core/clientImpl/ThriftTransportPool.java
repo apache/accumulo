@@ -365,9 +365,7 @@ public class ThriftTransportPool {
   private final Set<ThriftTransportKey> serversWarnedAbout = new HashSet<>();
 
   private final Supplier<Thread> checkThreadFactory = Suppliers.memoize(() -> {
-    var thread = Threads.createThread("Thrift Connection Pool Checker", new Closer());
-    thread.start();
-    return thread;
+    return Threads.createThread("Thrift Connection Pool Checker", new Closer());
   });
 
   private static final Logger log = LoggerFactory.getLogger(ThriftTransportPool.class);
@@ -836,7 +834,7 @@ public class ThriftTransportPool {
   }
 
   void startCheckerThread() {
-    checkThreadFactory.get();
+    checkThreadFactory.get().start();
   }
 
   private void closeExpiredConnections() {
