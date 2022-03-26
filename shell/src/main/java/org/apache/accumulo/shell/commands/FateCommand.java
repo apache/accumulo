@@ -30,7 +30,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.TransactionStatus;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ManagerClient;
-import org.apache.accumulo.fate.ReadOnlyRepo;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -45,24 +44,12 @@ import org.apache.zookeeper.KeeperException;
  */
 public class FateCommand extends Command {
 
-  // the purpose of this class is to be serialized as JSon for display
-  public static class FateStack {
-    String txid;
-    List<ReadOnlyRepo<FateCommand>> stack;
-
-    FateStack(Long txid, List<ReadOnlyRepo<FateCommand>> stack) {
-      this.txid = String.format("%016x", txid);
-      this.stack = stack;
-    }
-  }
-
   private Option cancel;
   private Option delete;
   private Option dump;
   private Option fail;
   private Option list;
   private Option print;
-  private Option secretOption;
   private Option statusOption;
   private Option disablePaginationOpt;
 
@@ -106,6 +93,11 @@ public class FateCommand extends Command {
   }
 
   protected void dumpTx(Shell shellState, String[] args) throws AccumuloException {
+
+    if(args == null) {
+      args = new String[]{};
+    }
+
     List<TransactionStatus> txStatuses =
         shellState.getAccumuloClient().instanceOperations().fateStatus(Arrays.asList(args), null);
 
@@ -127,6 +119,11 @@ public class FateCommand extends Command {
 
     StringBuilder sb = new StringBuilder(8096);
     Formatter fmt = new Formatter(sb);
+
+    if(args == null) {
+      args = new String[]{};
+    }
+
     List<TransactionStatus> txStatuses = shellState.getAccumuloClient().instanceOperations()
         .fateStatus(Arrays.asList(args), filterStatus);
 
@@ -223,9 +220,6 @@ public class FateCommand extends Command {
     commands.addOption(dump);
     o.addOptionGroup(commands);
 
-    secretOption = new Option("s", "secret", true, "specify the instance secret to use");
-    secretOption.setOptionalArg(false);
-    o.addOption(secretOption);
     statusOption = new Option("t", "status-type", true,
         "filter 'print' on the transaction status type(s) {NEW, SUBMITTED, IN_PROGRESS,"
             + " FAILED_IN_PROGRESS, FAILED, SUCCESSFUL}");
