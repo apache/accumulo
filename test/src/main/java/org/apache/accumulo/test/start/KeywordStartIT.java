@@ -60,6 +60,7 @@ import org.apache.accumulo.server.util.ECAdmin;
 import org.apache.accumulo.server.util.Info;
 import org.apache.accumulo.server.util.LoginProperties;
 import org.apache.accumulo.server.util.ZooKeeperMain;
+import org.apache.accumulo.server.util.ZooZap;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.spi.KeywordExecutable;
@@ -135,6 +136,7 @@ public class KeywordStartIT {
     expectSet.put("create-empty", CreateEmpty.class);
     expectSet.put("split-large", SplitLarge.class);
     expectSet.put("sserver", ScanServerExecutable.class);
+    expectSet.put("zoo-zap", ZooZap.class);
 
     Iterator<Entry<String,Class<? extends KeywordExecutable>>> expectIter =
         expectSet.entrySet().iterator();

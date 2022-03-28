@@ -161,7 +161,7 @@ public class SerializationUtil {
    *          the object to serialize to bytes, may be null
    * @param outputStream
    *          the stream to write to, must not be null
-   * @throws IllegalArgumentException
+   * @throws NullPointerException
    *           if {@code outputStream} is {@code null}
    */
   public static void serialize(Serializable obj, OutputStream outputStream) {
