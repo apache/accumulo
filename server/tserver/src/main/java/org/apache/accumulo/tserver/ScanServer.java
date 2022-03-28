@@ -893,7 +893,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
         try {
           tablets.put(extent, reservation.newTablet(extent));
         } catch (IOException e) {
-          new UncheckedIOException(e);
+           throw new UncheckedIOException(e);
         }
       });
 
