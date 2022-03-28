@@ -137,6 +137,7 @@ import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretM
 import org.apache.accumulo.server.security.delegation.ZooAuthenticationKeyDistributor;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tables.TableObserver;
+import org.apache.accumulo.server.util.ScanServerMetadataEntries;
 import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.hadoop.io.DataInputBuffer;
@@ -1157,6 +1158,9 @@ public class Manager extends AbstractServer
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
     }
+
+    ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
+        () -> ScanServerMetadataEntries.clean(context), 10, 10, TimeUnit.MINUTES));
 
     initializeZkForReplication(zReaderWriter, zroot);
 

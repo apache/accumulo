@@ -30,7 +30,6 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Properties;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -47,10 +46,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.scan.DefaultScanServerDispatcher;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.accumulo.test.functional.SlowIterator;
@@ -60,7 +57,10 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 @Tag(MINI_CLUSTER_ONLY)
-public class ScanServerIT extends SharedMiniClusterBase {
+public class ScanServerIT_NoServers extends SharedMiniClusterBase {
+
+  // This is the same as ScanServerIT, but without any scan servers running.
+  // This tests the cases where the client falls back to the Tablet Servers
 
   private static class ScanServerITConfiguration implements MiniClusterConfigurationCallback {
 
@@ -82,16 +82,6 @@ public class ScanServerIT extends SharedMiniClusterBase {
   public static void start() throws Exception {
     ScanServerITConfiguration c = new ScanServerITConfiguration();
     SharedMiniClusterBase.startMiniClusterWithConfig(c);
-    SharedMiniClusterBase.getCluster().getClusterControl().start(ServerType.SCAN_SERVER,
-        "localhost");
-
-    String zooRoot = getCluster().getServerContext().getZooKeeperRoot();
-    ZooReaderWriter zrw = getCluster().getServerContext().getZooReaderWriter();
-    String scanServerRoot = zooRoot + Constants.ZSSERVERS;
-
-    while (zrw.getChildren(scanServerRoot).size() == 0) {
-      Thread.sleep(500);
-    }
   }
 
   @AfterAll

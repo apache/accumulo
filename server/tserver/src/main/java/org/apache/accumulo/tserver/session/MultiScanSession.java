@@ -20,6 +20,7 @@ package org.apache.accumulo.tserver.session;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -32,6 +33,7 @@ import org.apache.accumulo.tserver.scan.ScanTask;
 public class MultiScanSession extends ScanSession {
   public final KeyExtent threadPoolExtent;
   public final Map<KeyExtent,List<Range>> queries;
+  public final Set<KeyExtent> exents;
 
   // stats
   public int numRanges;
@@ -47,6 +49,8 @@ public class MultiScanSession extends ScanSession {
     super(credentials, scanParams, executionHints, tabletResolver);
     this.queries = queries;
     this.threadPoolExtent = threadPoolExtent;
+    // TODO this is only needed for scan server
+    this.exents = Set.copyOf(queries.keySet());
   }
 
   @Override

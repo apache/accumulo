@@ -28,7 +28,6 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.net.URL;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -37,6 +36,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
@@ -343,10 +343,10 @@ public class ClientContext implements AccumuloClient {
   }
 
   /**
-   * @return the list of scan servers
+   * @return map of live scan server addresses to lock uuids.
    */
-  public List<String> getScanServers() {
-    List<String> liveScanServer = new ArrayList<>();
+  public Map<String,UUID> getScanServers() {
+    Map<String,UUID> liveScanServer = new HashMap<>();
     String root = this.getZooKeeperRoot() + Constants.ZSSERVERS;
     var addrs = this.getZooCache().getChildren(root);
     for (String addr : addrs) {
@@ -355,7 +355,8 @@ public class ClientContext implements AccumuloClient {
         ZcStat stat = new ZcStat();
         byte[] lockData = ServiceLock.getLockData(getZooCache(), zLockPath, stat);
         if (lockData != null) {
-          liveScanServer.add(addr);
+          UUID uuid = UUID.fromString(new String(lockData, UTF_8));
+          liveScanServer.put(addr, uuid);
         }
       } catch (Exception e) {
         log.error("Error validating zookeeper scan server node: " + addr, e);
@@ -434,7 +435,7 @@ public class ClientContext implements AccumuloClient {
 
           @Override
           public Supplier<Set<String>> getScanServers() {
-            return () -> new HashSet<>(ClientContext.this.getScanServers());
+            return () -> new HashSet<>(ClientContext.this.getScanServers().keySet());
           }
         });
       } catch (Exception e) {

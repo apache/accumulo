@@ -75,6 +75,12 @@ public interface GarbageCollectionEnvironment {
       this.ref = ref;
       this.isDir = isDir;
     }
+
+    @Override
+    public String toString() {
+      return "Reference [id=" + id + ", ref=" + ref + ", isDir=" + isDir + "]";
+    }
+
   }
 
   /**

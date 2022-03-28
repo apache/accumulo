@@ -39,7 +39,6 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -488,8 +487,6 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     int maxTabletsPerRequest = Integer.MAX_VALUE;
 
-    AtomicReference<ScanServerDispatcher.Actions> serverActions = new AtomicReference<>();
-
     long busyTimeout = 0;
     Duration scanServerDispatcherDelay = null;
     Map<String,ScanAttemptsImpl.ScanAttemptReporter> reporters = Map.of();
@@ -625,7 +622,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       KeyExtent extent = tabletId.toKeyExtent();
       String serverToUse = actions.getScanServer(tabletId);
       boolean isScanServer = serverToUse != null;
-      if (serverToUse == null) {
+      if (!isScanServer) {
         // no scan server was given so use the tablet server
         serverToUse = extentToTserverMap.get(extent);
         log.trace("For tablet {} scan server dispatcher chose tablet_server", tabletId);

@@ -118,7 +118,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
   private final GcCycleMetrics gcCycleMetrics = new GcCycleMetrics();
 
-  SimpleGarbageCollector(ServerOpts opts, String[] args) {
+  public SimpleGarbageCollector(ServerOpts opts, String[] args) {
     super("gc", opts, args);
 
     final AccumuloConfiguration conf = getConfiguration();
@@ -185,11 +185,11 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     return getConfiguration().getBoolean(Property.GC_SAFEMODE);
   }
 
-  private class GCEnv implements GarbageCollectionEnvironment {
+  public class GCEnv implements GarbageCollectionEnvironment {
 
     private final DataLevel level;
 
-    GCEnv(Ample.DataLevel level) {
+    public GCEnv(Ample.DataLevel level) {
       this.level = level;
     }
 
@@ -255,6 +255,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
           refs =
               Stream.concat(refs, Stream.of(new Reference(tm.getTableId(), tm.getDirName(), true)));
         }
+        refs = Stream.concat(refs, getContext().getAmple().getScanServerFileReferences()
+            .map(f -> new Reference(tm.getTableId(), f.getPathStr(), false)));
         return refs;
       });
     }
