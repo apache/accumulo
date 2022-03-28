@@ -24,7 +24,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.spi.scan.ScanServerDispatcher.ScanAttempt;
@@ -76,9 +75,7 @@ public class ScanAttemptsImpl {
   private Map<TabletId,Collection<ScanAttemptImpl>> attempts = new ConcurrentHashMap<>();
   private long mutationCounter = 0;
 
-  private AtomicInteger currentIteration = new AtomicInteger(0);
-
-  public void add(TabletId tablet, ScanAttempt.Result result, String server, long endTime) {
+  private void add(TabletId tablet, ScanAttempt.Result result, String server, long endTime) {
 
     ScanAttemptImpl sa = new ScanAttemptImpl(result, server, endTime);
 
@@ -87,7 +84,6 @@ public class ScanAttemptsImpl {
 
     synchronized (this) {
       // now that the scan attempt obj is added to all concurrent data structs, make it visible
-
       // need to atomically increment the counter AND set the counter on the object
       sa.setMutationCount(mutationCounter++);
     }
@@ -99,7 +95,6 @@ public class ScanAttemptsImpl {
   }
 
   ScanAttemptReporter createReporter(String server, TabletId tablet) {
-    var iteration = currentIteration.get();
     return new ScanAttemptReporter() {
       @Override
       public void report(ScanAttempt.Result result) {
