@@ -82,7 +82,6 @@ public class RecoveryLogsIterator
         scanner.setRange(range);
         Iterator<Entry<Key,Value>> scanIter = scanner.iterator();
 
-        // TODO recoveryCache.validateRange()
         if (scanIter.hasNext()) {
           LOG.debug("Write ahead log {} has data in range {} {}", log.getName(), start, end);
           iterators.add(scanIter);

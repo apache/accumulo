@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -42,6 +43,7 @@ import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.server.RecoveryCache;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -66,6 +68,8 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
   static final KeyExtent extent = new KeyExtent(TableId.of("table"), null, null);
   static ServerContext context;
   static LogSorter logSorter;
+  static RecoveryCache recoveryCache;
+  static Map<Path, RecoveryCache> recoveryCacheMap;
 
   @TempDir
   private static File tempDir;
@@ -77,11 +81,15 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
 
     workDir = new File(tempDir, testName());
     String path = workDir.getAbsolutePath();
+
+    recoveryCacheMap = new HashMap<>();
+
     fs = VolumeManagerImpl.getLocalForTesting(path);
     expect(context.getVolumeManager()).andReturn(fs).anyTimes();
     expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())
         .anyTimes();
     expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
+    expect(context.getRecoveryCacheMap()).andReturn(recoveryCacheMap).anyTimes();
     replay(context);
   }
 
@@ -156,21 +164,27 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
 
     ArrayList<Path> dirs = new ArrayList<>();
 
-    createRecoveryDir(logs, dirs, false);
-
-    assertThrows(IOException.class,
-        () -> new RecoveryLogsIterator(context, dirs, null, null, false),
+    assertThrows(IOException.class, () -> createRecoveryDir(logs, dirs, false),
         "Finish marker should not be found");
   }
 
   @Test
   public void testSingleFile() throws IOException {
-    String destPath = workDir + "/test.rf";
-    fs.create(new Path(destPath));
+    KeyValue keyValue = new KeyValue();
+    keyValue.key.event = DEFINE_TABLET;
+    keyValue.key.seq = 0;
+    keyValue.key.tabletId = 1;
+    keyValue.key.tablet = extent;
+
+    KeyValue[] keyValues = {keyValue};
+
+    Map<String,KeyValue[]> logs = new TreeMap<>();
+    logs.put("keyValues", keyValues);
+
+    ArrayList<Path> dirs = new ArrayList<>();
 
     assertThrows(
-        IOException.class, () -> new RecoveryLogsIterator(context,
-            Collections.singletonList(new Path(destPath)), null, null, false),
+        IOException.class, () -> createRecoveryDir(logs, dirs, false),
         "Finish marker should not be found for a single file.");
   }
 
@@ -229,10 +243,12 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
 
   private void createRecoveryDir(Map<String,KeyValue[]> logs, ArrayList<Path> dirs,
       boolean FinishMarker) throws IOException {
+    recoveryCacheMap.clear();
 
     for (Entry<String,KeyValue[]> entry : logs.entrySet()) {
       String destPath = workDir + "/dir";
-      FileSystem ns = fs.getFileSystemByPath(new Path(destPath));
+      Path destPathPath = new Path(destPath);
+      FileSystem ns = fs.getFileSystemByPath(destPathPath);
 
       // convert test object to Pairs for LogSorter.
       List<Pair<LogFileKey,LogFileValue>> buffer = new ArrayList<>();
@@ -244,7 +260,9 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
       if (FinishMarker)
         ns.create(SortedLogState.getFinishedMarkerPath(destPath));
 
-      dirs.add(new Path(destPath));
+      dirs.add(destPathPath);
+      recoveryCache = new RecoveryCache(context, destPathPath);
+      recoveryCacheMap.put(destPathPath, recoveryCache);
     }
   }
 }
