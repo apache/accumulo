@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -97,6 +98,7 @@ public class ServerContext extends ClientContext {
   private AuthenticationTokenSecretManager secretManager;
   private CryptoService cryptoService = null;
   private ScheduledThreadPoolExecutor sharedScheduledThreadPool = null;
+  private Map<Path,RecoveryCache> recoveryCacheMap = null;
 
   public ServerContext(SiteConfiguration siteConfig) {
     this(new ServerInfo(siteConfig));
@@ -462,4 +464,18 @@ public class ServerContext extends ClientContext {
     return sharedScheduledThreadPool;
   }
 
+  public synchronized Map<Path,RecoveryCache> getRecoveryCacheMap() {
+    if (recoveryCacheMap == null) {
+      throw new IllegalStateException("Attempted recovery without proper setup.");
+    }
+    return recoveryCacheMap;
+  }
+
+  public void setupRecoveryCache(List<Path> recoveryDirs) throws IOException {
+    recoveryCacheMap = new HashMap<>();
+    for (Path logDir : recoveryDirs) {
+      RecoveryCache recoveryCache = new RecoveryCache(this, logDir);
+      recoveryCacheMap.put(logDir, recoveryCache);
+    }
+  }
 }

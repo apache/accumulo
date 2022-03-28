@@ -1188,6 +1188,7 @@ public class TabletServer extends AbstractServer {
       }
       recoveryDirs.add(recovery);
     }
+    context.setupRecoveryCache(recoveryDirs);
     logger.recover(getContext(), extent, recoveryDirs, tabletFiles, mutationReceiver);
   }
 

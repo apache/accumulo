@@ -23,31 +23,25 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.rfile.RFile;
-import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
-
-import static org.apache.accumulo.core.conf.ConfigurationTypeHelper.getMemoryAsBytes;
 
 /**
  * Iterates over multiple sorted recovery logs merging them into a single sorted stream.
@@ -65,33 +59,30 @@ public class RecoveryLogsIterator
    */
   public RecoveryLogsIterator(ServerContext context, List<Path> recoveryLogDirs, LogFileKey start,
       LogFileKey end, boolean checkFirstKey) throws IOException {
-    var conf = context.getConfiguration();
-    var indexCacheSize = getMemoryAsBytes(conf.get(Property.TSERV_INDEXCACHE_SIZE));
-    var dataCacheSize = getMemoryAsBytes(conf.get(Property.TSERV_DATACACHE_SIZE));
 
     List<Iterator<Entry<Key,Value>>> iterators = new ArrayList<>(recoveryLogDirs.size());
     scanners = new ArrayList<>();
     Range range = start == null ? null : LogFileKey.toRange(start, end);
     var vm = context.getVolumeManager();
+    var recoveryCacheMap = context.getRecoveryCacheMap();
 
     for (Path logDir : recoveryLogDirs) {
+      var recoveryCache = recoveryCacheMap.get(logDir);
       LOG.debug("Opening recovery log dir {}", logDir.getName());
-      List<Path> logFiles = getFiles(vm, logDir);
+      List<Path> logFiles = recoveryCache.getLogFiles();
       var fs = vm.getFileSystemByPath(logDir);
 
       // only check the first key once to prevent extra iterator creation and seeking
       if (checkFirstKey) {
         validateFirstKey(context, fs, logFiles, logDir);
       }
-
+      ListIterator<Scanner> scannerList = recoveryCache.getScanners().listIterator();
       for (Path log : logFiles) {
-        var scanner = RFile.newScanner().from(log.toString()).withFileSystem(fs)
-            .withTableProperties(context.getConfiguration()).withDataCache(dataCacheSize)
-            .withIndexCache(indexCacheSize).build();
-
+        Scanner scanner = scannerList.next();
         scanner.setRange(range);
         Iterator<Entry<Key,Value>> scanIter = scanner.iterator();
 
+        // TODO recoveryCache.validateRange()
         if (scanIter.hasNext()) {
           LOG.debug("Write ahead log {} has data in range {} {}", log.getName(), start, end);
           iterators.add(scanIter);
@@ -125,32 +116,6 @@ public class RecoveryLogsIterator
   @Override
   public void close() {
     scanners.forEach(ScannerBase::close);
-  }
-
-  /**
-   * Check for sorting signal files (finished/failed) and get the logs in the provided directory.
-   */
-  private List<Path> getFiles(VolumeManager fs, Path directory) throws IOException {
-    boolean foundFinish = false;
-    List<Path> logFiles = new ArrayList<>();
-    for (FileStatus child : fs.listStatus(directory)) {
-      if (child.getPath().getName().startsWith("_"))
-        continue;
-      if (SortedLogState.isFinished(child.getPath().getName())) {
-        foundFinish = true;
-        continue;
-      }
-      if (SortedLogState.FAILED.getMarker().equals(child.getPath().getName())) {
-        continue;
-      }
-      FileSystem ns = fs.getFileSystemByPath(child.getPath());
-      Path fullLogPath = ns.makeQualified(child.getPath());
-      logFiles.add(fullLogPath);
-    }
-    if (!foundFinish)
-      throw new IOException(
-          "Sort '" + SortedLogState.FINISHED.getMarker() + "' flag not found in " + directory);
-    return logFiles;
   }
 
   /**
