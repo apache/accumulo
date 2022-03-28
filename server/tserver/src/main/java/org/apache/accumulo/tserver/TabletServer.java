@@ -1192,6 +1192,13 @@ public class TabletServer extends AbstractServer {
     logger.recover(getContext(), extent, recoveryDirs, tabletFiles, mutationReceiver);
   }
 
+  /**
+   * Once recovery has finished, close all the WAL file scanners.
+   */
+  public void closeRecoveryCache() {
+    context.closeRecoveryCaches();
+  }
+
   public int createLogId() {
     int logId = logIdGenerator.incrementAndGet();
     if (logId < 0) {

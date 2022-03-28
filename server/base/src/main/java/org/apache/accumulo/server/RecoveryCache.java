@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -97,5 +98,9 @@ public class RecoveryCache {
 
   public List<Scanner> getScanners() {
     return scanners;
+  }
+
+  public void close() {
+    scanners.forEach(ScannerBase::close);
   }
 }

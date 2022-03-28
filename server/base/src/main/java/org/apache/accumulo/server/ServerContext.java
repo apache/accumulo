@@ -478,4 +478,12 @@ public class ServerContext extends ClientContext {
       recoveryCacheMap.put(logDir, recoveryCache);
     }
   }
+
+  /**
+   * Once recovery has finished, close all the WAL file scanners.
+   */
+  public void closeRecoveryCaches() {
+    getRecoveryCacheMap().values().forEach(RecoveryCache::close);
+    recoveryCacheMap = null;
+  }
 }

@@ -30,7 +30,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -69,7 +68,7 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
   static ServerContext context;
   static LogSorter logSorter;
   static RecoveryCache recoveryCache;
-  static Map<Path, RecoveryCache> recoveryCacheMap;
+  static Map<Path,RecoveryCache> recoveryCacheMap;
 
   @TempDir
   private static File tempDir;
@@ -183,8 +182,7 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
 
     ArrayList<Path> dirs = new ArrayList<>();
 
-    assertThrows(
-        IOException.class, () -> createRecoveryDir(logs, dirs, false),
+    assertThrows(IOException.class, () -> createRecoveryDir(logs, dirs, false),
         "Finish marker should not be found for a single file.");
   }
 

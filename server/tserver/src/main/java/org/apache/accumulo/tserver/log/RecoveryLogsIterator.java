@@ -88,7 +88,6 @@ public class RecoveryLogsIterator
           scanners.add(scanner);
         } else {
           LOG.debug("Write ahead log {} has no data in range {} {}", log.getName(), start, end);
-          scanner.close();
         }
       }
     }

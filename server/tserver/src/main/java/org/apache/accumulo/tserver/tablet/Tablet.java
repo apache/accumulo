@@ -408,6 +408,7 @@ public class Tablet {
         }
 
       } catch (Exception t) {
+        tabletServer.closeRecoveryCache();
         String msg = "Error recovering tablet " + extent + " from log files";
         if (tableConfiguration.getBoolean(Property.TABLE_FAILURES_IGNORE)) {
           log.warn(msg, t);
