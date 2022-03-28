@@ -80,7 +80,7 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
         org.apache.hadoop.conf.Configuration coreSite) {
       cfg.setNumScanServers(1);
       cfg.setProperty(Property.TSERV_SESSION_MAXIDLE, "3s");
-      cfg.setProperty(Property.SSERV_CACHED_TABLET_METADATA_EXPIRATION, "10s");
+      cfg.setProperty(Property.SSERVER_SCAN_REFERENCE_EXPIRATION_TIME, "5s");
     }
   }
 

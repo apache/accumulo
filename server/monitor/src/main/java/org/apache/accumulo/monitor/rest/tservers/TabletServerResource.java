@@ -243,8 +243,8 @@ public class TabletServerResource {
   @GET
   public ServerStats getServerStats() {
 
-    final int concurrentScans = monitor.getContext().getConfiguration().getScanExecutors().stream()
-        .mapToInt(sec -> sec.maxThreads).sum();
+    final int concurrentScans = monitor.getContext().getConfiguration().getScanExecutors(false)
+        .stream().mapToInt(sec -> sec.maxThreads).sum();
 
     ServerStats stats = new ServerStats();
 

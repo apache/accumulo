@@ -357,7 +357,9 @@ public class TabletServerResourceManager {
         () -> context.getConfiguration().getCount(Property.TSERV_SUMMARY_PARTITION_THREADS),
         "summary partition", summaryPartitionPool);
 
-    Collection<ScanExecutorConfig> scanExecCfg = acuConf.getScanExecutors();
+    boolean isScanServer = (tserver instanceof ScanServer);
+
+    Collection<ScanExecutorConfig> scanExecCfg = acuConf.getScanExecutors(isScanServer);
     Map<String,Queue<Runnable>> scanExecQueues = new HashMap<>();
     scanExecutors = scanExecCfg.stream().collect(
         toUnmodifiableMap(cfg -> cfg.name, cfg -> createPriorityExecutor(cfg, scanExecQueues)));

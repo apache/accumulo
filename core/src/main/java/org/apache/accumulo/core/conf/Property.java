@@ -427,6 +427,29 @@ public enum Property {
       "The time after which incoming request threads terminate with no work available.  Zero (0) will keep the threads alive indefinitely.",
       "2.1.0"),
   @Experimental
+  SSERV_SCAN_EXECUTORS_PREFIX("sserver.scan.executors.", null, PropertyType.PREFIX,
+      "Prefix for defining executors to service scans. See "
+          + "[scan executors]({% durl administration/scan-executors %}) for an overview of why and"
+          + " how to use this property. For each executor the number of threads, thread priority, "
+          + "and an optional prioritizer can be configured. To configure a new executor, set "
+          + "`sserver.scan.executors.<name>.threads=<number>`.  Optionally, can also set "
+          + "`sserver.scan.executors.<name>.priority=<number 1 to 10>`, "
+          + "`sserver.scan.executors.<name>.prioritizer=<class name>`, and "
+          + "`sserver.scan.executors.<name>.prioritizer.opts.<key>=<value>`",
+      "2.1.0"),
+  @Experimental
+  SSERV_SCAN_EXECUTORS_DEFAULT_THREADS("sserver.scan.executors.default.threads", "16",
+      PropertyType.COUNT, "The number of threads for the scan executor that tables use by default.",
+      "2.1.0"),
+  @Experimental
+  SSERV_SCAN_EXECUTORS_META_THREADS("sserver.scan.executors.meta.threads", "8", PropertyType.COUNT,
+      "The number of threads for the metadata table scan executor.", "2.1.0"),
+  @Experimental
+  SSERVER_SCAN_REFERENCE_EXPIRATION_TIME("sserver.scan.reference.expiration", "5m",
+      PropertyType.TIMEDURATION,
+      "The amount of time after a scan is closed that the file references should remain in the metadata table",
+      "2.1.0"),
+  @Experimental
   SSERV_THREADCHECK("sserver.server.threadcheck.time", "1s", PropertyType.TIMEDURATION,
       "The time between adjustments of the thrift server thread pool.", "2.1.0"),
   // properties that are specific to tablet server behavior

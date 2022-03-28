@@ -285,15 +285,14 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
     super(opts, args, true);
 
     // Note: The way to control the number of concurrent scans that a ScanServer will
-    // perform is by using Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS or the number
-    // of threads in Property.TSERV_SCAN_EXECUTORS_PREFIX.
-
-    // TODO: Make Property.SSERV_SCAN_EXECUTORS_PREFIX
+    // perform is by using Property.SSERV_SCAN_EXECUTORS_DEFAULT_THREADS or the number
+    // of threads in Property.SSERV_SCAN_EXECUTORS_PREFIX.
 
     long cacheExpiration =
         getConfiguration().getTimeInMillis(Property.SSERV_CACHED_TABLET_METADATA_EXPIRATION);
 
-    long scanServerReservationExpiration = (cacheExpiration == 0) ? 1000L : 2 * cacheExpiration;
+    long scanServerReservationExpiration =
+        getConfiguration().getTimeInMillis(Property.SSERVER_SCAN_REFERENCE_EXPIRATION_TIME);
 
     tabletMetadataLoader = new TabletMetadataLoader(getContext().getAmple());
 
@@ -311,7 +310,6 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
     }
     handler = getHandler();
 
-    // TODO maybe have separate prop from cache for expiring refs
     ThreadPools.watchCriticalScheduledTask(getContext().getScheduledExecutor()
         .scheduleWithFixedDelay(() -> cleanUpReservedFiles(scanServerReservationExpiration),
             scanServerReservationExpiration, scanServerReservationExpiration,
@@ -893,7 +891,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
         try {
           tablets.put(extent, reservation.newTablet(extent));
         } catch (IOException e) {
-           throw new UncheckedIOException(e);
+          throw new UncheckedIOException(e);
         }
       });
 

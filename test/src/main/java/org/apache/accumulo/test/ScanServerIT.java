@@ -74,7 +74,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
 
       // Configure the scan server to only have 1 scan executor thread. This means
       // that the scan server will run scans serially, not concurrently.
-      cfg.setProperty(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS, "1");
+      cfg.setProperty(Property.SSERV_SCAN_EXECUTORS_DEFAULT_THREADS, "1");
     }
   }
 
