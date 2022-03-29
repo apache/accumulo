@@ -74,10 +74,10 @@ import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
 
-class RFileScanner extends ScannerOptions implements Scanner {
+import static org.apache.accumulo.core.client.Accumulo.EMPTY_BYTES;
+import static org.apache.accumulo.core.client.Accumulo.EMPTY_RANGE;
 
-  private static final byte[] EMPTY_BYTES = new byte[0];
-  private static final Range EMPTY_RANGE = new Range();
+class RFileScanner extends ScannerOptions implements Scanner {
 
   private Range range;
   private BlockCacheManager blockCacheManager = null;

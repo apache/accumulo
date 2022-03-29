@@ -30,7 +30,6 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Arrays;
-import java.util.Collection;
 
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -208,11 +207,11 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
   }
 
   /**
-   * Converts LogFileKey to Key. Creates a Key containing all the LogFileKey fields. The fields
-   * are stored so the Key sorts maintaining the legacy sort order. The row of the Key is composed
-   * of 3 fields: EventNum + tabletID + seq. The EventNum is the byte returned by eventType(). The
-   * column family is always the event. The column qualifier is dependent of the type of event and
-   * could be empty.
+   * Converts LogFileKey to Key. Creates a Key containing all the LogFileKey fields. The fields are
+   * stored so the Key sorts maintaining the legacy sort order. The row of the Key is composed of 3
+   * fields: EventNum + tabletID + seq. The EventNum is the byte returned by eventType(). The column
+   * family is always the event. The column qualifier is dependent of the type of event and could be
+   * empty.
    *
    * <pre>
    *     Key Schema:
