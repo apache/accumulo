@@ -64,8 +64,6 @@ public class ManagerTime {
       throw new IOException("Error updating manager time", ex);
     }
 
-    // Previous versions of this class did not use a shared thread pool, it created its own
-    // Timer instance.
     ThreadPools.watchCriticalScheduledTask(
         ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(conf)
             .scheduleWithFixedDelay(Threads.createNamedRunnable("Manager time keeper", () -> run()),
