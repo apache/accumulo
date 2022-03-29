@@ -135,6 +135,11 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
+  public List<String> getScanServers() {
+    return new ArrayList<String>(context.getScanServers().keySet());
+  }
+
+  @Override
   public List<String> getTabletServers() {
     ZooCache cache = context.getZooCache();
     String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;
