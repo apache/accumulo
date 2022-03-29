@@ -33,6 +33,7 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.security.SecurityUtil;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
@@ -41,14 +42,26 @@ import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 
-public class ZooZap {
+@AutoService(KeywordExecutable.class)
+public class ZooZap implements KeywordExecutable {
   private static final Logger log = LoggerFactory.getLogger(ZooZap.class);
 
   private static void message(String msg, Opts opts) {
     if (opts.verbose) {
       System.out.println(msg);
     }
+  }
+
+  @Override
+  public String keyword() {
+    return "zoo-zap";
+  }
+
+  @Override
+  public String description() {
+    return "Utility for zapping Zookeeper locks";
   }
 
   static class Opts extends Help {
@@ -69,9 +82,14 @@ public class ZooZap {
     boolean verbose = false;
   }
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws Exception {
+    new ZooZap().execute(args);
+  }
+
+  @Override
+  public void execute(String[] args) throws Exception {
     Opts opts = new Opts();
-    opts.parseArgs(ZooZap.class.getName(), args);
+    opts.parseArgs(keyword(), args);
 
     if (!opts.zapMaster && !opts.zapManager && !opts.zapTservers) {
       new JCommander(opts).usage();
