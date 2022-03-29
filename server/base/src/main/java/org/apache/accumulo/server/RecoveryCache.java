@@ -18,16 +18,13 @@
  */
 package org.apache.accumulo.server;
 
-import static org.apache.accumulo.core.conf.ConfigurationTypeHelper.getMemoryAsBytes;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ScannerBase;
-import org.apache.accumulo.core.client.rfile.RFile;
-import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.file.FileOperations;
+import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.hadoop.fs.FileStatus;
@@ -36,32 +33,39 @@ import org.apache.hadoop.fs.Path;
 
 public class RecoveryCache {
   private final Path recoveryDir;
-  private final List<Scanner> scanners;
+  private final List<FileSKVIterator> scanners;
   private final List<Path> logFiles;
 
-  public RecoveryCache(ServerContext context, Path recoveryDir) throws IOException {
+  public RecoveryCache(ServerContext context, CacheProvider cacheProvider, Path recoveryDir)
+      throws IOException {
     this.recoveryDir = recoveryDir;
     this.scanners = new ArrayList<>();
     this.logFiles = new ArrayList<>();
-    setupRecoveryCache(context);
+    setupRecoveryCache(context, cacheProvider);
   }
 
   /**
    * Create the Scanners for each WAL in the recovery directory.
    */
-  public void setupRecoveryCache(ServerContext context) throws IOException {
-    List<Scanner> recoveryScanners = new ArrayList<>();
+  public void setupRecoveryCache(ServerContext context, CacheProvider cacheProvider)
+      throws IOException {
+    List<FileSKVIterator> recoveryScanners = new ArrayList<>();
     var conf = context.getConfiguration();
-    var indexCacheSize = getMemoryAsBytes(conf.get(Property.TSERV_INDEXCACHE_SIZE));
-    var dataCacheSize = getMemoryAsBytes(conf.get(Property.TSERV_DATACACHE_SIZE));
+    // var indexCacheSize = getMemoryAsBytes(conf.get(Property.TSERV_INDEXCACHE_SIZE));
+    // var dataCacheSize = getMemoryAsBytes(conf.get(Property.TSERV_DATACACHE_SIZE));
 
     logFiles.addAll(getWALFiles(context.getVolumeManager(), recoveryDir));
     for (var wal : logFiles) {
       var fs = context.getVolumeManager().getFileSystemByPath(wal);
-      Scanner recoveryFileScanner =
-          RFile.newScanner().from(wal.toString()).withFileSystem(fs).withTableProperties(conf)
-              .withDataCache(dataCacheSize).withIndexCache(indexCacheSize).build();
-      recoveryScanners.add(recoveryFileScanner);
+      // ScannerImpl recoveryFileScanner = new ScannerImpl(context, tableId, new Authorizations());
+      // CacheProvider cacheProvider = new BasicCacheProvider(null, null/*TODO*/);
+
+      var fileIterator =
+          FileOperations.getInstance().newReaderBuilder().withCacheProvider(cacheProvider)
+              .forFile(wal.getName(), fs, context.getHadoopConf(), context.getCryptoService())
+              .withTableConfiguration(conf).seekToBeginning().build();
+
+      recoveryScanners.add(fileIterator);
     }
     scanners.addAll(recoveryScanners);
   }
@@ -96,11 +100,13 @@ public class RecoveryCache {
     return logFiles;
   }
 
-  public List<Scanner> getScanners() {
+  public List<FileSKVIterator> getScanners() {
     return scanners;
   }
 
-  public void close() {
-    scanners.forEach(ScannerBase::close);
+  public void close() throws IOException {
+    for (FileSKVIterator scanner : scanners) {
+      scanner.close();
+    }
   }
 }

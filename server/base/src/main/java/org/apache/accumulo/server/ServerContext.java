@@ -50,6 +50,7 @@ import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.singletons.SingletonReservation;
@@ -98,6 +99,7 @@ public class ServerContext extends ClientContext {
   private AuthenticationTokenSecretManager secretManager;
   private CryptoService cryptoService = null;
   private ScheduledThreadPoolExecutor sharedScheduledThreadPool = null;
+  // map of recovery directory to recoveryCache for that directory
   private Map<Path,RecoveryCache> recoveryCacheMap = null;
 
   public ServerContext(SiteConfiguration siteConfig) {
@@ -471,10 +473,11 @@ public class ServerContext extends ClientContext {
     return recoveryCacheMap;
   }
 
-  public void setupRecoveryCache(List<Path> recoveryDirs) throws IOException {
+  public void setupRecoveryCache(CacheProvider cacheProvider, List<Path> recoveryDirs)
+      throws IOException {
     recoveryCacheMap = new HashMap<>();
     for (Path logDir : recoveryDirs) {
-      RecoveryCache recoveryCache = new RecoveryCache(this, logDir);
+      RecoveryCache recoveryCache = new RecoveryCache(this, cacheProvider, logDir);
       recoveryCacheMap.put(logDir, recoveryCache);
     }
   }
@@ -482,8 +485,10 @@ public class ServerContext extends ClientContext {
   /**
    * Once recovery has finished, close all the WAL file scanners.
    */
-  public void closeRecoveryCaches() {
-    getRecoveryCacheMap().values().forEach(RecoveryCache::close);
+  public void closeRecoveryCaches() throws IOException {
+    for (RecoveryCache recoveryCache : getRecoveryCacheMap().values()) {
+      recoveryCache.close();
+    }
     recoveryCacheMap = null;
   }
 }

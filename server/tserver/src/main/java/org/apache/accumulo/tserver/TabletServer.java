@@ -72,6 +72,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.file.blockfile.impl.BasicCacheProvider;
+import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.Compacting;
@@ -1188,14 +1190,16 @@ public class TabletServer extends AbstractServer {
       }
       recoveryDirs.add(recovery);
     }
-    context.setupRecoveryCache(recoveryDirs);
+    var recoveryBlockCache = resourceManager.getRecoveryCache();
+    CacheProvider cacheProvider = new BasicCacheProvider(recoveryBlockCache, recoveryBlockCache);
+    context.setupRecoveryCache(cacheProvider, recoveryDirs);
     logger.recover(getContext(), extent, recoveryDirs, tabletFiles, mutationReceiver);
   }
 
   /**
    * Once recovery has finished, close all the WAL file scanners.
    */
-  public void closeRecoveryCache() {
+  public void closeRecoveryCache() throws IOException {
     context.closeRecoveryCaches();
   }
 

@@ -21,6 +21,7 @@ package org.apache.accumulo.tserver.log;
 import java.io.IOException;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -29,9 +30,11 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.rfile.RFile;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
@@ -62,7 +65,16 @@ public class RecoveryLogsIterator
 
     List<Iterator<Entry<Key,Value>>> iterators = new ArrayList<>(recoveryLogDirs.size());
     scanners = new ArrayList<>();
-    Range range = start == null ? null : LogFileKey.toRange(start, end);
+    Collection<ByteSequence> columnFamiles = new ArrayList<>();
+    Range range;
+    if (start == null) {
+      range = null;
+    } else {
+      range = LogFileKey.toRange(start, end);
+      columnFamiles.add(start.getColumnFamily());
+      columnFamiles.add(end.getColumnFamily());
+    }
+
     var vm = context.getVolumeManager();
     var recoveryCacheMap = context.getRecoveryCacheMap();
 
@@ -76,16 +88,15 @@ public class RecoveryLogsIterator
       if (checkFirstKey) {
         validateFirstKey(context, fs, logFiles, logDir);
       }
-      ListIterator<Scanner> scannerList = recoveryCache.getScanners().listIterator();
+      ListIterator<FileSKVIterator> iteratorList = recoveryCache.getScanners().listIterator();
       for (Path log : logFiles) {
-        Scanner scanner = scannerList.next();
-        scanner.setRange(range);
-        Iterator<Entry<Key,Value>> scanIter = scanner.iterator();
+        FileSKVIterator iterator = iteratorList.next();
+        iterator.seek(range, columnFamiles, true);
 
-        if (scanIter.hasNext()) {
+        if (iterator.hasTop()) {
           LOG.debug("Write ahead log {} has data in range {} {}", log.getName(), start, end);
-          iterators.add(scanIter);
-          scanners.add(scanner);
+          iterators.add(iterator);
+          //scanners.add(scanner);
         } else {
           LOG.debug("Write ahead log {} has no data in range {} {}", log.getName(), start, end);
         }

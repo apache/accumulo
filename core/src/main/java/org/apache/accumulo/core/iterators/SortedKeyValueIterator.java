@@ -56,7 +56,7 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
 
   /**
    * Returns true if the iterator has more elements. Note that if this iterator has yielded (@see
-   * YieldingKeyValueIterator.enableYielding(YieldCallback)), this this method must return false.
+   * YieldingKeyValueIterator.enableYielding(YieldCallback)), this method must return false.
    *
    * @return <code>true</code> if the iterator has more elements.
    * @exception IllegalStateException
