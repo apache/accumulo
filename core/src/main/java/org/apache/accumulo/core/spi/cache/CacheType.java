@@ -23,6 +23,6 @@ package org.apache.accumulo.core.spi.cache;
  */
 public enum CacheType {
 
-  DATA, INDEX, SUMMARY
+  DATA, INDEX, SUMMARY, RECOVERY
 
 }

@@ -120,6 +120,7 @@ public class TabletServerResourceManager {
   private final BlockCache _dCache;
   private final BlockCache _iCache;
   private final BlockCache _sCache;
+  private final BlockCache _rCache;
   private final ServerContext context;
 
   private Cache<String,Long> fileLenCache;
@@ -272,27 +273,28 @@ public class TabletServerResourceManager {
     _iCache = cacheManager.getBlockCache(CacheType.INDEX);
     _dCache = cacheManager.getBlockCache(CacheType.DATA);
     _sCache = cacheManager.getBlockCache(CacheType.SUMMARY);
+    _rCache = cacheManager.getBlockCache(CacheType.RECOVERY);
 
     long dCacheSize = _dCache.getMaxHeapSize();
     long iCacheSize = _iCache.getMaxHeapSize();
     long sCacheSize = _sCache.getMaxHeapSize();
+    long rCacheSize = _rCache.getMaxHeapSize();
 
     Runtime runtime = Runtime.getRuntime();
+    long totalCacheSize = dCacheSize + iCacheSize + sCacheSize + rCacheSize;
     if (usingNativeMap) {
       // Still check block cache sizes when using native maps.
-      if (dCacheSize + iCacheSize + sCacheSize + totalQueueSize > runtime.maxMemory()) {
-        throw new IllegalArgumentException(String.format(
-            "Block cache sizes %,d and mutation queue size %,d is too large for this JVM"
-                + " configuration %,d",
-            dCacheSize + iCacheSize + sCacheSize, totalQueueSize, runtime.maxMemory()));
+      if (totalCacheSize + totalQueueSize > runtime.maxMemory()) {
+        throw new IllegalArgumentException(String
+            .format("Block cache sizes %,d and mutation queue size %,d is too large for this JVM"
+                + " configuration %,d", totalCacheSize, totalQueueSize, runtime.maxMemory()));
       }
-    } else if (maxMemory + dCacheSize + iCacheSize + sCacheSize + totalQueueSize
-        > runtime.maxMemory()) {
+    } else if (maxMemory + totalCacheSize + totalQueueSize > runtime.maxMemory()) {
       throw new IllegalArgumentException(String.format(
           "Maximum tablet server"
               + " map memory %,d block cache sizes %,d and mutation queue size %,d is"
               + " too large for this JVM configuration %,d",
-          maxMemory, dCacheSize + iCacheSize + sCacheSize, totalQueueSize, runtime.maxMemory()));
+          maxMemory, totalCacheSize, totalQueueSize, runtime.maxMemory()));
     }
     runtime.gc();
 
@@ -853,6 +855,10 @@ public class TabletServerResourceManager {
 
   public BlockCache getSummaryCache() {
     return _sCache;
+  }
+
+  public BlockCache getRecoveryCache() {
+    return _rCache;
   }
 
   public Cache<String,Long> getFileLenCache() {
