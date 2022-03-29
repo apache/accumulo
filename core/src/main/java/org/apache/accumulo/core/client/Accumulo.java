@@ -49,7 +49,6 @@ public final class Accumulo {
   public static final byte[] EMPTY_BYTES = new byte[0];
   public static final Range EMPTY_RANGE = new Range();
 
-
   private Accumulo() {}
 
   /**

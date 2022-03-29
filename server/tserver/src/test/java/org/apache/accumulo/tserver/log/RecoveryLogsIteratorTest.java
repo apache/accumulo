@@ -259,7 +259,8 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
         ns.create(SortedLogState.getFinishedMarkerPath(destPath));
 
       dirs.add(destPathPath);
-      recoveryCache = new RecoveryCache(context, destPathPath);
+      // TODO fix
+      recoveryCache = new RecoveryCache(context, null, destPathPath);
       recoveryCacheMap.put(destPathPath, recoveryCache);
     }
   }

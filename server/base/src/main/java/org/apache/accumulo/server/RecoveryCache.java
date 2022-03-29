@@ -35,12 +35,14 @@ public class RecoveryCache {
   private final Path recoveryDir;
   private final List<FileSKVIterator> scanners;
   private final List<Path> logFiles;
+  private final CacheProvider cacheProvider;
 
   public RecoveryCache(ServerContext context, CacheProvider cacheProvider, Path recoveryDir)
       throws IOException {
     this.recoveryDir = recoveryDir;
     this.scanners = new ArrayList<>();
     this.logFiles = new ArrayList<>();
+    this.cacheProvider = cacheProvider;
     setupRecoveryCache(context, cacheProvider);
   }
 
@@ -51,8 +53,6 @@ public class RecoveryCache {
       throws IOException {
     List<FileSKVIterator> recoveryScanners = new ArrayList<>();
     var conf = context.getConfiguration();
-    // var indexCacheSize = getMemoryAsBytes(conf.get(Property.TSERV_INDEXCACHE_SIZE));
-    // var dataCacheSize = getMemoryAsBytes(conf.get(Property.TSERV_DATACACHE_SIZE));
 
     logFiles.addAll(getWALFiles(context.getVolumeManager(), recoveryDir));
     for (var wal : logFiles) {
@@ -108,5 +108,9 @@ public class RecoveryCache {
     for (FileSKVIterator scanner : scanners) {
       scanner.close();
     }
+  }
+
+  public CacheProvider getCacheProvider() {
+    return cacheProvider;
   }
 }

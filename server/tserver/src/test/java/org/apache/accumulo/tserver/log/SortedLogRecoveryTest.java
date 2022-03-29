@@ -199,7 +199,8 @@ public class SortedLogRecoveryTest extends WithTestNames {
 
         ns.create(SortedLogState.getFinishedMarkerPath(destPath)).close();
         dirs.add(destPathPath);
-        var recoveryCache = new RecoveryCache(context, destPathPath);
+        // TODO fix
+        var recoveryCache = new RecoveryCache(context, null, destPathPath);
         recoveryCacheMap.put(destPathPath, recoveryCache);
       }
       // Recover

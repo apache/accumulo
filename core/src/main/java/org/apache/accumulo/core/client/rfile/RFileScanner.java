@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.core.client.rfile;
 
+import static org.apache.accumulo.core.client.Accumulo.EMPTY_BYTES;
+import static org.apache.accumulo.core.client.Accumulo.EMPTY_RANGE;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -73,9 +76,6 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
-
-import static org.apache.accumulo.core.client.Accumulo.EMPTY_BYTES;
-import static org.apache.accumulo.core.client.Accumulo.EMPTY_RANGE;
 
 class RFileScanner extends ScannerOptions implements Scanner {
 
