@@ -23,6 +23,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
@@ -67,9 +68,10 @@ public class ServerSideErrorIT extends AccumuloClusterHarness {
 
       // try to scan table
       try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
-        assertThrows(Exception.class, () -> {
-          for (Entry<Key,Value> entry : scanner) {
-            entry.getKey();
+        Iterator<Entry<Key,Value>> iterator = scanner.iterator();
+        assertThrows(RuntimeException.class, () -> {
+          while (iterator.hasNext()) {
+            iterator.next();
           }
         });
       }
@@ -77,9 +79,10 @@ public class ServerSideErrorIT extends AccumuloClusterHarness {
       // try to batch scan the table
       try (BatchScanner bs = c.createBatchScanner(tableName, Authorizations.EMPTY, 2)) {
         bs.setRanges(Collections.singleton(new Range()));
-        assertThrows(Exception.class, () -> {
-          for (Entry<Key,Value> entry : bs) {
-            entry.getKey();
+        Iterator<Entry<Key,Value>> iterator = bs.iterator();
+        assertThrows(RuntimeException.class, () -> {
+          while (iterator.hasNext()) {
+            iterator.next();
           }
         });
       }
@@ -100,11 +103,10 @@ public class ServerSideErrorIT extends AccumuloClusterHarness {
 
         // set a nonexistent iterator, should cause scan to fail on server side
         scanner.addScanIterator(new IteratorSetting(100, "bogus", "com.bogus.iterator"));
-
-        assertThrows(Exception.class, () -> {
-          for (Entry<Key,Value> entry : scanner) {
-            // should error
-            entry.getKey();
+        Iterator<Entry<Key,Value>> iterator = scanner.iterator();
+        assertThrows(RuntimeException.class, () -> {
+          while (iterator.hasNext()) {
+            iterator.next();
           }
         });
       }
