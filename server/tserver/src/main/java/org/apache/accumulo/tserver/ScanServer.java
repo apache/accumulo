@@ -232,12 +232,19 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
 
     @Override
     public Collection<ExtCompMetric> getExternalMetrics() {
-      return null;
+      return Collections.emptyList();
     }
 
     @Override
     public void compactableClosed(KeyExtent extent, Set<CompactionServiceId> servicesUsed,
         Set<ExternalCompactionId> ecids) {}
+
+  }
+
+  public static class ScanServerCompactionExecutorMetrics extends CompactionExecutorsMetrics {
+
+    @Override
+    protected void startUpdateThread() {}
 
   }
 
@@ -435,7 +442,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
     MetricsUtil.initializeProducers(scanMetrics);
 
     // We need to set the compaction manager so that we don't get an NPE in CompactableImpl.close
-    ceMetrics = new CompactionExecutorsMetrics();
+    ceMetrics = new ScanServerCompactionExecutorMetrics();
     this.compactionManager = new ScanServerCompactionManager(getContext(), ceMetrics);
 
     ServiceLock lock = announceExistence();
