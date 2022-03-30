@@ -43,6 +43,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
+import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
@@ -110,10 +111,11 @@ public class RecoveryLogsIterator
       if (checkFirstKey) {
         validateFirstKey(context, fs, logFiles, logDir);
       }
-      ListIterator<FileSKVIterator> iteratorList = recoveryCache.getScanners().listIterator();
+      //ListIterator<FileSKVIterator> iteratorList = recoveryCache.getScanners().listIterator();
       for (Path log : logFiles) {
-        FileSKVIterator iterator = iteratorList.next();
-        iterator.seek(range, columnFamiles, true);
+        //FileSKVIterator iterator = iteratorList.next();
+        //iterator.seek(range, columnFamiles, true);
+        Iterator<Entry<Key, Value>> iterator = createIterator(context, log, cacheProvider);
 
         if (iterator.hasTop()) {
           LOG.debug("Write ahead log {} has data in range {} {}", log.getName(), start, end);
@@ -125,6 +127,18 @@ public class RecoveryLogsIterator
       }
     }
     iter = Iterators.mergeSorted(iterators, Entry.comparingByKey());
+  }
+
+  private Iterator<Entry<Key, Value>> createIterator(ServerContext context, Path wal,
+                                                     CacheProvider cacheProvider) throws IOException {
+    var fs = context.getVolumeManager().getFileSystemByPath(wal);
+    // ScannerImpl recoveryFileScanner = new ScannerImpl(context, tableId, new Authorizations());
+    FileSKVIterator fileReader =
+            FileOperations.getInstance().newReaderBuilder().withCacheProvider(cacheProvider)
+                    .forFile(wal.getName(), fs, context.getHadoopConf(), context.getCryptoService())
+                    .withTableConfiguration(context.getConfiguration()).seekToBeginning().build();
+
+
   }
 
   @Override
@@ -177,15 +191,16 @@ public class RecoveryLogsIterator
       CacheProvider cacheProvider) {
     boolean useSystemIterators = false;
     Range bounds = new Range();
-    long fileLength = 24234134L; // TODO
+    //long fileLength = 24234134L; // TODO
+    String filename = "";
 
     try {
       List<SortedKeyValueIterator<Key,Value>> readers = new ArrayList<>();
-      FSDataInputStream inputStream = (FSDataInputStream) fileIterator;
-      CachableBlockFile.CachableBuilder cb = new CachableBlockFile.CachableBuilder()
-          .input(inputStream, "source-1").length(fileLength).conf(context.getHadoopConf())
-          .cacheProvider(cacheProvider).cryptoService(cryptoService);
-      readers.add(new org.apache.accumulo.core.file.rfile.RFile.Reader(cb));
+      //FSDataInputStream inputStream = (FSDataInputStream) fileIterator;
+      //CachableBlockFile.CachableBuilder cb = new CachableBlockFile.CachableBuilder()
+       //   .input(inputStream, "source-1").length(fileLength).conf(context.getHadoopConf())
+        //  .cacheProvider(cacheProvider).cryptoService(cryptoService);
+      //readers.add(new org.apache.accumulo.core.file.rfile.RFile.Reader(cb));
 
       SortedKeyValueIterator<Key,Value> iterator;
       if (bounds != null) {
