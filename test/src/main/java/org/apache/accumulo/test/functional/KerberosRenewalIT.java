@@ -22,6 +22,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -84,8 +85,8 @@ public class KerberosRenewalIT extends AccumuloITBase {
   public static final int TEST_DURATION_MINUTES = 9; // The test should finish within 9 mins
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * TEST_DURATION_MINUTES;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(TEST_DURATION_MINUTES);
   }
 
   @BeforeAll

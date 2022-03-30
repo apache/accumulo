@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import java.time.Duration;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -36,8 +37,8 @@ import org.junit.jupiter.api.Test;
 public class SslIT extends ConfigurableMacBase {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 6;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(6);
   }
 
   @Override

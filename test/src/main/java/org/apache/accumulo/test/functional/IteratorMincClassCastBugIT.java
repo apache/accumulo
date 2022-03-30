@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -53,8 +54,8 @@ import org.junit.jupiter.api.Test;
 public class IteratorMincClassCastBugIT extends AccumuloClusterHarness {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
   }
 
   @Override

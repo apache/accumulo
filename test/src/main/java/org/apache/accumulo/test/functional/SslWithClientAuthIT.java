@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import java.time.Duration;
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.Property;
@@ -33,8 +34,8 @@ import org.junit.jupiter.api.Test;
 public class SslWithClientAuthIT extends SslIT {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 8;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(8);
   }
 
   @Override
