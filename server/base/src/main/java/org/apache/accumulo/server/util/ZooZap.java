@@ -84,10 +84,14 @@ public class ZooZap implements KeywordExecutable {
     boolean verbose = false;
   }
 
+  public static void main(String[] args) throws Exception {
+    new ZooZap().execute(args);
+  }
+
   @Override
   public void execute(String[] args) throws Exception {
     Opts opts = new Opts();
-    opts.parseArgs(ZooZap.class.getName(), args);
+    opts.parseArgs(keyword(), args);
 
     if (!opts.zapMaster && !opts.zapManager && !opts.zapTservers) {
       new JCommander(opts).usage();

@@ -65,8 +65,10 @@ public class SessionManager {
   private final List<Session> idleSessions = new ArrayList<>();
   private final Long expiredSessionMarker = (long) -1;
   private final AccumuloConfiguration aconf;
+  private final ServerContext ctx;
 
   public SessionManager(ServerContext context) {
+    this.ctx = context;
     this.aconf = context.getConfiguration();
     maxUpdateIdle = aconf.getTimeInMillis(Property.TSERV_UPDATE_SESSION_MAXIDLE);
     maxIdle = aconf.getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
@@ -283,8 +285,8 @@ public class SessionManager {
         }
       };
 
-      ScheduledFuture<?> future = ThreadPools.getServerThreadPools()
-          .createGeneralScheduledExecutorService(aconf).schedule(r, delay, TimeUnit.MILLISECONDS);
+      ScheduledFuture<?> future =
+          ctx.getScheduledExecutor().schedule(r, delay, TimeUnit.MILLISECONDS);
       ThreadPools.watchNonCriticalScheduledTask(future);
     }
   }
