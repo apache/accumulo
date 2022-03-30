@@ -233,6 +233,9 @@ public class IterConfigUtil {
       String context, IterInfo iterInfo) throws ClassNotFoundException, IOException {
     Class<SortedKeyValueIterator<Key,Value>> clazz = null;
     if (useAccumuloClassLoader) {
+      if (context == null) {
+        throw new IllegalStateException("Null context when using Accumulo class loader");
+      }
       clazz = (Class<SortedKeyValueIterator<Key,Value>>) ClassLoaderUtil.loadClass(context,
           iterInfo.className, SortedKeyValueIterator.class);
       log.trace("Iterator class {} loaded from context {}, classloader: {}", iterInfo.className,
