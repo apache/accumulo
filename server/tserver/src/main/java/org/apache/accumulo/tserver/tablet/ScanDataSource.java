@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.conf.IterConfigUtil;
-import org.apache.accumulo.core.conf.IterLoad;
+import org.apache.accumulo.core.conf.IteratorBuilder;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
@@ -223,9 +223,9 @@ class ScanDataSource implements DataSource {
         }
       }
 
-      IterLoad il = new IterLoad().iters(iterInfos).iterOpts(iterOpts).iterEnv(iterEnv)
-          .useAccumuloClassLoader(true).context(context);
-      return iterEnv.getTopLevelIterator(IterConfigUtil.loadIterators(visFilter, il));
+      var iteratorBuilder = IteratorBuilder.builder(iterInfos).opts(iterOpts).env(iterEnv)
+          .useClassLoader(true).context(context).build();
+      return iterEnv.getTopLevelIterator(IterConfigUtil.loadIterators(visFilter, iteratorBuilder));
     } else {
       return visFilter;
     }

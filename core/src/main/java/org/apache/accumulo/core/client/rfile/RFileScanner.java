@@ -39,7 +39,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.IterConfigUtil;
-import org.apache.accumulo.core.conf.IterLoad;
+import org.apache.accumulo.core.conf.IteratorBuilder;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
@@ -378,14 +378,14 @@ class RFileScanner extends ScannerOptions implements Scanner {
 
       try {
         if (opts.tableConfig != null && !opts.tableConfig.isEmpty()) {
-          IterLoad il = IterConfigUtil.loadIterConf(IteratorScope.scan, serverSideIteratorList,
+          var ibEnv = IterConfigUtil.loadIterConf(IteratorScope.scan, serverSideIteratorList,
               serverSideIteratorOptions, tableConf);
-          iterator = IterConfigUtil.loadIterators(iterator,
-              il.iterEnv(new IterEnv()).useAccumuloClassLoader(true));
+          var iteratorBuilder = ibEnv.env(new IterEnv()).useClassLoader(true).build();
+          iterator = IterConfigUtil.loadIterators(iterator, iteratorBuilder);
         } else {
-          iterator = IterConfigUtil.loadIterators(iterator,
-              new IterLoad().iters(serverSideIteratorList).iterOpts(serverSideIteratorOptions)
-                  .iterEnv(new IterEnv()).useAccumuloClassLoader(false));
+          var iteratorBuilder = IteratorBuilder.builder(serverSideIteratorList)
+              .opts(serverSideIteratorOptions).env(new IterEnv()).useClassLoader(false).build();
+          iterator = IterConfigUtil.loadIterators(iterator, iteratorBuilder);
         }
       } catch (IOException e) {
         throw new RuntimeException(e);

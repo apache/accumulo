@@ -31,7 +31,7 @@ import java.util.Map;
 import org.apache.accumulo.core.clientImpl.CompressedIterators;
 import org.apache.accumulo.core.clientImpl.CompressedIterators.IterConfig;
 import org.apache.accumulo.core.conf.IterConfigUtil;
-import org.apache.accumulo.core.conf.IterLoad;
+import org.apache.accumulo.core.conf.IteratorBuilder;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -57,7 +57,6 @@ public class ConditionCheckerContext {
   private Map<String,Map<String,String>> tableIterOpts;
   private TabletIteratorEnvironment tie;
   private String context;
-  private Map<String,Class<SortedKeyValueIterator<Key,Value>>> classCache;
 
   private static class MergedIterConfig {
     List<IterInfo> mergedIters;
@@ -80,8 +79,6 @@ public class ConditionCheckerContext {
     tableIters = pic.getIterInfo();
     tableIterOpts = pic.getOpts();
     this.context = pic.getServiceEnv();
-
-    classCache = new HashMap<>();
 
     tie = new TabletIteratorEnvironment(context, IteratorScope.scan, tableConf,
         tableConf.getTableId());
@@ -107,9 +104,9 @@ public class ConditionCheckerContext {
       mergedIterCache.put(key, mic);
     }
 
-    IterLoad iterLoad = new IterLoad().iters(mic.mergedIters).iterOpts(mic.mergedItersOpts)
-        .iterEnv(tie).useAccumuloClassLoader(true).context(context).classCache(classCache);
-    return IterConfigUtil.loadIterators(systemIter, iterLoad);
+    var iteratorBuilder = IteratorBuilder.builder(mic.mergedIters).opts(mic.mergedItersOpts)
+        .env(tie).useClassLoader(true).context(context).useClassCache(true).build();
+    return IterConfigUtil.loadIterators(systemIter, iteratorBuilder);
   }
 
   boolean checkConditions(SortedKeyValueIterator<Key,Value> systemIter,

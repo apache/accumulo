@@ -39,7 +39,6 @@ import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.IterConfigUtil;
-import org.apache.accumulo.core.conf.IterLoad;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
@@ -326,11 +325,10 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
         Value> visFilter = SystemIteratorUtil.setupSystemScanIterators(multiIter,
             new HashSet<>(options.fetchedColumns), authorizations, defaultSecurityLabel,
             acuTableConf);
-    IterLoad iterLoad = IterConfigUtil.loadIterConf(IteratorScope.scan,
+    var iteratorBuilderEnv = IterConfigUtil.loadIterConf(IteratorScope.scan,
         options.serverSideIteratorList, options.serverSideIteratorOptions, acuTableConf);
-
-    return iterEnv.getTopLevelIterator(IterConfigUtil.loadIterators(visFilter,
-        iterLoad.iterEnv(iterEnv).useAccumuloClassLoader(false)));
+    var iteratorBuilder = iteratorBuilderEnv.env(iterEnv).useClassLoader(false).build();
+    return iterEnv.getTopLevelIterator(IterConfigUtil.loadIterators(visFilter, iteratorBuilder));
   }
 
   @Override

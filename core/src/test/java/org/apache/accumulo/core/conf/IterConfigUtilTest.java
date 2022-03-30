@@ -135,9 +135,10 @@ public class IterConfigUtilTest {
 
   private SortedKeyValueIterator<Key,Value> createIter(IteratorScope scope,
       SortedMapIterator source, AccumuloConfiguration conf) throws IOException {
-    IterLoad iterLoad = IterConfigUtil.loadIterConf(scope, EMPTY_ITERS, new HashMap<>(), conf);
-    iterLoad = iterLoad.iterEnv(new DefaultIteratorEnvironment(conf)).useAccumuloClassLoader(true);
-    return IterConfigUtil.loadIterators(source, iterLoad);
+    var ibEnv = IterConfigUtil.loadIterConf(scope, EMPTY_ITERS, new HashMap<>(), conf);
+    var iteratorBuilder =
+        ibEnv.env(new DefaultIteratorEnvironment(conf)).useClassLoader(true).build();
+    return IterConfigUtil.loadIterators(source, iteratorBuilder);
   }
 
   @Test

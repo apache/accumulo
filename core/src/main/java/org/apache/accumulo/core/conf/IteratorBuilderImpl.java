@@ -20,49 +20,64 @@ package org.apache.accumulo.core.conf;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
-public class IterLoad {
+public class IteratorBuilderImpl implements IteratorBuilder.IteratorBuilderEnv,
+    IteratorBuilder.IteratorBuilderCassLoader, IteratorBuilder.IteratorBuilderOptions {
 
   Collection<IterInfo> iters;
   Map<String,Map<String,String>> iterOpts;
   IteratorEnvironment iteratorEnvironment;
   boolean useAccumuloClassLoader;
-  String context;
-  Map<String,Class<SortedKeyValueIterator<Key,Value>>> classCache;
+  String context = null;
+  boolean useClassCache = false;
 
-  public IterLoad iters(Collection<IterInfo> iters) {
+  public IteratorBuilderImpl(Collection<IterInfo> iters) {
     this.iters = iters;
-    return this;
   }
 
-  public IterLoad iterOpts(Map<String,Map<String,String>> iterOpts) {
+  public IteratorBuilder.IteratorBuilderEnv opts(Map<String,Map<String,String>> iterOpts) {
     this.iterOpts = iterOpts;
     return this;
   }
 
-  public IterLoad iterEnv(IteratorEnvironment iteratorEnvironment) {
+  @Override
+  public IteratorBuilder.IteratorBuilderCassLoader env(IteratorEnvironment iteratorEnvironment) {
     this.iteratorEnvironment = iteratorEnvironment;
     return this;
   }
 
-  public IterLoad useAccumuloClassLoader(boolean useAccumuloClassLoader) {
+  public IteratorBuilder.IteratorBuilderOptions useClassLoader(boolean useAccumuloClassLoader) {
     this.useAccumuloClassLoader = useAccumuloClassLoader;
     return this;
   }
 
-  public IterLoad context(String context) {
+  public IteratorBuilder.IteratorBuilderOptions context(String context) {
     this.context = context;
     return this;
   }
 
-  public IterLoad classCache(Map<String,Class<SortedKeyValueIterator<Key,Value>>> classCache) {
-    this.classCache = classCache;
+  public IteratorBuilder.IteratorBuilderOptions useClassCache(boolean useClassCache) {
+    this.useClassCache = useClassCache;
     return this;
+  }
+
+  @Override
+  public IteratorBuilder build() {
+    var ib = new IteratorBuilder();
+    ib.iters = this.iters;
+    ib.iterOpts = this.iterOpts;
+    ib.iteratorEnvironment = this.iteratorEnvironment;
+    ib.useAccumuloClassLoader = this.useAccumuloClassLoader;
+    // validate optional types
+    if (this.useAccumuloClassLoader) {
+      ib.context = Objects.requireNonNull(this.context,
+          "Class context required when loading iterators using the Accumulo Class loader");
+    }
+    ib.useClassCache = this.useClassCache;
+    return ib;
   }
 }
