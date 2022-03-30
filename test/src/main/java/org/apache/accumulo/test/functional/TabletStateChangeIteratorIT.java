@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -80,8 +81,8 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
   private final static Logger log = LoggerFactory.getLogger(TabletStateChangeIteratorIT.class);
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 3;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(3);
   }
 
   @Test

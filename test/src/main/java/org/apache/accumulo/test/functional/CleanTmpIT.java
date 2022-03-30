@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -53,8 +54,8 @@ public class CleanTmpIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(CleanTmpIT.class);
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 4;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
   }
 
   @Override

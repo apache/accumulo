@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import java.time.Duration;
 import java.util.Map;
 
 import org.apache.accumulo.cluster.ClusterControl;
@@ -37,8 +38,8 @@ import org.junit.jupiter.api.Test;
 public class ManagerFailoverIT extends AccumuloClusterHarness {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 90;
+  protected Duration defaultTimeout() {
+    return Duration.ofSeconds(90);
   }
 
   @Override

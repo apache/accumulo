@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
@@ -44,8 +45,8 @@ import org.junit.jupiter.api.Test;
 public class ServerSideErrorIT extends AccumuloClusterHarness {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 2;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
   }
 
   @Test

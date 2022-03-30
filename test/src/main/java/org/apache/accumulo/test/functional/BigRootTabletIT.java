@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -40,8 +41,8 @@ public class BigRootTabletIT extends AccumuloClusterHarness {
   // buffers
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 4;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
   }
 
   @Override

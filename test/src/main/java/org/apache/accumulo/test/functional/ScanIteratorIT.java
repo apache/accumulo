@@ -21,6 +21,7 @@ package org.apache.accumulo.test.functional;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -64,8 +65,8 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
   private boolean saslEnabled;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
   }
 
   @BeforeEach

@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
@@ -40,8 +41,8 @@ import org.junit.jupiter.api.Test;
 public class ScannerIT extends AccumuloClusterHarness {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
   }
 
   @Test

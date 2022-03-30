@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.time.Duration;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -55,8 +56,8 @@ public class CleanUpIT extends SharedMiniClusterBase {
   private static final Logger log = LoggerFactory.getLogger(CleanUpIT.class);
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 30;
+  protected Duration defaultTimeout() {
+    return Duration.ofSeconds(30);
   }
 
   @BeforeAll

@@ -22,6 +22,7 @@ import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -46,8 +47,8 @@ import com.google.common.collect.Iterators;
 public class DurabilityIT extends ConfigurableMacBase {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 4;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
   }
 
   @Override

@@ -21,6 +21,7 @@ package org.apache.accumulo.test;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -49,8 +50,8 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
   private static final int NUM_SPLITS = 50;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 2;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
   }
 
   @Test

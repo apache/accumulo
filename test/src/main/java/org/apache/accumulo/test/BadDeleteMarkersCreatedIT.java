@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedSet;
@@ -60,8 +61,8 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(BadDeleteMarkersCreatedIT.class);
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 2 * 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
   }
 
   @Override

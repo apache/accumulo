@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import java.time.Duration;
 import java.util.Map.Entry;
 import java.util.TreeSet;
 
@@ -43,8 +44,8 @@ public class ScanRangeIT extends AccumuloClusterHarness {
   private static final int ROW_LIMIT = 100;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 2;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
   }
 
   @Test

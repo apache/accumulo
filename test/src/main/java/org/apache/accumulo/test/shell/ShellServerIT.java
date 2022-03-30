@@ -37,6 +37,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -124,8 +125,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
   }
 
   @BeforeAll

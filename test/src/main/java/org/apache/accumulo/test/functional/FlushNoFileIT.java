@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Map;
@@ -56,8 +57,8 @@ import com.google.common.collect.Iterables;
 public class FlushNoFileIT extends AccumuloClusterHarness {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
   }
 
   @Test

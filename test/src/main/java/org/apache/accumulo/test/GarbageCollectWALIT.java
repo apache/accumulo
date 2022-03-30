@@ -20,6 +20,8 @@ package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.time.Duration;
+
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
@@ -43,8 +45,8 @@ import com.google.common.collect.Iterators;
 public class GarbageCollectWALIT extends ConfigurableMacBase {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 3;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(3);
   }
 
   @Override

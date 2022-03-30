@@ -21,6 +21,7 @@ package org.apache.accumulo.test;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.time.Duration;
 import java.util.ArrayList;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -41,8 +42,8 @@ import com.google.common.collect.Iterators;
 public class InterruptibleScannersIT extends AccumuloClusterHarness {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
   }
 
   @Override

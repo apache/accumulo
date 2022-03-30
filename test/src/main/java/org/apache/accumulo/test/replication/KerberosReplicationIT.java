@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.security.PrivilegedExceptionAction;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -86,8 +87,8 @@ public class KerberosReplicationIT extends AccumuloITBase {
   private static ClusterUser rootUser;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 3;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(3);
   }
 
   @BeforeAll

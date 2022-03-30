@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.time.Duration;
 import java.util.Collections;
 
 import org.apache.accumulo.core.conf.Property;
@@ -44,8 +45,8 @@ public class DumpConfigIT extends ConfigurableMacBase {
   private static File tempDir;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 2;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
   }
 
   @Override

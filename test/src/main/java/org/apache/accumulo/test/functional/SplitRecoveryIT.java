@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -82,8 +83,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class SplitRecoveryIT extends ConfigurableMacBase {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
   }
 
   private KeyExtent nke(String table, String endRow, String prevEndRow) {

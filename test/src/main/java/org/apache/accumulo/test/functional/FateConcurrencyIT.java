@@ -21,12 +21,12 @@ package org.apache.accumulo.test.functional;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -91,8 +91,8 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
   private SlowOps slowOps;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 4;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
   }
 
   @BeforeEach
@@ -100,7 +100,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     client = Accumulo.newClient().from(getClientProps()).build();
     context = (ClientContext) client;
     secret = cluster.getSiteConfiguration().get(Property.INSTANCE_SECRET);
-    maxWaitMillis = Math.max(MINUTES.toMillis(1), SECONDS.toMillis(defaultTimeoutSeconds()) / 2);
+    maxWaitMillis = Math.max(MINUTES.toMillis(1), defaultTimeout().toMillis() / 2);
   }
 
   @AfterEach
