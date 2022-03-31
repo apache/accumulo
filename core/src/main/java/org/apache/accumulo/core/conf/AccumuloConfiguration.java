@@ -400,12 +400,14 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
         return depThreads;
       }
 
-      if(isScanServer) {
-        String prop = Property.SSERV_SCAN_EXECUTORS_PREFIX.getKey() + name + "." + SCAN_EXEC_THREADS;
+      if (isScanServer) {
+        String prop =
+            Property.SSERV_SCAN_EXECUTORS_PREFIX.getKey() + name + "." + SCAN_EXEC_THREADS;
         String val = getAllPropertiesWithPrefix(Property.SSERV_SCAN_EXECUTORS_PREFIX).get(prop);
         return Integer.parseInt(val);
       } else {
-        String prop = Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey() + name + "." + SCAN_EXEC_THREADS;
+        String prop =
+            Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey() + name + "." + SCAN_EXEC_THREADS;
         String val = getAllPropertiesWithPrefix(Property.TSERV_SCAN_EXECUTORS_PREFIX).get(prop);
         return Integer.parseInt(val);
       }

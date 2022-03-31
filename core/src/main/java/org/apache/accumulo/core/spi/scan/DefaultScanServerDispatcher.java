@@ -32,6 +32,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.data.TabletId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
@@ -46,7 +48,7 @@ import com.google.common.hash.Hashing;
  * are busy, this dispatcher would randomly choose from 3, 21, 144, and then 1000 scan servers.
  * After getting to a point where we are raondomly choosing from all scan server, if busy is still
  * being observed then this dispatcher will start to exponentially increase the busy timeout. If all
- * scan servers are busy then its best to just to to one and wait for your scan to run, which is why
+ * scan servers are busy then its best to just go to one and wait for your scan to run, which is why
  * the busy timeout increases exponentially when it seems like everything is busy.
  *
  * <p>
@@ -69,6 +71,8 @@ import com.google.common.hash.Hashing;
  *
  */
 public class DefaultScanServerDispatcher implements ScanServerDispatcher {
+
+  private static final Logger LOG = LoggerFactory.getLogger(DefaultScanServerDispatcher.class);
 
   private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -96,7 +100,7 @@ public class DefaultScanServerDispatcher implements ScanServerDispatcher {
 
     var diff = Sets.difference(opts.keySet(), OPT_NAMES);
 
-    Preconditions.checkArgument(diff.isEmpty(), "Uknown options %s", diff);
+    Preconditions.checkArgument(diff.isEmpty(), "Unknown options %s", diff);
 
     initialServers = Integer.parseInt(opts.getOrDefault("initialServers", "3"));
     maxDepth = Integer.parseInt(opts.getOrDefault("maxDepth", "3"));
@@ -110,6 +114,11 @@ public class DefaultScanServerDispatcher implements ScanServerDispatcher {
         "initialBusyTimeout must be positive %s", initialBusyTimeout);
     Preconditions.checkArgument(maxBusyTimeout.compareTo(Duration.ZERO) > 0,
         "maxBusyTimeout must be positive %s", maxBusyTimeout);
+
+    LOG.debug(
+        "DefaultScanServerDispatcher configured with initialServers: {}"
+            + ", maxDepth: {}, initialBusyTimeout: {}, maxBusyTimeout: {}",
+        initialServers, maxDepth, initialBusyTimeout, maxBusyTimeout);
   }
 
   @Override

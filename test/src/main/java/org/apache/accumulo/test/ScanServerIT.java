@@ -19,16 +19,16 @@
 package org.apache.accumulo.test;
 
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.fail;
 
-import java.time.Duration;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -46,7 +46,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.spi.scan.DefaultScanServerDispatcher;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -176,26 +175,15 @@ public class ScanServerIT extends SharedMiniClusterBase {
     }
   }
 
-  public static class TimeOutEarlyScanServerDispatcher extends DefaultScanServerDispatcher {
-
-    @Override
-    public void init(InitParameters params) {
-      super.init(params);
-      var opts = params.getOptions();
-      initialBusyTimeout = Duration.parse(opts.getOrDefault("initialBusyTimeout", "PT0.100S"));
-      maxBusyTimeout = Duration.parse(opts.getOrDefault("maxBusyTimeout", "PT1.000S"));
-    }
-
-  }
-
   @Test
   public void testScanServerBusy() throws Exception {
 
-    // Configure the client to use a different scan server dispatcher class that has
-    // lower timeout values
+    // Configure the client to use different scan server dispatcher property values
     Properties props = getClientProps();
-    props.put(ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey(),
-        TimeOutEarlyScanServerDispatcher.class.getName());
+    props.put(ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey() + "initialBusyTimeout",
+        "PT0.100S");
+    props.put(ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey() + "maxBusyTimeout",
+        "PT1.000S");
 
     String tName = null;
     try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
@@ -205,12 +193,14 @@ public class ScanServerIT extends SharedMiniClusterBase {
       client.tableOperations().flush(tName, null, null, true);
     }
 
+    final AtomicReference<Exception> e1 = new AtomicReference<>();
     final String tableName = tName;
     Thread t1 = new Thread(() -> {
       try (AccumuloClient c = Accumulo.newClient().from(props).build()) {
         Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
         IteratorSetting slow = new IteratorSetting(30, "slow", SlowIterator.class);
         SlowIterator.setSleepTime(slow, 30000);
+        SlowIterator.setSeekSleepTime(slow, 30000);
         scanner.addScanIterator(slow);
         scanner.setRange(new Range());
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
@@ -224,10 +214,11 @@ public class ScanServerIT extends SharedMiniClusterBase {
           assertNotNull(iter.next());
         }
       } catch (TableNotFoundException e) {
-        fail("Table not found");
+        e1.set(e);
       }
     }, "first-scan");
 
+    final AtomicReference<Exception> e2 = new AtomicReference<>();
     Thread t2 = new Thread(() -> {
       try (AccumuloClient c = Accumulo.newClient().from(props).build()) {
         // At this point the tablet server will time out this scan after TSERV_SESSION_MAXIDLE
@@ -242,25 +233,29 @@ public class ScanServerIT extends SharedMiniClusterBase {
           while (iter2.hasNext()) {
             assertNotNull(iter2.next());
           }
-          fail("Expecting ScanTimedOutException");
+          e2.set(new IllegalStateException("Expecting ScanTimedOutException"));
         } catch (RuntimeException e) {
           if (e.getCause() instanceof ScanTimedOutException) {
             // success
           } else {
-            fail("Expecting ScanTimedOutException");
+            e2.set(e);
           }
         }
       } catch (TableNotFoundException e) {
-        fail("Table not found");
+        e2.set(e);
       }
     }, "second-scan");
 
     t1.start();
+    Thread.sleep(1000); // Let the slow query start
     t2.start();
 
-    t2.join();
+    t2.join(30000);
     t1.interrupt();
-    t1.join();
+    t1.join(30000);
+
+    assertNull(e1.get());
+    assertNull(e2.get());
   }
 
 }
