@@ -27,11 +27,15 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.spi.scan.ScanServerDispatcher.ScanAttempt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Maps;
 
 public class ScanAttemptsImpl {
+
+  private static final Logger LOG = LoggerFactory.getLogger(ScanAttemptsImpl.class);
 
   static class ScanAttemptImpl
       implements org.apache.accumulo.core.spi.scan.ScanServerDispatcher.ScanAttempt {
@@ -98,6 +102,7 @@ public class ScanAttemptsImpl {
     return new ScanAttemptReporter() {
       @Override
       public void report(ScanAttempt.Result result) {
+        LOG.debug("Received result: {}", result);
         add(tablet, result, server, System.currentTimeMillis());
       }
     };

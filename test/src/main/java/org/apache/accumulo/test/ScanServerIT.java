@@ -176,7 +176,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testScanServerBusy() throws Exception {
+  public void testScanServerBusy_Scanner() throws Exception {
 
     // Configure the client to use different scan server dispatcher property values
     Properties props = getClientProps();
@@ -258,4 +258,80 @@ public class ScanServerIT extends SharedMiniClusterBase {
     assertNull(e2.get());
   }
 
+  @Test
+  public void testScanServerBusy_BatchScanner() throws Exception {
+
+    // Configure the client to use different scan server dispatcher property values
+    Properties props = getClientProps();
+    props.put(ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey() + "initialBusyTimeout",
+        "PT0.100S");
+    props.put(ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey() + "maxBusyTimeout",
+        "PT1.000S");
+
+    String tName = null;
+    try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
+      tName = getUniqueNames(1)[0];
+      client.tableOperations().create(tName);
+      ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 0, tName);
+      client.tableOperations().flush(tName, null, null, true);
+    }
+
+    final AtomicReference<Exception> e1 = new AtomicReference<>();
+    final String tableName = tName;
+    Thread t1 = new Thread(() -> {
+      try (AccumuloClient c = Accumulo.newClient().from(props).build()) {
+        BatchScanner scanner = c.createBatchScanner(tableName, Authorizations.EMPTY);
+        IteratorSetting slow = new IteratorSetting(30, "slow", SlowIterator.class);
+        SlowIterator.setSleepTime(slow, 30000);
+        SlowIterator.setSeekSleepTime(slow, 30000);
+        scanner.addScanIterator(slow);
+        scanner.setRanges(Collections.singletonList(new Range()));
+        scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
+        Iterator<Entry<Key,Value>> iter = scanner.iterator();
+        while (iter.hasNext()) {
+          assertNotNull(iter.next());
+        }
+      } catch (TableNotFoundException e) {
+        e1.set(e);
+      }
+    }, "first-scan");
+
+    final AtomicReference<Exception> e2 = new AtomicReference<>();
+    Thread t2 = new Thread(() -> {
+      try (AccumuloClient c = Accumulo.newClient().from(props).build()) {
+        // At this point the tablet server will time out this scan after TSERV_SESSION_MAXIDLE
+        // Start up another scanner and set it to time out in 1s. It should fail because there
+        // is no scan server available to run the scan.
+        BatchScanner scanner2 = c.createBatchScanner(tableName, Authorizations.EMPTY);
+        scanner2.setRanges(Collections.singletonList(new Range()));
+        scanner2.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
+        Iterator<Entry<Key,Value>> iter2 = scanner2.iterator();
+        try {
+          while (iter2.hasNext()) {
+            assertNotNull(iter2.next());
+          }
+          e2.set(new IllegalStateException("Expecting ScanTimedOutException"));
+        } catch (RuntimeException e) {
+          if (e.getCause() instanceof ScanTimedOutException) {
+            // success
+          } else {
+            e2.set(e);
+          }
+        }
+      } catch (TableNotFoundException e) {
+        e2.set(e);
+      }
+    }, "second-scan");
+
+    t1.start();
+    Thread.sleep(1000); // Let the slow query start
+    t2.start();
+
+    t2.join(30000);
+    t1.interrupt();
+    t1.join(30000);
+
+    assertNull(e1.get());
+    assertNull(e2.get());
+  }
 }
