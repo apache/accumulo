@@ -1487,7 +1487,7 @@ public class Tablet {
                 + "check, so skipping check {} {}",
             tabletMetadata.getExtent(), updateCounter, latestCount);
       } else {
-        log.error("AMCC Data files in {} differ from in-memory data {} {} {} {}", extent,
+        log.error("Data files in {} differ from in-memory data {} {} {} {}", extent,
             tabletMetadata.getFilesMap(), dataFileSizes, updateCounter, latestCount);
       }
     } else {
