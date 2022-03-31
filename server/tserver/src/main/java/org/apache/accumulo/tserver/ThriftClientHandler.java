@@ -390,7 +390,6 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       TSampleNotPresentException, ScanServerBusyException {
 
     if (scanSession.nextBatchTask == null) {
-      // TODO look into prioritizing continue scan task in thread pool queue
       scanSession.nextBatchTask = new NextBatchTask(server, scanID, scanSession.interruptFlag);
       server.resourceManager.executeReadAhead(scanSession.extent,
           getScanDispatcher(scanSession.extent), scanSession, scanSession.nextBatchTask);

@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -34,8 +35,39 @@ import org.apache.accumulo.core.data.TabletId;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
+import com.google.common.collect.Sets;
 import com.google.common.hash.Hashing;
 
+/**
+ * The default Accumulo dispatcher for scan servers. This dispatcher will hash tablets to a few
+ * random scan servers (defaults to 3). So a given tablet will always go to the same 3 scan servers.
+ * When scan servers are busy, this dispatcher will rapidly expand the number of scan servers it
+ * randomly chooses from for a given tablet. With the default settings and 1000 scan servers that
+ * are busy, this dispatcher would randomly choose from 3, 21, 144, and then 1000 scan servers.
+ * After getting to a point where we are raondomly choosing from all scan server, if busy is still
+ * being observed then this dispatcher will start to exponentially increase the busy timeout. If all
+ * scan servers are busy then its best to just to to one and wait for your scan to run, which is why
+ * the busy timeout increases exponentially when it seems like everything is busy.
+ *
+ * <p>
+ * The following options are accepted in {@link #init(InitParameters)}
+ * </p>
+ *
+ * <ul>
+ * <li><b>initialServers</b> the initial number of servers to randomly choose from for a given
+ * tablet. Defaults to 3.</li>
+ * <li><b>initialBusyTimeout</b>The initial busy timeout to use when contacting a scan servers. If
+ * the scan does start running within the busy timeout then another scan server can be tried.
+ * Defaults to PT0.033S see {@link Duration#parse(CharSequence)}</li>
+ * <li><b>maxBusyTimeout</b>When busy is repeatedly seen, then the busy timeout will be increased
+ * exponentially. This setting controls the maximum busyTimeout. Defaults to PT30M</li>
+ * <li><b>maxDepth</b>When busy is observed the number of servers to randomly chose from is
+ * expanded. This setting controls how many busy observations it will take before we choose from all
+ * servers.</li>
+ * </ul>
+ *
+ *
+ */
 public class DefaultScanServerDispatcher implements ScanServerDispatcher {
 
   private static final SecureRandom RANDOM = new SecureRandom();
@@ -48,6 +80,9 @@ public class DefaultScanServerDispatcher implements ScanServerDispatcher {
 
   private Supplier<List<String>> orderedScanServersSupplier;
 
+  private static final Set<String> OPT_NAMES =
+      Set.of("initialServers", "maxDepth", "initialBusyTimeout", "maxBusyTimeout");
+
   @Override
   public void init(InitParameters params) {
     // avoid constantly resorting the scan servers, just do it periodically in case they change
@@ -58,6 +93,10 @@ public class DefaultScanServerDispatcher implements ScanServerDispatcher {
     }, 100, TimeUnit.MILLISECONDS);
 
     var opts = params.getOptions();
+
+    var diff = Sets.difference(opts.keySet(), OPT_NAMES);
+
+    Preconditions.checkArgument(diff.isEmpty(), "Uknown options %s", diff);
 
     initialServers = Integer.parseInt(opts.getOrDefault("initialServers", "3"));
     maxDepth = Integer.parseInt(opts.getOrDefault("maxDepth", "3"));
@@ -136,7 +175,7 @@ public class DefaultScanServerDispatcher implements ScanServerDispatcher {
     long busyTimeout = initialBusyTimeout.toMillis();
 
     if (maxBusyAttempts > maxDepth) {
-      busyTimeout = (long) (busyTimeout * Math.pow(2, maxBusyAttempts - (maxDepth + 1)));
+      busyTimeout = (long) (busyTimeout * Math.pow(8, maxBusyAttempts - (maxDepth + 1)));
       busyTimeout = Math.min(busyTimeout, maxBusyTimeout.toMillis());
     }
 

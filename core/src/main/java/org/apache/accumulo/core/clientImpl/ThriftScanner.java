@@ -514,6 +514,13 @@ public class ThriftScanner {
               getAttempts(TabletId tabletId) {
             return attempts.getOrDefault(tabletId, Set.of());
           }
+
+          @Override
+          public Map<String,String> getHints() {
+            if (scanState.executionHints == null)
+              return Map.of();
+            return scanState.executionHints;
+          }
         };
 
         ScanServerDispatcher.Actions actions =

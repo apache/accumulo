@@ -49,7 +49,6 @@ public class MultiScanSession extends ScanSession {
     super(credentials, scanParams, executionHints, tabletResolver);
     this.queries = queries;
     this.threadPoolExtent = threadPoolExtent;
-    // TODO this is only needed for scan server
     this.exents = Set.copyOf(queries.keySet());
   }
 

@@ -600,6 +600,11 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
               getAttempts(TabletId tabletId) {
             return scanAttemptsSnapshot.getOrDefault(tabletId, Set.of());
           }
+
+          @Override
+          public Map<String,String> getHints() {
+            return options.executionHints;
+          }
         };
 
     var actions = ecsm.determineActions(params);

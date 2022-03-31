@@ -21,7 +21,6 @@ package org.apache.accumulo.tserver.scan;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -30,7 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.tserver.TabletServer;
 
-public abstract class ScanTask<T> implements RunnableFuture<T> {
+public abstract class ScanTask<T> implements Runnable {
 
   protected final TabletServer server;
   protected AtomicBoolean interruptFlag;
@@ -61,7 +60,6 @@ public abstract class ScanTask<T> implements RunnableFuture<T> {
       throw new IllegalStateException("Tried to add more than one result");
   }
 
-  @Override
   public boolean cancel(boolean mayInterruptIfRunning) {
     if (!mayInterruptIfRunning)
       throw new IllegalArgumentException(
@@ -77,11 +75,6 @@ public abstract class ScanTask<T> implements RunnableFuture<T> {
     }
 
     return false;
-  }
-
-  @Override
-  public T get() throws InterruptedException, ExecutionException {
-    throw new UnsupportedOperationException();
   }
 
   private String stateString(int state) {
@@ -161,12 +154,6 @@ public abstract class ScanTask<T> implements RunnableFuture<T> {
     // returned
     resultQueue = null;
 
-    // TODO by not wrapping the error stack information that could be important for debugging is
-    // lost, the error is from a background thread but the stack trace from this foreground thread
-    // is lost.
-    if (r instanceof Error)
-      throw (Error) r; // don't wrap an Error
-
     if (r instanceof Throwable)
       throw new ExecutionException((Throwable) r);
 
@@ -175,21 +162,8 @@ public abstract class ScanTask<T> implements RunnableFuture<T> {
     return rAsT;
   }
 
-  @Override
-  public T get(long timeout, TimeUnit unit)
-      throws InterruptedException, ExecutionException, TimeoutException {
-    // TODO probably no longer makes sense to extend future
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public boolean isCancelled() {
     return state.get() == CANCELED;
-  }
-
-  @Override
-  public boolean isDone() {
-    return runState.get().equals(ScanRunState.FINISHED);
   }
 
   public ScanRunState getScanRunState() {

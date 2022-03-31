@@ -24,26 +24,47 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 
 import com.google.common.base.Preconditions;
 
 /**
+ * A client side plugin that determines what scan servers to use for eventually consistent scans.
+ * When a scanner sets
+ * {@link org.apache.accumulo.core.client.ScannerBase#setConsistencyLevel(ScannerBase.ConsistencyLevel)}
+ * to {@link org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel#EVENTUAL} then this plugin
+ * is used to determine which scan servers to use for a given tablet. To configure a class to use
+ * for this plugin set its name using the client config {@code scan.server.dispatcher.impl}
+ *
  * @since 2.1.0
  */
-// this plugin decides how to handle eventually consistent scans on the client side... long name
-// could be EventuallyConsistentScan(Manager/Dispatcher/Govenor).. shorter name
-// EcScan(Manager/Dispatcher/Govenor)
 public interface ScanServerDispatcher {
 
+  /**
+   * This interface exists so that is easier to evolve what is passed to
+   * {@link #init(InitParameters)} without having to make breaking changes.
+   *
+   * @since 2.1.0
+   */
   public interface InitParameters {
+
+    /**
+     * @return Options that were set in the client config using the prefix
+     *         {@code scan.server.dispatcher.opts.}. The prefix will be stripped. For example if
+     *         {@code scan.server.dispatcher.opts.k1=v1} is set in client config, then the returned
+     *         map will contain {@code k1=v1}.
+     */
     Map<String,String> getOptions();
 
     ServiceEnvironment getServiceEnv();
 
     /**
-     * @return the set of live ScanServers.
+     * @return the set of live ScanServers. Each time the supplier is called it may return something
+     *         different. A good practice would be to call this no more than once per a call to
+     *         {@link #determineActions(DispatcherParameters)} so that decisions are made using a
+     *         consistent set of scan servers.
      */
     Supplier<Set<String>> getScanServers();
   }
@@ -55,8 +76,12 @@ public interface ScanServerDispatcher {
     Preconditions.checkArgument(params.getOptions().isEmpty(), "No options expected");
   }
 
-  // this object is used to communicate what the previous actions were attempted, when they were
-  // attempted, and the result of the attempt
+  /**
+   * this object is used to communicate what the previous actions were attempted, when they were
+   * attempted, and the result of the attempt
+   *
+   * @since 2.1.0
+   */
   interface ScanAttempt {
 
     // represents reasons that previous attempts to scan failed
@@ -71,6 +96,12 @@ public interface ScanServerDispatcher {
     Result getResult();
   }
 
+  /**
+   * This interface exists so that is easier to evolve what is passed to
+   * {@link #determineActions(DispatcherParameters)} without having to make breaking changes.
+   *
+   * @since 2.1.0
+   */
   public interface DispatcherParameters {
 
     /**
@@ -82,6 +113,13 @@ public interface ScanServerDispatcher {
      * @return scan attempt information (TODO: how is this used?)
      */
     Collection<? extends ScanAttempt> getAttempts(TabletId tabletId);
+
+    /**
+     * @return any hints set on a scanner using
+     *         {@link org.apache.accumulo.core.client.ScannerBase#setExecutionHints(Map)}. If none
+     *         were set an empty map is returned.
+     */
+    Map<String,String> getHints();
   }
 
   public interface Actions {
