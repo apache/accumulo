@@ -368,6 +368,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       String threadName = Thread.currentThread().getName();
       Thread.currentThread()
           .setName(threadName + " looking up " + tabletsRanges.size() + " ranges at " + tsLocation);
+      log.debug("looking up {} ranges at {}", tabletsRanges.size(), tsLocation);
       Map<KeyExtent,List<Range>> unscanned = new HashMap<>();
       Map<KeyExtent,List<Range>> tsFailures = new HashMap<>();
       try {
@@ -480,11 +481,6 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   private void doLookups(Map<String,Map<KeyExtent,List<Range>>> binnedRanges,
       final ResultReceiver receiver, List<Column> columns) {
 
-    if (timedoutServers.containsAll(binnedRanges.keySet())) {
-      // all servers have timed out
-      throw new TimedOutException(timedoutServers);
-    }
-
     int maxTabletsPerRequest = Integer.MAX_VALUE;
 
     long busyTimeout = 0;
@@ -512,6 +508,13 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           maxTabletsPerRequest = 1;
         }
       }
+    }
+
+    log.debug("timed out servers: {}", timedoutServers);
+    log.debug("binned range servers: {}", binnedRanges.keySet());
+    if (timedoutServers.containsAll(binnedRanges.keySet())) {
+      // all servers have timed out
+      throw new TimedOutException(timedoutServers);
     }
 
     Map<KeyExtent,List<Range>> failures = new HashMap<>();

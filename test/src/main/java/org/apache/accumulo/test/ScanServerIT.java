@@ -37,6 +37,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableOfflineException;
+import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -222,17 +223,21 @@ public class ScanServerIT extends SharedMiniClusterBase {
       ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 0, tName);
       client.tableOperations().flush(tName, null, null, true);
 
-      BatchScanner scanner = client.createBatchScanner(tName, Authorizations.EMPTY);
-      IteratorSetting slow = new IteratorSetting(30, "slow", SlowIterator.class);
-      SlowIterator.setSleepTime(slow, 30000);
-      SlowIterator.setSeekSleepTime(slow, 30000);
-      scanner.addScanIterator(slow);
-      scanner.setRanges(Collections.singletonList(new Range()));
-      scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-      scanner.setTimeout(10, TimeUnit.SECONDS);
-      Iterator<Entry<Key,Value>> iter = scanner.iterator();
-      if (iter.hasNext()) {
-        fail("Should not get here");
+      try (BatchScanner bs = client.createBatchScanner(tName)) {
+        bs.setRanges(Collections.singletonList(new Range()));
+        bs.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
+        // should not timeout
+        for (Entry<Key,Value> entry : bs) {
+          entry.getKey();
+        }
+
+        bs.setTimeout(5, TimeUnit.SECONDS);
+        IteratorSetting iterSetting = new IteratorSetting(100, SlowIterator.class);
+        iterSetting.addOption("sleepTime", 2000 + "");
+        bs.addScanIterator(iterSetting);
+
+        assertThrows(TimedOutException.class, () -> bs.iterator().next(),
+            "batch scanner did not time out");
       }
     }
   }
