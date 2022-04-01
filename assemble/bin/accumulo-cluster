@@ -119,24 +119,6 @@ function control_service() {
   host="$2"
   service="$3"
 
-  #
-  # The server processes take arguments (e.g. -a, -p, -o, -q [in the case of the Compactor]).
-  #
-  if [[ $# -gt 3 ]]; then
-    EXTRA_ARGS="${@:4}"
-  else
-    EXTRA_ARGS=""
-  fi
-
-  #
-  # If the host is an IP address, then pass the IP address in the -a argument to the server. If
-  # this is not done, then the default IP address if 0.0.0.0 is assigned and the host name is used
-  # in the ZooKeeper address (which may not be resolvable in some systems)
-  #
-  if [[ $host =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    EXTRA_ARGS="-a $host $EXTRA_ARGS"
-  fi
-
   local last_instance_id; last_instance_id=1
   [[ "$service" == "tserver" ]] && last_instance_id=${NUM_TSERVERS:-1}
 
@@ -147,9 +129,22 @@ function control_service() {
     [[ "$service" == "compactor" ]] && ACCUMULO_SERVICE_INSTANCE="${inst_id}_${5}"
 
     if [[ $host == localhost || $host == "$(hostname -s)" || $host == "$(hostname -f)" || $host == $(get_ip) ]] ; then
-      ACCUMULO_SERVICE_INSTANCE="${ACCUMULO_SERVICE_INSTANCE}" "${bin}/accumulo-service" "$service" "$control_cmd" "$EXTRA_ARGS"
+      #
+      # The server processes take arguments (e.g. -p, -o, -q [in the case of the Compactor]). Always add the -a argument
+      # using the value of $host
+      #
+      if [[ $# -gt 3 ]]; then
+        ACCUMULO_SERVICE_INSTANCE="${ACCUMULO_SERVICE_INSTANCE}" "${bin}/accumulo-service" "$service" "$control_cmd" "-a" "$host" "${@:4}"
+      else
+        ACCUMULO_SERVICE_INSTANCE="${ACCUMULO_SERVICE_INSTANCE}" "${bin}/accumulo-service" "$service" "$control_cmd" "-a" "$host"
+      fi
     else
-      $SSH "$host" "bash -c 'ACCUMULO_SERVICE_INSTANCE=${ACCUMULO_SERVICE_INSTANCE} ${bin}/accumulo-service \"$service\" \"$control_cmd\" $EXTRA_ARGS '"
+      if [[ $# -gt 3 ]]; then
+        EXTRA_ARGS="${@:4}"
+        $SSH "$host" "bash -c 'ACCUMULO_SERVICE_INSTANCE=${ACCUMULO_SERVICE_INSTANCE} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-a\" \"$host\" $EXTRA_ARGS '"
+      else
+        $SSH "$host" "bash -c 'ACCUMULO_SERVICE_INSTANCE=${ACCUMULO_SERVICE_INSTANCE} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-a\" \"$host\"'"
+      fi
     fi
   done
 }
