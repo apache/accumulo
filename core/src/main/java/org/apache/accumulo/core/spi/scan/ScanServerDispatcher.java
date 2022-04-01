@@ -110,7 +110,7 @@ public interface ScanServerDispatcher {
     Collection<TabletId> getTablets();
 
     /**
-     * @return scan attempt information (TODO: how is this used?)
+     * @return scan attempt information for the tablet
      */
     Collection<? extends ScanAttempt> getAttempts(TabletId tabletId);
 

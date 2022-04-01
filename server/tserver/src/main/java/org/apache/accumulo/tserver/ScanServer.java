@@ -621,13 +621,15 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
       var tabletMetadata = tabletsMetadata.get(extent);
       if (tabletMetadata == null) {
         LOG.trace("RFFS {} extent not found in metadata table {}", myReservationId, extent);
-        throw new NotServingTabletException();
+        throw new NotServingTabletException(extent.toThrift());
       }
 
-      boolean canLoad =
-          AssignmentHandler.checkTabletMetadata(extent, getTabletSession(), tabletMetadata, true);
-
-      // TODO handle canLoad == false
+      if (!AssignmentHandler.checkTabletMetadata(extent, getTabletSession(), tabletMetadata,
+          true)) {
+        LOG.trace("RFFS {} extent unable to load {} as AssignmentHandler returned false",
+            myReservationId, extent);
+        throw new NotServingTabletException(extent.toThrift());
+      }
     }
 
     Map<StoredTabletFile,KeyExtent> allFiles = new HashMap<>();
@@ -671,7 +673,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
           TabletMetadata metadataAfter = tabletsToCheckMetadata.get(extent);
           if (metadataAfter == null) {
             getContext().getAmple().deleteScanServerFileReferences(refs);
-            throw new NotServingTabletException();
+            throw new NotServingTabletException(extent.toThrift());
           }
 
           // remove files that are still referenced
@@ -850,7 +852,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
       return is;
 
     } catch (AccumuloException | IOException e) {
-      // TODO is this correct?
+      LOG.error("Error starting scan", e);
       throw new RuntimeException(e);
     }
   }
@@ -909,9 +911,10 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
       LOG.debug("started scan: {}", ims.getScanID());
       return ims;
     } catch (TException e) {
+      LOG.error("Error starting scan", e);
       throw e;
     } catch (AccumuloException e) {
-      // TODO is this correct thing to do?
+      LOG.error("Error starting scan", e);
       throw new RuntimeException(e);
     }
   }
