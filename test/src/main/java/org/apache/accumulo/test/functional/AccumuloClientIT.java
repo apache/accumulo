@@ -149,7 +149,6 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     props.put(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), zookeepers);
     props.put(ClientProperty.AUTH_PRINCIPAL.getKey(), user1);
     props.put(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT.getKey(), "22s");
-    props.put(ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX + "enabled", "true");
     ClientProperty.setPassword(props, password1);
     client.close();
     client = Accumulo.newClient().from(props).build();

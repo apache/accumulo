@@ -56,7 +56,7 @@ public class MiniAccumuloConfigImpl {
   private Map<String,String> configuredSiteConig = new HashMap<>();
   private Map<String,String> clientProps = new HashMap<>();
   private int numTservers = 2;
-  private int numScanServers = 2;
+  private int numScanServers = 0;
   private int numCompactors = 1;
   private Map<ServerType,Long> memoryConfig = new HashMap<>();
   private boolean jdwpEnabled = false;
