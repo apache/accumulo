@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
+import java.time.Duration;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -46,8 +47,8 @@ public class ShellConfigIT extends AccumuloClusterHarness {
   private String origPropValue;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 30;
+  protected Duration defaultTimeout() {
+    return Duration.ofSeconds(30);
   }
 
   @BeforeEach

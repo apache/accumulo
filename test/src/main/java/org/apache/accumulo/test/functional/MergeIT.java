@@ -21,6 +21,7 @@ package org.apache.accumulo.test.functional;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -53,8 +54,8 @@ public class MergeIT extends AccumuloClusterHarness {
   }
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 8;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(8);
   }
 
   @Test

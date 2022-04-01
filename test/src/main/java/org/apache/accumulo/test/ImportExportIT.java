@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -68,8 +69,8 @@ public class ImportExportIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(ImportExportIT.class);
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
   }
 
   @Test

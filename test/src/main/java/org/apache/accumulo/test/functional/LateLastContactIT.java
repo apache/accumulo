@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.time.Duration;
 import java.util.Collections;
 
 import org.apache.accumulo.core.conf.Property;
@@ -34,8 +35,8 @@ import org.junit.jupiter.api.Test;
 public class LateLastContactIT extends ConfigurableMacBase {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 90;
+  protected Duration defaultTimeout() {
+    return Duration.ofSeconds(90);
   }
 
   @Override

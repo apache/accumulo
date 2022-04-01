@@ -22,6 +22,7 @@ import static org.apache.accumulo.test.functional.FunctionalTestUtils.checkRFile
 import static org.apache.accumulo.test.functional.FunctionalTestUtils.nm;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -48,8 +49,8 @@ import com.google.common.collect.Iterators;
 public class RowDeleteIT extends AccumuloClusterHarness {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
   }
 
   @Override

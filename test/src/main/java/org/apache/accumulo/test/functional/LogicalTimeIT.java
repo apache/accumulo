@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import java.time.Duration;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -39,8 +40,8 @@ public class LogicalTimeIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(LogicalTimeIT.class);
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 4;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
   }
 
   @Test
