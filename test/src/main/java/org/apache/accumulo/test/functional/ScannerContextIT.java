@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -64,8 +65,8 @@ public class ScannerContextIT extends AccumuloClusterHarness {
   private FileSystem fs;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 2;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
   }
 
   @BeforeEach

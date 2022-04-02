@@ -165,7 +165,7 @@ import io.opentelemetry.context.Scope;
 public class ThriftClientHandler extends ClientServiceHandler implements TabletClientService.Iface {
 
   private static final Logger log = LoggerFactory.getLogger(ThriftClientHandler.class);
-  private static final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = 1000;
+  private final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS;
   private static final long RECENTLY_SPLIT_MILLIES = MINUTES.toMillis(1);
   private final TabletServer server;
   private final WriteTracker writeTracker = new WriteTracker();
@@ -174,6 +174,8 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
   public ThriftClientHandler(TabletServer server) {
     super(server.getContext(), new TransactionWatcher(server.getContext()));
     this.server = server;
+    MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = server.getContext().getConfiguration()
+        .getTimeInMillis(Property.TSERV_MAX_SCAN_RESULT_TIMEOUT);
     log.debug("{} created", ThriftClientHandler.class.getName());
   }
 

@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -53,8 +54,8 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
   private MultiTableBatchWriter mtbw;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 5;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(5);
   }
 
   @BeforeEach

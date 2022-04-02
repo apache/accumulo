@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -64,8 +65,8 @@ public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
   private static final Upgrader9to10 upgrader = new Upgrader9to10();
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 5;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(5);
   }
 
   @Override

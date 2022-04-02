@@ -20,6 +20,7 @@ package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
+import java.time.Duration;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.cluster.ClusterControl;
@@ -47,8 +48,8 @@ import com.google.common.collect.Iterators;
 public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterHarness {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 3;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(3);
   }
 
   @Override

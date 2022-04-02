@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URL;
 import java.security.cert.X509Certificate;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -103,8 +104,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class ReadWriteIT extends AccumuloClusterHarness {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 6;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(6);
   }
 
   @Override

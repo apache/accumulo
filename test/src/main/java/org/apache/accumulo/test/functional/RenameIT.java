@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import java.time.Duration;
+
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -29,8 +31,8 @@ import org.junit.jupiter.api.Test;
 public class RenameIT extends AccumuloClusterHarness {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 2;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
   }
 
   @Test

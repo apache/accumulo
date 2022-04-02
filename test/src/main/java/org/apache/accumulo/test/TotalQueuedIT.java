@@ -21,6 +21,7 @@ package org.apache.accumulo.test;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -42,8 +43,8 @@ import org.junit.jupiter.api.Test;
 public class TotalQueuedIT extends ConfigurableMacBase {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 4;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
   }
 
   @Override

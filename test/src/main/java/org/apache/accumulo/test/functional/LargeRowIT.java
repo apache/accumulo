@@ -22,6 +22,7 @@ import static java.util.Collections.singletonMap;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
@@ -58,8 +59,8 @@ public class LargeRowIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(LargeRowIT.class);
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 4;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
   }
 
   @Override

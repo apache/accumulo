@@ -21,6 +21,7 @@ package org.apache.accumulo.test.functional;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
@@ -43,8 +44,8 @@ import org.junit.jupiter.api.Test;
 public class TimeoutIT extends AccumuloClusterHarness {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 75;
+  protected Duration defaultTimeout() {
+    return Duration.ofSeconds(75);
   }
 
   @Test

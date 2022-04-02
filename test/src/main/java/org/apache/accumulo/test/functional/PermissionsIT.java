@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -71,8 +72,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(PermissionsIT.class);
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 90;
+  protected Duration defaultTimeout() {
+    return Duration.ofSeconds(90);
   }
 
   @BeforeEach

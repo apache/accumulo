@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
+import java.time.Duration;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -72,8 +73,8 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
           .addOption("modulus", "3");
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
   }
 
   @TempDir

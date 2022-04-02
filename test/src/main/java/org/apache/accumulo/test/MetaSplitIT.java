@@ -21,6 +21,7 @@ package org.apache.accumulo.test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -49,8 +50,8 @@ public class MetaSplitIT extends AccumuloClusterHarness {
   private Collection<Text> metadataSplits = null;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 3;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(3);
   }
 
   @BeforeEach

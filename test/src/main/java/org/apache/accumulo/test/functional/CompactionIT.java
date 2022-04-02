@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -154,8 +155,8 @@ public class CompactionIT extends AccumuloClusterHarness {
   private static final int MAX_DATA = 1000;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 4;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
   }
 
   @Override
@@ -473,7 +474,7 @@ public class CompactionIT extends AccumuloClusterHarness {
           executor.execute(r);
         }
         executor.shutdown();
-        executor.awaitTermination(defaultTimeoutSeconds(), SECONDS);
+        executor.awaitTermination(defaultTimeout().toSeconds(), SECONDS);
         assertFalse(fail.get(),
             "Failed to successfully run all threads, Check the test output for error");
       }

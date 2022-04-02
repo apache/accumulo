@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -59,8 +60,8 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
   private static final int NUM_THREADS = 3;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 90;
+  protected Duration defaultTimeout() {
+    return Duration.ofSeconds(90);
   }
 
   @Test

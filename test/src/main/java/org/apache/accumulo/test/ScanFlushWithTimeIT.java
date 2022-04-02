@@ -20,6 +20,7 @@ package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -49,8 +50,8 @@ public class ScanFlushWithTimeIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(ScanFlushWithTimeIT.class);
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 2;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
   }
 
   @Test

@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -75,8 +76,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   private static final int MAX_TABLE_NAME_LEN = 1024;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 90;
+  protected Duration defaultTimeout() {
+    return Duration.ofSeconds(90);
   }
 
   @BeforeEach
