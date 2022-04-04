@@ -72,11 +72,7 @@ public class IteratorBuilderImpl implements IteratorBuilder.IteratorBuilderEnv,
     ib.iterOpts = this.iterOpts;
     ib.iteratorEnvironment = this.iteratorEnvironment;
     ib.useAccumuloClassLoader = this.useAccumuloClassLoader;
-    // validate optional types
-    if (this.useAccumuloClassLoader) {
-      ib.context = Objects.requireNonNull(this.context,
-          "Class context required when loading iterators using the Accumulo Class loader");
-    }
+    ib.context = this.context;
     ib.useClassCache = this.useClassCache;
     return ib;
   }
