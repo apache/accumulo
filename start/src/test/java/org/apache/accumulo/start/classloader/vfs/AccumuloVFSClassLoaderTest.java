@@ -19,21 +19,22 @@
 package org.apache.accumulo.start.classloader.vfs;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.net.URLClassLoader;
+import java.util.Objects;
 
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.vfs2.FileSystemManager;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
-import org.junit.Rule;
+// import org.junit.jupiter.api.Test;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.runner.RunWith;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
@@ -54,9 +55,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
     "org.apache.hadoop.*", "com.sun.org.apache.xerces.*"})
 public class AccumuloVFSClassLoaderTest {
 
-  @Rule
-  public TemporaryFolder folder1 =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File folder1;
 
   /*
    * Test that the default (empty dynamic class paths) does not create the 2nd level loader
@@ -67,7 +67,7 @@ public class AccumuloVFSClassLoaderTest {
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader",
         (AccumuloReloadingVFSClassLoader) null);
 
-    File conf = folder1.newFile("accumulo.properties");
+    File conf = new File(folder1, "accumulo.properties");
     FileWriter out = new FileWriter(conf, UTF_8);
     out.append("general.classpaths=\n");
     out.append("general.vfs.classpaths=\n");
@@ -92,7 +92,7 @@ public class AccumuloVFSClassLoaderTest {
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader",
         (AccumuloReloadingVFSClassLoader) null);
 
-    File conf = folder1.newFile("accumulo.properties");
+    File conf = new File(folder1, "accumulo.properties");
     FileWriter out = new FileWriter(conf, UTF_8);
     out.append("general.classpaths=\n");
     out.append("general.vfs.classpaths=\n");
@@ -116,14 +116,13 @@ public class AccumuloVFSClassLoaderTest {
         (AccumuloReloadingVFSClassLoader) null);
 
     // Copy jar file to TEST_DIR
-    FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"),
-        folder1.newFile("HelloWorld.jar"));
+    FileUtils.copyURLToFile(Objects.requireNonNull(this.getClass().getResource("/HelloWorld.jar")),
+        new File(folder1, "HelloWorld.jar"));
 
-    File conf = folder1.newFile("accumulo.properties");
+    File conf = new File(folder1, "accumulo.properties");
     FileWriter out = new FileWriter(conf, UTF_8);
     out.append("general.classpaths=\n");
-    out.append(
-        "general.vfs.classpaths=" + new File(folder1.getRoot(), "HelloWorld.jar").toURI() + "\n");
+    out.append("general.vfs.classpaths=" + new File(folder1, "HelloWorld.jar").toURI() + "\n");
     out.append("general.dynamic.classpaths=" + System.getProperty("user.dir") + "\n");
     out.close();
 
@@ -149,7 +148,7 @@ public class AccumuloVFSClassLoaderTest {
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader",
         (AccumuloReloadingVFSClassLoader) null);
 
-    File conf = folder1.newFile("accumulo.properties");
+    File conf = new File(folder1, "accumulo.properties");
     FileWriter out = new FileWriter(conf, UTF_8);
     out.append("general.classpaths=\n");
     out.append("general.vfs.classpaths=\n");
@@ -185,7 +184,7 @@ public class AccumuloVFSClassLoaderTest {
         (AccumuloReloadingVFSClassLoader) null);
     String cacheDir = "/some/random/cache/dir";
 
-    File conf = folder1.newFile("accumulo.properties");
+    File conf = new File(folder1, "accumulo.properties");
     FileWriter out = new FileWriter(conf, UTF_8);
     out.append("general.classpaths=\n");
     out.append(AccumuloVFSClassLoader.VFS_CACHE_DIR + "=" + cacheDir + "\n");
