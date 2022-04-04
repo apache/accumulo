@@ -175,7 +175,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
     super(server.getContext(), new TransactionWatcher(server.getContext()));
     this.server = server;
     MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = server.getContext().getConfiguration()
-        .getTimeInMillis(Property.TSERV_MAX_SCAN_RESULT_TIMEOUT);
+        .getTimeInMillis(Property.TSERV_SCAN_RESULTS_MAX_TIMEOUT);
     log.debug("{} created", ThriftClientHandler.class.getName());
   }
 
