@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.harness;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
@@ -100,6 +101,8 @@ public class AccumuloITBase extends WithTestNames {
    */
   @RegisterExtension
   Timeout timeout = Timeout.from(() -> {
+    assertFalse(defaultTimeout().isZero(), "defaultTimeout should not return 0");
+
     int timeoutFactor = 0;
     try {
       String timeoutString = System.getProperty("timeout.factor");
@@ -110,20 +113,19 @@ public class AccumuloITBase extends WithTestNames {
       log.warn("Could not parse timeout.factor, defaulting to no timeout.");
     }
 
-    // if either value is zero, apply a very long timeout (effectively no timeout)
-    int totalTimeoutSeconds = timeoutFactor * defaultTimeoutSeconds();
-    if (totalTimeoutSeconds == 0) {
+    // if the user sets a timeout factor of 0, apply a very long timeout (effectively no timeout)
+    if (timeoutFactor == 0) {
       return Duration.ofDays(5);
     }
 
-    return Duration.ofSeconds(totalTimeoutSeconds);
+    return defaultTimeout().multipliedBy(timeoutFactor);
   });
 
   /**
    * Time to wait per-method before declaring a timeout, in seconds.
    */
-  protected int defaultTimeoutSeconds() {
-    return 60 * 10;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(10);
   }
 
   @SuppressFBWarnings(value = "UI_INHERITANCE_UNSAFE_GETRESOURCE", justification = "for testing")

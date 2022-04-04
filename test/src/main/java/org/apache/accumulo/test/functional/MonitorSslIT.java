@@ -25,6 +25,7 @@ import java.net.URL;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
+import java.time.Duration;
 import java.util.Map;
 
 import javax.net.ssl.HostnameVerifier;
@@ -54,8 +55,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class MonitorSslIT extends ConfigurableMacBase {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 6;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(6);
   }
 
   @BeforeAll

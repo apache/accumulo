@@ -29,7 +29,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -117,20 +116,19 @@ public class FileSystemMonitor {
 
     // Create a task to check each mount periodically to see if its state has changed.
     for (Mount mount : mounts) {
-      ThreadPools.watchCriticalScheduledTask(ThreadPools.getServerThreadPools()
-          .createGeneralScheduledExecutorService(conf).scheduleWithFixedDelay(
-              Threads.createNamedRunnable(mount.mountPoint + "filesystem monitor", () -> {
-                try {
-                  checkMount(mount);
-                } catch (final Exception e) {
-                  Halt.halt(-42, new Runnable() {
-                    @Override
-                    public void run() {
-                      log.error("Exception while checking mount points, halting process", e);
-                    }
-                  });
+      ThreadPools.watchCriticalFixedDelay(conf, period,
+          Threads.createNamedRunnable(mount.mountPoint + "filesystem monitor", () -> {
+            try {
+              checkMount(mount);
+            } catch (final Exception e) {
+              Halt.halt(-42, new Runnable() {
+                @Override
+                public void run() {
+                  log.error("Exception while checking mount points, halting process", e);
                 }
-              }), period, period, TimeUnit.MILLISECONDS));
+              });
+            }
+          }));
     }
 
   }

@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -88,8 +89,8 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
   private int timeoutFactor = 1;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 6;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(6);
   }
 
   @BeforeEach

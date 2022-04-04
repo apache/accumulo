@@ -23,12 +23,17 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
+import static org.apache.accumulo.core.util.threads.ThreadPools.watchCriticalFixedDelay;
+import static org.apache.accumulo.core.util.threads.ThreadPools.watchCriticalScheduledTask;
+import static org.apache.accumulo.core.util.threads.ThreadPools.watchNonCriticalScheduledTask;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.UnknownHostException;
 import java.security.SecureRandom;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -56,6 +61,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Durability;
@@ -163,6 +169,9 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterators;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 public class TabletServer extends AbstractServer {
 
@@ -287,7 +296,7 @@ public class TabletServer extends AbstractServer {
               }
             }
           }), logBusyTabletsDelay, logBusyTabletsDelay, TimeUnit.MILLISECONDS);
-      ThreadPools.watchNonCriticalScheduledTask(future);
+      watchNonCriticalScheduledTask(future);
     }
 
     ScheduledFuture<?> future = context.getScheduledExecutor()
@@ -304,7 +313,7 @@ public class TabletServer extends AbstractServer {
             }
           }
         }), 5, 5, TimeUnit.SECONDS);
-    ThreadPools.watchNonCriticalScheduledTask(future);
+    watchNonCriticalScheduledTask(future);
 
     @SuppressWarnings("deprecation")
     final long walMaxSize =
@@ -352,7 +361,7 @@ public class TabletServer extends AbstractServer {
     this.resourceManager = new TabletServerResourceManager(context);
     this.security = AuditedSecurityOperation.getInstance(context);
 
-    ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
+    watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
         TabletLocator::clearLocators, jitter(), jitter(), TimeUnit.MILLISECONDS));
     walMarker = new WalStateManager(context);
 
@@ -439,10 +448,10 @@ public class TabletServer extends AbstractServer {
           sleepUninterruptibly(getConfiguration().getTimeInMillis(Property.TSERV_MAJC_DELAY),
               TimeUnit.MILLISECONDS);
 
-          List<DfsLogger> closedCopy;
+          final List<DfsLogger> closedCopy;
 
           synchronized (closedLogs) {
-            closedCopy = copyClosedLogs(closedLogs);
+            closedCopy = List.copyOf(closedLogs);
           }
 
           // bail early now if we're shutting down
@@ -803,38 +812,46 @@ public class TabletServer extends AbstractServer {
         }
       }
     }, 0, 5, TimeUnit.SECONDS);
-    ThreadPools.watchNonCriticalScheduledTask(future);
+    watchNonCriticalScheduledTask(future);
 
-    int tabletCheckFrequency = 30 + random.nextInt(31); // random 30-60 minute delay
+    long tabletCheckFrequency = aconf.getTimeInMillis(Property.TSERV_HEALTH_CHECK_FREQ);
     // Periodically check that metadata of tablets matches what is held in memory
-    ThreadPools.watchCriticalScheduledTask(ThreadPools.getServerThreadPools()
-        .createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(() -> {
-          final SortedMap<KeyExtent,Tablet> onlineTabletsSnapshot = onlineTablets.snapshot();
+    watchCriticalFixedDelay(aconf, tabletCheckFrequency, () -> {
+      final SortedMap<KeyExtent,Tablet> onlineTabletsSnapshot = onlineTablets.snapshot();
 
-          Map<KeyExtent,MetadataUpdateCount> updateCounts = new HashMap<>();
+      Map<KeyExtent,MetadataUpdateCount> updateCounts = new HashMap<>();
 
-          // gather updateCounts for each tablet before reading tablet metadata
-          onlineTabletsSnapshot.forEach((ke, tablet) -> {
-            updateCounts.put(ke, tablet.getUpdateCount());
-          });
+      // gather updateCounts for each tablet before reading tablet metadata
+      onlineTabletsSnapshot.forEach((ke, tablet) -> {
+        updateCounts.put(ke, tablet.getUpdateCount());
+      });
 
-          // gather metadata for all tablets readTablets()
-          try (TabletsMetadata tabletsMetadata =
-              getContext().getAmple().readTablets().forTablets(onlineTabletsSnapshot.keySet())
-                  .fetch(FILES, LOGS, ECOMP, PREV_ROW).build()) {
+      Instant start = Instant.now();
+      Duration duration;
+      Span mdScanSpan = TraceUtil.startSpan(this.getClass(), "metadataScan");
+      try (Scope scope = mdScanSpan.makeCurrent()) {
+        // gather metadata for all tablets readTablets()
+        try (TabletsMetadata tabletsMetadata =
+            getContext().getAmple().readTablets().forTablets(onlineTabletsSnapshot.keySet())
+                .fetch(FILES, LOGS, ECOMP, PREV_ROW).build()) {
+          mdScanSpan.end();
+          duration = Duration.between(start, Instant.now());
+          log.debug("Metadata scan took {}ms for {} tablets read.", duration.toMillis(),
+              onlineTabletsSnapshot.keySet().size());
 
-            // for each tablet, compare its metadata to what is held in memory
-            tabletsMetadata.forEach(tabletMetadata -> {
-              KeyExtent extent = tabletMetadata.getExtent();
-              Tablet tablet = onlineTabletsSnapshot.get(extent);
-              MetadataUpdateCount counter = updateCounts.get(extent);
-              tablet.compareTabletInfo(counter, tabletMetadata);
-            });
+          // for each tablet, compare its metadata to what is held in memory
+          for (var tabletMetadata : tabletsMetadata) {
+            KeyExtent extent = tabletMetadata.getExtent();
+            Tablet tablet = onlineTabletsSnapshot.get(extent);
+            MetadataUpdateCount counter = updateCounts.get(extent);
+            tablet.compareTabletInfo(counter, tabletMetadata);
           }
-        }, tabletCheckFrequency, tabletCheckFrequency, TimeUnit.MINUTES));
+        }
+      }
+    });
 
     final long CLEANUP_BULK_LOADED_CACHE_MILLIS = TimeUnit.MINUTES.toMillis(15);
-    ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
+    watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
         new BulkImportCacheCleaner(this), CLEANUP_BULK_LOADED_CACHE_MILLIS,
         CLEANUP_BULK_LOADED_CACHE_MILLIS, TimeUnit.MILLISECONDS));
 
@@ -963,7 +980,7 @@ public class TabletServer extends AbstractServer {
     };
     ScheduledFuture<?> future = context.getScheduledExecutor()
         .scheduleWithFixedDelay(replicationWorkThreadPoolResizer, 10, 30, TimeUnit.SECONDS);
-    ThreadPools.watchNonCriticalScheduledTask(future);
+    watchNonCriticalScheduledTask(future);
   }
 
   public String getClientAddressString() {
@@ -1030,7 +1047,7 @@ public class TabletServer extends AbstractServer {
 
     ScheduledFuture<?> future = context.getScheduledExecutor().scheduleWithFixedDelay(gcDebugTask,
         0, TIME_BETWEEN_GC_CHECKS, TimeUnit.MILLISECONDS);
-    ThreadPools.watchNonCriticalScheduledTask(future);
+    watchNonCriticalScheduledTask(future);
   }
 
   public TabletServerStatus getStats(Map<TableId,MapCounter<ScanRunState>> scanCounts) {
@@ -1242,12 +1259,7 @@ public class TabletServer extends AbstractServer {
   // is used because its very import to know the order in which WALs were closed when deciding if a
   // WAL is eligible for removal. Maintaining the order that logs were used in is currently a simple
   // task because there is only one active log at a time.
-  LinkedHashSet<DfsLogger> closedLogs = new LinkedHashSet<>();
-
-  @VisibleForTesting
-  interface ReferencedRemover {
-    void removeInUse(Set<DfsLogger> candidates);
-  }
+  final LinkedHashSet<DfsLogger> closedLogs = new LinkedHashSet<>();
 
   /**
    * For a closed WAL to be eligible for removal it must be unreferenced AND all closed WALs older
@@ -1256,10 +1268,10 @@ public class TabletServer extends AbstractServer {
    */
   @VisibleForTesting
   static Set<DfsLogger> findOldestUnreferencedWals(List<DfsLogger> closedLogs,
-      ReferencedRemover referencedRemover) {
+      Consumer<Set<DfsLogger>> referencedRemover) {
     LinkedHashSet<DfsLogger> unreferenced = new LinkedHashSet<>(closedLogs);
 
-    referencedRemover.removeInUse(unreferenced);
+    referencedRemover.accept(unreferenced);
 
     Iterator<DfsLogger> closedIter = closedLogs.iterator();
     Iterator<DfsLogger> unrefIter = unreferenced.iterator();
@@ -1280,25 +1292,15 @@ public class TabletServer extends AbstractServer {
     return eligible;
   }
 
-  @VisibleForTesting
-  static List<DfsLogger> copyClosedLogs(LinkedHashSet<DfsLogger> closedLogs) {
-    List<DfsLogger> closedCopy = new ArrayList<>(closedLogs.size());
-    for (DfsLogger dfsLogger : closedLogs) {
-      // very important this copy maintains same order ..
-      closedCopy.add(dfsLogger);
-    }
-    return Collections.unmodifiableList(closedCopy);
-  }
-
   private void markUnusedWALs() {
 
     List<DfsLogger> closedCopy;
 
     synchronized (closedLogs) {
-      closedCopy = copyClosedLogs(closedLogs);
+      closedCopy = List.copyOf(closedLogs);
     }
 
-    ReferencedRemover refRemover = candidates -> {
+    Consumer<Set<DfsLogger>> refRemover = candidates -> {
       for (Tablet tablet : getOnlineTablets().values()) {
         tablet.removeInUseLogs(candidates);
         if (candidates.isEmpty()) {

@@ -16,27 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.shell.commands;
+package org.apache.accumulo.manager;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
 
-import java.util.Set;
+// This is only for the unit tests and integration tests in this module
+// It must be copied for use in other modules, because tests in one module
+// don't have dependencies on other modules, and we can't put this in a
+// regular, non-test jar, because we don't want to add a dependency on
+// JUnit in a non-test jar
+public class WithTestNames {
 
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
-import org.junit.jupiter.api.Test;
+  private String testName;
 
-import com.google.common.collect.Sets;
+  @BeforeEach
+  public void setTestName(TestInfo info) {
+    testName = info.getTestMethod().get().getName();
+  }
 
-public class DeleteTableCommandTest {
-
-  @Test
-  public void removeAccumuloNamespaceTables() {
-    Set<String> tables = Sets.newHashSet(MetadataTable.NAME, RootTable.NAME, "a1", "a2");
-    DeleteTableCommand cmd = new DeleteTableCommand();
-    cmd.pruneTables(tables);
-
-    assertEquals(Set.of("a1", "a2"), tables);
+  protected String testName() {
+    return testName;
   }
 
 }

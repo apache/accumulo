@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import java.time.Duration;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -33,8 +34,8 @@ public class BalanceIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(BalanceIT.class);
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
   }
 
   @Test
