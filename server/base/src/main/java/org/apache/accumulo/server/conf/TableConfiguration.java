@@ -33,11 +33,11 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.IterConfigUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
@@ -74,7 +74,7 @@ public class TableConfiguration extends AccumuloConfiguration {
       iteratorConfig.put(scope, newDeriver(conf -> {
         Map<String,Map<String,String>> allOpts = new HashMap<>();
         List<IterInfo> iters =
-            IterConfigUtil.parseIterConf(scope, Collections.emptyList(), allOpts, conf);
+            IteratorConfigUtil.parseIterConf(scope, Collections.emptyList(), allOpts, conf);
         return new ParsedIteratorConfig(iters, allOpts, ClassLoaderUtil.tableContext(conf));
       }));
     }

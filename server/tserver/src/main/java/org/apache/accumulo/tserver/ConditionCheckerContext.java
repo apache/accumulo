@@ -30,8 +30,6 @@ import java.util.Map;
 
 import org.apache.accumulo.core.clientImpl.CompressedIterators;
 import org.apache.accumulo.core.clientImpl.CompressedIterators.IterConfig;
-import org.apache.accumulo.core.conf.IterConfigUtil;
-import org.apache.accumulo.core.conf.IteratorBuilder;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -43,6 +41,8 @@ import org.apache.accumulo.core.dataImpl.thrift.TCMStatus;
 import org.apache.accumulo.core.dataImpl.thrift.TCondition;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.IteratorBuilder;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration.ParsedIteratorConfig;
@@ -96,8 +96,8 @@ public class ConditionCheckerContext {
       Map<String,Map<String,String>> mergedItersOpts =
           new HashMap<>(tableIterOpts.size() + ic.ssio.size());
 
-      IterConfigUtil.mergeIteratorConfig(mergedIters, mergedItersOpts, tableIters, tableIterOpts,
-          ic.ssiList, ic.ssio);
+      IteratorConfigUtil.mergeIteratorConfig(mergedIters, mergedItersOpts, tableIters,
+          tableIterOpts, ic.ssiList, ic.ssio);
 
       mic = new MergedIterConfig(mergedIters, mergedItersOpts);
 
@@ -105,8 +105,8 @@ public class ConditionCheckerContext {
     }
 
     var iteratorBuilder = IteratorBuilder.builder(mic.mergedIters).opts(mic.mergedItersOpts)
-        .env(tie).useClassLoader(true).context(context).useClassCache(true).build();
-    return IterConfigUtil.loadIterators(systemIter, iteratorBuilder);
+        .env(tie).useClassLoaderContext(context).useClassCache(true).build();
+    return IteratorConfigUtil.loadIterators(systemIter, iteratorBuilder);
   }
 
   boolean checkConditions(SortedKeyValueIterator<Key,Value> systemIter,

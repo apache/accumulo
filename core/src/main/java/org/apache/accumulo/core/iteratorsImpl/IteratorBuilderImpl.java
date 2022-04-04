@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.conf;
+package org.apache.accumulo.core.iteratorsImpl;
 
 import java.util.Collection;
 import java.util.Map;
@@ -24,8 +24,8 @@ import java.util.Map;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 
-public class IteratorBuilderImpl implements IteratorBuilder.IteratorBuilderEnv,
-    IteratorBuilder.IteratorBuilderCassLoader, IteratorBuilder.IteratorBuilderOptions {
+public class IteratorBuilderImpl
+    implements IteratorBuilder.IteratorBuilderEnv, IteratorBuilder.IteratorBuilderOptions {
 
   Collection<IterInfo> iters;
   Map<String,Map<String,String>> iterOpts;
@@ -44,19 +44,14 @@ public class IteratorBuilderImpl implements IteratorBuilder.IteratorBuilderEnv,
   }
 
   @Override
-  public IteratorBuilder.IteratorBuilderCassLoader env(IteratorEnvironment iteratorEnvironment) {
+  public IteratorBuilder.IteratorBuilderOptions env(IteratorEnvironment iteratorEnvironment) {
     this.iteratorEnvironment = iteratorEnvironment;
     return this;
   }
 
-  public IteratorBuilder.IteratorBuilderOptions useClassLoader(boolean useAccumuloClassLoader) {
-    this.useAccumuloClassLoader = useAccumuloClassLoader;
-    return this;
-  }
-
-  public IteratorBuilder.IteratorBuilderOptions context(String context) {
-    this.context = context;
-    return this;
+  @Override
+  public IteratorBuilder.IteratorBuilderOptions useClassLoaderContext(String context) {
+    return null;
   }
 
   public IteratorBuilder.IteratorBuilderOptions useClassCache(boolean useClassCache) {

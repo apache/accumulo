@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.conf;
+package org.apache.accumulo.core.iteratorsImpl;
 
 import static java.util.Objects.requireNonNull;
 
@@ -33,6 +33,8 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint;
@@ -48,8 +50,8 @@ import org.slf4j.LoggerFactory;
  * Utility class for configuring iterators. These methods were moved from IteratorUtil so that it
  * could be treated as API.
  */
-public class IterConfigUtil {
-  private static final Logger log = LoggerFactory.getLogger(IterConfigUtil.class);
+public class IteratorConfigUtil {
+  private static final Logger log = LoggerFactory.getLogger(IteratorConfigUtil.class);
 
   public static final Comparator<IterInfo> ITER_INFO_COMPARATOR =
       Comparator.comparingInt(IterInfo::getPriority);
@@ -185,7 +187,7 @@ public class IterConfigUtil {
 
     var ibEnv = loadIterConf(scope, ssiList, ssio, conf);
     var iterBuilder =
-        ibEnv.env(env).useClassLoader(true).context(ClassLoaderUtil.tableContext(conf)).build();
+        ibEnv.env(env).useClassLoaderContext(ClassLoaderUtil.tableContext(conf)).build();
     return loadIterators(source, iterBuilder);
   }
 

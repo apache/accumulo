@@ -43,14 +43,15 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.MultiIteratorTest;
 import org.apache.accumulo.core.iterators.user.AgeOffFilter;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class IterConfigUtilTest {
+public class IteratorConfigUtilTest {
 
-  private static final Logger log = LoggerFactory.getLogger(IterConfigUtilTest.class);
+  private static final Logger log = LoggerFactory.getLogger(IteratorConfigUtilTest.class);
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
   private static final List<IterInfo> EMPTY_ITERS = Collections.emptyList();
 
@@ -135,10 +136,10 @@ public class IterConfigUtilTest {
 
   private SortedKeyValueIterator<Key,Value> createIter(IteratorScope scope,
       SortedMapIterator source, AccumuloConfiguration conf) throws IOException {
-    var ibEnv = IterConfigUtil.loadIterConf(scope, EMPTY_ITERS, new HashMap<>(), conf);
-    var iteratorBuilder =
-        ibEnv.env(new DefaultIteratorEnvironment(conf)).useClassLoader(true).build();
-    return IterConfigUtil.loadIterators(source, iteratorBuilder);
+    var ibEnv = IteratorConfigUtil.loadIterConf(scope, EMPTY_ITERS, new HashMap<>(), conf);
+    var iteratorBuilder = ibEnv.env(new DefaultIteratorEnvironment(conf))
+        .useClassLoaderContext("testContext").build();
+    return IteratorConfigUtil.loadIterators(source, iteratorBuilder);
   }
 
   @Test
@@ -325,7 +326,7 @@ public class IterConfigUtilTest {
     AccumuloConfiguration conf = new ConfigurationCopy(data);
 
     List<IterInfo> iterators =
-        IterConfigUtil.parseIterConf(IteratorScope.scan, EMPTY_ITERS, new HashMap<>(), conf);
+        IteratorConfigUtil.parseIterConf(IteratorScope.scan, EMPTY_ITERS, new HashMap<>(), conf);
 
     assertEquals(1, iterators.size());
     IterInfo ii = iterators.get(0);
@@ -349,7 +350,7 @@ public class IterConfigUtilTest {
       data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foo.bar",
           "50," + SummingCombiner.class.getName());
       conf = new ConfigurationCopy(data);
-      iterators = IterConfigUtil.parseIterConf(IteratorScope.scan, iterators, options, conf);
+      iterators = IteratorConfigUtil.parseIterConf(IteratorScope.scan, iterators, options, conf);
     } catch (IllegalArgumentException ex) {
       log.debug("caught expected exception: " + ex.getMessage());
     }
@@ -363,7 +364,7 @@ public class IterConfigUtilTest {
       data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foo.bar.baz",
           "49," + SummingCombiner.class.getName());
       conf = new ConfigurationCopy(data);
-      iterators = IterConfigUtil.parseIterConf(IteratorScope.scan, iterators, options, conf);
+      iterators = IteratorConfigUtil.parseIterConf(IteratorScope.scan, iterators, options, conf);
     } catch (IllegalArgumentException ex) {
       log.debug("caught expected exception: " + ex.getMessage());
     }
@@ -377,7 +378,7 @@ public class IterConfigUtilTest {
           "48," + SummingCombiner.class.getName());
       data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foobar.opt", "fakevalue");
       conf = new ConfigurationCopy(data);
-      iterators = IterConfigUtil.parseIterConf(IteratorScope.scan, iterators, options, conf);
+      iterators = IteratorConfigUtil.parseIterConf(IteratorScope.scan, iterators, options, conf);
       assertEquals(1, iterators.size());
       IterInfo ii = iterators.get(0);
       assertEquals(new IterInfo(48, SummingCombiner.class.getName(), "foobar"), ii);
@@ -394,7 +395,7 @@ public class IterConfigUtilTest {
           "47," + SummingCombiner.class.getName());
       data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foobaz.fake.opt", "fakevalue");
       conf = new ConfigurationCopy(data);
-      iterators = IterConfigUtil.parseIterConf(IteratorScope.scan, iterators, options, conf);
+      iterators = IteratorConfigUtil.parseIterConf(IteratorScope.scan, iterators, options, conf);
       assertEquals(1, iterators.size());
       IterInfo ii = iterators.get(0);
       assertEquals(new IterInfo(47, SummingCombiner.class.getName(), "foobaz"), ii);

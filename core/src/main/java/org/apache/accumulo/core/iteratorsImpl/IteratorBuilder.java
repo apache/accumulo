@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.conf;
+package org.apache.accumulo.core.iteratorsImpl;
 
 import java.util.Collection;
 import java.util.Map;
@@ -48,32 +48,23 @@ public class IteratorBuilder {
     /**
      * Set the iteratorEnvironment.
      */
-    IteratorBuilderCassLoader env(IteratorEnvironment iteratorEnvironment);
+    IteratorBuilderOptions env(IteratorEnvironment iteratorEnvironment);
   }
 
-  public interface IteratorBuilderCassLoader {
-    /**
-     * Pass true to useAccumuloClassLoader or false otherwise. If true, a context is required.
-     */
-    IteratorBuilderOptions useClassLoader(boolean useAccumuloClassLoader);
-  }
-
-  public interface IteratorBuilderOptions extends IteratorBuilderCassLoader {
+  public interface IteratorBuilderOptions extends IteratorBuilderEnv {
     /**
      * Option to iterator classes when loading, defaults to false.
      */
     IteratorBuilderOptions useClassCache(boolean useClassCache);
 
     /**
-     * Option to set the String context, defaults to null. This is required to use the Accumulo
-     * class loader.
+     * Option to set the String context, defaults to null.
      */
-    IteratorBuilderOptions context(String context);
+    IteratorBuilderOptions useClassLoaderContext(String context);
 
     /**
      * Finish building and return the completed IteratorBuilder.
      */
     IteratorBuilder build();
   }
-
 }

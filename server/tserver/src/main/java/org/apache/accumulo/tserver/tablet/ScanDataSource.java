@@ -26,14 +26,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.core.conf.IterConfigUtil;
-import org.apache.accumulo.core.conf.IteratorBuilder;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.IteratorBuilder;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
@@ -204,8 +204,8 @@ class ScanDataSource implements DataSource {
         // iterator options.
         iterOpts = new HashMap<>(pic.getOpts().size() + scanParams.getSsio().size());
         iterInfos = new ArrayList<>(pic.getIterInfo().size() + scanParams.getSsiList().size());
-        IterConfigUtil.mergeIteratorConfig(iterInfos, iterOpts, pic.getIterInfo(), pic.getOpts(),
-            scanParams.getSsiList(), scanParams.getSsio());
+        IteratorConfigUtil.mergeIteratorConfig(iterInfos, iterOpts, pic.getIterInfo(),
+            pic.getOpts(), scanParams.getSsiList(), scanParams.getSsio());
       }
 
       String context;
@@ -224,8 +224,9 @@ class ScanDataSource implements DataSource {
       }
 
       var iteratorBuilder = IteratorBuilder.builder(iterInfos).opts(iterOpts).env(iterEnv)
-          .useClassLoader(true).context(context).build();
-      return iterEnv.getTopLevelIterator(IterConfigUtil.loadIterators(visFilter, iteratorBuilder));
+          .useClassLoaderContext(context).build();
+      return iterEnv
+          .getTopLevelIterator(IteratorConfigUtil.loadIterators(visFilter, iteratorBuilder));
     } else {
       return visFilter;
     }
