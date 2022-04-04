@@ -155,8 +155,7 @@
     <surefire.forkCount>1C</surefire.forkCount>
     <surefire.groups />
     <surefire.reuseForks>true</surefire.reuseForks>
-    <!-- 3.0.0-M5 causes RowHashIT.test and ShellServerIT.scansWithClassLoaderContext to fail -->
-    <surefire.version>3.0.0-M4</surefire.version>
+    <surefire.version>3.0.0-M6</surefire.version>
     <!-- Thrift version -->
     <thrift.version>0.15.0</thrift.version>
     <unitTestMemSize>-Xmx1G</unitTestMemSize>
