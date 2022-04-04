@@ -20,7 +20,6 @@ package org.apache.accumulo.core.conf;
 
 import java.util.Collection;
 import java.util.Map;
-import java.util.Objects;
 
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
