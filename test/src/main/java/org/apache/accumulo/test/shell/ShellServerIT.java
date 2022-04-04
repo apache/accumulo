@@ -43,7 +43,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.Constants;
@@ -97,7 +96,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -1461,9 +1459,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
       SlowIterator.setSleepTime(cfg, 500);
       s.addScanIterator(cfg);
 
-      var iterSize = new AtomicInteger(0);
-      Thread thread = new Thread(() -> iterSize.set(Iterators.size(s.iterator())));
-      assertTrue(iterSize.get() > 0);
+      Thread thread = new Thread(() -> {
+        s.forEach((k, v) -> {});
+      });
       thread.start();
 
       List<String> scans = new ArrayList<>();

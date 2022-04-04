@@ -19,7 +19,6 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 
 import java.util.Collections;
@@ -69,22 +68,14 @@ public class ServerSideErrorIT extends AccumuloClusterHarness {
       // try to scan table
       try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
         Iterator<Entry<Key,Value>> iterator = scanner.iterator();
-        assertThrows(RuntimeException.class, () -> {
-          while (iterator.hasNext()) {
-            iterator.next();
-          }
-        });
+        assertThrows(RuntimeException.class, iterator::hasNext);
       }
 
       // try to batch scan the table
       try (BatchScanner bs = c.createBatchScanner(tableName, Authorizations.EMPTY, 2)) {
         bs.setRanges(Collections.singleton(new Range()));
         Iterator<Entry<Key,Value>> iterator = bs.iterator();
-        assertThrows(RuntimeException.class, () -> {
-          while (iterator.hasNext()) {
-            iterator.next();
-          }
-        });
+        assertThrows(RuntimeException.class, iterator::hasNext);
       }
 
       // remove the bad agg so accumulo can shutdown
@@ -97,18 +88,11 @@ public class ServerSideErrorIT extends AccumuloClusterHarness {
 
       // should be able to scan now
       try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
-        for (Entry<Key,Value> entry : scanner) {
-          assertNotNull(entry.getKey());
-        }
-
+        scanner.forEach((k, v) -> {});
         // set a nonexistent iterator, should cause scan to fail on server side
         scanner.addScanIterator(new IteratorSetting(100, "bogus", "com.bogus.iterator"));
         Iterator<Entry<Key,Value>> iterator = scanner.iterator();
-        assertThrows(RuntimeException.class, () -> {
-          while (iterator.hasNext()) {
-            iterator.next();
-          }
-        });
+        assertThrows(RuntimeException.class, iterator::hasNext);
       }
     }
   }

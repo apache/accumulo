@@ -20,7 +20,6 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
@@ -72,7 +71,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
   @Before
   public void checkCluster() throws Exception {
     assumeTrue(getClusterType() == ClusterType.MINI);
-    assertNotNull(MiniAccumuloClusterImpl.class.cast(getCluster()));
+    assertTrue(MiniAccumuloClusterImpl.class.isInstance(getCluster()));
     fs = FileSystem.get(cluster.getServerContext().getHadoopConf());
   }
 

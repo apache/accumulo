@@ -19,7 +19,6 @@
 package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 import java.util.Map.Entry;
@@ -46,8 +45,6 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.Test;
-
-import com.google.common.collect.Iterators;
 
 // When reviewing the changes for ACCUMULO-3423, kturner suggested
 // "tablets will now have log references that contain no data,
@@ -106,8 +103,9 @@ public class UnusedWALIT extends ConfigurableMacBase {
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
 
       // wait for the metadata table to be online
-      assertTrue(
-          Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator()) > 0);
+      try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+        scanner.forEach((k, v) -> {});
+      }
 
       // check our two sets of data in different logs
       scanSomeData(c, lilTable, 0, 1, 0, 1);

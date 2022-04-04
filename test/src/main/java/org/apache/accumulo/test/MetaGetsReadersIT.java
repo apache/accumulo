@@ -43,8 +43,6 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.conf.Configuration;
 
-import com.google.common.collect.Iterators;
-
 public class MetaGetsReadersIT extends ConfigurableMacBase {
 
   @Override
@@ -104,7 +102,7 @@ public class MetaGetsReadersIT extends ConfigurableMacBase {
       long now = System.currentTimeMillis();
 
       try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-        assertTrue(Iterators.size(s.iterator()) > 0);
+        s.forEach((k, v) -> {});
       }
 
       long delay = System.currentTimeMillis() - now;

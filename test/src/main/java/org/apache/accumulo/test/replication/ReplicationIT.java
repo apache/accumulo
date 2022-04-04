@@ -737,8 +737,9 @@ public class ReplicationIT extends ConfigurableMacBase {
       }
 
       for (String table : Arrays.asList(MetadataTable.NAME, table1, table2, table3))
-        assertTrue(
-            Iterators.size(client.createScanner(table, Authorizations.EMPTY).iterator()) > 0);
+        try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
+          scanner.forEach((k, v) -> {});
+        }
     }
   }
 
@@ -1187,8 +1188,9 @@ public class ReplicationIT extends ConfigurableMacBase {
 
       // Make sure we can read all the tables (recovery complete)
       for (String table : Arrays.asList(table1, table2, table3)) {
-        assertTrue(
-            Iterators.size(client.createScanner(table, Authorizations.EMPTY).iterator()) > 0);
+        try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
+          scanner.forEach((k, v) -> {});
+        }
       }
 
       // Starting the gc will run CloseWriteAheadLogReferences which will first close Statuses
@@ -1434,8 +1436,9 @@ public class ReplicationIT extends ConfigurableMacBase {
 
       // Make sure we can read all the tables (recovery complete)
       for (String table : new String[] {MetadataTable.NAME, table1}) {
-        assertTrue(
-            Iterators.size(client.createScanner(table, Authorizations.EMPTY).iterator()) > 0);
+        try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
+          scanner.forEach((k, v) -> {});
+        }
       }
 
       log.info("Recovered metadata:");

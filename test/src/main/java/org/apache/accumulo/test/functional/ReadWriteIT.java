@@ -94,8 +94,6 @@ import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterators;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Category({StandaloneCapableClusterTests.class, SunnyDayTests.class})
@@ -323,14 +321,14 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       long now = System.currentTimeMillis();
       try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.fetchColumnFamily(new Text("colf"));
-        assertTrue(Iterators.size(scanner.iterator()) > 0);
+        scanner.forEach((k, v) -> {});
       }
       long diff = System.currentTimeMillis() - now;
       now = System.currentTimeMillis();
 
       try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.fetchColumnFamily(new Text("colf2"));
-        assertTrue(Iterators.size(scanner.iterator()) > 0);
+        scanner.forEach((k, v) -> {});
       }
       long diff2 = System.currentTimeMillis() - now;
       assertTrue(diff2 < diff);

@@ -19,7 +19,6 @@
 package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import java.util.Map.Entry;
 
@@ -41,8 +40,6 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.Test;
-
-import com.google.common.collect.Iterators;
 
 // Accumulo3010
 public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterHarness {
@@ -92,7 +89,9 @@ public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterHarness {
       // recover
       control.startAllServers(ServerType.TABLET_SERVER);
       // ensure the table is readable
-      assertTrue(Iterators.size(c.createScanner(tableName, Authorizations.EMPTY).iterator()) > 0);
+      try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
+        scanner.forEach((k, v) -> {});
+      }
 
       // ensure that the recovery was not a merging minor compaction
       try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {

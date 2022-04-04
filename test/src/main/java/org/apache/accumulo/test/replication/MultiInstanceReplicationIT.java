@@ -63,6 +63,7 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.accumulo.server.replication.ReplicaSystemFactory;
 import org.apache.accumulo.server.replication.StatusUtil;
+import org.apache.accumulo.server.replication.proto.Replication;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.tserver.TabletServer;
@@ -75,8 +76,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Iterators;
 
 /**
  * Replication tests which start at least two MAC instances and replicate data between them
@@ -250,7 +249,9 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       cluster.exec(TabletServer.class);
 
       log.info("TabletServer restarted");
-      assertTrue(Iterators.size(ReplicationTable.getScanner(clientManager).iterator()) > 0);
+      try (Scanner scanner = ReplicationTable.getScanner(clientManager)) {
+        scanner.forEach((k, v) -> {});
+      }
       log.info("TabletServer is online");
 
       while (!ReplicationTable.isOnline(clientManager)) {
@@ -462,8 +463,9 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       log.info("Restarted the tserver");
 
       // Read the data -- the tserver is back up and running
-      assertTrue(Iterators
-          .size(clientManager.createScanner(managerTable1, Authorizations.EMPTY).iterator()) > 0);
+      try (Scanner scanner = clientManager.createScanner(managerTable1, Authorizations.EMPTY)) {
+        scanner.forEach((k, v) -> {});
+      }
 
       while (!ReplicationTable.isOnline(clientManager)) {
         log.info("Replication table still offline, waiting");
@@ -595,9 +597,9 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
         Thread.sleep(5000);
       }
 
-      assertTrue(
-          Iterators.size(clientManager.createScanner(managerTable, Authorizations.EMPTY).iterator())
-              > 0);
+      try (Scanner scanner = clientManager.createScanner(managerTable, Authorizations.EMPTY)) {
+        scanner.forEach((k, v) -> {});
+      }
 
       try (var scanner = ReplicationTable.getScanner(clientManager)) {
         for (Entry<Key,Value> kv : scanner) {
