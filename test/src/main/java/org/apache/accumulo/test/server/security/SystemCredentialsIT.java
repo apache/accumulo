@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.test.server.security;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.io.IOException;
+import java.time.Duration;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -37,15 +37,15 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SystemCredentialsIT extends ConfigurableMacBase {
 
   private static final int SCAN_FAILED = 7, AUTHENICATION_FAILED = 8;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
   }
 
   @Test
@@ -58,8 +58,7 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
         exec(SystemCredentialsIT.class, "bad_password", getCluster().getZooKeepers()).waitFor());
   }
 
-  public static void main(final String[] args)
-      throws AccumuloException, TableNotFoundException, IOException {
+  public static void main(final String[] args) throws AccumuloException, TableNotFoundException {
     var siteConfig = SiteConfiguration.auto();
     try (ServerContext context = new ServerContext(siteConfig)) {
       Credentials creds;

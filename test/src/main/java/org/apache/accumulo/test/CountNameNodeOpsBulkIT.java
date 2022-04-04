@@ -19,7 +19,7 @@
 package org.apache.accumulo.test;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -53,7 +53,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.gson.Gson;
 
@@ -181,7 +181,7 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
       // counts for old bulk import:
       // Expected number of FileInfoOps was between 1000 and 2100
       // new bulk import is way better :)
-      assertEquals("unexpected number of FileInfoOps", 20, getFileInfoOpts);
+      assertEquals(20, getFileInfoOpts, "unexpected number of FileInfoOps");
     }
   }
 }

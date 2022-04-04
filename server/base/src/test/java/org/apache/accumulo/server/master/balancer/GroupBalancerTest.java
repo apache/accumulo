@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.server.master.balancer;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -40,7 +40,7 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @Deprecated(since = "2.1.0")
 public class GroupBalancerTest {
@@ -121,8 +121,8 @@ public class GroupBalancerTest {
 
         balancer.balance(current, migrations, migrationsOut);
 
-        assertTrue("Max Migration exceeded " + maxMigrations + " " + migrationsOut.size(),
-            migrationsOut.size() <= (maxMigrations + 5));
+        assertTrue(migrationsOut.size() <= (maxMigrations + 5),
+            "Max Migration exceeded " + maxMigrations + " " + migrationsOut.size());
 
         for (TabletMigration tabletMigration : migrationsOut) {
           assertEquals(tabletLocs.get(tabletMigration.tablet), tabletMigration.oldServer);
@@ -175,10 +175,9 @@ public class GroupBalancerTest {
         int tserverExtra = 0;
         for (String group : groupCounts.keySet()) {
           assertTrue(tgc.get(group) >= expectedCounts.get(group));
-          assertTrue(
+          assertTrue(tgc.get(group) <= expectedCounts.get(group) + 1,
               "Group counts not as expected group:" + group + " actual:" + tgc.get(group)
-                  + " expected:" + (expectedCounts.get(group) + 1) + " tserver:" + entry.getKey(),
-              tgc.get(group) <= expectedCounts.get(group) + 1);
+                  + " expected:" + (expectedCounts.get(group) + 1) + " tserver:" + entry.getKey());
           tserverExtra += tgc.get(group) - expectedCounts.get(group);
         }
 

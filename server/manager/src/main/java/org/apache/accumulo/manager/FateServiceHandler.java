@@ -87,6 +87,7 @@ import org.apache.accumulo.manager.tableOps.tableExport.ExportTable;
 import org.apache.accumulo.manager.tableOps.tableImport.ImportTable;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.manager.state.MergeInfo;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -421,9 +422,13 @@ class FateServiceHandler implements FateService.Iface {
         if (!canMerge)
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
-        Manager.log.debug("Creating merge op: {} {} {}", tableId, startRow, endRow);
-        goalMessage += "Merge table " + tableName + "(" + tableId + ") splits from " + startRow
-            + " to " + endRow;
+        String startRowStr = StringUtils.defaultIfBlank(startRow.toString(), "-inf");
+        String endRowStr = StringUtils.defaultIfBlank(startRow.toString(), "+inf");
+
+        Manager.log.debug("Creating merge op: {} from startRow: {} to endRow: {}", tableId,
+            startRowStr, endRowStr);
+        goalMessage += "Merge table " + tableName + "(" + tableId + ") splits from " + startRowStr
+            + " to " + endRowStr;
         manager.fate.seedTransaction(opid, new TraceRepo<>(
             new TableRangeOp(MergeInfo.Operation.MERGE, namespaceId, tableId, startRow, endRow)),
             autoCleanup, goalMessage);

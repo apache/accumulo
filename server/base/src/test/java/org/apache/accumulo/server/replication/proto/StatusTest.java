@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.server.replication.proto;
 
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import org.apache.accumulo.server.replication.proto.Replication.Status;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @Deprecated
 public class StatusTest {

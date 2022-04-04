@@ -20,10 +20,11 @@ package org.apache.accumulo.test.functional;
 
 import static java.util.Collections.singletonMap;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -51,9 +52,9 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,19 +62,19 @@ public class SplitIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(SplitIT.class);
 
   @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
+  }
+
+  @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.TSERV_MAXMEM, "5K");
     cfg.setProperty(Property.TSERV_MAJC_DELAY, "100ms");
   }
 
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
-  }
-
   private String tservMaxMem, tservMajcDelay;
 
-  @Before
+  @BeforeEach
   public void alterConfig() throws Exception {
     assumeTrue(getClusterType() == ClusterType.MINI);
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
@@ -105,7 +106,7 @@ public class SplitIT extends AccumuloClusterHarness {
     }
   }
 
-  @After
+  @AfterEach
   public void resetConfig() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       if (tservMaxMem != null) {
@@ -153,8 +154,8 @@ public class SplitIT extends AccumuloClusterHarness {
           count++;
         }
 
-        assertTrue("Shortened should be greater than zero: " + shortened, shortened > 0);
-        assertTrue("Count should be cgreater than 10: " + count, count > 10);
+        assertTrue(shortened > 0, "Shortened should be greater than zero: " + shortened);
+        assertTrue(count > 10, "Count should be cgreater than 10: " + count);
       }
 
       assertEquals(0, getCluster().getClusterControl().exec(CheckForMetadataProblems.class,
@@ -182,7 +183,7 @@ public class SplitIT extends AccumuloClusterHarness {
         Thread.sleep(2000);
         numSplits = c.tableOperations().listSplits(tableName).size();
       }
-      assertTrue("Expected at least 20 splits, saw " + numSplits, numSplits > 20);
+      assertTrue(numSplits > 20, "Expected at least 20 splits, saw " + numSplits);
     }
   }
 

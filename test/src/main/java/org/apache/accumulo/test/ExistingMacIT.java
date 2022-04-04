@@ -18,14 +18,15 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -54,12 +55,13 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ExistingMacIT extends ConfigurableMacBase {
+
   @Override
-  public int defaultTimeoutSeconds() {
-    return 4 * 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
   }
 
   @Override
@@ -179,9 +181,8 @@ public class ExistingMacIT extends ConfigurableMacBase {
 
       MiniAccumuloClusterImpl accumulo2 = new MiniAccumuloClusterImpl(macConfig2);
 
-      RuntimeException e = assertThrows(
-          "A 2nd MAC instance should not be able to start over an existing MAC instance",
-          RuntimeException.class, accumulo2::start);
+      RuntimeException e = assertThrows(RuntimeException.class, accumulo2::start,
+          "A 2nd MAC instance should not be able to start over an existing MAC instance");
       assertEquals("The Accumulo instance being used is already running. Aborting.",
           e.getMessage());
     }

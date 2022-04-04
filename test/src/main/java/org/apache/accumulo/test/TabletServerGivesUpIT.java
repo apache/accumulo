@@ -20,6 +20,7 @@ package org.apache.accumulo.test;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
+import java.time.Duration;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -31,10 +32,15 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 // ACCUMULO-2480
 public class TabletServerGivesUpIT extends ConfigurableMacBase {
+
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
+  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -44,11 +50,6 @@ public class TabletServerGivesUpIT extends ConfigurableMacBase {
     cfg.setProperty(Property.TSERV_WAL_TOLERATED_CREATION_FAILURES, "10");
     cfg.setProperty(Property.TSERV_WAL_TOLERATED_WAIT_INCREMENT, "0s");
     cfg.setProperty(Property.TSERV_WAL_TOLERATED_MAXIMUM_WAIT_DURATION, "0s");
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 120;
   }
 
   @Test

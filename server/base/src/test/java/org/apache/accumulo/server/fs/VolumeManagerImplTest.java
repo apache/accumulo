@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.server.fs;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Arrays;
 import java.util.List;
@@ -33,7 +33,7 @@ import org.apache.accumulo.core.spi.fs.VolumeChooser;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class VolumeManagerImplTest {
 

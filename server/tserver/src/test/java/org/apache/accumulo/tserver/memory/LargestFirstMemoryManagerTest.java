@@ -22,7 +22,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Arrays;
 import java.util.List;
@@ -34,14 +34,12 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.Timeout;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
+@Timeout(60)
 public class LargestFirstMemoryManagerTest {
-  @Rule
-  public Timeout timeout = Timeout.seconds(60);
 
   private static final long ZERO = LargestFirstMemoryManager.ZERO_TIME;
   private static final long LATER = ZERO + MINUTES.toMillis(20);
@@ -52,7 +50,7 @@ public class LargestFirstMemoryManagerTest {
 
   private ServerContext context;
 
-  @Before
+  @BeforeEach
   public void mockServerInfo() {
     context = createMock(ServerContext.class);
     AccumuloConfiguration conf = createMock(AccumuloConfiguration.class);

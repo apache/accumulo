@@ -16,10 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.categories;
+package org.apache.accumulo.server;
 
-/**
- * Interface to be used with JUnit Category annotation to represent the integration test is part of
- * a minimal set of tests which should pass for basic functionality of Accumulo.
- */
-public interface SunnyDayTests {}
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
+
+// This is only for the unit tests and integration tests in this module
+// It must be copied for use in other modules, because tests in one module
+// don't have dependencies on other modules, and we can't put this in a
+// regular, non-test jar, because we don't want to add a dependency on
+// JUnit in a non-test jar
+public class WithTestNames {
+
+  private String testName;
+
+  @BeforeEach
+  public void setTestName(TestInfo info) {
+    testName = info.getTestMethod().get().getName();
+  }
+
+  protected String testName() {
+    return testName;
+  }
+
+}

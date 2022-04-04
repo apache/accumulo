@@ -34,10 +34,10 @@ import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.ge
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.row;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.verify;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.writeData;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -92,9 +92,9 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -112,12 +112,12 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
 
   private static final Logger LOG = LoggerFactory.getLogger(ExternalCompaction_1_IT.class);
 
-  @BeforeClass
+  @BeforeAll
   public static void beforeTests() throws Exception {
     startMiniClusterWithConfig(new ExternalCompaction1Config());
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws Exception {
     // The ExternalDoNothingCompactor needs to be restarted between tests
     getCluster().getClusterControl().stop(ServerType.COMPACTOR);
@@ -298,8 +298,8 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
 
       // without compression, expect file to be large
       long sizes = CompactionExecutorIT.getFileSizes(client, tableName);
-      assertTrue("Unexpected files sizes : " + sizes,
-          sizes > data.length * 10 && sizes < data.length * 11);
+      assertTrue(sizes > data.length * 10 && sizes < data.length * 11,
+          "Unexpected files sizes : " + sizes);
 
       client.tableOperations().compact(tableName,
           new CompactionConfig().setWait(true)
@@ -309,15 +309,15 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
 
       // after compacting with compression, expect small file
       sizes = CompactionExecutorIT.getFileSizes(client, tableName);
-      assertTrue("Unexpected files sizes: data: " + data.length + ", file:" + sizes,
-          sizes < data.length);
+      assertTrue(sizes < data.length,
+          "Unexpected files sizes: data: " + data.length + ", file:" + sizes);
 
       client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
 
       // after compacting without compression, expect big files again
       sizes = CompactionExecutorIT.getFileSizes(client, tableName);
-      assertTrue("Unexpected files sizes : " + sizes,
-          sizes > data.length * 10 && sizes < data.length * 11);
+      assertTrue(sizes > data.length * 10 && sizes < data.length * 11,
+          "Unexpected files sizes : " + sizes);
 
       // We need to cancel the compaction or delete the table here because we initiate a user
       // compaction above in the test. Even though the external compaction was cancelled
@@ -507,8 +507,8 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
           int v = Integer.parseInt(entry.getValue().toString());
           int modulus = v < MAX_DATA ? 17 : 19;
 
-          assertTrue(String.format("%s %s %d != 0", entry.getValue(), "%", modulus),
-              Integer.parseInt(entry.getValue().toString()) % modulus == 0);
+          assertEquals(0, Integer.parseInt(entry.getValue().toString()) % modulus,
+              String.format("%s %s %d != 0", entry.getValue(), "%", modulus));
           count++;
         }
 

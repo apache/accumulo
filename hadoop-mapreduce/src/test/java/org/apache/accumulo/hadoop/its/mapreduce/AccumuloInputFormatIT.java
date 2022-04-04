@@ -20,12 +20,14 @@ package org.apache.accumulo.hadoop.its.mapreduce;
 
 import static java.lang.System.currentTimeMillis;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -65,9 +67,9 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
@@ -83,8 +85,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
   AccumuloClient client;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
   }
 
   @Override
@@ -92,13 +94,13 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     cfg.setNumTservers(1);
   }
 
-  @Before
+  @BeforeEach
   public void before() {
     inputFormat = new AccumuloInputFormat();
     client = Accumulo.newClient().from(getClientProps()).build();
   }
 
-  @After
+  @AfterEach
   public void closeClient() {
     client.close();
   }
@@ -169,8 +171,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties()).table(table)
         .auths(Authorizations.EMPTY).batchScan(true).offlineScan(true).store(job);
 
-    assertThrows("IllegalArgumentException should have been thrown trying to batch scan offline",
-        IllegalArgumentException.class, () -> inputFormat.getSplits(job));
+    assertThrows(IllegalArgumentException.class, () -> inputFormat.getSplits(job),
+        "IllegalArgumentException should have been thrown trying to batch scan offline");
 
     // table online tests
     client.tableOperations().online(table, true);
@@ -184,16 +186,15 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties()).table(table)
         .auths(Authorizations.EMPTY).batchScan(true).scanIsolation(true).store(job);
 
-    assertThrows(
-        "IllegalArgumentException should have been thrown trying to batch scan with isolation",
-        IllegalArgumentException.class, () -> inputFormat.getSplits(job));
+    assertThrows(IllegalArgumentException.class, () -> inputFormat.getSplits(job),
+        "IllegalArgumentException should have been thrown trying to batch scan with isolation");
 
     // BatchScan not available with local iterators
     AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties()).table(table)
         .auths(Authorizations.EMPTY).batchScan(true).localIterators(true).store(job);
 
-    assertThrows("IllegalArgumentException should have been thrown trying to batch scan locally",
-        IllegalArgumentException.class, () -> inputFormat.getSplits(job));
+    assertThrows(IllegalArgumentException.class, () -> inputFormat.getSplits(job),
+        "IllegalArgumentException should have been thrown trying to batch scan locally");
 
     AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties()).table(table)
         .auths(Authorizations.EMPTY).batchScan(true).store(job);
@@ -424,8 +425,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     RangeInputSplit risplit = (RangeInputSplit) split;
 
     assertEquals(table, risplit.getTableName());
-    assertEquals(true, risplit.isIsolatedScan());
-    assertEquals(true, risplit.usesLocalIterators());
+    assertTrue(risplit.isIsolatedScan());
+    assertTrue(risplit.usesLocalIterators());
     assertEquals(fetchColumnsText, risplit.getFetchedColumns());
   }
 

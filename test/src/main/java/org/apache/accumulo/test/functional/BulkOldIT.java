@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.SortedSet;
@@ -44,7 +45,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Tests old bulk import technique. For new bulk import see {@link BulkNewIT}
@@ -52,13 +53,13 @@ import org.junit.Test;
 public class BulkOldIT extends AccumuloClusterHarness {
 
   @Override
-  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration conf) {
-    cfg.setMemory(ServerType.TABLET_SERVER, 512, MemoryUnit.MEGABYTE);
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
   }
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration conf) {
+    cfg.setMemory(ServerType.TABLET_SERVER, 512, MemoryUnit.MEGABYTE);
   }
 
   // suppress importDirectory deprecated since this is the only test for legacy technique

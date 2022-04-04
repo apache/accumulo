@@ -20,12 +20,13 @@ package org.apache.accumulo.test.mapreduce;
 
 import static java.lang.System.currentTimeMillis;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -63,8 +64,8 @@ import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Level;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
@@ -78,8 +79,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
   org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat inputFormat;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
   }
 
   @Override
@@ -87,7 +88,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     cfg.setNumTservers(1);
   }
 
-  @Before
+  @BeforeEach
   public void before() {
     inputFormat = new org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat();
   }

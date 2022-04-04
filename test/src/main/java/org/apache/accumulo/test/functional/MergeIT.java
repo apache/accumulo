@@ -18,9 +18,10 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -41,20 +42,20 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Merge;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class MergeIT extends AccumuloClusterHarness {
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 8 * 60;
-  }
 
   SortedSet<Text> splits(String[] points) {
     SortedSet<Text> result = new TreeSet<>();
     for (String point : points)
       result.add(new Text(point));
     return result;
+  }
+
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(8);
   }
 
   @Test

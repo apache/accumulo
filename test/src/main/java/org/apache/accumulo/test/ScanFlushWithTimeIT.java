@@ -18,8 +18,9 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -40,7 +41,7 @@ import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,8 +50,8 @@ public class ScanFlushWithTimeIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(ScanFlushWithTimeIT.class);
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 120;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
   }
 
   @Test
@@ -105,6 +106,6 @@ public class ScanFlushWithTimeIT extends AccumuloClusterHarness {
     s.iterator().next();
     long diff = System.currentTimeMillis() - now;
     log.info("Diff = {}", diff);
-    assertTrue("Scanner taking too long to return intermediate results: " + diff, diff < expected);
+    assertTrue(diff < expected, "Scanner taking too long to return intermediate results: " + diff);
   }
 }

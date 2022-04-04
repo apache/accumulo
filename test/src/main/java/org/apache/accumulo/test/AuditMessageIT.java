@@ -19,13 +19,14 @@
 package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -57,11 +58,9 @@ import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -75,8 +74,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  */
 public class AuditMessageIT extends ConfigurableMacBase {
 
-  private static final Logger log = LoggerFactory.getLogger(AuditMessageIT.class);
-
   private static final String AUDIT_USER_1 = "AuditUser1";
   private static final String AUDIT_USER_2 = "AuditUser2";
   private static final String PASSWORD = "password";
@@ -86,8 +83,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
   private static final Authorizations auths = new Authorizations("private", "public");
 
   @Override
-  public int defaultTimeoutSeconds() {
-    return 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
   }
 
   @Override
@@ -169,7 +166,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
     }
   }
 
-  @Before
+  @BeforeEach
   public void resetInstance() throws Exception {
     client = Accumulo.newClient().from(getClientProperties()).build();
 
@@ -179,7 +176,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
     getAuditMessages("setup");
   }
 
-  @After
+  @AfterEach
   public void cleanUp() throws Exception {
     removeUsersAndTables();
     client.close();

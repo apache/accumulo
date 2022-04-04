@@ -21,9 +21,9 @@ package org.apache.accumulo.test.functional;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -32,6 +32,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -76,10 +77,10 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.Text;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -90,12 +91,17 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  */
 public class BulkNewIT extends SharedMiniClusterBase {
 
-  @BeforeClass
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
+  }
+
+  @BeforeAll
   public static void setup() throws Exception {
     SharedMiniClusterBase.startMiniClusterWithConfig(new Callback());
   }
 
-  @AfterClass
+  @AfterAll
   public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
   }
@@ -110,17 +116,12 @@ public class BulkNewIT extends SharedMiniClusterBase {
     }
   }
 
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
-  }
-
   private String tableName;
   private AccumuloConfiguration aconf;
   private FileSystem fs;
   private String rootPath;
 
-  @Before
+  @BeforeEach
   public void setupBulkTest() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       tableName = getUniqueNames(1)[0];
@@ -215,16 +216,16 @@ public class BulkNewIT extends SharedMiniClusterBase {
       // test max tablets hit while inspecting bulk files
       var thrown = assertThrows(RuntimeException.class, () -> testBulkFileMax(false));
       var c = thrown.getCause();
-      assertTrue("Wrong exception: " + c, c instanceof ExecutionException);
-      assertTrue("Wrong exception: " + c.getCause(),
-          c.getCause() instanceof IllegalArgumentException);
+      assertTrue(c instanceof ExecutionException, "Wrong exception: " + c);
+      assertTrue(c.getCause() instanceof IllegalArgumentException,
+          "Wrong exception: " + c.getCause());
       var msg = c.getCause().getMessage();
-      assertTrue("Bad File not in exception: " + msg, msg.contains("bad-file.rf"));
+      assertTrue(msg.contains("bad-file.rf"), "Bad File not in exception: " + msg);
 
       // test max tablets hit using load plan on the server side
       c = assertThrows(AccumuloException.class, () -> testBulkFileMax(true));
       msg = c.getMessage();
-      assertTrue("Bad File not in exception: " + msg, msg.contains("bad-file.rf"));
+      assertTrue(msg.contains("bad-file.rf"), "Bad File not in exception: " + msg);
     }
   }
 

@@ -19,14 +19,15 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.UncheckedIOException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -69,7 +70,7 @@ import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterators;
 
@@ -77,8 +78,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   private static final String OUR_SECRET = "itsreallysecret";
 
   @Override
-  public int defaultTimeoutSeconds() {
-    return 5 * 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(5);
   }
 
   @Override
@@ -275,14 +276,14 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
 
           String gcLoc = new String(zk.getData(lockPath));
 
-          assertTrue("Found unexpected data in zookeeper for GC location: " + gcLoc,
-              gcLoc.startsWith(Service.GC_CLIENT.name()));
+          assertTrue(gcLoc.startsWith(Service.GC_CLIENT.name()),
+              "Found unexpected data in zookeeper for GC location: " + gcLoc);
           int loc = gcLoc.indexOf(ServerServices.SEPARATOR_CHAR);
-          assertNotEquals("Could not find split point of GC location for: " + gcLoc, -1, loc);
+          assertNotEquals(-1, loc, "Could not find split point of GC location for: " + gcLoc);
           String addr = gcLoc.substring(loc + 1);
 
           int addrSplit = addr.indexOf(':');
-          assertNotEquals("Could not find split of GC host:port for: " + addr, -1, addrSplit);
+          assertNotEquals(-1, addrSplit, "Could not find split of GC host:port for: " + addr);
 
           String host = addr.substring(0, addrSplit), port = addr.substring(addrSplit + 1);
           // We shouldn't have the "bindall" address in zk

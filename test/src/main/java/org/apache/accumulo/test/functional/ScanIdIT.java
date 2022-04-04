@@ -19,11 +19,12 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -59,7 +60,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,8 +98,8 @@ public class ScanIdIT extends AccumuloClusterHarness {
   private static final Map<Integer,Value> resultsByWorker = new ConcurrentHashMap<>();
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
   }
 
   /**
@@ -150,8 +151,8 @@ public class ScanIdIT extends AccumuloClusterHarness {
       }
 
       Set<Long> scanIds = getScanIds(client);
-      assertTrue("Expected at least " + NUM_SCANNERS + " scanIds, but saw " + scanIds.size(),
-          scanIds.size() >= NUM_SCANNERS);
+      assertTrue(scanIds.size() >= NUM_SCANNERS,
+          "Expected at least " + NUM_SCANNERS + " scanIds, but saw " + scanIds.size());
 
       scanThreadsToClose.forEach(st -> {
         if (st.scanner != null) {
@@ -163,7 +164,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
         log.debug("Waiting for active scans to stop...");
         Thread.sleep(200);
       }
-      assertEquals("Expected no scanIds after closing scanners", 0, scanIds.size());
+      assertEquals(0, scanIds.size(), "Expected no scanIds after closing scanners");
 
     }
   }
@@ -194,7 +195,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
         }
       }
 
-      assertNotNull("Repeatedly got exception trying to active scans", activeScans);
+      assertNotNull(activeScans, "Repeatedly got exception trying to active scans");
 
       activeScans.removeIf(
           scan -> scan.getTable().startsWith(Namespace.ACCUMULO.name() + Namespace.SEPARATOR));

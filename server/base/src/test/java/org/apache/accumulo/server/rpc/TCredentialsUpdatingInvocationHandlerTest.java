@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.server.rpc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
@@ -36,9 +36,9 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TCredentialsUpdatingInvocationHandlerTest {
   private static final DefaultConfiguration DEFAULT_CONFIG = DefaultConfiguration.getInstance();
@@ -47,7 +47,7 @@ public class TCredentialsUpdatingInvocationHandlerTest {
   ConfigurationCopy cc;
   AccumuloConfiguration conf;
 
-  @Before
+  @BeforeEach
   public void setup() {
     cc = new ConfigurationCopy();
     conf = new AccumuloConfiguration() {
@@ -74,7 +74,7 @@ public class TCredentialsUpdatingInvocationHandlerTest {
     proxy = new TCredentialsUpdatingInvocationHandler<>(new Object(), conf);
   }
 
-  @After
+  @AfterEach
   public void teardown() {
     UGIAssumingProcessor.rpcPrincipal.set(null);
   }

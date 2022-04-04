@@ -20,8 +20,9 @@ package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -40,17 +41,12 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // attempt to reproduce ACCUMULO-315
 public class DeleteRowsSplitIT extends AccumuloClusterHarness {
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
-  }
 
   private static final Logger log = LoggerFactory.getLogger(DeleteRowsSplitIT.class);
 
@@ -62,6 +58,11 @@ public class DeleteRowsSplitIT extends AccumuloClusterHarness {
       SPLITS.add(new Text(new byte[] {b}));
       ROWS.add(new String(new byte[] {b}, UTF_8));
     }
+  }
+
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
   }
 
   @Test

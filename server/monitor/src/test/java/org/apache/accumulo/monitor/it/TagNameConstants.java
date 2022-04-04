@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.categories;
+package org.apache.accumulo.monitor.it;
 
-/**
- * Interface to be used with JUnit Category annotation to represent the integration test is for
- * testing Accumulo's Monitor
- */
-public interface MonitorTests {}
+public class TagNameConstants {
+  public static final String MONITOR = "Monitor";
+}

@@ -18,11 +18,11 @@
  */
 package org.apache.accumulo.test.mapred;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 
@@ -53,9 +53,8 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.lib.IdentityMapper;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,9 +77,8 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
       new SamplerConfiguration(RowSampler.class.getName()).addOption("hasher", "murmur3_32")
           .addOption("modulus", "3");
 
-  @Rule
-  public TemporaryFolder folder =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File tempDir;
 
   @Test
   public void testEmptyWrite() throws Exception {
@@ -186,7 +184,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
   }
 
   private void handleWriteTests(boolean content) throws Exception {
-    File f = folder.newFile(testName.getMethodName());
+    File f = new File(tempDir, testName());
     if (f.delete()) {
       log.debug("Deleted {}", f);
     }
@@ -223,7 +221,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
         m.put("cf1", "cq2", "A&");
         bw.addMutation(m);
       }
-      File f = folder.newFile(testName.getMethodName());
+      File f = new File(tempDir, testName());
       if (f.delete()) {
         log.debug("Deleted {}", f);
       }

@@ -18,9 +18,10 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
+import java.time.Duration;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
@@ -33,13 +34,13 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class KeyValueEqualityIT extends AccumuloClusterHarness {
 
   @Override
-  public int defaultTimeoutSeconds() {
-    return 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
   }
 
   @Test
@@ -74,8 +75,8 @@ public class KeyValueEqualityIT extends AccumuloClusterHarness {
         assertEquals(e1, e2);
         assertEquals(e1.hashCode(), e2.hashCode());
       }
-      assertFalse("table1 had more data to read", t1.hasNext());
-      assertFalse("table2 had more data to read", t2.hasNext());
+      assertFalse(t1.hasNext(), "table1 had more data to read");
+      assertFalse(t2.hasNext(), "table2 had more data to read");
     }
   }
 }

@@ -20,8 +20,9 @@ package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.test.functional.FunctionalTestUtils.checkRFiles;
 import static org.apache.accumulo.test.functional.FunctionalTestUtils.nm;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -41,22 +42,22 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterators;
 
 public class RowDeleteIT extends AccumuloClusterHarness {
 
   @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
+  }
+
+  @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "50ms");
     cfg.setSiteConfig(siteConfig);
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
   }
 
   @Test
@@ -84,7 +85,7 @@ public class RowDeleteIT extends AccumuloClusterHarness {
       int count;
       try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
         count = Iterators.size(scanner.iterator());
-        assertEquals("count == " + count, 2, count);
+        assertEquals(2, count, "count == " + count);
 
         bw.addMutation(nm("r1", "", "", RowDeletingIterator.DELETE_ROW_VALUE));
 
@@ -96,7 +97,7 @@ public class RowDeleteIT extends AccumuloClusterHarness {
 
       try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
         count = Iterators.size(scanner.iterator());
-        assertEquals("count == " + count, 3, count);
+        assertEquals(3, count, "count == " + count);
 
         c.tableOperations().compact(tableName, null, null, false, true);
 
@@ -105,7 +106,7 @@ public class RowDeleteIT extends AccumuloClusterHarness {
 
       try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
         count = Iterators.size(scanner.iterator());
-        assertEquals("count == " + count, 0, count);
+        assertEquals(0, count, "count == " + count);
         bw.close();
       }
     }

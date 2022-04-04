@@ -25,9 +25,9 @@ import static org.easymock.EasyMock.endsWith;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -38,10 +38,10 @@ import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.MockServerContext;
 import org.apache.accumulo.server.ServerContext;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ServerConfigurationFactoryTest {
   private static final String ZK_HOST = "localhost";
@@ -53,7 +53,7 @@ public class ServerConfigurationFactoryTest {
   private static ZooCache zc;
   private static SiteConfiguration siteConfig = SiteConfiguration.auto();
 
-  @BeforeClass
+  @BeforeAll
   public static void setUpClass() {
     zcf = createMock(ZooCacheFactory.class);
     zc = createMock(ZooCache.class);
@@ -70,12 +70,12 @@ public class ServerConfigurationFactoryTest {
   private ServerContext context;
   private ServerConfigurationFactory scf;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     context = MockServerContext.getWithZK(IID, ZK_HOST, ZK_TIMEOUT);
   }
 
-  @After
+  @AfterEach
   public void tearDown() {
     ServerConfigurationFactory.clearCachedConfigurations();
   }

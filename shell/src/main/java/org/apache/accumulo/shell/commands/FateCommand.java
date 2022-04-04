@@ -51,6 +51,7 @@ import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.zookeeper.KeeperException;
@@ -108,6 +109,12 @@ public class FateCommand extends Command {
     }
   }
 
+  private Option cancel;
+  private Option delete;
+  private Option dump;
+  private Option fail;
+  private Option list;
+  private Option print;
   private Option secretOption;
   private Option statusOption;
   private Option disablePaginationOpt;
@@ -120,42 +127,58 @@ public class FateCommand extends Command {
     }
   }
 
+  protected String getZKRoot(ClientContext context) {
+    return context.getZooKeeperRoot();
+  }
+
+  synchronized ZooReaderWriter getZooReaderWriter(ClientContext context, String secret) {
+    if (secret == null) {
+      secret = SiteConfiguration.auto().get(Property.INSTANCE_SECRET);
+    }
+    return context.getZooReader().asWriter(secret);
+  }
+
+  protected ZooStore<FateCommand> getZooStore(String fateZkPath, ZooReaderWriter zrw)
+      throws KeeperException, InterruptedException {
+    return new ZooStore<FateCommand>(fateZkPath, zrw);
+  }
+
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws ParseException, KeeperException, InterruptedException, IOException, AccumuloException,
       AccumuloSecurityException {
     ClientContext context = shellState.getContext();
-    var siteConfig = SiteConfiguration.auto();
-    String[] args = cl.getArgs();
-    if (args.length <= 0) {
-      throw new ParseException("Must provide a command to execute");
-    }
-    String cmd = args[0];
     boolean failedCommand = false;
 
     AdminUtil<FateCommand> admin = new AdminUtil<>(false);
 
-    String fatePath = context.getZooKeeperRoot() + Constants.ZFATE;
-    var managerLockPath = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK);
-    var tableLocksPath = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS);
-    ZooReaderWriter zk =
-        getZooReaderWriter(context, siteConfig, cl.getOptionValue(secretOption.getOpt()));
-    ZooStore<FateCommand> zs = new ZooStore<>(fatePath, zk);
+    String zkRoot = getZKRoot(context);
+    String fatePath = zkRoot + Constants.ZFATE;
+    var managerLockPath = ServiceLock.path(zkRoot + Constants.ZMANAGER_LOCK);
+    var tableLocksPath = ServiceLock.path(zkRoot + Constants.ZTABLE_LOCKS);
+    ZooReaderWriter zk = getZooReaderWriter(context, cl.getOptionValue(secretOption.getOpt()));
+    ZooStore<FateCommand> zs = getZooStore(fatePath, zk);
 
-    if ("cancel-submitted".equals(cmd)) {
-      validateArgs(args);
-      failedCommand = cancelSubmittedTxs(shellState, args);
-    } else if ("fail".equals(cmd)) {
-      validateArgs(args);
-      failedCommand = failTx(admin, zs, zk, managerLockPath, args);
-    } else if ("delete".equals(cmd)) {
-      validateArgs(args);
-      failedCommand = deleteTx(admin, zs, zk, managerLockPath, args);
-    } else if ("list".equals(cmd) || "print".equals(cmd)) {
-      printTx(shellState, admin, zs, zk, tableLocksPath, args, cl,
+    if (cl.hasOption(cancel.getOpt())) {
+      String[] txids = cl.getOptionValues(cancel.getOpt());
+      validateArgs(txids);
+      failedCommand = cancelSubmittedTxs(shellState, txids);
+    } else if (cl.hasOption(fail.getOpt())) {
+      String[] txids = cl.getOptionValues(fail.getOpt());
+      validateArgs(txids);
+      failedCommand = failTx(admin, zs, zk, managerLockPath, txids);
+    } else if (cl.hasOption(delete.getOpt())) {
+      String[] txids = cl.getOptionValues(delete.getOpt());
+      validateArgs(txids);
+      failedCommand = deleteTx(admin, zs, zk, managerLockPath, txids);
+    } else if (cl.hasOption(list.getOpt())) {
+      printTx(shellState, admin, zs, zk, tableLocksPath, cl.getOptionValues(list.getOpt()), cl,
           cl.hasOption(statusOption.getOpt()));
-    } else if ("dump".equals(cmd)) {
-      String output = dumpTx(zs, args);
+    } else if (cl.hasOption(print.getOpt())) {
+      printTx(shellState, admin, zs, zk, tableLocksPath, cl.getOptionValues(print.getOpt()), cl,
+          cl.hasOption(statusOption.getOpt()));
+    } else if (cl.hasOption(dump.getOpt())) {
+      String output = dumpTx(zs, cl.getOptionValues(dump.getOpt()));
       System.out.println(output);
     } else {
       throw new ParseException("Invalid command option");
@@ -189,7 +212,7 @@ public class FateCommand extends Command {
     return gson.toJson(txStacks);
   }
 
-  private void printTx(Shell shellState, AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
+  protected void printTx(Shell shellState, AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
       ZooReaderWriter zk, ServiceLock.ServiceLockPath tableLocksPath, String[] args, CommandLine cl,
       boolean printStatus) throws InterruptedException, KeeperException, IOException {
     // Parse transaction ID filters for print display
@@ -219,7 +242,7 @@ public class FateCommand extends Command {
         !cl.hasOption(disablePaginationOpt.getOpt()));
   }
 
-  private boolean deleteTx(AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
+  protected boolean deleteTx(AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
       ZooReaderWriter zk, ServiceLockPath zLockManagerPath, String[] args)
       throws InterruptedException, KeeperException {
     for (int i = 1; i < args.length; i++) {
@@ -234,16 +257,16 @@ public class FateCommand extends Command {
   }
 
   private void validateArgs(String[] args) throws ParseException {
-    if (args.length <= 1) {
+    if (args.length < 1) {
       throw new ParseException("Must provide transaction ID");
     }
   }
 
-  private boolean cancelSubmittedTxs(final Shell shellState, String[] args)
+  protected boolean cancelSubmittedTxs(final Shell shellState, String[] args)
       throws AccumuloException, AccumuloSecurityException {
     ClientContext context = shellState.getContext();
     for (int i = 1; i < args.length; i++) {
-      Long txid = Long.parseLong(args[i]);
+      long txid = Long.parseLong(args[i], 16);
       shellState.getWriter().flush();
       String line = shellState.getReader().readLine("Cancel FaTE Tx " + txid + " (yes|no)? ");
       boolean cancelTx =
@@ -276,35 +299,62 @@ public class FateCommand extends Command {
     return success;
   }
 
-  synchronized ZooReaderWriter getZooReaderWriter(ClientContext context,
-      SiteConfiguration siteConfig, String secret) {
-
-    if (secret == null) {
-      secret = siteConfig.get(Property.INSTANCE_SECRET);
-    }
-
-    return context.getZooReader().asWriter(secret);
-  }
-
   @Override
   public String description() {
     return "manage FATE transactions";
   }
 
   @Override
-  public String usage() {
-    return getName()
-        + "cancel-submitted <txid> | fail <txid>... | delete <txid>... | print [<txid>...] | dump [<txid>...]";
-  }
-
-  @Override
   public Options getOptions() {
     final Options o = new Options();
+
+    OptionGroup commands = new OptionGroup();
+    cancel =
+        new Option("cancel", "cancel-submitted", true, "cancel new or submitted FaTE transactions");
+    cancel.setArgName("txid");
+    cancel.setArgs(Option.UNLIMITED_VALUES);
+    cancel.setOptionalArg(false);
+
+    fail = new Option("fail", "fail", true,
+        "Transition FaTE transaction status to FAILED_IN_PROGRESS (requires Manager to be down)");
+    fail.setArgName("txid");
+    fail.setArgs(Option.UNLIMITED_VALUES);
+    fail.setOptionalArg(false);
+
+    delete = new Option("delete", "delete", true,
+        "delete locks associated with FaTE transactions (requires Manager to be down)");
+    delete.setArgName("txid");
+    delete.setArgs(Option.UNLIMITED_VALUES);
+    delete.setOptionalArg(false);
+
+    list = new Option("list", "list", true, "print FaTE transaction information");
+    list.setArgName("txid");
+    list.setArgs(Option.UNLIMITED_VALUES);
+    list.setOptionalArg(true);
+
+    print = new Option("print", "print", true, "print FaTE transaction information");
+    print.setArgName("txid");
+    print.setArgs(Option.UNLIMITED_VALUES);
+    print.setOptionalArg(true);
+
+    dump = new Option("dump", "dump", true, "dump FaTE transaction information details");
+    dump.setArgName("txid");
+    dump.setArgs(Option.UNLIMITED_VALUES);
+    dump.setOptionalArg(true);
+
+    commands.addOption(cancel);
+    commands.addOption(fail);
+    commands.addOption(delete);
+    commands.addOption(list);
+    commands.addOption(print);
+    commands.addOption(dump);
+    o.addOptionGroup(commands);
+
     secretOption = new Option("s", "secret", true, "specify the instance secret to use");
     secretOption.setOptionalArg(false);
     o.addOption(secretOption);
     statusOption = new Option("t", "status-type", true,
-        "filter 'print' on the transaction status type(s) {NEW, IN_PROGRESS,"
+        "filter 'print' on the transaction status type(s) {NEW, SUBMITTED, IN_PROGRESS,"
             + " FAILED_IN_PROGRESS, FAILED, SUCCESSFUL}");
     statusOption.setArgs(Option.UNLIMITED_VALUES);
     statusOption.setOptionalArg(false);

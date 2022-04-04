@@ -20,11 +20,11 @@ package org.apache.accumulo.test.replication;
 
 import static java.util.Collections.singletonMap;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -104,8 +104,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -122,16 +122,11 @@ import com.google.protobuf.TextFormat;
  * MockReplicaSystem is used to "fake" the peer instance that we're replicating to. This lets us
  * test replication in a functional way without having to worry about two real systems.
  */
-@Ignore("Replication ITs are not stable and not currently maintained")
+@Disabled("Replication ITs are not stable and not currently maintained")
 @Deprecated
 public class ReplicationIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(ReplicationIT.class);
   private static final long MILLIS_BETWEEN_REPLICATION_TABLE_ONLINE_CHECKS = 5000L;
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 60 * 10;
-  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -315,7 +310,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       while (!ReplicationTable.isOnline(client)) {
         sleepUninterruptibly(MILLIS_BETWEEN_REPLICATION_TABLE_ONLINE_CHECKS, TimeUnit.MILLISECONDS);
       }
-      assertTrue("Replication table did not exist", ReplicationTable.isOnline(client));
+      assertTrue(ReplicationTable.isOnline(client), "Replication table did not exist");
 
       for (int i = 0; i < 5; i++) {
         if (client.securityOperations().hasTablePermission("root", ReplicationTable.NAME,
@@ -326,8 +321,8 @@ public class ReplicationIT extends ConfigurableMacBase {
         Thread.sleep(2000);
       }
 
-      assertTrue("'root' user could not read the replication table", client.securityOperations()
-          .hasTablePermission("root", ReplicationTable.NAME, TablePermission.READ));
+      assertTrue(client.securityOperations().hasTablePermission("root", ReplicationTable.NAME,
+          TablePermission.READ), "'root' user could not read the replication table");
 
       Set<String> replRows = new HashSet<>();
       int attempts = 5;
@@ -361,7 +356,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
       // We only have one file that should need replication (no trace table)
       // We should find an entry in tablet and in the repl row
-      assertEquals("Rows found: " + replRows, 1, replRows.size());
+      assertEquals(1, replRows.size(), "Rows found: " + replRows);
 
       // There should only be one extra WALog that replication doesn't know about
       replRows.removeAll(wals);
@@ -416,8 +411,8 @@ public class ReplicationIT extends ConfigurableMacBase {
       String table1 = "table1", table2 = "table2";
 
       // replication shouldn't exist when we begin
-      assertFalse("Replication table already online at the beginning of the test",
-          ReplicationTable.isOnline(client));
+      assertFalse(ReplicationTable.isOnline(client),
+          "Replication table already online at the beginning of the test");
 
       // Create two tables
       client.tableOperations().create(table1);
@@ -463,9 +458,9 @@ public class ReplicationIT extends ConfigurableMacBase {
       }
       // We should at least find one status record for this table, we might find a second if another
       // log was started from ingesting the data
-      assertEquals("Expected to find replication entry for " + table1,
-          client.tableOperations().tableIdMap().get(table1),
-          entry.getKey().getColumnQualifier().toString());
+      assertEquals(client.tableOperations().tableIdMap().get(table1),
+          entry.getKey().getColumnQualifier().toString(),
+          "Expected to find replication entry for " + table1);
 
       // Enable replication on table2
       client.tableOperations().setProperty(table2, Property.TABLE_REPLICATION.getKey(), "true");
@@ -491,19 +486,18 @@ public class ReplicationIT extends ConfigurableMacBase {
           log.debug("Meta: {} => {}", metadata.getKey().toStringNoTruncate(), metadata.getValue());
         }
 
-        assertEquals("Expected to find 2 records, but actually found " + records, 2,
-            records.size());
+        assertEquals(2, records.size(),
+            "Expected to find 2 records, but actually found " + records);
 
         for (Entry<Key,Value> metadata : records) {
-          assertTrue(
+          assertTrue(tableIdsForMetadata.remove(metadata.getKey().getColumnQualifier().toString()),
               "Expected record to be in metadata but wasn't "
                   + metadata.getKey().toStringNoTruncate() + ", tableIds remaining "
-                  + tableIdsForMetadata,
-              tableIdsForMetadata.remove(metadata.getKey().getColumnQualifier().toString()));
+                  + tableIdsForMetadata);
         }
 
-        assertTrue("Expected that we had removed all metadata entries " + tableIdsForMetadata,
-            tableIdsForMetadata.isEmpty());
+        assertTrue(tableIdsForMetadata.isEmpty(),
+            "Expected that we had removed all metadata entries " + tableIdsForMetadata);
 
         // Should be creating these records in replication table from metadata table every second
         Thread.sleep(5000);
@@ -513,16 +507,16 @@ public class ReplicationIT extends ConfigurableMacBase {
       try (Scanner s = ReplicationTable.getScanner(client)) {
         StatusSection.limit(s);
         Iterator<Entry<Key,Value>> iter = s.iterator();
-        assertTrue("Found no records in replication table", iter.hasNext());
+        assertTrue(iter.hasNext(), "Found no records in replication table");
         entry = iter.next();
-        assertTrue("Expected to find element in replication table",
-            tableIds.remove(entry.getKey().getColumnQualifier().toString()));
-        assertTrue("Expected to find two elements in replication table, only found one ",
-            iter.hasNext());
+        assertTrue(tableIds.remove(entry.getKey().getColumnQualifier().toString()),
+            "Expected to find element in replication table");
+        assertTrue(iter.hasNext(),
+            "Expected to find two elements in replication table, only found one ");
         entry = iter.next();
-        assertTrue("Expected to find element in replication table",
-            tableIds.remove(entry.getKey().getColumnQualifier().toString()));
-        assertFalse("Expected to only find two elements in replication table", iter.hasNext());
+        assertTrue(tableIds.remove(entry.getKey().getColumnQualifier().toString()),
+            "Expected to find element in replication table");
+        assertFalse(iter.hasNext(), "Expected to only find two elements in replication table");
       }
     }
   }
@@ -616,10 +610,10 @@ public class ReplicationIT extends ConfigurableMacBase {
 
       // We should have *some* reference to each log that was seen in the metadata table
       // They might not yet all be closed though (might be newfile)
-      assertTrue("Metadata log distribution: " + logs + "replFiles " + replFiles,
-          logs.keySet().containsAll(replFiles));
-      assertTrue("Difference between replication entries and current logs is bigger than one",
-          logs.keySet().size() - replFiles.size() <= 1);
+      assertTrue(logs.keySet().containsAll(replFiles),
+          "Metadata log distribution: " + logs + "replFiles " + replFiles);
+      assertTrue(logs.keySet().size() - replFiles.size() <= 1,
+          "Difference between replication entries and current logs is bigger than one");
 
       final Configuration conf = new Configuration();
       for (String replFile : replFiles) {
@@ -631,9 +625,8 @@ public class ReplicationIT extends ConfigurableMacBase {
           log.info("Current references {}", currentSet);
           log.info("Looking for reference to {}", replFile);
           log.info("Contains? {}", currentSet.contains(replFile));
-          assertTrue(
-              "File does not exist anymore, it was likely incorrectly garbage collected: " + p,
-              !currentSet.contains(replFile));
+          assertTrue(!currentSet.contains(replFile),
+              "File does not exist anymore, it was likely incorrectly garbage collected: " + p);
         }
       }
     }
@@ -903,7 +896,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       while (!ReplicationTable.isOnline(client)) {
         sleepUninterruptibly(MILLIS_BETWEEN_REPLICATION_TABLE_ONLINE_CHECKS, TimeUnit.MILLISECONDS);
       }
-      assertTrue("Replication table was never created", ReplicationTable.isOnline(client));
+      assertTrue(ReplicationTable.isOnline(client), "Replication table was never created");
 
       // ACCUMULO-2743 The Observer in the tserver has to be made aware of the change to get the
       // combiner (made by the manager)
@@ -912,8 +905,8 @@ public class ReplicationIT extends ConfigurableMacBase {
         sleepUninterruptibly(2, TimeUnit.SECONDS);
       }
 
-      assertTrue("Combiner was never set on replication table", client.tableOperations()
-          .listIterators(ReplicationTable.NAME).containsKey(ReplicationTable.COMBINER_NAME));
+      assertTrue(client.tableOperations().listIterators(ReplicationTable.NAME).containsKey(
+          ReplicationTable.COMBINER_NAME), "Combiner was never set on replication table");
 
       // Trigger the minor compaction, waiting for it to finish.
       // This should write the entry to metadata that the file has data
@@ -953,10 +946,11 @@ public class ReplicationIT extends ConfigurableMacBase {
           }
         }
 
-        assertNotNull("Could not find expected entry in replication table", entry);
+        assertNotNull(entry, "Could not find expected entry in replication table");
         Status actual = Status.parseFrom(entry.getValue().get());
-        assertTrue("Expected to find a replication entry that is open with infinite length: "
-            + ProtobufUtil.toString(actual), !actual.getClosed() && actual.getInfiniteEnd());
+        assertTrue(!actual.getClosed() && actual.getInfiniteEnd(),
+            "Expected to find a replication entry that is open with infinite length: "
+                + ProtobufUtil.toString(actual));
 
         // Try a couple of times to watch for the work record to be created
         boolean notFound = true;
@@ -978,7 +972,7 @@ public class ReplicationIT extends ConfigurableMacBase {
             for (Entry<Key,Value> content : s2) {
               log.info("{} => {}", content.getKey().toStringNoTruncate(), content.getValue());
             }
-            assertFalse("Did not find the work entry for the status entry", notFound);
+            assertFalse(notFound, "Did not find the work entry for the status entry");
           }
         }
 
@@ -1028,7 +1022,7 @@ public class ReplicationIT extends ConfigurableMacBase {
             for (Entry<Key,Value> content : s2) {
               log.info("{} => {}", content.getKey().toStringNoTruncate(), content.getValue());
             }
-            assertFalse("Did not find the work entries for the status entries", notFound);
+            assertFalse(notFound, "Did not find the work entries for the status entries");
           }
         }
       }
@@ -1069,13 +1063,13 @@ public class ReplicationIT extends ConfigurableMacBase {
       client.tableOperations().flush(table1, null, null, true);
 
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(table1));
-      assertNotNull("Table ID was null", tableId);
+      assertNotNull(tableId, "Table ID was null");
 
       // Make sure the replication table exists at this point
       while (!ReplicationTable.isOnline(client)) {
         sleepUninterruptibly(MILLIS_BETWEEN_REPLICATION_TABLE_ONLINE_CHECKS, TimeUnit.MILLISECONDS);
       }
-      assertTrue("Replication table did not exist", ReplicationTable.isOnline(client));
+      assertTrue(ReplicationTable.isOnline(client), "Replication table did not exist");
 
       for (int i = 0; i < 5 && !client.securityOperations().hasTablePermission("root",
           ReplicationTable.NAME, TablePermission.READ); i++) {
@@ -1111,7 +1105,7 @@ public class ReplicationIT extends ConfigurableMacBase {
           for (Entry<Key,Value> content : s) {
             log.info("{} => {}", content.getKey().toStringNoTruncate(), content.getValue());
           }
-          assertFalse("Did not find the work entry for the status entry", notFound);
+          assertFalse(notFound, "Did not find the work entry for the status entry");
         }
       }
     }
@@ -1328,7 +1322,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       }
 
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(table1));
-      assertNotNull("Could not determine table id for " + table1, tableId);
+      assertNotNull(tableId, "Could not determine table id for " + table1);
 
       // Write some data to table1
       writeSomeData(client, table1, 2000, 50);
@@ -1338,7 +1332,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       while (!ReplicationTable.isOnline(client)) {
         sleepUninterruptibly(MILLIS_BETWEEN_REPLICATION_TABLE_ONLINE_CHECKS, TimeUnit.MILLISECONDS);
       }
-      assertTrue("Replication table did not exist", ReplicationTable.isOnline(client));
+      assertTrue(ReplicationTable.isOnline(client), "Replication table did not exist");
 
       // Grant ourselves the write permission for later
       client.securityOperations().grantTablePermission("root", ReplicationTable.NAME,
@@ -1363,8 +1357,8 @@ public class ReplicationIT extends ConfigurableMacBase {
         }
       }
 
-      assertFalse("Did not find any replication entries in the replication table",
-          entries.isEmpty());
+      assertFalse(entries.isEmpty(),
+          "Did not find any replication entries in the replication table");
 
       // Find the WorkSection record that will be created for that data we ingested
       boolean notFound = true;
@@ -1412,7 +1406,7 @@ public class ReplicationIT extends ConfigurableMacBase {
             log.info("{} => {}", content.getKey().toStringNoTruncate(),
                 ProtobufUtil.toString(Status.parseFrom(content.getValue().get())));
           }
-          assertFalse("Did not find the work entry for the status entry", notFound);
+          assertFalse(notFound, "Did not find the work entry for the status entry");
         }
       }
 
@@ -1486,8 +1480,8 @@ public class ReplicationIT extends ConfigurableMacBase {
         }
       }
 
-      assertTrue("Replication status messages were not cleaned up from metadata table",
-          remaining.isEmpty());
+      assertTrue(remaining.isEmpty(),
+          "Replication status messages were not cleaned up from metadata table");
 
       /**
        * After we close out and subsequently delete the metadata record, this will propagate to the
@@ -1512,8 +1506,8 @@ public class ReplicationIT extends ConfigurableMacBase {
           }
         }
       }
-      assertTrue("Found unexpected replication records in the replication table",
-          recordsFound <= 2);
+      assertTrue(recordsFound <= 2,
+          "Found unexpected replication records in the replication table");
     }
   }
 }

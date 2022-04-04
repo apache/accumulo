@@ -104,7 +104,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
 
   private synchronized void ensureOpen() {
     if (closed)
-      throw new IllegalArgumentException("Scanner is closed");
+      throw new IllegalStateException("Scanner is closed");
   }
 
   public ScannerImpl(ClientContext context, TableId tableId, Authorizations authorizations) {

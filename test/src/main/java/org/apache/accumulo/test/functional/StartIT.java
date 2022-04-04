@@ -18,19 +18,21 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+
+import java.time.Duration;
 
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.start.TestMain;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class StartIT extends AccumuloClusterHarness {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 30;
+  protected Duration defaultTimeout() {
+    return Duration.ofSeconds(30);
   }
 
   @Test

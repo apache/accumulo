@@ -18,11 +18,13 @@
  */
 package org.apache.accumulo.test.replication;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.security.PrivilegedExceptionAction;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -53,7 +55,6 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.accumulo.server.replication.ReplicaSystemFactory;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.accumulo.test.functional.KerberosIT;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem;
@@ -61,21 +62,21 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Ensure that replication occurs using keytabs instead of password (not to mention SASL)
  */
-@Ignore("Replication ITs are not stable and not currently maintained")
-@Category(MiniClusterOnlyTests.class)
+@Disabled("Replication ITs are not stable and not currently maintained")
+@Tag(MINI_CLUSTER_ONLY)
 @Deprecated
 public class KerberosReplicationIT extends AccumuloITBase {
   private static final Logger log = LoggerFactory.getLogger(KerberosIT.class);
@@ -84,7 +85,12 @@ public class KerberosReplicationIT extends AccumuloITBase {
   private static String krbEnabledForITs = null;
   private static ClusterUser rootUser;
 
-  @BeforeClass
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(3);
+  }
+
+  @BeforeAll
   public static void startKdc() throws Exception {
     kdc = new TestingKdc();
     kdc.start();
@@ -95,7 +101,7 @@ public class KerberosReplicationIT extends AccumuloITBase {
     rootUser = kdc.getRootUser();
   }
 
-  @AfterClass
+  @AfterAll
   public static void stopKdc() {
     if (kdc != null) {
       kdc.stop();
@@ -107,11 +113,6 @@ public class KerberosReplicationIT extends AccumuloITBase {
 
   private MiniAccumuloClusterImpl primary, peer;
   private String PRIMARY_NAME = "primary", PEER_NAME = "peer";
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 3;
-  }
 
   private MiniClusterConfigurationCallback getConfigCallback(final String name) {
     return new MiniClusterConfigurationCallback() {
@@ -135,17 +136,17 @@ public class KerberosReplicationIT extends AccumuloITBase {
     };
   }
 
-  @Before
+  @BeforeEach
   public void setup() throws Exception {
     MiniClusterHarness harness = new MiniClusterHarness();
 
     // Create a primary and a peer instance, both with the same "root" user
-    primary = harness.create(getClass().getName(), testName.getMethodName(),
-        new PasswordToken("unused"), getConfigCallback(PRIMARY_NAME), kdc);
+    primary = harness.create(getClass().getName(), testName(), new PasswordToken("unused"),
+        getConfigCallback(PRIMARY_NAME), kdc);
     primary.start();
 
-    peer = harness.create(getClass().getName(), testName.getMethodName() + "_peer",
-        new PasswordToken("unused"), getConfigCallback(PEER_NAME), kdc);
+    peer = harness.create(getClass().getName(), testName() + "_peer", new PasswordToken("unused"),
+        getConfigCallback(PEER_NAME), kdc);
     peer.start();
 
     // Enable kerberos auth
@@ -154,7 +155,7 @@ public class KerberosReplicationIT extends AccumuloITBase {
     UserGroupInformation.setConfiguration(conf);
   }
 
-  @After
+  @AfterEach
   public void teardown() throws Exception {
     if (peer != null) {
       peer.stop();
@@ -258,10 +259,9 @@ public class KerberosReplicationIT extends AccumuloITBase {
         try (var scanner = peerclient.createScanner(peerTable1, Authorizations.EMPTY)) {
           for (Entry<Key,Value> entry : scanner) {
             countTable++;
-            assertTrue(
+            assertTrue(entry.getKey().getRow().toString().startsWith(primaryTable1),
                 "Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
-                    + entry.getValue(),
-                entry.getKey().getRow().toString().startsWith(primaryTable1));
+                    + entry.getValue());
           }
         }
 

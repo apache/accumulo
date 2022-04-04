@@ -18,8 +18,10 @@
  */
 package org.apache.accumulo.test.shell;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,6 +30,7 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -36,36 +39,35 @@ import java.util.TimeZone;
 
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.shell.Shell;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
-import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.DumbTerminal;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Category({MiniClusterOnlyTests.class, SunnyDayTests.class})
+@Tag(MINI_CLUSTER_ONLY)
+@Tag(SUNNY_DAY)
 public class ShellIT extends SharedMiniClusterBase {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 180;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(3);
   }
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() throws Exception {
     SharedMiniClusterBase.startMiniCluster();
   }
 
-  @AfterClass
+  @AfterAll
   public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
   }
@@ -125,8 +127,8 @@ public class ShellIT extends SharedMiniClusterBase {
     }
 
     for (String expectedString : expectedStrings) {
-      assertTrue(expectedString + " was not present in " + output.get(),
-          output.get().contains(expectedString));
+      assertTrue(output.get().contains(expectedString),
+          expectedString + " was not present in " + output.get());
     }
   }
 
@@ -158,7 +160,7 @@ public class ShellIT extends SharedMiniClusterBase {
     }
   }
 
-  @Before
+  @BeforeEach
   public void setupShell() throws IOException {
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
     output = new TestOutputStream();
@@ -173,7 +175,7 @@ public class ShellIT extends SharedMiniClusterBase {
         getCluster().getInstanceName(), "-zh", getCluster().getZooKeepers());
   }
 
-  @After
+  @AfterEach
   public void teardownShell() {
     if (config.exists()) {
       if (!config.delete()) {
@@ -187,8 +189,8 @@ public class ShellIT extends SharedMiniClusterBase {
     Shell.log.debug("{}", output.get());
     assertEquals(shell.getExitCode(), 0);
     if (!s.isEmpty()) {
-      assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent,
-          output.get().contains(s));
+      assertEquals(stringPresent, output.get().contains(s),
+          s + " present in " + output.get() + " was not " + stringPresent);
     }
   }
 
@@ -196,8 +198,8 @@ public class ShellIT extends SharedMiniClusterBase {
     Shell.log.debug("{}", output.get());
     assertTrue(shell.getExitCode() > 0);
     if (!s.isEmpty()) {
-      assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent,
-          output.get().contains(s));
+      assertEquals(stringPresent, output.get().contains(s),
+          s + " present in " + output.get() + " was not " + stringPresent);
     }
     shell.resetExitCode();
   }
@@ -363,7 +365,7 @@ public class ShellIT extends SharedMiniClusterBase {
   @Test
   public void userExistsTest() throws IOException {
     Shell.log.debug("Starting user test --------------------------");
-    String user = testName.getMethodName();
+    String user = testName();
     exec("createuser root", false, "user exists");
     exec("createuser " + user, true);
     exec("createuser " + user, false, "user exists");

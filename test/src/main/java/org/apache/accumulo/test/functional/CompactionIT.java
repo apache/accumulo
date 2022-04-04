@@ -18,12 +18,14 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -32,7 +34,6 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -76,7 +77,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.bouncycastle.util.Arrays;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -154,6 +155,11 @@ public class CompactionIT extends AccumuloClusterHarness {
   private static final int MAX_DATA = 1000;
 
   @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
+  }
+
+  @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     cfg.setProperty(Property.TSERV_MAJC_THREAD_MAXOPEN, "4");
@@ -161,11 +167,6 @@ public class CompactionIT extends AccumuloClusterHarness {
     cfg.setProperty(Property.TSERV_MAJC_MAXCONCURRENT, "1");
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
   }
 
   @Test
@@ -368,8 +369,8 @@ public class CompactionIT extends AccumuloClusterHarness {
           int v = Integer.parseInt(entry.getValue().toString());
           int modulus = v < MAX_DATA ? 17 : 19;
 
-          assertTrue(String.format("%s %s %d != 0", entry.getValue(), "%", modulus),
-              Integer.parseInt(entry.getValue().toString()) % modulus == 0);
+          assertEquals(0, Integer.parseInt(entry.getValue().toString()) % modulus,
+              String.format("%s %s %d != 0", entry.getValue(), "%", modulus));
           count++;
         }
 
@@ -410,8 +411,8 @@ public class CompactionIT extends AccumuloClusterHarness {
 
       // without compression, expect file to be large
       long sizes = CompactionExecutorIT.getFileSizes(client, tableName);
-      assertTrue("Unexpected files sizes : " + sizes,
-          sizes > data.length * 10 && sizes < data.length * 11);
+      assertTrue(sizes > data.length * 10 && sizes < data.length * 11,
+          "Unexpected files sizes : " + sizes);
 
       client.tableOperations().compact(tableName,
           new CompactionConfig().setWait(true)
@@ -421,15 +422,15 @@ public class CompactionIT extends AccumuloClusterHarness {
 
       // after compacting with compression, expect small file
       sizes = CompactionExecutorIT.getFileSizes(client, tableName);
-      assertTrue("Unexpected files sizes: data: " + data.length + ", file:" + sizes,
-          sizes < data.length);
+      assertTrue(sizes < data.length,
+          "Unexpected files sizes: data: " + data.length + ", file:" + sizes);
 
       client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
 
       // after compacting without compression, expect big files again
       sizes = CompactionExecutorIT.getFileSizes(client, tableName);
-      assertTrue("Unexpected files sizes : " + sizes,
-          sizes > data.length * 10 && sizes < data.length * 11);
+      assertTrue(sizes > data.length * 10 && sizes < data.length * 11,
+          "Unexpected files sizes : " + sizes);
 
     }
   }
@@ -473,9 +474,9 @@ public class CompactionIT extends AccumuloClusterHarness {
           executor.execute(r);
         }
         executor.shutdown();
-        executor.awaitTermination(defaultTimeoutSeconds(), TimeUnit.SECONDS);
-        assertFalse("Failed to successfully run all threads, Check the test output for error",
-            fail.get());
+        executor.awaitTermination(defaultTimeout().toSeconds(), SECONDS);
+        assertFalse(fail.get(),
+            "Failed to successfully run all threads, Check the test output for error");
       }
 
       int finalCount = countFiles(c);

@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.tserver;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -30,7 +30,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.accumulo.server.compaction.CountingIterator;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CountingIteratorTest {
 

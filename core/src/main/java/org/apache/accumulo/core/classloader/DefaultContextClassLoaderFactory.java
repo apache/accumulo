@@ -63,7 +63,9 @@ public class DefaultContextClassLoaderFactory implements ContextClassLoaderFacto
 
   private static void startCleanupThread(final AccumuloConfiguration conf,
       final Supplier<Map<String,String>> contextConfigSupplier) {
-    ScheduledFuture<?> future = ThreadPools.createGeneralScheduledExecutorService(conf)
+    ScheduledFuture<?> future = ThreadPools.getClientThreadPools((t, e) -> {
+      LOG.error("context classloader cleanup thread has failed.", e);
+    }).createGeneralScheduledExecutorService(conf)
         .scheduleWithFixedDelay(Threads.createNamedRunnable(className + "-cleanup", () -> {
           LOG.trace("{}-cleanup thread, properties: {}", className, conf);
           Set<String> contextsInUse = contextConfigSupplier.get().keySet().stream()

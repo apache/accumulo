@@ -18,12 +18,12 @@
  */
 package org.apache.accumulo.tserver.compaction;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Set;
 
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("removal")
 public class CompactionPlanTest {

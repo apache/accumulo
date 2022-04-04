@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.test.performance.scan;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CollectTabletStatsTest {
 
@@ -32,9 +32,9 @@ public class CollectTabletStatsTest {
     final CollectTabletStats.CollectOptions opts = new CollectTabletStats.CollectOptions();
     opts.parseArgs(CollectTabletStats.class.getName(), args);
 
-    assertEquals("Check iterations is set, default is 3", 2, opts.iterations);
-    assertEquals("Check tablename is set", 0, tablename.compareTo(opts.tableName));
-    assertEquals("Check default numThreads", 1, opts.numThreads);
+    assertEquals(2, opts.iterations, "Check iterations is set, default is 3");
+    assertEquals(0, tablename.compareTo(opts.tableName), "Check tablename is set");
+    assertEquals(1, opts.numThreads, "Check default numThreads");
   }
 
   @Test
@@ -45,8 +45,8 @@ public class CollectTabletStatsTest {
     final CollectTabletStats.CollectOptions opts = new CollectTabletStats.CollectOptions();
     opts.parseArgs(CollectTabletStats.class.getName(), args);
 
-    assertEquals("Check iterations is set, default is 3", 2, opts.iterations);
-    assertEquals("Check tablename is set", 0, tablename.compareTo(opts.tableName));
-    assertEquals("Check numThreads is set", 99, opts.numThreads);
+    assertEquals(2, opts.iterations, "Check iterations is set, default is 3");
+    assertEquals(0, tablename.compareTo(opts.tableName), "Check tablename is set");
+    assertEquals(99, opts.numThreads, "Check numThreads is set");
   }
 }

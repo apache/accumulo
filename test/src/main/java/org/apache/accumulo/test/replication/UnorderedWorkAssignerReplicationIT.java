@@ -19,13 +19,14 @@
 package org.apache.accumulo.test.replication;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -69,14 +70,14 @@ import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Ignore("Replication ITs are not stable and not currently maintained")
+@Disabled("Replication ITs are not stable and not currently maintained")
 @Deprecated
 public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
   private static final Logger log =
@@ -85,7 +86,12 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
   private ExecutorService executor;
   private int timeoutFactor = 1;
 
-  @Before
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(6);
+  }
+
+  @BeforeEach
   public void createExecutor() {
     executor = Executors.newSingleThreadExecutor();
 
@@ -95,19 +101,14 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
       log.warn("Could not parse timeout.factor, not increasing timeout.");
     }
 
-    assertTrue("The timeout factor must be a positive, non-zero value", timeoutFactor > 0);
+    assertTrue(timeoutFactor > 0, "The timeout factor must be a positive, non-zero value");
   }
 
-  @After
+  @AfterEach
   public void stopExecutor() {
     if (executor != null) {
       executor.shutdownNow();
     }
-  }
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 60 * 6;
   }
 
   @Override
@@ -139,10 +140,10 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
       Map<String,String> peerSiteConfig = new HashMap<>();
       peerSiteConfig.put(Property.INSTANCE_RPC_SSL_ENABLED.getKey(), "true");
       String keystorePath = primarySiteConfig.get(Property.RPC_SSL_KEYSTORE_PATH.getKey());
-      assertNotNull("Keystore Path was null", keystorePath);
+      assertNotNull(keystorePath, "Keystore Path was null");
       peerSiteConfig.put(Property.RPC_SSL_KEYSTORE_PATH.getKey(), keystorePath);
       String truststorePath = primarySiteConfig.get(Property.RPC_SSL_TRUSTSTORE_PATH.getKey());
-      assertNotNull("Truststore Path was null", truststorePath);
+      assertNotNull(truststorePath, "Truststore Path was null");
       peerSiteConfig.put(Property.RPC_SSL_TRUSTSTORE_PATH.getKey(), truststorePath);
 
       // Passwords might be stored in CredentialProvider
@@ -174,8 +175,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
   @Test
   public void dataWasReplicatedToThePeer() throws Exception {
     MiniAccumuloConfigImpl peerCfg = new MiniAccumuloConfigImpl(
-        createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName() + "_peer"),
-        ROOT_PASSWORD);
+        createTestDir(this.getClass().getName() + "_" + this.testName() + "_peer"), ROOT_PASSWORD);
     peerCfg.setNumTservers(1);
     peerCfg.setInstanceName("peer");
     updatePeerConfigFromPrimary(getCluster().getConfig(), peerCfg);
@@ -325,17 +325,18 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
         while (managerIter.hasNext() && peerIter.hasNext()) {
           managerEntry = managerIter.next();
           peerEntry = peerIter.next();
-          assertEquals(managerEntry.getKey() + " was not equal to " + peerEntry.getKey(), 0,
+          assertEquals(0,
               managerEntry.getKey().compareTo(peerEntry.getKey(),
-                  PartialKey.ROW_COLFAM_COLQUAL_COLVIS));
+                  PartialKey.ROW_COLFAM_COLQUAL_COLVIS),
+              managerEntry.getKey() + " was not equal to " + peerEntry.getKey());
           assertEquals(managerEntry.getValue(), peerEntry.getValue());
         }
 
         log.info("Last manager entry: {}", managerEntry);
         log.info("Last peer entry: {}", peerEntry);
 
-        assertFalse("Had more data to read from the manager", managerIter.hasNext());
-        assertFalse("Had more data to read from the peer", peerIter.hasNext());
+        assertFalse(managerIter.hasNext(), "Had more data to read from the manager");
+        assertFalse(peerIter.hasNext(), "Had more data to read from the peer");
       }
     } finally {
       peerCluster.stop();
@@ -345,8 +346,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
   @Test
   public void dataReplicatedToCorrectTable() throws Exception {
     MiniAccumuloConfigImpl peerCfg = new MiniAccumuloConfigImpl(
-        createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName() + "_peer"),
-        ROOT_PASSWORD);
+        createTestDir(this.getClass().getName() + "_" + this.testName() + "_peer"), ROOT_PASSWORD);
     peerCfg.setNumTservers(1);
     peerCfg.setInstanceName("peer");
     updatePeerConfigFromPrimary(getCluster().getConfig(), peerCfg);
@@ -480,8 +480,9 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
         countTable = 0L;
         for (Entry<Key,Value> entry : clientPeer.createScanner(peerTable1, Authorizations.EMPTY)) {
           countTable++;
-          assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
-              + entry.getValue(), entry.getKey().getRow().toString().startsWith(managerTable1));
+          assertTrue(entry.getKey().getRow().toString().startsWith(managerTable1),
+              "Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
+                  + entry.getValue());
         }
 
         log.info("Found {} records in {}", countTable, peerTable1);
@@ -498,8 +499,9 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
         countTable = 0L;
         for (Entry<Key,Value> entry : clientPeer.createScanner(peerTable2, Authorizations.EMPTY)) {
           countTable++;
-          assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
-              + entry.getValue(), entry.getKey().getRow().toString().startsWith(managerTable2));
+          assertTrue(entry.getKey().getRow().toString().startsWith(managerTable2),
+              "Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
+                  + entry.getValue());
         }
 
         log.info("Found {} records in {}", countTable, peerTable2);
@@ -520,8 +522,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
   @Test
   public void dataWasReplicatedToThePeerWithoutDrain() throws Exception {
     MiniAccumuloConfigImpl peerCfg = new MiniAccumuloConfigImpl(
-        createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName() + "_peer"),
-        ROOT_PASSWORD);
+        createTestDir(this.getClass().getName() + "_" + this.testName() + "_peer"), ROOT_PASSWORD);
     peerCfg.setNumTservers(1);
     peerCfg.setInstanceName("peer");
     updatePeerConfigFromPrimary(getCluster().getConfig(), peerCfg);
@@ -617,18 +618,19 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
       try (Scanner manager = clientManager.createScanner(managerTable, Authorizations.EMPTY);
           Scanner peer = clientPeer.createScanner(peerTable, Authorizations.EMPTY)) {
         Iterator<Entry<Key,Value>> managerIter = manager.iterator(), peerIter = peer.iterator();
-        assertTrue("No data in manager table", managerIter.hasNext());
-        assertTrue("No data in peer table", peerIter.hasNext());
+        assertTrue(managerIter.hasNext(), "No data in manager table");
+        assertTrue(peerIter.hasNext(), "No data in peer table");
         while (managerIter.hasNext() && peerIter.hasNext()) {
           Entry<Key,Value> managerEntry = managerIter.next(), peerEntry = peerIter.next();
-          assertEquals(peerEntry.getKey() + " was not equal to " + peerEntry.getKey(), 0,
+          assertEquals(0,
               managerEntry.getKey().compareTo(peerEntry.getKey(),
-                  PartialKey.ROW_COLFAM_COLQUAL_COLVIS));
+                  PartialKey.ROW_COLFAM_COLQUAL_COLVIS),
+              peerEntry.getKey() + " was not equal to " + peerEntry.getKey());
           assertEquals(managerEntry.getValue(), peerEntry.getValue());
         }
 
-        assertFalse("Had more data to read from the manager", managerIter.hasNext());
-        assertFalse("Had more data to read from the peer", peerIter.hasNext());
+        assertFalse(managerIter.hasNext(), "Had more data to read from the manager");
+        assertFalse(peerIter.hasNext(), "Had more data to read from the peer");
       }
       peerCluster.stop();
     }
@@ -637,8 +639,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
   @Test
   public void dataReplicatedToCorrectTableWithoutDrain() throws Exception {
     MiniAccumuloConfigImpl peerCfg = new MiniAccumuloConfigImpl(
-        createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName() + "_peer"),
-        ROOT_PASSWORD);
+        createTestDir(this.getClass().getName() + "_" + this.testName() + "_peer"), ROOT_PASSWORD);
     peerCfg.setNumTservers(1);
     peerCfg.setInstanceName("peer");
     updatePeerConfigFromPrimary(getCluster().getConfig(), peerCfg);
@@ -750,7 +751,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
       // Wait until we fully replicated something
       boolean fullyReplicated = false;
       for (int i = 0; i < 10 && !fullyReplicated; i++) {
-        sleepUninterruptibly(timeoutFactor * 2, TimeUnit.SECONDS);
+        sleepUninterruptibly(timeoutFactor * 2L, TimeUnit.SECONDS);
 
         try (Scanner s = ReplicationTable.getScanner(clientManager)) {
           WorkSection.limit(s);
@@ -772,8 +773,9 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
         countTable = 0L;
         for (Entry<Key,Value> entry : clientPeer.createScanner(peerTable1, Authorizations.EMPTY)) {
           countTable++;
-          assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
-              + entry.getValue(), entry.getKey().getRow().toString().startsWith(managerTable1));
+          assertTrue(entry.getKey().getRow().toString().startsWith(managerTable1),
+              "Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
+                  + entry.getValue());
         }
         log.info("Found {} records in {}", countTable, peerTable1);
         if (countTable > 0) {
@@ -782,14 +784,15 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
         Thread.sleep(2000);
       }
 
-      assertTrue("Did not find any records in " + peerTable1 + " on peer", countTable > 0);
+      assertTrue(countTable > 0, "Did not find any records in " + peerTable1 + " on peer");
 
       for (int i = 0; i < 10; i++) {
         countTable = 0L;
         for (Entry<Key,Value> entry : clientPeer.createScanner(peerTable2, Authorizations.EMPTY)) {
           countTable++;
-          assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
-              + entry.getValue(), entry.getKey().getRow().toString().startsWith(managerTable2));
+          assertTrue(entry.getKey().getRow().toString().startsWith(managerTable2),
+              "Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
+                  + entry.getValue());
         }
 
         log.info("Found {} records in {}", countTable, peerTable2);
@@ -798,7 +801,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
         }
         Thread.sleep(2000);
       }
-      assertTrue("Did not find any records in " + peerTable2 + " on peer", countTable > 0);
+      assertTrue(countTable > 0, "Did not find any records in " + peerTable2 + " on peer");
 
     } finally {
       peer1Cluster.stop();

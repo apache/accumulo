@@ -19,10 +19,11 @@
 package org.apache.accumulo.test.functional;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Field;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -48,20 +49,20 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterables;
 
 public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
 
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setProperty(Property.GENERAL_RPC_TIMEOUT, "2s");
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
   }
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 2 * 60;
+  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    cfg.setProperty(Property.GENERAL_RPC_TIMEOUT, "2s");
   }
 
   @Test
@@ -133,7 +134,7 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
       }
     }
 
-    assertEquals("Unassigned tablets were not assigned within 30 seconds", 0, unassignedTablets);
+    assertEquals(0, unassignedTablets, "Unassigned tablets were not assigned within 30 seconds");
 
     List<Integer> counts = new ArrayList<>();
     for (TabletServerStatus server : stats.tServerInfo) {
@@ -143,11 +144,12 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
       }
       counts.add(count);
     }
-    assertTrue("Expected to have at least two TabletServers", counts.size() > 1);
+    assertTrue(counts.size() > 1, "Expected to have at least two TabletServers");
     for (int i = 1; i < counts.size(); i++) {
       int diff = Math.abs(counts.get(0) - counts.get(i));
-      assertTrue("Expected difference in tablets to be less than or equal to " + counts.size()
-          + " but was " + diff + ". Counts " + counts, diff <= counts.size());
+      assertTrue(diff <= counts.size(),
+          "Expected difference in tablets to be less than or equal to " + counts.size()
+              + " but was " + diff + ". Counts " + counts);
     }
   }
 }

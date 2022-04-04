@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.hadoop.mapreduce;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -41,14 +41,14 @@ import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class AccumuloInputFormatTest {
 
   static Properties clientProperties;
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() {
     clientProperties = setupClientProperties();
   }
@@ -246,7 +246,7 @@ public class AccumuloInputFormatTest {
         .auths(Authorizations.EMPTY);
     AccumuloInputFormat aif = new AccumuloInputFormat();
 
-    assertThrows("IllegalStateException should have been thrown for not calling store",
-        IllegalStateException.class, () -> aif.getSplits(job));
+    assertThrows(IllegalStateException.class, () -> aif.getSplits(job),
+        "IllegalStateException should have been thrown for not calling store");
   }
 }
