@@ -21,6 +21,8 @@ package org.apache.accumulo.server.init;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.server.init.Initialize.REPL_TABLE_ID;
 
+import java.io.IOException;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.data.InstanceId;
@@ -31,6 +33,10 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
+import org.apache.accumulo.server.conf.codec.VersionedProperties;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.metadata.RootGcCandidates;
 import org.apache.accumulo.server.tables.TableManager;
@@ -39,12 +45,56 @@ import org.apache.zookeeper.ZooDefs;
 
 class ZooKeeperInitializer {
 
-  void initialize(ZooReaderWriter zoo, boolean clearInstanceName, InstanceId iid,
-      String instanceNamePath, String rootTabletDirName, String rootTabletFileUri)
+  private final byte[] EMPTY_BYTE_ARRAY = new byte[0];
+  private final byte[] ZERO_CHAR_ARRAY = {'0'};
+
+  /**
+   * The prop store requires that the system config node exists so that it can set watchers. This
+   * methods creates the ZooKeeper nodes /accumulo/INSTANCE_ID/config/encoded_props and sets the
+   * encoded_props to a default, empty node if it does not exist. If any of the paths or the
+   * encoded_props node exist, the are skipped and not modified.
+   *
+   * @param instanceId
+   *          the instance id
+   * @param zoo
+   *          a ZooReaderWriter
+   */
+  void initializeConfig(final InstanceId instanceId, final ZooReaderWriter zoo) {
+    try {
+
+      zoo.putPersistentData(Constants.ZROOT, new byte[0], ZooUtil.NodeExistsPolicy.SKIP,
+          ZooDefs.Ids.OPEN_ACL_UNSAFE);
+
+      String zkInstanceRoot = Constants.ZROOT + "/" + instanceId;
+      zoo.putPersistentData(zkInstanceRoot, EMPTY_BYTE_ARRAY, ZooUtil.NodeExistsPolicy.SKIP);
+      zoo.putPersistentData(zkInstanceRoot + Constants.ZCONFIG, EMPTY_BYTE_ARRAY,
+          ZooUtil.NodeExistsPolicy.SKIP);
+
+      var sysPropPath = PropCacheKey.forSystem(instanceId).getPath();
+      VersionedProperties vProps = new VersionedProperties();
+      // skip if the encoded props node exists
+      if (zoo.exists(sysPropPath)) {
+        return;
+      }
+      var created = zoo.putPersistentData(sysPropPath,
+          VersionedPropCodec.getDefault().toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
+      if (!created) {
+        throw new IllegalStateException(
+            "Failed to create default system props during initialization at: {}" + sysPropPath);
+      }
+    } catch (IOException | KeeperException | InterruptedException ex) {
+      throw new IllegalStateException("Failed to initialize configuration for prop store", ex);
+    }
+  }
+
+  void initialize(final ServerContext context, final boolean clearInstanceName,
+      final String instanceNamePath, final String rootTabletDirName, final String rootTabletFileUri)
       throws KeeperException, InterruptedException {
     // setup basic data in zookeeper
-    zoo.putPersistentData(Constants.ZROOT, new byte[0], ZooUtil.NodeExistsPolicy.SKIP,
-        ZooDefs.Ids.OPEN_ACL_UNSAFE);
+
+    ZooReaderWriter zoo = context.getZooReaderWriter();
+    InstanceId instanceId = context.getInstanceID();
+
     zoo.putPersistentData(Constants.ZROOT + Constants.ZINSTANCES, new byte[0],
         ZooUtil.NodeExistsPolicy.SKIP, ZooDefs.Ids.OPEN_ACL_UNSAFE);
 
@@ -52,30 +102,28 @@ class ZooKeeperInitializer {
     if (clearInstanceName) {
       zoo.recursiveDelete(instanceNamePath, ZooUtil.NodeMissingPolicy.SKIP);
     }
-    zoo.putPersistentData(instanceNamePath, iid.canonical().getBytes(UTF_8),
+    zoo.putPersistentData(instanceNamePath, instanceId.canonical().getBytes(UTF_8),
         ZooUtil.NodeExistsPolicy.FAIL);
 
-    final byte[] EMPTY_BYTE_ARRAY = new byte[0];
-    final byte[] ZERO_CHAR_ARRAY = {'0'};
-
     // setup the instance
-    String zkInstanceRoot = Constants.ZROOT + "/" + iid;
-    zoo.putPersistentData(zkInstanceRoot, EMPTY_BYTE_ARRAY, ZooUtil.NodeExistsPolicy.FAIL);
+    String zkInstanceRoot = Constants.ZROOT + "/" + instanceId;
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTABLES, Constants.ZTABLES_INITIAL_ID,
         ZooUtil.NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZNAMESPACES, new byte[0],
         ZooUtil.NodeExistsPolicy.FAIL);
-    TableManager.prepareNewNamespaceState(zoo, iid, Namespace.DEFAULT.id(),
-        Namespace.DEFAULT.name(), ZooUtil.NodeExistsPolicy.FAIL);
-    TableManager.prepareNewNamespaceState(zoo, iid, Namespace.ACCUMULO.id(),
+
+    TableManager.prepareNewNamespaceState(context, Namespace.DEFAULT.id(), Namespace.DEFAULT.name(),
+        ZooUtil.NodeExistsPolicy.FAIL);
+    TableManager.prepareNewNamespaceState(context, Namespace.ACCUMULO.id(),
         Namespace.ACCUMULO.name(), ZooUtil.NodeExistsPolicy.FAIL);
-    TableManager.prepareNewTableState(zoo, iid, RootTable.ID, Namespace.ACCUMULO.id(),
+
+    TableManager.prepareNewTableState(context, RootTable.ID, Namespace.ACCUMULO.id(),
         RootTable.NAME, TableState.ONLINE, ZooUtil.NodeExistsPolicy.FAIL);
-    TableManager.prepareNewTableState(zoo, iid, MetadataTable.ID, Namespace.ACCUMULO.id(),
+    TableManager.prepareNewTableState(context, MetadataTable.ID, Namespace.ACCUMULO.id(),
         MetadataTable.NAME, TableState.ONLINE, ZooUtil.NodeExistsPolicy.FAIL);
     @SuppressWarnings("deprecation")
     String replicationTableName = org.apache.accumulo.core.replication.ReplicationTable.NAME;
-    TableManager.prepareNewTableState(zoo, iid, REPL_TABLE_ID, Namespace.ACCUMULO.id(),
+    TableManager.prepareNewTableState(context, REPL_TABLE_ID, Namespace.ACCUMULO.id(),
         replicationTableName, TableState.OFFLINE, ZooUtil.NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTSERVERS, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
@@ -95,8 +143,6 @@ class ZooKeeperInitializer {
     zoo.putPersistentData(zkInstanceRoot + Constants.ZGC, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZGC_LOCK, EMPTY_BYTE_ARRAY,
-        ZooUtil.NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZCONFIG, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTABLE_LOCKS, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);

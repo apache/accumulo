@@ -1,0 +1,172 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.accumulo.test.conf.util;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.File;
+import java.util.List;
+import java.util.UUID;
+
+import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
+import org.apache.accumulo.server.conf.store.PropStoreException;
+import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
+import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
+import org.apache.accumulo.server.conf.util.TransformLock;
+import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.ZKUtil;
+import org.apache.zookeeper.ZooKeeper;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+@Tag(ZOOKEEPER_TESTING_SERVER)
+public class TransformLockTest {
+
+  @TempDir
+  private static File tempDir;
+
+  private static ZooKeeperTestingServer testZk = null;
+  private static ZooKeeper zooKeeper;
+  private static ZooReaderWriter zrw;
+  private InstanceId instanceId = null;
+
+  @BeforeAll
+  public static void setupZk() {
+
+    // using default zookeeper port - we don't have a full configuration
+    testZk = new ZooKeeperTestingServer(tempDir);
+    zooKeeper = testZk.getZooKeeper();
+    zrw = testZk.getZooReaderWriter();
+  }
+
+  @AfterAll
+  public static void shutdownZK() throws Exception {
+    testZk.close();
+  }
+
+  @BeforeEach
+  public void testSetup() {
+    instanceId = InstanceId.of(UUID.randomUUID());
+  }
+
+  @AfterEach
+  public void cleanupZnodes() {
+    try {
+      ZKUtil.deleteRecursive(zooKeeper, Constants.ZROOT);
+    } catch (KeeperException | InterruptedException ex) {
+      throw new IllegalStateException("Failed to clean-up test zooKeeper nodes.", ex);
+    }
+  }
+
+  @Test
+  public void lockGoPathTest() throws Exception {
+
+    List<LegacyPropData.PropNode> nodes = LegacyPropData.getData(instanceId);
+    for (LegacyPropData.PropNode node : nodes) {
+      zrw.putPersistentData(node.getPath(), node.getData(), ZooUtil.NodeExistsPolicy.SKIP);
+    }
+
+    ZooPropStore propStore = new ZooPropStore.Builder(instanceId, zrw, 30_000).build();
+
+    ServerContext context = createMock(ServerContext.class);
+    expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
+    expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
+    expect(context.getPropStore()).andReturn(propStore).anyTimes();
+
+    PropStoreWatcher watcher = createMock(PropStoreWatcher.class);
+
+    replay(context, watcher);
+
+    var sysPropKey = PropCacheKey.forSystem(instanceId);
+
+    TransformLock lock = TransformLock.createLock(sysPropKey, zrw);
+
+    assertTrue(lock.isLocked());
+    lock.unLock();
+    assertFalse(lock.isLocked());
+
+    // relock by getting a new lock
+    TransformLock lock2 = TransformLock.createLock(sysPropKey, zrw);
+    assertTrue(lock2.isLocked());
+
+    // fail with a current lock node present
+    TransformLock lock3 = TransformLock.createLock(sysPropKey, zrw);
+    assertFalse(lock3.isLocked());
+
+  }
+
+  @Test
+  public void failOnInvalidLockTest() throws Exception {
+
+    List<LegacyPropData.PropNode> nodes = LegacyPropData.getData(instanceId);
+    for (LegacyPropData.PropNode node : nodes) {
+      zrw.putPersistentData(node.getPath(), node.getData(), ZooUtil.NodeExistsPolicy.SKIP);
+    }
+
+    ZooPropStore propStore = new ZooPropStore.Builder(instanceId, zrw, 30_000).build();
+
+    ServerContext context = createMock(ServerContext.class);
+    expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
+    expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
+    expect(context.getPropStore()).andReturn(propStore).anyTimes();
+
+    PropStoreWatcher watcher = createMock(PropStoreWatcher.class);
+
+    replay(context, watcher);
+
+    var sysPropKey = PropCacheKey.forSystem(instanceId);
+    var lockPath = sysPropKey.getBasePath() + TransformLock.LOCK_NAME;
+
+    TransformLock lock = TransformLock.createLock(sysPropKey, zrw);
+
+    // force change in lock
+    assertTrue(lock.isLocked());
+    zrw.mutateExisting(lockPath, v -> UUID.randomUUID().toString().getBytes(UTF_8));
+    assertThrows(PropStoreException.class, lock::unLock,
+        "Expected unlock to fail on different UUID");
+
+    // clean-up and get new lock
+    zrw.delete(lockPath);
+    TransformLock lock3 = TransformLock.createLock(sysPropKey, zrw);
+    assertTrue(lock3.isLocked());
+    zrw.delete(lockPath);
+    assertThrows(PropStoreException.class, lock::unLock,
+        "Expected unlock to fail when no lock present");
+
+  }
+
+}

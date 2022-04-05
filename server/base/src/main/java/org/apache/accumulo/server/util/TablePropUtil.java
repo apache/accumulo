@@ -18,48 +18,47 @@
  */
 package org.apache.accumulo.server.util;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.zookeeper.KeeperException;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
+import org.apache.accumulo.server.conf.store.PropStoreException;
 
-public class TablePropUtil {
+public class TablePropUtil implements PropUtil {
 
-  public static boolean setTableProperty(ServerContext context, TableId tableId, String property,
-      String value) throws KeeperException, InterruptedException {
-    return setTableProperty(context.getZooReaderWriter(), context.getZooKeeperRoot(), tableId,
-        property, value);
+  private TablePropUtil() {}
+
+  public static TablePropUtil factory() {
+    return new TablePropUtil();
   }
 
-  public static boolean setTableProperty(ZooReaderWriter zoo, String zkRoot, TableId tableId,
-      String property, String value) throws KeeperException, InterruptedException {
-    if (!Property.isTablePropertyValid(property, value))
-      return false;
+  /**
+   * Helper method to set provided properties for the provided table.
+   *
+   * @throws PropStoreException
+   *           if an underlying exception (KeeperException, InterruptException) or other failure to
+   *           read properties from the cache / backend store
+   */
+  @Override
+  public void setProperties(ServerContext context, AbstractId<?> tableId,
+      Map<String,String> props) {
+    Map<String,String> tempProps = new HashMap<>(props);
+    // TODO reconcile with NamespacePropUtil on invalid, this ignores, namespace throws exception
+    tempProps.entrySet().removeIf(e -> !Property.isTablePropertyValid(e.getKey(), e.getValue()));
 
-    // create the zk node for per-table properties for this table if it doesn't already exist
-    String zkTablePath = getTablePath(zkRoot, tableId);
-    zoo.putPersistentData(zkTablePath, new byte[0], NodeExistsPolicy.SKIP);
-
-    // create the zk node for this property and set it's data to the specified value
-    String zPath = zkTablePath + "/" + property;
-    zoo.putPersistentData(zPath, value.getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
-
-    return true;
+    context.getPropStore().putAll(PropCacheKey.forTable(context, (TableId) tableId), props);
   }
 
-  public static void removeTableProperty(ServerContext context, TableId tableId, String property)
-      throws InterruptedException, KeeperException {
-    String zPath = getTablePath(context.getZooKeeperRoot(), tableId) + "/" + property;
-    context.getZooReaderWriter().recursiveDelete(zPath, NodeMissingPolicy.SKIP);
+  @Override
+  public void removeProperties(final ServerContext context, final AbstractId<?> tableId,
+      Collection<String> propertyNames) {
+    context.getPropStore().removeProperties(PropCacheKey.forTable(context, (TableId) tableId),
+        propertyNames);
   }
 
-  private static String getTablePath(String zkRoot, TableId tableId) {
-    return zkRoot + Constants.ZTABLES + "/" + tableId.canonical() + Constants.ZTABLE_CONF;
-  }
 }

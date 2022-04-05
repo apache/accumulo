@@ -46,7 +46,7 @@ public class ConfigurationImpl implements Configuration {
   public boolean isSet(String key) {
     Property prop = Property.getPropertyByKey(key);
     if (prop != null) {
-      return acfg.isPropertySet(prop, false);
+      return acfg.isPropertySet(prop);
     } else {
       return acfg.get(key) != null;
     }

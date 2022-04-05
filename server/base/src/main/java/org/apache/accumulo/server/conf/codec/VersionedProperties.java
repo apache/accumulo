@@ -49,7 +49,7 @@ public class VersionedProperties {
   public static final DateTimeFormatter tsFormatter =
       DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneId.from(ZoneOffset.UTC));
   // flag value for initialization - on store both the version and next version should be 0.
-  private static final int NO_VERSION = -2;
+  private static final int INIT_VERSION = 0;
   private final int dataVersion;
   private final Instant timestamp;
   private final Map<String,String> props;
@@ -69,7 +69,7 @@ public class VersionedProperties {
    *          been previously validated (if required)
    */
   public VersionedProperties(Map<String,String> props) {
-    this(NO_VERSION, Instant.now(), props);
+    this(INIT_VERSION, Instant.now(), props);
   }
 
   /**
@@ -108,22 +108,7 @@ public class VersionedProperties {
    * @return 0 for initial version, otherwise the data version when the properties were serialized.
    */
   public int getDataVersion() {
-    return Math.max(dataVersion, 0);
-  }
-
-  /**
-   * Calculates the version that should be stored when serialized. The serialized version, when
-   * stored, should match the version that will be assigned. This way, data reading the serialized
-   * version can compare the stored version with the node version at any time to detect if the node
-   * version has been updated.
-   * <p>
-   * The initialization of the data version to a negative value allows this value to be calculated
-   * correctly for the first serialization. On the first store, the expected version will be 0.
-   *
-   * @return the next version number that should be serialized, or 0 if this is the initial version.
-   */
-  public int getNextVersion() {
-    return Math.max(dataVersion + 1, 0);
+    return dataVersion;
   }
 
   /**

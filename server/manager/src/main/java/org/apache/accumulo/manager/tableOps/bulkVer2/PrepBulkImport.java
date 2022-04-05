@@ -183,8 +183,14 @@ public class PrepBulkImport extends ManagerRepo {
     VolumeManager fs = manager.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.sourceDir);
 
-    int maxTablets = Integer.parseInt(manager.getContext().getTableConfiguration(bulkInfo.tableId)
-        .get(Property.TABLE_BULK_MAX_TABLETS));
+    String value = manager.getContext().getTableConfiguration(bulkInfo.tableId)
+        .get(Property.TABLE_BULK_MAX_TABLETS);
+    if (value == null) {
+      throw new IllegalStateException("The property: " + Property.TABLE_BULK_MAX_TABLETS.getKey()
+          + " was not found for tableId: " + bulkInfo.tableId);
+    }
+
+    int maxTablets = Integer.parseInt(value);
 
     try (LoadMappingIterator lmi =
         BulkSerialize.readLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open)) {
