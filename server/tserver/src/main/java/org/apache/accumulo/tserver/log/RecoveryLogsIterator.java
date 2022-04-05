@@ -18,47 +18,27 @@
  */
 package org.apache.accumulo.tserver.log;
 
-import static org.apache.accumulo.core.client.Accumulo.EMPTY_BYTES;
-import static org.apache.accumulo.core.client.Accumulo.EMPTY_RANGE;
-
 import java.io.IOException;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.SortedSet;
 
 import org.apache.accumulo.core.client.rfile.RFile;
-import org.apache.accumulo.core.conf.IterConfigUtil;
-import org.apache.accumulo.core.conf.IterLoad;
 import org.apache.accumulo.core.data.ByteSequence;
-import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
-import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.iterators.IteratorAdapter;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
-import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
-import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.spi.crypto.CryptoService;
-import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
-import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -74,27 +54,27 @@ public class RecoveryLogsIterator
 
   private static final Logger LOG = LoggerFactory.getLogger(RecoveryLogsIterator.class);
 
+  /** List of the file scanners. This is used to close file references. */
   private final List<FileSKVIterator> scanners;
+  /** The merged iterator used to iterate over all the WALs. */
   private final Iterator<Entry<Key,Value>> iter;
-  private final CryptoService cryptoService;
 
   /**
    * Scans the files in each recoveryLogDir over the range [start,end].
    */
   public RecoveryLogsIterator(ServerContext context, List<Path> recoveryLogDirs, LogFileKey start,
       LogFileKey end, boolean checkFirstKey) throws IOException {
-    cryptoService = context.getCryptoService();
 
     List<Iterator<Entry<Key,Value>>> iterators = new ArrayList<>(recoveryLogDirs.size());
     scanners = new ArrayList<>();
-    Collection<ByteSequence> columnFamiles = new ArrayList<>();
+    Collection<ByteSequence> columnFamilies = new ArrayList<>();
     Range range;
     if (start == null) {
       range = null;
     } else {
       range = LogFileKey.toRange(start, end);
-      columnFamiles.add(start.getColumnFamily());
-      columnFamiles.add(end.getColumnFamily());
+      columnFamilies.add(start.getColumnFamily());
+      columnFamilies.add(end.getColumnFamily());
     }
 
     var vm = context.getVolumeManager();
@@ -111,16 +91,14 @@ public class RecoveryLogsIterator
       if (checkFirstKey) {
         validateFirstKey(context, fs, logFiles, logDir);
       }
-      //ListIterator<FileSKVIterator> iteratorList = recoveryCache.getScanners().listIterator();
       for (Path log : logFiles) {
-        //FileSKVIterator iterator = iteratorList.next();
-        //iterator.seek(range, columnFamiles, true);
-        Iterator<Entry<Key, Value>> iterator = createIterator(context, log, cacheProvider);
+        var fileReader = createIterator(context, log, cacheProvider, range, columnFamilies);
+        Iterator<Entry<Key,Value>> iterator = new IteratorAdapter(fileReader);
 
-        if (iterator.hasTop()) {
+        if (iterator.hasNext()) {
           LOG.debug("Write ahead log {} has data in range {} {}", log.getName(), start, end);
-          iterators.add(toIterator(context, iterator, cacheProvider));
-          scanners.addAll(recoveryCache.getScanners());
+          iterators.add(iterator);
+          scanners.add(fileReader);
         } else {
           LOG.debug("Write ahead log {} has no data in range {} {}", log.getName(), start, end);
         }
@@ -129,16 +107,16 @@ public class RecoveryLogsIterator
     iter = Iterators.mergeSorted(iterators, Entry.comparingByKey());
   }
 
-  private Iterator<Entry<Key, Value>> createIterator(ServerContext context, Path wal,
-                                                     CacheProvider cacheProvider) throws IOException {
+  private FileSKVIterator createIterator(ServerContext context, Path wal,
+      CacheProvider cacheProvider, Range range, Collection<ByteSequence> columnFamilies)
+      throws IOException {
     var fs = context.getVolumeManager().getFileSystemByPath(wal);
-    // ScannerImpl recoveryFileScanner = new ScannerImpl(context, tableId, new Authorizations());
     FileSKVIterator fileReader =
-            FileOperations.getInstance().newReaderBuilder().withCacheProvider(cacheProvider)
-                    .forFile(wal.getName(), fs, context.getHadoopConf(), context.getCryptoService())
-                    .withTableConfiguration(context.getConfiguration()).seekToBeginning().build();
-
-
+        FileOperations.getInstance().newReaderBuilder().withCacheProvider(cacheProvider)
+            .forFile(wal.getName(), fs, context.getHadoopConf(), context.getCryptoService())
+            .withTableConfiguration(context.getConfiguration()).seekToBeginning().build();
+    fileReader.seek(range, columnFamilies, !columnFamilies.isEmpty());
+    return fileReader;
   }
 
   @Override
@@ -181,56 +159,6 @@ public class RecoveryLogsIterator
           throw new IllegalStateException("First log entry is not OPEN " + fullLogPath);
         }
       }
-    }
-  }
-
-  protected List<IterInfo> serverSideIteratorList = Collections.emptyList();
-  protected Map<String,Map<String,String>> serverSideIteratorOptions = Collections.emptyMap();
-
-  private Iterator<Entry<Key,Value>> toIterator(ServerContext context, FileSKVIterator fileIterator,
-      CacheProvider cacheProvider) {
-    boolean useSystemIterators = false;
-    Range bounds = new Range();
-    //long fileLength = 24234134L; // TODO
-    String filename = "";
-
-    try {
-      List<SortedKeyValueIterator<Key,Value>> readers = new ArrayList<>();
-      //FSDataInputStream inputStream = (FSDataInputStream) fileIterator;
-      //CachableBlockFile.CachableBuilder cb = new CachableBlockFile.CachableBuilder()
-       //   .input(inputStream, "source-1").length(fileLength).conf(context.getHadoopConf())
-        //  .cacheProvider(cacheProvider).cryptoService(cryptoService);
-      //readers.add(new org.apache.accumulo.core.file.rfile.RFile.Reader(cb));
-
-      SortedKeyValueIterator<Key,Value> iterator;
-      if (bounds != null) {
-        iterator = new MultiIterator(readers, bounds);
-      } else {
-        iterator = new MultiIterator(readers, false);
-      }
-
-      Set<ByteSequence> families = Collections.emptySet();
-
-      if (useSystemIterators) {
-        SortedSet<Column> cols = null;
-        families = LocalityGroupUtil.families(cols);
-        iterator = SystemIteratorUtil.setupSystemScanIterators(iterator, cols, Authorizations.EMPTY,
-            EMPTY_BYTES, context.getConfiguration());
-      }
-
-      try {
-        iterator =
-            IterConfigUtil.loadIterators(iterator, new IterLoad().iters(serverSideIteratorList)
-                .iterOpts(serverSideIteratorOptions).iterEnv(null).useAccumuloClassLoader(false));
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-
-      iterator.seek(bounds == null ? EMPTY_RANGE : bounds, families, !families.isEmpty());
-      return new IteratorAdapter(iterator);
-
-    } catch (IOException e) {
-      throw new RuntimeException(e);
     }
   }
 }
