@@ -34,11 +34,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -637,8 +639,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
 
     TableId tableId = null;
     try {
-      // if user has no permission to write to this table, add it to
-      // the failures list
+      // if user has no permission to write to this table, add it to the failures list
       boolean sameTable = us.currentTablet != null
           && us.currentTablet.getExtent().tableId().equals(keyExtent.tableId());
       tableId = keyExtent.tableId();
@@ -650,8 +651,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
         if (us.currentTablet != null) {
           us.queuedMutations.put(us.currentTablet, new ArrayList<>());
         } else {
-          // not serving tablet, so report all mutations as
-          // failures
+          // not serving tablet, so report all mutations as failures
           us.failures.put(keyExtent, 0L);
           server.updateMetrics.addUnknownTabletErrors(0);
         }
@@ -686,15 +686,31 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
 
   @Override
   public void applyUpdates(TInfo tinfo, long updateID, TKeyExtent tkeyExtent,
-      List<TMutation> tmutations) {
+      List<TMutation> tmutations) throws TException {
     UpdateSession us = (UpdateSession) server.sessionManager.reserveSession(updateID);
     if (us == null) {
       return;
     }
 
+    Optional<Semaphore> writeThreadSemaphore = Optional.empty();
     boolean reserved = true;
+
     try {
       KeyExtent keyExtent = KeyExtent.fromThrift(tkeyExtent);
+
+      if (TabletType.type(keyExtent) == TabletType.USER) {
+        writeThreadSemaphore = server.getWriteThreadSemaphore();
+        // if write thread max is configured, get the Semaphore, otherwise do nothing
+        if (writeThreadSemaphore.isPresent()) {
+          Semaphore sem = writeThreadSemaphore.get();
+          if (sem.tryAcquire()) {
+            log.trace("Available permits: {}", sem.availablePermits());
+          } else {
+            log.error("Mutation failed. No threads available.");
+            return;
+          }
+        }
+      }
       setUpdateTablet(us, keyExtent);
 
       if (us.currentTablet != null) {
@@ -722,6 +738,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
         }
       }
     } finally {
+      writeThreadSemaphore.ifPresent(Semaphore::release);
       if (reserved) {
         server.sessionManager.unreserveSession(us);
       }
