@@ -22,6 +22,7 @@ import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.time.Duration;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -60,8 +61,8 @@ public class PropStoreConfigTest extends AccumuloClusterHarness {
   }
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 180;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(3);
   }
 
   @Test

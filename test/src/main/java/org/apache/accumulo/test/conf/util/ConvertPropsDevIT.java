@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.conf.util;
 
+import java.time.Duration;
+
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
@@ -58,8 +60,8 @@ public class ConvertPropsDevIT extends AccumuloClusterHarness {
   }
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
+  protected Duration defaultTimeout() {
+    return java.time.Duration.ofMinutes(4);
   }
 
   @Test
