@@ -20,6 +20,7 @@ package org.apache.accumulo.test;
 
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -228,7 +229,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
         bs.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         // should not timeout
         for (Entry<Key,Value> entry : bs) {
-          entry.getKey();
+          assertNotNull(entry.getKey());
         }
 
         bs.setTimeout(5, TimeUnit.SECONDS);
