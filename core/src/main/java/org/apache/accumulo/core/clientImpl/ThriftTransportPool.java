@@ -687,8 +687,6 @@ public class ThriftTransportPool {
   public TTransport getTransport(HostAndPort location, long milliseconds, ClientContext context)
       throws TTransportException {
     ThriftTransportKey cacheKey = new ThriftTransportKey(location, milliseconds, context);
-    // compute hash code outside of lock, this lowers the time the lock is held
-    cacheKey.precomputeHashCode();
 
     CachedConnection connection = connectionPool.reserveAny(cacheKey);
 

@@ -24,6 +24,7 @@ import java.time.Duration;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
@@ -39,8 +40,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.fs.RemoteIterator;
 import org.junit.jupiter.api.Test;
-
-import com.google.common.collect.Iterators;
 
 public class GarbageCollectWALIT extends ConfigurableMacBase {
 
@@ -70,8 +69,9 @@ public class GarbageCollectWALIT extends ConfigurableMacBase {
       cluster.getClusterControl().stop(ServerType.TABLET_SERVER);
       cluster.getClusterControl().start(ServerType.GARBAGE_COLLECTOR);
       cluster.getClusterControl().start(ServerType.TABLET_SERVER);
-      Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
-      // let GC run
+      try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+        scanner.forEach((k, v) -> {});
+      }
       UtilWaitThread.sleep(3 * 5_000);
       assertEquals(2, countWALsInFS(cluster));
     }

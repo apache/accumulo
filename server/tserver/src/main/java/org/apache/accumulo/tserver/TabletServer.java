@@ -154,6 +154,7 @@ import org.apache.accumulo.tserver.session.Session;
 import org.apache.accumulo.tserver.session.SessionManager;
 import org.apache.accumulo.tserver.tablet.BulkImportCacheCleaner;
 import org.apache.accumulo.tserver.tablet.CommitSession;
+import org.apache.accumulo.tserver.tablet.MetadataUpdateCount;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletData;
 import org.apache.commons.collections4.map.LRUMap;
@@ -833,9 +834,9 @@ public class TabletServer extends AbstractServer {
     watchCriticalFixedDelay(aconf, tabletCheckFrequency, () -> {
       final SortedMap<KeyExtent,Tablet> onlineTabletsSnapshot = onlineTablets.snapshot();
 
-      Map<KeyExtent,Long> updateCounts = new HashMap<>();
+      Map<KeyExtent,MetadataUpdateCount> updateCounts = new HashMap<>();
 
-      // gather updateCounts for each tablet
+      // gather updateCounts for each tablet before reading tablet metadata
       onlineTabletsSnapshot.forEach((ke, tablet) -> {
         updateCounts.put(ke, tablet.getUpdateCount());
       });
@@ -857,7 +858,7 @@ public class TabletServer extends AbstractServer {
           for (var tabletMetadata : tabletsMetadata) {
             KeyExtent extent = tabletMetadata.getExtent();
             Tablet tablet = onlineTabletsSnapshot.get(extent);
-            Long counter = updateCounts.get(extent);
+            MetadataUpdateCount counter = updateCounts.get(extent);
             tablet.compareTabletInfo(counter, tabletMetadata);
           }
         }

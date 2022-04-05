@@ -155,8 +155,7 @@
     <surefire.forkCount>1C</surefire.forkCount>
     <surefire.groups />
     <surefire.reuseForks>true</surefire.reuseForks>
-    <!-- 3.0.0-M5 causes RowHashIT.test and ShellServerIT.scansWithClassLoaderContext to fail -->
-    <surefire.version>3.0.0-M4</surefire.version>
+    <surefire.version>3.0.0-M6</surefire.version>
     <!-- Thrift version -->
     <thrift.version>0.15.0</thrift.version>
     <unitTestMemSize>-Xmx1G</unitTestMemSize>
@@ -1681,16 +1680,15 @@
                   -XepExcludedPaths:.*/(proto|thrift|generated-sources|src/test)/.* \
                   -XepDisableWarningsInGeneratedCode \
                   -XepDisableAllWarnings \
-                  <!-- error patterns to ignore -->
-                  -Xep:CheckReturnValue:OFF \
+                  <!-- ERROR patterns to specifically ignore -->
                   -Xep:MustBeClosedChecker:OFF \
-                  -Xep:ReturnValueIgnored:OFF \
-                  -Xep:FutureReturnValueIgnored:ERROR \
                   -Xep:UnicodeInCode:OFF \
-                  <!-- warning patterns to specifically check -->
+                  <!-- WARNING patterns to specifically check -->
                   -Xep:ExpectedExceptionChecker \
+                  <!-- treat following warning as an error -->
+                  -Xep:FutureReturnValueIgnored:ERROR \
                   -Xep:MissingOverride \
-                  <!-- Items containing 'OFF' are currently flagged by ErrorProne. The 'OFF'
+                  <!-- Items containing 'OFF' are currently Errors flagged by ErrorProne. The 'OFF'
                   can be removed and the project recompiled to discover location of errors for
                   further analysis. @SuppressWarnings can be used to ignore errors if desired. -->
                 </arg>

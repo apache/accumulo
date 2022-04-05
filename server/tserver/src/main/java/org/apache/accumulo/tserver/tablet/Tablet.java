@@ -1424,7 +1424,11 @@ public class Tablet {
         }
       });
 
-      compareToDataInMemory(tabletMeta);
+      if (!tabletMeta.getFilesMap().equals(getDatafileManager().getDatafileSizes())) {
+        String msg = "Data files in " + extent + " differ from in-memory data "
+            + tabletMeta.getFilesMap() + " " + getDatafileManager().getDatafileSizes();
+        log.error(msg);
+      }
     } catch (Exception e) {
       String msg = "Failed to do close consistency check for tablet " + extent;
       log.error(msg, e);
@@ -1440,23 +1444,61 @@ public class Tablet {
     }
   }
 
-  private void compareToDataInMemory(TabletMetadata tabletMetadata) {
-    if (!tabletMetadata.getFilesMap().equals(getDatafileManager().getDatafileSizes())) {
-      String msg = "Data files in " + extent + " differ from in-memory data "
-          + tabletMetadata.getFilesMap() + " " + getDatafileManager().getDatafileSizes();
-      log.error(msg);
-    }
-  }
+  /**
+   * Checks that tablet metadata from the metadata table matches what this tablet has in memory. The
+   * caller of this method must acquire the updateCounter parameter before acquiring the
+   * tabletMetadata.
+   *
+   * @param updateCounter
+   *          used to check for conucurrent updates in which case this check is a no-op. See
+   *          {@link #getUpdateCount()}
+   * @param tabletMetadata
+   *          the metadata for this tablet that was acquired from the metadata table.
+   */
+  public synchronized void compareTabletInfo(MetadataUpdateCount updateCounter,
+      TabletMetadata tabletMetadata) {
 
-  public synchronized void compareTabletInfo(Long updateCounter, TabletMetadata tabletMetadata) {
+    // verify the given counter is for this tablet, if this check fail it indicates a bug in the
+    // calling code
+    Preconditions.checkArgument(updateCounter.getExtent().equals(getExtent()),
+        "Counter had unexpected extent %s != %s", updateCounter.getExtent(), getExtent());
+
+    // verify the given tablet metadata is for this tablet, if this check fail it indicates a bug in
+    // the calling code
+    Preconditions.checkArgument(tabletMetadata.getExtent().equals(getExtent()),
+        "Tablet metadata had unexpected extent %s != %s", tabletMetadata.getExtent(), getExtent());
+
+    // All of the log messages in this method have the AMCC acronym which means Accumulo Metadata
+    // Consistency Check. AMCC was added to the log messages to make grep/search for all log
+    // message from this method easy to find.
+
     if (isClosed() || isClosing()) {
+      log.trace("AMCC Tablet {} was closed, so skipping check", tabletMetadata.getExtent());
       return;
     }
-    // if the counter didn't change, compare metadata to what is in memory
-    if (updateCounter == this.getUpdateCount()) {
-      this.compareToDataInMemory(tabletMetadata);
+
+    var dataFileSizes = getDatafileManager().getDatafileSizes();
+
+    if (!tabletMetadata.getFilesMap().equals(dataFileSizes)) {
+      // The counters are modified outside of locks before and after tablet metadata operations and
+      // data file updates so, it's very important to acquire the 2nd counts after doing the
+      // equality check above. If the counts are the same (as the ones acquired before reading
+      // metadata table) after the equality check above then we know the tablet did not do any
+      // metadata updates while we were reading metadata and then comparing.
+      var latestCount = this.getUpdateCount();
+      if (updateCounter.overlapsUpdate() || !updateCounter.equals(latestCount)) {
+        log.trace(
+            "AMCC Tablet {} may have been updating its metadata while it was being read for "
+                + "check, so skipping check {} {}",
+            tabletMetadata.getExtent(), updateCounter, latestCount);
+      } else {
+        log.error("Data files in {} differ from in-memory data {} {} {} {}", extent,
+            tabletMetadata.getFilesMap(), dataFileSizes, updateCounter, latestCount);
+      }
+    } else {
+      log.trace("AMCC Tablet {} files in memory are same as in metadata table {}",
+          tabletMetadata.getExtent(), updateCounter);
     }
-    // if counter did change, don't compare metadata and try again later
   }
 
   /**
@@ -2269,7 +2311,7 @@ public class Tablet {
     return datafileManager;
   }
 
-  public synchronized long getUpdateCount() {
+  public MetadataUpdateCount getUpdateCount() {
     return getDatafileManager().getUpdateCount();
   }
 
