@@ -41,7 +41,6 @@ import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
-import org.apache.accumulo.server.conf.codec.VersionedPropGzipCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
@@ -59,7 +58,7 @@ public class PropStoreEventTest {
 
   private static final Logger log = LoggerFactory.getLogger(PropStoreEventTest.class);
 
-  private final VersionedPropCodec propCodec = VersionedPropGzipCodec.codec(true);
+  private final VersionedPropCodec propCodec = VersionedPropCodec.getDefault();
   private InstanceId instanceId;
 
   // mocks

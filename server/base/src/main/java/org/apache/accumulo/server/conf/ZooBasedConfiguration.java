@@ -194,36 +194,16 @@ public class ZooBasedConfiguration extends AccumuloConfiguration implements Prop
       }
 
       PropSnapshot propsRead;
-
-      long startCount;
-      do {
-        startCount = propStore.getNodeVersion(propCacheKey);
-        propsRead = doRead();
-        if (propsRead.getDataVersion() == startCount) {
-          snapshotRef.set(propsRead);
-          return snapshotRef.get();
-        }
-      } while (--retryCount > 0);
-
-      snapshotRef.set(null);
+      var vProps = propStore.get(propCacheKey);
+      if (vProps == null) {
+        snapshotRef.set(null);
+        throw new IllegalStateException("Failed to read properties for " + propCacheKey);
+      } else {
+        snapshotRef.set(new PropSnapshot(vProps.getDataVersion(), vProps.getProperties()));
+      }
+      return snapshotRef.get();
     } finally {
       updateLock.unlock();
-    }
-    throw new IllegalStateException(
-        "Failed to read property updates for " + propCacheKey + " after " + retryCount + " tries");
-
-  }
-
-  private @NonNull PropSnapshot doRead() throws PropStoreException {
-
-    var vProps = propStore.get(propCacheKey);
-    log.trace("doRead() - updateSnapshot() for {}, returned: {}", propCacheKey, vProps);
-    if (vProps == null) {
-      // TODO - this could return marker instead?
-      // return new PropSnapshot(INVALID_DATA, Map.of());
-      throw new IllegalStateException("Properties for " + propCacheKey + " do not exist");
-    } else {
-      return new PropSnapshot(vProps.getDataVersion(), vProps.getProperties());
     }
   }
 

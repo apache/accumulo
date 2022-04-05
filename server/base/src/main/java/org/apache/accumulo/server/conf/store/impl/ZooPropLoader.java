@@ -28,6 +28,7 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
@@ -68,6 +69,11 @@ public class ZooPropLoader implements CacheLoader<PropCacheKey,VersionedProperti
           TimeUnit.MILLISECONDS.convert(System.nanoTime() - startNanos, TimeUnit.NANOSECONDS));
 
       return vProps;
+    } catch (KeeperException.NoNodeException ex) {
+      metrics.incrZkError();
+      log.debug("property node for {} does not exist - it may be being created", propCacheKey);
+      propStoreWatcher.signalZkChangeEvent(propCacheKey);
+      return null;
     } catch (Exception ex) {
       metrics.incrZkError();
       log.info("Failed to load properties for: {} from ZooKeeper, returning null", propCacheKey,

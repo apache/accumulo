@@ -39,6 +39,7 @@ import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.impl.PropCacheCaffeineImpl;
@@ -46,7 +47,6 @@ import org.apache.accumulo.server.conf.store.impl.PropStoreMetrics;
 import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
 import org.apache.accumulo.server.conf.store.impl.ReadyMonitor;
 import org.apache.accumulo.server.conf.store.impl.ZooPropLoader;
-import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -150,7 +150,7 @@ public class PropCacheCaffeineImplZkTest {
     // directly create prop node - simulate existing properties.
     PropCacheKey propCacheKey = PropCacheKey.forTable(INSTANCE_ID, tIdA);
     var created = zrw.putPersistentData(propCacheKey.getPath(),
-        ZooPropStore.getCodec().toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
+        VersionedPropCodec.getDefault().toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
 
     assertTrue(created, "expected properties to be created");
 
@@ -161,7 +161,7 @@ public class PropCacheCaffeineImplZkTest {
     MetricsUtil.initializeProducers(cacheMetrics);
 
     ZooPropLoader propLoader =
-        new ZooPropLoader(zrw, ZooPropStore.getCodec(), propStoreWatcher, cacheMetrics);
+        new ZooPropLoader(zrw, VersionedPropCodec.getDefault(), propStoreWatcher, cacheMetrics);
     PropCacheCaffeineImpl cache =
         new PropCacheCaffeineImpl.Builder(propLoader, cacheMetrics).build();
 

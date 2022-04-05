@@ -73,7 +73,6 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.PropStoreException;
-import org.apache.accumulo.server.conf.util.ConfigConverter;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.server.metadata.RootGcCandidates;
@@ -121,7 +120,6 @@ public class Upgrader9to10 implements Upgrader {
 
   @Override
   public void upgradeZookeeper(ServerContext context) {
-    convertZKConfigProps(context);
     setMetaTableProps(context);
     upgradeRootTabletMetadata(context);
     // renameOldMasterPropsinZK(context);
@@ -142,16 +140,6 @@ public class Upgrader9to10 implements Upgrader {
     upgradeRelativePaths(context, Ample.DataLevel.USER);
     upgradeDirColumns(context, Ample.DataLevel.USER);
     upgradeFileDeletes(context, Ample.DataLevel.USER);
-  }
-
-  /**
-   * Convert properties stored in ZooKeeper from individual properties to a single node. As part of
-   * the conversion, all the system properties only set in ZooKeeper that start with "master." to
-   * rename and store them starting with "manager." instead.
-   */
-  private void convertZKConfigProps(final ServerContext context) {
-    log.info("Upgrade ZooKeeper properties for instance: {}", context);
-    ConfigConverter.convert(context, true);
   }
 
   /**

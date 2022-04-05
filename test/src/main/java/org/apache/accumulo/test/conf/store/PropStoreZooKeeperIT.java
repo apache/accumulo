@@ -43,7 +43,6 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
-import org.apache.accumulo.server.conf.codec.VersionedPropGzipCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
@@ -73,7 +72,7 @@ public class PropStoreZooKeeperIT {
 
   private static final Logger log = LoggerFactory.getLogger(PropStoreZooKeeperIT.class);
   private static final InstanceId INSTANCE_ID = InstanceId.of(UUID.randomUUID());
-  private static final VersionedPropCodec propCodec = VersionedPropGzipCodec.codec(true);
+  private static final VersionedPropCodec propCodec = VersionedPropCodec.getDefault();
   private static ZooKeeperTestingServer testZk = null;
   private static ZooKeeper zooKeeper;
   private static ServerContext context;

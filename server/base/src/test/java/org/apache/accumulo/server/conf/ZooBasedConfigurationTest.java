@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.server.conf;
 
-import static org.apache.accumulo.core.conf.Property.GC_PORT;
 import static org.apache.accumulo.core.conf.Property.TABLE_BLOOM_ENABLED;
 import static org.apache.accumulo.core.conf.Property.TABLE_BLOOM_SIZE;
 import static org.apache.accumulo.core.conf.Property.TABLE_DURABILITY;
@@ -53,7 +52,6 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
-import org.apache.accumulo.server.conf.codec.VersionedPropGzipCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStore;
@@ -83,6 +81,34 @@ public class ZooBasedConfigurationTest {
   }
 
   @Test
+  public void defaultInitializationTest() {
+    propStore.registerAsListener(anyObject(), anyObject());
+    expectLastCall();
+    replay(context, propStore);
+    assertNotNull(context.getPropStore());
+  }
+
+  @Test
+  public void defaultSysConfigTest() {
+    PropCacheKey sysKey = PropCacheKey.forSystem(instanceId);
+    propStore.registerAsListener(anyObject(), anyObject());
+    expectLastCall();
+
+    var siteConfig = SiteConfiguration.auto();
+    expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
+
+    expect(propStore.get(eq(sysKey))).andReturn(new VersionedProperties()).once(); // default empty
+                                                                                   // sys props
+
+    replay(context, propStore);
+    assertNotNull(context.getPropStore());
+
+    ZooBasedConfiguration configuration = new SystemConfiguration(context, sysKey, siteConfig);
+    assertNotNull(configuration);
+
+  }
+
+  @Test
   public void get() throws PropStoreException {
     PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TableId.of("a"));
 
@@ -91,16 +117,16 @@ public class ZooBasedConfigurationTest {
 
     var siteConfig = SiteConfiguration.auto();
     expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
+    expect(propStore.get(eq(PropCacheKey.forSystem(instanceId))))
+        .andReturn(new VersionedProperties()).once(); // default empty sys props
 
     VersionedProperties vProps =
         new VersionedProperties(3, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
     expect(propStore.get(eq(tablePropKey))).andReturn(vProps).once();
-    expect(propStore.getNodeVersion(eq(tablePropKey))).andReturn(3).once();
 
     VersionedProperties invalid =
         new VersionedProperties(4, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "1234"));
     expect(propStore.get(eq(tablePropKey))).andReturn(invalid);
-    expect(propStore.getNodeVersion(eq(tablePropKey))).andReturn(4).once();
 
     AccumuloConfiguration parent = mock(AccumuloConfiguration.class);
     // expect(parent.get(isA(Property.class))).andReturn(null);
@@ -117,9 +143,9 @@ public class ZooBasedConfigurationTest {
   @Test
   public void getPropertiesTest() throws Exception {
 
-    InstanceId IID = InstanceId.of(UUID.randomUUID());
-    PropCacheKey tablePropKey = PropCacheKey.forTable(IID, TableId.of("t1"));
-    VersionedPropCodec codec = VersionedPropGzipCodec.codec(true);
+    var tableId = TableId.of("t1");
+    PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, tableId);
+    VersionedPropCodec codec = VersionedPropCodec.getDefault();
 
     ServerContext context = createMock(ServerContext.class);
     ZooReaderWriter zrw = createMock(ZooReaderWriter.class);
@@ -127,10 +153,14 @@ public class ZooBasedConfigurationTest {
     // set-up mocks for prop store initialization.
     expect(context.getZooKeepersSessionTimeOut()).andReturn(5_000).anyTimes();
     expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
-    expect(context.getInstanceID()).andReturn(IID).anyTimes();
+    expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
 
-    expect(zrw.exists(eq(ZooUtil.getRoot(IID)), anyObject())).andReturn(true).anyTimes();
-    expect(zrw.getStatus(eq(ZooUtil.getRoot(IID)), anyObject())).andReturn(new Stat()).anyTimes();
+    expect(zrw.exists(eq(ZooUtil.getRoot(instanceId)), anyObject())).andReturn(true).anyTimes();
+    expect(zrw.getStatus(eq(ZooUtil.getRoot(instanceId)), anyObject())).andReturn(new Stat())
+        .anyTimes();
+
+    // expect(propStore.get(eq(PropCacheKey.forSystem(instanceId)))).andReturn(new
+    // VersionedProperties()).once(); // default empty sys props
 
     replay(context, zrw);
 
@@ -142,38 +172,29 @@ public class ZooBasedConfigurationTest {
     AccumuloConfiguration parent = createMock(AccumuloConfiguration.class);
 
     expect(context.getPropStore()).andReturn(propStore).anyTimes();
-    expect(context.getInstanceID()).andReturn(IID).anyTimes();
+    expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
 
     VersionedProperties vProps =
         new VersionedProperties(Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
-    expect(zrw.getStatus(eq(tablePropKey.getPath()))).andReturn(new Stat()).once();
+    // expect(zrw.getStatus(eq(tablePropKey.getPath()))).andReturn(new Stat()).once();
     expect(zrw.getData(eq(tablePropKey.getPath()), anyObject(), anyObject()))
         .andReturn(codec.toBytes(vProps)).once();
 
     var siteConfig = SiteConfiguration.auto();
     expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
 
-    replay(context, parent, zrw);
+    NamespaceConfiguration nsConfig = createMock(NamespaceConfiguration.class);
 
-    AccumuloConfiguration defaultConfig = new ConfigurationCopy(DefaultConfiguration.getInstance());
+    replay(context, parent, nsConfig, zrw);
 
-    ZooBasedConfiguration zbc = new SystemConfiguration(context, tablePropKey, defaultConfig);
+    ZooBasedConfiguration zbc = new TableConfiguration(context, tableId, nsConfig);
     Map<String,String> readProps = zbc.getSnapshot();
 
     assertNotNull(zbc.getSnapshot());
     assertEquals("true", readProps.get(TABLE_BLOOM_ENABLED.getKey()));
-
     assertEquals("true", zbc.get(TABLE_BLOOM_ENABLED));
 
-    log.info("ZBC: {} = {}", zbc, readProps);
-
-    // fixed - default
-    assertEquals(GC_PORT.getDefaultValue(), zbc.get(GC_PORT));
-
-    // TODO force invalid format path
-    // assertEquals("false", zbc.get(TABLE_BLOOM_ENABLED));
-
-    verify(context, parent, zrw);
+    verify(context, zrw);
   }
 
   @Test
@@ -186,7 +207,6 @@ public class ZooBasedConfigurationTest {
     VersionedProperties vProps =
         new VersionedProperties(99, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
     expect(propStore.get(eq(sysPropKey))).andReturn(vProps).once();
-    expect(propStore.getNodeVersion(eq(sysPropKey))).andReturn(99).once();
 
     replay(propStore, context);
 
@@ -201,14 +221,12 @@ public class ZooBasedConfigurationTest {
   }
 
   @Test
-  public void reloadFailTest() {
+  public void loadFailTest() {
 
     PropCacheKey sysPropKey = PropCacheKey.forSystem(instanceId);
-    VersionedProperties vProps =
-        new VersionedProperties(99, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
 
-    expect(propStore.get(eq(sysPropKey))).andReturn(vProps).times(5);
-    expect(propStore.getNodeVersion(eq(sysPropKey))).andReturn(101).times(5);
+    expect(propStore.get(eq(sysPropKey))).andThrow(new PropStoreException("fake no node", null))
+        .once();
 
     propStore.registerAsListener(anyObject(), anyObject());
     expectLastCall();
@@ -217,7 +235,7 @@ public class ZooBasedConfigurationTest {
 
     AccumuloConfiguration defaultConfig = new ConfigurationCopy(DefaultConfiguration.getInstance());
 
-    assertThrows(IllegalStateException.class,
+    assertThrows(PropStoreException.class,
         () -> new ZooBasedConfiguration(log, context, sysPropKey, defaultConfig));
     verify(propStore, context);
   }
@@ -233,12 +251,10 @@ public class ZooBasedConfigurationTest {
     expect(propStore.get(eq(sysPropKey))).andReturn(
         new VersionedProperties(99, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true")))
         .once();
-    expect(propStore.getNodeVersion(eq(sysPropKey))).andReturn(99).once();
 
     expect(propStore.get(eq(sysPropKey))).andReturn(
         new VersionedProperties(100, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "false")))
         .once();
-    expect(propStore.getNodeVersion(eq(sysPropKey))).andReturn(100).once();
 
     replay(propStore, context);
 
@@ -266,10 +282,9 @@ public class ZooBasedConfigurationTest {
     expect(propStore.get(eq(sysPropKey))).andReturn(
         new VersionedProperties(123, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true")))
         .once();
-    expect(propStore.getNodeVersion(eq(sysPropKey))).andReturn(123);
 
-    expect(propStore.getNodeVersion(eq(sysPropKey)))
-        .andThrow(new PropStoreException("mocked - no node", null)).once();
+    expect(propStore.get(eq(sysPropKey))).andThrow(new PropStoreException("Fake node delete", null))
+        .once();
 
     replay(propStore, context);
 
@@ -283,6 +298,7 @@ public class ZooBasedConfigurationTest {
     // change event expected to trigger re-read.
     sysConfig.deleteEvent(sysPropKey);
     assertThrows(PropStoreException.class, () -> sysConfig.get(TABLE_BLOOM_ENABLED));
+
     verify(propStore, context);
   }
 
@@ -299,19 +315,16 @@ public class ZooBasedConfigurationTest {
     VersionedProperties sysProps =
         new VersionedProperties(1, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
     expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).once();
-    expect(propStore.getNodeVersion(eq(sysPropKey))).andReturn(1).once();
 
     PropCacheKey nsPropKey = PropCacheKey.forNamespace(instanceId, NamespaceId.of("ns1"));
     VersionedProperties nsProps =
         new VersionedProperties(2, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "false"));
     expect(propStore.get(eq(nsPropKey))).andReturn(nsProps).once();
-    expect(propStore.getNodeVersion(eq(nsPropKey))).andReturn(2).once();
 
     PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TableId.of("ns1.table1"));
     VersionedProperties tableProps =
         new VersionedProperties(3, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
     expect(propStore.get(eq(tablePropKey))).andReturn(tableProps).once();
-    expect(propStore.getNodeVersion(eq(tablePropKey))).andReturn(3).once();
 
     replay(propStore, context);
 
@@ -377,20 +390,17 @@ public class ZooBasedConfigurationTest {
     PropCacheKey sysPropKey = PropCacheKey.forSystem(instanceId);
     VersionedProperties sysProps = new VersionedProperties(100, Instant.now(), Map.of());
     expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).once();
-    expect(propStore.getNodeVersion(eq(sysPropKey))).andReturn(100).once();
+    expect(propStore.get(eq(sysPropKey))).andThrow(new PropStoreException("fake no node", null))
+        .anyTimes();
     // mock node deleted after event
-    expect(propStore.getNodeVersion(eq(sysPropKey)))
-        .andThrow(new PropStoreException("mocked - no node", null)).times(3);
 
     PropCacheKey nsPropKey = PropCacheKey.forNamespace(instanceId, NamespaceId.of("ns1"));
     VersionedProperties nsProps = new VersionedProperties(20, Instant.now(), Map.of());
     expect(propStore.get(eq(nsPropKey))).andReturn(nsProps).once();
-    expect(propStore.getNodeVersion(eq(nsPropKey))).andReturn(20).once();
 
     PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TableId.of("ns1.table1"));
     VersionedProperties tableProps = new VersionedProperties(3, Instant.now(), Map.of());
     expect(propStore.get(eq(tablePropKey))).andReturn(tableProps).once();
-    expect(propStore.getNodeVersion(eq(tablePropKey))).andReturn(3).times(1);
 
     replay(propStore, context);
 
@@ -428,21 +438,16 @@ public class ZooBasedConfigurationTest {
     PropCacheKey sysPropKey = PropCacheKey.forSystem(instanceId);
     VersionedProperties sysProps = new VersionedProperties(100, Instant.now(), Map.of());
     expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).once();
-    expect(propStore.getNodeVersion(eq(sysPropKey))).andReturn(100).once();
 
     PropCacheKey nsPropKey = PropCacheKey.forNamespace(instanceId, NamespaceId.of("ns1"));
     VersionedProperties nsProps = new VersionedProperties(20, Instant.now(), Map.of());
     expect(propStore.get(eq(nsPropKey))).andReturn(nsProps).once();
-    expect(propStore.getNodeVersion(eq(nsPropKey))).andReturn(20).once();
 
     PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TableId.of("ns1.table1"));
     VersionedProperties tableProps = new VersionedProperties(3, Instant.now(), Map.of());
     expect(propStore.get(eq(tablePropKey))).andReturn(tableProps).once();
-    expect(propStore.getNodeVersion(eq(tablePropKey))).andReturn(3).once();
-
-    // after table id config delete.
-    expect(propStore.getNodeVersion(eq(tablePropKey)))
-        .andThrow(new PropStoreException("test - no node", null)).once();
+    expect(propStore.get(eq(tablePropKey))).andThrow(new PropStoreException("fake no node", null))
+        .once();
 
     replay(propStore, context);
 
@@ -461,6 +466,7 @@ public class ZooBasedConfigurationTest {
     assertEquals(123, tableConfig.getUpdateCount());
 
     tableConfig.deleteEvent(tablePropKey);
+
     assertThrows(PropStoreException.class, tableConfig::getUpdateCount);
 
     verify(propStore, context);

@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.conf;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -50,6 +52,8 @@ public class RuntimeFixedProperties {
 
   public RuntimeFixedProperties(final SiteConfiguration siteConfig,
       final Map<String,String> storedProps) {
+    requireNonNull(siteConfig, "a site configuration must be provided");
+    requireNonNull(storedProps, "stored property map must be provided");
     for (Property prop : Property.fixedProperties) {
       String key = prop.getKey();
       String value;

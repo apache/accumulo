@@ -30,7 +30,7 @@ public interface PropStore {
    * Test that a node for properties exists without throwing a KeeperException.
    *
    * @param propCacheKey
-   *          the prop cache id
+   *          the prop cache key
    * @return true if the property node exists, false otherwise.
    * @throws PropStoreException
    *           if the check fails due to interrupt.
@@ -38,22 +38,11 @@ public interface PropStore {
   boolean exists(PropCacheKey propCacheKey);
 
   /**
-   * Return the data version of the encoded property node.
-   *
-   * @param propCacheKey
-   *          the prop cache id
-   * @return the data version or -1 if the version cannot be determined.
-   * @throws PropStoreException
-   *           if the call to data store fails.
-   */
-  int getNodeVersion(PropCacheKey propCacheKey);
-
-  /**
    * Create an initial entry for the PropCacheId. If properties already exist, they are not
    * modified.
    *
    * @param propCacheKey
-   *          the prop cache id
+   *          the prop cache key
    * @param props
    *          a map of property k,v pairs
    * @throws PropStoreException
@@ -64,7 +53,7 @@ public interface PropStore {
   /**
    *
    * @param propCacheId
-   *          the prop cache id
+   *          the prop cache key
    * @return The versioned properties or null if the properties do not exist for the id.
    * @throws PropStoreException
    *           if the updates fails because of an underlying store exception
@@ -77,7 +66,7 @@ public interface PropStore {
    * otherwise it is added.
    *
    * @param propCacheKey
-   *          the prop cache id
+   *          the prop cache key
    * @param props
    *          a map of property k,v pairs
    * @throws PropStoreException
@@ -89,7 +78,7 @@ public interface PropStore {
    * Delete the store node from the underlying store.
    *
    * @param propCacheKey
-   *          the prop cache id
+   *          the prop cache key
    * @throws PropStoreException
    *           if the updates fails because of an underlying store exception
    */
@@ -99,7 +88,7 @@ public interface PropStore {
    * Deletes individual properties specified by the set of keys.
    *
    * @param propCacheKey
-   *          the prop cache id
+   *          the prop cache key
    * @param keys
    *          a set of keys.
    * @throws PropStoreException
@@ -118,7 +107,7 @@ public interface PropStore {
    * other listeners from receive timely notification of the changes detected.
    *
    * @param propCacheKey
-   *          the prop cache id
+   *          the prop cache key
    * @param listener
    *          a listener
    */

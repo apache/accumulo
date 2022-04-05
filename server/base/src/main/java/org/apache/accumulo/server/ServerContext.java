@@ -164,6 +164,9 @@ public class ServerContext extends ClientContext {
   @Override
   public AccumuloConfiguration getConfiguration() {
     if (systemConfig == null) {
+      // this call ensures that system props are upgraded if necessary and fixed props are loaded
+      var sysZkProps = propStore.get(PropCacheKey.forSystem(getInstanceID()));
+      log.trace("loaded system props from zookeeper: {}", sysZkProps);
       systemConfig = new SystemConfiguration(this, PropCacheKey.forSystem(getInstanceID()),
           getSiteConfiguration());
     }

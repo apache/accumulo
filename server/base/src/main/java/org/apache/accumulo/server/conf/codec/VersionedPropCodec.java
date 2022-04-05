@@ -58,6 +58,10 @@ public abstract class VersionedPropCodec {
     this.encodingOpts = encodingOpts;
   }
 
+  public static VersionedPropCodec getDefault() {
+    return VersionedPropGzipCodec.codec(true);
+  }
+
   /**
    * The general encoding options that apply to all encodings.
    *

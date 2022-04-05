@@ -38,9 +38,9 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
+import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
-import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
@@ -69,7 +69,7 @@ public class ConfigPropertyPrinter implements KeywordExecutable {
 
   @Override
   public String keyword() {
-    return "print-config";
+    return "config-print";
   }
 
   @Override
@@ -131,7 +131,7 @@ public class ConfigPropertyPrinter implements KeywordExecutable {
         try {
           bytes = zrw.getData(PropCacheKey.forSystem(context).getPath(), stat);
           VersionedProperties sysProps =
-              ZooPropStore.getCodec().fromBytes(stat.getVersion(), bytes);
+              VersionedPropCodec.getDefault().fromBytes(stat.getVersion(), bytes);
           printProps(writer, "System", sysProps);
         } catch (KeeperException.NoNodeException nex) {
           // skip on no node.
@@ -142,7 +142,7 @@ public class ConfigPropertyPrinter implements KeywordExecutable {
             bytes = zrw.getData(
                 PropCacheKey.forNamespace(context, NamespaceId.of(e.getValue())).getPath(), stat);
             VersionedProperties nsProps =
-                ZooPropStore.getCodec().fromBytes(stat.getVersion(), bytes);
+                VersionedPropCodec.getDefault().fromBytes(stat.getVersion(), bytes);
             printProps(writer, e.getKey(), nsProps);
           } catch (KeeperException.NoNodeException nex) {
             // skip on no node.
@@ -154,7 +154,7 @@ public class ConfigPropertyPrinter implements KeywordExecutable {
             bytes = zrw.getData(PropCacheKey.forTable(context, TableId.of(e.getValue())).getPath(),
                 stat);
             VersionedProperties tsProps =
-                ZooPropStore.getCodec().fromBytes(stat.getVersion(), bytes);
+                VersionedPropCodec.getDefault().fromBytes(stat.getVersion(), bytes);
             printProps(writer, e.getKey(), tsProps);
           } catch (KeeperException.NoNodeException nex) {
             // skip on no node.

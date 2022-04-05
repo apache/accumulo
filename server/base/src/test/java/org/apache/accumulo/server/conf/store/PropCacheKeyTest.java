@@ -140,7 +140,7 @@ public class PropCacheKeyTest {
   }
 
   @Test
-  public void fromPath() {
+  public void fromPathTest() {
 
     PropCacheKey t1 = PropCacheKey
         .fromPath("/accumulo/3f9976c6-3bf1-41ab-9751-1b0a9be3551d/tables/t1/conf/encoded_props");
@@ -159,5 +159,14 @@ public class PropCacheKeyTest {
     assertNotNull(s1);
     assertNull(s1.getNamespaceId());
     assertNull(s1.getTableId());
+  }
+
+  @Test
+  public void getBasePathTest() {
+    assertTrue(PropCacheKey.forSystem(instanceId).getBasePath().endsWith("/config"));
+    assertTrue(PropCacheKey.forNamespace(instanceId, NamespaceId.of("123")).getBasePath()
+        .endsWith("/conf"));
+    assertTrue(
+        PropCacheKey.forTable(instanceId, TableId.of("456")).getBasePath().endsWith("/conf"));
   }
 }

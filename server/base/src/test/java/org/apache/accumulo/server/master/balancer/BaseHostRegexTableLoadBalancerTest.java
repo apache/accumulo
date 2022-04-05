@@ -184,24 +184,15 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     propStore.registerAsListener(anyObject(), anyObject());
     expectLastCall().anyTimes();
 
-    expect(propStore
-        .getNodeVersion(eq(PropCacheKey.forNamespace(instanceId, NamespaceId.of("+default")))))
-            .andReturn(0).anyTimes();
     expect(propStore.get(eq(PropCacheKey.forNamespace(instanceId, NamespaceId.of("+default")))))
         .andReturn(new VersionedProperties()).anyTimes();
 
-    expect(propStore.getNodeVersion(eq(PropCacheKey.forTable(instanceId, TableId.of("1")))))
-        .andReturn(0).anyTimes();
     expect(propStore.get(eq(PropCacheKey.forTable(instanceId, TableId.of("1")))))
         .andReturn(new VersionedProperties()).anyTimes();
 
-    expect(propStore.getNodeVersion(eq(PropCacheKey.forTable(instanceId, TableId.of("2")))))
-        .andReturn(0).anyTimes();
     expect(propStore.get(eq(PropCacheKey.forTable(instanceId, TableId.of("2")))))
         .andReturn(new VersionedProperties()).anyTimes();
 
-    expect(propStore.getNodeVersion(eq(PropCacheKey.forTable(instanceId, TableId.of("3")))))
-        .andReturn(0).anyTimes();
     expect(propStore.get(eq(PropCacheKey.forTable(instanceId, TableId.of("3")))))
         .andReturn(new VersionedProperties()).anyTimes();
 

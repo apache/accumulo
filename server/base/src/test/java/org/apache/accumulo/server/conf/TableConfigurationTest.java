@@ -88,19 +88,16 @@ public class TableConfigurationTest {
     VersionedProperties sysProps =
         new VersionedProperties(1, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
     expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).times(2);
-    expect(propStore.getNodeVersion(eq(sysPropKey))).andReturn(1).once();
 
     PropCacheKey nsPropKey = PropCacheKey.forNamespace(instanceId, NID);
     VersionedProperties nsProps = new VersionedProperties(2, Instant.now(),
         Map.of(TABLE_FILE_MAX.getKey(), "21", TABLE_BLOOM_ENABLED.getKey(), "false"));
     expect(propStore.get(eq(nsPropKey))).andReturn(nsProps).once();
-    expect(propStore.getNodeVersion(eq(nsPropKey))).andReturn(2).once();
 
     PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TID);
     VersionedProperties tableProps =
         new VersionedProperties(3, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
     expect(propStore.get(eq(tablePropKey))).andReturn(tableProps).once();
-    expect(propStore.getNodeVersion(eq(tablePropKey))).andReturn(3).once();
 
     ConfigurationCopy defaultConfig =
         new ConfigurationCopy(Map.of(TABLE_BLOOM_SIZE.getKey(), TABLE_BLOOM_SIZE.getDefaultValue(),
@@ -138,7 +135,6 @@ public class TableConfigurationTest {
     expect(propStore.get(eq(propKey)))
         .andReturn(new VersionedProperties(37, Instant.now(), Map.of(p.getKey(), "sekrit")))
         .anyTimes();
-    expect(propStore.getNodeVersion(eq(propKey))).andReturn(37).anyTimes();
     replay(propStore);
 
     tableConfig.zkChangeEvent(propKey);
@@ -157,8 +153,6 @@ public class TableConfigurationTest {
     expect(propStore.get(eq(PropCacheKey.forNamespace(instanceId, NID))))
         .andReturn(new VersionedProperties(13, Instant.now(), Map.of(TABLE_FILE_MAX.getKey(), "123",
             Property.INSTANCE_SECRET.getKey(), expectedPass)))
-        .anyTimes();
-    expect(propStore.getNodeVersion(eq(PropCacheKey.forNamespace(instanceId, NID)))).andReturn(13)
         .anyTimes();
     expect(propStore.get(eq(PropCacheKey.forTable(instanceId, TID))))
         .andReturn(new VersionedProperties(Map.of())).anyTimes();
@@ -181,11 +175,9 @@ public class TableConfigurationTest {
     expect(propStore.get(eq(PropCacheKey.forSystem(instanceId))))
         .andReturn(new VersionedProperties(1, Instant.now(), Map.of()));
 
-    expect(propStore.getNodeVersion(eq(PropCacheKey.forNamespace(instanceId, NID)))).andReturn(2);
     expect(propStore.get(eq(PropCacheKey.forNamespace(instanceId, NID))))
         .andReturn(new VersionedProperties(2, Instant.now(), Map.of("dog", "bark", "cat", "meow")));
 
-    expect(propStore.getNodeVersion(eq(PropCacheKey.forTable(instanceId, TID)))).andReturn(4);
     expect(propStore.get(eq(PropCacheKey.forTable(instanceId, TID))))
         .andReturn(new VersionedProperties(4, Instant.now(), Map.of("foo", "bar", "tick", "tock")))
         .anyTimes();
@@ -219,12 +211,10 @@ public class TableConfigurationTest {
     expect(propStore.get(eq(PropCacheKey.forSystem(instanceId))))
         .andReturn(new VersionedProperties(1, Instant.now(), Map.of()));
 
-    expect(propStore.getNodeVersion(eq(PropCacheKey.forNamespace(instanceId, NID)))).andReturn(2);
     expect(propStore.get(eq(PropCacheKey.forNamespace(instanceId, NID))))
         .andReturn(new VersionedProperties(2, Instant.now(),
             Map.of("dog", "bark", "cat", "meow", "filter", "from_parent")));
 
-    expect(propStore.getNodeVersion(eq(PropCacheKey.forTable(instanceId, TID)))).andReturn(4);
     expect(propStore.get(eq(PropCacheKey.forTable(instanceId, TID))))
         .andReturn(new VersionedProperties(4, Instant.now(),
             Map.of("filter", "not_returned_by_table", "foo", "bar", "tick", "tock")))
@@ -263,11 +253,8 @@ public class TableConfigurationTest {
     expect(propStore.get(eq(propKey)))
         .andReturn(new VersionedProperties(23, Instant.now(), Map.of(p.getKey(), "invalid")))
         .once();
-    expect(propStore.getNodeVersion(eq(propKey))).andReturn(23).once();
-
     expect(propStore.get(eq(propKey)))
         .andReturn(new VersionedProperties(39, Instant.now(), Map.of(p.getKey(), "sekrit"))).once();
-    expect(propStore.getNodeVersion(eq(propKey))).andReturn(39).once();
 
     replay(propStore);
 

@@ -78,7 +78,6 @@ public class NamespaceConfigurationTest {
     var nsCacheKey = PropCacheKey.forNamespace(iid, NSID);
     expect(propStore.get(eq(nsCacheKey))).andReturn(new VersionedProperties(123, Instant.now(),
         Map.of(Property.INSTANCE_SECRET.getKey(), "sekrit"))).anyTimes();
-    expect(propStore.getNodeVersion(eq(nsCacheKey))).andReturn(123).anyTimes();
     propStore.registerAsListener(eq(nsCacheKey), anyObject());
     expectLastCall().anyTimes();
 
@@ -123,7 +122,6 @@ public class NamespaceConfigurationTest {
     var nsPropKey = PropCacheKey.forNamespace(iid, Namespace.ACCUMULO.id());
     expect(propStore.get(eq(nsPropKey))).andReturn(new VersionedProperties(Map.of("a", "b")))
         .anyTimes();
-    expect(propStore.getNodeVersion(eq(nsPropKey))).andReturn(0).anyTimes();
     propStore.registerAsListener(eq(nsPropKey), anyObject());
     expectLastCall().anyTimes();
     replay(propStore);
@@ -149,7 +147,6 @@ public class NamespaceConfigurationTest {
         .andReturn(
             new VersionedProperties(123, Instant.now(), Map.of("foo", "bar", "tick", "tock")))
         .anyTimes();
-    expect(propStore.getNodeVersion(eq(nsPropKey))).andReturn(123).anyTimes();
     propStore.registerAsListener(eq(nsPropKey), anyObject());
     expectLastCall().anyTimes();
 

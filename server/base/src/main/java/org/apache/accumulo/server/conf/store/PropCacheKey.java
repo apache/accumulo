@@ -61,13 +61,15 @@ public class PropCacheKey implements Comparable<PropCacheKey> {
   public static final String TABLES_NODE_NAME = ZTABLES.substring(1);
   public static final String NAMESPACE_NODE_NAME = ZNAMESPACES.substring(1);
 
+  private final InstanceId instanceId;
   private final String path;
   private final IdType idType;
   private final NamespaceId namespaceId;
   private final TableId tableId;
 
-  private PropCacheKey(final String path, final IdType idType, final NamespaceId namespaceId,
-      final TableId tableId) {
+  private PropCacheKey(final InstanceId instanceId, final String path, final IdType idType,
+      final NamespaceId namespaceId, final TableId tableId) {
+    this.instanceId = instanceId;
     this.path = path;
     this.idType = idType;
     this.namespaceId = namespaceId;
@@ -93,7 +95,7 @@ public class PropCacheKey implements Comparable<PropCacheKey> {
    * @return a prop cache id for system properties,
    */
   public static PropCacheKey forSystem(final InstanceId instanceId) {
-    return new PropCacheKey(ZooUtil.getRoot(instanceId) + ZCONFIG + "/" + PROP_NODE_NAME,
+    return new PropCacheKey(instanceId, getSystemBase(instanceId) + "/" + PROP_NODE_NAME,
         IdType.SYSTEM, null, null);
   }
 
@@ -122,8 +124,8 @@ public class PropCacheKey implements Comparable<PropCacheKey> {
    */
   public static PropCacheKey forNamespace(final InstanceId instanceId,
       final NamespaceId namespaceId) {
-    return new PropCacheKey(ZooUtil.getRoot(instanceId) + ZNAMESPACES + "/"
-        + namespaceId.canonical() + ZNAMESPACE_CONF + "/" + PROP_NODE_NAME, IdType.NAMESPACE,
+    return new PropCacheKey(instanceId,
+        getNamespaceBase(instanceId, namespaceId) + "/" + PROP_NODE_NAME, IdType.NAMESPACE,
         namespaceId, null);
   }
 
@@ -150,8 +152,8 @@ public class PropCacheKey implements Comparable<PropCacheKey> {
    * @return a prop cache id a namespaces properties,
    */
   public static PropCacheKey forTable(final InstanceId instanceId, final TableId tableId) {
-    return new PropCacheKey(ZooUtil.getRoot(instanceId) + ZTABLES + "/" + tableId.canonical()
-        + ZTABLE_CONF + "/" + PROP_NODE_NAME, IdType.TABLE, null, tableId);
+    return new PropCacheKey(instanceId, getTableBase(instanceId, tableId) + "/" + PROP_NODE_NAME,
+        IdType.TABLE, null, tableId);
   }
 
   /**
@@ -212,6 +214,34 @@ public class PropCacheKey implements Comparable<PropCacheKey> {
 
   public String getPath() {
     return path;
+  }
+
+  private static String getSystemBase(final InstanceId instanceId) {
+    return ZooUtil.getRoot(instanceId) + ZCONFIG;
+  }
+
+  private static String getNamespaceBase(final InstanceId instanceId,
+      final NamespaceId namespaceId) {
+    return ZooUtil.getRoot(instanceId) + ZNAMESPACES + "/" + namespaceId.canonical()
+        + ZNAMESPACE_CONF;
+  }
+
+  private static String getTableBase(final InstanceId instanceId, final TableId tableId) {
+    return ZooUtil.getRoot(instanceId) + ZTABLES + "/" + tableId.canonical() + ZTABLE_CONF;
+  }
+
+  public String getBasePath() {
+    switch (idType) {
+      case SYSTEM:
+        return getSystemBase(instanceId);
+      case NAMESPACE:
+        return getNamespaceBase(instanceId, namespaceId);
+      case TABLE:
+        return getTableBase(instanceId, tableId);
+      default:
+        throw new IllegalArgumentException(
+            "The id type '" + idType + "' does not have a valid ZooKeeper base path");
+    }
   }
 
   public IdType getIdType() {

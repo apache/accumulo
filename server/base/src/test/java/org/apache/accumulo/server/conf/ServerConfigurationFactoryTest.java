@@ -103,7 +103,6 @@ public class ServerConfigurationFactoryTest {
   public void testGetConfiguration() {
     expect(propStore.get(eq(PropCacheKey.forSystem(IID))))
         .andReturn(new VersionedProperties(Map.of())).anyTimes();
-    expect(propStore.getNodeVersion(eq(PropCacheKey.forSystem(IID)))).andReturn(0).anyTimes();
     ready();
     AccumuloConfiguration c = scf.getSystemConfiguration();
     assertNotNull(c);
@@ -120,11 +119,8 @@ public class ServerConfigurationFactoryTest {
     PropStore propStore = createMock(ZooPropStore.class);
     expect(propStore.get(eq(PropCacheKey.forSystem(IID))))
         .andReturn(new VersionedProperties(Map.of())).anyTimes();
-    expect(propStore.getNodeVersion(eq(PropCacheKey.forSystem(IID)))).andReturn(0).anyTimes();
     expect(propStore.get(eq(PropCacheKey.forNamespace(IID, NSID))))
         .andReturn(new VersionedProperties(Map.of())).anyTimes();
-    expect(propStore.getNodeVersion(eq(PropCacheKey.forNamespace(IID, NSID)))).andReturn(0)
-        .anyTimes();
 
     propStore.registerAsListener(anyObject(), anyObject());
     expectLastCall().anyTimes();

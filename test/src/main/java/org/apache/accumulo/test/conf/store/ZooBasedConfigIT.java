@@ -20,14 +20,12 @@ package org.apache.accumulo.test.conf.store;
 
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
 import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.reset;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
@@ -38,7 +36,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
@@ -57,7 +57,6 @@ import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
-import org.easymock.EasyMock;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -99,7 +98,7 @@ public class ZooBasedConfigIT {
     zooKeeper = testZk.getZooKeeper();
     zrw = testZk.getZooReaderWriter();
 
-    context = EasyMock.createNiceMock(ServerContext.class);
+    context = createMock(ServerContext.class);
 
   }
 
@@ -141,20 +140,24 @@ public class ZooBasedConfigIT {
     // setup context mock with enough to create prop store
     expect(context.getInstanceID()).andReturn(INSTANCE_ID).anyTimes();
     expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
+    expect(context.getZooKeepersSessionTimeOut()).andReturn(zrw.getSessionTimeout()).anyTimes();
+
     replay(context);
 
     propStore = new ZooPropStore.Builder(context).withTicker(ticker).build();
 
     reset(context);
 
-    parent = createMock(AccumuloConfiguration.class);
+    // parent = createMock(AccumuloConfiguration.class);
+    parent = DefaultConfiguration.getInstance();
 
     // setup context mock with prop store and the rest of the env needed.
     expect(context.getInstanceID()).andReturn(INSTANCE_ID).anyTimes();
     expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
-    int timeout = zooKeeper.getSessionTimeout();
-    expect(context.getZooKeepersSessionTimeOut()).andReturn(timeout).anyTimes();
+    expect(context.getZooKeepersSessionTimeOut()).andReturn(zooKeeper.getSessionTimeout())
+        .anyTimes();
     expect(context.getPropStore()).andReturn(propStore).anyTimes();
+    expect(context.getSiteConfiguration()).andReturn(SiteConfiguration.auto()).anyTimes();
 
   }
 
@@ -167,10 +170,22 @@ public class ZooBasedConfigIT {
     }
   }
 
+  /**
+   * The sys config encoded node will not exist and there are no properties set - an empty encoded
+   * node should be created.
+   */
+  @Test
+  public void upgradeSysTestNoProps() {
+    replay(context);
+    var propKey = PropCacheKey.forSystem(INSTANCE_ID);
+    ZooBasedConfiguration zbc = new SystemConfiguration(context, propKey, parent);
+    assertNotNull(zbc);
+  }
+
   @Test
   public void getPropertiesTest() {
 
-    replay(context, parent);
+    replay(context);
 
     ZooPropStore.initSysProps(context, Map.of());
 
@@ -189,9 +204,9 @@ public class ZooBasedConfigIT {
   @Test
   public void getPropertiesFromParentTest() {
 
-    expect(parent.get(eq(Property.TABLE_BLOOM_ENABLED))).andReturn("false").once();
+    // expect(parent.get(eq(Property.TABLE_BLOOM_ENABLED))).andReturn("false").once();
 
-    replay(context, parent);
+    replay(context);
 
     ZooPropStore.initSysProps(context, Map.of());
 
@@ -209,23 +224,23 @@ public class ZooBasedConfigIT {
   @Test
   public void getNullPropertiesTest() {
 
-    replay(context, parent);
+    replay(context);
 
     ZooPropStore.initSysProps(context, Map.of());
 
     PropCacheKey propKey = PropCacheKey.forTable(INSTANCE_ID, tidA);
     ZooBasedConfiguration zbc = new SystemConfiguration(context, propKey, parent);
 
-    // node not created - returns null.
-    assertNull(zbc.getSnapshot());
-
+    // node not created - returns empty map.
+    assertNotNull(zbc.getSnapshot());
+    assertEquals(Map.of(), zbc.getSnapshot());
   }
 
   @Test
   public void expireTest() throws Exception {
 
-    expect(parent.getUpdateCount()).andReturn(123L).anyTimes();
-    replay(context, parent);
+    // expect(parent.getUpdateCount()).andReturn(123L).anyTimes();
+    replay(context);
 
     ZooPropStore.initSysProps(context, Map.of());
 
@@ -279,7 +294,7 @@ public class ZooBasedConfigIT {
     assertEquals("true", zbc.get(Property.TABLE_BLOOM_ENABLED));
 
     assertNotEquals(updateCount, zbc.getUpdateCount());
-    assertNotEquals(updateCount2, zbc.getUpdateCount());
+    assertEquals(updateCount2, zbc.getUpdateCount());
   }
 
   private static class TestListener implements PropChangeListener {

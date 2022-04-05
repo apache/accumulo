@@ -34,9 +34,9 @@ import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
-import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.metadata.RootGcCandidates;
 import org.apache.accumulo.server.tables.TableManager;
@@ -76,8 +76,8 @@ class ZooKeeperInitializer {
       if (zoo.exists(sysPropPath)) {
         return;
       }
-      var created = zoo.putPersistentData(sysPropPath, ZooPropStore.getCodec().toBytes(vProps),
-          ZooUtil.NodeExistsPolicy.FAIL);
+      var created = zoo.putPersistentData(sysPropPath,
+          VersionedPropCodec.getDefault().toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
       if (!created) {
         throw new IllegalStateException(
             "Failed to create default system props during initialization at: {}" + sysPropPath);

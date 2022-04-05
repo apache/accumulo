@@ -270,15 +270,28 @@ public class ZooReaderWriter extends ZooReader {
    * Delete the specified node, and ignore NONODE exceptions.
    */
   public void delete(String path) throws KeeperException, InterruptedException {
-    retryLoop(zk -> {
-      try {
-        zk.delete(path, -1);
-      } catch (KeeperException e) {
-        // ignore the case where the node doesn't exist
-        if (e.code() != Code.NONODE) {
-          throw e;
-        }
+    try {
+      deleteStrict(path, -1);
+    } catch (KeeperException e) {
+      if (e.code() != Code.NONODE) {
+        throw e;
       }
+    }
+  }
+
+  /**
+   * Delete the specified node if the version matches the provided version. All underlying
+   * exceptions are thrown back to the caller.
+   *
+   * @param path
+   *          the path of the ZooKeeper node.
+   * @param version
+   *          the expected version of the ZooKeeper node.
+   */
+  public void deleteStrict(final String path, final int version)
+      throws KeeperException, InterruptedException {
+    retryLoop(zk -> {
+      zk.delete(path, version);
       return null;
     });
   }

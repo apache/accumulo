@@ -18,11 +18,11 @@
  */
 package org.apache.accumulo.test.conf;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.time.Duration;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -60,11 +60,6 @@ public class PropStoreConfigTest extends AccumuloClusterHarness {
     SharedMiniClusterBase.stopMiniCluster();
   }
 
-  @Override
-  protected Duration defaultTimeout() {
-    return Duration.ofMinutes(3);
-  }
-
   @Test
   public void initTest() throws Exception {
 
@@ -75,7 +70,7 @@ public class PropStoreConfigTest extends AccumuloClusterHarness {
 
     ConfigPropertyPrinter propertyPrinter = new ConfigPropertyPrinter();
 
-    log.info(" ****** Sys: {}", propStore.get(PropCacheKey.forSystem(context)));
+    log.debug("Sys: {}", propStore.get(PropCacheKey.forSystem(context)));
 
     propertyPrinter.print(context, null, false);
 
@@ -89,19 +84,13 @@ public class PropStoreConfigTest extends AccumuloClusterHarness {
 
     log.info("Tables: {}", accumuloClient.tableOperations().list());
 
-    for (Map.Entry<String,String> e : accumuloClient.tableOperations().getProperties(tableName)) {
-      if (e.getKey().contains("table.bloom.enabled")) {
-        log.info("before bloom property: {}={}", e.getKey(), e.getValue());
-      }
-    }
-
     accumuloClient.instanceOperations().setProperty(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
 
     accumuloClient.tableOperations().setProperty(tableName, Property.TABLE_BLOOM_ENABLED.getKey(),
         "true");
 
     try {
-      Thread.sleep(10_000);
+      Thread.sleep(SECONDS.toMillis(3L));
     } catch (InterruptedException ex) {
       // ignore
     }
@@ -114,6 +103,5 @@ public class PropStoreConfigTest extends AccumuloClusterHarness {
         assertEquals("true", e.getValue());
       }
     }
-
   }
 }

@@ -50,7 +50,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
-import org.apache.accumulo.server.conf.codec.VersionedPropGzipCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.zookeeper.KeeperException;
@@ -85,7 +84,7 @@ public class ZooPropLoaderTest {
     instanceId = InstanceId.of(UUID.randomUUID());
 
     propCacheKey = PropCacheKey.forSystem(instanceId);
-    propCodec = VersionedPropGzipCodec.codec(true);
+    propCodec = VersionedPropCodec.getDefault();
 
     // mocks
     context = createMock(ServerContext.class);
@@ -639,7 +638,7 @@ public class ZooPropLoaderTest {
 
     assertNotNull(cache.get(propCacheKey)); // returns current and queues async refresh
 
-    Thread.sleep(100);
+    Thread.sleep(150);
     assertNull(cache.get(propCacheKey)); // on exception, the loader should return null
 
   }

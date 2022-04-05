@@ -54,6 +54,7 @@ import org.apache.accumulo.monitor.MonitorExecutable;
 import org.apache.accumulo.server.conf.CheckCompactionConfig;
 import org.apache.accumulo.server.conf.CheckServerConfig;
 import org.apache.accumulo.server.conf.util.ConfigPropertyPrinter;
+import org.apache.accumulo.server.conf.util.ConfigPropertyUpgrader;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.ConvertConfig;
@@ -114,6 +115,8 @@ public class KeywordStartIT {
     expectSet.put("check-server-config", CheckServerConfig.class);
     expectSet.put("compaction-coordinator", CoordinatorExecutable.class);
     expectSet.put("compactor", CompactorExecutable.class);
+    expectSet.put("config-print", ConfigPropertyPrinter.class);
+    expectSet.put("config-upgrade", ConfigPropertyUpgrader.class);
     expectSet.put("convert-config", ConvertConfig.class);
     expectSet.put("create-token", CreateToken.class);
     expectSet.put("ec-admin", ECAdmin.class);
@@ -127,7 +130,6 @@ public class KeywordStartIT {
     expectSet.put("master", org.apache.accumulo.manager.MasterExecutable.class);
     expectSet.put("minicluster", MiniClusterExecutable.class);
     expectSet.put("monitor", MonitorExecutable.class);
-    expectSet.put("print-config", ConfigPropertyPrinter.class);
     expectSet.put("rfile-info", PrintInfo.class);
     expectSet.put("wal-info", LogReader.class);
     expectSet.put("shell", Shell.class);
