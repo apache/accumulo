@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.conf;
+package org.apache.accumulo.core.iteratorsImpl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -31,6 +31,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -43,7 +46,6 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.MultiIteratorTest;
 import org.apache.accumulo.core.iterators.user.AgeOffFilter;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
-import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -137,8 +139,8 @@ public class IteratorConfigUtilTest {
   private SortedKeyValueIterator<Key,Value> createIter(IteratorScope scope,
       SortedMapIterator source, AccumuloConfiguration conf) throws IOException {
     var ibEnv = IteratorConfigUtil.loadIterConf(scope, EMPTY_ITERS, new HashMap<>(), conf);
-    var iteratorBuilder = ibEnv.env(new DefaultIteratorEnvironment(conf))
-        .useClassLoaderContext("testContext").build();
+    var iteratorBuilder =
+        ibEnv.env(new DefaultIteratorEnvironment(conf)).useClassLoader(null).build();
     return IteratorConfigUtil.loadIterators(source, iteratorBuilder);
   }
 

@@ -105,7 +105,7 @@ public class ConditionCheckerContext {
     }
 
     var iteratorBuilder = IteratorBuilder.builder(mic.mergedIters).opts(mic.mergedItersOpts)
-        .env(tie).useClassLoaderContext(context).useClassCache(true).build();
+        .env(tie).useClassLoader(context).useClassCache(true).build();
     return IteratorConfigUtil.loadIterators(systemIter, iteratorBuilder);
   }
 

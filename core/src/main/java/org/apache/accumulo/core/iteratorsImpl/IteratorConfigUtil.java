@@ -186,8 +186,7 @@ public class IteratorConfigUtil {
     }
 
     var ibEnv = loadIterConf(scope, ssiList, ssio, conf);
-    var iterBuilder =
-        ibEnv.env(env).useClassLoaderContext(ClassLoaderUtil.tableContext(conf)).build();
+    var iterBuilder = ibEnv.env(env).useClassLoader(ClassLoaderUtil.tableContext(conf)).build();
     return loadIterators(source, iterBuilder);
   }
 

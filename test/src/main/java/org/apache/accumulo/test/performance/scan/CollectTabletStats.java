@@ -448,7 +448,7 @@ public class CollectTabletStats {
 
     if (useTableIterators) {
       var ibEnv = IteratorConfigUtil.loadIterConf(IteratorScope.scan, ssiList, ssio, conf);
-      var iteratorBuilder = ibEnv.env(new TestEnvironment()).useClassLoaderContext("test").build();
+      var iteratorBuilder = ibEnv.env(new TestEnvironment()).useClassLoader("test").build();
       return IteratorConfigUtil.loadIterators(visFilter, iteratorBuilder);
     }
     return visFilter;

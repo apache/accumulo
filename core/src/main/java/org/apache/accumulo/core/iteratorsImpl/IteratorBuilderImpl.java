@@ -50,8 +50,9 @@ public class IteratorBuilderImpl
   }
 
   @Override
-  public IteratorBuilder.IteratorBuilderOptions useClassLoaderContext(String context) {
-    return null;
+  public IteratorBuilder.IteratorBuilderOptions useClassLoader(String context) {
+    this.context = context;
+    return this;
   }
 
   public IteratorBuilder.IteratorBuilderOptions useClassCache(boolean useClassCache) {

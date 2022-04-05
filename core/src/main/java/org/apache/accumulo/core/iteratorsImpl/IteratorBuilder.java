@@ -58,9 +58,9 @@ public class IteratorBuilder {
     IteratorBuilderOptions useClassCache(boolean useClassCache);
 
     /**
-     * Option to set the String context, defaults to null.
+     * Call to use the class loader. The String context param is optional and can be null.
      */
-    IteratorBuilderOptions useClassLoaderContext(String context);
+    IteratorBuilderOptions useClassLoader(String context);
 
     /**
      * Finish building and return the completed IteratorBuilder.

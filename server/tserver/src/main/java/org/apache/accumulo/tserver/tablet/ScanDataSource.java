@@ -224,7 +224,7 @@ class ScanDataSource implements DataSource {
       }
 
       var iteratorBuilder = IteratorBuilder.builder(iterInfos).opts(iterOpts).env(iterEnv)
-          .useClassLoaderContext(context).build();
+          .useClassLoader(context).build();
       return iterEnv
           .getTopLevelIterator(IteratorConfigUtil.loadIterators(visFilter, iteratorBuilder));
     } else {
