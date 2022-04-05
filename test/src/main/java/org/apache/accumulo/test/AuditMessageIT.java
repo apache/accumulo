@@ -21,6 +21,7 @@ package org.apache.accumulo.test;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
@@ -29,6 +30,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -452,33 +454,29 @@ public class AuditMessageIT extends ConfigurableMacBase {
     // We don't want the thrown exceptions to stop our tests, and we are not testing that the
     // Exceptions are thrown.
 
-    try {
-      auditAccumuloClient.tableOperations().create(NEW_TEST_TABLE_NAME);
-    } catch (AccumuloSecurityException ex) {}
-    try {
-      auditAccumuloClient.tableOperations().rename(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME);
-    } catch (AccumuloSecurityException ex) {}
-    try {
-      auditAccumuloClient.tableOperations().clone(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME, false,
-          Collections.emptyMap(), Collections.emptySet());
-    } catch (AccumuloSecurityException ex) {}
-    try {
-      auditAccumuloClient.tableOperations().delete(OLD_TEST_TABLE_NAME);
-    } catch (AccumuloSecurityException ex) {}
-    try {
-      auditAccumuloClient.tableOperations().offline(OLD_TEST_TABLE_NAME);
-    } catch (AccumuloSecurityException ex) {}
+    final var tableOps = auditAccumuloClient.tableOperations();
+    assertThrows(AccumuloSecurityException.class, () -> tableOps.create(NEW_TEST_TABLE_NAME));
+
+    assertThrows(AccumuloSecurityException.class,
+        () -> tableOps.rename(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME));
+
+    assertThrows(AccumuloSecurityException.class, () -> tableOps.clone(OLD_TEST_TABLE_NAME,
+        NEW_TEST_TABLE_NAME, false, Collections.emptyMap(), Collections.emptySet()));
+
+    assertThrows(AccumuloSecurityException.class, () -> tableOps.delete(OLD_TEST_TABLE_NAME));
+
+    assertThrows(AccumuloSecurityException.class, () -> tableOps.offline(OLD_TEST_TABLE_NAME));
+
     try (Scanner scanner = auditAccumuloClient.createScanner(OLD_TEST_TABLE_NAME, auths)) {
-      scanner.iterator().next().getKey();
-    } catch (RuntimeException ex) {}
-    try {
-      auditAccumuloClient.tableOperations().deleteRows(OLD_TEST_TABLE_NAME, new Text("myRow"),
-          new Text("myRow~"));
-    } catch (AccumuloSecurityException ex) {}
-    try {
-      auditAccumuloClient.tableOperations().flush(OLD_TEST_TABLE_NAME, new Text("myRow"),
-          new Text("myRow~"), false);
-    } catch (AccumuloSecurityException ex) {}
+      Iterator<Map.Entry<Key,Value>> iterator = scanner.iterator();
+      assertThrows(RuntimeException.class, iterator::next);
+    }
+
+    assertThrows(AccumuloSecurityException.class,
+        () -> tableOps.deleteRows(OLD_TEST_TABLE_NAME, new Text("myRow"), new Text("myRow~")));
+
+    assertThrows(AccumuloSecurityException.class,
+        () -> tableOps.flush(OLD_TEST_TABLE_NAME, new Text("myRow"), new Text("myRow~"), false));
 
     // ... that will do for now.
     // End of testing activities
@@ -521,16 +519,15 @@ public class AuditMessageIT extends ConfigurableMacBase {
     // Test that we get a few "failed" audit messages come through when we tell it to do dumb stuff
     // We don't want the thrown exceptions to stop our tests, and we are not testing that the
     // Exceptions are thrown.
-    try {
-      client.securityOperations().dropLocalUser(AUDIT_USER_2);
-    } catch (AccumuloSecurityException ex) {}
-    try {
-      client.securityOperations().revokeSystemPermission(AUDIT_USER_2,
-          SystemPermission.ALTER_TABLE);
-    } catch (AccumuloSecurityException ex) {}
-    try {
-      client.securityOperations().createLocalUser("root", new PasswordToken("super secret"));
-    } catch (AccumuloSecurityException ex) {}
+    assertThrows(AccumuloSecurityException.class,
+        () -> client.securityOperations().dropLocalUser(AUDIT_USER_2));
+
+    assertThrows(AccumuloSecurityException.class, () -> client.securityOperations()
+        .revokeSystemPermission(AUDIT_USER_2, SystemPermission.ALTER_TABLE));
+
+    assertThrows(AccumuloSecurityException.class, () -> client.securityOperations()
+        .createLocalUser("root", new PasswordToken("super secret")));
+
     ArrayList<String> auditMessages = getAuditMessages("testFailedAudits");
     // ... that will do for now.
     // End of testing activities

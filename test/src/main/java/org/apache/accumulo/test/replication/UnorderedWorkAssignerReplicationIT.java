@@ -77,8 +77,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterators;
-
 @Disabled("Replication ITs are not stable and not currently maintained")
 @Deprecated
 public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
@@ -255,7 +253,9 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
       cluster.exec(TabletServer.class);
 
       log.info("TabletServer restarted");
-      Iterators.size(ReplicationTable.getScanner(clientManager).iterator());
+      try (Scanner scanner = ReplicationTable.getScanner(clientManager)) {
+        scanner.forEach((k, v) -> {});
+      }
       log.info("TabletServer is online");
 
       log.info("");
@@ -464,7 +464,9 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
       log.info("Restarted the tserver");
 
       // Read the data -- the tserver is back up and running
-      Iterators.size(clientManager.createScanner(managerTable1, Authorizations.EMPTY).iterator());
+      try (Scanner scanner = clientManager.createScanner(managerTable1, Authorizations.EMPTY)) {
+        scanner.forEach((k, v) -> {});
+      }
 
       // Wait for both tables to be replicated
       log.info("Waiting for {} for {}", filesFor1, managerTable1);
@@ -600,7 +602,9 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
 
       cluster.exec(TabletServer.class);
 
-      Iterators.size(clientManager.createScanner(managerTable, Authorizations.EMPTY).iterator());
+      try (Scanner scanner = clientManager.createScanner(managerTable, Authorizations.EMPTY)) {
+        scanner.forEach((k, v) -> {});
+      }
 
       try (var scanner = clientManager.createScanner(ReplicationTable.NAME, Authorizations.EMPTY)) {
         for (Entry<Key,Value> kv : scanner) {

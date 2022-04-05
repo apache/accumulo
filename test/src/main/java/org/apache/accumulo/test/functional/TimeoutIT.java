@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -34,10 +33,8 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TimedOutException;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.junit.jupiter.api.Test;
 
@@ -94,9 +91,7 @@ public class TimeoutIT extends AccumuloClusterHarness {
       bs.setRanges(Collections.singletonList(new Range()));
 
       // should not timeout
-      for (Entry<Key,Value> entry : bs) {
-        entry.getKey();
-      }
+      bs.forEach((k, v) -> {});
 
       bs.setTimeout(5, TimeUnit.SECONDS);
       IteratorSetting iterSetting = new IteratorSetting(100, SlowIterator.class);

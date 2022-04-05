@@ -19,9 +19,11 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.junit.Assert.assertThrows;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
@@ -64,69 +66,36 @@ public class ServerSideErrorIT extends AccumuloClusterHarness {
         bw.addMutation(m);
       }
 
-      boolean caught = false;
       // try to scan table
       try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
-
-        try {
-          for (Entry<Key,Value> entry : scanner) {
-            entry.getKey();
-          }
-        } catch (Exception e) {
-          caught = true;
-        }
-
-        if (!caught)
-          throw new Exception("Scan did not fail");
-
-        // try to batch scan the table
-        try (BatchScanner bs = c.createBatchScanner(tableName, Authorizations.EMPTY, 2)) {
-          bs.setRanges(Collections.singleton(new Range()));
-
-          caught = false;
-          try {
-            for (Entry<Key,Value> entry : bs) {
-              entry.getKey();
-            }
-          } catch (Exception e) {
-            caught = true;
-          }
-        }
-
-        if (!caught)
-          throw new Exception("batch scan did not fail");
-
-        // remove the bad agg so accumulo can shutdown
-        TableOperations to = c.tableOperations();
-        for (Entry<String,String> e : to.getProperties(tableName)) {
-          to.removeProperty(tableName, e.getKey());
-        }
-
-        sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+        Iterator<Entry<Key,Value>> iterator = scanner.iterator();
+        assertThrows(RuntimeException.class, iterator::hasNext);
       }
+
+      // try to batch scan the table
+      try (BatchScanner bs = c.createBatchScanner(tableName, Authorizations.EMPTY, 2)) {
+        bs.setRanges(Collections.singleton(new Range()));
+        Iterator<Entry<Key,Value>> iterator = bs.iterator();
+        assertThrows(RuntimeException.class, iterator::hasNext);
+      }
+
+      // remove the bad agg so accumulo can shutdown
+      TableOperations to = c.tableOperations();
+      for (Entry<String,String> e : to.getProperties(tableName)) {
+        to.removeProperty(tableName, e.getKey());
+      }
+
+      sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
 
       // should be able to scan now
       try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
-        for (Entry<Key,Value> entry : scanner) {
-          entry.getKey();
-        }
-
+        scanner.forEach((k, v) -> {});
         // set a nonexistent iterator, should cause scan to fail on server side
         scanner.addScanIterator(new IteratorSetting(100, "bogus", "com.bogus.iterator"));
-
-        caught = false;
-        try {
-          for (Entry<Key,Value> entry : scanner) {
-            // should error
-            entry.getKey();
-          }
-        } catch (Exception e) {
-          caught = true;
-        }
-
-        if (!caught)
-          throw new Exception("Scan did not fail");
+        Iterator<Entry<Key,Value>> iterator = scanner.iterator();
+        assertThrows(RuntimeException.class, iterator::hasNext);
       }
     }
   }
+
 }
