@@ -55,6 +55,7 @@ public class IteratorBuilderImpl
     return this;
   }
 
+  @Override
   public IteratorBuilder.IteratorBuilderOptions useClassCache(boolean useClassCache) {
     this.useClassCache = useClassCache;
     return this;
