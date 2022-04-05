@@ -30,7 +30,7 @@ public class IteratorBuilderImpl
   Collection<IterInfo> iters;
   Map<String,Map<String,String>> iterOpts;
   IteratorEnvironment iteratorEnvironment;
-  boolean useAccumuloClassLoader;
+  boolean useAccumuloClassLoader = false;
   String context = null;
   boolean useClassCache = false;
 
@@ -51,6 +51,7 @@ public class IteratorBuilderImpl
 
   @Override
   public IteratorBuilder.IteratorBuilderOptions useClassLoader(String context) {
+    this.useAccumuloClassLoader = true;
     this.context = context;
     return this;
   }
