@@ -20,7 +20,6 @@ package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.HashSet;
@@ -54,8 +53,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
-
-import com.google.common.collect.Iterators;
 
 public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
 
@@ -156,7 +153,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
   private void waitForCleanStore(TabletStateStore store) {
     while (true) {
       try (ClosableIterator<TabletLocationState> iter = store.iterator()) {
-        assertTrue(Iterators.size(iter) > 0);
+        iter.forEachRemaining(t -> {});
       } catch (Exception ex) {
         System.out.println(ex);
         UtilWaitThread.sleep(250);

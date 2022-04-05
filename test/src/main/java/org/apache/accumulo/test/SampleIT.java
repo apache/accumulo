@@ -19,7 +19,6 @@
 package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
@@ -489,9 +488,7 @@ public class SampleIT extends AccumuloClusterHarness {
       assertThrows(SampleNotPresentException.class, () -> scanner.iterator().next(), message);
 
       scanner.clearSamplerConfiguration();
-      for (Entry<Key,Value> entry : scanner) {
-        assertNotNull(entry.getKey());
-      }
+      scanner.forEach((k, v) -> {});
 
       if (csc == null) {
         scanner.clearSamplerConfiguration();

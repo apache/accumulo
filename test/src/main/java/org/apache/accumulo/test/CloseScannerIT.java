@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -32,8 +32,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.junit.jupiter.api.Test;
-
-import com.google.common.collect.Iterators;
 
 public class CloseScannerIT extends AccumuloClusterHarness {
 
@@ -59,7 +57,7 @@ public class CloseScannerIT extends AccumuloClusterHarness {
 
           for (int j = 0; j < i % 7 + 1; j++) {
             // only read a little data and quit, this should leave a session open on the tserver
-            assertNotNull(Iterators.get(scanner.iterator(), 10));
+            StreamSupport.stream(scanner.spliterator(), false).limit(10).forEach(e -> {});
           }
         } // when the scanner is closed, all open sessions should be closed
       }
