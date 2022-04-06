@@ -74,6 +74,7 @@
               <ul class="dropdown-menu">
                 <li><a href="/rest/xml">XML</a></li>
                 <li><a href="/rest/json">JSON</a></li>
+                <li><a href="/rest/config">Config</a></li>
               </ul>
             </li>
             <li class="dropdown">

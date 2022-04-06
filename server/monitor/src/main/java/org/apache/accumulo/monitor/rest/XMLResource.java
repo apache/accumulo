@@ -69,6 +69,10 @@ public class XMLResource {
     return xml;
   }
 
+  public ConfigInformation getConfig() {
+    return new ConfigInformation(monitor.getConfiguration());
+  }
+
   @GET
   @Path("xml")
   @Produces(MediaType.APPLICATION_XML)
@@ -81,5 +85,12 @@ public class XMLResource {
   @Produces(MediaType.APPLICATION_JSON)
   public SummaryInformation getJSONInformation() {
     return getInformation();
+  }
+
+  @GET
+  @Path("config")
+  @Produces(MediaType.APPLICATION_XML)
+  public ConfigInformation getConfigInformation() {
+    return getConfig();
   }
 }
