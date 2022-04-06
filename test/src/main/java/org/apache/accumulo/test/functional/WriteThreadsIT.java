@@ -58,7 +58,7 @@ import org.slf4j.LoggerFactory;
 public class WriteThreadsIT extends AccumuloClusterHarness {
 
   ThreadPoolExecutor tpe;
-  private static final Logger log = LoggerFactory.getLogger(TabletServerBatchWriter.class);
+  private static final Logger log = LoggerFactory.getLogger(WriteThreadsIT.class);
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
