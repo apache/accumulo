@@ -638,8 +638,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
 
     TableId tableId = null;
     try {
-      // if user has no permission to write to this table, add it to
-      // the failures list
+      // if user has no permission to write to this table, add it to the failures list
       boolean sameTable = us.currentTablet != null
           && us.currentTablet.getExtent().tableId().equals(keyExtent.tableId());
       tableId = keyExtent.tableId();
@@ -651,8 +650,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
         if (us.currentTablet != null) {
           us.queuedMutations.put(us.currentTablet, new ArrayList<>());
         } else {
-          // not serving tablet, so report all mutations as
-          // failures
+          // not serving tablet, so report all mutations as failures
           us.failures.put(keyExtent, 0L);
           server.updateMetrics.addUnknownTabletErrors(0);
         }
