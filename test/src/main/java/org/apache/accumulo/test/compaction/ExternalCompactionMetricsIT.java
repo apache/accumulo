@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.compaction;
 
-import static org.apache.accumulo.minicluster.ServerType.TABLET_SERVER;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE2;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
@@ -44,10 +43,9 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.fate.util.UtilWaitThread;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.accumulo.test.metrics.TestStatsDRegistryFactory;
@@ -58,44 +56,51 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class ExternalCompactionMetricsIT extends AccumuloClusterHarness
-    implements MiniClusterConfigurationCallback {
+public class ExternalCompactionMetricsIT extends SharedMiniClusterBase {
+
+  public static class ExternalCompactionMetricsITConfig
+      implements MiniClusterConfigurationCallback {
+    @Override
+    public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
+      ExternalCompactionTestUtils.configureMiniCluster(cfg, coreSite);
+      cfg.setNumCompactors(2);
+      // use one tserver so that queue metrics are not spread across tservers
+      cfg.setNumTservers(1);
+
+      // Tell the server processes to use a StatsDMeterRegistry that will be configured
+      // to push all metrics to the sink we started.
+      cfg.setProperty(Property.GENERAL_MICROMETER_ENABLED, "true");
+      cfg.setProperty(Property.GENERAL_MICROMETER_FACTORY,
+          TestStatsDRegistryFactory.class.getName());
+      Map<String,String> sysProps = Map.of(TestStatsDRegistryFactory.SERVER_HOST, "127.0.0.1",
+          TestStatsDRegistryFactory.SERVER_PORT, Integer.toString(sink.getPort()));
+      cfg.setSystemProperties(sysProps);
+    }
+  }
 
   private static TestStatsDSink sink;
 
   @BeforeAll
   public static void before() throws Exception {
     sink = new TestStatsDSink();
+    startMiniClusterWithConfig(new ExternalCompactionMetricsITConfig());
+    getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
   }
 
   @AfterAll
   public static void after() throws Exception {
+    stopMiniCluster();
     if (sink != null) {
       sink.close();
     }
   }
 
-  @Override
-  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
-    ExternalCompactionTestUtils.configureMiniCluster(cfg, coreSite);
-    cfg.setNumCompactors(2);
-
-    // Tell the server processes to use a StatsDMeterRegistry that will be configured
-    // to push all metrics to the sink we started.
-    cfg.setProperty(Property.GENERAL_MICROMETER_ENABLED, "true");
-    cfg.setProperty(Property.GENERAL_MICROMETER_FACTORY, TestStatsDRegistryFactory.class.getName());
-    Map<String,String> sysProps = Map.of(TestStatsDRegistryFactory.SERVER_HOST, "127.0.0.1",
-        TestStatsDRegistryFactory.SERVER_PORT, Integer.toString(sink.getPort()));
-    cfg.setSystemProperties(sysProps);
-  }
-
   @Test
   public void testMetrics() throws Exception {
     Collection<ProcessReference> tservers =
-        ((MiniAccumuloClusterImpl) getCluster()).getProcesses().get(ServerType.TABLET_SERVER);
-    assertEquals(2, tservers.size());
-    // kill one tserver so that queue metrics are not spread across tservers
-    ((MiniAccumuloClusterImpl) getCluster()).killProcess(TABLET_SERVER, tservers.iterator().next());
+        getCluster().getProcesses().get(ServerType.TABLET_SERVER);
+    assertEquals(1, tservers.size());
+
     String[] names = getUniqueNames(2);
     try (final AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
@@ -139,9 +144,8 @@ public class ExternalCompactionMetricsIT extends AccumuloClusterHarness
         sawDCQ2_10 |= match(qm, "DCQ2", "10");
       }
 
-      cluster.getClusterControl().startCompactors(Compactor.class, 1, QUEUE1);
-      cluster.getClusterControl().startCompactors(Compactor.class, 1, QUEUE2);
-      cluster.getClusterControl().startCoordinator(CompactionCoordinator.class);
+      getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE1);
+      getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE2);
 
       boolean sawDCQ1_0 = false;
       boolean sawDCQ2_0 = false;
@@ -169,11 +173,6 @@ public class ExternalCompactionMetricsIT extends AccumuloClusterHarness
       verify(client, table1, 7);
       verify(client, table2, 13);
 
-    } finally {
-      // We stopped the TServer and started our own, restart the original TabletServers
-      // Uncomment this if other tests are added.
-      //
-      // cluster.getClusterControl().start(ServerType.TABLET_SERVER);
     }
   }
 
