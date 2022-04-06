@@ -16,24 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/*
-        * Licensed to the Apache Software Foundation (ASF) under one
-        * or more contributor license agreements.  See the NOTICE file
-        * distributed with this work for additional information
-        * regarding copyright ownership.  The ASF licenses this file
-        * to you under the Apache License, Version 2.0 (the
-        * "License"); you may not use this file except in compliance
-        * with the License.  You may obtain a copy of the License at
-        *
-        *   http://www.apache.org/licenses/LICENSE-2.0
-        *
-        * Unless required by applicable law or agreed to in writing,
-        * software distributed under the License is distributed on an
-        * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-        * KIND, either express or implied.  See the License for the
-        * specific language governing permissions and limitations
-        * under the License.
-        */
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.core.conf.Property.TSERV_MAX_WRITETHREADS;
@@ -45,6 +27,8 @@ import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -80,52 +64,40 @@ public class WriteThreadsIT extends AccumuloClusterHarness {
   }
 
   public void write() throws Exception {
-    // each thread create a batch writer, add a mutation, and then flush.
-    int threads = 100;
-    int max = 1000;
+    // each thread creates a batch writer, adds mutations, and then flushes.
+    final int threadCount = 100;
 
     // Reads and writes from Accumulo
     BatchWriterConfig config = new BatchWriterConfig();
-    config.setMaxWriteThreads(max); // this is the max write threads on the CLIENT SIDE
+    config.setMaxWriteThreads(1_000); // this is the max write threads on the CLIENT SIDE
 
     try (AccumuloClient client =
         Accumulo.newClient().from(getClientProps()).batchWriterConfig(config).build()) {
 
-      tpe = new ThreadPoolExecutor(threads, threads, 0, TimeUnit.SECONDS,
-          new ArrayBlockingQueue<>(threads));
+      tpe = new ThreadPoolExecutor(threadCount, threadCount, 0, TimeUnit.SECONDS,
+          new ArrayBlockingQueue<>(threadCount));
 
-      for (int i = 0; i < threads; i++) {
+      final String[] tables = getUniqueNames(threadCount);
+
+      for (int i = 0; i < threadCount; i++) {
         if (i % 10 == 0)
-          log.debug("iteration: " + i);
-        String tableName = "table" + i;
+          log.debug("iteration: {}", i);
+
+        final String tableName = tables[i];
         client.tableOperations().create(tableName);
 
         Runnable r = () -> {
           try (BatchWriter writer = client.createBatchWriter(tableName)) {
-            // Data is written to a mutation object
-            Mutation mutation1 = new Mutation("row1");
-            Mutation mutation2 = new Mutation("row2");
-            Mutation mutation3 = new Mutation("row3");
-            Mutation mutation4 = new Mutation("row4");
-            Mutation mutation5 = new Mutation("row5");
 
-            mutation1.at().family("myColFam").qualifier("myColQual").put("myValue1");
-            mutation1.at().family("myColFam").qualifier("myColQual").put("myValue2");
-            mutation2.at().family("myColFam").qualifier("myColQual").put("myValue1");
-            mutation2.at().family("myColFam").qualifier("myColQual").put("myValue2");
-            mutation3.at().family("myColFam").qualifier("myColQual").put("myValue1");
-            mutation3.at().family("myColFam").qualifier("myColQual").put("myValue2");
-            mutation4.at().family("myColFam").qualifier("myColQual").put("myValue1");
-            mutation4.at().family("myColFam").qualifier("myColQual").put("myValue2");
-            mutation5.at().family("myColFam").qualifier("myColQual").put("myValue1");
-            mutation5.at().family("myColFam").qualifier("myColQual").put("myValue2");
+            // Data is written to mutation objects
+            List<Mutation> mutations = Stream.of("row1", "row2", "row3", "row4", "row5")
+                .map(Mutation::new).collect(Collectors.toList());
 
-            // Queues the mutation to write (adds to batch)
-            writer.addMutation(mutation1);
-            writer.addMutation(mutation2);
-            writer.addMutation(mutation3);
-            writer.addMutation(mutation4);
-            writer.addMutation(mutation5);
+            for (Mutation mutation : mutations) {
+              mutation.at().family("myColFam").qualifier("myColQual").put("myValue1");
+              mutation.at().family("myColFam").qualifier("myColQual").put("myValue2");
+              writer.addMutation(mutation);
+            }
 
             // Sends buffered mutation to Accumulo immediately (write executed)
             writer.flush();
@@ -140,27 +112,23 @@ public class WriteThreadsIT extends AccumuloClusterHarness {
       tpe.shutdown();
       assertTrue(tpe.awaitTermination(90, TimeUnit.SECONDS));
 
-      validateData(client, threads);
+      validateData(client, threadCount, tables);
     }
   }
 
-  private void validateData(AccumuloClient client, int threads)
+  private void validateData(AccumuloClient client, int threadCount, String[] tables)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-    for (int i = 0; i < threads; i++) {
-      var batchScanner = client.createBatchScanner("table" + i);
-      batchScanner.setRanges(List.of(new Range()));
+    for (int i = 0; i < threadCount; i++) {
+      try (var batchScanner = client.createBatchScanner(tables[i])) {
+        batchScanner.setRanges(List.of(new Range()));
 
-      // batchScanner.fetchColumn(new IteratorSetting.Column("myColFam", "myColQual"));
-      List<String> rows = new ArrayList<>();
-      for (var e : batchScanner) {
-        rows.add(e.getKey().getRow().toString());
+        List<String> rows = new ArrayList<>();
+        for (var e : batchScanner) {
+          rows.add(e.getKey().getRow().toString());
+        }
+        assertEquals(5, rows.size(), "Wrong number of rows returned.");
+        assertTrue(rows.containsAll(List.of("row1", "row2", "row3", "row4", "row5")));
       }
-      assertEquals(5, rows.size(), "Wrong number of rows returned.");
-      assertTrue(rows.contains("row1"));
-      assertTrue(rows.contains("row2"));
-      assertTrue(rows.contains("row3"));
-      assertTrue(rows.contains("row4"));
-      assertTrue(rows.contains("row5"));
     }
   }
 
