@@ -110,7 +110,7 @@ public class TraceUtil {
 
   private static Span startSpan(Class<?> caller, String spanName, SpanKind kind,
       Map<String,String> attributes, TInfo tinfo) {
-    if (!enabled) {
+    if (!enabled && !Span.current().getSpanContext().isValid()) {
       return Span.getInvalid();
     }
     final String name = String.format(SPAN_FORMAT, caller.getSimpleName(), spanName);
@@ -153,8 +153,7 @@ public class TraceUtil {
    */
   public static TInfo traceInfo() {
     TInfo tinfo = new TInfo();
-    W3CTraceContextPropagator.getInstance().inject(Context.current(), tinfo,
-        (carrier, key, value) -> carrier.putToHeaders(key, value));
+    W3CTraceContextPropagator.getInstance().inject(Context.current(), tinfo, TInfo::putToHeaders);
     return tinfo;
   }
 
