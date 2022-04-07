@@ -36,6 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -64,33 +65,35 @@ public class ThriftTransportPool {
   private final Map<ThriftTransportKey,Long> errorCount = new HashMap<>();
   private final Map<ThriftTransportKey,Long> errorTime = new HashMap<>();
   private final Set<ThriftTransportKey> serversWarnedAbout = new HashSet<>();
-  private final Thread checkThread = Threads.createThread("Thrift Connection Pool Checker", () -> {
-    try {
-      while (!connectionPool.shutdown) {
-        closeExpiredConnections();
-        Thread.sleep(500);
-      }
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-    } catch (TransportPoolShutdownException e) {
-      log.debug("Error closing expired connections", e);
-    }
-  });
+  private final Thread checkThread;
 
-  private final long maxAgeMillis;
+  private final LongSupplier maxAgeMillis;
 
-  private ThriftTransportPool(long maxAgeMillis) {
+  private ThriftTransportPool(LongSupplier maxAgeMillis) {
     this.maxAgeMillis = maxAgeMillis;
+    this.checkThread = Threads.createThread("Thrift Connection Pool Checker", () -> {
+      try {
+        while (!connectionPool.shutdown) {
+          closeExpiredConnections();
+          // check again when at least half the current max age has elapsed
+          Thread.sleep(Math.max(500, maxAgeMillis.getAsLong() / 2));
+        }
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      } catch (TransportPoolShutdownException e) {
+        log.debug("Error closing expired connections", e);
+      }
+    });
   }
 
   /**
    * Create a new instance and start its checker thread, returning the instance.
    *
    * @param maxAgeMillis
-   *          the maximum age of idle transports before they are cleaned up by a checker thread
-   * @return a new instance with its checker thread started
+   *          the supplier for the max age of idle transports before they are cleaned up
+   * @return a new instance with its checker thread started to clean up idle transports
    */
-  static ThriftTransportPool startNew(long maxAgeMillis) {
+  static ThriftTransportPool startNew(LongSupplier maxAgeMillis) {
     var pool = new ThriftTransportPool(maxAgeMillis);
     log.debug("Set thrift transport pool idle time to {}", maxAgeMillis);
     pool.checkThread.start();
@@ -302,16 +305,16 @@ public class ThriftTransportPool {
     }
 
     private void removeExpiredConnections(final ArrayList<CachedConnection> expired,
-        final long maxAgeMillis) {
+        final LongSupplier maxAgeMillis) {
       long currTime = System.currentTimeMillis();
       while (isLastUnreservedExpired(currTime, maxAgeMillis)) {
         expired.add(unreserved.removeLast());
       }
     }
 
-    boolean isLastUnreservedExpired(final long currTime, final long maxAgeMillis) {
+    boolean isLastUnreservedExpired(final long currTime, final LongSupplier maxAgeMillis) {
       return !unreserved.isEmpty()
-          && (currTime - unreserved.peekLast().lastReturnTime) > maxAgeMillis;
+          && (currTime - unreserved.peekLast().lastReturnTime) > maxAgeMillis.getAsLong();
     }
 
     void checkReservedForStuckIO() {
@@ -555,7 +558,7 @@ public class ThriftTransportPool {
       connections.unreserved.addFirst(connection);
     }
 
-    List<CachedConnection> removeExpiredConnections(final long maxAgeMillis) {
+    List<CachedConnection> removeExpiredConnections(final LongSupplier maxAgeMillis) {
       ArrayList<CachedConnection> expired = new ArrayList<>();
       for (Entry<ThriftTransportKey,CachedConnections> entry : connections.entrySet()) {
         CachedConnections connections = entry.getValue();

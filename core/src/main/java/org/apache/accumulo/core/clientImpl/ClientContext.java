@@ -1014,14 +1014,10 @@ public class ClientContext implements AccumuloClient {
     return zooReader;
   }
 
-  protected long getTransportPoolMaxAgeMillis() {
-    return 3000; // 3 seconds for clients
-  }
-
   public synchronized ThriftTransportPool getTransportPool() {
     ensureOpen();
     if (thriftTransportPool == null) {
-      thriftTransportPool = ThriftTransportPool.startNew(getTransportPoolMaxAgeMillis());
+      thriftTransportPool = ThriftTransportPool.startNew(this::getClientTimeoutInMillis);
     }
     return thriftTransportPool;
   }

@@ -461,9 +461,4 @@ public class ServerContext extends ClientContext {
     return sharedScheduledThreadPool;
   }
 
-  @Override
-  protected long getTransportPoolMaxAgeMillis() {
-    return getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
-  }
-
 }
