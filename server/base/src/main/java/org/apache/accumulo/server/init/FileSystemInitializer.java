@@ -186,18 +186,19 @@ class FileSystemInitializer {
     }
     FileSystem fs = volmanager.getFileSystemByPath(new Path(fileName));
 
-    CryptoService cs =
-        CryptoServiceFactory.newInstance(conf, CryptoServiceFactory.ClassloaderType.ACCUMULO);
+    try (
+        CryptoService cs =
+            CryptoServiceFactory.newInstance(conf, CryptoServiceFactory.ClassloaderType.ACCUMULO);
+        FileSKVWriter tabletWriter = FileOperations.getInstance().newWriterBuilder()
+            .forFile(fileName, fs, fs.getConf(), cs).withTableConfiguration(conf).build()) {
+      tabletWriter.startDefaultLocalityGroup();
 
-    FileSKVWriter tabletWriter = FileOperations.getInstance().newWriterBuilder()
-        .forFile(fileName, fs, fs.getConf(), cs).withTableConfiguration(conf).build();
-    tabletWriter.startDefaultLocalityGroup();
-
-    for (Map.Entry<Key,Value> entry : sorted.entrySet()) {
-      tabletWriter.append(entry.getKey(), entry.getValue());
+      for (Map.Entry<Key,Value> entry : sorted.entrySet()) {
+        tabletWriter.append(entry.getKey(), entry.getValue());
+      }
+    } catch (Exception e) {
+      throw new IOException("Error closing CryptoService", e);
     }
-
-    tabletWriter.close();
   }
 
   private void createEntriesForTablet(TreeMap<Key,Value> map, Tablet tablet) {

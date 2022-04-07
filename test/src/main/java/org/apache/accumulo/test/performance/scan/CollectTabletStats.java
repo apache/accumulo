@@ -67,6 +67,7 @@ import org.apache.accumulo.core.iteratorsImpl.system.VisibilityFilter;
 import org.apache.accumulo.core.metadata.MetadataServicer;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.server.ServerContext;
@@ -460,16 +461,17 @@ public class CollectTabletStats {
 
     for (TabletFile file : files) {
       FileSystem ns = fs.getFileSystemByPath(file.getPath());
-      FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-          .forFile(file.getPathStr(), ns, ns.getConf(), CryptoServiceFactory.newDefaultInstance())
-          .withTableConfiguration(aconf).build();
-      Range range = new Range(ke.prevEndRow(), false, ke.endRow(), true);
-      reader.seek(range, columnSet, !columnSet.isEmpty());
-      while (reader.hasTop() && !range.afterEndKey(reader.getTopKey())) {
-        count++;
-        reader.next();
+      try (CryptoService cs = CryptoServiceFactory.newDefaultInstance();
+          FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
+              .forFile(file.getPathStr(), ns, ns.getConf(), cs).withTableConfiguration(aconf)
+              .build()) {
+        Range range = new Range(ke.prevEndRow(), false, ke.endRow(), true);
+        reader.seek(range, columnSet, !columnSet.isEmpty());
+        while (reader.hasTop() && !range.afterEndKey(reader.getTopKey())) {
+          count++;
+          reader.next();
+        }
       }
-      reader.close();
     }
 
     return count;
@@ -491,32 +493,34 @@ public class CollectTabletStats {
 
     List<SortedKeyValueIterator<Key,Value>> readers = new ArrayList<>(files.size());
 
-    for (TabletFile file : files) {
-      FileSystem ns = fs.getFileSystemByPath(file.getPath());
-      readers.add(FileOperations.getInstance().newReaderBuilder()
-          .forFile(file.getPathStr(), ns, ns.getConf(), CryptoServiceFactory.newDefaultInstance())
-          .withTableConfiguration(context.getConfiguration()).build());
+    try (CryptoService cs = CryptoServiceFactory.newDefaultInstance()) {
+      for (TabletFile file : files) {
+        FileSystem ns = fs.getFileSystemByPath(file.getPath());
+        readers.add(FileOperations.getInstance().newReaderBuilder()
+            .forFile(file.getPathStr(), ns, ns.getConf(), cs)
+            .withTableConfiguration(context.getConfiguration()).build());
+      }
+
+      List<IterInfo> emptyIterinfo = Collections.emptyList();
+      Map<String,Map<String,String>> emptySsio = Collections.emptyMap();
+      TableConfiguration tconf = context.getTableConfiguration(ke.tableId());
+      reader = createScanIterator(ke, readers, auths, new byte[] {}, new HashSet<>(), emptyIterinfo,
+          emptySsio, useTableIterators, tconf);
+
+      HashSet<ByteSequence> columnSet = createColumnBSS(columns);
+
+      reader.seek(new Range(ke.prevEndRow(), false, ke.endRow(), true), columnSet,
+          !columnSet.isEmpty());
+
+      int count = 0;
+
+      while (reader.hasTop()) {
+        count++;
+        reader.next();
+      }
+
+      return count;
     }
-
-    List<IterInfo> emptyIterinfo = Collections.emptyList();
-    Map<String,Map<String,String>> emptySsio = Collections.emptyMap();
-    TableConfiguration tconf = context.getTableConfiguration(ke.tableId());
-    reader = createScanIterator(ke, readers, auths, new byte[] {}, new HashSet<>(), emptyIterinfo,
-        emptySsio, useTableIterators, tconf);
-
-    HashSet<ByteSequence> columnSet = createColumnBSS(columns);
-
-    reader.seek(new Range(ke.prevEndRow(), false, ke.endRow(), true), columnSet,
-        !columnSet.isEmpty());
-
-    int count = 0;
-
-    while (reader.hasTop()) {
-      count++;
-      reader.next();
-    }
-
-    return count;
 
   }
 

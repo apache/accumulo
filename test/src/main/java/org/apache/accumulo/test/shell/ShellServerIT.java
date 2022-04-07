@@ -72,6 +72,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
@@ -1278,32 +1279,32 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   private File createRFiles(final Configuration conf, final FileSystem fs, final String postfix)
-      throws IOException {
+      throws Exception {
     File importDir = new File(rootPath, "import_" + postfix);
     assertTrue(importDir.mkdir());
     String even = new File(importDir, "even.rf").toString();
     String odd = new File(importDir, "odd.rf").toString();
     AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
-    FileSKVWriter evenWriter = FileOperations.getInstance().newWriterBuilder()
-        .forFile(even, fs, conf, CryptoServiceFactory.newDefaultInstance())
-        .withTableConfiguration(aconf).build();
-    evenWriter.startDefaultLocalityGroup();
-    FileSKVWriter oddWriter = FileOperations.getInstance().newWriterBuilder()
-        .forFile(odd, fs, conf, CryptoServiceFactory.newDefaultInstance())
-        .withTableConfiguration(aconf).build();
-    oddWriter.startDefaultLocalityGroup();
-    long timestamp = System.currentTimeMillis();
-    Text cf = new Text("cf");
-    Text cq = new Text("cq");
-    Value value = new Value("value");
-    for (int i = 0; i < 100; i += 2) {
-      Key key = new Key(new Text(String.format("%8d", i)), cf, cq, timestamp);
-      evenWriter.append(key, value);
-      key = new Key(new Text(String.format("%8d", i + 1)), cf, cq, timestamp);
-      oddWriter.append(key, value);
+    try (CryptoService evenCS = CryptoServiceFactory.newDefaultInstance();
+        FileSKVWriter evenWriter = FileOperations.getInstance().newWriterBuilder()
+            .forFile(even, fs, conf, evenCS).withTableConfiguration(aconf).build();
+        CryptoService oddCS = CryptoServiceFactory.newDefaultInstance();
+        FileSKVWriter oddWriter = FileOperations.getInstance().newWriterBuilder()
+            .forFile(odd, fs, conf, oddCS).withTableConfiguration(aconf).build()) {
+
+      evenWriter.startDefaultLocalityGroup();
+      oddWriter.startDefaultLocalityGroup();
+      long timestamp = System.currentTimeMillis();
+      Text cf = new Text("cf");
+      Text cq = new Text("cq");
+      Value value = new Value("value");
+      for (int i = 0; i < 100; i += 2) {
+        Key key = new Key(new Text(String.format("%8d", i)), cf, cq, timestamp);
+        evenWriter.append(key, value);
+        key = new Key(new Text(String.format("%8d", i + 1)), cf, cq, timestamp);
+        oddWriter.append(key, value);
+      }
     }
-    evenWriter.close();
-    oddWriter.close();
     assertEquals(0, ts.shell.getExitCode());
     return importDir;
   }

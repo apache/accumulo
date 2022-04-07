@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.crypto;
+package org.apache.accumulo.core.spi.crypto;
 
 import static org.apache.accumulo.core.conf.Property.INSTANCE_CRYPTO_PREFIX;
 import static org.apache.accumulo.core.crypto.CryptoUtils.getFileDecrypter;
@@ -56,17 +56,15 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.crypto.CryptoEnvironmentImpl;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
+import org.apache.accumulo.core.crypto.CryptoUtils;
 import org.apache.accumulo.core.crypto.streams.NoFlushOutputStream;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.spi.crypto.AESCryptoService;
-import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope;
-import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
-import org.apache.accumulo.core.spi.crypto.FileDecrypter;
-import org.apache.accumulo.core.spi.crypto.FileEncrypter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -162,7 +160,7 @@ public class CryptoTest {
     dataOut.close();
     encrypted.close();
     out.close();
-
+    encrypter.close();
     byte[] cipherText = out.toByteArray();
 
     // decrypt
@@ -172,7 +170,7 @@ public class CryptoTest {
     String plainText = decrypted.readUTF();
     decrypted.close();
     in.close();
-
+    decrypter.close();
     assertEquals(MARKER_STRING, new String(plainText));
   }
 
@@ -244,30 +242,32 @@ public class CryptoTest {
 
   @Test
   public void testNoEncryptionWAL() throws Exception {
-    CryptoService cs = CryptoServiceFactory.newDefaultInstance();
-    byte[] encryptedBytes = encrypt(cs, Scope.WAL, ConfigMode.CRYPTO_OFF);
+    try (CryptoService cs = CryptoServiceFactory.newDefaultInstance()) {
+      byte[] encryptedBytes = encrypt(cs, Scope.WAL, ConfigMode.CRYPTO_OFF);
 
-    String stringifiedBytes = Arrays.toString(encryptedBytes);
-    String stringifiedMarkerBytes =
-        getStringifiedBytes("U+1F47B".getBytes(), MARKER_STRING, MARKER_INT);
+      String stringifiedBytes = Arrays.toString(encryptedBytes);
+      String stringifiedMarkerBytes =
+          getStringifiedBytes("U+1F47B".getBytes(), MARKER_STRING, MARKER_INT);
 
-    assertEquals(stringifiedBytes, stringifiedMarkerBytes);
+      assertEquals(stringifiedBytes, stringifiedMarkerBytes);
 
-    decrypt(encryptedBytes, Scope.WAL, ConfigMode.CRYPTO_OFF);
+      decrypt(encryptedBytes, Scope.WAL, ConfigMode.CRYPTO_OFF);
+    }
   }
 
   @Test
   public void testNoEncryptionRFILE() throws Exception {
-    CryptoService cs = CryptoServiceFactory.newDefaultInstance();
-    byte[] encryptedBytes = encrypt(cs, Scope.RFILE, ConfigMode.CRYPTO_OFF);
+    try (CryptoService cs = CryptoServiceFactory.newDefaultInstance()) {
+      byte[] encryptedBytes = encrypt(cs, Scope.RFILE, ConfigMode.CRYPTO_OFF);
 
-    String stringifiedBytes = Arrays.toString(encryptedBytes);
-    String stringifiedMarkerBytes =
-        getStringifiedBytes("U+1F47B".getBytes(), MARKER_STRING, MARKER_INT);
+      String stringifiedBytes = Arrays.toString(encryptedBytes);
+      String stringifiedMarkerBytes =
+          getStringifiedBytes("U+1F47B".getBytes(), MARKER_STRING, MARKER_INT);
 
-    assertEquals(stringifiedBytes, stringifiedMarkerBytes);
+      assertEquals(stringifiedBytes, stringifiedMarkerBytes);
 
-    decrypt(encryptedBytes, Scope.RFILE, ConfigMode.CRYPTO_OFF);
+      decrypt(encryptedBytes, Scope.RFILE, ConfigMode.CRYPTO_OFF);
+    }
   }
 
   @Test
@@ -386,8 +386,8 @@ public class CryptoTest {
   @Test
   public void testAESKeyUtilsFailUnwrapWithWrongKEK()
       throws NoSuchAlgorithmException, NoSuchProviderException {
-    java.security.Key kek = AESCryptoService.generateKey(random, 16);
-    java.security.Key fek = AESCryptoService.generateKey(random, 16);
+    SecretKeySpec kek = AESCryptoService.generateKey(random, 16);
+    SecretKeySpec fek = AESCryptoService.generateKey(random, 16);
     byte[] wrongBytes = kek.getEncoded();
     wrongBytes[0]++;
     java.security.Key wrongKek = new SecretKeySpec(wrongBytes, "AES");
@@ -449,16 +449,17 @@ public class CryptoTest {
     encrypted.close();
     dataOut.close();
     out.close();
+    encrypter.close();
     return out.toByteArray();
   }
 
   private void decrypt(byte[] resultingBytes, Scope scope, ConfigMode configMode) throws Exception {
     try (DataInputStream dataIn = new DataInputStream(new ByteArrayInputStream(resultingBytes))) {
       AccumuloConfiguration conf = getAccumuloConfig(configMode);
-      CryptoService cs = CryptoServiceFactory.newInstance(conf, ClassloaderType.JAVA);
-      FileDecrypter decrypter = getFileDecrypter(cs, scope, dataIn);
 
-      try (DataInputStream decrypted = new DataInputStream(decrypter.decryptStream(dataIn))) {
+      try (CryptoService cs = CryptoServiceFactory.newInstance(conf, ClassloaderType.JAVA);
+          FileDecrypter decrypter = getFileDecrypter(cs, scope, dataIn);
+          DataInputStream decrypted = new DataInputStream(decrypter.decryptStream(dataIn))) {
         String markerString = decrypted.readUTF();
         int markerInt = decrypted.readInt();
 

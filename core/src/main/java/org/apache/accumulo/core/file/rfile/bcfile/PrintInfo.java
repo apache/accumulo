@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.file.rfile.bcfile;
 
-import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -28,6 +27,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.MetaIndexEntry;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -37,10 +37,10 @@ import com.beust.jcommander.Parameter;
 
 public class PrintInfo {
   public static void printMetaBlockInfo(SiteConfiguration siteConfig, Configuration conf,
-      FileSystem fs, Path path) throws IOException {
+      FileSystem fs, Path path) throws Exception {
     FSDataInputStream fsin = fs.open(path);
-    try (BCFile.Reader bcfr = new BCFile.Reader(fsin, fs.getFileStatus(path).getLen(), conf,
-        CryptoServiceFactory.newInstance(siteConfig, ClassloaderType.ACCUMULO))) {
+    try (CryptoService cs = CryptoServiceFactory.newInstance(siteConfig, ClassloaderType.ACCUMULO);
+        BCFile.Reader bcfr = new BCFile.Reader(fsin, fs.getFileStatus(path).getLen(), conf, cs)) {
 
       Set<Entry<String,MetaIndexEntry>> es = bcfr.metaIndex.index.entrySet();
 

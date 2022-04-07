@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.spi.crypto;
 
+import java.io.IOException;
 import java.io.InputStream;
 
 public class NoFileDecrypter implements FileDecrypter {
@@ -25,4 +26,7 @@ public class NoFileDecrypter implements FileDecrypter {
   public InputStream decryptStream(InputStream inputStream) throws CryptoService.CryptoException {
     return inputStream;
   }
+
+  @Override
+  public void close() throws IOException {}
 }

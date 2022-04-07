@@ -40,6 +40,7 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.rfile.RFileOperations;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.hadoop.mapreduce.AccumuloFileOutputFormat;
 import org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -211,12 +212,13 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
       Configuration conf = cluster.getServerContext().getHadoopConf();
       DefaultConfiguration acuconf = DefaultConfiguration.getInstance();
-      FileSKVIterator sample = RFileOperations.getInstance().newReaderBuilder()
-          .forFile(files[0].toString(), FileSystem.getLocal(conf), conf,
-              CryptoServiceFactory.newDefaultInstance())
-          .withTableConfiguration(acuconf).build()
-          .getSample(new SamplerConfigurationImpl(SAMPLER_CONFIG));
-      assertNotNull(sample);
+      try (CryptoService svc = CryptoServiceFactory.newDefaultInstance();
+          FileSKVIterator sample = RFileOperations.getInstance().newReaderBuilder()
+              .forFile(files[0].toString(), FileSystem.getLocal(conf), conf, svc)
+              .withTableConfiguration(acuconf).build()
+              .getSample(new SamplerConfigurationImpl(SAMPLER_CONFIG))) {
+        assertNotNull(sample);
+      }
     } else {
       assertEquals(0, files.length);
     }

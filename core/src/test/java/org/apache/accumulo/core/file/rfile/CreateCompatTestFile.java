@@ -30,6 +30,7 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -62,39 +63,40 @@ public class CreateCompatTestFile {
     Configuration conf = new Configuration();
     FileSystem fs = FileSystem.get(conf);
     AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
-    BCFile.Writer _cbw = new BCFile.Writer(fs.create(new Path(args[0])), null, "gz", conf,
-        CryptoServiceFactory.newInstance(aconf, ClassloaderType.JAVA));
-    RFile.Writer writer = new RFile.Writer(_cbw, 1000);
+    try (CryptoService cs = CryptoServiceFactory.newInstance(aconf, ClassloaderType.JAVA)) {
+      BCFile.Writer _cbw = new BCFile.Writer(fs.create(new Path(args[0])), null, "gz", conf, cs);
+      RFile.Writer writer = new RFile.Writer(_cbw, 1000);
 
-    writer.startNewLocalityGroup("lg1",
-        newColFamSequence(formatStr("cf_", 1), formatStr("cf_", 2)));
+      writer.startNewLocalityGroup("lg1",
+          newColFamSequence(formatStr("cf_", 1), formatStr("cf_", 2)));
 
-    for (int i = 0; i < 1000; i++) {
-      writer.append(
-          newKey(formatStr("r_", i), formatStr("cf_", 1), formatStr("cq_", 0), "", 1000 - i),
-          newValue(i + ""));
-      writer.append(
-          newKey(formatStr("r_", i), formatStr("cf_", 2), formatStr("cq_", 0), "", 1000 - i),
-          newValue(i + ""));
+      for (int i = 0; i < 1000; i++) {
+        writer.append(
+            newKey(formatStr("r_", i), formatStr("cf_", 1), formatStr("cq_", 0), "", 1000 - i),
+            newValue(i + ""));
+        writer.append(
+            newKey(formatStr("r_", i), formatStr("cf_", 2), formatStr("cq_", 0), "", 1000 - i),
+            newValue(i + ""));
+      }
+
+      writer.startNewLocalityGroup("lg2", newColFamSequence(formatStr("cf_", 3)));
+
+      for (int i = 0; i < 1000; i++) {
+        writer.append(
+            newKey(formatStr("r_", i), formatStr("cf_", 3), formatStr("cq_", 0), "", 1000 - i),
+            newValue(i + ""));
+      }
+
+      writer.startDefaultLocalityGroup();
+
+      for (int i = 0; i < 1000; i++) {
+        writer.append(
+            newKey(formatStr("r_", i), formatStr("cf_", 4), formatStr("cq_", 0), "", 1000 - i),
+            newValue(i + ""));
+      }
+
+      writer.close();
+      _cbw.close();
     }
-
-    writer.startNewLocalityGroup("lg2", newColFamSequence(formatStr("cf_", 3)));
-
-    for (int i = 0; i < 1000; i++) {
-      writer.append(
-          newKey(formatStr("r_", i), formatStr("cf_", 3), formatStr("cq_", 0), "", 1000 - i),
-          newValue(i + ""));
-    }
-
-    writer.startDefaultLocalityGroup();
-
-    for (int i = 0; i < 1000; i++) {
-      writer.append(
-          newKey(formatStr("r_", i), formatStr("cf_", 4), formatStr("cq_", 0), "", 1000 - i),
-          newValue(i + ""));
-    }
-
-    writer.close();
-    _cbw.close();
   }
 }

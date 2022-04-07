@@ -37,6 +37,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
@@ -108,16 +109,15 @@ public class BulkOldIT extends AccumuloClusterHarness {
 
   private void writeData(Configuration conf, AccumuloConfiguration aconf, FileSystem fs, String dir,
       String file, int start, int end) throws IOException, Exception {
-    FileSKVWriter writer1 =
-        FileOperations
-            .getInstance().newWriterBuilder().forFile(dir + "/" + file + "." + RFile.EXTENSION, fs,
-                conf, CryptoServiceFactory.newDefaultInstance())
-            .withTableConfiguration(aconf).build();
-    writer1.startDefaultLocalityGroup();
-    for (int i = start; i <= end; i++) {
-      writer1.append(new Key(new Text(String.format("%04d", i))), new Value(Integer.toString(i)));
+    try (CryptoService cs = CryptoServiceFactory.newDefaultInstance();
+        FileSKVWriter writer1 = FileOperations.getInstance().newWriterBuilder()
+            .forFile(dir + "/" + file + "." + RFile.EXTENSION, fs, conf, cs)
+            .withTableConfiguration(aconf).build()) {
+      writer1.startDefaultLocalityGroup();
+      for (int i = start; i <= end; i++) {
+        writer1.append(new Key(new Text(String.format("%04d", i))), new Value(Integer.toString(i)));
+      }
     }
-    writer1.close();
   }
 
   private void verifyData(AccumuloClient client, String table, int s, int e) throws Exception {

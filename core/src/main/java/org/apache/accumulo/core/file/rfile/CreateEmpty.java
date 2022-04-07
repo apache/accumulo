@@ -26,6 +26,7 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.file.rfile.compression.NoCompression;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.conf.Configuration;
@@ -101,11 +102,13 @@ public class CreateEmpty implements KeywordExecutable {
     for (String arg : opts.files) {
       Path path = new Path(arg);
       log.info("Writing to file '{}'", path);
-      FileSKVWriter writer = new RFileOperations().newWriterBuilder()
-          .forFile(arg, path.getFileSystem(conf), conf, CryptoServiceFactory.newDefaultInstance())
-          .withTableConfiguration(DefaultConfiguration.getInstance()).withCompression(opts.codec)
-          .build();
-      writer.close();
+      try (CryptoService cs = CryptoServiceFactory.newDefaultInstance();
+          FileSKVWriter writer = new RFileOperations().newWriterBuilder()
+              .forFile(arg, path.getFileSystem(conf), conf, cs)
+              .withTableConfiguration(DefaultConfiguration.getInstance())
+              .withCompression(opts.codec).build()) {
+        // open and close
+      }
     }
   }
 

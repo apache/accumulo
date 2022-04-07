@@ -33,21 +33,23 @@ public class CryptoServiceFactory {
     JAVA
   }
 
+  @SuppressWarnings("resource")
   public static CryptoService newInstance(AccumuloConfiguration conf, ClassloaderType ct) {
 
-    CryptoService newCryptoService;
-
     if (ct == ClassloaderType.ACCUMULO) {
-      newCryptoService = Property.createInstanceFromPropertyName(conf,
-          Property.INSTANCE_CRYPTO_SERVICE, CryptoService.class, new NoCryptoService());
+      return Property.createInstanceFromPropertyName(conf, Property.INSTANCE_CRYPTO_SERVICE,
+          CryptoService.class, new NoCryptoService());
     } else if (ct == ClassloaderType.JAVA) {
       String clazzName = conf.get(Property.INSTANCE_CRYPTO_SERVICE);
       if (clazzName == null || clazzName.trim().isEmpty()) {
-        newCryptoService = new NoCryptoService();
+        return new NoCryptoService();
       } else {
         try {
-          newCryptoService = CryptoServiceFactory.class.getClassLoader().loadClass(clazzName)
-              .asSubclass(CryptoService.class).getDeclaredConstructor().newInstance();
+          CryptoService newCryptoService =
+              CryptoServiceFactory.class.getClassLoader().loadClass(clazzName)
+                  .asSubclass(CryptoService.class).getDeclaredConstructor().newInstance();
+          newCryptoService.init(conf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
+          return newCryptoService;
         } catch (ReflectiveOperationException e) {
           throw new RuntimeException(e);
         }
@@ -56,8 +58,6 @@ public class CryptoServiceFactory {
       throw new IllegalArgumentException();
     }
 
-    newCryptoService.init(conf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
-    return newCryptoService;
   }
 
   public static CryptoService newDefaultInstance() {

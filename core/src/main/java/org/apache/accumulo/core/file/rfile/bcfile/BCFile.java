@@ -366,6 +366,7 @@ public final class BCFile {
           out.flush();
           length = out.position();
           out.close();
+          encrypter.close();
         }
       } finally {
         closed = true;
@@ -635,8 +636,10 @@ public final class BCFile {
       // backwards compatibility
       if (version.equals(API_VERSION_1)) {
         LOG.trace("Found a version 1 file to read.");
-        decryptionParams = new NoFileEncrypter().getDecryptionParameters();
         this.decrypter = new NoFileDecrypter();
+        try (FileEncrypter enc = new NoFileEncrypter()) {
+          decryptionParams = enc.getDecryptionParameters();
+        }
       } else {
         // read crypto parameters and get decrypter
         this.in.seek(offsetCryptoParameters);
@@ -674,7 +677,11 @@ public final class BCFile {
      */
     @Override
     public void close() {
-      // nothing to be done now
+      try {
+        this.decrypter.close();
+      } catch (Exception e) {
+        throw new RuntimeException("Error closing FileDecrypter", e);
+      }
     }
 
     /**

@@ -51,6 +51,7 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -441,7 +442,7 @@ public class BloomFilterLayer {
     }
   }
 
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) throws Exception {
     PrintStream out = System.out;
 
     HashSet<Integer> valsSet = new HashSet<>();
@@ -466,87 +467,89 @@ public class BloomFilterLayer {
 
     String suffix = FileOperations.getNewFileExtension(acuconf);
     String fname = "/tmp/test." + suffix;
-    FileSKVWriter bmfw = FileOperations.getInstance().newWriterBuilder()
-        .forFile(fname, fs, conf, CryptoServiceFactory.newDefaultInstance())
-        .withTableConfiguration(acuconf).build();
+    long t1 = 0;
+    long t2 = 0;
+    try (CryptoService svc = CryptoServiceFactory.newDefaultInstance();
+        FileSKVWriter bmfw = FileOperations.getInstance().newWriterBuilder()
+            .forFile(fname, fs, conf, svc).withTableConfiguration(acuconf).build()) {
 
-    long t1 = System.currentTimeMillis();
+      t1 = System.currentTimeMillis();
 
-    bmfw.startDefaultLocalityGroup();
+      bmfw.startDefaultLocalityGroup();
 
-    for (Integer i : vals) {
-      String fi = String.format("%010d", i);
-      bmfw.append(new org.apache.accumulo.core.data.Key(new Text("r" + fi), new Text("cf1")),
-          new Value("v" + fi));
-      bmfw.append(new org.apache.accumulo.core.data.Key(new Text("r" + fi), new Text("cf2")),
-          new Value("v" + fi));
+      for (Integer i : vals) {
+        String fi = String.format("%010d", i);
+        bmfw.append(new org.apache.accumulo.core.data.Key(new Text("r" + fi), new Text("cf1")),
+            new Value("v" + fi));
+        bmfw.append(new org.apache.accumulo.core.data.Key(new Text("r" + fi), new Text("cf2")),
+            new Value("v" + fi));
+      }
+
+      t2 = System.currentTimeMillis();
+
+      out.printf("write rate %6.2f%n", vals.size() / ((t2 - t1) / 1000.0));
+
     }
 
-    long t2 = System.currentTimeMillis();
-
-    out.printf("write rate %6.2f%n", vals.size() / ((t2 - t1) / 1000.0));
-
-    bmfw.close();
-
     t1 = System.currentTimeMillis();
-    FileSKVIterator bmfr = FileOperations.getInstance().newReaderBuilder()
-        .forFile(fname, fs, conf, CryptoServiceFactory.newDefaultInstance())
-        .withTableConfiguration(acuconf).build();
-    t2 = System.currentTimeMillis();
-    out.println("Opened " + fname + " in " + (t2 - t1));
+    try (CryptoService svc = CryptoServiceFactory.newDefaultInstance();
+        FileSKVIterator bmfr = FileOperations.getInstance().newReaderBuilder()
+            .forFile(fname, fs, conf, svc).withTableConfiguration(acuconf).build()) {
+      t2 = System.currentTimeMillis();
+      out.println("Opened " + fname + " in " + (t2 - t1));
 
-    t1 = System.currentTimeMillis();
+      t1 = System.currentTimeMillis();
 
-    int hits = 0;
-    for (int i = 0; i < 5000; i++) {
-      int row = random.nextInt(Integer.MAX_VALUE);
-      String fi = String.format("%010d", row);
-      // bmfr.seek(new Range(new Text("r"+fi)));
-      org.apache.accumulo.core.data.Key k1 =
-          new org.apache.accumulo.core.data.Key(new Text("r" + fi), new Text("cf1"));
-      bmfr.seek(new Range(k1, true, k1.followingKey(PartialKey.ROW_COLFAM), false),
-          new ArrayList<>(), false);
-      if (valsSet.contains(row)) {
-        hits++;
-        if (!bmfr.hasTop()) {
-          out.println("ERROR " + row);
+      int hits = 0;
+      for (int i = 0; i < 5000; i++) {
+        int row = random.nextInt(Integer.MAX_VALUE);
+        String fi = String.format("%010d", row);
+        // bmfr.seek(new Range(new Text("r"+fi)));
+        org.apache.accumulo.core.data.Key k1 =
+            new org.apache.accumulo.core.data.Key(new Text("r" + fi), new Text("cf1"));
+        bmfr.seek(new Range(k1, true, k1.followingKey(PartialKey.ROW_COLFAM), false),
+            new ArrayList<>(), false);
+        if (valsSet.contains(row)) {
+          hits++;
+          if (!bmfr.hasTop()) {
+            out.println("ERROR " + row);
+          }
         }
       }
-    }
 
-    t2 = System.currentTimeMillis();
+      t2 = System.currentTimeMillis();
 
-    out.printf("random lookup rate : %6.2f%n", 5000 / ((t2 - t1) / 1000.0));
-    out.println("hits = " + hits);
+      out.printf("random lookup rate : %6.2f%n", 5000 / ((t2 - t1) / 1000.0));
+      out.println("hits = " + hits);
 
-    int count = 0;
+      int count = 0;
 
-    t1 = System.currentTimeMillis();
+      t1 = System.currentTimeMillis();
 
-    for (Integer row : valsSet) {
-      String fi = String.format("%010d", row);
-      // bmfr.seek(new Range(new Text("r"+fi)));
+      for (Integer row : valsSet) {
+        String fi = String.format("%010d", row);
+        // bmfr.seek(new Range(new Text("r"+fi)));
 
-      org.apache.accumulo.core.data.Key k1 =
-          new org.apache.accumulo.core.data.Key(new Text("r" + fi), new Text("cf1"));
-      bmfr.seek(new Range(k1, true, k1.followingKey(PartialKey.ROW_COLFAM), false),
-          new ArrayList<>(), false);
+        org.apache.accumulo.core.data.Key k1 =
+            new org.apache.accumulo.core.data.Key(new Text("r" + fi), new Text("cf1"));
+        bmfr.seek(new Range(k1, true, k1.followingKey(PartialKey.ROW_COLFAM), false),
+            new ArrayList<>(), false);
 
-      if (!bmfr.hasTop()) {
-        out.println("ERROR 2 " + row);
+        if (!bmfr.hasTop()) {
+          out.println("ERROR 2 " + row);
+        }
+
+        count++;
+
+        if (count >= 500) {
+          break;
+        }
       }
 
-      count++;
+      t2 = System.currentTimeMillis();
 
-      if (count >= 500) {
-        break;
-      }
+      out.printf("existing lookup rate %6.2f%n", 500 / ((t2 - t1) / 1000.0));
+      out.println("expected hits 500.  Receive hits: " + count);
     }
-
-    t2 = System.currentTimeMillis();
-
-    out.printf("existing lookup rate %6.2f%n", 500 / ((t2 - t1) / 1000.0));
-    out.println("expected hits 500.  Receive hits: " + count);
-    bmfr.close();
   }
 }

@@ -27,6 +27,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.file.rfile.RFile;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -41,7 +42,6 @@ public class FileOperationsTest {
   public void handlesFilenamesWithMoreThanOneDot() throws IOException {
 
     boolean caughtException = false;
-    FileSKVWriter writer = null;
     String filename = "target/test.file." + RFile.EXTENSION;
     File testFile = new File(filename);
     if (testFile.exists()) {
@@ -52,16 +52,14 @@ public class FileOperationsTest {
       Configuration conf = new Configuration();
       FileSystem fs = FileSystem.getLocal(conf);
       AccumuloConfiguration acuconf = DefaultConfiguration.getInstance();
-      writer = fileOperations.newWriterBuilder()
-          .forFile(filename, fs, conf, CryptoServiceFactory.newDefaultInstance())
-          .withTableConfiguration(acuconf).build();
-      writer.close();
+      try (CryptoService cs = CryptoServiceFactory.newDefaultInstance();
+          FileSKVWriter writer = fileOperations.newWriterBuilder().forFile(filename, fs, conf, cs)
+              .withTableConfiguration(acuconf).build()) {
+
+      }
     } catch (Exception ex) {
       caughtException = true;
     } finally {
-      if (writer != null) {
-        writer.close();
-      }
       FileUtils.forceDelete(testFile);
     }
 

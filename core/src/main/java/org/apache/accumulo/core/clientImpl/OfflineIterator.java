@@ -300,6 +300,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     }
     for (TabletFile file : absFiles) {
       FileSystem fs = VolumeConfiguration.fileSystemForPath(file.getPathStr(), conf);
+      // TODO: These readers may not be closed and there is a CryptoService created for each reader
+      // Not sure how to address this.
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
           .forFile(file.getPathStr(), fs, conf, CryptoServiceFactory.newDefaultInstance())
           .withTableConfiguration(acuTableConf).build();

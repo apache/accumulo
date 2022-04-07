@@ -101,7 +101,7 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
       acuconf = new ConfigurationCopy(Iterables.concat(acuconf, userProps.entrySet()));
     }
 
-    CryptoService cs = CryptoServiceFactory.newInstance(acuconf, ClassloaderType.JAVA);
+    final CryptoService cs = CryptoServiceFactory.newInstance(acuconf, ClassloaderType.JAVA);
 
     if (out.getOutputStream() != null) {
       FSDataOutputStream fsdo;
@@ -113,11 +113,31 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
       return new RFileWriter(
           fileops.newWriterBuilder().forOutputStream(".rf", fsdo, out.getConf(), cs)
               .withTableConfiguration(acuconf).withStartDisabled().build(),
-          visCacheSize);
+          visCacheSize) {
+        @Override
+        public void close() throws IOException {
+          super.close();
+          try {
+            cs.close();
+          } catch (Exception e) {
+            throw new IOException("Error closing CryptoService", e);
+          }
+        }
+      };
     } else {
       return new RFileWriter(fileops.newWriterBuilder()
           .forFile(out.path.toString(), out.getFileSystem(), out.getConf(), cs)
-          .withTableConfiguration(acuconf).withStartDisabled().build(), visCacheSize);
+          .withTableConfiguration(acuconf).withStartDisabled().build(), visCacheSize) {
+        @Override
+        public void close() throws IOException {
+          super.close();
+          try {
+            cs.close();
+          } catch (Exception e) {
+            throw new IOException("Error closing CryptoService", e);
+          }
+        }
+      };
     }
   }
 

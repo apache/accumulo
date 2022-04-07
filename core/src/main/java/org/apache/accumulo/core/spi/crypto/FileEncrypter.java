@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.spi.crypto;
 
+import java.io.Closeable;
 import java.io.OutputStream;
 
 /**
@@ -25,7 +26,7 @@ import java.io.OutputStream;
  *
  * @since 2.0
  */
-public interface FileEncrypter {
+public interface FileEncrypter extends Closeable {
   /**
    * Encrypt the OutputStream.
    */

@@ -25,6 +25,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -60,21 +61,21 @@ public class GenerateSequentialRFile implements Runnable {
       final Configuration conf = new Configuration();
       Path p = new Path(opts.filePath);
       final FileSystem fs = p.getFileSystem(conf);
-      FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
-          .forFile(opts.filePath, fs, conf, CryptoServiceFactory.newDefaultInstance())
-          .withTableConfiguration(DefaultConfiguration.getInstance()).build();
+      try (CryptoService cs = CryptoServiceFactory.newDefaultInstance();
+          FileSKVWriter writer =
+              FileOperations.getInstance().newWriterBuilder().forFile(opts.filePath, fs, conf, cs)
+                  .withTableConfiguration(DefaultConfiguration.getInstance()).build()) {
 
-      writer.startDefaultLocalityGroup();
+        writer.startDefaultLocalityGroup();
 
-      for (int x = 0; x < opts.rows; x++) {
-        final Text row = new Text(String.format("%03d", x));
-        for (int y = 0; y < opts.valuesPerRow; y++) {
-          final String suffix = String.format("%05d", y);
-          writer.append(new Key(new Text(row + ":" + suffix), CF, CQ), new Value(suffix));
+        for (int x = 0; x < opts.rows; x++) {
+          final Text row = new Text(String.format("%03d", x));
+          for (int y = 0; y < opts.valuesPerRow; y++) {
+            final String suffix = String.format("%05d", y);
+            writer.append(new Key(new Text(row + ":" + suffix), CF, CQ), new Value(suffix));
+          }
         }
       }
-
-      writer.close();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

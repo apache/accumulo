@@ -38,6 +38,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.keyfunctor.ColumnFamilyFunctor;
 import org.apache.accumulo.core.file.rfile.RFile;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
@@ -58,7 +59,7 @@ public class BloomFilterLayerLookupTest extends WithTestNames {
   private static File tempDir;
 
   @Test
-  public void test() throws IOException {
+  public void test() throws Exception {
     HashSet<Integer> valsSet = new HashSet<>();
     for (int i = 0; i < 100000; i++) {
       valsSet.add(random.nextInt(Integer.MAX_VALUE));
@@ -80,64 +81,67 @@ public class BloomFilterLayerLookupTest extends WithTestNames {
     // get output file name
     String suffix = FileOperations.getNewFileExtension(acuconf);
     String fname = new File(tempDir, testName() + "." + suffix).getAbsolutePath();
-    FileSKVWriter bmfw = FileOperations.getInstance().newWriterBuilder()
-        .forFile(fname, fs, conf, CryptoServiceFactory.newDefaultInstance())
-        .withTableConfiguration(acuconf).build();
+    long t1 = 0;
+    long t2 = 0;
+    try (CryptoService svc = CryptoServiceFactory.newDefaultInstance();
+        FileSKVWriter bmfw = FileOperations.getInstance().newWriterBuilder()
+            .forFile(fname, fs, conf, svc).withTableConfiguration(acuconf).build()) {
 
-    // write data to file
-    long t1 = System.currentTimeMillis();
-    bmfw.startDefaultLocalityGroup();
-    for (Integer i : vals) {
-      String fi = String.format("%010d", i);
-      bmfw.append(new Key(new Text("r" + fi), new Text("cf1")), new Value("v" + fi));
-      bmfw.append(new Key(new Text("r" + fi), new Text("cf2")), new Value("v" + fi));
-    }
-    long t2 = System.currentTimeMillis();
-
-    log.debug(String.format("write rate %6.2f%n", vals.size() / ((t2 - t1) / 1000.0)));
-    bmfw.close();
-
-    t1 = System.currentTimeMillis();
-    FileSKVIterator bmfr = FileOperations.getInstance().newReaderBuilder()
-        .forFile(fname, fs, conf, CryptoServiceFactory.newDefaultInstance())
-        .withTableConfiguration(acuconf).build();
-    t2 = System.currentTimeMillis();
-    log.debug("Opened {} in {}", fname, (t2 - t1));
-
-    int hits = 0;
-    t1 = System.currentTimeMillis();
-    for (int i = 0; i < 5000; i++) {
-      int row = random.nextInt(Integer.MAX_VALUE);
-      seek(bmfr, row);
-      if (valsSet.contains(row)) {
-        hits++;
-        assertTrue(bmfr.hasTop());
+      // write data to file
+      t1 = System.currentTimeMillis();
+      bmfw.startDefaultLocalityGroup();
+      for (Integer i : vals) {
+        String fi = String.format("%010d", i);
+        bmfw.append(new Key(new Text("r" + fi), new Text("cf1")), new Value("v" + fi));
+        bmfw.append(new Key(new Text("r" + fi), new Text("cf2")), new Value("v" + fi));
       }
-    }
-    t2 = System.currentTimeMillis();
+      t2 = System.currentTimeMillis();
 
-    double rate1 = 5000 / ((t2 - t1) / 1000.0);
-    log.debug(String.format("random lookup rate : %6.2f%n", rate1));
-    log.debug("hits = {}", hits);
+      log.debug(String.format("write rate %6.2f%n", vals.size() / ((t2 - t1) / 1000.0)));
+    }
 
     int count = 0;
     t1 = System.currentTimeMillis();
-    for (Integer row : valsSet) {
-      seek(bmfr, row);
-      assertTrue(bmfr.hasTop());
-      count++;
-      if (count >= 500) {
-        break;
-      }
-    }
-    t2 = System.currentTimeMillis();
+    double rate1 = 0;
+    try (CryptoService svc = CryptoServiceFactory.newDefaultInstance();
+        FileSKVIterator bmfr = FileOperations.getInstance().newReaderBuilder()
+            .forFile(fname, fs, conf, svc).withTableConfiguration(acuconf).build()) {
+      t2 = System.currentTimeMillis();
+      log.debug("Opened {} in {}", fname, (t2 - t1));
 
+      int hits = 0;
+      t1 = System.currentTimeMillis();
+      for (int i = 0; i < 5000; i++) {
+        int row = random.nextInt(Integer.MAX_VALUE);
+        seek(bmfr, row);
+        if (valsSet.contains(row)) {
+          hits++;
+          assertTrue(bmfr.hasTop());
+        }
+      }
+      t2 = System.currentTimeMillis();
+
+      rate1 = 5000 / ((t2 - t1) / 1000.0);
+      log.debug(String.format("random lookup rate : %6.2f%n", rate1));
+      log.debug("hits = {}", hits);
+
+      t1 = System.currentTimeMillis();
+      for (Integer row : valsSet) {
+        seek(bmfr, row);
+        assertTrue(bmfr.hasTop());
+        count++;
+        if (count >= 500) {
+          break;
+        }
+      }
+      t2 = System.currentTimeMillis();
+
+    }
     double rate2 = 500 / ((t2 - t1) / 1000.0);
     log.debug(String.format("existing lookup rate %6.2f%n", rate2));
     log.debug("expected hits 500.  Receive hits: {}", count);
-    bmfr.close();
-
     assertTrue(rate1 > rate2);
+
   }
 
   private void seek(FileSKVIterator bmfr, int row) throws IOException {

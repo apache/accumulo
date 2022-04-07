@@ -409,6 +409,11 @@ class RFileScanner extends ScannerOptions implements Scanner {
       throw new RuntimeException(e);
     }
     try {
+      this.cryptoService.close();
+    } catch (Exception e) {
+      throw new RuntimeException("Error closing CryptoService", e);
+    }
+    try {
       if (this.blockCacheManager != null) {
         this.blockCacheManager.stop();
       }

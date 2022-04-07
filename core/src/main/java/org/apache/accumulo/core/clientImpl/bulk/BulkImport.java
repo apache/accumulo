@@ -150,7 +150,11 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     boolean shouldRetry = true;
     while (shouldRetry) {
       if (plan == null) {
-        mappings = computeMappingFromFiles(fs, tableId, srcPath, maxTablets);
+        try {
+          mappings = computeMappingFromFiles(fs, tableId, srcPath, maxTablets);
+        } catch (Exception e) {
+          throw new IOException("Error computing mapping from files", e);
+        }
       } else {
         mappings = computeMappingFromPlan(fs, tableId, srcPath, maxTablets);
       }
@@ -467,7 +471,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   }
 
   private SortedMap<KeyExtent,Bulk.Files> computeMappingFromFiles(FileSystem fs, TableId tableId,
-      Path dirPath, int maxTablets) throws IOException {
+      Path dirPath, int maxTablets) throws Exception {
 
     Executor executor;
     ExecutorService service = null;
@@ -522,7 +526,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   }
 
   public SortedMap<KeyExtent,Bulk.Files> computeFileToTabletMappings(FileSystem fs, TableId tableId,
-      Path dirPath, Executor executor, ClientContext context, int maxTablets) throws IOException {
+      Path dirPath, Executor executor, ClientContext context, int maxTablets) throws Exception {
 
     KeyExtentCache extentCache = new ConcurrentKeyExtentCache(tableId, context);
 
@@ -535,32 +539,34 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
     List<CompletableFuture<Map<KeyExtent,Bulk.FileInfo>>> futures = new ArrayList<>();
 
-    CryptoService cs = CryptoServiceFactory.newDefaultInstance();
+    try (CryptoService cs = CryptoServiceFactory.newDefaultInstance()) {
+      for (FileStatus fileStatus : files) {
+        Path filePath = fileStatus.getPath();
+        CompletableFuture<Map<KeyExtent,Bulk.FileInfo>> future =
+            CompletableFuture.supplyAsync(() -> {
+              try {
+                long t1 = System.currentTimeMillis();
+                List<KeyExtent> extents =
+                    findOverlappingTablets(context, extentCache, filePath, fs, fileLensCache, cs);
+                // make sure file isn't going to too many tablets
+                checkTabletCount(maxTablets, extents.size(), filePath.toString());
+                Map<KeyExtent,Long> estSizes = estimateSizes(context.getConfiguration(), filePath,
+                    fileStatus.getLen(), extents, fs, fileLensCache, cs);
+                Map<KeyExtent,Bulk.FileInfo> pathLocations = new HashMap<>();
+                for (KeyExtent ke : extents) {
+                  pathLocations.put(ke, new Bulk.FileInfo(filePath, estSizes.getOrDefault(ke, 0L)));
+                }
+                long t2 = System.currentTimeMillis();
+                log.debug("Mapped {} to {} tablets in {}ms", filePath, pathLocations.size(),
+                    t2 - t1);
+                return pathLocations;
+              } catch (Exception e) {
+                throw new CompletionException(e);
+              }
+            }, executor);
 
-    for (FileStatus fileStatus : files) {
-      Path filePath = fileStatus.getPath();
-      CompletableFuture<Map<KeyExtent,Bulk.FileInfo>> future = CompletableFuture.supplyAsync(() -> {
-        try {
-          long t1 = System.currentTimeMillis();
-          List<KeyExtent> extents =
-              findOverlappingTablets(context, extentCache, filePath, fs, fileLensCache, cs);
-          // make sure file isn't going to too many tablets
-          checkTabletCount(maxTablets, extents.size(), filePath.toString());
-          Map<KeyExtent,Long> estSizes = estimateSizes(context.getConfiguration(), filePath,
-              fileStatus.getLen(), extents, fs, fileLensCache, cs);
-          Map<KeyExtent,Bulk.FileInfo> pathLocations = new HashMap<>();
-          for (KeyExtent ke : extents) {
-            pathLocations.put(ke, new Bulk.FileInfo(filePath, estSizes.getOrDefault(ke, 0L)));
-          }
-          long t2 = System.currentTimeMillis();
-          log.debug("Mapped {} to {} tablets in {}ms", filePath, pathLocations.size(), t2 - t1);
-          return pathLocations;
-        } catch (Exception e) {
-          throw new CompletionException(e);
-        }
-      }, executor);
-
-      futures.add(future);
+        futures.add(future);
+      }
     }
 
     SortedMap<KeyExtent,Bulk.Files> mappings = new TreeMap<>();

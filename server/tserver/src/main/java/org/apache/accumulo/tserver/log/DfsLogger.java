@@ -299,6 +299,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
   private final ServerContext context;
   private final ServerResources conf;
   private FSDataOutputStream logFile;
+  private FileEncrypter encrypter = null;
   private DataOutputStream encryptingLogFile = null;
   private String logPath;
   private Thread syncThread;
@@ -363,7 +364,22 @@ public class DfsLogger implements Comparable<DfsLogger> {
         FileDecrypter decrypter = CryptoUtils.getFileDecrypter(cryptoService, Scope.WAL, input);
         log.debug("Using {} for decrypting WAL", cryptoService.getClass().getSimpleName());
         decryptingInput = cryptoService instanceof NoCryptoService ? input
-            : new DataInputStream(decrypter.decryptStream(input));
+            : new DataInputStream(decrypter.decryptStream(input)) {
+              @Override
+              public void close() throws IOException {
+                super.close();
+                try {
+                  decrypter.close();
+                } catch (Exception e) {
+                  throw new IOException("Error closing FileDecrypter", e);
+                }
+                try {
+                  cryptoService.close();
+                } catch (Exception e) {
+                  throw new IOException("Error closing CryptoService", e);
+                }
+              }
+            };
       } else if (Arrays.equals(magicBuffer, magic3)) {
         // Read logs files from Accumulo 1.9
         String cryptoModuleClassname = input.readUTF();
@@ -434,7 +450,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
       log.debug("Using {} for encrypting WAL {}", cryptoService.getClass().getSimpleName(),
           filename);
       CryptoEnvironment env = new CryptoEnvironmentImpl(Scope.WAL, null);
-      FileEncrypter encrypter = cryptoService.getFileEncrypter(env);
+      encrypter = cryptoService.getFileEncrypter(env);
       byte[] cryptoParams = encrypter.getDecryptionParameters();
       CryptoUtils.writeParams(cryptoParams, logFile);
 
@@ -460,6 +476,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
         logFile.close();
       logFile = null;
       encryptingLogFile = null;
+      encrypter.close();
       throw new IOException(ex);
     }
 
@@ -533,13 +550,18 @@ public class DfsLogger implements Comparable<DfsLogger> {
       throw new IllegalStateException("WAL work queue not empty after sync thread exited");
     }
 
-    if (encryptingLogFile != null)
+    if (encryptingLogFile != null) {
       try {
         logFile.close();
       } catch (IOException ex) {
         log.error("Failed to close log file", ex);
         throw new LogClosedException();
       }
+    }
+
+    if (encrypter != null) {
+      encrypter.close();
+    }
   }
 
   public synchronized long getWrites() {

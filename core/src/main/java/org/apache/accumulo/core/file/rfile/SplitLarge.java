@@ -78,40 +78,39 @@ public class SplitLarge implements KeywordExecutable {
 
     for (String file : opts.files) {
       AccumuloConfiguration aconf = opts.getSiteConfiguration();
-      CryptoService cryptoService =
-          CryptoServiceFactory.newInstance(aconf, CryptoServiceFactory.ClassloaderType.JAVA);
-      Path path = new Path(file);
-      CachableBuilder cb =
-          new CachableBuilder().fsPath(fs, path).conf(conf).cryptoService(cryptoService);
-      try (Reader iter = new RFile.Reader(cb)) {
+      try (CryptoService cryptoService =
+          CryptoServiceFactory.newInstance(aconf, CryptoServiceFactory.ClassloaderType.JAVA)) {
+        Path path = new Path(file);
+        CachableBuilder cb =
+            new CachableBuilder().fsPath(fs, path).conf(conf).cryptoService(cryptoService);
+        try (Reader iter = new RFile.Reader(cb)) {
 
-        if (!file.endsWith(".rf")) {
-          throw new IllegalArgumentException("File must end with .rf");
-        }
-        String smallName = file.substring(0, file.length() - 3) + "_small.rf";
-        String largeName = file.substring(0, file.length() - 3) + "_large.rf";
+          if (!file.endsWith(".rf")) {
+            throw new IllegalArgumentException("File must end with .rf");
+          }
+          String smallName = file.substring(0, file.length() - 3) + "_small.rf";
+          String largeName = file.substring(0, file.length() - 3) + "_large.rf";
 
-        int blockSize = (int) aconf.getAsBytes(Property.TABLE_FILE_BLOCK_SIZE);
-        try (
-            Writer small = new RFile.Writer(
-                new BCFile.Writer(fs.create(new Path(smallName)), null, "gz", conf, cryptoService),
-                blockSize);
-            Writer large = new RFile.Writer(
-                new BCFile.Writer(fs.create(new Path(largeName)), null, "gz", conf, cryptoService),
-                blockSize)) {
-          small.startDefaultLocalityGroup();
-          large.startDefaultLocalityGroup();
+          int blockSize = (int) aconf.getAsBytes(Property.TABLE_FILE_BLOCK_SIZE);
+          try (
+              Writer small = new RFile.Writer(new BCFile.Writer(fs.create(new Path(smallName)),
+                  null, "gz", conf, cryptoService), blockSize);
+              Writer large = new RFile.Writer(new BCFile.Writer(fs.create(new Path(largeName)),
+                  null, "gz", conf, cryptoService), blockSize)) {
+            small.startDefaultLocalityGroup();
+            large.startDefaultLocalityGroup();
 
-          iter.seek(new Range(), new ArrayList<>(), false);
-          while (iter.hasTop()) {
-            Key key = iter.getTopKey();
-            Value value = iter.getTopValue();
-            if (key.getSize() + value.getSize() < opts.maxSize) {
-              small.append(key, value);
-            } else {
-              large.append(key, value);
+            iter.seek(new Range(), new ArrayList<>(), false);
+            while (iter.hasTop()) {
+              Key key = iter.getTopKey();
+              Value value = iter.getTopValue();
+              if (key.getSize() + value.getSize() < opts.maxSize) {
+                small.append(key, value);
+              } else {
+                large.append(key, value);
+              }
+              iter.next();
             }
-            iter.next();
           }
         }
       }

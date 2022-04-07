@@ -43,6 +43,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -105,15 +106,15 @@ public class BulkImportMonitoringIT extends ConfigurableMacBase {
           fs.mkdirs(bulkFailures);
           fs.mkdirs(files);
           for (int i1 = 0; i1 < 10; i1++) {
-            FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
-                .forFile(files + "/bulk_" + i1 + "." + RFile.EXTENSION, fs, fs.getConf(),
-                    CryptoServiceFactory.newDefaultInstance())
-                .withTableConfiguration(DefaultConfiguration.getInstance()).build();
-            writer.startDefaultLocalityGroup();
-            for (int j = 0x100; j < 0xfff; j += 3) {
-              writer.append(new Key(Integer.toHexString(j)), new Value());
+            try (CryptoService svc = CryptoServiceFactory.newDefaultInstance();
+                FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
+                    .forFile(files + "/bulk_" + i1 + "." + RFile.EXTENSION, fs, fs.getConf(), svc)
+                    .withTableConfiguration(DefaultConfiguration.getInstance()).build()) {
+              writer.startDefaultLocalityGroup();
+              for (int j = 0x100; j < 0xfff; j += 3) {
+                writer.append(new Key(Integer.toHexString(j)), new Value());
+              }
             }
-            writer.close();
           }
           return new Pair<>(files.toString(), bulkFailures.toString());
         }));

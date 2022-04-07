@@ -46,6 +46,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.datasketches.quantiles.ItemsSketch;
@@ -259,23 +260,25 @@ public class GenerateSplits implements KeywordExecutable {
    */
   private TreeSet<String> getIndexKeys(AccumuloConfiguration accumuloConf, Configuration hadoopConf,
       FileSystem fs, List<Path> files, int requestedNumSplits, boolean base64encode)
-      throws IOException {
+      throws Exception {
     Text[] splitArray;
     List<SortedKeyValueIterator<Key,Value>> readers = new ArrayList<>(files.size());
     List<FileSKVIterator> fileReaders = new ArrayList<>(files.size());
-    try {
-      for (Path file : files) {
-        FileSKVIterator reader = FileOperations.getInstance().newIndexReaderBuilder()
-            .forFile(file.toString(), fs, hadoopConf, CryptoServiceFactory.newDefaultInstance())
-            .withTableConfiguration(accumuloConf).build();
-        readers.add(reader);
-        fileReaders.add(reader);
-      }
-      var iterator = new MultiIterator(readers, true);
-      splitArray = getQuantiles(iterator, requestedNumSplits);
-    } finally {
-      for (var r : fileReaders) {
-        r.close();
+    try (CryptoService cs = CryptoServiceFactory.newDefaultInstance()) {
+      try {
+        for (Path file : files) {
+          FileSKVIterator reader = FileOperations.getInstance().newIndexReaderBuilder()
+              .forFile(file.toString(), fs, hadoopConf, cs).withTableConfiguration(accumuloConf)
+              .build();
+          readers.add(reader);
+          fileReaders.add(reader);
+        }
+        var iterator = new MultiIterator(readers, true);
+        splitArray = getQuantiles(iterator, requestedNumSplits);
+      } finally {
+        for (var r : fileReaders) {
+          r.close();
+        }
       }
     }
 
@@ -286,26 +289,28 @@ public class GenerateSplits implements KeywordExecutable {
 
   private TreeSet<String> getSplitsFromFullScan(SiteConfiguration accumuloConf,
       Configuration hadoopConf, List<Path> files, FileSystem fs, int numSplits,
-      boolean base64encode) throws IOException {
+      boolean base64encode) throws Exception {
     Text[] splitArray;
     List<FileSKVIterator> fileReaders = new ArrayList<>(files.size());
     List<SortedKeyValueIterator<Key,Value>> readers = new ArrayList<>(files.size());
     SortedKeyValueIterator<Key,Value> iterator;
 
-    try {
-      for (Path file : files) {
-        FileSKVIterator reader = FileOperations.getInstance().newScanReaderBuilder()
-            .forFile(file.toString(), fs, hadoopConf, CryptoServiceFactory.newDefaultInstance())
-            .withTableConfiguration(accumuloConf).overRange(new Range(), Set.of(), false).build();
-        readers.add(reader);
-        fileReaders.add(reader);
-      }
-      iterator = new MultiIterator(readers, false);
-      iterator.seek(new Range(), Collections.emptySet(), false);
-      splitArray = getQuantiles(iterator, numSplits);
-    } finally {
-      for (var r : fileReaders) {
-        r.close();
+    try (CryptoService cs = CryptoServiceFactory.newDefaultInstance()) {
+      try {
+        for (Path file : files) {
+          FileSKVIterator reader = FileOperations.getInstance().newScanReaderBuilder()
+              .forFile(file.toString(), fs, hadoopConf, cs).withTableConfiguration(accumuloConf)
+              .overRange(new Range(), Set.of(), false).build();
+          readers.add(reader);
+          fileReaders.add(reader);
+        }
+        iterator = new MultiIterator(readers, false);
+        iterator.seek(new Range(), Collections.emptySet(), false);
+        splitArray = getQuantiles(iterator, numSplits);
+      } finally {
+        for (var r : fileReaders) {
+          r.close();
+        }
       }
     }
 
@@ -319,38 +324,40 @@ public class GenerateSplits implements KeywordExecutable {
    */
   private TreeSet<String> getSplitsBySize(AccumuloConfiguration accumuloConf,
       Configuration hadoopConf, List<Path> files, FileSystem fs, long splitSize,
-      boolean base64encode) throws IOException {
+      boolean base64encode) throws Exception {
     long currentSplitSize = 0;
     long totalSize = 0;
     TreeSet<String> splits = new TreeSet<>();
     List<FileSKVIterator> fileReaders = new ArrayList<>(files.size());
     List<SortedKeyValueIterator<Key,Value>> readers = new ArrayList<>(files.size());
     SortedKeyValueIterator<Key,Value> iterator;
-    try {
-      for (Path file : files) {
-        FileSKVIterator reader = FileOperations.getInstance().newScanReaderBuilder()
-            .forFile(file.toString(), fs, hadoopConf, CryptoServiceFactory.newDefaultInstance())
-            .withTableConfiguration(accumuloConf).overRange(new Range(), Set.of(), false).build();
-        readers.add(reader);
-        fileReaders.add(reader);
-      }
-      iterator = new MultiIterator(readers, false);
-      iterator.seek(new Range(), Collections.emptySet(), false);
-      while (iterator.hasTop()) {
-        Key key = iterator.getTopKey();
-        Value val = iterator.getTopValue();
-        int size = key.getSize() + val.getSize();
-        currentSplitSize += size;
-        totalSize += size;
-        if (currentSplitSize > splitSize) {
-          splits.add(encode(base64encode, key.getRow()));
-          currentSplitSize = 0;
+    try (CryptoService cs = CryptoServiceFactory.newDefaultInstance()) {
+      try {
+        for (Path file : files) {
+          FileSKVIterator reader = FileOperations.getInstance().newScanReaderBuilder()
+              .forFile(file.toString(), fs, hadoopConf, cs).withTableConfiguration(accumuloConf)
+              .overRange(new Range(), Set.of(), false).build();
+          readers.add(reader);
+          fileReaders.add(reader);
         }
-        iterator.next();
-      }
-    } finally {
-      for (var r : fileReaders) {
-        r.close();
+        iterator = new MultiIterator(readers, false);
+        iterator.seek(new Range(), Collections.emptySet(), false);
+        while (iterator.hasTop()) {
+          Key key = iterator.getTopKey();
+          Value val = iterator.getTopValue();
+          int size = key.getSize() + val.getSize();
+          currentSplitSize += size;
+          totalSize += size;
+          if (currentSplitSize > splitSize) {
+            splits.add(encode(base64encode, key.getRow()));
+            currentSplitSize = 0;
+          }
+          iterator.next();
+        }
+      } finally {
+        for (var r : fileReaders) {
+          r.close();
+        }
       }
     }
 

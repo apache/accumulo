@@ -40,6 +40,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.server.MockServerContext;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -115,32 +116,33 @@ public class BulkImporterTest {
     EasyMock.replay(context);
     String file = "target/testFile.rf";
     fs.delete(new Path(file), true);
-    FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
-        .forFile(file, fs, fs.getConf(), CryptoServiceFactory.newDefaultInstance())
-        .withTableConfiguration(context.getConfiguration()).build();
-    writer.startDefaultLocalityGroup();
-    Value empty = new Value();
-    writer.append(new Key("a", "cf", "cq"), empty);
-    writer.append(new Key("a", "cf", "cq1"), empty);
-    writer.append(new Key("a", "cf", "cq2"), empty);
-    writer.append(new Key("a", "cf", "cq3"), empty);
-    writer.append(new Key("a", "cf", "cq4"), empty);
-    writer.append(new Key("a", "cf", "cq5"), empty);
-    writer.append(new Key("d", "cf", "cq"), empty);
-    writer.append(new Key("d", "cf", "cq1"), empty);
-    writer.append(new Key("d", "cf", "cq2"), empty);
-    writer.append(new Key("d", "cf", "cq3"), empty);
-    writer.append(new Key("d", "cf", "cq4"), empty);
-    writer.append(new Key("d", "cf", "cq5"), empty);
-    writer.append(new Key("dd", "cf", "cq1"), empty);
-    writer.append(new Key("ichabod", "cf", "cq"), empty);
-    writer.append(new Key("icky", "cf", "cq1"), empty);
-    writer.append(new Key("iffy", "cf", "cq2"), empty);
-    writer.append(new Key("internal", "cf", "cq3"), empty);
-    writer.append(new Key("is", "cf", "cq4"), empty);
-    writer.append(new Key("iterator", "cf", "cq5"), empty);
-    writer.append(new Key("xyzzy", "cf", "cq"), empty);
-    writer.close();
+    try (CryptoService svc = CryptoServiceFactory.newDefaultInstance();
+        FileSKVWriter writer =
+            FileOperations.getInstance().newWriterBuilder().forFile(file, fs, fs.getConf(), svc)
+                .withTableConfiguration(context.getConfiguration()).build()) {
+      writer.startDefaultLocalityGroup();
+      Value empty = new Value();
+      writer.append(new Key("a", "cf", "cq"), empty);
+      writer.append(new Key("a", "cf", "cq1"), empty);
+      writer.append(new Key("a", "cf", "cq2"), empty);
+      writer.append(new Key("a", "cf", "cq3"), empty);
+      writer.append(new Key("a", "cf", "cq4"), empty);
+      writer.append(new Key("a", "cf", "cq5"), empty);
+      writer.append(new Key("d", "cf", "cq"), empty);
+      writer.append(new Key("d", "cf", "cq1"), empty);
+      writer.append(new Key("d", "cf", "cq2"), empty);
+      writer.append(new Key("d", "cf", "cq3"), empty);
+      writer.append(new Key("d", "cf", "cq4"), empty);
+      writer.append(new Key("d", "cf", "cq5"), empty);
+      writer.append(new Key("dd", "cf", "cq1"), empty);
+      writer.append(new Key("ichabod", "cf", "cq"), empty);
+      writer.append(new Key("icky", "cf", "cq1"), empty);
+      writer.append(new Key("iffy", "cf", "cq2"), empty);
+      writer.append(new Key("internal", "cf", "cq3"), empty);
+      writer.append(new Key("is", "cf", "cq4"), empty);
+      writer.append(new Key("iterator", "cf", "cq5"), empty);
+      writer.append(new Key("xyzzy", "cf", "cq"), empty);
+    }
     try (var vm = VolumeManagerImpl.getLocalForTesting("file:///")) {
       List<TabletLocation> overlaps =
           BulkImporter.findOverlappingTablets(context, vm, locator, new Path(file));

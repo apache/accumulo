@@ -28,7 +28,7 @@ import java.util.Map;
  * @since 2.0
  * @see org.apache.accumulo.core.spi
  */
-public interface CryptoService {
+public interface CryptoService extends AutoCloseable {
 
   /**
    * Initialize CryptoService. This is called once at Tablet Server startup.

@@ -55,8 +55,6 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
-import org.apache.accumulo.core.crypto.CryptoTest;
-import org.apache.accumulo.core.crypto.CryptoTest.ConfigMode;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -83,6 +81,9 @@ import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheType;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.spi.crypto.CryptoTest;
+import org.apache.accumulo.core.spi.crypto.CryptoTest.ConfigMode;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -1706,55 +1707,55 @@ public class RFileTest {
     aconf.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(100000000));
     BlockCacheManager manager = BlockCacheManagerFactory.getInstance(aconf);
     manager.start(new BlockCacheConfiguration(aconf));
-    CachableBuilder cb =
-        new CachableBuilder().input(in2, "cache-1").length(data.length).conf(hadoopConf)
-            .cryptoService(CryptoServiceFactory.newInstance(aconf, ClassloaderType.JAVA))
-            .cacheProvider(new BasicCacheProvider(manager.getBlockCache(CacheType.INDEX),
-                manager.getBlockCache(CacheType.DATA)));
-    Reader reader = new RFile.Reader(cb);
-    checkIndex(reader);
+    try (CryptoService cs = CryptoServiceFactory.newInstance(aconf, ClassloaderType.JAVA)) {
+      CachableBuilder cb = new CachableBuilder().input(in2, "cache-1").length(data.length)
+          .conf(hadoopConf).cryptoService(cs).cacheProvider(new BasicCacheProvider(
+              manager.getBlockCache(CacheType.INDEX), manager.getBlockCache(CacheType.DATA)));
+      Reader reader = new RFile.Reader(cb);
+      checkIndex(reader);
 
-    ColumnFamilySkippingIterator iter = new ColumnFamilySkippingIterator(reader);
+      ColumnFamilySkippingIterator iter = new ColumnFamilySkippingIterator(reader);
 
-    for (int start : new int[] {0, 10, 100, 998}) {
-      for (int cf = 1; cf <= 4; cf++) {
+      for (int start : new int[] {0, 10, 100, 998}) {
+        for (int cf = 1; cf <= 4; cf++) {
+          if (start == 0)
+            iter.seek(new Range(), newColFamByteSequence(formatString("cf_", cf)), true);
+          else
+            iter.seek(new Range(formatString("r_", start), null),
+                newColFamByteSequence(formatString("cf_", cf)), true);
+
+          for (int i = start; i < 1000; i++) {
+            assertTrue(iter.hasTop());
+            assertEquals(newKey(formatString("r_", i), formatString("cf_", cf),
+                formatString("cq_", 0), "", 1000 - i), iter.getTopKey());
+            assertEquals(newValue(i + ""), iter.getTopValue());
+            iter.next();
+          }
+
+          assertFalse(iter.hasTop());
+        }
+
         if (start == 0)
-          iter.seek(new Range(), newColFamByteSequence(formatString("cf_", cf)), true);
+          iter.seek(new Range(), newColFamByteSequence(), false);
         else
-          iter.seek(new Range(formatString("r_", start), null),
-              newColFamByteSequence(formatString("cf_", cf)), true);
+          iter.seek(new Range(formatString("r_", start), null), newColFamByteSequence(), false);
 
         for (int i = start; i < 1000; i++) {
-          assertTrue(iter.hasTop());
-          assertEquals(newKey(formatString("r_", i), formatString("cf_", cf),
-              formatString("cq_", 0), "", 1000 - i), iter.getTopKey());
-          assertEquals(newValue(i + ""), iter.getTopValue());
-          iter.next();
+          for (int cf = 1; cf <= 4; cf++) {
+            assertTrue(iter.hasTop());
+            assertEquals(newKey(formatString("r_", i), formatString("cf_", cf),
+                formatString("cq_", 0), "", 1000 - i), iter.getTopKey());
+            assertEquals(newValue(i + ""), iter.getTopValue());
+            iter.next();
+          }
         }
 
         assertFalse(iter.hasTop());
       }
 
-      if (start == 0)
-        iter.seek(new Range(), newColFamByteSequence(), false);
-      else
-        iter.seek(new Range(formatString("r_", start), null), newColFamByteSequence(), false);
-
-      for (int i = start; i < 1000; i++) {
-        for (int cf = 1; cf <= 4; cf++) {
-          assertTrue(iter.hasTop());
-          assertEquals(newKey(formatString("r_", i), formatString("cf_", cf),
-              formatString("cq_", 0), "", 1000 - i), iter.getTopKey());
-          assertEquals(newValue(i + ""), iter.getTopValue());
-          iter.next();
-        }
-      }
-
-      assertFalse(iter.hasTop());
+      manager.stop();
+      reader.close();
     }
-
-    manager.stop();
-    reader.close();
   }
 
   private ConfigurationCopy getAccumuloConfig(ConfigMode configMode) {

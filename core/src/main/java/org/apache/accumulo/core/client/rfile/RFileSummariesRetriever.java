@@ -90,9 +90,8 @@ class RFileSummariesRetriever implements SummaryInputArguments, SummaryFSOptions
     config.forEach(acuconf::set);
 
     RFileSource[] sources = in.getSources();
-    try {
+    try (CryptoService cservice = CryptoServiceFactory.newInstance(acuconf, ClassloaderType.JAVA)) {
       SummaryCollection all = new SummaryCollection();
-      CryptoService cservice = CryptoServiceFactory.newInstance(acuconf, ClassloaderType.JAVA);
       for (int i = 0; i < sources.length; i++) {
         SummaryReader fileSummary = SummaryReader.load(in.getFileSystem().getConf(), sources[i],
             "source-" + i, summarySelector, factory, cservice);
@@ -101,6 +100,8 @@ class RFileSummariesRetriever implements SummaryInputArguments, SummaryFSOptions
         all.merge(sc, factory);
       }
       return all.getSummaries();
+    } catch (Exception e) {
+      throw new IOException("Error closing CryptoService", e);
     } finally {
       for (RFileSource source : sources) {
         source.getInputStream().close();

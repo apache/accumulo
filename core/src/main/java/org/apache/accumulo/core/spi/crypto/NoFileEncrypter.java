@@ -20,6 +20,7 @@ package org.apache.accumulo.core.spi.crypto;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.IOException;
 import java.io.OutputStream;
 
 public class NoFileEncrypter implements FileEncrypter {
@@ -34,4 +35,7 @@ public class NoFileEncrypter implements FileEncrypter {
   public byte[] getDecryptionParameters() {
     return NoCryptoService.VERSION.getBytes(UTF_8);
   }
+
+  @Override
+  public void close() throws IOException {}
 }

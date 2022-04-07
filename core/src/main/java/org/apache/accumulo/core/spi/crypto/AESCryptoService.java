@@ -46,15 +46,18 @@ import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import javax.security.auth.DestroyFailedException;
 
 import org.apache.accumulo.core.crypto.streams.BlockedInputStream;
 import org.apache.accumulo.core.crypto.streams.BlockedOutputStream;
 import org.apache.accumulo.core.crypto.streams.DiscardCloseOutputStream;
 import org.apache.accumulo.core.crypto.streams.RFileCipherOutputStream;
 import org.apache.commons.io.IOUtils;
+import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -76,11 +79,11 @@ public class AESCryptoService implements CryptoService {
   private static final String KEY_WRAP_TRANSFORM = "AESWrap";
   private static final SecureRandom random = new SecureRandom();
 
-  private Key encryptingKek = null;
+  private SecretKeySpec encryptingKek = null;
   private String keyLocation = null;
   private String keyManager = null;
   // Lets just load keks for reading once
-  private HashMap<String,Key> decryptingKeys = null;
+  private HashMap<String,SecretKeySpec> decryptingKeys = null;
   private boolean encryptEnabled = true;
 
   private static final FileEncrypter DISABLED = new NoFileEncrypter();
@@ -136,19 +139,23 @@ public class AESCryptoService implements CryptoService {
     if (decryptionParams == null || checkNoCrypto(decryptionParams))
       return new NoFileDecrypter();
 
-    ParsedCryptoParameters parsed = parseCryptoParameters(decryptionParams);
-    Key kek = loadDecryptionKek(parsed);
-    Key fek = unwrapKey(parsed.getEncFek(), kek);
-    switch (parsed.getCryptoServiceVersion()) {
-      case AESCBCCryptoModule.VERSION:
-        cm = new AESCBCCryptoModule(this.encryptingKek, this.keyLocation, this.keyManager);
-        return cm.getDecrypter(fek);
-      case AESGCMCryptoModule.VERSION:
-        cm = new AESGCMCryptoModule(this.encryptingKek, this.keyLocation, this.keyManager);
-        return cm.getDecrypter(fek);
-      default:
-        throw new CryptoException(
-            "Unknown crypto module version: " + parsed.getCryptoServiceVersion());
+    try (ParsedCryptoParameters parsed = parseCryptoParameters(decryptionParams)) {
+      Key kek = loadDecryptionKek(parsed);
+      SecretKey fek = unwrapKey(parsed.getEncFek(), kek);
+      switch (parsed.getCryptoServiceVersion()) {
+        case AESCBCCryptoModule.VERSION:
+          cm = new AESCBCCryptoModule(this.encryptingKek, this.keyLocation, this.keyManager);
+          return cm.getDecrypter(fek);
+        case AESGCMCryptoModule.VERSION:
+          cm = new AESGCMCryptoModule(this.encryptingKek, this.keyLocation, this.keyManager);
+          return cm.getDecrypter(fek);
+        default:
+          throw new CryptoException(
+              "Unknown crypto module version: " + parsed.getCryptoServiceVersion());
+      }
+    } catch (Exception e) {
+      // ParsedCryptoParameters.close declares an Exception
+      throw new CryptoException("Error closing ParsedCryptoParameters");
     }
   }
 
@@ -157,7 +164,7 @@ public class AESCryptoService implements CryptoService {
     return Arrays.equals(params, noCryptoBytes);
   }
 
-  static class ParsedCryptoParameters {
+  static class ParsedCryptoParameters implements AutoCloseable {
     String cryptoServiceName;
     String cryptoServiceVersion;
     String keyManagerVersion;
@@ -200,6 +207,15 @@ public class AESCryptoService implements CryptoService {
       this.encFek = encFek;
     }
 
+    @Override
+    public void close() throws Exception {
+      cryptoServiceName = null;
+      cryptoServiceVersion = null;
+      keyManagerVersion = null;
+      kekId = null;
+      Arrays.fill(encFek, (byte) 0);
+    }
+
   }
 
   private static byte[] createCryptoParameters(String version, Key encryptingKek,
@@ -213,8 +229,12 @@ public class AESCryptoService implements CryptoService {
       params.writeUTF(encryptingKeyManager);
       params.writeUTF(encryptingKekId);
       byte[] wrappedFek = wrapKey(fek, encryptingKek);
-      params.writeInt(wrappedFek.length);
-      params.write(wrappedFek);
+      try {
+        params.writeInt(wrappedFek.length);
+        params.write(wrappedFek);
+      } finally {
+        Arrays.fill(wrappedFek, (byte) 0);
+      }
 
       bytes = baos.toByteArray();
     } catch (IOException e) {
@@ -244,7 +264,7 @@ public class AESCryptoService implements CryptoService {
   }
 
   private Key loadDecryptionKek(ParsedCryptoParameters params) {
-    Key ret = null;
+    SecretKeySpec ret = null;
     String keyTag = params.getKeyManagerVersion() + "!" + params.getKekId();
     if (this.decryptingKeys.get(keyTag) != null) {
       return this.decryptingKeys.get(keyTag);
@@ -257,11 +277,10 @@ public class AESCryptoService implements CryptoService {
       default:
         throw new CryptoException("Unable to load kek: " + params.kekId);
     }
-
-    this.decryptingKeys.put(keyTag, ret);
-
     if (ret == null)
       throw new CryptoException("Unable to load decryption KEK");
+
+    this.decryptingKeys.put(keyTag, ret);
 
     return ret;
   }
@@ -273,7 +292,7 @@ public class AESCryptoService implements CryptoService {
   private interface CryptoModule {
     FileEncrypter getEncrypter();
 
-    FileDecrypter getDecrypter(Key fek);
+    FileDecrypter getDecrypter(SecretKey fek);
   }
 
   public class AESGCMCryptoModule implements CryptoModule {
@@ -302,14 +321,14 @@ public class AESCryptoService implements CryptoService {
     }
 
     @Override
-    public FileDecrypter getDecrypter(Key fek) {
+    public FileDecrypter getDecrypter(SecretKey fek) {
       return new AESGCMFileDecrypter(fek);
     }
 
     public class AESGCMFileEncrypter implements FileEncrypter {
 
       private final byte[] firstInitVector;
-      private final Key fek;
+      private final SecretKeySpec fek;
       private final byte[] initVector = new byte[GCM_IV_LENGTH_IN_BYTES];
 
       AESGCMFileEncrypter() {
@@ -383,12 +402,22 @@ public class AESCryptoService implements CryptoService {
       public byte[] getDecryptionParameters() {
         return createCryptoParameters(VERSION, encryptingKek, keyLocation, keyManager, fek);
       }
+
+      @Override
+      public void close() throws IOException {
+        try {
+          fek.destroy();
+        } catch (DestroyFailedException e) {
+          LoggerFactory.getLogger(AESCryptoService.class)
+              .warn("SecretKeySpec.destroy failed for type: {}", fek.getClass().getSimpleName());
+        }
+      }
     }
 
     public class AESGCMFileDecrypter implements FileDecrypter {
-      private final Key fek;
+      private final SecretKey fek;
 
-      AESGCMFileDecrypter(Key fek) {
+      AESGCMFileDecrypter(SecretKey fek) {
         this.fek = fek;
       }
 
@@ -415,6 +444,16 @@ public class AESCryptoService implements CryptoService {
         CipherInputStream cis = new CipherInputStream(inputStream, cipher);
         return new BlockedInputStream(cis, cipher.getBlockSize(), 1024);
       }
+
+      @Override
+      public void close() throws IOException {
+        try {
+          fek.destroy();
+        } catch (DestroyFailedException e) {
+          LoggerFactory.getLogger(AESCryptoService.class)
+              .warn("SecretKeySpec.destroy failed for type: {}", fek.getClass().getSimpleName());
+        }
+      }
     }
   }
 
@@ -439,14 +478,14 @@ public class AESCryptoService implements CryptoService {
     }
 
     @Override
-    public FileDecrypter getDecrypter(Key fek) {
+    public FileDecrypter getDecrypter(SecretKey fek) {
       return new AESCBCFileDecrypter(fek);
     }
 
     @SuppressFBWarnings(value = "CIPHER_INTEGRITY", justification = "CBC is provided for WALs")
     public class AESCBCFileEncrypter implements FileEncrypter {
 
-      private Key fek = generateKey(random, KEY_LENGTH_IN_BYTES);
+      private SecretKeySpec fek = generateKey(random, KEY_LENGTH_IN_BYTES);
       private byte[] initVector = new byte[IV_LENGTH_IN_BYTES];
 
       @Override
@@ -476,13 +515,23 @@ public class AESCryptoService implements CryptoService {
       public byte[] getDecryptionParameters() {
         return createCryptoParameters(VERSION, encryptingKek, keyLocation, keyManager, fek);
       }
+
+      @Override
+      public void close() throws IOException {
+        try {
+          fek.destroy();
+        } catch (DestroyFailedException e) {
+          LoggerFactory.getLogger(AESCryptoService.class)
+              .warn("SecretKeySpec.destroy failed for type: {}", fek.getClass().getSimpleName());
+        }
+      }
     }
 
     @SuppressFBWarnings(value = "CIPHER_INTEGRITY", justification = "CBC is provided for WALs")
     public class AESCBCFileDecrypter implements FileDecrypter {
-      private final Key fek;
+      private final SecretKey fek;
 
-      AESCBCFileDecrypter(Key fek) {
+      AESCBCFileDecrypter(SecretKey fek) {
         this.fek = fek;
       }
 
@@ -507,57 +556,90 @@ public class AESCryptoService implements CryptoService {
         CipherInputStream cis = new CipherInputStream(inputStream, cipher);
         return new BlockedInputStream(cis, cipher.getBlockSize(), 1024);
       }
+
+      @Override
+      public void close() throws IOException {
+        try {
+          fek.destroy();
+        } catch (DestroyFailedException e) {
+          LoggerFactory.getLogger(AESCryptoService.class)
+              .warn("SecretKeySpec.destroy failed for type: {}", fek.getClass().getSimpleName());
+        }
+      }
     }
   }
 
-  public static Key generateKey(SecureRandom random, int size) {
+  /**
+   * Generates an AES SecretKeySpec object
+   *
+   * @param random
+   *          SecureRandom instance
+   * @param size
+   *          number of bytes for the key
+   * @return SecretKeySpec object, caller needs to call clear() when done with it.
+   */
+  static SecretKeySpec generateKey(SecureRandom random, int size) {
     byte[] bytes = new byte[size];
-    random.nextBytes(bytes);
-    return new SecretKeySpec(bytes, "AES");
+    try {
+      random.nextBytes(bytes);
+      return new SecretKeySpec(bytes, "AES");
+    } finally {
+      // SecretKeySpec copies the input byte[], clear the original
+      Arrays.fill(bytes, (byte) 0);
+    }
   }
 
   @SuppressFBWarnings(value = "CIPHER_INTEGRITY",
       justification = "integrity not needed for key wrap")
-  public static Key unwrapKey(byte[] fek, Key kek) {
-    Key result = null;
+  static SecretKey unwrapKey(byte[] fek, Key kek) {
     try {
       Cipher c = Cipher.getInstance(KEY_WRAP_TRANSFORM);
       c.init(Cipher.UNWRAP_MODE, kek);
-      result = c.unwrap(fek, "AES", Cipher.SECRET_KEY);
+      return (SecretKey) c.unwrap(fek, "AES", Cipher.SECRET_KEY);
     } catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException e) {
       throw new CryptoException("Unable to unwrap file encryption key", e);
     }
-    return result;
   }
 
   @SuppressFBWarnings(value = "CIPHER_INTEGRITY",
       justification = "integrity not needed for key wrap")
-  public static byte[] wrapKey(Key fek, Key kek) {
-    byte[] result = null;
+  static byte[] wrapKey(Key fek, Key kek) {
     try {
       Cipher c = Cipher.getInstance(KEY_WRAP_TRANSFORM);
       c.init(Cipher.WRAP_MODE, kek);
-      result = c.wrap(fek);
+      return c.wrap(fek);
     } catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException
         | IllegalBlockSizeException e) {
       throw new CryptoException("Unable to wrap file encryption key", e);
     }
-
-    return result;
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "keyId specified by admin")
-  public static Key loadKekFromUri(String keyId) {
-    java.net.URI uri;
-    SecretKeySpec key = null;
+  static SecretKeySpec loadKekFromUri(String keyId) {
     try {
-      uri = new URI(keyId);
-      key = new SecretKeySpec(Files.readAllBytes(Paths.get(uri.getPath())), "AES");
+      java.net.URI uri = new URI(keyId);
+      return new SecretKeySpec(Files.readAllBytes(Paths.get(uri.getPath())), "AES");
     } catch (URISyntaxException | IOException | IllegalArgumentException e) {
       throw new CryptoException("Unable to load key encryption key.", e);
     }
+  }
 
-    return key;
-
+  @Override
+  public void close() throws Exception {
+    try {
+      this.encryptingKek.destroy();
+    } catch (DestroyFailedException e) {
+      LoggerFactory.getLogger(AESCryptoService.class).warn(
+          "SecretKeySpec.destroy failed for type: {}",
+          this.encryptingKek.getClass().getSimpleName());
+    }
+    this.decryptingKeys.values().forEach(k -> {
+      try {
+        k.destroy();
+      } catch (DestroyFailedException e) {
+        LoggerFactory.getLogger(AESCryptoService.class)
+            .warn("SecretKeySpec.destroy failed for type: {}", k.getClass().getSimpleName());
+      }
+    });
   }
 }

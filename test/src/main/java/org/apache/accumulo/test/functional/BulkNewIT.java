@@ -65,6 +65,7 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.MemoryUnit;
@@ -568,9 +569,9 @@ public class BulkNewIT extends SharedMiniClusterBase {
       throws Exception {
     FileSystem fs = getCluster().getFileSystem();
     String filename = file + RFile.EXTENSION;
-    try (FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
-        .forFile(filename, fs, fs.getConf(), CryptoServiceFactory.newDefaultInstance())
-        .withTableConfiguration(aconf).build()) {
+    try (CryptoService cs = CryptoServiceFactory.newDefaultInstance();
+        FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
+            .forFile(filename, fs, fs.getConf(), cs).withTableConfiguration(aconf).build()) {
       writer.startDefaultLocalityGroup();
       for (int i = s; i <= e; i++) {
         writer.append(new Key(new Text(row(i))), new Value(Integer.toString(i)));

@@ -20,7 +20,6 @@ package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.IOException;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Random;
@@ -52,6 +51,7 @@ import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
@@ -251,7 +251,7 @@ public class TestIngest {
   }
 
   public static void ingest(AccumuloClient accumuloClient, FileSystem fs, IngestParams params)
-      throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      throws Exception, AccumuloException, AccumuloSecurityException, TableNotFoundException,
       MutationsRejectedException, TableExistsException {
     long stopTime;
 
@@ -266,138 +266,138 @@ public class TestIngest {
     BatchWriter bw = null;
     FileSKVWriter writer = null;
 
-    if (params.outputFile != null) {
-      ClientContext cc = (ClientContext) accumuloClient;
-      writer = FileOperations.getInstance().newWriterBuilder()
-          .forFile(params.outputFile + "." + RFile.EXTENSION, fs, cc.getHadoopConf(),
-              CryptoServiceFactory.newDefaultInstance())
-          .withTableConfiguration(DefaultConfiguration.getInstance()).build();
-      writer.startDefaultLocalityGroup();
-    } else {
-      bw = accumuloClient.createBatchWriter(params.tableName);
-      String principal = ClientProperty.AUTH_PRINCIPAL.getValue(params.clientProps);
-      accumuloClient.securityOperations().changeUserAuthorizations(principal, AUTHS);
-    }
-    Text labBA = new Text(params.columnVisibility.getExpression());
-
-    long startTime = System.currentTimeMillis();
-    for (int i = 0; i < params.rows; i++) {
-      int rowid;
-      if (params.stride > 0) {
-        rowid = ((i % params.stride) * (params.rows / params.stride)) + (i / params.stride);
+    try (CryptoService cs = CryptoServiceFactory.newDefaultInstance()) {
+      if (params.outputFile != null) {
+        ClientContext cc = (ClientContext) accumuloClient;
+        writer = FileOperations.getInstance().newWriterBuilder()
+            .forFile(params.outputFile + "." + RFile.EXTENSION, fs, cc.getHadoopConf(), cs)
+            .withTableConfiguration(DefaultConfiguration.getInstance()).build();
+        writer.startDefaultLocalityGroup();
       } else {
-        rowid = i;
+        bw = accumuloClient.createBatchWriter(params.tableName);
+        String principal = ClientProperty.AUTH_PRINCIPAL.getValue(params.clientProps);
+        accumuloClient.securityOperations().changeUserAuthorizations(principal, AUTHS);
       }
+      Text labBA = new Text(params.columnVisibility.getExpression());
 
-      Text row = generateRow(rowid, params.startRow);
-      Mutation m = new Mutation(row);
-      for (int j = 0; j < params.cols; j++) {
-        Text colf = new Text(params.columnFamily);
-        Text colq = new Text(FastFormat.toZeroPaddedString(j, 7, 10, COL_PREFIX));
-
-        if (writer != null) {
-          Key key = new Key(row, colf, colq, labBA);
-          if (params.timestamp >= 0) {
-            key.setTimestamp(params.timestamp);
-          } else {
-            key.setTimestamp(startTime);
-          }
-
-          if (params.delete) {
-            key.setDeleted(true);
-          } else {
-            key.setDeleted(false);
-          }
-
-          bytesWritten += key.getSize();
-
-          if (params.delete) {
-            writer.append(key, new Value());
-          } else {
-            byte[] value;
-            if (params.random != null) {
-              value = genRandomValue(randomValue, params.random, rowid + params.startRow, j);
-            } else {
-              value = bytevals[j % bytevals.length];
-            }
-
-            Value v = new Value(value);
-            writer.append(key, v);
-            bytesWritten += v.getSize();
-          }
-
+      long startTime = System.currentTimeMillis();
+      for (int i = 0; i < params.rows; i++) {
+        int rowid;
+        if (params.stride > 0) {
+          rowid = ((i % params.stride) * (params.rows / params.stride)) + (i / params.stride);
         } else {
-          Key key = new Key(row, colf, colq, labBA);
-          bytesWritten += key.getSize();
+          rowid = i;
+        }
 
-          if (params.delete) {
+        Text row = generateRow(rowid, params.startRow);
+        Mutation m = new Mutation(row);
+        for (int j = 0; j < params.cols; j++) {
+          Text colf = new Text(params.columnFamily);
+          Text colq = new Text(FastFormat.toZeroPaddedString(j, 7, 10, COL_PREFIX));
+
+          if (writer != null) {
+            Key key = new Key(row, colf, colq, labBA);
             if (params.timestamp >= 0) {
-              m.putDelete(colf, colq, params.columnVisibility, params.timestamp);
+              key.setTimestamp(params.timestamp);
             } else {
-              m.putDelete(colf, colq, params.columnVisibility);
+              key.setTimestamp(startTime);
             }
+
+            if (params.delete) {
+              key.setDeleted(true);
+            } else {
+              key.setDeleted(false);
+            }
+
+            bytesWritten += key.getSize();
+
+            if (params.delete) {
+              writer.append(key, new Value());
+            } else {
+              byte[] value;
+              if (params.random != null) {
+                value = genRandomValue(randomValue, params.random, rowid + params.startRow, j);
+              } else {
+                value = bytevals[j % bytevals.length];
+              }
+
+              Value v = new Value(value);
+              writer.append(key, v);
+              bytesWritten += v.getSize();
+            }
+
           } else {
-            byte[] value;
-            if (params.random != null) {
-              value = genRandomValue(randomValue, params.random, rowid + params.startRow, j);
-            } else {
-              value = bytevals[j % bytevals.length];
-            }
-            bytesWritten += value.length;
+            Key key = new Key(row, colf, colq, labBA);
+            bytesWritten += key.getSize();
 
-            if (params.timestamp >= 0) {
-              m.put(colf, colq, params.columnVisibility, params.timestamp, new Value(value, true));
+            if (params.delete) {
+              if (params.timestamp >= 0) {
+                m.putDelete(colf, colq, params.columnVisibility, params.timestamp);
+              } else {
+                m.putDelete(colf, colq, params.columnVisibility);
+              }
             } else {
-              m.put(colf, colq, params.columnVisibility, new Value(value, true));
+              byte[] value;
+              if (params.random != null) {
+                value = genRandomValue(randomValue, params.random, rowid + params.startRow, j);
+              } else {
+                value = bytevals[j % bytevals.length];
+              }
+              bytesWritten += value.length;
 
+              if (params.timestamp >= 0) {
+                m.put(colf, colq, params.columnVisibility, params.timestamp,
+                    new Value(value, true));
+              } else {
+                m.put(colf, colq, params.columnVisibility, new Value(value, true));
+
+              }
             }
           }
-        }
 
+        }
+        if (bw != null) {
+          bw.addMutation(m);
+        }
       }
-      if (bw != null) {
-        bw.addMutation(m);
+
+      if (writer != null) {
+        writer.close();
+      } else if (bw != null) {
+        try {
+          bw.close();
+        } catch (MutationsRejectedException e) {
+          if (!e.getSecurityErrorCodes().isEmpty()) {
+            for (Entry<TabletId,Set<SecurityErrorCode>> entry : e.getSecurityErrorCodes()
+                .entrySet()) {
+              System.err.println("ERROR : Not authorized to write to : " + entry.getKey()
+                  + " due to " + entry.getValue());
+            }
+          }
+
+          if (!e.getConstraintViolationSummaries().isEmpty()) {
+            for (ConstraintViolationSummary cvs : e.getConstraintViolationSummaries()) {
+              System.err.println("ERROR : Constraint violates : " + cvs);
+            }
+          }
+          throw e;
+        }
       }
+      stopTime = System.currentTimeMillis();
+
+      int totalValues = params.rows * params.cols;
+      double elapsed = (stopTime - startTime) / 1000.0;
+
+      System.out.printf(
+          "%,12d records written | %,8d records/sec | %,12d bytes written"
+              + " | %,8d bytes/sec | %6.3f secs   %n",
+          totalValues, (int) (totalValues / elapsed), bytesWritten, (int) (bytesWritten / elapsed),
+          elapsed);
     }
 
-    if (writer != null) {
-      writer.close();
-    } else if (bw != null) {
-      try {
-        bw.close();
-      } catch (MutationsRejectedException e) {
-        if (!e.getSecurityErrorCodes().isEmpty()) {
-          for (Entry<TabletId,Set<SecurityErrorCode>> entry : e.getSecurityErrorCodes()
-              .entrySet()) {
-            System.err.println("ERROR : Not authorized to write to : " + entry.getKey() + " due to "
-                + entry.getValue());
-          }
-        }
-
-        if (!e.getConstraintViolationSummaries().isEmpty()) {
-          for (ConstraintViolationSummary cvs : e.getConstraintViolationSummaries()) {
-            System.err.println("ERROR : Constraint violates : " + cvs);
-          }
-        }
-        throw e;
-      }
-    }
-
-    stopTime = System.currentTimeMillis();
-
-    int totalValues = params.rows * params.cols;
-    double elapsed = (stopTime - startTime) / 1000.0;
-
-    System.out.printf(
-        "%,12d records written | %,8d records/sec | %,12d bytes written"
-            + " | %,8d bytes/sec | %6.3f secs   %n",
-        totalValues, (int) (totalValues / elapsed), bytesWritten, (int) (bytesWritten / elapsed),
-        elapsed);
   }
 
-  public static void ingest(AccumuloClient c, IngestParams params)
-      throws MutationsRejectedException, IOException, AccumuloException, AccumuloSecurityException,
-      TableNotFoundException, TableExistsException {
+  public static void ingest(AccumuloClient c, IngestParams params) throws Exception {
     ClientContext cc = (ClientContext) c;
     ingest(c, FileSystem.get(cc.getHadoopConf()), params);
   }

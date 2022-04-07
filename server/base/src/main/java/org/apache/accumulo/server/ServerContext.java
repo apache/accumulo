@@ -461,4 +461,14 @@ public class ServerContext extends ClientContext {
     return sharedScheduledThreadPool;
   }
 
+  @Override
+  public synchronized void close() {
+    super.close();
+    try {
+      this.cryptoService.close();
+    } catch (Exception e) {
+      log.error("Error closing CryptoService", e);
+    }
+  }
+
 }

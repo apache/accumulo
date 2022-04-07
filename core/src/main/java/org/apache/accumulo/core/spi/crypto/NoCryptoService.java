@@ -40,4 +40,7 @@ public class NoCryptoService implements CryptoService {
   public FileDecrypter getFileDecrypter(CryptoEnvironment environment) {
     return new NoFileDecrypter();
   }
+
+  @Override
+  public void close() throws Exception {}
 }

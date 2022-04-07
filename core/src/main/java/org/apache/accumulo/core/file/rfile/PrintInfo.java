@@ -37,6 +37,8 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.spi.crypto.FileEncrypter;
 import org.apache.accumulo.core.spi.crypto.NoFileEncrypter;
 import org.apache.accumulo.core.summary.SummaryReader;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
@@ -194,107 +196,110 @@ public class PrintInfo implements KeywordExecutable {
 
       printCryptoParams(path, fs);
 
-      CachableBuilder cb = new CachableBuilder().fsPath(fs, path).conf(conf)
-          .cryptoService(CryptoServiceFactory.newInstance(siteConfig, ClassloaderType.JAVA));
-      Reader iter = new RFile.Reader(cb);
-      MetricsGatherer<Map<String,ArrayList<VisibilityMetric>>> vmg = new VisMetricsGatherer();
+      try (CryptoService cs = CryptoServiceFactory.newInstance(siteConfig, ClassloaderType.JAVA)) {
 
-      if (opts.vis || opts.hash) {
-        iter.registerMetrics(vmg);
-      }
+        CachableBuilder cb = new CachableBuilder().fsPath(fs, path).conf(conf).cryptoService(cs);
+        Reader iter = new RFile.Reader(cb);
+        MetricsGatherer<Map<String,ArrayList<VisibilityMetric>>> vmg = new VisMetricsGatherer();
 
-      iter.printInfo(opts.printIndex);
-      System.out.println();
-      String propsPath = opts.getPropertiesPath();
-      String[] mainArgs =
-          propsPath == null ? new String[] {arg} : new String[] {"-props", propsPath, arg};
-      org.apache.accumulo.core.file.rfile.bcfile.PrintInfo.main(mainArgs);
+        if (opts.vis || opts.hash) {
+          iter.registerMetrics(vmg);
+        }
 
-      Map<String,ArrayList<ByteSequence>> localityGroupCF = null;
+        iter.printInfo(opts.printIndex);
+        System.out.println();
+        String propsPath = opts.getPropertiesPath();
+        String[] mainArgs =
+            propsPath == null ? new String[] {arg} : new String[] {"-props", propsPath, arg};
+        org.apache.accumulo.core.file.rfile.bcfile.PrintInfo.main(mainArgs);
 
-      if (opts.histogram || opts.dump || opts.vis || opts.hash || opts.keyStats || opts.fullKeys
-          || !StringUtils.isEmpty(opts.formatterClazz)) {
-        localityGroupCF = iter.getLocalityGroupCF();
+        Map<String,ArrayList<ByteSequence>> localityGroupCF = null;
 
-        FileSKVIterator dataIter;
-        if (opts.useSample) {
-          dataIter = iter.getSample();
+        if (opts.histogram || opts.dump || opts.vis || opts.hash || opts.keyStats || opts.fullKeys
+            || !StringUtils.isEmpty(opts.formatterClazz)) {
+          localityGroupCF = iter.getLocalityGroupCF();
 
-          if (dataIter == null) {
-            System.out.println("ERROR : This rfile has no sample data");
-            return;
+          FileSKVIterator dataIter;
+          if (opts.useSample) {
+            dataIter = iter.getSample();
+
+            if (dataIter == null) {
+              System.out.println("ERROR : This rfile has no sample data");
+              return;
+            }
+          } else {
+            dataIter = iter;
           }
-        } else {
-          dataIter = iter;
+
+          if (opts.keyStats) {
+            FileSKVIterator indexIter = iter.getIndex();
+            while (indexIter.hasTop()) {
+              indexKeyStats.add(indexIter.getTopKey());
+              indexIter.next();
+            }
+          }
+
+          BiFunction<Key,Value,String> formatter = null;
+          if (opts.formatterClazz != null) {
+            final Class<? extends BiFunction<Key,Value,String>> formatterClass =
+                getFormatter(opts.formatterClazz);
+            formatter = formatterClass.getConstructor().newInstance();
+          } else if (opts.fullKeys) {
+            formatter = (key, value) -> key.toStringNoTruncate() + " -> " + value;
+          } else if (opts.dump) {
+            formatter = (key, value) -> key + " -> " + value;
+          }
+
+          for (String lgName : localityGroupCF.keySet()) {
+            LocalityGroupUtil.seek(dataIter, new Range(), lgName, localityGroupCF);
+
+            while (dataIter.hasTop()) {
+              Key key = dataIter.getTopKey();
+              Value value = dataIter.getTopValue();
+              if (formatter != null) {
+                System.out.println(formatter.apply(key, value));
+                if (System.out.checkError())
+                  return;
+              }
+
+              if (opts.histogram) {
+                kvHistogram.add(key.getSize() + value.getSize());
+              }
+              if (opts.keyStats) {
+                dataKeyStats.add(key);
+              }
+
+              dataIter.next();
+            }
+          }
+        }
+
+        if (opts.printSummary) {
+          SummaryReader.print(iter, System.out);
+        }
+
+        iter.close();
+
+        if (opts.vis || opts.hash) {
+          System.out.println();
+          vmg.printMetrics(opts.hash, "Visibility", System.out);
+        }
+
+        if (opts.histogram) {
+          System.out.println();
+          kvHistogram.print("");
         }
 
         if (opts.keyStats) {
-          FileSKVIterator indexIter = iter.getIndex();
-          while (indexIter.hasTop()) {
-            indexKeyStats.add(indexIter.getTopKey());
-            indexIter.next();
-          }
-        }
-
-        BiFunction<Key,Value,String> formatter = null;
-        if (opts.formatterClazz != null) {
-          final Class<? extends BiFunction<Key,Value,String>> formatterClass =
-              getFormatter(opts.formatterClazz);
-          formatter = formatterClass.getConstructor().newInstance();
-        } else if (opts.fullKeys) {
-          formatter = (key, value) -> key.toStringNoTruncate() + " -> " + value;
-        } else if (opts.dump) {
-          formatter = (key, value) -> key + " -> " + value;
-        }
-
-        for (String lgName : localityGroupCF.keySet()) {
-          LocalityGroupUtil.seek(dataIter, new Range(), lgName, localityGroupCF);
-
-          while (dataIter.hasTop()) {
-            Key key = dataIter.getTopKey();
-            Value value = dataIter.getTopValue();
-            if (formatter != null) {
-              System.out.println(formatter.apply(key, value));
-              if (System.out.checkError())
-                return;
-            }
-
-            if (opts.histogram) {
-              kvHistogram.add(key.getSize() + value.getSize());
-            }
-            if (opts.keyStats) {
-              dataKeyStats.add(key);
-            }
-
-            dataIter.next();
-          }
+          System.out.println();
+          System.out.println("Statistics for keys in data :");
+          dataKeyStats.print("\t");
+          System.out.println();
+          System.out.println("Statistics for keys in index :");
+          indexKeyStats.print("\t");
         }
       }
 
-      if (opts.printSummary) {
-        SummaryReader.print(iter, System.out);
-      }
-
-      iter.close();
-
-      if (opts.vis || opts.hash) {
-        System.out.println();
-        vmg.printMetrics(opts.hash, "Visibility", System.out);
-      }
-
-      if (opts.histogram) {
-        System.out.println();
-        kvHistogram.print("");
-      }
-
-      if (opts.keyStats) {
-        System.out.println();
-        System.out.println("Statistics for keys in data :");
-        dataKeyStats.print("\t");
-        System.out.println();
-        System.out.println("Statistics for keys in index :");
-        indexKeyStats.print("\t");
-      }
       // If the output stream has closed, there is no reason to keep going.
       if (System.out.checkError()) {
         return;
@@ -321,8 +326,8 @@ public class PrintInfo implements KeywordExecutable {
    * information is useful for debugging if and how a file was encrypted.
    */
   private void printCryptoParams(Path path, FileSystem fs) {
-    byte[] noCryptoBytes = new NoFileEncrypter().getDecryptionParameters();
-    try (FSDataInputStream fsDis = fs.open(path)) {
+    try (FileEncrypter encrypter = new NoFileEncrypter(); FSDataInputStream fsDis = fs.open(path)) {
+      byte[] noCryptoBytes = encrypter.getDecryptionParameters();
       long fileLength = fs.getFileStatus(path).getLen();
       fsDis.seek(fileLength - 16 - Utils.Version.size() - Long.BYTES);
       long cryptoParamOffset = fsDis.readLong();

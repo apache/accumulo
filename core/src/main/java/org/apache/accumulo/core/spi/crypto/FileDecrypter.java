@@ -25,7 +25,7 @@ import java.io.InputStream;
  *
  * @since 2.0
  */
-public interface FileDecrypter {
+public interface FileDecrypter extends AutoCloseable {
   /**
    * Decrypt the InputStream
    */

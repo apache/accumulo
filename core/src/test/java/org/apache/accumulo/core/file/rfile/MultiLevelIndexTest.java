@@ -40,6 +40,7 @@ import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Reader.IndexIterator;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Writer;
 import org.apache.accumulo.core.file.rfile.RFileTest.SeekableByteArrayInputStream;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -62,25 +63,26 @@ public class MultiLevelIndexTest {
     runTest(1, 100);
   }
 
-  private void runTest(int maxBlockSize, int num) throws IOException {
+  private void runTest(int maxBlockSize, int num) throws Exception {
     AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     FSDataOutputStream dos = new FSDataOutputStream(baos, new FileSystem.Statistics("a"));
-    BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", hadoopConf,
-        CryptoServiceFactory.newInstance(aconf, JAVA));
+    try (CryptoService cs = CryptoServiceFactory.newInstance(aconf, JAVA)) {
+      BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", hadoopConf, cs);
 
-    BufferedWriter mliw = new BufferedWriter(new Writer(_cbw, maxBlockSize));
+      BufferedWriter mliw = new BufferedWriter(new Writer(_cbw, maxBlockSize));
 
-    for (int i = 0; i < num; i++)
-      mliw.add(new Key(String.format("%05d000", i)), i, 0, 0, 0);
+      for (int i = 0; i < num; i++)
+        mliw.add(new Key(String.format("%05d000", i)), i, 0, 0, 0);
 
-    mliw.addLast(new Key(String.format("%05d000", num)), num, 0, 0, 0);
+      mliw.addLast(new Key(String.format("%05d000", num)), num, 0, 0, 0);
 
-    BCFile.Writer.BlockAppender root = _cbw.prepareMetaBlock("root");
-    mliw.close(root);
-    root.close();
+      BCFile.Writer.BlockAppender root = _cbw.prepareMetaBlock("root");
+      mliw.close(root);
+      root.close();
 
-    _cbw.close();
+      _cbw.close();
+    }
     dos.close();
     baos.close();
 
