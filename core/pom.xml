@@ -279,6 +279,8 @@
                 <allow>org[.]apache[.]accumulo[.]core[.]client[.].*</allow>
                 <allow>org[.]apache[.]accumulo[.]core[.]data[.].*</allow>
                 <allow>org[.]apache[.]accumulo[.]core[.]security[.].*</allow>
+                <!-- allow javax SecreKey -->
+                <allow>javax[.]crypto[.]SecretKey</allow>
               </allows>
             </configuration>
           </execution>
