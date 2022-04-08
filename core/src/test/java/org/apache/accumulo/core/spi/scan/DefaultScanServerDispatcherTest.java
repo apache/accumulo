@@ -23,12 +23,12 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -244,12 +244,12 @@ public class DefaultScanServerDispatcherTest {
 
     Map<String,Long> allServersSeen = new HashMap<>();
 
-    Random rand = new Random();
+    SecureRandom rand = new SecureRandom();
 
     for (int t = 0; t < 10000; t++) {
       Set<String> serversSeen = new HashSet<>();
 
-      String endRow = Long.toString(Math.abs(rand.nextLong()), 36);
+      String endRow = Long.toString(Math.abs(Math.max(rand.nextLong(), Long.MIN_VALUE + 1)), 36);
 
       var tabletId = t % 1000 == 0 ? nti("" + t, null) : nti("" + t, endRow);
 
