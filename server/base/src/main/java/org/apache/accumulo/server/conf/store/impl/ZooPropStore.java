@@ -40,7 +40,6 @@ import org.apache.accumulo.server.conf.util.ConfigTransformer;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -213,19 +212,6 @@ public class ZooPropStore implements PropStore, PropChangeListener {
       zrw.putPersistentData(path, codec.toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
     } catch (IOException | KeeperException | InterruptedException ex) {
       throw new PropStoreException("Failed to serialize properties for " + propCacheKey, ex);
-    }
-  }
-
-  public @Nullable VersionedProperties get1(final PropCacheKey propCacheKey)
-      throws PropStoreException {
-    try {
-
-      checkZkConnection(); // if ZK not connected, block, do not just return a cached value.
-      propStoreWatcher.registerListener(propCacheKey, this);
-      return cache.get(propCacheKey);
-
-    } catch (Exception ex) {
-      throw new PropStoreException("read from prop store get() failed for: " + propCacheKey, ex);
     }
   }
 
