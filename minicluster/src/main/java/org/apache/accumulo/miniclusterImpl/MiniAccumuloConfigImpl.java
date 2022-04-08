@@ -275,8 +275,8 @@ public class MiniAccumuloConfigImpl {
    *          the number of tablet servers that mini accumulo cluster should start
    */
   public MiniAccumuloConfigImpl setNumScanServers(int numScanServers) {
-    if (numScanServers < 1) {
-      throw new IllegalArgumentException("Must have at least one tablet server");
+    if (numScanServers < 0) {
+      throw new IllegalArgumentException("Must have zero or more scan servers");
     }
     this.numScanServers = numScanServers;
     return this;

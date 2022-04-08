@@ -136,7 +136,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
   @Override
   public List<String> getScanServers() {
-    return new ArrayList<String>(context.getScanServers().keySet());
+    return List.copyOf(context.getScanServers().keySet());
   }
 
   @Override

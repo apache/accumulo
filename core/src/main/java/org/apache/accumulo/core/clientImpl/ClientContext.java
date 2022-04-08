@@ -68,7 +68,6 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
-import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.KeyValue;
@@ -89,7 +88,6 @@ import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanServerDispatcher;
-import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.tables.TableZooHelper;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -377,60 +375,25 @@ public class ClientContext implements AccumuloClient {
         Class<? extends ScanServerDispatcher> impl =
             Class.forName(clazz).asSubclass(ScanServerDispatcher.class);
         scanServerDispatcher = impl.getDeclaredConstructor().newInstance();
+
+        Map<String,String> sserverProps = new HashMap<>();
+        ClientProperty.getPrefix(info.getProperties(),
+            ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey()).forEach((k, v) -> {
+              sserverProps.put(
+                  k.toString().substring(
+                      ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey().length()),
+                  v.toString());
+            });
+
         scanServerDispatcher.init(new ScanServerDispatcher.InitParameters() {
           @Override
           public Map<String,String> getOptions() {
-            Map<String,String> sserverProps = new HashMap<>();
-            ClientProperty.getPrefix(info.getProperties(),
-                ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey()).forEach((k, v) -> {
-                  sserverProps.put(
-                      k.toString().substring(
-                          ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey().length()),
-                      v.toString());
-                });
-            return sserverProps;
+            return Collections.unmodifiableMap(sserverProps);
           }
 
           @Override
           public ServiceEnvironment getServiceEnv() {
-            return new ServiceEnvironment() {
-
-              @Override
-              public String getTableName(TableId tableId) throws TableNotFoundException {
-                return getTableIdToNameMap().get(tableId);
-              }
-
-              @Override
-              public <T> T instantiate(String className, Class<T> base) throws Exception {
-                throw new UnsupportedOperationException();
-              }
-
-              @Override
-              public <T> T instantiate(TableId tableId, String className, Class<T> base)
-                  throws Exception {
-                throw new UnsupportedOperationException();
-              }
-
-              @Override
-              public Configuration getConfiguration() {
-                try {
-                  return new ConfigurationImpl(
-                      new ConfigurationCopy(instanceOperations().getSystemConfiguration()));
-                } catch (Exception e) {
-                  throw new RuntimeException("Error getting system configuration", e);
-                }
-              }
-
-              @Override
-              public Configuration getConfiguration(TableId tableId) {
-                try {
-                  return new ConfigurationImpl(new ConfigurationCopy(
-                      tableOperations().getConfiguration(getTableName(tableId))));
-                } catch (Exception e) {
-                  throw new RuntimeException("Error getting table configuration", e);
-                }
-              }
-            };
+            return new ClientServiceEnvironmentImpl(ClientContext.this);
           }
 
           @Override

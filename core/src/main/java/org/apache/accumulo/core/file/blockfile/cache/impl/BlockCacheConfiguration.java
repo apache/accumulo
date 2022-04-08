@@ -24,7 +24,6 @@ import java.util.Map;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager.Configuration;
 import org.apache.accumulo.core.spi.cache.CacheType;
 
@@ -85,16 +84,14 @@ public class BlockCacheConfiguration implements Configuration {
     HashMap<String,String> props = new HashMap<>();
 
     // get default props first
-    String defaultPrefix =
-        BlockCacheManager.getFullyQualifiedPropertyPrefix(serverPrefix.getKey(), prefix);
+    String defaultPrefix = getFullyQualifiedPropertyPrefix(serverPrefix, prefix);
     genProps.forEach((k, v) -> {
       if (k.startsWith(defaultPrefix)) {
         props.put(k.substring(defaultPrefix.length()), v);
       }
     });
 
-    String typePrefix =
-        BlockCacheManager.getFullyQualifiedPropertyPrefix(serverPrefix.getKey(), prefix, type);
+    String typePrefix = getFullyQualifiedPropertyPrefix(serverPrefix, prefix, type);
     genProps.forEach((k, v) -> {
       if (k.startsWith(typePrefix)) {
         props.put(k.substring(typePrefix.length()), v);
@@ -103,4 +100,18 @@ public class BlockCacheConfiguration implements Configuration {
 
     return Collections.unmodifiableMap(props);
   }
+
+  public static String getFullyQualifiedPropertyPrefix(Property serverPrefix, String prefix) {
+    return getCachePropertyBase(serverPrefix) + prefix + ".default.";
+  }
+
+  public static String getFullyQualifiedPropertyPrefix(Property serverPrefix, String prefix,
+      CacheType type) {
+    return getCachePropertyBase(serverPrefix) + prefix + "." + type.name().toLowerCase() + ".";
+  }
+
+  public static String getCachePropertyBase(Property serverPrefix) {
+    return serverPrefix.getKey() + "cache.config.";
+  }
+
 }

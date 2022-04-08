@@ -18,9 +18,7 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -73,7 +71,6 @@ public class ScanAttemptsImpl {
     public long getMutationCount() {
       return mutationCount;
     }
-
   }
 
   private Map<TabletId,Collection<ScanAttemptImpl>> attempts = new ConcurrentHashMap<>();
@@ -83,8 +80,7 @@ public class ScanAttemptsImpl {
 
     ScanAttemptImpl sa = new ScanAttemptImpl(result, server, endTime);
 
-    // TODO will get concurrent mod exceptions with list w/ iters probably
-    attempts.computeIfAbsent(tablet, k -> Collections.synchronizedList(new ArrayList<>())).add(sa);
+    attempts.computeIfAbsent(tablet, k -> ConcurrentHashMap.newKeySet()).add(sa);
 
     synchronized (this) {
       // now that the scan attempt obj is added to all concurrent data structs, make it visible
@@ -102,7 +98,7 @@ public class ScanAttemptsImpl {
     return new ScanAttemptReporter() {
       @Override
       public void report(ScanAttempt.Result result) {
-        LOG.debug("Received result: {}", result);
+        LOG.trace("Received result: {}", result);
         add(tablet, result, server, System.currentTimeMillis());
       }
     };
@@ -115,7 +111,10 @@ public class ScanAttemptsImpl {
     synchronized (ScanAttemptsImpl.this) {
       snapMC = mutationCounter;
     }
-    return Maps.transformValues(attempts, tabletAttemptList -> Collections2
-        .filter(tabletAttemptList, sai -> sai.getMutationCount() <= snapMC));
+    var tmp = Maps.transformValues(attempts, tabletAttemptList -> Collections2
+        .filter(tabletAttemptList, sai -> sai.getMutationCount() < snapMC));
+
+    return Maps.filterEntries(tmp, entry -> !entry.getValue().isEmpty());
+
   }
 }

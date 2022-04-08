@@ -284,7 +284,7 @@ public class ScannerOptions implements ScannerBase {
 
   @Override
   public void setConsistencyLevel(ConsistencyLevel level) {
-    this.consistencyLevel = level;
+    this.consistencyLevel = Objects.requireNonNull(level);
   }
 
 }

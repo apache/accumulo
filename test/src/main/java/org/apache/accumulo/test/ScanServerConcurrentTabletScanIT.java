@@ -51,6 +51,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import com.google.common.collect.Iterables;
+
 @Tag(MINI_CLUSTER_ONLY)
 public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
 
@@ -152,6 +154,10 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
       assertEquals(1000, count2);
 
       scanner1.close();
+
+      try (Scanner scanner2 = client.createScanner(tableName, Authorizations.EMPTY)) {
+        assertEquals(1100, Iterables.size(scanner2));
+      }
     }
   }
 

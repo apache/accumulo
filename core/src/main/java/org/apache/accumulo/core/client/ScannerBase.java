@@ -44,9 +44,9 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
 
   /**
    * Consistency level for the scanner. The default level is IMMEDIATE, which means that this
-   * scanner will see keys and values that have been successfully written to a TabletServer. This
-   * includes data in RFiles and in the in-memory maps. EVENTUAL means that the user is fine with
-   * scanning over data that has been written to files only.
+   * scanner will see keys and values that have been successfully written to a TabletServer.
+   * EVENTUAL means that the scanner may not see the latest data that was written to a TabletServer,
+   * but may instead see an older version of data.
    *
    */
   enum ConsistencyLevel {

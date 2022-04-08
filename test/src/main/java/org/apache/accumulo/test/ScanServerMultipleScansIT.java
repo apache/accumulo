@@ -22,12 +22,15 @@ import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Map.Entry;
+import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.Constants;
@@ -38,9 +41,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
@@ -53,6 +54,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+
+import com.google.common.collect.Iterables;
 
 @Tag(MINI_CLUSTER_ONLY)
 public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
@@ -104,9 +107,11 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
 
       final CountDownLatch latch = new CountDownLatch(1);
 
-      Thread[] threads = new Thread[NUM_SCANS];
+      var executor = Executors.newCachedThreadPool();
+
+      List<Future<?>> futures = new ArrayList<>(NUM_SCANS);
       for (int i = 0; i < NUM_SCANS; i++) {
-        Thread t = new Thread(() -> {
+        var future = executor.submit(() -> {
           try {
             latch.await();
           } catch (InterruptedException e1) {
@@ -115,23 +120,20 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
           try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
             scanner.setRange(new Range());
             scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-            int count = 0;
-            for (@SuppressWarnings("unused")
-            Entry<Key,Value> entry : scanner) {
-              count++;
-            }
-            assertEquals(100, count);
+            assertEquals(100, Iterables.size(scanner));
           } catch (TableNotFoundException e) {
             fail("Table not found");
           }
         });
-        t.start();
-        threads[i] = t;
+
+        futures.add(future);
       }
       latch.countDown();
-      for (int i = 0; i < NUM_SCANS; i++) {
-        threads[i].join();
+      for (Future<?> future : futures) {
+        future.get();
       }
+
+      executor.shutdown();
     }
   }
 
@@ -158,12 +160,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(new Range());
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-        int count = 0;
-        for (@SuppressWarnings("unused")
-        Entry<Key,Value> entry : scanner) {
-          count++;
-        }
-        assertEquals(100, count);
+        assertEquals(100, Iterables.size(scanner));
       }
     }
   }
@@ -193,10 +190,13 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
 
       final AtomicInteger counter = new AtomicInteger(0);
 
-      Thread[] threads = new Thread[NUM_SCANS];
+      var executor = Executors.newCachedThreadPool();
+
+      List<Future<?>> futures = new ArrayList<>(NUM_SCANS);
+
       for (int i = 0; i < NUM_SCANS; i++) {
         final int threadNum = i;
-        Thread t = new Thread(() -> {
+        var future = executor.submit(() -> {
           try {
             latch.await();
           } catch (InterruptedException e1) {
@@ -220,21 +220,23 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
                 fail("Invalid threadNum");
             }
             scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-            for (@SuppressWarnings("unused")
-            Entry<Key,Value> entry : scanner) {
-              counter.incrementAndGet();
-            }
+
+            counter.addAndGet(Iterables.size(scanner));
+
           } catch (TableNotFoundException e) {
             fail("Table not found");
           }
         });
-        t.start();
-        threads[i] = t;
+
+        futures.add(future);
       }
       latch.countDown();
-      for (int i = 0; i < NUM_SCANS; i++) {
-        threads[i].join();
+      for (Future<?> future : futures) {
+        future.get();
       }
+
+      executor.shutdown();
+
       assertEquals(100, counter.get());
     }
   }
@@ -252,9 +254,12 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
 
       final CountDownLatch latch = new CountDownLatch(1);
 
-      Thread[] threads = new Thread[NUM_SCANS];
+      var executor = Executors.newCachedThreadPool();
+
+      List<Future<?>> futures = new ArrayList<>(NUM_SCANS);
+
       for (int i = 0; i < NUM_SCANS; i++) {
-        Thread t = new Thread(() -> {
+        var future = executor.submit(() -> {
           try {
             latch.await();
           } catch (InterruptedException e1) {
@@ -263,23 +268,19 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
           try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
             scanner.setRanges(Collections.singletonList(new Range()));
             scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-            int count = 0;
-            for (@SuppressWarnings("unused")
-            Entry<Key,Value> entry : scanner) {
-              count++;
-            }
-            assertEquals(100, count);
+            assertEquals(100, Iterables.size(scanner));
           } catch (TableNotFoundException e) {
             fail("Table not found");
           }
         });
-        t.start();
-        threads[i] = t;
+        futures.add(future);
       }
       latch.countDown();
-      for (int i = 0; i < NUM_SCANS; i++) {
-        threads[i].join();
+      for (Future<?> future : futures) {
+        future.get();
       }
+
+      executor.shutdown();
     }
 
   }
@@ -308,12 +309,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
           client.createBatchScanner(tableName, Authorizations.EMPTY, NUM_SCANS)) {
         scanner.setRanges(Collections.singletonList(new Range()));
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-        int count = 0;
-        for (@SuppressWarnings("unused")
-        Entry<Key,Value> entry : scanner) {
-          count++;
-        }
-        assertEquals(100, count);
+        assertEquals(100, Iterables.size(scanner));
       }
     }
   }
@@ -343,10 +339,12 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
 
       final AtomicInteger counter = new AtomicInteger(0);
 
-      Thread[] threads = new Thread[NUM_SCANS];
+      var executor = Executors.newCachedThreadPool();
+
+      List<Future<?>> futures = new ArrayList<>(NUM_SCANS);
       for (int i = 0; i < NUM_SCANS; i++) {
         final int threadNum = i;
-        Thread t = new Thread(() -> {
+        var future = executor.submit(() -> {
           try {
             latch.await();
           } catch (InterruptedException e1) {
@@ -373,21 +371,21 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
                 fail("Invalid threadNum");
             }
             scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-            for (@SuppressWarnings("unused")
-            Entry<Key,Value> entry : scanner) {
-              counter.incrementAndGet();
-            }
+
+            counter.addAndGet(Iterables.size(scanner));
           } catch (TableNotFoundException e) {
             fail("Table not found");
           }
         });
-        t.start();
-        threads[i] = t;
+        futures.add(future);
       }
       latch.countDown();
-      for (int i = 0; i < NUM_SCANS; i++) {
-        threads[i].join();
+      for (Future<?> future : futures) {
+        future.get();
       }
+
+      executor.shutdown();
+
       assertEquals(100, counter.get());
     }
 

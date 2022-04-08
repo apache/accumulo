@@ -21,6 +21,9 @@ package org.apache.accumulo.core.spi.cache;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
+
 /**
  * @since 2.0.0
  * @see org.apache.accumulo.core.spi
@@ -34,9 +37,14 @@ public abstract class BlockCacheManager {
     /**
      * Before Accumulo's cache implementation was configurable, its built in caches had a
      * configurable size. These sizes were specified by the system properties
-     * {@code tserver.cache.config.data.size}, {@code tserver.cache.config.index.size}, and {code
+     * {@code tserver.cache.config.data.size}, {@code tserver.cache.config.index.size}, and {@code
      * tserver.cache.config.summary.size}. This method returns the values of those settings. The
      * settings are made available, but cache implementations are under no obligation to use them.
+     *
+     * <p>
+     * When this plugin is running in a scan server, the value associated with
+     * {@code sserver.cache.config.data.size}, {@code sserver.cache.config.index.size}, and
+     * {@code sserver.cache.config.summary.size} are returned instead of tserver values.
      *
      */
     long getMaxSize(CacheType type);
@@ -47,6 +55,10 @@ public abstract class BlockCacheManager {
      * {@code tserver.default.blocksize}. This method returns the value of that setting. The setting
      * is made available, but cache implementations are under no obligation to use it.
      *
+     * <p>
+     * When this plugin is running in scan server, the value associated with
+     * {@code sserver.default.blocksize} is returned instead.
+     *
      */
     long getBlockSize();
 
@@ -55,13 +67,20 @@ public abstract class BlockCacheManager {
      * by a user.
      *
      * <p>
-     * Returns all Accumulo properties that have a prefix of
+     * When running in a tserver, returns all Accumulo properties that have a prefix of
      * {@code tserver.cache.config.<prefix>.<type>.} or
      * {@code tserver.cache.config.<prefix>.default.} with values for specific cache types
      * overriding defaults.
      *
      * <p>
-     * For example assume the following data is in Accumulo's system config.
+     * When running in a scan server, returns all Accumulo properties that have a prefix of
+     * {@code sserver.cache.config.<prefix>.<type>.} or
+     * {@code sserver.cache.config.<prefix>.default.} with values for specific cache types
+     * overriding defaults.
+     *
+     * <p>
+     * For example assume the following data is in Accumulo's system config and the plugin is
+     * running in a tserver.
      *
      * <pre>
      * tserver.cache.config.lru.default.evictAfter=3600
@@ -132,14 +151,15 @@ public abstract class BlockCacheManager {
    * {@code tserver.cache.config.<prefix>.default.} this method is useful for configuring a cache
    * manager.
    *
-   * @param serverPrefix
-   *          The key representation of the server prefix property (TSERV_PREFIX or SSERV_PREFIX)
    * @param prefix
    *          A unique identifier that corresponds to a particular BlockCacheManager implementation.
    * @see Configuration#getProperties(String, CacheType)
+   * @deprecated since 2.1.0 because this method does not support scan servers, only tservers. Use
+   *             {@link Configuration#getProperties(String, CacheType)} instead.
    */
-  public static String getFullyQualifiedPropertyPrefix(String serverPrefix, String prefix) {
-    return getCachePropertyBase(serverPrefix) + prefix + ".default.";
+  @Deprecated(since = "2.1.0")
+  public static String getFullyQualifiedPropertyPrefix(String prefix) {
+    return BlockCacheConfiguration.getFullyQualifiedPropertyPrefix(Property.TSERV_PREFIX, prefix);
   }
 
   /**
@@ -147,24 +167,17 @@ public abstract class BlockCacheManager {
    * {@code tserver.cache.config.<prefix>.<type>.} this method is useful for configuring a cache
    * manager.
    *
-   * @param serverPrefix
-   *          The key representation of the server prefix property (TSERV_PREFIX or SSERV_PREFIX)
    * @param prefix
    *          A unique identifier that corresponds to a particular BlockCacheManager implementation.
    * @see Configuration#getProperties(String, CacheType)
+   *
+   * @deprecated since 2.1.0 because this method does not support scan servers, only tservers. Use
+   *             {@link Configuration#getProperties(String, CacheType)} instead.
    */
-  public static String getFullyQualifiedPropertyPrefix(String serverPrefix, String prefix,
-      CacheType type) {
-    return getCachePropertyBase(serverPrefix) + prefix + "." + type.name().toLowerCase() + ".";
-  }
-
-  /**
-   * @param serverPrefix
-   *          The key representation of the server prefix property (TSERV_PREFIX or SSERV_PREFIX)
-   * @return fully qualified property prefix for the server cache configuration properties
-   */
-  public static String getCachePropertyBase(String serverPrefix) {
-    return serverPrefix + "cache.config.";
+  @Deprecated(since = "2.1.0")
+  public static String getFullyQualifiedPropertyPrefix(String prefix, CacheType type) {
+    return BlockCacheConfiguration.getFullyQualifiedPropertyPrefix(Property.TSERV_PREFIX, prefix,
+        type);
   }
 
 }

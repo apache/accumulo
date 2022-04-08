@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.spi.cache.BlockCacheManager;
+import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager.Configuration;
 import org.apache.accumulo.core.spi.cache.CacheType;
 
@@ -221,8 +221,8 @@ public final class LruBlockCacheConfiguration {
   }
 
   public static Builder builder(Property serverPrefix, CacheType ct) {
-    return new Builder(BlockCacheManager.getFullyQualifiedPropertyPrefix(serverPrefix.getKey(),
-        PROPERTY_PREFIX, ct));
+    return new Builder(
+        BlockCacheConfiguration.getFullyQualifiedPropertyPrefix(serverPrefix, PROPERTY_PREFIX, ct));
   }
 
   @Override

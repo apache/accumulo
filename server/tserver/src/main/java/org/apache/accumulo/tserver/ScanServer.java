@@ -126,7 +126,6 @@ import org.apache.accumulo.tserver.session.ScanSession.TabletResolver;
 import org.apache.accumulo.tserver.session.SingleScanSession;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletData;
-import org.apache.commons.lang3.tuple.MutableTriple;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -141,34 +140,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 
 public class ScanServer extends TabletServer implements TabletClientService.Iface {
-
-  static class ScanInformation extends MutableTriple<Long,KeyExtent,Tablet> {
-    private static final long serialVersionUID = 1L;
-
-    public Long getScanId() {
-      return getLeft();
-    }
-
-    public void setScanId(Long scanId) {
-      setLeft(scanId);
-    }
-
-    public KeyExtent getExtent() {
-      return getMiddle();
-    }
-
-    public void setExtent(KeyExtent extent) {
-      setMiddle(extent);
-    }
-
-    public Tablet getTablet() {
-      return getRight();
-    }
-
-    public void setTablet(Tablet tablet) {
-      setRight(tablet);
-    }
-  }
 
   /**
    * A compaction manager that does nothing

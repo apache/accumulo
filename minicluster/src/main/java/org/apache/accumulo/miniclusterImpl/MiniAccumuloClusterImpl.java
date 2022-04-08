@@ -843,7 +843,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       clientProperties =
           Accumulo.newClientProperties().from(config.getClientPropsFile().toPath()).build();
     }
-    return clientProperties;
+    return new Properties(clientProperties);
   }
 
   @Override

@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Collections;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -32,9 +31,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -44,6 +41,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+
+import com.google.common.collect.Iterables;
 
 @Tag(MINI_CLUSTER_ONLY)
 public class ScanServerIT_NoServers extends SharedMiniClusterBase {
@@ -93,12 +92,10 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(new Range());
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-        int count = 0;
-        for (@SuppressWarnings("unused")
-        Entry<Key,Value> entry : scanner) {
-          count++;
-        }
-        assertEquals(100, count);
+        assertEquals(100, Iterables.size(scanner));
+        ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 10, tableName);
+        // since there are no scan servers and we are reading from tservers we should see update
+        assertEquals(200, Iterables.size(scanner));
       } // when the scanner is closed, all open sessions should be closed
     }
   }
@@ -118,12 +115,10 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
       try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRanges(Collections.singletonList(new Range()));
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-        int count = 0;
-        for (@SuppressWarnings("unused")
-        Entry<Key,Value> entry : scanner) {
-          count++;
-        }
-        assertEquals(100, count);
+        assertEquals(100, Iterables.size(scanner));
+        ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 10, tableName);
+        // since there are no scan servers and we are reading from tservers we should see update
+        assertEquals(200, Iterables.size(scanner));
       } // when the scanner is closed, all open sessions should be closed
     }
   }
@@ -144,12 +139,7 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
         try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
           scanner.setRange(new Range());
           scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-          int count = 0;
-          for (@SuppressWarnings("unused")
-          Entry<Key,Value> entry : scanner) {
-            count++;
-          }
-          assertEquals(100, count);
+          assertEquals(100, Iterables.size(scanner));
         } // when the scanner is closed, all open sessions should be closed
       });
     }

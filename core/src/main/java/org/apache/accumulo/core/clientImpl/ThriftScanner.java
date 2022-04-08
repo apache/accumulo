@@ -499,7 +499,7 @@ public class ThriftScanner {
             "For tablet {} continuing scan on scan server {} without consulting scan server dispatcher, using busyTimeout {}",
             loc.tablet_extent, newLoc.tablet_location, scanState.busyTimeout);
       } else {
-        // obtain a snapshot once and always use it
+        // obtain a snapshot once and only expose this snapshot to the plugin for consistency
         var attempts = scanState.scanAttempts.snapshot();
 
         var params = new ScanServerDispatcher.DispatcherParameters() {

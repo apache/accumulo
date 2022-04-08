@@ -168,10 +168,6 @@ public class SessionManager {
     }
   }
 
-  public boolean exists(long sessionId) {
-    return sessions.containsKey(sessionId);
-  }
-
   public Session getSession(long sessionId) {
     Session session = sessions.get(sessionId);
 

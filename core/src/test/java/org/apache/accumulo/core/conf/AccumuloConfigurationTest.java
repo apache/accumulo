@@ -374,5 +374,21 @@ public class AccumuloConfigurationTest {
     ScanExecutorConfig sec8 = tc.getScanExecutors(false).stream()
         .filter(c -> c.name.equals("hulksmash")).findFirst().get();
     assertEquals(44, sec8.maxThreads);
+
+    // test scan server props
+    Collection<ScanExecutorConfig> scanServExecutors = tc.getScanExecutors(true);
+    assertEquals(2, scanServExecutors.size());
+    ScanExecutorConfig sec9 =
+        scanServExecutors.stream().filter(c -> c.name.equals(defName)).findFirst().get();
+    // earlier in the test tserver.readahead.concurrent.max was set to 6
+    assertEquals(6, sec9.maxThreads);
+    assertFalse(sec9.priority.isPresent());
+    assertTrue(sec9.prioritizerClass.get().isEmpty());
+    assertTrue(sec9.prioritizerOpts.isEmpty());
+
+    tc.set(Property.SSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getKey(), "17");
+    ScanExecutorConfig sec10 =
+        tc.getScanExecutors(true).stream().filter(c -> c.name.equals(defName)).findFirst().get();
+    assertEquals(17, sec10.maxThreads);
   }
 }

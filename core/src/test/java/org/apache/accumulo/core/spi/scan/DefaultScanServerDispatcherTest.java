@@ -18,14 +18,14 @@
  */
 package org.apache.accumulo.core.spi.scan;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -137,8 +137,9 @@ public class DefaultScanServerDispatcherTest {
     }
   }
 
-  TabletId nti(String tableId, String endRow) {
-    return new TabletIdImpl(new KeyExtent(TableId.of(tableId), new Text(endRow), null));
+  public static TabletId nti(String tableId, String endRow) {
+    return new TabletIdImpl(
+        new KeyExtent(TableId.of(tableId), endRow == null ? null : new Text(endRow), null));
   }
 
   @Test
@@ -238,23 +239,31 @@ public class DefaultScanServerDispatcherTest {
         .collect(Collectors.toSet());
     dispatcher.init(new InitParams(servers));
 
-    Set<String> allServersSeen = new HashSet<>();
+    Map<String,Long> allServersSeen = new HashMap<>();
 
-    for (int t = 0; t < 100; t++) {
+    Random rand = new Random();
+
+    for (int t = 0; t < 10000; t++) {
       Set<String> serversSeen = new HashSet<>();
 
-      var tabletId = nti("" + t, "m");
+      String endRow = Long.toString(Math.abs(rand.nextLong()), 36);
+
+      var tabletId = t % 1000 == 0 ? nti("" + t, null) : nti("" + t, endRow);
 
       for (int i = 0; i < 100; i++) {
         ScanServerDispatcher.Actions actions = dispatcher.determineActions(new DaParams(tabletId));
         serversSeen.add(actions.getScanServer(tabletId));
-        allServersSeen.add(actions.getScanServer(tabletId));
+        allServersSeen.merge(actions.getScanServer(tabletId), 1L, Long::sum);
       }
 
       assertEquals(3, serversSeen.size());
     }
 
     assertEquals(20, allServersSeen.size());
+
+    var stats = allServersSeen.values().stream().mapToLong(l -> l - 50000).summaryStatistics();
+
+    assertTrue(stats.getMin() > -5000 && stats.getMax() < 5000);
   }
 
   @Test
@@ -277,5 +286,17 @@ public class DefaultScanServerDispatcherTest {
     var exception =
         assertThrows(IllegalArgumentException.class, () -> runBusyTest(1000, 0, 5, 66, opts));
     assertTrue(exception.getMessage().contains("abc"));
+  }
+
+  @Test
+  public void testNoScanServers() {
+    DefaultScanServerDispatcher dispatcher = new DefaultScanServerDispatcher();
+    dispatcher.init(new InitParams(Set.of()));
+
+    var tabletId = nti("1", "m");
+    ScanServerDispatcher.Actions actions = dispatcher.determineActions(new DaParams(tabletId));
+    assertNull(actions.getScanServer(tabletId));
+    assertEquals(Duration.ZERO, actions.getDelay());
+    assertEquals(Duration.ZERO, actions.getBusyTimeout());
   }
 }

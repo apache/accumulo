@@ -34,24 +34,40 @@ public class ScanServerMetadataEntries {
   private static Logger LOG = LoggerFactory.getLogger(ScanServerMetadataEntries.class);
 
   public static void clean(ServerContext context) {
-    final Map<String,UUID> scanServers = context.getScanServers();
-    final Set<ScanServerRefTabletFile> refsToDelete = new HashSet<>();
 
+    // the UUID present in the metadata table
+    Set<UUID> uuidsToDelete = new HashSet<>();
+
+    // collect all uuids that are currently in the metadata table
     context.getAmple().getScanServerFileReferences().forEach(ssrtf -> {
-      // we are looking for file references for dead scan servers
-      UUID serverUUID = scanServers.get(ssrtf.getServerAddress().toString());
-      if (serverUUID == null
-          || !serverUUID.equals(UUID.fromString(ssrtf.getServerLockUUID().toString()))) {
-        LOG.info("{} is in the metadata table but does not match any live scan server, deleting it",
-            ssrtf);
-        refsToDelete.add(ssrtf);
-        if (refsToDelete.size() > 5000) {
-          context.getAmple().deleteScanServerFileReferences(refsToDelete);
-          refsToDelete.clear();
-        }
-      }
+      uuidsToDelete.add(UUID.fromString(ssrtf.getServerLockUUID().toString()));
     });
-    context.getAmple().deleteScanServerFileReferences(refsToDelete);
+
+    // gather the list of current live scan servers, its important that this is done after the above
+    // step in order to avoid removing new scan servers that start while the method is running
+    final Map<String,UUID> scanServers = context.getScanServers();
+
+    // remove all live scan servers from the uuids seen in the metadata table... what is left is
+    // uuids for scan servers that are dead
+    uuidsToDelete.removeAll(scanServers.values());
+
+    if (!uuidsToDelete.isEmpty()) {
+      final Set<ScanServerRefTabletFile> refsToDelete = new HashSet<>();
+
+      context.getAmple().getScanServerFileReferences().forEach(ssrtf -> {
+
+        var uuid = UUID.fromString(ssrtf.getServerLockUUID().toString());
+
+        if (uuidsToDelete.contains(uuid)) {
+          refsToDelete.add(ssrtf);
+          if (refsToDelete.size() > 5000) {
+            context.getAmple().deleteScanServerFileReferences(refsToDelete);
+            refsToDelete.clear();
+          }
+        }
+      });
+      context.getAmple().deleteScanServerFileReferences(refsToDelete);
+    }
   }
 
   public static void main(String[] args) {

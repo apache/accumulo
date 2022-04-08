@@ -629,8 +629,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     for (TabletIdImpl tabletId : tabletIds) {
       KeyExtent extent = tabletId.toKeyExtent();
       String serverToUse = actions.getScanServer(tabletId);
-      boolean isScanServer = serverToUse != null;
-      if (!isScanServer) {
+      if (serverToUse == null) {
         // no scan server was given so use the tablet server
         serverToUse = extentToTserverMap.get(extent);
         log.trace("For tablet {} scan server dispatcher chose tablet_server", tabletId);

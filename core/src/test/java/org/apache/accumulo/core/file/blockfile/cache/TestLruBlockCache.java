@@ -67,7 +67,7 @@ public class TestLruBlockCache {
         .useEvictionThread(false).minFactor(0.93f).acceptableFactor(0.97f).singleFactor(0.20f)
         .multiFactor(0.30f).memoryFactor(0.50f).mapConcurrencyLevel(5).buildMap().forEach(cc::set);
 
-    String defaultPrefix = BlockCacheManager.getCachePropertyBase(Property.TSERV_PREFIX.getKey())
+    String defaultPrefix = BlockCacheConfiguration.getCachePropertyBase(Property.TSERV_PREFIX)
         + LruBlockCacheConfiguration.PROPERTY_PREFIX + ".default.";
 
     // this should be overridden by cache type specific setting
