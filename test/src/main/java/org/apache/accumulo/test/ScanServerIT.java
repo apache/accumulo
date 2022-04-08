@@ -54,6 +54,7 @@ import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -172,6 +173,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
   }
 
   @Test
+  @Disabled("Scanner.setTimeout does not work, issue #2606")
   @Timeout(value = 20)
   public void testScannerTimeout() throws Exception {
     // Configure the client to use different scan server dispatcher property values

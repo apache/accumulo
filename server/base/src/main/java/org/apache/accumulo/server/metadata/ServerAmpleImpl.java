@@ -291,8 +291,8 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
   @Override
   public Stream<ScanServerRefTabletFile> getScanServerFileReferences() {
-    try (
-        Scanner scanner = context.createScanner(DataLevel.USER.metaTable(), Authorizations.EMPTY)) {
+    try {
+      Scanner scanner = context.createScanner(DataLevel.USER.metaTable(), Authorizations.EMPTY);
       scanner.setRange(ScanServerFileReferenceSection.getRange());
       int pLen = ScanServerFileReferenceSection.getRowPrefix().length();
       return StreamSupport.stream(scanner.spliterator(), false)

@@ -259,7 +259,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       });
 
       var scanServerRefs = getContext().getAmple().getScanServerFileReferences()
-          .map(sfr -> new Reference(null, sfr.getPathStr(), false));
+          .map(sfr -> new Reference(sfr.getTableId(), sfr.getPathStr(), false));
 
       return Stream.concat(tabletReferences, scanServerRefs);
     }
