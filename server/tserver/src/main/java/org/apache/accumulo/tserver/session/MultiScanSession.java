@@ -67,6 +67,6 @@ public class MultiScanSession extends ScanSession {
     if (lookupTask != null)
       lookupTask.cancel(true);
     // the cancellation should provide us the safety to return true here
-    return true;
+    return super.cleanup();
   }
 }

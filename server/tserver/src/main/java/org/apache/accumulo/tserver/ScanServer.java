@@ -785,19 +785,46 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
 
   protected TabletResolver getScanTabletResolver(final Tablet tablet) {
     return new TabletResolver() {
+      final Tablet t = tablet;
+
       @Override
       public Tablet getTablet(KeyExtent extent) {
-        if (extent.equals(tablet.getExtent())) {
-          return tablet;
+        if (extent.equals(t.getExtent())) {
+          return t;
         } else {
           return null;
+        }
+      }
+
+      @Override
+      public void close() {
+        try {
+          t.close(false);
+        } catch (IOException e) {
+          throw new UncheckedIOException("Error closing tablet", e);
         }
       }
     };
   }
 
   protected TabletResolver getBatchScanTabletResolver(final HashMap<KeyExtent,Tablet> tablets) {
-    return tablets::get;
+    return new TabletResolver() {
+      @Override
+      public Tablet getTablet(KeyExtent extent) {
+        return tablets.get(extent);
+      }
+
+      @Override
+      public void close() {
+        tablets.forEach((e, t) -> {
+          try {
+            t.close(false);
+          } catch (IOException ex) {
+            throw new UncheckedIOException("Error closing tablet: " + e.toString(), ex);
+          }
+        });
+      }
+    };
   }
 
   @Override

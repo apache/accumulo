@@ -213,7 +213,15 @@ public class ScanServerTest {
     String classLoaderContext = new String();
     Map<String,String> execHints = new HashMap<>();
     Map<KeyExtent,Tablet> tablets = new HashMap<>();
-    TabletResolver resolver = tablets::get;
+    TabletResolver resolver = new TabletResolver() {
+      @Override
+      public Tablet getTablet(KeyExtent extent) {
+        return tablets.get(extent);
+      }
+
+      @Override
+      public void close() {}
+    };
 
     expect(reservation.newTablet(extent)).andReturn(tablet);
     reservation.close();
@@ -261,7 +269,15 @@ public class ScanServerTest {
     String classLoaderContext = new String();
     Map<String,String> execHints = new HashMap<>();
     Map<KeyExtent,Tablet> tablets = new HashMap<>();
-    TabletResolver resolver = tablets::get;
+    TabletResolver resolver = new TabletResolver() {
+      @Override
+      public Tablet getTablet(KeyExtent extent) {
+        return tablets.get(extent);
+      }
+
+      @Override
+      public void close() {}
+    };
 
     replay(handler);
 

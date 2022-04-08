@@ -140,6 +140,7 @@ import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.apache.accumulo.tserver.session.ConditionalSession;
 import org.apache.accumulo.tserver.session.MultiScanSession;
 import org.apache.accumulo.tserver.session.ScanSession;
+import org.apache.accumulo.tserver.session.ScanSession.TabletResolver;
 import org.apache.accumulo.tserver.session.SingleScanSession;
 import org.apache.accumulo.tserver.session.SummarySession;
 import org.apache.accumulo.tserver.session.UpdateSession;
@@ -288,9 +289,18 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException,
       TSampleNotPresentException, ScanServerBusyException {
     final KeyExtent extent = KeyExtent.fromThrift(textent);
+    TabletResolver resolver = new TabletResolver() {
+      @Override
+      public Tablet getTablet(KeyExtent extent) {
+        return server.getOnlineTablet(extent);
+      }
+
+      @Override
+      public void close() {}
+    };
     return this.startScan(tinfo, credentials, extent, range, columns, batchSize, ssiList, ssio,
         authorizations, waitForWrites, isolated, readaheadThreshold, tSamplerConfig, batchTimeOut,
-        contextArg, executionHints, ke -> server.getOnlineTablet(ke), busyTimeout);
+        contextArg, executionHints, resolver, busyTimeout);
   }
 
   public InitialScan startScan(TInfo tinfo, TCredentials credentials, KeyExtent extent,
@@ -490,9 +500,18 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
     tbatch.forEach((k, v) -> {
       batch.put(KeyExtent.fromThrift(k), v);
     });
+    TabletResolver resolver = new TabletResolver() {
+      @Override
+      public Tablet getTablet(KeyExtent extent) {
+        return server.getOnlineTablet(extent);
+      }
+
+      @Override
+      public void close() {}
+    };
     return this.startMultiScan(tinfo, credentials, tcolumns, ssiList, batch, ssio, authorizations,
-        waitForWrites, tSamplerConfig, batchTimeOut, contextArg, executionHints,
-        ke -> server.getOnlineTablet(ke), busyTimeout);
+        waitForWrites, tSamplerConfig, batchTimeOut, contextArg, executionHints, resolver,
+        busyTimeout);
   }
 
   public InitialMultiScan startMultiScan(TInfo tinfo, TCredentials credentials,
