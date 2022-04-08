@@ -35,7 +35,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ManagerClient;
+import org.apache.accumulo.core.clientImpl.FateClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.AdminUtil;
@@ -272,7 +272,7 @@ public class FateCommand extends Command {
       boolean cancelTx =
           line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
       if (cancelTx) {
-        boolean cancelled = ManagerClient.cancelFateOperation(context, txid);
+        boolean cancelled = FateClient.cancelFateOperation(context, txid);
         if (cancelled) {
           shellState.getWriter()
               .println("FaTE transaction " + txid + " was cancelled or already completed.");

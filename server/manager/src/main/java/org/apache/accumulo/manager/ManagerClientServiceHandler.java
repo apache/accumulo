@@ -96,15 +96,15 @@ import org.slf4j.LoggerFactory;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 
-public class ManagerClientServiceHandler extends FateServiceHandler
-    implements ManagerClientService.Iface {
+public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
   private static final Logger log = Manager.log;
   private static final Logger drainLog =
       LoggerFactory.getLogger("org.apache.accumulo.manager.ManagerDrainImpl");
+  protected final Manager manager;
 
   protected ManagerClientServiceHandler(Manager manager) {
-    super(manager);
+    this.manager = manager;
   }
 
   @Override

@@ -67,8 +67,8 @@ import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService.Iface;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService.Processor;
+import org.apache.accumulo.core.manager.thrift.FateService;
+import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
@@ -142,6 +142,7 @@ import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.thrift.TException;
+import org.apache.thrift.TMultiplexedProcessor;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
@@ -279,7 +280,8 @@ public class Manager extends AbstractServer
 
   private Future<Void> upgradeMetadataFuture;
 
-  private ManagerClientServiceHandler clientHandler;
+  private FateServiceHandler fateServiceHandler;
+  private ManagerClientServiceHandler managerClientHandler;
 
   private int assignedOrHosted(TableId tableId) {
     int result = 0;
@@ -1015,25 +1017,43 @@ public class Manager extends AbstractServer
     // ACCUMULO-4424 Put up the Thrift servers before getting the lock as a sign of process health
     // when a hot-standby
     //
-    // Start the Manager's Client service
-    clientHandler = new ManagerClientServiceHandler(this);
-    // Ensure that calls before the manager gets the lock fail
-    Iface haProxy = HighlyAvailableServiceWrapper.service(clientHandler, this);
-    Iface rpcProxy = TraceUtil.wrapService(haProxy);
-    final Processor<Iface> processor;
+    // Start the Manager's Fate Service
+    fateServiceHandler = new FateServiceHandler(this);
+    FateService.Iface fateRpcProxy = TraceUtil.wrapService(fateServiceHandler);
+    final FateService.Processor<FateService.Iface> fateServiceProcessor;
     if (context.getThriftServerType() == ThriftServerType.SASL) {
-      Iface tcredsProxy = TCredentialsUpdatingWrapper.service(rpcProxy, clientHandler.getClass(),
-          getConfiguration());
-      processor = new Processor<>(tcredsProxy);
+      FateService.Iface tcredsProxy = TCredentialsUpdatingWrapper.service(fateRpcProxy,
+          fateServiceHandler.getClass(), getConfiguration());
+      fateServiceProcessor = new FateService.Processor<>(tcredsProxy);
     } else {
-      processor = new Processor<>(rpcProxy);
+      fateServiceProcessor = new FateService.Processor<>(fateRpcProxy);
     }
+
+    // Start the Manager's Client service
+    managerClientHandler = new ManagerClientServiceHandler(this);
+    // Ensure that calls before the manager gets the lock fail
+    ManagerClientService.Iface haProxy =
+        HighlyAvailableServiceWrapper.service(managerClientHandler, this);
+    ManagerClientService.Iface managerRpcProxy = TraceUtil.wrapService(haProxy);
+    final ManagerClientService.Processor<ManagerClientService.Iface> managerServiceProcessor;
+    if (context.getThriftServerType() == ThriftServerType.SASL) {
+      ManagerClientService.Iface tcredsProxy = TCredentialsUpdatingWrapper.service(managerRpcProxy,
+          managerClientHandler.getClass(), getConfiguration());
+      managerServiceProcessor = new ManagerClientService.Processor<>(tcredsProxy);
+    } else {
+      managerServiceProcessor = new ManagerClientService.Processor<>(managerRpcProxy);
+    }
+
+    TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
+    muxProcessor.registerProcessor("FateService", fateServiceProcessor);
+    muxProcessor.registerProcessor("ManagerClientService", managerServiceProcessor);
+
     ServerAddress sa;
     try {
-      sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT, processor,
-          "Manager", "Manager Client Service Handler", null, Property.MANAGER_MINTHREADS,
-          Property.MANAGER_MINTHREADS_TIMEOUT, Property.MANAGER_THREADCHECK,
-          Property.GENERAL_MAX_MESSAGE_SIZE);
+      sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT,
+          muxProcessor, "Manager", "Manager Client Service Handler", null,
+          Property.MANAGER_MINTHREADS, Property.MANAGER_MINTHREADS_TIMEOUT,
+          Property.MANAGER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
     } catch (UnknownHostException e) {
       throw new IllegalStateException("Unable to start server on host " + getHostname(), e);
     }

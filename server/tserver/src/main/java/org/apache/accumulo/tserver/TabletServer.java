@@ -67,6 +67,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
+import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
@@ -86,8 +87,7 @@ import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processor;
+import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ComparablePair;
 import org.apache.accumulo.core.util.Halt;
@@ -112,6 +112,7 @@ import org.apache.accumulo.server.GarbageCollectionLogger;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.TabletLevel;
+import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.compaction.CompactionWatcher;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
@@ -133,6 +134,7 @@ import org.apache.accumulo.server.util.FileSystemMonitor;
 import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.time.RelativeTime;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
+import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
 import org.apache.accumulo.tserver.TabletStatsKeeper.Operation;
 import org.apache.accumulo.tserver.compactions.Compactable;
@@ -160,6 +162,7 @@ import org.apache.commons.collections4.map.LRUMap;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
+import org.apache.thrift.TMultiplexedProcessor;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.server.TServer;
@@ -398,7 +401,8 @@ public class TabletServer extends AbstractServer {
 
   private final AtomicLong totalQueuedMutationSize = new AtomicLong(0);
   private final ReentrantLock recoveryLock = new ReentrantLock(true);
-  private ThriftClientHandler clientHandler;
+  private ClientServiceHandler clientHandler;
+  private ThriftClientHandler thriftClientHandler;
   private final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
   private CompactionManager compactionManager;
 
@@ -589,6 +593,10 @@ public class TabletServer extends AbstractServer {
     return null;
   }
 
+  protected ClientServiceHandler getClientHandler() {
+    return new ClientServiceHandler(context, new TransactionWatcher(context));
+  }
+
   // exists to be overridden in tests
   protected ThriftClientHandler getThriftClientHandler() {
     return new ThriftClientHandler(this);
@@ -600,17 +608,33 @@ public class TabletServer extends AbstractServer {
 
   private HostAndPort startTabletClientService() throws UnknownHostException {
     // start listening for client connection last
-    clientHandler = getThriftClientHandler();
-    Iface rpcProxy = TraceUtil.wrapService(clientHandler);
-    final Processor<Iface> processor;
+    clientHandler = getClientHandler();
+    ClientService.Iface clientHandlerRpcProxy = TraceUtil.wrapService(clientHandler);
+    final ClientService.Processor<ClientService.Iface> clientHandlerProcessor;
     if (getContext().getThriftServerType() == ThriftServerType.SASL) {
-      Iface tcredProxy = TCredentialsUpdatingWrapper.service(rpcProxy, ThriftClientHandler.class,
-          getConfiguration());
-      processor = new Processor<>(tcredProxy);
+      ClientService.Iface tcredProxy = TCredentialsUpdatingWrapper.service(clientHandlerRpcProxy,
+          ClientServiceHandler.class, getConfiguration());
+      clientHandlerProcessor = new ClientService.Processor<>(tcredProxy);
     } else {
-      processor = new Processor<>(rpcProxy);
+      clientHandlerProcessor = new ClientService.Processor<>(clientHandlerRpcProxy);
     }
-    HostAndPort address = startServer(getConfiguration(), clientAddress.getHost(), processor);
+
+    thriftClientHandler = getThriftClientHandler();
+    TabletClientService.Iface thriftHandlerRpcProxy = TraceUtil.wrapService(thriftClientHandler);
+    final TabletClientService.Processor<TabletClientService.Iface> thriftHandlerProcessor;
+    if (getContext().getThriftServerType() == ThriftServerType.SASL) {
+      TabletClientService.Iface tcredProxy = TCredentialsUpdatingWrapper
+          .service(thriftHandlerRpcProxy, ThriftClientHandler.class, getConfiguration());
+      thriftHandlerProcessor = new TabletClientService.Processor<>(tcredProxy);
+    } else {
+      thriftHandlerProcessor = new TabletClientService.Processor<>(thriftHandlerRpcProxy);
+    }
+
+    TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
+    muxProcessor.registerProcessor("ClientService", clientHandlerProcessor);
+    muxProcessor.registerProcessor("TabletClientService", thriftHandlerProcessor);
+
+    HostAndPort address = startServer(getConfiguration(), clientAddress.getHost(), muxProcessor);
     log.info("address = {}", address);
     return address;
   }

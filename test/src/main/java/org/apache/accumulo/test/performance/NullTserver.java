@@ -74,7 +74,6 @@ import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.manager.state.Assignment;
 import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
@@ -92,14 +91,11 @@ import com.beust.jcommander.Parameter;
  */
 public class NullTserver {
 
-  public static class ThriftClientHandler extends ClientServiceHandler
-      implements TabletClientService.Iface {
+  public static class ThriftClientHandler implements TabletClientService.Iface {
 
     private long updateSession = 1;
 
-    public ThriftClientHandler(ServerContext context, TransactionWatcher watcher) {
-      super(context, watcher);
-    }
+    public ThriftClientHandler(ServerContext context, TransactionWatcher watcher) {}
 
     @Override
     public long startUpdate(TInfo tinfo, TCredentials credentials, TDurability durability) {

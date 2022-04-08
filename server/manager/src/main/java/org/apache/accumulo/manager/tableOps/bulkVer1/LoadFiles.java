@@ -166,7 +166,8 @@ class LoadFiles extends ManagerRepo {
               long timeInMillis =
                   manager.getConfiguration().getTimeInMillis(Property.MANAGER_BULK_TIMEOUT);
               server = servers[random.nextInt(servers.length)].getHostAndPort();
-              client = ThriftUtil.getTServerClient(server, manager.getContext(), timeInMillis);
+              client =
+                  ThriftUtil.getClientServiceClient(server, manager.getContext(), timeInMillis);
               List<String> attempt1 = Collections.singletonList(file);
               log.debug("Asking " + server + " to bulk import " + file);
               List<String> fail =
