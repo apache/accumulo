@@ -23,6 +23,7 @@ import java.util.Properties;
 import org.apache.accumulo.core.client.lexicoder.Lexicoder;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.data.Range;
 
 /**
  * This class contains all API entry points created in 2.0.0 or later. The majority of the API is
@@ -45,6 +46,8 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
  */
 // CHECKSTYLE:ON
 public final class Accumulo {
+  public static final byte[] EMPTY_BYTES = new byte[0];
+  public static final Range EMPTY_RANGE = new Range();
 
   private Accumulo() {}
 

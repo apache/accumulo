@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.tserver.logger;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.copyOf;
 import static org.apache.accumulo.tserver.logger.LogEvents.DEFINE_TABLET;
 import static org.apache.accumulo.tserver.logger.LogEvents.MANY_MUTATIONS;
@@ -30,6 +31,8 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Arrays;
 
+import org.apache.accumulo.core.data.ArrayByteSequence;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -204,11 +207,11 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
   }
 
   /**
-   * Converts LogFileKey to Key. Creates a Key containing all of the LogFileKey fields. The fields
-   * are stored so the Key sorts maintaining the legacy sort order. The row of the Key is composed
-   * of 3 fields: EventNum + tabletID + seq. The EventNum is the byte returned by eventType(). The
-   * column family is always the event. The column qualifier is dependent of the type of event and
-   * could be empty.
+   * Converts LogFileKey to Key. Creates a Key containing all the LogFileKey fields. The fields are
+   * stored so the Key sorts maintaining the legacy sort order. The row of the Key is composed of 3
+   * fields: EventNum + tabletID + seq. The EventNum is the byte returned by eventType(). The column
+   * family is always the event. The column qualifier is dependent of the type of event and could be
+   * empty.
    *
    * <pre>
    *     Key Schema:
@@ -242,6 +245,10 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
       default:
         throw new AssertionError("Invalid event type in LogFileKey: " + event);
     }
+  }
+
+  public ByteSequence getColumnFamily() {
+    return new ArrayByteSequence(event.name().getBytes(UTF_8));
   }
 
   /**

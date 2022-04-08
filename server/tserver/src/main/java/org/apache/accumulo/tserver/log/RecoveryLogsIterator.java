@@ -21,23 +21,24 @@ package org.apache.accumulo.tserver.log;
 import java.io.IOException;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.rfile.RFile;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.file.FileOperations;
+import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
+import org.apache.accumulo.core.iterators.IteratorAdapter;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -53,7 +54,9 @@ public class RecoveryLogsIterator
 
   private static final Logger LOG = LoggerFactory.getLogger(RecoveryLogsIterator.class);
 
-  private final List<Scanner> scanners;
+  /** List of the file scanners. This is used to close file references. */
+  private final List<FileSKVIterator> scanners;
+  /** The merged iterator used to iterate over all the WALs. */
   private final Iterator<Entry<Key,Value>> iter;
 
   /**
@@ -64,37 +67,56 @@ public class RecoveryLogsIterator
 
     List<Iterator<Entry<Key,Value>>> iterators = new ArrayList<>(recoveryLogDirs.size());
     scanners = new ArrayList<>();
-    Range range = start == null ? null : LogFileKey.toRange(start, end);
+    Collection<ByteSequence> columnFamilies = new ArrayList<>();
+    Range range;
+    if (start == null) {
+      range = null;
+    } else {
+      range = LogFileKey.toRange(start, end);
+      columnFamilies.add(start.getColumnFamily());
+      columnFamilies.add(end.getColumnFamily());
+    }
+
     var vm = context.getVolumeManager();
+    var recoveryCacheMap = context.getRecoveryCacheMap();
 
     for (Path logDir : recoveryLogDirs) {
+      var recoveryCache = recoveryCacheMap.get(logDir);
       LOG.debug("Opening recovery log dir {}", logDir.getName());
-      List<Path> logFiles = getFiles(vm, logDir);
+      List<Path> logFiles = recoveryCache.getLogFiles();
+      CacheProvider cacheProvider = recoveryCache.getCacheProvider();
       var fs = vm.getFileSystemByPath(logDir);
 
       // only check the first key once to prevent extra iterator creation and seeking
       if (checkFirstKey) {
         validateFirstKey(context, fs, logFiles, logDir);
       }
-
       for (Path log : logFiles) {
-        var scanner = RFile.newScanner().from(log.toString()).withFileSystem(fs)
-            .withTableProperties(context.getConfiguration()).build();
+        var fileReader = createIterator(context, log, cacheProvider, range, columnFamilies);
+        Iterator<Entry<Key,Value>> iterator = new IteratorAdapter(fileReader);
 
-        scanner.setRange(range);
-        Iterator<Entry<Key,Value>> scanIter = scanner.iterator();
-
-        if (scanIter.hasNext()) {
+        if (iterator.hasNext()) {
           LOG.debug("Write ahead log {} has data in range {} {}", log.getName(), start, end);
-          iterators.add(scanIter);
-          scanners.add(scanner);
+          iterators.add(iterator);
+          scanners.add(fileReader);
         } else {
           LOG.debug("Write ahead log {} has no data in range {} {}", log.getName(), start, end);
-          scanner.close();
         }
       }
     }
     iter = Iterators.mergeSorted(iterators, Entry.comparingByKey());
+  }
+
+  private FileSKVIterator createIterator(ServerContext context, Path wal,
+      CacheProvider cacheProvider, Range range, Collection<ByteSequence> columnFamilies)
+      throws IOException {
+    var fs = context.getVolumeManager().getFileSystemByPath(wal);
+    FileSKVIterator fileReader =
+        FileOperations.getInstance().newReaderBuilder().withCacheProvider(cacheProvider)
+            .forFile(wal.getName(), fs, context.getHadoopConf(), context.getCryptoService())
+            .withTableConfiguration(context.getConfiguration()).seekToBeginning().build();
+    fileReader.seek(range, columnFamilies, !columnFamilies.isEmpty());
+    return fileReader;
   }
 
   @Override
@@ -115,34 +137,10 @@ public class RecoveryLogsIterator
   }
 
   @Override
-  public void close() {
-    scanners.forEach(ScannerBase::close);
-  }
-
-  /**
-   * Check for sorting signal files (finished/failed) and get the logs in the provided directory.
-   */
-  private List<Path> getFiles(VolumeManager fs, Path directory) throws IOException {
-    boolean foundFinish = false;
-    List<Path> logFiles = new ArrayList<>();
-    for (FileStatus child : fs.listStatus(directory)) {
-      if (child.getPath().getName().startsWith("_"))
-        continue;
-      if (SortedLogState.isFinished(child.getPath().getName())) {
-        foundFinish = true;
-        continue;
-      }
-      if (SortedLogState.FAILED.getMarker().equals(child.getPath().getName())) {
-        continue;
-      }
-      FileSystem ns = fs.getFileSystemByPath(child.getPath());
-      Path fullLogPath = ns.makeQualified(child.getPath());
-      logFiles.add(fullLogPath);
+  public void close() throws IOException {
+    for (FileSKVIterator scanner : scanners) {
+      scanner.close();
     }
-    if (!foundFinish)
-      throw new IOException(
-          "Sort '" + SortedLogState.FINISHED.getMarker() + "' flag not found in " + directory);
-    return logFiles;
   }
 
   /**

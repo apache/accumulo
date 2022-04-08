@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -57,6 +58,7 @@ import org.apache.accumulo.core.file.rfile.bcfile.CompressionAlgorithm;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils;
 import org.apache.accumulo.core.file.streams.SeekableDataInputStream;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.server.RecoveryCache;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -159,18 +161,21 @@ public class SortedLogRecoveryTest extends WithTestNames {
   }
 
   private List<Mutation> recover(Map<String,KeyValue[]> logs, KeyExtent extent) throws IOException {
-    return recover(logs, new HashSet<>(), extent, bufferSize);
+    return recover(logs, new HashSet<>(), extent);
   }
 
-  private List<Mutation> recover(Map<String,KeyValue[]> logs, Set<String> files, KeyExtent extent,
-      int bufferSize) throws IOException {
+  private List<Mutation> recover(Map<String,KeyValue[]> logs, Set<String> files, KeyExtent extent)
+      throws IOException {
 
+    Map<Path,RecoveryCache> recoveryCacheMap = new HashMap<>();
     final String workdir = new File(tempDir, testName()).getAbsolutePath();
     try (var fs = VolumeManagerImpl.getLocalForTesting(workdir)) {
       expect(context.getVolumeManager()).andReturn(fs).anyTimes();
       expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())
           .anyTimes();
       expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
+      expect(context.getRecoveryCacheMap()).andReturn(recoveryCacheMap).anyTimes();
+
       replay(context);
       final Path workdirPath = new Path("file://" + workdir);
       fs.deleteRecursively(workdirPath);
@@ -178,13 +183,14 @@ public class SortedLogRecoveryTest extends WithTestNames {
       ArrayList<Path> dirs = new ArrayList<>();
       for (Entry<String,KeyValue[]> entry : logs.entrySet()) {
         String destPath = workdir + "/" + entry.getKey();
-        FileSystem ns = fs.getFileSystemByPath(new Path(destPath));
+        Path destPathPath = new Path(destPath);
+        FileSystem ns = fs.getFileSystemByPath(destPathPath);
         // convert test object to Pairs for LogSorter, flushing based on bufferSize
         List<Pair<LogFileKey,LogFileValue>> buffer = new ArrayList<>();
         int parts = 0;
         for (KeyValue pair : entry.getValue()) {
           buffer.add(new Pair<>(pair.key, pair.value));
-          if (buffer.size() >= bufferSize) {
+          if (buffer.size() >= SortedLogRecoveryTest.bufferSize) {
             logSorter.writeBuffer(destPath, buffer, parts++);
             buffer.clear();
           }
@@ -192,7 +198,10 @@ public class SortedLogRecoveryTest extends WithTestNames {
         logSorter.writeBuffer(destPath, buffer, parts);
 
         ns.create(SortedLogState.getFinishedMarkerPath(destPath)).close();
-        dirs.add(new Path(destPath));
+        dirs.add(destPathPath);
+        // TODO fix
+        var recoveryCache = new RecoveryCache(context, null, destPathPath);
+        recoveryCacheMap.put(destPathPath, recoveryCache);
       }
       // Recover
       SortedLogRecovery recovery = new SortedLogRecovery(context);
@@ -691,7 +700,7 @@ public class SortedLogRecoveryTest extends WithTestNames {
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
 
-    List<Mutation> mutations = recover(logs, Collections.singleton("/t/f1"), extent, bufferSize);
+    List<Mutation> mutations = recover(logs, Collections.singleton("/t/f1"), extent);
 
     assertEquals(0, mutations.size());
   }
@@ -714,7 +723,7 @@ public class SortedLogRecoveryTest extends WithTestNames {
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
 
-    List<Mutation> mutations = recover(logs, Collections.singleton("/t/f1"), extent, bufferSize);
+    List<Mutation> mutations = recover(logs, Collections.singleton("/t/f1"), extent);
 
     assertEquals(1, mutations.size());
     assertEquals(m, mutations.get(0));
@@ -818,7 +827,7 @@ public class SortedLogRecoveryTest extends WithTestNames {
     logs.put("entries", entries);
 
     HashSet<String> filesSet = new HashSet<>(Arrays.asList(tabletFiles));
-    List<Mutation> mutations = recover(logs, filesSet, extent, bufferSize);
+    List<Mutation> mutations = recover(logs, filesSet, extent);
 
     if (startMatches) {
       assertEquals(1, mutations.size());
