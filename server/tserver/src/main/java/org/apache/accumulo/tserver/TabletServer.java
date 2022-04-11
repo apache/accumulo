@@ -406,7 +406,10 @@ public class TabletServer extends AbstractServer {
     if (sem == null || maxThreadPermits != writeThreads) {
       synchronized (this) {
         maxThreadPermits = writeThreads;
-        sem = new Semaphore(maxThreadPermits);
+   if(writeThreads == 0)
+       sem = Optional.empty();
+   else
+        sem = Optional.of(new Semaphore(maxThreadPermits));
       }
     }
     return sem;
