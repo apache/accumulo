@@ -21,9 +21,6 @@ package org.apache.accumulo.server.conf;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -32,8 +29,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.accumulo.server.conf.store.PropStore;
-import org.apache.accumulo.server.conf.store.PropStoreException;
-import org.checkerframework.checker.nullness.qual.NonNull;
+import org.apache.accumulo.server.conf.util.PropSnapshot;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
@@ -53,9 +49,8 @@ public class ZooBasedConfiguration extends AccumuloConfiguration implements Prop
   protected final Logger log;
   private final AccumuloConfiguration parent;
   private final PropCacheKey propCacheKey;
-  private final PropStore propStore;
 
-  private final AtomicReference<PropSnapshot> snapshotRef = new AtomicReference<>(null);
+  private final PropSnapshot snapshot;
 
   public ZooBasedConfiguration(Logger log, ServerContext context, PropCacheKey propCacheKey,
       AccumuloConfiguration parent) {
@@ -64,21 +59,17 @@ public class ZooBasedConfiguration extends AccumuloConfiguration implements Prop
     this.propCacheKey = requireNonNull(propCacheKey, "a PropCacheId must be supplied");
     this.parent = requireNonNull(parent, "An AccumuloConfiguration parent must be supplied");
 
-    this.propStore =
+    PropStore propStore =
         requireNonNull(context.getPropStore(), "The PropStore must be supplied and exist");
 
     propStore.registerAsListener(propCacheKey, this);
 
-    snapshotRef.set(updateSnapshot());
+    snapshot = new PropSnapshot(propCacheKey, propStore);
 
   }
 
   public long getDataVersion() {
-    var snapshot = snapshotRef.get();
-    if (snapshot == null) {
-      return updateSnapshot().getDataVersion();
-    }
-    return snapshot.getDataVersion();
+    return snapshot.get().getDataVersion();
   }
 
   /**
@@ -162,107 +153,40 @@ public class ZooBasedConfiguration extends AccumuloConfiguration implements Prop
   }
 
   public Map<String,String> getSnapshot() {
-    var snap = snapshotRef.get();
-    if (snap == null) {
-      return updateSnapshot().getProps();
-    }
-    return snap.getProps();
+    return snapshot.get().getProperties();
   }
 
   @Override
   public void invalidateCache() {
-    snapshotRef.set(null);
-  }
-
-  private final Lock updateLock = new ReentrantLock();
-
-  private @NonNull PropSnapshot updateSnapshot() throws PropStoreException {
-
-    PropSnapshot localSnapshot = snapshotRef.get();
-
-    if (localSnapshot != null) {
-      // no changes return locally cached config
-      return localSnapshot;
-    }
-    updateLock.lock();
-    int retryCount = 5;
-    try {
-      localSnapshot = snapshotRef.get();
-      // check for update while waiting for lock.
-      if (localSnapshot != null) {
-        return localSnapshot;
-      }
-
-      PropSnapshot propsRead;
-      var vProps = propStore.get(propCacheKey);
-      if (vProps == null) {
-        snapshotRef.set(null);
-        throw new IllegalStateException("Failed to read properties for " + propCacheKey);
-      } else {
-        snapshotRef.set(new PropSnapshot(vProps.getDataVersion(), vProps.getProperties()));
-      }
-      return snapshotRef.get();
-    } finally {
-      updateLock.unlock();
-    }
+    snapshot.requireUpdate();
   }
 
   @Override
   public void zkChangeEvent(final PropCacheKey eventPropKey) {
     if (propCacheKey.equals(eventPropKey)) {
-      if (log.isDebugEnabled()) {
-        var snap = snapshotRef.get();
-        log.debug("Received zookeeper property change event for {} - current version: {}",
-            propCacheKey, snap != null ? snap.getDataVersion() : "no data version set");
-      }
-      snapshotRef.set(null);
+      snapshot.requireUpdate();
     }
   }
 
   @Override
   public void cacheChangeEvent(final PropCacheKey eventPropKey) {
     if (propCacheKey.equals(eventPropKey)) {
-      if (log.isDebugEnabled()) {
-        var snap = snapshotRef.get();
-        log.debug("Received cache property change event for {} - current version: {}", propCacheKey,
-            snap != null ? snap.getDataVersion() : "no data version set");
-      }
-      snapshotRef.set(null);
+      snapshot.requireUpdate();
     }
   }
 
   @Override
   public void deleteEvent(final PropCacheKey eventPropKey) {
     if (propCacheKey.equals(eventPropKey)) {
-      // snapshotRef.set(new PropSnapshot(INVALID_DATA_VER, Map.of()));
-      snapshotRef.set(null);
+      snapshot.requireUpdate();
       log.info("Received property delete event for {}", propCacheKey);
     }
   }
 
   @Override
   public void connectionEvent() {
-    snapshotRef.set(null);
+    snapshot.requireUpdate();
     log.info("Received connection event - update properties required");
   }
 
-  private static class PropSnapshot {
-
-    private final long dataVersion;
-    private final Map<String,String> snapshot;
-
-    public PropSnapshot(final long dataVersion, final Map<String,String> props) {
-      requireNonNull(props, "property map must be supplied");
-      this.dataVersion = dataVersion;
-      this.snapshot = props;
-    }
-
-    public long getDataVersion() {
-      return dataVersion;
-    }
-
-    public @NonNull Map<String,String> getProps() {
-      return snapshot;
-    }
-  }
 }
