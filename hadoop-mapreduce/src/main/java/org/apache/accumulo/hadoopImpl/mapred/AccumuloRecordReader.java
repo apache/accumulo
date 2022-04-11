@@ -161,7 +161,7 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
       } catch (TableNotFoundException e) {
         throw new IOException(e);
       }
-
+      scanner.setConsistencyLevel(tableConfig.getConsistencyLevel());
       scanner.setRanges(multiRangeSplit.getRanges());
       scannerBase = scanner;
 
@@ -189,6 +189,7 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
           scanner = new OfflineScanner(context, TableId.of(baseSplit.getTableId()), authorizations);
         } else {
           scanner = new ScannerImpl(context, TableId.of(baseSplit.getTableId()), authorizations);
+          scanner.setConsistencyLevel(tableConfig.getConsistencyLevel());
         }
         if (isIsolated) {
           log.info("Creating isolated scanner");

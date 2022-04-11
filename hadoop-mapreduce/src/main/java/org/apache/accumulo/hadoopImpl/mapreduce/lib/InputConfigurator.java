@@ -49,6 +49,7 @@ import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -115,7 +116,8 @@ public class InputConfigurator extends ConfiguratorBase {
     USE_LOCAL_ITERATORS,
     SCAN_OFFLINE,
     BATCH_SCANNER,
-    BATCH_SCANNER_THREADS
+    BATCH_SCANNER_THREADS,
+    CONSISTENCY_LEVEL
   }
 
   /**
@@ -598,6 +600,38 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   public static Boolean isBatchScan(Class<?> implementingClass, Configuration conf) {
     return conf.getBoolean(enumToConfKey(implementingClass, Features.BATCH_SCANNER), false);
+  }
+
+  /**
+   * Set the ConsistencyLevel for the Accumulo scans that create the input data
+   *
+   * @param implementingClass
+   *          the class whose name will be used as a prefix for the property configuration key
+   * @param conf
+   *          the Hadoop configuration object to configure
+   * @param level
+   *          the consistency level
+   * @since 2.1.0
+   */
+  public static void setConsistencyLevel(Class<?> implementingClass, Configuration conf,
+      ConsistencyLevel level) {
+    conf.set(enumToConfKey(implementingClass, Features.CONSISTENCY_LEVEL), level.name());
+  }
+
+  /**
+   * Set the ConsistencyLevel for the Accumulo scans that create the input data
+   *
+   * @param implementingClass
+   *          the class whose name will be used as a prefix for the property configuration key
+   * @param conf
+   *          the Hadoop configuration object to configure
+   * @return the consistency level
+   * @since 2.1.0
+   */
+  public static ConsistencyLevel getConsistencyLevel(Class<?> implementingClass,
+      Configuration conf) {
+    return ConsistencyLevel
+        .valueOf(conf.get(enumToConfKey(implementingClass, Features.CONSISTENCY_LEVEL)));
   }
 
   /**

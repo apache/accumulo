@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.io.Text;
@@ -52,6 +53,20 @@ public class InputTableConfigTest {
     byte[] serialized = serialize(tableQueryConfig);
     InputTableConfig actualConfig = deserialize(serialized);
 
+    assertEquals(tableQueryConfig, actualConfig);
+  }
+
+  @Test
+  public void testSerialization_consistencyLevel() throws IOException {
+    byte[] serialized = serialize(tableQueryConfig);
+    InputTableConfig actualConfig = deserialize(serialized);
+    assertEquals(ConsistencyLevel.IMMEDIATE, actualConfig.getConsistencyLevel());
+    assertEquals(tableQueryConfig, actualConfig);
+
+    tableQueryConfig.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
+    serialized = serialize(tableQueryConfig);
+    actualConfig = deserialize(serialized);
+    assertEquals(ConsistencyLevel.EVENTUAL, actualConfig.getConsistencyLevel());
     assertEquals(tableQueryConfig, actualConfig);
   }
 

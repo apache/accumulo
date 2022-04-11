@@ -26,7 +26,9 @@ import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.hadoop.mapreduce.InputFormatBuilder;
+import org.apache.accumulo.hadoop.mapreduce.InputFormatBuilder.InputFormatOptions;
 import org.apache.hadoop.mapred.JobConf;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -60,6 +62,16 @@ public class InputFormatBuilderTest {
 
     private Optional<String> getClassLoaderContext() {
       return tableConfigMap.get(currentTable).getContext();
+    }
+
+    @Override
+    public InputFormatOptions<T> consistencyLevel(ConsistencyLevel level) {
+      tableConfigMap.get(currentTable).setConsistencyLevel(level);
+      return this;
+    }
+
+    private ConsistencyLevel getConsistencyLevel() {
+      return tableConfigMap.get(currentTable).getConsistencyLevel();
     }
 
     @Override
@@ -105,6 +117,13 @@ public class InputFormatBuilderTest {
 
     Optional<String> classLoaderContextStr = formatBuilderTest.getClassLoaderContext();
     assertEquals(context, classLoaderContextStr.get());
+  }
+
+  @Test
+  public void testInputFormatBuilderImplTest_consistencyLevel() {
+    formatBuilderTest.consistencyLevel(ConsistencyLevel.EVENTUAL);
+    ConsistencyLevel level = formatBuilderTest.getConsistencyLevel();
+    assertEquals(ConsistencyLevel.EVENTUAL, level);
   }
 
   @Test
