@@ -46,6 +46,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -242,7 +243,6 @@ public class TabletServer extends AbstractServer {
   private final ServerContext context;
 
   private int maxThreadPermits = 0;
-  private Optional<Semaphore> sem;
 
   public static void main(String[] args) throws Exception {
     try (TabletServer tserver = new TabletServer(new ServerOpts(), args)) {
@@ -398,19 +398,16 @@ public class TabletServer extends AbstractServer {
         * TabletServer.TIME_BETWEEN_LOCATOR_CACHE_CLEARS);
   }
 
-  public Semaphore getSemaphore() {
+  public Optional<Semaphore> getSemaphore() {
+    Optional<Semaphore> sem = Optional.empty();
     int writeThreads =
         getServerConfig().getConfiguration().getCount(Property.TSERV_MAX_WRITETHREADS);
-    if (writeThreads == 0)
+    if (writeThreads == 0) {
       writeThreads = Integer.MAX_VALUE;
-    if (sem == null || maxThreadPermits != writeThreads) {
-      synchronized (this) {
-        maxThreadPermits = writeThreads;
-   if(writeThreads == 0)
-       sem = Optional.empty();
-   else
-        sem = Optional.of(new Semaphore(maxThreadPermits));
-      }
+    }
+    synchronized (this) {
+      maxThreadPermits = writeThreads;
+      sem = Optional.of(new Semaphore(maxThreadPermits));
     }
     return sem;
   }

@@ -34,6 +34,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -691,18 +692,20 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       return;
     }
 
-    Optional<Semaphore> semaphoreCopy = Optional.empty();
+    Optional<Semaphore> maxThreadSemaphore = Optional.empty();
     boolean reserved = true;
 
     try {
       KeyExtent keyExtent = KeyExtent.fromThrift(tkeyExtent);
 
       if (TabletType.type(keyExtent) == TabletType.USER) {
-        semaphoreCopy = server.getSemaphore();
-        if (semaphoreCopy.isPresent() && !semaphoreCopy.get().tryAcquire()) {
-          throw new TException("Mutation failed. No threads available.");
-        } else {
-          log.trace("Available permits: {}", semaphoreCopy.availablePermits());
+        maxThreadSemaphore = server.getSemaphore();
+        if (maxThreadSemaphore.isPresent()) {
+          Semaphore sem = maxThreadSemaphore.get();
+          if (sem.tryAcquire()) {
+            log.trace("Available permits: {}", sem.availablePermits());
+          } else
+            throw new TException("Mutation failed. No threads available.");
         }
       }
       setUpdateTablet(us, keyExtent);
@@ -732,8 +735,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
         }
       }
     } finally {
-      if (semaphoreCopy.isPresent())
-        semaphoreCopy.get().release();
+      maxThreadSemaphore.ifPresent(Semaphore::release);
       if (reserved) {
         server.sessionManager.unreserveSession(us);
       }
