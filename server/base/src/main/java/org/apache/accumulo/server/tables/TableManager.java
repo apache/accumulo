@@ -258,7 +258,7 @@ public class TableManager {
           if (zPath != null && zPath.equals(tablesPrefix)) {
             updateTableStateCache();
           } else {
-            log.warn("Unexpected path {}", zPath);
+            log.warn("Unexpected path {} in {}", zPath, event);
           }
           break;
         case NodeCreated:
@@ -281,7 +281,7 @@ public class TableManager {
         case None:
           switch (event.getState()) {
             case Expired:
-              log.trace("Session expired {}", event);
+              log.trace("Session expired; {}", event);
               synchronized (observers) {
                 for (TableObserver to : observers)
                   to.sessionExpired();
