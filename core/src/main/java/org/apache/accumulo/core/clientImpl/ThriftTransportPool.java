@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
 import java.security.SecureRandom;
@@ -73,10 +74,20 @@ public class ThriftTransportPool {
     this.maxAgeMillis = maxAgeMillis;
     this.checkThread = Threads.createThread("Thrift Connection Pool Checker", () -> {
       try {
+        final long minNanos = MILLISECONDS.toNanos(250);
+        final long maxNanos = MINUTES.toNanos(1);
+        long lastRun = System.nanoTime();
         while (!connectionPool.shutdown) {
-          closeExpiredConnections();
-          // check again when at least half the current max age has elapsed
-          Thread.sleep(Math.max(500, maxAgeMillis.getAsLong() / 2));
+          // don't close on every loop; instead, check based on configured max age, within bounds
+          var threshold = Math.min(maxNanos,
+              Math.max(minNanos, MILLISECONDS.toNanos(maxAgeMillis.getAsLong()) / 2));
+          long currentNanos = System.nanoTime();
+          if ((currentNanos - lastRun) >= threshold) {
+            closeExpiredConnections();
+            lastRun = currentNanos;
+          }
+          // loop often, to detect shutdowns quickly
+          Thread.sleep(250);
         }
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
