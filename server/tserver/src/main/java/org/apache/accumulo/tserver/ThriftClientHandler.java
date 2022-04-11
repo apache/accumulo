@@ -732,8 +732,8 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
         }
       }
     } finally {
-      if (semaphoreCopy != null)
-        semaphoreCopy.release();
+      if (semaphoreCopy.isPresent())
+        semaphoreCopy.get().release();
       if (reserved) {
         server.sessionManager.unreserveSession(us);
       }
