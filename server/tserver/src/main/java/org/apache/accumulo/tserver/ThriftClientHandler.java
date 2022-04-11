@@ -691,7 +691,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       return;
     }
 
-    Semaphore semaphoreCopy = null;
+    Optional<Semaphore> semaphoreCopy = Optional.empty();
     boolean reserved = true;
 
     try {
