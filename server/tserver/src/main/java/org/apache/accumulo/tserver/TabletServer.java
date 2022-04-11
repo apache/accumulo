@@ -242,7 +242,7 @@ public class TabletServer extends AbstractServer {
   private final ServerContext context;
 
   private int maxThreadPermits = 0;
-  private Semaphore sem;
+  private Optional<Semaphore> sem;
 
   public static void main(String[] args) throws Exception {
     try (TabletServer tserver = new TabletServer(new ServerOpts(), args)) {
