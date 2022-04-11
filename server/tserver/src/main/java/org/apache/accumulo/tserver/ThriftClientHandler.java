@@ -699,7 +699,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
 
       if (TabletType.type(keyExtent) == TabletType.USER) {
         semaphoreCopy = server.getSemaphore();
-        if (!semaphoreCopy.tryAcquire()) {
+        if (semaphoreCopy.isPresent() && !semaphoreCopy.get().tryAcquire()) {
           throw new TException("Mutation failed. No threads available.");
         } else {
           log.trace("Available permits: {}", semaphoreCopy.availablePermits());
