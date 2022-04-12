@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import java.time.Duration;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
@@ -37,8 +38,8 @@ import org.junit.jupiter.api.Test;
 public class BalanceWithOfflineTableIT extends ConfigurableMacBase {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 2;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
   }
 
   @Override
@@ -83,7 +84,7 @@ public class BalanceWithOfflineTableIT extends ConfigurableMacBase {
         c.instanceOperations().waitForBalance();
         return true;
       });
-      wait.get((2L * defaultTimeoutSeconds()) / 3, TimeUnit.SECONDS);
+      wait.get((2L * defaultTimeout().toSeconds()) / 3, TimeUnit.SECONDS);
       log.info("Balance succeeded with an offline table");
     }
   }

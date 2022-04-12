@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Iterator;
@@ -61,8 +62,8 @@ public class ClassLoaderIT extends AccumuloClusterHarness {
   private String rootPath;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 2;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
   }
 
   @BeforeEach

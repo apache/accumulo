@@ -21,6 +21,7 @@ package org.apache.accumulo.test.compaction;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -50,8 +51,8 @@ import com.google.common.collect.Iterators;
 public class ConfigurableMajorCompactionIT extends ConfigurableMacBase {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 30;
+  protected Duration defaultTimeout() {
+    return Duration.ofSeconds(30);
   }
 
   @Override

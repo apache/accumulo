@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
+import java.time.Duration;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
@@ -65,8 +66,8 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
   private boolean rootHasWritePermission;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 2;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
   }
 
   @Override

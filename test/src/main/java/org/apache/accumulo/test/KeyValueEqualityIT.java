@@ -21,6 +21,7 @@ package org.apache.accumulo.test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
+import java.time.Duration;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
@@ -38,8 +39,8 @@ import org.junit.jupiter.api.Test;
 public class KeyValueEqualityIT extends AccumuloClusterHarness {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
   }
 
   @Test

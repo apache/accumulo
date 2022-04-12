@@ -20,6 +20,7 @@ package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
+import java.time.Duration;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.cluster.ClusterControl;
@@ -41,14 +42,12 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Iterators;
-
 // Accumulo3010
 public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterHarness {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 3;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(3);
   }
 
   @Override
@@ -91,7 +90,9 @@ public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterHarness {
       // recover
       control.startAllServers(ServerType.TABLET_SERVER);
       // ensure the table is readable
-      Iterators.size(c.createScanner(tableName, Authorizations.EMPTY).iterator());
+      try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
+        scanner.forEach((k, v) -> {});
+      }
 
       // ensure that the recovery was not a merging minor compaction
       try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {

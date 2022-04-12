@@ -155,8 +155,7 @@
     <surefire.forkCount>1C</surefire.forkCount>
     <surefire.groups />
     <surefire.reuseForks>true</surefire.reuseForks>
-    <!-- 3.0.0-M5 causes RowHashIT.test and ShellServerIT.scansWithClassLoaderContext to fail -->
-    <surefire.version>3.0.0-M4</surefire.version>
+    <surefire.version>3.0.0-M6</surefire.version>
     <!-- Thrift version -->
     <thrift.version>0.15.0</thrift.version>
     <unitTestMemSize>-Xmx1G</unitTestMemSize>
@@ -175,21 +174,21 @@
       <dependency>
         <groupId>io.micrometer</groupId>
         <artifactId>micrometer-bom</artifactId>
-        <version>1.8.3</version>
+        <version>1.8.4</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>io.opentelemetry</groupId>
         <artifactId>opentelemetry-bom</artifactId>
-        <version>1.11.0</version>
+        <version>1.12.0</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>io.opentelemetry</groupId>
         <artifactId>opentelemetry-bom-alpha</artifactId>
-        <version>1.11.0-alpha</version>
+        <version>1.12.0-alpha</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -822,8 +821,10 @@
           <configuration>
             <archive>
               <manifestEntries>
-                <Sealed>true</Sealed>
+                <!-- Automatic modules do not work with the javadoc plugin - see MJAVADOC-707 -->
+                <!-- Automatic-Module-Name>${accumulo.module.name}</Automatic-Module-Name -->
                 <Implementation-Build>${mvngit.commit.id}</Implementation-Build>
+                <Sealed>true</Sealed>
               </manifestEntries>
             </archive>
             <excludes>
@@ -834,6 +835,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-javadoc-plugin</artifactId>
+          <version>3.3.2</version>
           <configuration>
             <quiet>true</quiet>
             <additionalJOption>-J-Xmx512m</additionalJOption>
@@ -1024,10 +1026,16 @@
         <artifactId>build-helper-maven-plugin</artifactId>
         <executions>
           <execution>
-            <id>parse-project-version</id>
+            <id>create-automatic-module-name</id>
             <goals>
-              <goal>parse-version</goal>
+              <goal>regex-property</goal>
             </goals>
+            <configuration>
+              <name>accumulo.module.name</name>
+              <regex>-</regex>
+              <replacement>.</replacement>
+              <value>org-apache-${project.artifactId}</value>
+            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -1681,16 +1689,15 @@
                   -XepExcludedPaths:.*/(proto|thrift|generated-sources|src/test)/.* \
                   -XepDisableWarningsInGeneratedCode \
                   -XepDisableAllWarnings \
-                  <!-- error patterns to ignore -->
-                  -Xep:CheckReturnValue:OFF \
+                  <!-- ERROR patterns to specifically ignore -->
                   -Xep:MustBeClosedChecker:OFF \
-                  -Xep:ReturnValueIgnored:OFF \
-                  -Xep:FutureReturnValueIgnored:ERROR \
                   -Xep:UnicodeInCode:OFF \
-                  <!-- warning patterns to specifically check -->
+                  <!-- WARNING patterns to specifically check -->
                   -Xep:ExpectedExceptionChecker \
+                  <!-- treat following warning as an error -->
+                  -Xep:FutureReturnValueIgnored:ERROR \
                   -Xep:MissingOverride \
-                  <!-- Items containing 'OFF' are currently flagged by ErrorProne. The 'OFF'
+                  <!-- Items containing 'OFF' are currently Errors flagged by ErrorProne. The 'OFF'
                   can be removed and the project recompiled to discover location of errors for
                   further analysis. @SuppressWarnings can be used to ignore errors if desired. -->
                 </arg>

@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -47,8 +48,8 @@ public class BatchScanSplitIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(BatchScanSplitIT.class);
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 2;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
   }
 
   @Override

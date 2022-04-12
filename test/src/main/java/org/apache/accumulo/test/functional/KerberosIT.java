@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.File;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.security.PrivilegedExceptionAction;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -102,8 +103,8 @@ public class KerberosIT extends AccumuloITBase {
   private static ClusterUser rootUser;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 5;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(5);
   }
 
   @BeforeAll

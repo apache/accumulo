@@ -22,6 +22,7 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
@@ -43,13 +44,11 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.conf.Configuration;
 
-import com.google.common.collect.Iterators;
-
 public class MetaGetsReadersIT extends ConfigurableMacBase {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 2;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
   }
 
   @Override
@@ -104,7 +103,7 @@ public class MetaGetsReadersIT extends ConfigurableMacBase {
       long now = System.currentTimeMillis();
 
       try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-        Iterators.size(s.iterator());
+        s.forEach((k, v) -> {});
       }
 
       long delay = System.currentTimeMillis() - now;

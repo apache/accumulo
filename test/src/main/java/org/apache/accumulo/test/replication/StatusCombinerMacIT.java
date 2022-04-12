@@ -21,6 +21,7 @@ package org.apache.accumulo.test.replication;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -59,8 +60,8 @@ import com.google.common.collect.Iterables;
 public class StatusCombinerMacIT extends SharedMiniClusterBase {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
   }
 
   @BeforeAll

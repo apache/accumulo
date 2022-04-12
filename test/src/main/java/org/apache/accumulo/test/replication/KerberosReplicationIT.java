@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.security.PrivilegedExceptionAction;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -32,6 +33,7 @@ import java.util.Set;
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -70,8 +72,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterators;
-
 /**
  * Ensure that replication occurs using keytabs instead of password (not to mention SASL)
  */
@@ -86,8 +86,8 @@ public class KerberosReplicationIT extends AccumuloITBase {
   private static ClusterUser rootUser;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 3;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(3);
   }
 
   @BeforeAll
@@ -247,7 +247,9 @@ public class KerberosReplicationIT extends AccumuloITBase {
         log.info("Restarted the tserver");
 
         // Read the data -- the tserver is back up and running and tablets are assigned
-        Iterators.size(primaryclient.createScanner(primaryTable1, Authorizations.EMPTY).iterator());
+        try (Scanner scanner = primaryclient.createScanner(primaryTable1, Authorizations.EMPTY)) {
+          scanner.forEach((k, v) -> {});
+        }
 
         // Wait for both tables to be replicated
         log.info("Waiting for {} for {}", filesFor1, primaryTable1);

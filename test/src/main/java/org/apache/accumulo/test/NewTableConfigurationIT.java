@@ -21,6 +21,7 @@ package org.apache.accumulo.test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -48,8 +49,8 @@ import org.junit.jupiter.api.Test;
 public class NewTableConfigurationIT extends SharedMiniClusterBase {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 30;
+  protected Duration defaultTimeout() {
+    return Duration.ofSeconds(30);
   }
 
   @BeforeAll

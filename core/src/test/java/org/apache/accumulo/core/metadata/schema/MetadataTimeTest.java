@@ -49,6 +49,17 @@ public class MetadataTimeTest {
   }
 
   @Test
+  public void testGetInstance_nullArgument() {
+    assertThrows(IllegalArgumentException.class, () -> MetadataTime.parse(null));
+  }
+
+  @Test
+  public void testGetInstance_Invalid_timestr() {
+    assertThrows(IllegalArgumentException.class, () -> MetadataTime.parse(""));
+    assertThrows(IllegalArgumentException.class, () -> MetadataTime.parse("X"));
+  }
+
+  @Test
   public void testGetInstance_Millis() {
     assertEquals(1234, m1234.getTime());
     assertEquals(TimeType.MILLIS, m1234.getType());

@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.SortedSet;
@@ -52,8 +53,8 @@ import org.junit.jupiter.api.Test;
 public class BulkOldIT extends AccumuloClusterHarness {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 4;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
   }
 
   @Override

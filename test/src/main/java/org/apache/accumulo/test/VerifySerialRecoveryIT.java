@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
@@ -29,6 +30,7 @@ import java.util.regex.Pattern;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -44,8 +46,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
-
-import com.google.common.collect.Iterators;
 
 public class VerifySerialRecoveryIT extends ConfigurableMacBase {
 
@@ -65,8 +65,8 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
   }
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 4;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
   }
 
   @Override
@@ -107,7 +107,9 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
       final ProcessInfo ts = cluster.exec(TabletServer.class);
 
       // wait for recovery
-      Iterators.size(c.createScanner(tableName, Authorizations.EMPTY).iterator());
+      try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
+        scanner.forEach((k, v) -> {});
+      }
       assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
       ts.getProcess().waitFor();
       String result = ts.readStdOut();

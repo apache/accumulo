@@ -95,7 +95,7 @@ public class ZooSession {
     @Override
     public void process(WatchedEvent event) {
       if (event.getState() == KeeperState.Expired) {
-        log.debug("Session expired, state of current session : {}", event.getState());
+        log.debug("Session expired; {}", event);
       }
     }
 

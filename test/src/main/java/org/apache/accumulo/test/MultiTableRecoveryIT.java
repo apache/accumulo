@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -45,13 +46,11 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Iterators;
-
 public class MultiTableRecoveryIT extends ConfigurableMacBase {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 5;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(5);
   }
 
   @Override
@@ -131,7 +130,9 @@ public class MultiTableRecoveryIT extends ConfigurableMacBase {
           getCluster().getClusterControl().stop(ServerType.TABLET_SERVER);
           getCluster().start();
           // read the metadata table to know everything is back up
-          Iterators.size(client.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
+          try (Scanner scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+            scanner.forEach((k, v) -> {});
+          }
           i++;
         }
         System.out.println("Restarted " + i + " times");

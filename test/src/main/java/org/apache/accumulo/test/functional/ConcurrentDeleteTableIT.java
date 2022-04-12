@@ -21,6 +21,7 @@ package org.apache.accumulo.test.functional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -56,8 +57,8 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
   private final int NUM_TABLES = 2;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 7;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(7);
   }
 
   @Test

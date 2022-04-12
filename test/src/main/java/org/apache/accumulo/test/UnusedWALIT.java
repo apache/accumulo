@@ -20,6 +20,7 @@ package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.UUID;
@@ -46,8 +47,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Iterators;
-
 // When reviewing the changes for ACCUMULO-3423, kturner suggested
 // "tablets will now have log references that contain no data,
 // so it may be marked with 3 WALs, the first with data, the 2nd without, a 3rd with data.
@@ -55,8 +54,8 @@ import com.google.common.collect.Iterators;
 public class UnusedWALIT extends ConfigurableMacBase {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 4;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
   }
 
   @Override
@@ -105,7 +104,9 @@ public class UnusedWALIT extends ConfigurableMacBase {
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
 
       // wait for the metadata table to be online
-      Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
+      try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+        scanner.forEach((k, v) -> {});
+      }
 
       // check our two sets of data in different logs
       scanSomeData(c, lilTable, 0, 1, 0, 1);

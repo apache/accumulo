@@ -76,8 +76,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterators;
-
 /**
  * Replication tests which start at least two MAC instances and replicate data between them
  */
@@ -244,7 +242,9 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       cluster.exec(TabletServer.class);
 
       log.info("TabletServer restarted");
-      Iterators.size(ReplicationTable.getScanner(clientManager).iterator());
+      try (Scanner scanner = ReplicationTable.getScanner(clientManager)) {
+        scanner.forEach((k, v) -> {});
+      }
       log.info("TabletServer is online");
 
       while (!ReplicationTable.isOnline(clientManager)) {
@@ -456,7 +456,9 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       log.info("Restarted the tserver");
 
       // Read the data -- the tserver is back up and running
-      Iterators.size(clientManager.createScanner(managerTable1, Authorizations.EMPTY).iterator());
+      try (Scanner scanner = clientManager.createScanner(managerTable1, Authorizations.EMPTY)) {
+        scanner.forEach((k, v) -> {});
+      }
 
       while (!ReplicationTable.isOnline(clientManager)) {
         log.info("Replication table still offline, waiting");
@@ -589,7 +591,9 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
         Thread.sleep(5000);
       }
 
-      Iterators.size(clientManager.createScanner(managerTable, Authorizations.EMPTY).iterator());
+      try (Scanner scanner = clientManager.createScanner(managerTable, Authorizations.EMPTY)) {
+        scanner.forEach((k, v) -> {});
+      }
 
       try (var scanner = ReplicationTable.getScanner(clientManager)) {
         for (Entry<Key,Value> kv : scanner) {

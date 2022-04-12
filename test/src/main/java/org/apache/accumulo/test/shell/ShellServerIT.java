@@ -37,6 +37,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -94,7 +95,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -124,8 +124,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
   }
 
   @BeforeAll
@@ -1456,7 +1456,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
       SlowIterator.setSleepTime(cfg, 500);
       s.addScanIterator(cfg);
 
-      Thread thread = new Thread(() -> Iterators.size(s.iterator()));
+      Thread thread = new Thread(() -> {
+        s.forEach((k, v) -> {});
+      });
       thread.start();
 
       List<String> scans = new ArrayList<>();

@@ -35,21 +35,11 @@ public class ThriftTransportKey {
   private final SslConnectionParams sslParams;
   private final SaslConnectionParams saslParams;
 
-  private int hash = -1;
+  private final int hash;
 
   @VisibleForTesting
   public ThriftTransportKey(HostAndPort server, long timeout, ClientContext context) {
-    requireNonNull(server, "location is null");
-    this.server = server;
-    this.timeout = timeout;
-    this.sslParams = context.getClientSslParams();
-    this.saslParams = context.getSaslParams();
-    if (saslParams != null) {
-      // TSasl and TSSL transport factories don't play nicely together
-      if (sslParams != null) {
-        throw new RuntimeException("Cannot use both SSL and SASL thrift transports");
-      }
-    }
+    this(server, timeout, context.getClientSslParams(), context.getSaslParams());
   }
 
   /**
@@ -62,6 +52,11 @@ public class ThriftTransportKey {
     this.timeout = timeout;
     this.sslParams = sslParams;
     this.saslParams = saslParams;
+    if (saslParams != null && sslParams != null) {
+      // TSasl and TSSL transport factories don't play nicely together
+      throw new RuntimeException("Cannot use both SSL and SASL thrift transports");
+    }
+    this.hash = Objects.hash(server, timeout, sslParams, saslParams);
   }
 
   HostAndPort getServer() {
@@ -90,14 +85,8 @@ public class ThriftTransportKey {
         && (!isSasl() || (ttk.isSasl() && saslParams.equals(ttk.saslParams)));
   }
 
-  public final void precomputeHashCode() {
-    hashCode();
-  }
-
   @Override
   public int hashCode() {
-    if (hash == -1)
-      hash = Objects.hash(server, timeout, sslParams, saslParams);
     return hash;
   }
 

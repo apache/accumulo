@@ -33,6 +33,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -69,13 +70,20 @@ class DatafileManager {
   // ensure we only have one reader/writer of our bulk file notes at a time
   private final Object bulkFileImportLock = new Object();
 
-  // This must be incremented whenever datafileSizes is mutated
-  private long updateCount;
+  // This must be incremented before and after datafileSizes and metadata table updates. These
+  // counts allow detection of overlapping operations w/o placing a lock around metadata table
+  // updates and datafileSizes updates. There is a periodic metadata consistency check that runs in
+  // the tablet server against all tablets. This check compares what a tablet object has in memory
+  // to what is in the metadata table to ensure they are in agreement. Inorder to avoid false
+  // positives, when this consistency check runs its needs to know if it overlaps in time with any
+  // metadata updates made by the tablet. The consistency check uses these counts to know that.
+  private final AtomicReference<MetadataUpdateCount> metadataUpdateCount;
 
   DatafileManager(Tablet tablet, SortedMap<StoredTabletFile,DataFileValue> datafileSizes) {
     this.datafileSizes.putAll(datafileSizes);
-    this.updateCount = 0L;
     this.tablet = tablet;
+    this.metadataUpdateCount =
+        new AtomicReference<>(new MetadataUpdateCount(tablet.getExtent(), 0L, 0L));
   }
 
   private final Set<TabletFile> filesToDeleteAfterScan = new HashSet<>();
@@ -246,22 +254,29 @@ class DatafileManager {
       }
     }
 
-    synchronized (tablet) {
-      for (Entry<StoredTabletFile,DataFileValue> tpath : newFiles.entrySet()) {
-        if (datafileSizes.containsKey(tpath.getKey())) {
-          log.error("Adding file that is already in set {}", tpath.getKey());
+    // increment start count before metadata update AND updating in memory map of files
+    metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementStart);
+    // do not place any code here between above stmt and try{}finally
+    try {
+      synchronized (tablet) {
+        for (Entry<StoredTabletFile,DataFileValue> tpath : newFiles.entrySet()) {
+          if (datafileSizes.containsKey(tpath.getKey())) {
+            log.error("Adding file that is already in set {}", tpath.getKey());
+          }
+          datafileSizes.put(tpath.getKey(), tpath.getValue());
         }
-        datafileSizes.put(tpath.getKey(), tpath.getValue());
+
+        tablet.getTabletResources().importedMapFiles();
+
+        tablet.computeNumEntries();
       }
-      updateCount++;
 
-      tablet.getTabletResources().importedMapFiles();
-
-      tablet.computeNumEntries();
-    }
-
-    for (Entry<StoredTabletFile,DataFileValue> entry : newFiles.entrySet()) {
-      TabletLogger.bulkImported(tablet.getExtent(), entry.getKey());
+      for (Entry<StoredTabletFile,DataFileValue> entry : newFiles.entrySet()) {
+        TabletLogger.bulkImported(tablet.getExtent(), entry.getKey());
+      }
+    } finally {
+      // increment finish count after metadata update AND updating in memory map of files
+      metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementFinish);
     }
 
     return newFiles.keySet();
@@ -357,35 +372,43 @@ class DatafileManager {
       tablet.finishClearingUnusedLogs();
     }
 
-    do {
-      try {
-        // the purpose of making this update use the new commit session, instead of the old one
-        // passed in, is because the new one will reference the logs used by current memory...
+    // increment start count before metadata update AND updating in memory map of files
+    metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementStart);
+    // do not place any code here between above stmt and try{}finally
+    try {
 
-        tablet.getTabletServer().minorCompactionFinished(
-            tablet.getTabletMemory().getCommitSession(), commitSession.getWALogSeq() + 2);
-        break;
-      } catch (IOException e) {
-        log.error("Failed to write to write-ahead log " + e.getMessage() + " will retry", e);
-        sleepUninterruptibly(1, TimeUnit.SECONDS);
-      }
-    } while (true);
+      do {
+        try {
+          // the purpose of making this update use the new commit session, instead of the old one
+          // passed in, is because the new one will reference the logs used by current memory...
 
-    synchronized (tablet) {
-      t1 = System.currentTimeMillis();
-
-      if (dfv.getNumEntries() > 0 && newFile.isPresent()) {
-        StoredTabletFile newFileStored = newFile.get();
-        if (datafileSizes.containsKey(newFileStored)) {
-          log.error("Adding file that is already in set {}", newFileStored);
+          tablet.getTabletServer().minorCompactionFinished(
+              tablet.getTabletMemory().getCommitSession(), commitSession.getWALogSeq() + 2);
+          break;
+        } catch (IOException e) {
+          log.error("Failed to write to write-ahead log " + e.getMessage() + " will retry", e);
+          sleepUninterruptibly(1, TimeUnit.SECONDS);
         }
-        datafileSizes.put(newFileStored, dfv);
-        updateCount++;
+      } while (true);
+
+      synchronized (tablet) {
+        t1 = System.currentTimeMillis();
+
+        if (dfv.getNumEntries() > 0 && newFile.isPresent()) {
+          StoredTabletFile newFileStored = newFile.get();
+          if (datafileSizes.containsKey(newFileStored)) {
+            log.error("Adding file that is already in set {}", newFileStored);
+          }
+          datafileSizes.put(newFileStored, dfv);
+        }
+
+        tablet.flushComplete(flushId);
+
+        t2 = System.currentTimeMillis();
       }
-
-      tablet.flushComplete(flushId);
-
-      t2 = System.currentTimeMillis();
+    } finally {
+      // increment finish count after metadata update AND updating in memory map of files
+      metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementFinish);
     }
 
     TabletLogger.flushed(tablet.getExtent(), newFile);
@@ -431,49 +454,58 @@ class DatafileManager {
 
     Long compactionIdToWrite = null;
 
-    synchronized (tablet) {
-      t1 = System.currentTimeMillis();
+    // increment start count before metadata update AND updating in memory map of files
+    metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementStart);
+    // do not place any code here between above stmt and try{}finally
+    try {
 
-      Preconditions.checkState(datafileSizes.keySet().containsAll(oldDatafiles),
-          "Compacted files %s are not a subset of tablet files %s", oldDatafiles,
-          datafileSizes.keySet());
-      if (dfv.getNumEntries() > 0) {
-        Preconditions.checkState(!datafileSizes.containsKey(newFile),
-            "New compaction file %s already exist in tablet files %s", newFile,
+      synchronized (tablet) {
+        t1 = System.currentTimeMillis();
+
+        Preconditions.checkState(datafileSizes.keySet().containsAll(oldDatafiles),
+            "Compacted files %s are not a subset of tablet files %s", oldDatafiles,
             datafileSizes.keySet());
+        if (dfv.getNumEntries() > 0) {
+          Preconditions.checkState(!datafileSizes.containsKey(newFile),
+              "New compaction file %s already exist in tablet files %s", newFile,
+              datafileSizes.keySet());
+        }
+
+        tablet.incrementDataSourceDeletions();
+
+        datafileSizes.keySet().removeAll(oldDatafiles);
+
+        if (dfv.getNumEntries() > 0) {
+          datafileSizes.put(newFile, dfv);
+          // could be used by a follow on compaction in a multipass compaction
+        }
+
+        tablet.computeNumEntries();
+
+        lastLocation = tablet.resetLastLocation();
+
+        if (compactionId != null && Collections.disjoint(selectedFiles, datafileSizes.keySet())) {
+          compactionIdToWrite = compactionId;
+        }
+
+        t2 = System.currentTimeMillis();
       }
 
-      tablet.incrementDataSourceDeletions();
+      // known consistency issue between minor and major compactions - see ACCUMULO-18
+      Set<StoredTabletFile> filesInUseByScans = waitForScansToFinish(oldDatafiles);
+      if (!filesInUseByScans.isEmpty())
+        log.debug("Adding scan refs to metadata {} {}", extent, filesInUseByScans);
+      ManagerMetadataUtil.replaceDatafiles(tablet.getContext(), extent, oldDatafiles,
+          filesInUseByScans, newFile, compactionIdToWrite, dfv,
+          tablet.getTabletServer().getClientAddressString(), lastLocation,
+          tablet.getTabletServer().getLock(), ecid);
+      tablet.setLastCompactionID(compactionIdToWrite);
+      removeFilesAfterScan(filesInUseByScans);
 
-      datafileSizes.keySet().removeAll(oldDatafiles);
-
-      if (dfv.getNumEntries() > 0) {
-        datafileSizes.put(newFile, dfv);
-        // could be used by a follow on compaction in a multipass compaction
-      }
-      updateCount++;
-
-      tablet.computeNumEntries();
-
-      lastLocation = tablet.resetLastLocation();
-
-      if (compactionId != null && Collections.disjoint(selectedFiles, datafileSizes.keySet())) {
-        compactionIdToWrite = compactionId;
-      }
-
-      t2 = System.currentTimeMillis();
+    } finally {
+      // increment finish count after metadata update AND updating in memory map of files
+      metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementFinish);
     }
-
-    // known consistency issue between minor and major compactions - see ACCUMULO-18
-    Set<StoredTabletFile> filesInUseByScans = waitForScansToFinish(oldDatafiles);
-    if (!filesInUseByScans.isEmpty())
-      log.debug("Adding scan refs to metadata {} {}", extent, filesInUseByScans);
-    ManagerMetadataUtil.replaceDatafiles(tablet.getContext(), extent, oldDatafiles,
-        filesInUseByScans, newFile, compactionIdToWrite, dfv,
-        tablet.getTabletServer().getClientAddressString(), lastLocation,
-        tablet.getTabletServer().getLock(), ecid);
-    tablet.setLastCompactionID(compactionIdToWrite);
-    removeFilesAfterScan(filesInUseByScans);
 
     if (log.isTraceEnabled()) {
       log.trace(String.format("MajC finish lock %.2f secs", (t2 - t1) / 1000.0));
@@ -500,8 +532,8 @@ class DatafileManager {
     return datafileSizes.size();
   }
 
-  public long getUpdateCount() {
-    return updateCount;
+  public MetadataUpdateCount getUpdateCount() {
+    return metadataUpdateCount.get();
   }
 
 }

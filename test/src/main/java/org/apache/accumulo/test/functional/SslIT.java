@@ -18,11 +18,11 @@
  */
 package org.apache.accumulo.test.functional;
 
+import java.time.Duration;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -36,8 +36,8 @@ import org.junit.jupiter.api.Test;
 public class SslIT extends ConfigurableMacBase {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60 * 6;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(6);
   }
 
   @Override
@@ -74,7 +74,7 @@ public class SslIT extends ConfigurableMacBase {
   public void bulk() throws Exception {
     Properties props = getClientProperties();
     try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
-      BulkIT.runTest(client, ClientInfo.from(props), cluster.getFileSystem(),
+      BulkIT.runTest(client, cluster.getFileSystem(),
           new Path(getCluster().getConfig().getDir().getAbsolutePath(), "tmp"),
           getUniqueNames(1)[0], this.getClass().getName(), testName(), true);
     }

@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.monitor.rest.tservers;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collections;
 
@@ -32,7 +32,7 @@ import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.rest.tables.CompactionsTypes;
 import org.apache.accumulo.monitor.rest.trace.RecoveryStatusInformation;
 import org.easymock.EasyMock;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TabletServerInformationTest {
 
