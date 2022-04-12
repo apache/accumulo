@@ -123,9 +123,7 @@ public class WriteThreadsIT extends AccumuloClusterHarness {
         batchScanner.setRanges(List.of(new Range()));
 
         List<String> rows = new ArrayList<>();
-        for (var e : batchScanner) {
-          rows.add(e.getKey().getRow().toString());
-        }
+        batchScanner.forEach((k, v) -> rows.add(k.getRow().toString()));
         assertEquals(5, rows.size(), "Wrong number of rows returned.");
         assertTrue(rows.containsAll(List.of("row1", "row2", "row3", "row4", "row5")));
       }
