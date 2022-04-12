@@ -162,7 +162,7 @@ public class MiniAccumuloCluster implements AutoCloseable {
   }
 
   /**
-   * @return Connection properties for cluster
+   * @return A copy of the connection properties for the cluster
    * @since 2.0.0
    */
   public Properties getClientProperties() {
