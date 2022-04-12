@@ -29,11 +29,19 @@ import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.PropStoreException;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
+/**
+ * This class provides a secondary, local cache of properties and is intended to be used to optimize
+ * constructing a configuration hierarchy from the underlying properties stored in ZooKeeper.
+ * <p>
+ * Configurations and especially the derivers use an updateCount to detect configuration changes.
+ * The updateCount is checked frequently and the configuration hierarchy rebuilt when a change is
+ * detected.
+ */
 public class PropSnapshot {
 
   private final Lock updateLock = new ReentrantLock();
   private final AtomicBoolean needsUpdate = new AtomicBoolean(true);
-  private final AtomicReference<VersionedProperties> snapshot = new AtomicReference<>();
+  private final AtomicReference<VersionedProperties> vPropRef = new AtomicReference<>();
   private final PropCacheKey propCacheKey;
   private final PropStore propStore;
 
@@ -44,11 +52,16 @@ public class PropSnapshot {
     updateSnapshot();
   }
 
+  /**
+   * Get the current snapshot - updating if necessary.
+   *
+   * @return the current property snapshot.
+   */
   public @NonNull VersionedProperties get() {
     if (needsUpdate.get()) {
       updateSnapshot();
     }
-    var answer = snapshot.get();
+    var answer = vPropRef.get();
     if (answer == null) {
       throw new PropStoreException("Invalid state for property snapshot, no value has been set",
           null);
@@ -56,6 +69,9 @@ public class PropSnapshot {
     return answer;
   }
 
+  /**
+   * Signal the current snapshot is invalid and needs to be updated on next access.
+   */
   public void requireUpdate() {
     updateLock.lock();
     try {
@@ -65,7 +81,13 @@ public class PropSnapshot {
     }
   }
 
-  public void updateSnapshot() throws PropStoreException {
+  /**
+   * Update the current snapshot if a refresh is required.
+   *
+   * @throws PropStoreException
+   *           if the properties cannot be retrieved from the underlying store.
+   */
+  private void updateSnapshot() throws PropStoreException {
     if (!needsUpdate.get()) {
       return;
     }
@@ -75,7 +97,7 @@ public class PropSnapshot {
       if (vProps == null) {
         throw new IllegalStateException("Failed to read properties for " + propCacheKey);
       }
-      snapshot.set(vProps);
+      vPropRef.set(vProps);
       needsUpdate.set(false);
     } finally {
       updateLock.unlock();
