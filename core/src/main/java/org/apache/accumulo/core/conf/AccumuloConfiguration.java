@@ -331,6 +331,23 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   /**
+   * Gets the default value of a property of type {@link PropertyType#COUNT}, interpreting the value
+   * properly (as an integer).
+   *
+   * @param property
+   *          property to get default value
+   * @return property default value
+   * @throws IllegalArgumentException
+   *           if the property is of the wrong type
+   */
+  public int getDefaultCount(Property property) {
+    checkType(property, PropertyType.COUNT);
+
+    String countString = property.getDefaultValue();
+    return Integer.parseInt(countString);
+  }
+
+  /**
    * Gets a property of type {@link PropertyType#PATH}.
    *
    * @param property

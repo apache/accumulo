@@ -692,16 +692,17 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       return;
     }
 
-    Optional<Semaphore> maxThreadSemaphore = Optional.empty();
+    Optional<Semaphore> writeThreadSemaphore = Optional.empty();
     boolean reserved = true;
 
     try {
       KeyExtent keyExtent = KeyExtent.fromThrift(tkeyExtent);
 
       if (TabletType.type(keyExtent) == TabletType.USER) {
-        maxThreadSemaphore = server.getSemaphore();
-        if (maxThreadSemaphore.isPresent()) {
-          Semaphore sem = maxThreadSemaphore.get();
+        writeThreadSemaphore = server.getSemaphore();
+        // if write thread max is configured, get the Semaphore, otherwise do nothing
+        if (writeThreadSemaphore.isPresent()) {
+          Semaphore sem = writeThreadSemaphore.get();
           if (sem.tryAcquire()) {
             log.trace("Available permits: {}", sem.availablePermits());
           } else
@@ -735,7 +736,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
         }
       }
     } finally {
-      maxThreadSemaphore.ifPresent(Semaphore::release);
+      writeThreadSemaphore.ifPresent(Semaphore::release);
       if (reserved) {
         server.sessionManager.unreserveSession(us);
       }

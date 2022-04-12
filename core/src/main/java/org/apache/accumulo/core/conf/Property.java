@@ -506,7 +506,7 @@ public enum Property {
           + " tserver.wal.max.size. Ensure that table.compaction.minor.logs.threshold"
           + " * tserver.wal.max.size >= this property.",
       "1.3.5"),
-  TSERV_MAX_WRITETHREADS("tserver.write.threads.max", "0", PropertyType.COUNT,
+  TSERV_WRITE_THREADS_MAX("tserver.write.threads.max", "0", PropertyType.COUNT,
       "The maximum number of write threads allowed for tablet servers."
           + "When set to 0, there is no limit.",
       "2.1.0"),

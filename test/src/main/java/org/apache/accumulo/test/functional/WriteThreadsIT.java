@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.core.conf.Property.TSERV_MAX_WRITETHREADS;
+import static org.apache.accumulo.core.conf.Property.TSERV_WRITE_THREADS_MAX;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -55,7 +55,7 @@ public class WriteThreadsIT extends AccumuloClusterHarness {
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     // sets the thread limit on the SERVER SIDE
     // default value is 0. when set to 0, there is no limit
-    cfg.setProperty(TSERV_MAX_WRITETHREADS.getKey(), "10");
+    cfg.setProperty(TSERV_WRITE_THREADS_MAX.getKey(), "10");
   }
 
   @Test

@@ -181,6 +181,7 @@ public class TabletServer extends AbstractServer {
   private static final Logger log = LoggerFactory.getLogger(TabletServer.class);
   private static final long TIME_BETWEEN_GC_CHECKS = TimeUnit.SECONDS.toMillis(5);
   private static final long TIME_BETWEEN_LOCATOR_CACHE_CLEARS = TimeUnit.HOURS.toMillis(1);
+  private static int MAX_WRITE_THREADS_DEFAULT = 0;
 
   final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
   final ZooCache managerLockCache;
@@ -242,7 +243,8 @@ public class TabletServer extends AbstractServer {
   private final WalStateManager walMarker;
   private final ServerContext context;
 
-  private int maxThreadPermits = 0;
+  private volatile int maxThreadPermits = 0;
+  private volatile Optional<Semaphore> writeThreadSemaphore;
 
   public static void main(String[] args) throws Exception {
     try (TabletServer tserver = new TabletServer(new ServerOpts(), args)) {
@@ -381,6 +383,8 @@ public class TabletServer extends AbstractServer {
     } else {
       authKeyWatcher = null;
     }
+    MAX_WRITE_THREADS_DEFAULT =
+        getServerConfig().getConfiguration().getDefaultCount(Property.TSERV_WRITE_THREADS_MAX);
     config();
   }
 
@@ -399,17 +403,20 @@ public class TabletServer extends AbstractServer {
   }
 
   public Optional<Semaphore> getSemaphore() {
-    Optional<Semaphore> sem = Optional.empty();
-    int writeThreads =
-        getServerConfig().getConfiguration().getCount(Property.TSERV_MAX_WRITETHREADS);
-    if (writeThreads == 0) {
-      writeThreads = Integer.MAX_VALUE;
+    int configuredWriteThreadsMax =
+        getServerConfig().getConfiguration().getCount(Property.TSERV_WRITE_THREADS_MAX);
+    if (configuredWriteThreadsMax == MAX_WRITE_THREADS_DEFAULT) {
+      return Optional.empty();
+    } else {
+      synchronized (this) {
+        // if the value has changed, create a new semaphore
+        if (maxThreadPermits != configuredWriteThreadsMax) {
+          maxThreadPermits = configuredWriteThreadsMax;
+          writeThreadSemaphore = Optional.of(new Semaphore(maxThreadPermits));
+        }
+        return writeThreadSemaphore;
+      }
     }
-    synchronized (this) {
-      maxThreadPermits = writeThreads;
-      sem = Optional.of(new Semaphore(maxThreadPermits));
-    }
-    return sem;
   }
 
   final SessionManager sessionManager;
