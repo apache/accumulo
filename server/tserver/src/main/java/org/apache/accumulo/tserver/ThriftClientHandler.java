@@ -699,7 +699,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       KeyExtent keyExtent = KeyExtent.fromThrift(tkeyExtent);
 
       if (TabletType.type(keyExtent) == TabletType.USER) {
-        writeThreadSemaphore = server.getSemaphore();
+        writeThreadSemaphore = server.getWriteThreadSemaphore();
         // if write thread max is configured, get the Semaphore, otherwise do nothing
         if (writeThreadSemaphore.isPresent()) {
           Semaphore sem = writeThreadSemaphore.get();

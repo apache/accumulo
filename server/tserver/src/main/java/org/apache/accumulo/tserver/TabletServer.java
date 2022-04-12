@@ -243,7 +243,9 @@ public class TabletServer extends AbstractServer {
   private final WalStateManager walMarker;
   private final ServerContext context;
 
+  /** The configured number of write threads set in Property.TSERV_WRITE_THREADS_MAX **/
   private volatile int maxThreadPermits = 0;
+  /** The optional semaphore that is only used when configured. **/
   private volatile Optional<Semaphore> writeThreadSemaphore;
 
   public static void main(String[] args) throws Exception {
@@ -402,7 +404,12 @@ public class TabletServer extends AbstractServer {
         * TabletServer.TIME_BETWEEN_LOCATOR_CACHE_CLEARS);
   }
 
-  public Optional<Semaphore> getSemaphore() {
+  /**
+   * If the user has set {@link Property#TSERV_WRITE_THREADS_MAX} then return the semaphore that
+   * controls the number of write threads. If the user has not set the value then return
+   * Optional.empty(), which is essentially a no-op.
+   */
+  public Optional<Semaphore> getWriteThreadSemaphore() {
     int configuredWriteThreadsMax =
         getServerConfig().getConfiguration().getCount(Property.TSERV_WRITE_THREADS_MAX);
     if (configuredWriteThreadsMax == MAX_WRITE_THREADS_DEFAULT) {
