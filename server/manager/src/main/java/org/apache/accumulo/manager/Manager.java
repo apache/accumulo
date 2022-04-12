@@ -384,7 +384,6 @@ public class Manager extends AbstractServer
     log.info("Version {}", Constants.VERSION);
     log.info("Instance {}", getInstanceID());
     timeKeeper = new ManagerTime(this, aconf);
-    context.getTransportPool().setIdleTime(aconf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
     tserverSet = new LiveTServerSet(context, this);
     initializeBalancer();
 
