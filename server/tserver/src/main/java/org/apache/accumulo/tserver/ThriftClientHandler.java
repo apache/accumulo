@@ -705,8 +705,10 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
           Semaphore sem = writeThreadSemaphore.get();
           if (sem.tryAcquire()) {
             log.trace("Available permits: {}", sem.availablePermits());
-          } else
-            throw new TException("Mutation failed. No threads available.");
+          } else {
+            log.error("Mutation failed. No threads available.");
+            return;
+          }
         }
       }
       setUpdateTablet(us, keyExtent);

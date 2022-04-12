@@ -181,7 +181,8 @@ public class TabletServer extends AbstractServer {
   private static final Logger log = LoggerFactory.getLogger(TabletServer.class);
   private static final long TIME_BETWEEN_GC_CHECKS = TimeUnit.SECONDS.toMillis(5);
   private static final long TIME_BETWEEN_LOCATOR_CACHE_CLEARS = TimeUnit.HOURS.toMillis(1);
-  private static int MAX_WRITE_THREADS_DEFAULT = 0;
+  private final int MAX_WRITE_THREADS;
+  private final int MAX_WRITE_THREADS_DEFAULT;
 
   final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
   final ZooCache managerLockCache;
@@ -243,10 +244,8 @@ public class TabletServer extends AbstractServer {
   private final WalStateManager walMarker;
   private final ServerContext context;
 
-  /** The configured number of write threads set in Property.TSERV_WRITE_THREADS_MAX **/
-  private volatile int maxThreadPermits = 0;
-  /** The optional semaphore that is only used when configured. **/
-  private volatile Optional<Semaphore> writeThreadSemaphore;
+  /** Controls write thread pool; Only used when configured. **/
+  private final Semaphore writeThreadSemaphore;
 
   public static void main(String[] args) throws Exception {
     try (TabletServer tserver = new TabletServer(new ServerOpts(), args)) {
@@ -385,8 +384,11 @@ public class TabletServer extends AbstractServer {
     } else {
       authKeyWatcher = null;
     }
+    MAX_WRITE_THREADS =
+        getServerConfig().getConfiguration().getCount(Property.TSERV_WRITE_THREADS_MAX);
     MAX_WRITE_THREADS_DEFAULT =
         getServerConfig().getConfiguration().getDefaultCount(Property.TSERV_WRITE_THREADS_MAX);
+    writeThreadSemaphore = new Semaphore(MAX_WRITE_THREADS);
     config();
   }
 
@@ -409,20 +411,14 @@ public class TabletServer extends AbstractServer {
    * controls the number of write threads. If the user has not set the value then return
    * Optional.empty(), which is essentially a no-op.
    */
-  public Optional<Semaphore> getWriteThreadSemaphore() {
-    int configuredWriteThreadsMax =
-        getServerConfig().getConfiguration().getCount(Property.TSERV_WRITE_THREADS_MAX);
-    if (configuredWriteThreadsMax == MAX_WRITE_THREADS_DEFAULT) {
+  public synchronized Optional<Semaphore> getWriteThreadSemaphore() {
+    if (MAX_WRITE_THREADS == MAX_WRITE_THREADS_DEFAULT) {
       return Optional.empty();
     } else {
-      synchronized (this) {
-        // if the value has changed, create a new semaphore
-        if (maxThreadPermits != configuredWriteThreadsMax) {
-          maxThreadPermits = configuredWriteThreadsMax;
-          writeThreadSemaphore = Optional.of(new Semaphore(maxThreadPermits));
-        }
-        return writeThreadSemaphore;
-      }
+      // if the value is configured return the Semaphore to control write thread pool
+      log.debug("User data write threads are limited to {}/{}",
+          writeThreadSemaphore.availablePermits(), MAX_WRITE_THREADS);
+      return Optional.of(writeThreadSemaphore);
     }
   }
 
