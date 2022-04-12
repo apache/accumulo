@@ -96,8 +96,8 @@ public class MultiTableInputFormatIT extends AccumuloClusterHarness {
 
       job.setInputFormatClass(AccumuloInputFormat.class);
 
-      AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties())
-          .table(table1).table(table2).store(job);
+      AccumuloInputFormat.configure().clientProperties(getClientProps()).table(table1).table(table2)
+          .store(job);
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);

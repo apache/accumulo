@@ -21,6 +21,7 @@ package org.apache.accumulo.miniclusterImpl;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static java.util.stream.Collectors.toList;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.File;
@@ -34,7 +35,6 @@ import java.net.Socket;
 import java.net.URI;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -51,6 +51,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
@@ -210,28 +211,28 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       throws IOException {
     String javaHome = System.getProperty("java.home");
     String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
-    String classpath = getClasspath();
 
-    String className = clazz.getName();
+    var basicArgs = Stream.of(javaBin, "-Dproc=" + clazz.getSimpleName());
+    var jvmArgs = extraJvmOpts.stream();
+    var propsArgs = config.getSystemProperties().entrySet().stream()
+        .map(e -> String.format("-D%s=%s", e.getKey(), e.getValue()));
 
-    ArrayList<String> argList = new ArrayList<>();
-    argList.addAll(Arrays.asList(javaBin, "-Dproc=" + clazz.getSimpleName(), "-cp", classpath));
-    argList.addAll(extraJvmOpts);
-    for (Entry<String,String> sysProp : config.getSystemProperties().entrySet()) {
-      argList.add(String.format("-D%s=%s", sysProp.getKey(), sysProp.getValue()));
-    }
     // @formatter:off
-    argList.addAll(Arrays.asList(
+    var hardcodedArgs = Stream.of(
         "-Dapple.awt.UIElement=true",
         "-Djava.net.preferIPv4Stack=true",
         "-XX:+PerfDisableSharedMem",
         "-XX:+AlwaysPreTouch",
-        Main.class.getName(), className));
+        Main.class.getName(), clazz.getName());
     // @formatter:on
-    argList.addAll(Arrays.asList(args));
 
+    // concatenate all the args sources into a single list of args
+    var argList = Stream.of(basicArgs, jvmArgs, propsArgs, hardcodedArgs, Stream.of(args))
+        .flatMap(Function.identity()).collect(toList());
     ProcessBuilder builder = new ProcessBuilder(argList);
 
+    final String classpath = getClasspath();
+    builder.environment().put("CLASSPATH", classpath);
     builder.environment().put("ACCUMULO_HOME", config.getDir().getAbsolutePath());
     builder.environment().put("ACCUMULO_LOG_DIR", config.getLogDir().getAbsolutePath());
     builder.environment().put("ACCUMULO_CLIENT_CONF_PATH",
@@ -255,8 +256,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
 
     log.debug("Starting MiniAccumuloCluster process with class: " + clazz.getSimpleName()
-        + "\n, jvmOpts: " + extraJvmOpts + "\n, classpath: " + classpath + "\n, args: " + argList
-        + "\n, environment: " + builder.environment());
+        + "\n, args: " + argList + "\n, environment: " + builder.environment());
 
     int hashcode = builder.hashCode();
 
@@ -294,8 +294,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     if (configOverrides != null && !configOverrides.isEmpty()) {
       File siteFile =
           Files.createTempFile(config.getConfDir().toPath(), "accumulo", ".properties").toFile();
-      Map<String,String> confMap = new HashMap<>();
-      confMap.putAll(config.getSiteConfig());
+      Map<String,String> confMap = new HashMap<>(config.getSiteConfig());
       confMap.putAll(configOverrides);
       writeConfigProperties(siteFile, confMap);
       jvmOpts.add("-Daccumulo.properties=" + siteFile.getName());
@@ -730,11 +729,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   }
 
   List<ProcessReference> references(Process... procs) {
-    List<ProcessReference> result = new ArrayList<>();
-    for (Process proc : procs) {
-      result.add(new ProcessReference(proc));
-    }
-    return result;
+    return Stream.of(procs).map(ProcessReference::new).collect(toList());
   }
 
   public Map<ServerType,Collection<ProcessReference>> getProcesses() {
