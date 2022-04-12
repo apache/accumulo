@@ -84,9 +84,6 @@ public class TableConfiguration extends ZooBasedConfiguration {
 
   private boolean _isPropertySet(Property property) {
     Map<String,String> propMap = getSnapshot();
-    if (propMap == null) {
-      return false;
-    }
     return propMap.get(property.getKey()) != null;
   }
 

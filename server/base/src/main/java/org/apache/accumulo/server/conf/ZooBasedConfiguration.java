@@ -30,6 +30,7 @@ import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.util.PropSnapshot;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
@@ -152,7 +153,7 @@ public class ZooBasedConfiguration extends AccumuloConfiguration implements Prop
 
   }
 
-  public Map<String,String> getSnapshot() {
+  public @NonNull Map<String,String> getSnapshot() {
     return snapshot.get().getProperties();
   }
 

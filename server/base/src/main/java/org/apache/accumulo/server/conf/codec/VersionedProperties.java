@@ -29,6 +29,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+
 /**
  * Version properties maintain a {@code Map<String,String>}; of property k,v pairs along with
  * versioning information metadata.
@@ -95,7 +97,7 @@ public class VersionedProperties {
    *
    * @return An unmodifiable view of the property key, value pairs.
    */
-  public Map<String,String> getProperties() {
+  public @NonNull Map<String,String> getProperties() {
     return props;
   }
 
