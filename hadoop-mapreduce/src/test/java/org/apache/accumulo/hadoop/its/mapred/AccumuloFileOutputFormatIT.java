@@ -155,7 +155,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
       job.setInputFormat(AccumuloInputFormat.class);
 
-      AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties()).table(table)
+      AccumuloInputFormat.configure().clientProperties(getClientProps()).table(table)
           .auths(Authorizations.EMPTY).store(job);
       AccumuloFileOutputFormat.configure().outputPath(new Path(args[1])).sampler(SAMPLER_CONFIG)
           .store(job);
