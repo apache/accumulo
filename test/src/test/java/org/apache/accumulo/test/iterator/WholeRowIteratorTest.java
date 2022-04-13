@@ -19,44 +19,37 @@
 package org.apache.accumulo.test.iterator;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
-import org.apache.accumulo.iteratortest.IteratorTestCaseFinder;
+import org.apache.accumulo.iteratortest.IteratorTestBase;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
-import org.apache.accumulo.iteratortest.junit5.BaseJUnit5IteratorTest;
-import org.apache.accumulo.iteratortest.testcases.IteratorTestCase;
+import org.apache.accumulo.iteratortest.IteratorTestParameters;
 import org.apache.hadoop.io.Text;
 
 /**
  * Framework tests for {@link WholeRowIterator}.
  */
-public class WholeRowIteratorTest extends BaseJUnit5IteratorTest {
+public class WholeRowIteratorTest extends IteratorTestBase {
 
   private static final TreeMap<Key,Value> INPUT_DATA = createInputData();
   private static final TreeMap<Key,Value> OUTPUT_DATA = createOutputData();
 
   @Override
-  protected IteratorTestInput getIteratorInput() {
-    return new IteratorTestInput(WholeRowIterator.class, Map.of(), new Range(), INPUT_DATA);
-  }
-
-  @Override
-  protected IteratorTestOutput getIteratorOutput() {
-    return new IteratorTestOutput(OUTPUT_DATA);
-  }
-
-  @Override
-  protected List<IteratorTestCase> getIteratorTestCases() {
-    return IteratorTestCaseFinder.findAllTestCases();
+  protected Stream<IteratorTestParameters> parameters() {
+    var input = new IteratorTestInput(WholeRowIterator.class, Map.of(), new Range(), INPUT_DATA);
+    var expectedOutput = new IteratorTestOutput(OUTPUT_DATA);
+    return builtinTestCases().map(test -> test.toParameters(input, expectedOutput));
   }
 
   private static TreeMap<Key,Value> createInputData() {
@@ -116,7 +109,7 @@ public class WholeRowIteratorTest extends BaseJUnit5IteratorTest {
           Value encoded = WholeRowIterator.encodeRow(keys, values);
           data.put(new Key(row), encoded);
         } catch (IOException e) {
-          throw new RuntimeException(e);
+          throw new UncheckedIOException(e);
         }
 
         // Empty the aggregated k-v's
@@ -136,7 +129,7 @@ public class WholeRowIteratorTest extends BaseJUnit5IteratorTest {
         Value encoded = WholeRowIterator.encodeRow(keys, values);
         data.put(new Key(row), encoded);
       } catch (IOException e) {
-        throw new RuntimeException(e);
+        throw new UncheckedIOException(e);
       }
     }
 

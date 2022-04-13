@@ -20,25 +20,25 @@ package org.apache.accumulo.test.iterator;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.AgeOffFilter;
-import org.apache.accumulo.iteratortest.IteratorTestCaseFinder;
+import org.apache.accumulo.iteratortest.IteratorTestBase;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
-import org.apache.accumulo.iteratortest.junit5.BaseJUnit5IteratorTest;
-import org.apache.accumulo.iteratortest.testcases.IteratorTestCase;
+import org.apache.accumulo.iteratortest.IteratorTestParameters;
 
 /**
  * Iterator test harness tests for AgeOffFilter
  */
-public class AgeOffFilterTest extends BaseJUnit5IteratorTest {
+public class AgeOffFilterTest extends IteratorTestBase {
+
   private static final long NOW = 12345678; // arbitrary base time
   private static final long TTL = 30_000; // 30 seconds
 
@@ -46,19 +46,10 @@ public class AgeOffFilterTest extends BaseJUnit5IteratorTest {
   private static final TreeMap<Key,Value> OUTPUT_DATA = createOutputData();
 
   @Override
-  protected IteratorTestInput getIteratorInput() {
-    var opts = createOpts();
-    return new IteratorTestInput(AgeOffFilter.class, opts, new Range(), INPUT_DATA);
-  }
-
-  @Override
-  protected IteratorTestOutput getIteratorOutput() {
-    return new IteratorTestOutput(OUTPUT_DATA);
-  }
-
-  @Override
-  protected List<IteratorTestCase> getIteratorTestCases() {
-    return IteratorTestCaseFinder.findAllTestCases();
+  protected Stream<IteratorTestParameters> parameters() {
+    var input = new IteratorTestInput(AgeOffFilter.class, createOpts(), new Range(), INPUT_DATA);
+    var expectedOutput = new IteratorTestOutput(OUTPUT_DATA);
+    return builtinTestCases().map(test -> test.toParameters(input, expectedOutput));
   }
 
   // set up the iterator

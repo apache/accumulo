@@ -18,59 +18,33 @@
  */
 package org.apache.accumulo.iteratortest.framework;
 
-import java.util.Collections;
-import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.WrappingIterator;
+import org.apache.accumulo.iteratortest.IteratorTestBase;
+import org.apache.accumulo.iteratortest.IteratorTestCase;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput.TestOutcome;
-import org.apache.accumulo.iteratortest.junit5.BaseJUnit5IteratorTest;
-import org.apache.accumulo.iteratortest.testcases.IteratorTestCase;
+import org.apache.accumulo.iteratortest.IteratorTestParameters;
 
 /**
  * A Basic test asserting that the framework is functional.
  */
-public class JUnitFrameworkTest extends BaseJUnit5IteratorTest {
-
-  /**
-   * An IteratorTestCase implementation that returns the original input without any external action.
-   */
-  public static class NoopIteratorTestCase implements IteratorTestCase {
-
-    @Override
-    public IteratorTestOutput test(IteratorTestInput testInput) {
-      return new IteratorTestOutput(TestOutcome.PASSED);
-    }
-
-    @Override
-    public boolean verify(IteratorTestOutput expected, IteratorTestOutput actual) {
-      // Always passes
-      return true;
-    }
-
-  }
-
-  private static final TreeMap<Key,Value> DATA = createData();
+public class JUnitFrameworkTest extends IteratorTestBase {
 
   @Override
-  protected IteratorTestInput getIteratorInput() {
-    return new IteratorTestInput(IdentityIterator.class, Collections.emptyMap(), new Range(), DATA);
-  }
-
-  @Override
-  protected IteratorTestOutput getIteratorOutput() {
-    return new IteratorTestOutput(DATA);
-  }
-
-  @Override
-  protected List<IteratorTestCase> getIteratorTestCases() {
-    return List.of(new NoopIteratorTestCase());
+  protected Stream<IteratorTestParameters> parameters() {
+    var data = createData();
+    var input = new IteratorTestInput(IdentityIterator.class, Map.of(), new Range(), data);
+    var expectedOutput = new IteratorTestOutput(data);
+    return Stream.of(new NoopIteratorTestCase().toParameters(input, expectedOutput));
   }
 
   private static TreeMap<Key,Value> createData() {
@@ -91,4 +65,23 @@ public class JUnitFrameworkTest extends BaseJUnit5IteratorTest {
       return new IdentityIterator();
     }
   }
+
+  /**
+   * An IteratorTestCase implementation that returns the original input without any external action.
+   */
+  private static class NoopIteratorTestCase implements IteratorTestCase {
+
+    @Override
+    public IteratorTestOutput test(IteratorTestInput testInput) {
+      return new IteratorTestOutput(TestOutcome.PASSED);
+    }
+
+    @Override
+    public boolean verify(IteratorTestOutput expected, IteratorTestOutput actual) {
+      // Always passes
+      return true;
+    }
+
+  }
+
 }
