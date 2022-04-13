@@ -16,11 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.iteratortest.testcases;
+package org.apache.accumulo.iteratortest;
 
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.iteratortest.IteratorTestInput;
-import org.apache.accumulo.iteratortest.IteratorTestOutput;
 
 /**
  * An interface that accepts some input for testing a {@link SortedKeyValueIterator}, runs the
@@ -45,8 +43,19 @@ public interface IteratorTestCase {
    *          The expected output from the user.
    * @param actual
    *          The actual output from the test
-   * @return True if the test case passes, false if it doesn't.
+   * @return true if the test case passes, false if it doesn't.
    */
-  boolean verify(IteratorTestOutput expected, IteratorTestOutput actual);
+  default boolean verify(IteratorTestOutput expected, IteratorTestOutput actual) {
+    return expected.equals(actual);
+  }
+
+  default IteratorTestParameters toParameters(IteratorTestInput input,
+      IteratorTestOutput expectedOutput) {
+    return new IteratorTestParameters(input, expectedOutput, this);
+  }
+
+  default String displayName() {
+    return getClass().getSimpleName();
+  }
 
 }
