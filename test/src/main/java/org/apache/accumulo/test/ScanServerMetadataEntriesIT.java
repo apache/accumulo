@@ -151,11 +151,11 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
       client.tableOperations().create(tableName);
 
       // Make multiple files
-      ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 0, tableName);
+      ReadWriteIT.ingest(client, 10, 10, 50, 0, tableName);
       client.tableOperations().flush(tableName, null, null, true);
-      ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 0, tableName);
+      ReadWriteIT.ingest(client, 10, 10, 50, 0, tableName);
       client.tableOperations().flush(tableName, null, null, true);
-      ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 0, tableName);
+      ReadWriteIT.ingest(client, 10, 10, 50, 0, tableName);
       client.tableOperations().flush(tableName, null, null, true);
 
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
@@ -190,11 +190,11 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
       client.tableOperations().create(tableName);
 
       // Make multiple files
-      ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 0, tableName);
+      ReadWriteIT.ingest(client, 10, 10, 50, 0, tableName);
       client.tableOperations().flush(tableName, null, null, true);
-      ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 0, tableName);
+      ReadWriteIT.ingest(client, 10, 10, 50, 0, tableName);
       client.tableOperations().flush(tableName, null, null, true);
-      ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 0, tableName);
+      ReadWriteIT.ingest(client, 10, 10, 50, 0, tableName);
       client.tableOperations().flush(tableName, null, null, true);
 
       try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
@@ -233,11 +233,11 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
       TableId tid = TableId.of(ctx.tableOperations().tableIdMap().get(tableName));
 
       // Make multiple files
-      ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 0, tableName);
+      ReadWriteIT.ingest(client, 10, 10, 50, 0, tableName);
       client.tableOperations().flush(tableName, null, null, true);
-      ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 0, tableName);
+      ReadWriteIT.ingest(client, 10, 10, 50, 0, tableName);
       client.tableOperations().flush(tableName, null, null, true);
-      ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 0, tableName);
+      ReadWriteIT.ingest(client, 10, 10, 50, 0, tableName);
       client.tableOperations().flush(tableName, null, null, true);
 
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {

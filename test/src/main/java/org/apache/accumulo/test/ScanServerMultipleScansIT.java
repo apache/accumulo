@@ -101,7 +101,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
 
       client.tableOperations().create(tableName);
 
-      ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 0, tableName);
+      ReadWriteIT.ingest(client, 10, 10, 50, 0, tableName);
 
       client.tableOperations().flush(tableName, null, null, true);
 
@@ -153,7 +153,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
       Collection<Text> splits = client.tableOperations().getSplits(tableName);
       assertEquals(3, splits.size());
 
-      ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 0, tableName);
+      ReadWriteIT.ingest(client, 10, 10, 50, 0, tableName);
 
       client.tableOperations().flush(tableName, null, null, true);
 
@@ -182,7 +182,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
       assertEquals(3, splits.size());
       System.out.println(splits);
 
-      ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 0, tableName);
+      ReadWriteIT.ingest(client, 10, 10, 50, 0, tableName);
 
       client.tableOperations().flush(tableName, null, null, true);
 
@@ -248,7 +248,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
 
       client.tableOperations().create(tableName);
 
-      ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 0, tableName);
+      ReadWriteIT.ingest(client, 10, 10, 50, 0, tableName);
 
       client.tableOperations().flush(tableName, null, null, true);
 
@@ -301,7 +301,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
       Collection<Text> splits = client.tableOperations().getSplits(tableName);
       assertEquals(3, splits.size());
 
-      ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 0, tableName);
+      ReadWriteIT.ingest(client, 10, 10, 50, 0, tableName);
 
       client.tableOperations().flush(tableName, null, null, true);
 
@@ -331,7 +331,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
       assertEquals(3, splits.size());
       System.out.println(splits);
 
-      ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 0, tableName);
+      ReadWriteIT.ingest(client, 10, 10, 50, 0, tableName);
 
       client.tableOperations().flush(tableName, null, null, true);
 

@@ -85,7 +85,7 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
 
       client.tableOperations().create(tableName);
 
-      ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 0, tableName);
+      ReadWriteIT.ingest(client, 10, 10, 50, 0, tableName);
 
       client.tableOperations().flush(tableName, null, null, true);
 
@@ -93,7 +93,7 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
         scanner.setRange(new Range());
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         assertEquals(100, Iterables.size(scanner));
-        ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 10, tableName);
+        ReadWriteIT.ingest(client, 10, 10, 50, 10, tableName);
         // since there are no scan servers and we are reading from tservers we should see update
         assertEquals(200, Iterables.size(scanner));
       } // when the scanner is closed, all open sessions should be closed
@@ -108,7 +108,7 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
 
       client.tableOperations().create(tableName);
 
-      ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 0, tableName);
+      ReadWriteIT.ingest(client, 10, 10, 50, 0, tableName);
 
       client.tableOperations().flush(tableName, null, null, true);
 
@@ -116,7 +116,7 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
         scanner.setRanges(Collections.singletonList(new Range()));
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         assertEquals(100, Iterables.size(scanner));
-        ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 10, tableName);
+        ReadWriteIT.ingest(client, 10, 10, 50, 10, tableName);
         // since there are no scan servers and we are reading from tservers we should see update
         assertEquals(200, Iterables.size(scanner));
       } // when the scanner is closed, all open sessions should be closed
@@ -130,7 +130,7 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
 
       client.tableOperations().create(tableName);
 
-      ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 0, tableName);
+      ReadWriteIT.ingest(client, 10, 10, 50, 0, tableName);
 
       client.tableOperations().flush(tableName, null, null, true);
       client.tableOperations().offline(tableName, true);

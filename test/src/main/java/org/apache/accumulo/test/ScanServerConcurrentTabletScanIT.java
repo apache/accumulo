@@ -114,7 +114,7 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
       client.tableOperations().create(tableName);
 
       // Load 1000 k/v
-      ReadWriteIT.ingest(client, getClientInfo(), 10, 100, 50, 0, "COLA", tableName);
+      ReadWriteIT.ingest(client, 10, 100, 50, 0, "COLA", tableName);
       client.tableOperations().flush(tableName, null, null, true);
 
       Scanner scanner1 = client.createScanner(tableName, Authorizations.EMPTY);
@@ -134,7 +134,7 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
       }
 
       // Load another 100 k/v
-      ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 0, "COLB", tableName);
+      ReadWriteIT.ingest(client, 10, 10, 50, 0, "COLB", tableName);
       client.tableOperations().flush(tableName, null, null, true);
 
       // iter2 should read 1000 k/v because the tablet metadata is cached.
@@ -175,7 +175,7 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
       client.tableOperations().create(tableName);
 
       // Load 1000 k/v
-      ReadWriteIT.ingest(client, getClientInfo(), 10, 100, 50, 0, "COLA", tableName);
+      ReadWriteIT.ingest(client, 10, 100, 50, 0, "COLA", tableName);
       client.tableOperations().flush(tableName, null, null, true);
 
       Scanner scanner1 = client.createScanner(tableName, Authorizations.EMPTY);
@@ -195,7 +195,7 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
       }
 
       // Load another 100 k/v
-      ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 0, "COLB", tableName);
+      ReadWriteIT.ingest(client, 10, 10, 50, 0, "COLB", tableName);
       client.tableOperations().flush(tableName, null, null, true);
 
       // iter2 should read 1100 k/v because the tablet metadata is not cached.
