@@ -19,19 +19,14 @@
 package org.apache.accumulo.test.functional;
 
 import java.time.Duration;
-import java.util.Map;
 
-import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
 
-/**
- * Run all the same tests as SslIT, but with client auth turned on.
- *
- * All the methods are overridden just to make it easier to run individual tests from an IDE.
- */
-public class SslWithClientAuthIT extends SslIT {
+public class SslWithBinaryIT extends SslWithClientAuthIT {
 
   @Override
   protected Duration defaultTimeout() {
@@ -41,37 +36,17 @@ public class SslWithClientAuthIT extends SslIT {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     super.configure(cfg, hadoopCoreSite);
-    Map<String,String> site = cfg.getSiteConfig();
-    site.put(Property.INSTANCE_RPC_SSL_CLIENT_AUTH.getKey(), "true");
-    cfg.setSiteConfig(site);
+    configureForSsl(cfg,
+        getSslDir(createTestDir(this.getClass().getName() + "_" + this.testName())));
   }
 
-  @Override
   @Test
   public void binary() throws Exception {
-    super.binary();
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName);
+      BinaryIT.runTest(client, tableName);
+    }
   }
 
-  @Override
-  @Test
-  public void concurrency() throws Exception {
-    super.concurrency();
-  }
-
-  @Override
-  @Test
-  public void adminStop() throws Exception {
-    super.adminStop();
-  }
-
-  @Test
-  public void bulk() throws Exception {
-    super.bulk();
-  }
-
-  @Override
-  @Test
-  public void mapReduce() throws Exception {
-    super.mapReduce();
-  }
 }

@@ -37,7 +37,7 @@ public class SslIT extends ConfigurableMacBase {
 
   @Override
   protected Duration defaultTimeout() {
-    return Duration.ofMinutes(6);
+    return Duration.ofMinutes(2);
   }
 
   @Override
@@ -47,8 +47,10 @@ public class SslIT extends ConfigurableMacBase {
         getSslDir(createTestDir(this.getClass().getName() + "_" + this.testName())));
   }
 
-  @Test
-  public void binary() throws Exception {
+  /**
+   * Test run in SslWithBinaryIT and SslWithClientAuthIT
+   */
+  protected void binary() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
@@ -70,8 +72,10 @@ public class SslIT extends ConfigurableMacBase {
     }
   }
 
-  @Test
-  public void bulk() throws Exception {
+  /**
+   * Test run in SslWithBulkIT and SslWithClientAuthIT
+   */
+  protected void bulk() throws Exception {
     Properties props = getClientProperties();
     try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
       BulkIT.runTest(client, cluster.getFileSystem(),
