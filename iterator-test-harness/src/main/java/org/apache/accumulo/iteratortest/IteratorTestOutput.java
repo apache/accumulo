@@ -25,7 +25,6 @@ import java.util.SortedMap;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.iteratortest.testcases.IteratorTestCase;
 
 /**
  * The expected results from invoking a {@link IteratorTestCase} on a {@link IteratorTestInput}. The
