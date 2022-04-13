@@ -101,7 +101,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   private static final Logger log = Manager.log;
   private static final Logger drainLog =
       LoggerFactory.getLogger("org.apache.accumulo.manager.ManagerDrainImpl");
-  protected final Manager manager;
+  private final Manager manager;
 
   protected ManagerClientServiceHandler(Manager manager) {
     this.manager = manager;

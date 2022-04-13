@@ -89,7 +89,6 @@ import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.Summary;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
-import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Client;
 import org.apache.accumulo.core.clientImpl.thrift.TDiskUsage;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
@@ -122,6 +121,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.core.rpc.ThriftClientTypes;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
@@ -257,7 +257,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     while (true) {
       FateService.Iface client = null;
       try {
-        client = FateClient.getConnectionWithRetry(context);
+        client = FateManagerClient.getConnectionWithRetry(context);
         return client.beginFateOperation(TraceUtil.traceInfo(), context.rpcCreds());
       } catch (TTransportException tte) {
         log.debug("Failed to call beginFateOperation(), retrying ... ", tte);
@@ -267,7 +267,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         log.debug("Contacted a Manager which is no longer active, retrying");
         sleepUninterruptibly(100, MILLISECONDS);
       } finally {
-        FateClient.close(client, context);
+        FateManagerClient.close(client, context);
       }
     }
   }
@@ -280,7 +280,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     while (true) {
       FateService.Iface client = null;
       try {
-        client = FateClient.getConnectionWithRetry(context);
+        client = FateManagerClient.getConnectionWithRetry(context);
         client.executeFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), opid, op, args, opts,
             autoCleanUp);
         return;
@@ -292,7 +292,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         log.debug("Contacted a Manager which is no longer active, retrying");
         sleepUninterruptibly(100, MILLISECONDS);
       } finally {
-        FateClient.close(client, context);
+        FateManagerClient.close(client, context);
       }
     }
   }
@@ -302,7 +302,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     while (true) {
       FateService.Iface client = null;
       try {
-        client = FateClient.getConnectionWithRetry(context);
+        client = FateManagerClient.getConnectionWithRetry(context);
         return client.waitForFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), opid);
       } catch (TTransportException tte) {
         log.debug("Failed to call waitForFateOperation(), retrying ... ", tte);
@@ -312,7 +312,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         log.debug("Contacted a Manager which is no longer active, retrying");
         sleepUninterruptibly(100, MILLISECONDS);
       } finally {
-        FateClient.close(client, context);
+        FateManagerClient.close(client, context);
       }
     }
   }
@@ -321,7 +321,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     while (true) {
       FateService.Iface client = null;
       try {
-        client = FateClient.getConnectionWithRetry(context);
+        client = FateManagerClient.getConnectionWithRetry(context);
         client.finishFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), opid);
         break;
       } catch (TTransportException tte) {
@@ -332,7 +332,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         log.debug("Contacted a Manager which is no longer active, retrying");
         sleepUninterruptibly(100, MILLISECONDS);
       } finally {
-        FateClient.close(client, context);
+        FateManagerClient.close(client, context);
       }
     }
   }
@@ -555,7 +555,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
         HostAndPort address = HostAndPort.fromString(tl.tablet_location);
 
         try {
-          TabletClientService.Client client = ThriftUtil.getTServerClient(address, context);
+          TabletClientService.Client client =
+              ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, address, context);
           try {
 
             OpTimer timer = null;
@@ -1464,7 +1465,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         // this operation may us a lot of memory... its likely that connections to tabletservers
         // hosting metadata tablets will be cached, so do not use cached
         // connections
-        pair = ServerClient.getConnection(context, new ClientService.Client.Factory(), false);
+        pair = ServerClient.getConnection(context, ThriftClientTypes.CLIENT, false);
         diskUsages = pair.getSecond().getDiskUsage(tableNames, context.rpcCreds());
       } catch (ThriftTableOperationException e) {
         switch (e.getType()) {
@@ -1901,15 +1902,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
           _flush(tableId, startRow, endRow, true);
         }
 
-        TSummaries ret =
-            ServerClient.execute(context, new TabletClientService.Client.Factory(), client -> {
-              TSummaries tsr =
-                  client.startGetSummaries(TraceUtil.traceInfo(), context.rpcCreds(), request);
-              while (!tsr.finished) {
-                tsr = client.contiuneGetSummaries(TraceUtil.traceInfo(), tsr.sessionId);
-              }
-              return tsr;
-            });
+        TSummaries ret = ServerClient.execute(context, ThriftClientTypes.TABLET_SERVER, client -> {
+          TSummaries tsr =
+              client.startGetSummaries(TraceUtil.traceInfo(), context.rpcCreds(), request);
+          while (!tsr.finished) {
+            tsr = client.contiuneGetSummaries(TraceUtil.traceInfo(), tsr.sessionId);
+          }
+          return tsr;
+        });
         return new SummaryCollection(ret).getSummaries();
       }
 

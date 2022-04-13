@@ -33,6 +33,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceExceptio
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
+import org.apache.accumulo.core.rpc.ThriftClientTypes;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.thrift.TServiceClient;
@@ -69,8 +70,7 @@ public class ManagerClient {
 
     try {
       // Manager requests can take a long time: don't ever time out
-      return ThriftUtil.getClientNoTimeout(new ManagerClientService.Client.Factory(), manager,
-          context);
+      return ThriftUtil.getClientNoTimeout(ThriftClientTypes.MANAGER, manager, context);
     } catch (TTransportException tte) {
       Throwable cause = tte.getCause();
       if (cause != null && cause instanceof UnknownHostException) {

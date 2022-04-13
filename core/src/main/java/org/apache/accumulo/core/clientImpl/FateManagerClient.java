@@ -32,6 +32,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceExceptio
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.manager.thrift.FateService;
+import org.apache.accumulo.core.rpc.ThriftClientTypes;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -40,8 +41,8 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FateClient {
-  private static final Logger log = LoggerFactory.getLogger(FateClient.class);
+public class FateManagerClient {
+  private static final Logger log = LoggerFactory.getLogger(FateManagerClient.class);
 
   public static FateService.Client getConnectionWithRetry(ClientContext context) {
     while (true) {
@@ -53,7 +54,7 @@ public class FateClient {
     }
   }
 
-  public static FateService.Client getConnection(ClientContext context) {
+  private static FateService.Client getConnection(ClientContext context) {
     checkArgument(context != null, "context is null");
 
     List<String> locations = context.getManagerLocations();
@@ -69,7 +70,7 @@ public class FateClient {
 
     try {
       // Manager requests can take a long time: don't ever time out
-      return ThriftUtil.getClientNoTimeout(new FateService.Client.Factory(), manager, context);
+      return ThriftUtil.getClientNoTimeout(ThriftClientTypes.FATE, manager, context);
     } catch (TTransportException tte) {
       Throwable cause = tte.getCause();
       if (cause != null && cause instanceof UnknownHostException) {

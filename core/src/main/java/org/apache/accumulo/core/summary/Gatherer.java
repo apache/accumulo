@@ -64,10 +64,10 @@ import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.core.rpc.ThriftClientTypes;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
@@ -308,7 +308,7 @@ public class Gatherer {
 
       Client client = null;
       try {
-        client = ThriftUtil.getTServerClient(location, ctx);
+        client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, location, ctx);
         // partition files into smaller chunks so that not too many are sent to a tserver at once
         for (Map<TabletFile,List<TRowRange>> files : partition(allFiles, 500)) {
           if (!pfiles.failedFiles.isEmpty()) {
@@ -563,7 +563,7 @@ public class Gatherer {
 
       TSummaries tSums;
       try {
-        tSums = ServerClient.execute(ctx, new TabletClientService.Client.Factory(), client -> {
+        tSums = ServerClient.execute(ctx, ThriftClientTypes.TABLET_SERVER, client -> {
           TSummaries tsr =
               client.startGetSummariesForPartition(tinfo, ctx.rpcCreds(), req, modulus, remainder);
           while (!tsr.finished && !cancelFlag.get()) {

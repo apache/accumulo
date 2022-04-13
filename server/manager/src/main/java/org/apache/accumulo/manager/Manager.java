@@ -67,7 +67,6 @@ import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
@@ -127,9 +126,8 @@ import org.apache.accumulo.server.manager.state.TabletServerState;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.rpc.HighlyAvailableServiceWrapper;
 import org.apache.accumulo.server.rpc.ServerAddress;
-import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
 import org.apache.accumulo.server.rpc.TServerUtils;
-import org.apache.accumulo.server.rpc.ThriftServerType;
+import org.apache.accumulo.server.rpc.ThriftServerTypes;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenKeyManager;
@@ -142,7 +140,7 @@ import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.thrift.TException;
-import org.apache.thrift.TMultiplexedProcessor;
+import org.apache.thrift.TProcessor;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
@@ -1018,46 +1016,30 @@ public class Manager extends AbstractServer
     //
     // Start the Manager's Fate Service
     fateServiceHandler = new FateServiceHandler(this);
-    FateService.Iface fateRpcProxy = TraceUtil.wrapService(fateServiceHandler);
-    final FateService.Processor<FateService.Iface> fateServiceProcessor;
-    if (context.getThriftServerType() == ThriftServerType.SASL) {
-      FateService.Iface tcredsProxy = TCredentialsUpdatingWrapper.service(fateRpcProxy,
-          fateServiceHandler.getClass(), getConfiguration());
-      fateServiceProcessor = new FateService.Processor<>(tcredsProxy);
-    } else {
-      fateServiceProcessor = new FateService.Processor<>(fateRpcProxy);
-    }
-
-    // Start the Manager's Client service
     managerClientHandler = new ManagerClientServiceHandler(this);
+    // Start the Manager's Client service
     // Ensure that calls before the manager gets the lock fail
     ManagerClientService.Iface haProxy =
         HighlyAvailableServiceWrapper.service(managerClientHandler, this);
-    ManagerClientService.Iface managerRpcProxy = TraceUtil.wrapService(haProxy);
-    final ManagerClientService.Processor<ManagerClientService.Iface> managerServiceProcessor;
-    if (context.getThriftServerType() == ThriftServerType.SASL) {
-      ManagerClientService.Iface tcredsProxy = TCredentialsUpdatingWrapper.service(managerRpcProxy,
-          managerClientHandler.getClass(), getConfiguration());
-      managerServiceProcessor = new ManagerClientService.Processor<>(tcredsProxy);
-    } else {
-      managerServiceProcessor = new ManagerClientService.Processor<>(managerRpcProxy);
-    }
-
-    TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
-    muxProcessor.registerProcessor("FateService", fateServiceProcessor);
-    muxProcessor.registerProcessor("ManagerClientService", managerServiceProcessor);
 
     ServerAddress sa;
     try {
-      sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT,
-          muxProcessor, "Manager", "Manager Client Service Handler", null,
-          Property.MANAGER_MINTHREADS, Property.MANAGER_MINTHREADS_TIMEOUT,
-          Property.MANAGER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
-    } catch (UnknownHostException e) {
-      throw new IllegalStateException("Unable to start server on host " + getHostname(), e);
+      TProcessor processor = ThriftServerTypes.getManagerThriftServer(fateServiceHandler, haProxy,
+          getContext(), getConfiguration());
+
+      try {
+        sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT,
+            processor, "Manager", "Manager Client Service Handler", null,
+            Property.MANAGER_MINTHREADS, Property.MANAGER_MINTHREADS_TIMEOUT,
+            Property.MANAGER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
+      } catch (UnknownHostException e) {
+        throw new IllegalStateException("Unable to start server on host " + getHostname(), e);
+      }
+      clientService = sa.server;
+      log.info("Started Manager client service at {}", sa.address);
+    } catch (Exception e2) {
+      throw new RuntimeException("Error creating thrift server processor", e2);
     }
-    clientService = sa.server;
-    log.info("Started Manager client service at {}", sa.address);
 
     // block until we can obtain the ZK lock for the manager
     try {
@@ -1388,12 +1370,18 @@ public class Manager extends AbstractServer
     var impl = new org.apache.accumulo.manager.replication.ManagerReplicationCoordinator(this);
     ReplicationCoordinator.Iface haReplicationProxy =
         HighlyAvailableServiceWrapper.service(impl, this);
-    ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor =
-        new ReplicationCoordinator.Processor<>(TraceUtil.wrapService(haReplicationProxy));
+
+    TProcessor processor = null;
+    try {
+      processor = ThriftServerTypes.getReplicationCoordinatorThriftServer(haReplicationProxy,
+          getContext(), getConfiguration());
+    } catch (Exception e) {
+      throw new RuntimeException("Error creating thrift server processor", e);
+    }
+
     ServerAddress replAddress = TServerUtils.startServer(context, getHostname(),
-        Property.MANAGER_REPLICATION_COORDINATOR_PORT, replicationCoordinatorProcessor,
-        "Manager Replication Coordinator", "Replication Coordinator", null,
-        Property.MANAGER_REPLICATION_COORDINATOR_MINTHREADS, null,
+        Property.MANAGER_REPLICATION_COORDINATOR_PORT, processor, "Manager Replication Coordinator",
+        "Replication Coordinator", null, Property.MANAGER_REPLICATION_COORDINATOR_MINTHREADS, null,
         Property.MANAGER_REPLICATION_COORDINATOR_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
 
     log.info("Started replication coordinator service at " + replAddress.address);

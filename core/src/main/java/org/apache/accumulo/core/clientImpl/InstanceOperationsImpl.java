@@ -23,7 +23,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toList;
 import static org.apache.accumulo.core.rpc.ThriftUtil.createClient;
 import static org.apache.accumulo.core.rpc.ThriftUtil.createTransport;
-import static org.apache.accumulo.core.rpc.ThriftUtil.getTServerClient;
+import static org.apache.accumulo.core.rpc.ThriftUtil.getClient;
 import static org.apache.accumulo.core.rpc.ThriftUtil.returnClient;
 
 import java.util.ArrayList;
@@ -46,6 +46,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.rpc.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
@@ -159,7 +160,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     final var parsedTserver = HostAndPort.fromString(tserver);
     Client client = null;
     try {
-      client = getTServerClient(parsedTserver, context);
+      client = getClient(ThriftClientTypes.TABLET_SERVER, parsedTserver, context);
 
       List<ActiveScan> as = new ArrayList<>();
       for (var activeScan : client.getActiveScans(TraceUtil.traceInfo(), context.rpcCreds())) {
@@ -193,7 +194,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     final var parsedTserver = HostAndPort.fromString(tserver);
     Client client = null;
     try {
-      client = getTServerClient(parsedTserver, context);
+      client = getClient(ThriftClientTypes.TABLET_SERVER, parsedTserver, context);
 
       List<ActiveCompaction> as = new ArrayList<>();
       for (var tac : client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds())) {
@@ -263,7 +264,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public void ping(String tserver) throws AccumuloException {
     try (
         TTransport transport = createTransport(AddressUtil.parseAddress(tserver, false), context)) {
-      var client = createClient(new Client.Factory(), transport);
+      Client client = createClient(ThriftClientTypes.TABLET_SERVER, transport);
       client.getTabletServerStatus(TraceUtil.traceInfo(), context.rpcCreds());
     } catch (TException e) {
       throw new AccumuloException(e);

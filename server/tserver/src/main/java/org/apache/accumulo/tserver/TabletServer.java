@@ -67,7 +67,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
-import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
@@ -83,11 +82,10 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsUtil;
-import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
+import org.apache.accumulo.core.rpc.ThriftClientTypes;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ComparablePair;
 import org.apache.accumulo.core.util.Halt;
@@ -122,9 +120,8 @@ import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.manager.recovery.RecoveryPath;
 import org.apache.accumulo.server.rpc.ServerAddress;
-import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
 import org.apache.accumulo.server.rpc.TServerUtils;
-import org.apache.accumulo.server.rpc.ThriftServerType;
+import org.apache.accumulo.server.rpc.ThriftServerTypes;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.SecurityUtil;
@@ -162,7 +159,6 @@ import org.apache.commons.collections4.map.LRUMap;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
-import org.apache.thrift.TMultiplexedProcessor;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.server.TServer;
@@ -586,7 +582,7 @@ public class TabletServer extends AbstractServer {
         return null;
       }
       // log.info("Listener API to manager has been opened");
-      return ThriftUtil.getClient(new ManagerClientService.Client.Factory(), address, getContext());
+      return ThriftUtil.getClient(ThriftClientTypes.MANAGER, address, getContext());
     } catch (Exception e) {
       log.warn("Issue with managerConnection (" + address + ") " + e, e);
     }
@@ -609,45 +605,31 @@ public class TabletServer extends AbstractServer {
   private HostAndPort startTabletClientService() throws UnknownHostException {
     // start listening for client connection last
     clientHandler = getClientHandler();
-    ClientService.Iface clientHandlerRpcProxy = TraceUtil.wrapService(clientHandler);
-    final ClientService.Processor<ClientService.Iface> clientHandlerProcessor;
-    if (getContext().getThriftServerType() == ThriftServerType.SASL) {
-      ClientService.Iface tcredProxy = TCredentialsUpdatingWrapper.service(clientHandlerRpcProxy,
-          ClientServiceHandler.class, getConfiguration());
-      clientHandlerProcessor = new ClientService.Processor<>(tcredProxy);
-    } else {
-      clientHandlerProcessor = new ClientService.Processor<>(clientHandlerRpcProxy);
-    }
-
     thriftClientHandler = getThriftClientHandler();
-    TabletClientService.Iface thriftHandlerRpcProxy = TraceUtil.wrapService(thriftClientHandler);
-    final TabletClientService.Processor<TabletClientService.Iface> thriftHandlerProcessor;
-    if (getContext().getThriftServerType() == ThriftServerType.SASL) {
-      TabletClientService.Iface tcredProxy = TCredentialsUpdatingWrapper
-          .service(thriftHandlerRpcProxy, ThriftClientHandler.class, getConfiguration());
-      thriftHandlerProcessor = new TabletClientService.Processor<>(tcredProxy);
-    } else {
-      thriftHandlerProcessor = new TabletClientService.Processor<>(thriftHandlerRpcProxy);
+
+    try {
+      TProcessor processor = ThriftServerTypes.getTabletServerThriftServer(clientHandler,
+          thriftClientHandler, getContext(), getConfiguration());
+      HostAndPort address = startServer(getConfiguration(), clientAddress.getHost(), processor);
+      log.info("address = {}", address);
+      return address;
+    } catch (Exception e) {
+      throw new RuntimeException("Error creating thrift server processor", e);
     }
 
-    TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
-    muxProcessor.registerProcessor("ClientService", clientHandlerProcessor);
-    muxProcessor.registerProcessor("TabletClientService", thriftHandlerProcessor);
-
-    HostAndPort address = startServer(getConfiguration(), clientAddress.getHost(), muxProcessor);
-    log.info("address = {}", address);
-    return address;
   }
 
   @Deprecated
   private void startReplicationService() throws UnknownHostException {
     final var handler =
         new org.apache.accumulo.tserver.replication.ReplicationServicerHandler(this);
-    ReplicationServicer.Iface rpcProxy = TraceUtil.wrapService(handler);
-    ReplicationServicer.Iface repl =
-        TCredentialsUpdatingWrapper.service(rpcProxy, handler.getClass(), getConfiguration());
-    ReplicationServicer.Processor<ReplicationServicer.Iface> processor =
-        new ReplicationServicer.Processor<>(repl);
+    TProcessor processor = null;
+    try {
+      processor = ThriftServerTypes.getReplicationClientThriftServer(handler, getContext(),
+          getConfiguration());
+    } catch (Exception e) {
+      throw new RuntimeException("Error creating thrift server processor", e);
+    }
     Property maxMessageSizeProperty =
         getConfiguration().get(Property.TSERV_MAX_MESSAGE_SIZE) != null
             ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE;
