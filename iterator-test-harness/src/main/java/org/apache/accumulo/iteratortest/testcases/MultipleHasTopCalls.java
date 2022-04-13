@@ -25,9 +25,9 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.iteratortest.IteratorTestCase;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
-import org.apache.accumulo.iteratortest.IteratorTestUtil;
 
 /**
  * TestCase which asserts that multiple calls to {@link SortedKeyValueIterator#hasTop()} should not
@@ -37,7 +37,7 @@ import org.apache.accumulo.iteratortest.IteratorTestUtil;
  * This test case will call {@code hasTop()} multiple times, verifying that each call returns the
  * same value as the first.
  */
-public class MultipleHasTopCalls extends OutputVerifyingTestCase {
+public class MultipleHasTopCalls implements IteratorTestCase {
 
   private static final SecureRandom random = new SecureRandom();
 

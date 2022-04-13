@@ -1094,8 +1094,7 @@ public class ClientContext implements AccumuloClient {
   public synchronized ThriftTransportPool getTransportPool() {
     ensureOpen();
     if (thriftTransportPool == null) {
-      thriftTransportPool = new ThriftTransportPool();
-      thriftTransportPool.startCheckerThread();
+      thriftTransportPool = ThriftTransportPool.startNew(this::getClientTimeoutInMillis);
     }
     return thriftTransportPool;
   }
