@@ -53,16 +53,13 @@ public class PropCacheCaffeineImpl implements PropCache {
   private PropCacheCaffeineImpl(final CacheLoader<PropCacheKey,VersionedProperties> cacheLoader,
       final PropStoreMetrics metrics, final Ticker ticker) {
     this.metrics = metrics;
-
-    if (ticker != null) { // build test instance with artificial clock.
-      cache = Caffeine.newBuilder().refreshAfterWrite(REFRESH_MIN, BASE_TIME_UNITS)
-          .expireAfterAccess(EXPIRE_MIN, BASE_TIME_UNITS).evictionListener(this::evictionNotifier)
-          .ticker(ticker).executor(executor).build(cacheLoader);
-    } else {
-      cache = Caffeine.newBuilder().refreshAfterWrite(REFRESH_MIN, BASE_TIME_UNITS)
-          .expireAfterAccess(EXPIRE_MIN, BASE_TIME_UNITS).evictionListener(this::evictionNotifier)
-          .executor(executor).build(cacheLoader);
+    var builder = Caffeine.newBuilder().refreshAfterWrite(REFRESH_MIN, BASE_TIME_UNITS)
+        .expireAfterAccess(EXPIRE_MIN, BASE_TIME_UNITS).evictionListener(this::evictionNotifier)
+        .executor(executor);
+    if (ticker != null) {
+      builder = builder.ticker(ticker);
     }
+    cache = builder.build(cacheLoader);
   }
 
   public PropStoreMetrics getMetrics() {
