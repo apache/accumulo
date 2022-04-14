@@ -30,8 +30,6 @@ import java.util.Map;
 
 import org.apache.accumulo.core.clientImpl.CompressedIterators;
 import org.apache.accumulo.core.clientImpl.CompressedIterators.IterConfig;
-import org.apache.accumulo.core.conf.IterConfigUtil;
-import org.apache.accumulo.core.conf.IterLoad;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -43,6 +41,8 @@ import org.apache.accumulo.core.dataImpl.thrift.TCMStatus;
 import org.apache.accumulo.core.dataImpl.thrift.TCondition;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.IteratorBuilder;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration.ParsedIteratorConfig;
@@ -57,7 +57,6 @@ public class ConditionCheckerContext {
   private Map<String,Map<String,String>> tableIterOpts;
   private TabletIteratorEnvironment tie;
   private String context;
-  private Map<String,Class<SortedKeyValueIterator<Key,Value>>> classCache;
 
   private static class MergedIterConfig {
     List<IterInfo> mergedIters;
@@ -81,8 +80,6 @@ public class ConditionCheckerContext {
     tableIterOpts = pic.getOpts();
     this.context = pic.getServiceEnv();
 
-    classCache = new HashMap<>();
-
     tie = new TabletIteratorEnvironment(context, IteratorScope.scan, tableConf,
         tableConf.getTableId());
   }
@@ -99,17 +96,17 @@ public class ConditionCheckerContext {
       Map<String,Map<String,String>> mergedItersOpts =
           new HashMap<>(tableIterOpts.size() + ic.ssio.size());
 
-      IterConfigUtil.mergeIteratorConfig(mergedIters, mergedItersOpts, tableIters, tableIterOpts,
-          ic.ssiList, ic.ssio);
+      IteratorConfigUtil.mergeIteratorConfig(mergedIters, mergedItersOpts, tableIters,
+          tableIterOpts, ic.ssiList, ic.ssio);
 
       mic = new MergedIterConfig(mergedIters, mergedItersOpts);
 
       mergedIterCache.put(key, mic);
     }
 
-    IterLoad iterLoad = new IterLoad().iters(mic.mergedIters).iterOpts(mic.mergedItersOpts)
-        .iterEnv(tie).useAccumuloClassLoader(true).context(context).classCache(classCache);
-    return IterConfigUtil.loadIterators(systemIter, iterLoad);
+    var iteratorBuilder = IteratorBuilder.builder(mic.mergedIters).opts(mic.mergedItersOpts)
+        .env(tie).useClassLoader(context).useClassCache(true).build();
+    return IteratorConfigUtil.loadIterators(systemIter, iteratorBuilder);
   }
 
   boolean checkConditions(SortedKeyValueIterator<Key,Value> systemIter,

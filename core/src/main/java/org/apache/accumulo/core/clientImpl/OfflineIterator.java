@@ -38,8 +38,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
-import org.apache.accumulo.core.conf.IterConfigUtil;
-import org.apache.accumulo.core.conf.IterLoad;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
@@ -54,6 +52,7 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -326,11 +325,11 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
         Value> visFilter = SystemIteratorUtil.setupSystemScanIterators(multiIter,
             new HashSet<>(options.fetchedColumns), authorizations, defaultSecurityLabel,
             acuTableConf);
-    IterLoad iterLoad = IterConfigUtil.loadIterConf(IteratorScope.scan,
+    var iteratorBuilderEnv = IteratorConfigUtil.loadIterConf(IteratorScope.scan,
         options.serverSideIteratorList, options.serverSideIteratorOptions, acuTableConf);
-
-    return iterEnv.getTopLevelIterator(IterConfigUtil.loadIterators(visFilter,
-        iterLoad.iterEnv(iterEnv).useAccumuloClassLoader(false)));
+    var iteratorBuilder = iteratorBuilderEnv.env(iterEnv).build();
+    return iterEnv
+        .getTopLevelIterator(IteratorConfigUtil.loadIterators(visFilter, iteratorBuilder));
   }
 
   @Override
