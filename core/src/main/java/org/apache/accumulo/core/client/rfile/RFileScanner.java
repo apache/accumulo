@@ -38,8 +38,6 @@ import org.apache.accumulo.core.clientImpl.ScannerOptions;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.conf.IterConfigUtil;
-import org.apache.accumulo.core.conf.IterLoad;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
@@ -59,6 +57,8 @@ import org.apache.accumulo.core.iterators.IteratorAdapter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.IteratorBuilder;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
@@ -380,14 +380,14 @@ class RFileScanner extends ScannerOptions implements Scanner {
 
       try {
         if (opts.tableConfig != null && !opts.tableConfig.isEmpty()) {
-          IterLoad il = IterConfigUtil.loadIterConf(IteratorScope.scan, serverSideIteratorList,
+          var ibEnv = IteratorConfigUtil.loadIterConf(IteratorScope.scan, serverSideIteratorList,
               serverSideIteratorOptions, tableConf);
-          iterator = IterConfigUtil.loadIterators(iterator,
-              il.iterEnv(new IterEnv()).useAccumuloClassLoader(true));
+          var iteratorBuilder = ibEnv.env(new IterEnv()).build();
+          iterator = IteratorConfigUtil.loadIterators(iterator, iteratorBuilder);
         } else {
-          iterator = IterConfigUtil.loadIterators(iterator,
-              new IterLoad().iters(serverSideIteratorList).iterOpts(serverSideIteratorOptions)
-                  .iterEnv(new IterEnv()).useAccumuloClassLoader(false));
+          var iteratorBuilder = IteratorBuilder.builder(serverSideIteratorList)
+              .opts(serverSideIteratorOptions).env(new IterEnv()).build();
+          iterator = IteratorConfigUtil.loadIterators(iterator, iteratorBuilder);
         }
       } catch (IOException e) {
         throw new RuntimeException(e);

@@ -38,10 +38,10 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TimeType;
-import org.apache.accumulo.core.conf.IterConfigUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.constraints.VisibilityConstraint;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.ShellUtil;
@@ -134,7 +134,7 @@ public class CreateTableCommand extends Command {
     shellState.setTableName(tableName); // switch shell to new table context
 
     if (cl.hasOption(createTableNoDefaultIters.getOpt())) {
-      for (String key : IterConfigUtil.generateInitialTableProperties(true).keySet()) {
+      for (String key : IteratorConfigUtil.generateInitialTableProperties(true).keySet()) {
         shellState.getAccumuloClient().tableOperations().removeProperty(tableName, key);
       }
     }

@@ -130,6 +130,11 @@ public enum ClientProperty {
   SASL_KERBEROS_SERVER_PRIMARY("sasl.kerberos.server.primary", "accumulo",
       "Kerberos principal/primary that Accumulo servers use to login"),
 
+  // RPC
+  RPC_TRANSPORT_IDLE_TIMEOUT("rpc.transport.idle.timeout", "3s", PropertyType.TIMEDURATION,
+      "The maximum duration to leave idle transports open in the client's transport pool", "2.1.0",
+      false),
+
   // Trace
   @Deprecated(since = "2.1.0", forRemoval = true)
   TRACE_SPAN_RECEIVERS("trace.span.receivers", "org.apache.accumulo.tracer.ZooTraceClient",
