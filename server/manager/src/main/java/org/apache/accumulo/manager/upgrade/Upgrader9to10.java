@@ -122,7 +122,6 @@ public class Upgrader9to10 implements Upgrader {
   public void upgradeZookeeper(ServerContext context) {
     setMetaTableProps(context);
     upgradeRootTabletMetadata(context);
-    // renameOldMasterPropsinZK(context);
     createExternalCompactionNodes(context);
     // special case where old files need to be deleted
     dropSortedMapWALFiles(context);
