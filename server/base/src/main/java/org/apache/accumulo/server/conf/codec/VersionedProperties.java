@@ -48,7 +48,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
  */
 public class VersionedProperties {
 
-  public static final DateTimeFormatter tsFormatter =
+  public static final DateTimeFormatter TIMESTAMP_FORMATTER =
       DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneId.from(ZoneOffset.UTC));
   // flag value for initialization - on store both the version and next version should be 0.
   private static final int INIT_VERSION = 0;
@@ -129,7 +129,7 @@ public class VersionedProperties {
    * @return a formatted timestamp string.
    */
   public String getTimestampISO() {
-    return tsFormatter.format(timestamp);
+    return TIMESTAMP_FORMATTER.format(timestamp);
   }
 
   /**
@@ -203,7 +203,8 @@ public class VersionedProperties {
 
     sb.append("dataVersion=").append(dataVersion).append(prettyPrint ? "\n" : ", ");
 
-    sb.append("timeStamp=").append(tsFormatter.format(timestamp)).append(prettyPrint ? "\n" : ", ");
+    sb.append("timeStamp=").append(TIMESTAMP_FORMATTER.format(timestamp))
+        .append(prettyPrint ? "\n" : ", ");
 
     Map<String,String> sorted = new TreeMap<>(props);
     sorted.forEach((k, v) -> {

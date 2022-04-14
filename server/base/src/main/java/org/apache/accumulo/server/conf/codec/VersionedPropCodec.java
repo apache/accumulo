@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.server.conf.codec;
 
-import static org.apache.accumulo.server.conf.codec.VersionedProperties.tsFormatter;
+import static org.apache.accumulo.server.conf.codec.VersionedProperties.TIMESTAMP_FORMATTER;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -88,7 +88,7 @@ public abstract class VersionedPropCodec {
       encodingOpts.encode(dos);
 
       // write prop metadata
-      dos.writeUTF(tsFormatter.format(vProps.getTimestamp()));
+      dos.writeUTF(TIMESTAMP_FORMATTER.format(vProps.getTimestamp()));
 
       // delegate property encoding to sub-class
       encodePayload(bos, vProps, encodingOpts);
@@ -138,7 +138,7 @@ public abstract class VersionedPropCodec {
                 + encodingOpts.getEncodingVersion());
       }
 
-      var timestamp = tsFormatter.parse(dis.readUTF(), Instant::from);
+      var timestamp = TIMESTAMP_FORMATTER.parse(dis.readUTF(), Instant::from);
 
       Map<String,String> props = decodePayload(bis, encodingOpts);
 
@@ -186,9 +186,9 @@ public abstract class VersionedPropCodec {
   public static Instant readTimestamp(final byte[] bytes) {
     try (ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
         DataInputStream dis = new DataInputStream(bis)) {
-      // skip encoding metadata
+      // read encoding metadata according to the options.
       EncodingOptions.fromDataStream(dis);
-      return tsFormatter.parse(dis.readUTF(), Instant::from);
+      return TIMESTAMP_FORMATTER.parse(dis.readUTF(), Instant::from);
     } catch (NullPointerException | DateTimeParseException | IOException ex) {
       throw new IllegalArgumentException("Failed to read timestamp from byte array provided", ex);
     }

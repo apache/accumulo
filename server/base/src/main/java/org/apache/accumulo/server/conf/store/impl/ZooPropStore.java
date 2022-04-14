@@ -444,6 +444,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
      * @param zooSessionTimeout
      *          the zoo session timeout in milliseconds.
      */
+    @VisibleForTesting
     public Builder(final InstanceId instanceId, final ZooReaderWriter zrw,
         final long zooSessionTimeout) {
       this.instanceId = instanceId;
