@@ -213,8 +213,6 @@ public class Initialize implements KeywordExecutable {
         zoo.recursiveDelete(instanceNamePath, ZooUtil.NodeMissingPolicy.SKIP);
       }
 
-      log.warn("INSTANCE PATH path: {}", instanceId);
-
       zoo.putPersistentData(instanceNamePath, instanceId.toString().getBytes(UTF_8),
           ZooUtil.NodeExistsPolicy.FAIL);
       zoo.putPersistentData(Constants.ZROOT + "/" + instanceId, new byte[0],
