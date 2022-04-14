@@ -33,8 +33,6 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ScannerOptions;
-import org.apache.accumulo.core.conf.IterConfigUtil;
-import org.apache.accumulo.core.conf.IterLoad;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Column;
@@ -46,6 +44,8 @@ import org.apache.accumulo.core.iterators.IteratorAdapter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.IteratorBuilder;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 
@@ -250,11 +250,13 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
 
     SortedKeyValueIterator<Key,Value> skvi;
     try {
-      IteratorEnvironment env = new ClientSideIteratorEnvironment(getSamplerConfiguration() != null,
-          getIteratorSamplerConfigurationInternal());
-      IterLoad iterLoad = new IterLoad().iters(tm.values()).iterOpts(serverSideIteratorOptions)
-          .iterEnv(env).useAccumuloClassLoader(false);
-      skvi = IterConfigUtil.loadIterators(smi, iterLoad);
+      IteratorEnvironment iterEnv = new ClientSideIteratorEnvironment(
+          getSamplerConfiguration() != null, getIteratorSamplerConfigurationInternal());
+
+      IteratorBuilder ib =
+          IteratorBuilder.builder(tm.values()).opts(serverSideIteratorOptions).env(iterEnv).build();
+
+      skvi = IteratorConfigUtil.loadIterators(smi, ib);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.conf;
+package org.apache.accumulo.core.iteratorsImpl;
 
 import static java.util.Objects.requireNonNull;
 
@@ -33,6 +33,8 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint;
@@ -48,8 +50,8 @@ import org.slf4j.LoggerFactory;
  * Utility class for configuring iterators. These methods were moved from IteratorUtil so that it
  * could be treated as API.
  */
-public class IterConfigUtil {
-  private static final Logger log = LoggerFactory.getLogger(IterConfigUtil.class);
+public class IteratorConfigUtil {
+  private static final Logger log = LoggerFactory.getLogger(IteratorConfigUtil.class);
 
   public static final Comparator<IterInfo> ITER_INFO_COMPARATOR =
       Comparator.comparingInt(IterInfo::getPriority);
@@ -160,12 +162,12 @@ public class IterConfigUtil {
     });
   }
 
-  public static IterLoad loadIterConf(IteratorScope scope, List<IterInfo> iters,
-      Map<String,Map<String,String>> iterOpts, AccumuloConfiguration conf) {
+  public static IteratorBuilder.IteratorBuilderEnv loadIterConf(IteratorScope scope,
+      List<IterInfo> iters, Map<String,Map<String,String>> iterOpts, AccumuloConfiguration conf) {
     Map<String,Map<String,String>> allOptions = new HashMap<>();
     List<IterInfo> iterators = parseIterConf(scope, iters, allOptions, conf);
     mergeOptions(iterOpts, allOptions);
-    return new IterLoad().iters(iterators).iterOpts(allOptions);
+    return IteratorBuilder.builder(iterators).opts(allOptions);
   }
 
   /**
@@ -183,42 +185,45 @@ public class IterConfigUtil {
       ssio.put(is.getName(), is.getOptions());
     }
 
-    IterLoad il = loadIterConf(scope, ssiList, ssio, conf);
-    il = il.iterEnv(env).useAccumuloClassLoader(true).context(ClassLoaderUtil.tableContext(conf));
-    return loadIterators(source, il);
+    var ibEnv = loadIterConf(scope, ssiList, ssio, conf);
+    var iterBuilder = ibEnv.env(env).useClassLoader(ClassLoaderUtil.tableContext(conf)).build();
+    return loadIterators(source, iterBuilder);
   }
 
   /**
-   * Load a stack of iterators provided in the IterLoad, starting with source.
+   * Load a stack of iterators provided in the iterator builder, starting with source.
    */
-  public static SortedKeyValueIterator<Key,Value> loadIterators(
-      SortedKeyValueIterator<Key,Value> source, IterLoad iterLoad) throws IOException {
+  public static SortedKeyValueIterator<Key,Value>
+      loadIterators(SortedKeyValueIterator<Key,Value> source, IteratorBuilder iteratorBuilder)
+          throws IOException {
     SortedKeyValueIterator<Key,Value> prev = source;
+    final boolean useClassLoader = iteratorBuilder.useAccumuloClassLoader;
+    Map<String,Class<SortedKeyValueIterator<Key,Value>>> classCache = new HashMap<>();
 
     try {
-      for (IterInfo iterInfo : iterLoad.iters) {
+      for (IterInfo iterInfo : iteratorBuilder.iters) {
 
         Class<SortedKeyValueIterator<Key,Value>> clazz = null;
         log.trace("Attempting to load iterator class {}", iterInfo.className);
-        if (iterLoad.classCache != null) {
-          clazz = iterLoad.classCache.get(iterInfo.className);
+        if (iteratorBuilder.useClassCache) {
+          clazz = classCache.get(iterInfo.className);
 
           if (clazz == null) {
-            clazz = loadClass(iterLoad.useAccumuloClassLoader, iterLoad.context, iterInfo);
-            iterLoad.classCache.put(iterInfo.className, clazz);
+            clazz = loadClass(useClassLoader, iteratorBuilder.context, iterInfo);
+            classCache.put(iterInfo.className, clazz);
           }
         } else {
-          clazz = loadClass(iterLoad.useAccumuloClassLoader, iterLoad.context, iterInfo);
+          clazz = loadClass(useClassLoader, iteratorBuilder.context, iterInfo);
         }
 
         SortedKeyValueIterator<Key,Value> skvi = clazz.getDeclaredConstructor().newInstance();
 
-        Map<String,String> options = iterLoad.iterOpts.get(iterInfo.iterName);
+        Map<String,String> options = iteratorBuilder.iterOpts.get(iterInfo.iterName);
 
         if (options == null)
           options = Collections.emptyMap();
 
-        skvi.init(prev, options, iterLoad.iteratorEnvironment);
+        skvi.init(prev, options, iteratorBuilder.iteratorEnvironment);
         prev = skvi;
       }
     } catch (ReflectiveOperationException e) {
@@ -230,7 +235,7 @@ public class IterConfigUtil {
 
   @SuppressWarnings("unchecked")
   private static Class<SortedKeyValueIterator<Key,Value>> loadClass(boolean useAccumuloClassLoader,
-      String context, IterInfo iterInfo) throws ClassNotFoundException, IOException {
+      String context, IterInfo iterInfo) throws ClassNotFoundException {
     Class<SortedKeyValueIterator<Key,Value>> clazz = null;
     if (useAccumuloClassLoader) {
       clazz = (Class<SortedKeyValueIterator<Key,Value>>) ClassLoaderUtil.loadClass(context,
