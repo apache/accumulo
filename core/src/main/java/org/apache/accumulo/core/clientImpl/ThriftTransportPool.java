@@ -106,7 +106,7 @@ public class ThriftTransportPool {
    */
   static ThriftTransportPool startNew(LongSupplier maxAgeMillis) {
     var pool = new ThriftTransportPool(maxAgeMillis);
-    log.debug("Set thrift transport pool idle time to {}", maxAgeMillis);
+    log.debug("Set thrift transport pool idle time to {}ms", maxAgeMillis.getAsLong());
     pool.checkThread.start();
     return pool;
   }
