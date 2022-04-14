@@ -19,30 +19,37 @@
 #
 
 # The purpose of this ci script is to ensure that a pull request doesn't
-# unintentionally add any new non Junit5/Jupiter tests unless they are
-# pre-approved on the ALLOWED list
+# unintentionally add JUnit jupiter APIs to vintage tests, or add vintage
+# APIs to new jupiter tests.
 NUM_EXPECTED=0
-ALLOWED='CompactionCoordinatorTest.java|CompactorTest.java|AccumuloVFSClassLoaderTest.java'
+ALLOWED=(
+  server/compaction-coordinator/src/test/java/org/apache/accumulo/coordinator/CompactionCoordinatorTest.java
+  server/compactor/src/test/java/org/apache/accumulo/compactor/CompactorTest.java
+  start/src/test/java/org/apache/accumulo/start/classloader/vfs/AccumuloVFSClassLoaderTest.java
+)
 
-function findalljunit4tests() {
+ALLOWED_PIPE_SEP=$({ for x in "${ALLOWED[@]}"; do echo "$x" ; done; } | paste -sd'|')
+
+function findalljunitproblems() {
   # -P for perl matching, -R for recursive, -l for matching files
   local opts='-PRl'
   if [[ $1 == 'print' ]]; then
     # -P for perl matching, -R for recursive, -l for matching files, -H for always showing filenames
     opts='-PRlH'
   fi
-  grep "$opts" --include=*.java \
-  --exclude={CompactorTest.java,CompactionCoordinatorTest.java,AccumuloVFSClassLoaderTest.java} \
-  'org.junit.[^jupiter]'
+  # find any new classes using something other than the jupiter API, except those allowed
+  grep "$opts" --include='*.java' 'org[.]junit[.](?!jupiter)' | grep -Pv "^(${ALLOWED_PIPE_SEP//./[.]})\$"
+  # find any uses of the jupiter API in the allowed vintage classes
+  grep "$opts" 'org[.]junit[.]jupiter' "${ALLOWED[@]}"
 }
 
 function comparecounts() {
-  local count; count=$(findalljunit4tests | wc -l)
+  local count; count=$(findalljunitproblems | wc -l)
   if [[ $NUM_EXPECTED -ne $count ]]; then
-    echo "Expected $NUM_EXPECTED, but found $count unapproved non-ASCII characters:"
-    findalljunit4tests 'print'
+    echo "Expected $NUM_EXPECTED, but found $count classes using the wrong JUnit APIs:"
+    findalljunitproblems 'print'
     return 1
   fi
 }
 
-comparecounts && echo "Found exactly $NUM_EXPECTED unapproved JUnit4 tests, as expected"
+comparecounts && echo "Found exactly $NUM_EXPECTED unapproved JUnit API uses, as expected"
