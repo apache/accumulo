@@ -71,11 +71,11 @@ import org.slf4j.LoggerFactory;
 public class PropStoreZooKeeperIT {
 
   private static final Logger log = LoggerFactory.getLogger(PropStoreZooKeeperIT.class);
-  private static final InstanceId INSTANCE_ID = InstanceId.of(UUID.randomUUID());
   private static final VersionedPropCodec propCodec = VersionedPropCodec.getDefault();
   private static ZooKeeperTestingServer testZk = null;
   private static ZooKeeper zooKeeper;
-  private static ServerContext context;
+  private ServerContext context;
+  private InstanceId instanceId = null;
   private final TableId tIdA = TableId.of("A");
   private final TableId tIdB = TableId.of("B");
 
@@ -90,11 +90,6 @@ public class PropStoreZooKeeperIT {
     zooKeeper = testZk.getZooKeeper();
     ZooReaderWriter zrw = testZk.getZooReaderWriter();
 
-    context = EasyMock.createNiceMock(ServerContext.class);
-    expect(context.getInstanceID()).andReturn(INSTANCE_ID).anyTimes();
-    expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
-
-    replay(context);
   }
 
   @AfterAll
@@ -104,20 +99,27 @@ public class PropStoreZooKeeperIT {
 
   @BeforeEach
   public void setupZnodes() {
-    testZk.initPaths(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZCONFIG);
+    InstanceId.of(UUID.randomUUID());
+    context = EasyMock.createNiceMock(ServerContext.class);
+    expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
+    expect(context.getZooReaderWriter()).andReturn(testZk.getZooReaderWriter()).anyTimes();
+
+    replay(context);
+
+    testZk.initPaths(ZooUtil.getRoot(instanceId) + Constants.ZCONFIG);
     try {
-      zooKeeper.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES, new byte[0],
+      zooKeeper.create(ZooUtil.getRoot(instanceId) + Constants.ZTABLES, new byte[0],
           ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-      zooKeeper.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES + "/" + tIdA.canonical(),
+      zooKeeper.create(ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + tIdA.canonical(),
           new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
       zooKeeper.create(
-          ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES + "/" + tIdA.canonical() + "/conf",
+          ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + tIdA.canonical() + "/conf",
           new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
-      zooKeeper.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES + "/" + tIdB.canonical(),
+      zooKeeper.create(ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + tIdB.canonical(),
           new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
       zooKeeper.create(
-          ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES + "/" + tIdB.canonical() + "/conf",
+          ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + tIdB.canonical() + "/conf",
           new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
     } catch (KeeperException ex) {
@@ -145,12 +147,12 @@ public class PropStoreZooKeeperIT {
 
     ZooPropStore propStore = new ZooPropStore.Builder(context).build();
 
-    PropCacheKey propKey = PropCacheKey.forTable(INSTANCE_ID, tIdA);
+    PropCacheKey propKey = PropCacheKey.forTable(instanceId, tIdA);
 
     // read from ZK
     assertNull(zooKeeper.exists(propKey.getPath(), false));
-    // read from store
-    assertNull(propStore.get(propKey));
+    // read from store - will be auto re-created by transformer
+    assertNotNull(propStore.get(propKey));
 
   }
 
@@ -159,7 +161,7 @@ public class PropStoreZooKeeperIT {
 
     PropStore propStore = new ZooPropStore.Builder(context).build();
 
-    PropCacheKey propKey = PropCacheKey.forTable(INSTANCE_ID, tIdA);
+    PropCacheKey propKey = PropCacheKey.forTable(instanceId, tIdA);
 
     assertNull(zooKeeper.exists(propKey.getPath(), false)); // check node does not exist in ZK
 
@@ -178,7 +180,7 @@ public class PropStoreZooKeeperIT {
 
     PropStore propStore = new ZooPropStore.Builder(context).build();
 
-    PropCacheKey propKey = PropCacheKey.forTable(INSTANCE_ID, TableId.of("A"));
+    PropCacheKey propKey = PropCacheKey.forTable(instanceId, TableId.of("A"));
     Map<String,String> initialProps = new HashMap<>();
     initialProps.put(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
     propStore.create(propKey, initialProps);
@@ -204,7 +206,7 @@ public class PropStoreZooKeeperIT {
 
     TestChangeListener listener = new TestChangeListener();
 
-    PropCacheKey propKey = PropCacheKey.forTable(INSTANCE_ID, TableId.of("A"));
+    PropCacheKey propKey = PropCacheKey.forTable(instanceId, TableId.of("A"));
     propStore.registerAsListener(propKey, listener);
 
     Map<String,String> initialProps = new HashMap<>();
@@ -288,8 +290,8 @@ public class PropStoreZooKeeperIT {
   public void deleteTest() {
     PropStore propStore = new ZooPropStore.Builder(context).build();
 
-    PropCacheKey tableAPropKey = PropCacheKey.forTable(INSTANCE_ID, TableId.of("A"));
-    PropCacheKey tableBPropKey = PropCacheKey.forTable(INSTANCE_ID, TableId.of("B"));
+    PropCacheKey tableAPropKey = PropCacheKey.forTable(instanceId, TableId.of("A"));
+    PropCacheKey tableBPropKey = PropCacheKey.forTable(instanceId, TableId.of("B"));
 
     Map<String,String> initialProps = new HashMap<>();
     initialProps.put(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
@@ -323,8 +325,8 @@ public class PropStoreZooKeeperIT {
 
     TestChangeListener listener = new TestChangeListener();
 
-    PropCacheKey tableAPropKey = PropCacheKey.forTable(INSTANCE_ID, TableId.of("A"));
-    PropCacheKey tableBPropKey = PropCacheKey.forTable(INSTANCE_ID, TableId.of("B"));
+    PropCacheKey tableAPropKey = PropCacheKey.forTable(instanceId, TableId.of("A"));
+    PropCacheKey tableBPropKey = PropCacheKey.forTable(instanceId, TableId.of("B"));
 
     propStore.registerAsListener(tableAPropKey, listener);
     propStore.registerAsListener(tableBPropKey, listener);
@@ -354,7 +356,9 @@ public class PropStoreZooKeeperIT {
 
     Thread.sleep(150);
 
-    assertNull(propStore.get(tableAPropKey));
+    log.debug("AFTER Delete: {}", propStore.get(tableAPropKey));
+    // read from store - will be auto re-created by transformer
+    assertNotNull(propStore.get(tableAPropKey));
     assertNotNull(propStore.get(tableBPropKey));
 
     // validate change count not triggered
@@ -377,8 +381,8 @@ public class PropStoreZooKeeperIT {
 
     TestChangeListener listener = new TestChangeListener();
 
-    PropCacheKey tableAPropKey = PropCacheKey.forTable(INSTANCE_ID, TableId.of("A"));
-    PropCacheKey tableBPropKey = PropCacheKey.forTable(INSTANCE_ID, TableId.of("B"));
+    PropCacheKey tableAPropKey = PropCacheKey.forTable(instanceId, TableId.of("A"));
+    PropCacheKey tableBPropKey = PropCacheKey.forTable(instanceId, TableId.of("B"));
 
     propStore.registerAsListener(tableAPropKey, listener);
     propStore.registerAsListener(tableBPropKey, listener);
