@@ -43,7 +43,7 @@ public class ThriftBehaviorIT extends WithTestNames {
   private SimpleThriftServiceRunner serviceRunner;
   private String propName;
 
-  private static final String KITTY_MSG = "🐈 Kitty! 🐈™";
+  private static final String KITTY_MSG = "🐈 Kitty! 🐈";
 
   @BeforeEach
   public void createClientAndServer() {
