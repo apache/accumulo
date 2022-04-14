@@ -471,4 +471,10 @@ public class ServerContext extends ClientContext {
   public PropStore getPropStore() {
     return propStore;
   }
+
+  @Override
+  protected long getTransportPoolMaxAgeMillis() {
+    return getClientTimeoutInMillis();
+  }
+
 }
