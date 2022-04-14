@@ -16,53 +16,55 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.conf;
+package org.apache.accumulo.core.iteratorsImpl;
 
 import java.util.Collection;
 import java.util.Map;
 
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
-public class IterLoad {
-
+/**
+ * Builder class for setting up the iterator stack.
+ */
+public class IteratorBuilder {
   Collection<IterInfo> iters;
   Map<String,Map<String,String>> iterOpts;
   IteratorEnvironment iteratorEnvironment;
   boolean useAccumuloClassLoader;
-  String context;
-  Map<String,Class<SortedKeyValueIterator<Key,Value>>> classCache;
+  String context = null;
+  boolean useClassCache = false;
 
-  public IterLoad iters(Collection<IterInfo> iters) {
-    this.iters = iters;
-    return this;
+  IteratorBuilder() {}
+
+  /**
+   * Start building the iterator builder.
+   */
+  public static IteratorBuilderImpl builder(Collection<IterInfo> iters) {
+    return new IteratorBuilderImpl(iters);
   }
 
-  public IterLoad iterOpts(Map<String,Map<String,String>> iterOpts) {
-    this.iterOpts = iterOpts;
-    return this;
+  public interface IteratorBuilderEnv {
+    /**
+     * Set the iteratorEnvironment.
+     */
+    IteratorBuilderOptions env(IteratorEnvironment iteratorEnvironment);
   }
 
-  public IterLoad iterEnv(IteratorEnvironment iteratorEnvironment) {
-    this.iteratorEnvironment = iteratorEnvironment;
-    return this;
-  }
+  public interface IteratorBuilderOptions extends IteratorBuilderEnv {
+    /**
+     * Option to iterator classes when loading, defaults to false.
+     */
+    IteratorBuilderOptions useClassCache(boolean useClassCache);
 
-  public IterLoad useAccumuloClassLoader(boolean useAccumuloClassLoader) {
-    this.useAccumuloClassLoader = useAccumuloClassLoader;
-    return this;
-  }
+    /**
+     * Call to use the class loader. The String context param is optional and can be null.
+     */
+    IteratorBuilderOptions useClassLoader(String context);
 
-  public IterLoad context(String context) {
-    this.context = context;
-    return this;
-  }
-
-  public IterLoad classCache(Map<String,Class<SortedKeyValueIterator<Key,Value>>> classCache) {
-    this.classCache = classCache;
-    return this;
+    /**
+     * Finish building and return the completed IteratorBuilder.
+     */
+    IteratorBuilder build();
   }
 }
