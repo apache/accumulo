@@ -41,7 +41,7 @@ public class NamespacePropUtil implements PropUtil {
   public void setProperties(ServerContext context, AbstractId<?> namespaceId,
       Map<String,String> properties) {
     for (Map.Entry<String,String> prop : properties.entrySet()) {
-      // TODO reconcile with TablePropUtil on invalid, this throws exception, table ignores
+      // TODO reconcile with TablePropUtil see https://github.com/apache/accumulo/issues/2633
       if (!Property.isTablePropertyValid(prop.getKey(), prop.getValue())) {
         throw new IllegalArgumentException("Invalid table property for namespace: " + namespaceId
             + " name: " + prop.getKey() + ", value: " + prop.getValue());

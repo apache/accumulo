@@ -48,7 +48,7 @@ public class TablePropUtil implements PropUtil {
   public void setProperties(ServerContext context, AbstractId<?> tableId,
       Map<String,String> props) {
     Map<String,String> tempProps = new HashMap<>(props);
-    // TODO reconcile with NamespacePropUtil on invalid, this ignores, namespace throws exception
+    // TODO reconcile with NamespacePropUtil see https://github.com/apache/accumulo/issues/2633
     tempProps.entrySet().removeIf(e -> !Property.isTablePropertyValid(e.getKey(), e.getValue()));
 
     context.getPropStore().putAll(PropCacheKey.forTable(context, (TableId) tableId), props);
