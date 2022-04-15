@@ -51,6 +51,8 @@ jobs:
       run: git log -n1
     - name: Check for unapproved characters
       run: contrib/ci/find-unapproved-chars.sh
+    - name: Check for unapproved JUnit API usage
+      run: contrib/ci/find-unapproved-junit.sh
     - name: Build with Maven (Fast Build)
       timeout-minutes: 20
       run: mvn -B -V -e -ntp "-Dstyle.color=always" clean package dependency:resolve -DskipTests -DskipFormat -DverifyFormat
