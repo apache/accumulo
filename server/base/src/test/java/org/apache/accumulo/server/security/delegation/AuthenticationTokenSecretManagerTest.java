@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.security.delegation;
 
+import static com.google.common.collect.MoreCollectors.onlyElement;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.easymock.EasyMock.createMock;
@@ -34,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
@@ -55,8 +57,6 @@ import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
-
 public class AuthenticationTokenSecretManagerTest extends WithTestNames {
   private static final Logger log =
       LoggerFactory.getLogger(AuthenticationTokenSecretManagerTest.class);
@@ -65,6 +65,10 @@ public class AuthenticationTokenSecretManagerTest extends WithTestNames {
   private static final String DEFAULT_HMAC_ALGORITHM = "HmacSHA1";
   private static final int KEY_LENGTH = 64;
   private static KeyGenerator keyGen;
+
+  private <T> T getOnlyElement(Collection<T> s) {
+    return s.stream().collect(onlyElement());
+  }
 
   @BeforeAll
   public static void setupKeyGenerator() throws Exception {
@@ -97,7 +101,7 @@ public class AuthenticationTokenSecretManagerTest extends WithTestNames {
     Map<Integer,AuthenticationKey> keys = secretManager.getKeys();
     assertNotNull(keys);
     assertEquals(1, keys.size());
-    assertEquals(authKey, Iterables.getOnlyElement(keys.values()));
+    assertEquals(authKey, getOnlyElement(keys.values()));
 
     // Add the same key
     secretManager.addKey(authKey);
@@ -106,7 +110,7 @@ public class AuthenticationTokenSecretManagerTest extends WithTestNames {
     keys = secretManager.getKeys();
     assertNotNull(keys);
     assertEquals(1, keys.size());
-    assertEquals(authKey, Iterables.getOnlyElement(keys.values()));
+    assertEquals(authKey, getOnlyElement(keys.values()));
   }
 
   @Test
@@ -124,7 +128,7 @@ public class AuthenticationTokenSecretManagerTest extends WithTestNames {
     Map<Integer,AuthenticationKey> keys = secretManager.getKeys();
     assertNotNull(keys);
     assertEquals(1, keys.size());
-    assertEquals(authKey, Iterables.getOnlyElement(keys.values()));
+    assertEquals(authKey, getOnlyElement(keys.values()));
 
     assertTrue(secretManager.removeKey(authKey.getKeyId()));
     assertEquals(0, secretManager.getKeys().size());
@@ -358,7 +362,7 @@ public class AuthenticationTokenSecretManagerTest extends WithTestNames {
 
     // Ensure the second still exists
     assertEquals(1, secretManager.getKeys().size());
-    assertEquals(authKey2, Iterables.getOnlyElement(secretManager.getKeys().values()));
+    assertEquals(authKey2, getOnlyElement(secretManager.getKeys().values()));
     assertEquals(authKey2, secretManager.getCurrentKey());
 
     verify(keyDistributor);

@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.rfile.RFile.WriterFSOptions;
 import org.apache.accumulo.core.client.rfile.RFile.WriterOptions;
@@ -45,7 +46,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
 
 class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions {
 
@@ -98,7 +98,8 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
     userProps.putAll(samplerProps);
 
     if (!userProps.isEmpty()) {
-      acuconf = new ConfigurationCopy(Iterables.concat(acuconf, userProps.entrySet()));
+      acuconf =
+          new ConfigurationCopy(Stream.concat(acuconf.stream(), userProps.entrySet().stream()));
     }
 
     CryptoService cs = CryptoServiceFactory.newInstance(acuconf, ClassloaderType.JAVA);
