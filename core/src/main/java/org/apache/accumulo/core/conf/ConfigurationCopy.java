@@ -50,7 +50,7 @@ public class ConfigurationCopy extends AccumuloConfiguration {
    *          configuration property stream to use for copying
    */
   public ConfigurationCopy(Stream<Entry<String,String>> config) {
-    this(() -> config.iterator());
+    this(config::iterator);
   }
 
   /**
