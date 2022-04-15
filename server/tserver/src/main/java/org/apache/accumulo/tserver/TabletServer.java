@@ -46,7 +46,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -57,7 +56,6 @@ import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -181,8 +179,7 @@ public class TabletServer extends AbstractServer {
   private static final Logger log = LoggerFactory.getLogger(TabletServer.class);
   private static final long TIME_BETWEEN_GC_CHECKS = TimeUnit.SECONDS.toMillis(5);
   private static final long TIME_BETWEEN_LOCATOR_CACHE_CLEARS = TimeUnit.HOURS.toMillis(1);
-  private final int MAX_WRITE_THREADS;
-  private final int MAX_WRITE_THREADS_DEFAULT;
+  private final int INITIAL_MAX_WRITE_THREADS;
 
   final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
   final ZooCache managerLockCache;
@@ -244,8 +241,8 @@ public class TabletServer extends AbstractServer {
   private final WalStateManager walMarker;
   private final ServerContext context;
 
-  /** Controls write thread pool; Only used when configured. **/
-  private final Semaphore writeThreadSemaphore;
+  /** write thread pool **/
+  private final ThreadPoolExecutor writeThreadExecutor;
 
   public static void main(String[] args) throws Exception {
     try (TabletServer tserver = new TabletServer(new ServerOpts(), args)) {
@@ -384,11 +381,12 @@ public class TabletServer extends AbstractServer {
     } else {
       authKeyWatcher = null;
     }
-    MAX_WRITE_THREADS =
+    INITIAL_MAX_WRITE_THREADS =
         getServerConfig().getConfiguration().getCount(Property.TSERV_WRITE_THREADS_MAX);
-    MAX_WRITE_THREADS_DEFAULT =
-        getServerConfig().getConfiguration().getDefaultCount(Property.TSERV_WRITE_THREADS_MAX);
-    writeThreadSemaphore = new Semaphore(MAX_WRITE_THREADS);
+
+    // create a thread pool with reasonable defaults
+    writeThreadExecutor = ThreadPools.getServerThreadPools().createThreadPool(100, 200, 30,
+        TimeUnit.SECONDS, "writeThreadPool", true);
     config();
   }
 
@@ -411,16 +409,6 @@ public class TabletServer extends AbstractServer {
    * controls the number of write threads. If the user has not set the value then return
    * Optional.empty(), which is essentially a no-op.
    */
-  public synchronized Optional<Semaphore> getWriteThreadSemaphore() {
-    if (MAX_WRITE_THREADS == MAX_WRITE_THREADS_DEFAULT) {
-      return Optional.empty();
-    } else {
-      // if the value is configured return the Semaphore to control write thread pool
-      log.debug("User data write threads are limited to {}/{}",
-          writeThreadSemaphore.availablePermits(), MAX_WRITE_THREADS);
-      return Optional.of(writeThreadSemaphore);
-    }
-  }
 
   final SessionManager sessionManager;
 
@@ -436,6 +424,18 @@ public class TabletServer extends AbstractServer {
 
   void requestStop() {
     serverStopRequested = true;
+  }
+
+  public ThreadPoolExecutor getWriteThreadExecutor() {
+    var configured =
+        getServerConfig().getConfiguration().getCount(Property.TSERV_WRITE_THREADS_MAX);
+    // resize pool if config changed
+    if (INITIAL_MAX_WRITE_THREADS != configured) {
+      if (configured == 0) {
+        return writeThreadExecutor;
+      }
+    }
+    return writeThreadExecutor;
   }
 
   private class SplitRunner implements Runnable {

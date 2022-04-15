@@ -34,13 +34,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -692,26 +691,21 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       return;
     }
 
-    Optional<Semaphore> writeThreadSemaphore = Optional.empty();
+    ThreadPoolExecutor writeThreadExecutor = server.getWriteThreadExecutor();
     boolean reserved = true;
 
     try {
       KeyExtent keyExtent = KeyExtent.fromThrift(tkeyExtent);
 
+      // get write thread pool handler but only for user tablets
       if (TabletType.type(keyExtent) == TabletType.USER) {
-        writeThreadSemaphore = server.getWriteThreadSemaphore();
-        // if write thread max is configured, get the Semaphore, otherwise do nothing
-        if (writeThreadSemaphore.isPresent()) {
-          Semaphore sem = writeThreadSemaphore.get();
-          if (sem.tryAcquire()) {
-            log.trace("Available permits: {}", sem.availablePermits());
-          } else {
-            log.error("Mutation failed. No threads available.");
-            return;
-          }
+        if (writeThreadExecutor.isTerminating()) {
+          throw new TException("Write Thread pool is terminating");
         }
+        writeThreadExecutor.execute(() -> setUpdateTablet(us, keyExtent));
+      } else {
+        setUpdateTablet(us, keyExtent);
       }
-      setUpdateTablet(us, keyExtent);
 
       if (us.currentTablet != null) {
         long additionalMutationSize = 0;
@@ -738,7 +732,9 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
         }
       }
     } finally {
-      writeThreadSemaphore.ifPresent(Semaphore::release);
+      if (writeThreadExecutor.isShutdown()) {
+        log.info("Write Thread pool has shutdown.");
+      }
       if (reserved) {
         server.sessionManager.unreserveSession(us);
       }
