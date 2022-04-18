@@ -145,11 +145,9 @@ public class PropStoreZooKeeperIT {
 
     PropCacheKey propKey = PropCacheKey.forTable(instanceId, tIdA);
 
-    // read from ZK
+    // read from ZK, after delete no node and node not created.
     assertNull(zooKeeper.exists(propKey.getPath(), false));
-    // read from store - will be auto re-created by transformer
-    assertNotNull(propStore.get(propKey));
-
+    assertThrows(PropStoreException.class, () -> propStore.get(propKey));
   }
 
   @Test
@@ -326,9 +324,8 @@ public class PropStoreZooKeeperIT {
 
     Thread.sleep(150);
 
-    log.debug("AFTER Delete: {}", propStore.get(tableAPropKey));
-    // read from store - will be auto re-created by transformer
-    assertNotNull(propStore.get(tableAPropKey));
+    // no node should not be created, should throw an exception
+    assertThrows(PropStoreException.class, () -> propStore.get(tableAPropKey));
     assertNotNull(propStore.get(tableBPropKey));
 
     // validate change count not triggered

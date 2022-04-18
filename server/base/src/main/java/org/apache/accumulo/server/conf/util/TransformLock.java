@@ -49,7 +49,7 @@ import org.slf4j.LoggerFactory;
 public class TransformLock {
   public static final String LOCK_NAME = "/transform_lock";
   private static final Logger log = LoggerFactory.getLogger(TransformLock.class);
-  private final byte[] id = UUID.randomUUID().toString().getBytes(UTF_8);
+  private final LockId lockId = new LockId();
   private final String path;
   private final ZooReaderWriter zrw;
   private boolean locked = false;
@@ -91,11 +91,11 @@ public class TransformLock {
         return false;
       }
       // if this completes this thread has created the lock
-      zrw.putEphemeralData(path, id);
-      log.debug("wrote property upgrade lock: {} - {}", path, id);
+      zrw.putEphemeralData(path, lockId.asBytes());
+      log.trace("wrote property upgrade lock: {} - {}", path, lockId);
       return true;
     } catch (KeeperException ex) {
-      log.info(
+      log.debug(
           "Failed to write transform lock for " + path + " another process may have created one",
           ex);
       return false;
@@ -122,8 +122,8 @@ public class TransformLock {
   public boolean validateLock() {
     try {
       byte[] readId = zrw.getData(path);
-      log.trace("validate lock: read: {} - expected: {}", readId, id);
-      return Arrays.equals(readId, id);
+      log.trace("validate lock: read: {} - expected: {}", readId, lockId);
+      return Arrays.equals(readId, lockId.asBytes());
     } catch (KeeperException ex) {
       throw new PropStoreException("Failed to validate lock", ex);
     } catch (InterruptedException ex) {
@@ -142,7 +142,7 @@ public class TransformLock {
 
       Stat stat = new Stat();
       byte[] readId = zrw.getData(path, stat);
-      if (!Arrays.equals(readId, id)) {
+      if (!Arrays.equals(readId, lockId.asBytes())) {
         throw new PropStoreException("tried to unlock a lock that was not held by current thread",
             null);
       }
@@ -167,17 +167,30 @@ public class TransformLock {
     if (o == null || getClass() != o.getClass())
       return false;
     TransformLock that = (TransformLock) o;
-    return path.equals(that.path) && Arrays.equals(id, that.id);
+    return path.equals(that.path) && Arrays.equals(lockId.asBytes(), that.lockId.asBytes());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(path, Arrays.hashCode(id));
+    return Objects.hash(path, Arrays.hashCode(lockId.asBytes()));
   }
 
   @Override
   public String toString() {
-    return "TransformLock{ path='" + path + "', locked='" + locked + "' id=" + new String(id, UTF_8)
-        + "'}'";
+    return "TransformLock{ path='" + path + "', locked='" + locked + "' id=" + lockId + "'}'";
+  }
+
+  private static class LockId {
+    private final String id = UUID.randomUUID().toString();
+    private final byte[] idBytes = id.getBytes(UTF_8);
+
+    public byte[] asBytes() {
+      return idBytes;
+    }
+
+    @Override
+    public String toString() {
+      return "LockId{id='" + id + '}';
+    }
   }
 }

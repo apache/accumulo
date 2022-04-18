@@ -75,8 +75,8 @@ public class ConfigPropertyUpgrader implements KeywordExecutable {
 
   public void doUpgrade(final InstanceId instanceId, final ZooReaderWriter zrw) {
 
-    ReadyMonitor readyMonitor =
-        new ReadyMonitor(ConfigPropertyUpgrader.class.getSimpleName(), 30_000);
+    ReadyMonitor readyMonitor = new ReadyMonitor(ConfigPropertyUpgrader.class.getSimpleName(),
+        zrw.getSessionTimeout() * 2L);
     PropStoreWatcher nullWatcher = new PropStoreWatcher(readyMonitor);
 
     ConfigTransformer transformer = new ConfigTransformer(zrw, codec, nullWatcher);

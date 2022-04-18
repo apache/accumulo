@@ -40,6 +40,7 @@ import org.apache.accumulo.server.conf.util.ConfigTransformer;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -222,7 +223,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    *
    * @param propCacheKey
    *          the prop cache key
-   * @return The versioned properties or null if the properties do not exist for the id.
+   * @return The versioned properties.
    * @throws PropStoreException
    *           if the updates fails because of an underlying store exception
    */
@@ -237,8 +238,42 @@ public class ZooPropStore implements PropStore, PropChangeListener {
       return props;
     }
 
-    return new ConfigTransformer(zrw, codec, propStoreWatcher).transform(propCacheKey);
+    if (propCacheKey.getIdType() == PropCacheKey.IdType.SYSTEM) {
+      return new ConfigTransformer(zrw, codec, propStoreWatcher).transform(propCacheKey);
+    }
 
+    throw new PropStoreException(
+        "Invalid request for " + propCacheKey + ", the property node does not exist", null);
+  }
+
+  /**
+   * Convenience method for utilities that may not have a PropStore read the encoded properties
+   * directly from ZooKeeper. This allows utilities access when there is a ZooKeeper, may there may
+   * not be a full instance running. All exception handling is left to the caller.
+   *
+   * @param propCacheKey
+   *          the prop cache key
+   * @param watcher
+   *          a prop store watcher that will receive / handle ZooKeeper events.
+   * @param zrw
+   *          a ZooReaderWriter
+   * @return the versioned properties or null if the node does not exist.
+   * @throws IOException
+   *           if the underlying data from the ZooKeeper node cannot be decoded.
+   * @throws KeeperException
+   *           if a ZooKeeper exception occurs
+   * @throws InterruptedException
+   *           if the ZooKeeper read was interrupted.
+   */
+  public static @Nullable VersionedProperties readFromZk(final PropCacheKey propCacheKey,
+      final PropStoreWatcher watcher, final ZooReaderWriter zrw)
+      throws IOException, KeeperException, InterruptedException {
+    if (zrw.exists(propCacheKey.getPath())) {
+      Stat stat = new Stat();
+      byte[] bytes = zrw.getData(propCacheKey.getPath(), watcher, stat);
+      return codec.fromBytes(stat.getVersion(), bytes);
+    }
+    return null;
   }
 
   /**

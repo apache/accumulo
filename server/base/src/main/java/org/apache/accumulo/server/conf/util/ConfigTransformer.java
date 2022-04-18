@@ -43,6 +43,7 @@ import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStoreException;
 import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
+import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -112,18 +113,28 @@ public class ConfigTransformer {
   @VisibleForTesting
   VersionedProperties transform(final PropCacheKey propCacheKey, final TransformLock lock) {
 
+    log.info("checking for legacy property upgrade transform for {}", propCacheKey);
+
     VersionedProperties results;
     Instant start = Instant.now();
     try {
+
+      // check for node - just return if it exists.
+      results = ZooPropStore.readFromZk(propCacheKey, propStoreWatcher, zrw);
+      if (results != null) {
+        log.debug("Found existing node at {}. skipping legacy prop conversion", propCacheKey);
+        return results;
+      }
+
       while (!lock.isLocked()) {
         try {
           retry.useRetry();
           retry.waitForNextAttempt();
-          // look and return node if created.
-          if (zrw.exists(propCacheKey.getPath())) {
-            Stat stat = new Stat();
-            byte[] bytes = zrw.getData(propCacheKey.getPath(), propStoreWatcher, stat);
-            return codec.fromBytes(stat.getVersion(), bytes);
+          // look and return node if created while trying to lock.
+          log.trace("have lock - look for existing encoded node at: {}", propCacheKey.getPath());
+          results = ZooPropStore.readFromZk(propCacheKey, propStoreWatcher, zrw);
+          if (results != null) {
+            return results;
           }
           // still does not exist - try again.
           lock.lock();
@@ -136,6 +147,14 @@ public class ConfigTransformer {
       }
 
       Set<LegacyPropNode> upgradeNodes = readLegacyProps(propCacheKey);
+      if (upgradeNodes == null) {
+        log.warn("found existing node while reading legacy props {}, skipping conversion",
+            propCacheKey);
+        results = ZooPropStore.readFromZk(propCacheKey, propStoreWatcher, zrw);
+        if (results != null) {
+          return results;
+        }
+      }
 
       upgradeNodes = convertDeprecatedProps(propCacheKey, upgradeNodes);
 
@@ -187,7 +206,7 @@ public class ConfigTransformer {
     return renamedNodes;
   }
 
-  private Set<LegacyPropNode> readLegacyProps(PropCacheKey propCacheKey) {
+  private @Nullable Set<LegacyPropNode> readLegacyProps(PropCacheKey propCacheKey) {
 
     Set<LegacyPropNode> legacyProps = new TreeSet<>();
 
@@ -203,8 +222,10 @@ public class ConfigTransformer {
           continue;
         }
         if (PropCacheKey.PROP_NODE_NAME.equals(propName)) {
-          throw new PropStoreException(
-              "encoded property node already exists - legacy conversion aborting", null);
+          log.debug(
+              "encoded property node exists for {}. Legacy conversion ignoring conversion of this node",
+              propCacheKey);
+          return null;
         }
         log.trace("Adding: {} to list for legacy conversion", propName);
 
@@ -314,7 +335,7 @@ public class ConfigTransformer {
      *          the property name - if deprecated it will be stored as the updated name and the
      *          conversion logged.
      * @param data
-     *          the property vale
+     *          the property value
      * @param nodeVersion
      *          the ZooKeeper stat data version.
      */

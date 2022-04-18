@@ -26,6 +26,7 @@ import static org.easymock.EasyMock.reset;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
@@ -49,6 +50,7 @@ import org.apache.accumulo.server.conf.ZooBasedConfiguration;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.PropStoreException;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.CreateMode;
@@ -229,11 +231,7 @@ public class ZooBasedConfigIT {
     ZooPropStore.initSysProps(context, Map.of());
 
     PropCacheKey propKey = PropCacheKey.forTable(INSTANCE_ID, tidA);
-    ZooBasedConfiguration zbc = new SystemConfiguration(context, propKey, parent);
-
-    // node not created - returns empty map.
-    assertNotNull(zbc.getSnapshot());
-    assertEquals(Map.of(), zbc.getSnapshot());
+    assertThrows(PropStoreException.class, () -> new SystemConfiguration(context, propKey, parent));
   }
 
   @Test
