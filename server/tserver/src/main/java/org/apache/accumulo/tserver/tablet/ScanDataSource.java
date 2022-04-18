@@ -53,8 +53,6 @@ import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
-
 class ScanDataSource implements DataSource {
 
   private static final Logger log = LoggerFactory.getLogger(ScanDataSource.class);
@@ -165,8 +163,7 @@ class ScanDataSource implements DataSource {
     Collection<InterruptibleIterator> mapfiles =
         fileManager.openFiles(files, scanParams.isIsolated(), samplerConfig);
 
-    for (SortedKeyValueIterator<Key,Value> skvi : Iterables.concat(mapfiles, memIters))
-      ((InterruptibleIterator) skvi).setInterruptFlag(interruptFlag);
+    List.of(mapfiles, memIters).forEach(c -> c.forEach(ii -> ii.setInterruptFlag(interruptFlag)));
 
     List<SortedKeyValueIterator<Key,Value>> iters =
         new ArrayList<>(mapfiles.size() + memIters.size());

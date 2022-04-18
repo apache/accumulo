@@ -36,6 +36,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.conf.PropertyType.PortRange;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
@@ -477,10 +479,10 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
 
       // very important to obtain this before possibly recomputing object
       long uc = getUpdateCount();
+
       RefCount<T> rc = refref.get();
 
       if (rc == null || rc.count != uc) {
-
         T newObj = converter.apply(AccumuloConfiguration.this);
 
         // very important to record the update count that was obtained before recomputing.
@@ -607,5 +609,9 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    */
   public AccumuloConfiguration getParent() {
     return null;
+  }
+
+  public Stream<Entry<String,String>> stream() {
+    return StreamSupport.stream(this.spliterator(), false);
   }
 }

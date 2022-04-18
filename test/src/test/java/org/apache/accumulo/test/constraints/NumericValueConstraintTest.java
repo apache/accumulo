@@ -18,14 +18,13 @@
  */
 package org.apache.accumulo.test.constraints;
 
+import static com.google.common.collect.MoreCollectors.onlyElement;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
-
-import com.google.common.collect.Iterables;
 
 public class NumericValueConstraintTest {
 
@@ -42,7 +41,7 @@ public class NumericValueConstraintTest {
     badMutation.put("cf", "cq", "foo1234");
     badMutation.put("cf2", "cq2", "foo1234");
     assertEquals(NumericValueConstraint.NON_NUMERIC_VALUE,
-        Iterables.getOnlyElement(nvc.check(null, badMutation)).shortValue());
+        nvc.check(null, badMutation).stream().collect(onlyElement()).shortValue());
   }
 
   @Test

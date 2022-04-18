@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 /**
  * An {@link AccumuloConfiguration} which holds a flat copy of properties defined in another
@@ -46,12 +47,20 @@ public class ConfigurationCopy extends AccumuloConfiguration {
    * Creates a new configuration.
    *
    * @param config
+   *          configuration property stream to use for copying
+   */
+  public ConfigurationCopy(Stream<Entry<String,String>> config) {
+    this(config::iterator);
+  }
+
+  /**
+   * Creates a new configuration.
+   *
+   * @param config
    *          configuration property iterable to use for copying
    */
   public ConfigurationCopy(Iterable<Entry<String,String>> config) {
-    for (Entry<String,String> entry : config) {
-      copy.put(entry.getKey(), entry.getValue());
-    }
+    config.forEach(e -> copy.put(e.getKey(), e.getValue()));
   }
 
   /**
