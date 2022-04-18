@@ -183,8 +183,8 @@ public class Initialize implements KeywordExecutable {
       }
       var fileSystemInitializer = new FileSystemInitializer(initConfig, zoo, instanceId);
       var rootVol = fs.choose(chooserEnv, initConfig.getVolumeUris());
-      var rootPath =
-          new Path(rootVol + SEPARATOR + TABLE_DIR + SEPARATOR + RootTable.ID + rootTabletDirName);
+      var rootPath = new Path(rootVol + SEPARATOR + TABLE_DIR + SEPARATOR + RootTable.ID + SEPARATOR
+          + rootTabletDirName);
       fileSystemInitializer.initialize(fs, rootPath.toString(), rootTabletFileUri, context);
 
       checkSASL(initConfig);
