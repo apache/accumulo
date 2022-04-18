@@ -404,12 +404,6 @@ public class TabletServer extends AbstractServer {
         * TabletServer.TIME_BETWEEN_LOCATOR_CACHE_CLEARS);
   }
 
-  /**
-   * If the user has set {@link Property#TSERV_WRITE_THREADS_MAX} then return the semaphore that
-   * controls the number of write threads. If the user has not set the value then return
-   * Optional.empty(), which is essentially a no-op.
-   */
-
   final SessionManager sessionManager;
 
   private final AtomicLong totalQueuedMutationSize = new AtomicLong(0);
