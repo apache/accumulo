@@ -18,26 +18,30 @@
  */
 package org.apache.accumulo.server.conf;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.endsWith;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.reset;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+
+import java.util.Map;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.MockServerContext;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.codec.VersionedProperties;
+import org.apache.accumulo.server.conf.store.PropCacheKey;
+import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,30 +53,26 @@ public class ServerConfigurationFactoryTest {
   private static final InstanceId IID = InstanceId.of("iid");
 
   // use the same mock ZooCacheFactory and ZooCache for all tests
-  private static ZooCacheFactory zcf;
-  private static ZooCache zc;
-  private static SiteConfiguration siteConfig = SiteConfiguration.auto();
+  private static final SiteConfiguration siteConfig = SiteConfiguration.auto();
+  private PropStore propStore;
 
   @BeforeAll
-  public static void setUpClass() {
-    zcf = createMock(ZooCacheFactory.class);
-    zc = createMock(ZooCache.class);
-    expect(zcf.getNewZooCache(eq(ZK_HOST), eq(ZK_TIMEOUT))).andReturn(zc).anyTimes();
-    expect(zcf.getZooCache(ZK_HOST, ZK_TIMEOUT)).andReturn(zc).anyTimes();
-    replay(zcf);
-
-    expect(zc.getChildren(anyObject(String.class))).andReturn(null).anyTimes();
-    // CheckServerConfig looks at timeout
-    expect(zc.get(endsWith("timeout"))).andReturn(("" + ZK_TIMEOUT + "ms").getBytes(UTF_8));
-    replay(zc);
-  }
+  public static void setUpClass() {}
 
   private ServerContext context;
   private ServerConfigurationFactory scf;
 
   @BeforeEach
   public void setUp() {
+    propStore = createMock(ZooPropStore.class);
+    // expect(propStore.readFixed()).andReturn(Map.of()).anyTimes();
+
+    propStore.registerAsListener(anyObject(), anyObject());
+    expectLastCall().anyTimes();
+
     context = MockServerContext.getWithZK(IID, ZK_HOST, ZK_TIMEOUT);
+    expect(context.getPropStore()).andReturn(propStore).anyTimes();
+    expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
   }
 
   @AfterEach
@@ -81,9 +81,8 @@ public class ServerConfigurationFactoryTest {
   }
 
   private void ready() {
-    replay(context);
+    replay(context, propStore);
     scf = new ServerConfigurationFactory(context, siteConfig);
-    scf.setZooCacheFactory(zcf);
   }
 
   @Test
@@ -102,6 +101,8 @@ public class ServerConfigurationFactoryTest {
 
   @Test
   public void testGetConfiguration() {
+    expect(propStore.get(eq(PropCacheKey.forSystem(IID))))
+        .andReturn(new VersionedProperties(Map.of())).anyTimes();
     ready();
     AccumuloConfiguration c = scf.getSystemConfiguration();
     assertNotNull(c);
@@ -111,7 +112,24 @@ public class ServerConfigurationFactoryTest {
 
   @Test
   public void testGetNamespaceConfiguration() {
+    expect(propStore.get(eq(PropCacheKey.forSystem(IID))))
+        .andReturn(new VersionedProperties(Map.of())).anyTimes();
     ready();
+    reset(context);
+    PropStore propStore = createMock(ZooPropStore.class);
+    expect(propStore.get(eq(PropCacheKey.forSystem(IID))))
+        .andReturn(new VersionedProperties(Map.of())).anyTimes();
+    expect(propStore.get(eq(PropCacheKey.forNamespace(IID, NSID))))
+        .andReturn(new VersionedProperties(Map.of())).anyTimes();
+
+    propStore.registerAsListener(anyObject(), anyObject());
+    expectLastCall().anyTimes();
+
+    expect(context.getPropStore()).andReturn(propStore).anyTimes();
+    expect(context.getInstanceID()).andReturn(IID).anyTimes();
+    expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
+
+    replay(propStore, context);
     NamespaceConfiguration c = scf.getNamespaceConfiguration(NSID);
     assertEquals(NSID, c.getNamespaceId());
     assertSame(c, scf.getNamespaceConfiguration(NSID));

@@ -1508,20 +1508,22 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void testPerTableClasspathLegacyJar() throws Exception {
+    final String table = getUniqueNames(1)[0];
     File fooConstraintJar =
         initJar("/org/apache/accumulo/test/FooConstraint.jar", "FooContraint", rootPath);
-    verifyPerTableClasspath(fooConstraintJar);
+    verifyPerTableClasspath(table, fooConstraintJar);
   }
 
   @Test
   public void testPerTableClasspath_2_1_Jar() throws Exception {
+    final String table = getUniqueNames(1)[0];
     File fooConstraintJar =
         initJar("/org/apache/accumulo/test/FooConstraint_2_1.jar", "FooConstraint_2_1", rootPath);
-    verifyPerTableClasspath(fooConstraintJar);
+    verifyPerTableClasspath(table, fooConstraintJar);
   }
 
-  public void verifyPerTableClasspath(final File fooConstraintJar) throws IOException {
-    final String table = getUniqueNames(1)[0];
+  public void verifyPerTableClasspath(final String table, final File fooConstraintJar)
+      throws IOException {
 
     File fooFilterJar = initJar("/org/apache/accumulo/test/FooFilter.jar", "FooFilter", rootPath);
 
@@ -1532,7 +1534,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("config -t " + table + " -s " + Property.TABLE_CLASSLOADER_CONTEXT.getKey() + "=cx1",
         true);
 
-    sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
+    sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
 
     // We can't use the setiter command as Filter implements OptionDescriber which
     // forces us to enter more input that I don't know how to input
@@ -1540,9 +1542,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("config -t " + table + " -s " + Property.TABLE_ITERATOR_PREFIX.getKey()
         + "scan.foo=10,org.apache.accumulo.test.FooFilter");
 
+    sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
+
     ts.exec("insert foo f q v", true);
 
-    sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+    sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
 
     ts.exec("scan -np", true, "foo", false);
 
@@ -1637,6 +1641,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("namespaces", true, ns_2, false);
     ts.exec("tables", true, ns_2 + "." + tableName, false);
 
+    Thread.sleep(250);
+
     // put constraints on a namespace
     ts.exec("constraint -ns " + ns_4
         + " -a org.apache.accumulo.test.constraints.NumericValueConstraint", true);
@@ -1647,7 +1653,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("constraint -l", true, "NumericValueConstraint", true);
     ts.exec("insert r cf cq abc", false);
     ts.exec("constraint -ns " + ns_4 + " -d 1");
-    ts.exec("sleep 1");
+    ts.exec("sleep 3");
     ts.exec("insert r cf cq abc", true);
   }
 

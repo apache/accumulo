@@ -20,7 +20,6 @@ package org.apache.accumulo.manager.tableOps.tableImport;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.Namespaces;
@@ -33,6 +32,7 @@ import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
+import org.apache.accumulo.server.conf.store.PropStoreException;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.hadoop.fs.FileSystem;
@@ -88,13 +88,15 @@ class ImportPopulateZookeeper extends ManagerRepo {
     }
 
     VolumeManager volMan = env.getVolumeManager();
-    for (Entry<String,String> entry : getExportedProps(volMan).entrySet())
-      if (!TablePropUtil.setTableProperty(env.getContext(), tableInfo.tableId, entry.getKey(),
-          entry.getValue())) {
-        throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
-            tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-            "Invalid table property " + entry.getKey());
-      }
+
+    try {
+      TablePropUtil.factory().setProperties(env.getContext(), tableInfo.tableId,
+          getExportedProps(volMan));
+    } catch (PropStoreException ex) {
+      throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
+          tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+          "failed to set table properties");
+    }
 
     return new CreateImportDir(tableInfo);
   }

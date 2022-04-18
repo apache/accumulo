@@ -66,6 +66,16 @@ public class ZooReader {
     return RETRY_FACTORY;
   }
 
+  /**
+   * Returns the requested ZooKeeper client session timeout. The client may negotiate a different
+   * value and the actual negotiated value may change after a re-connect.
+   *
+   * @return the timeout in milliseconds
+   */
+  public int getSessionTimeout() {
+    return timeout;
+  }
+
   public byte[] getData(String zPath) throws KeeperException, InterruptedException {
     return retryLoop(zk -> zk.getData(zPath, null, null));
   }
@@ -77,6 +87,11 @@ public class ZooReader {
   public byte[] getData(String zPath, Watcher watcher)
       throws KeeperException, InterruptedException {
     return retryLoop(zk -> zk.getData(zPath, requireNonNull(watcher), null));
+  }
+
+  public byte[] getData(String zPath, Watcher watcher, Stat stat)
+      throws KeeperException, InterruptedException {
+    return retryLoop(zk -> zk.getData(zPath, requireNonNull(watcher), requireNonNull(stat)));
   }
 
   public Stat getStatus(String zPath) throws KeeperException, InterruptedException {
