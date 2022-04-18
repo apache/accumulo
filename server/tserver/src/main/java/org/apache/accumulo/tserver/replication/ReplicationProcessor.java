@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.tserver.replication;
 
+import static com.google.common.collect.MoreCollectors.onlyElement;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
@@ -44,7 +45,6 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
@@ -177,6 +177,6 @@ public class ReplicationProcessor implements Processor {
     Scanner s = ReplicationTable.getScanner(context);
     s.setRange(Range.exact(file));
     s.fetchColumn(WorkSection.NAME, target.toText());
-    return Status.parseFrom(Iterables.getOnlyElement(s).getValue().get());
+    return Status.parseFrom(s.stream().collect(onlyElement()).getValue().get());
   }
 }

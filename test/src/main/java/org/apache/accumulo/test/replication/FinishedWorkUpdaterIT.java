@@ -45,8 +45,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Iterables;
-
 @Disabled("Replication ITs are not stable and not currently maintained")
 @Deprecated
 public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
@@ -90,7 +88,7 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
     try (Scanner s = ReplicationTable.getScanner(client)) {
       s.setRange(Range.exact(file));
       StatusSection.limit(s);
-      Entry<Key,Value> entry = Iterables.getOnlyElement(s);
+      Entry<Key,Value> entry = getOnlyElement(s);
 
       assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
       assertEquals(entry.getKey().getColumnQualifier().toString(),
@@ -135,7 +133,7 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
     try (Scanner s = ReplicationTable.getScanner(client)) {
       s.setRange(Range.exact(file));
       StatusSection.limit(s);
-      Entry<Key,Value> entry = Iterables.getOnlyElement(s);
+      Entry<Key,Value> entry = getOnlyElement(s);
 
       assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
       assertEquals(entry.getKey().getColumnQualifier().toString(),
@@ -180,7 +178,7 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
     try (Scanner s = ReplicationTable.getScanner(client)) {
       s.setRange(Range.exact(file));
       StatusSection.limit(s);
-      Entry<Key,Value> entry = Iterables.getOnlyElement(s);
+      Entry<Key,Value> entry = getOnlyElement(s);
 
       assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
       assertEquals(entry.getKey().getColumnQualifier().toString(),

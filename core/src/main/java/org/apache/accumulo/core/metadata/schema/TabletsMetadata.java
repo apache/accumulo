@@ -80,7 +80,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
 /**
@@ -184,8 +183,9 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         for (AutoCloseable closable : closables) {
           closable.close();
         }
-      }, Iterables.filter(Iterables.concat(iterables),
-          tabletMetadata -> extentsToFetch.contains(tabletMetadata.getExtent())));
+      }, () -> iterables.stream().flatMap(i -> StreamSupport.stream(i.spliterator(), false))
+          .filter(tabletMetadata -> extentsToFetch.contains(tabletMetadata.getExtent()))
+          .iterator());
 
     }
 

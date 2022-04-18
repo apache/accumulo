@@ -110,7 +110,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.Suppliers;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -929,8 +928,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   @Override
   public AccumuloConfiguration getSiteConfiguration() {
-    return new ConfigurationCopy(
-        Iterables.concat(DefaultConfiguration.getInstance(), config.getSiteConfig().entrySet()));
+    return new ConfigurationCopy(Stream.concat(DefaultConfiguration.getInstance().stream(),
+        config.getSiteConfig().entrySet().stream()));
   }
 
   @Override

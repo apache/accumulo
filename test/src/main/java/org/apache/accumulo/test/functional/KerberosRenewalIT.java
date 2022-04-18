@@ -64,8 +64,6 @@ import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
-
 /**
  * MAC test which uses {@link MiniKdc} to simulate ta secure environment. Can be used as a sanity
  * check for Kerberos/SASL testing.
@@ -197,7 +195,7 @@ public class KerberosRenewalIT extends AccumuloITBase {
     }
     client.tableOperations().compact(table, new CompactionConfig().setFlush(true).setWait(true));
     try (Scanner s = client.createScanner(table, Authorizations.EMPTY)) {
-      Entry<Key,Value> entry = Iterables.getOnlyElement(s);
+      Entry<Key,Value> entry = getOnlyElement(s);
       assertEquals(0,
           new Key("a", "b", "c").compareTo(entry.getKey(), PartialKey.ROW_COLFAM_COLQUAL),
           "Did not find the expected key");
