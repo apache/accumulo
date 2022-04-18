@@ -33,7 +33,7 @@ public class PrintableTable {
 
   @Override
   public String toString() {
-    int widestRow = Arrays.asList(rows).stream().mapToInt(String::length).max().getAsInt();
+    int widestRow = Arrays.stream(rows).mapToInt(String::length).max().getAsInt();
 
     StringBuilder sb = new StringBuilder();
 

@@ -68,17 +68,15 @@ public class PropertyTypeTest extends WithTestNames {
   public void testFullCoverage() {
     // This test checks the remainder of the methods in this class to ensure each property type has
     // a corresponding test
-    Stream<String> types = Arrays.stream(PropertyType.values()).map(Enum<PropertyType>::name);
 
     List<String> typesTested = Arrays.stream(this.getClass().getMethods()).map(Method::getName)
         .filter(m -> m.startsWith("testType")).map(m -> m.substring(8))
         .collect(Collectors.toList());
 
-    types = types.map(t -> {
-      assertTrue(typesTested.contains(t),
-          PropertyType.class.getSimpleName() + "." + t + " does not have a test.");
-      return t;
-    });
+    Stream<String> types = Arrays.stream(PropertyType.values()).map(Enum<PropertyType>::name)
+        .peek(t -> assertTrue(typesTested.contains(t),
+            PropertyType.class.getSimpleName() + "." + t + " does not have a test."));
+
     assertEquals(types.count(), typesTested.size());
   }
 

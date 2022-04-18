@@ -89,8 +89,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Lists;
-
 public class SummaryIT extends SharedMiniClusterBase {
 
   @BeforeAll
@@ -136,7 +134,7 @@ public class SummaryIT extends SharedMiniClusterBase {
   private void addSplits(final String table, AccumuloClient c, String... splits)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     c.tableOperations().addSplits(table,
-        new TreeSet<>(Lists.transform(Arrays.asList(splits), Text::new)));
+        Arrays.stream(splits).map(Text::new).collect(Collectors.toCollection(TreeSet::new)));
   }
 
   @Test

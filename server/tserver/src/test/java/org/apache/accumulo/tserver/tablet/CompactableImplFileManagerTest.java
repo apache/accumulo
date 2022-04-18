@@ -451,7 +451,8 @@ public class CompactableImplFileManagerTest {
   }
 
   static Set<StoredTabletFile> newFiles(String... strings) {
-    return Arrays.asList(strings).stream().map(s -> newFile(s)).collect(Collectors.toSet());
+    return Arrays.stream(strings).map(CompactableImplFileManagerTest::newFile)
+        .collect(Collectors.toSet());
   }
 
   private static class TestCompactionJob implements CompactionJob {
