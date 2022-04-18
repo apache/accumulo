@@ -145,7 +145,6 @@ public class ZooPropStore implements PropStore, PropChangeListener {
       if (zrw.exists(propCacheKey.getPath())) {
         return true;
       }
-
     } catch (KeeperException ex) {
       // ignore Keeper exception on check.
     } catch (InterruptedException ex) {
@@ -183,12 +182,13 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    */
   public static void createInitialProps(final ServerContext context,
       final PropCacheKey propCacheKey, Map<String,String> props) {
-
+    log.trace("createInitialProps() called for {}", propCacheKey);
     try {
       ZooReaderWriter zrw = context.getZooReaderWriter();
       if (zrw.exists(propCacheKey.getPath())) {
         return;
       }
+      log.debug("Creating initial property node for {}", propCacheKey);
       VersionedProperties vProps = new VersionedProperties(props);
       zrw.putPersistentData(propCacheKey.getPath(), codec.toBytes(vProps),
           ZooUtil.NodeExistsPolicy.FAIL);

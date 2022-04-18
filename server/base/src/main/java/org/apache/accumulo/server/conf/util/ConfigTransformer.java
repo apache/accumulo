@@ -122,7 +122,10 @@ public class ConfigTransformer {
       // check for node - just return if it exists.
       results = ZooPropStore.readFromZk(propCacheKey, propStoreWatcher, zrw);
       if (results != null) {
-        log.debug("Found existing node at {}. skipping legacy prop conversion", propCacheKey);
+        log.debug(
+            "Found existing node at {}. skipping legacy prop conversion - version: {}, timestamp: {}",
+            propCacheKey, results.getDataVersion(), results.getTimestamp());
+        var keyBasePath = propCacheKey.getBasePath();
         return results;
       }
 
@@ -134,6 +137,9 @@ public class ConfigTransformer {
           log.trace("have lock - look for existing encoded node at: {}", propCacheKey.getPath());
           results = ZooPropStore.readFromZk(propCacheKey, propStoreWatcher, zrw);
           if (results != null) {
+            log.debug(
+                "Found existing node after locked at {}. skipping legacy prop conversion - version: {}, timestamp: {}",
+                propCacheKey, results.getDataVersion(), results.getTimestamp());
             return results;
           }
           // still does not exist - try again.
@@ -148,7 +154,7 @@ public class ConfigTransformer {
 
       Set<LegacyPropNode> upgradeNodes = readLegacyProps(propCacheKey);
       if (upgradeNodes == null) {
-        log.warn("found existing node while reading legacy props {}, skipping conversion",
+        log.info("Found existing node after reading legacy props {}, skipping conversion",
             propCacheKey);
         results = ZooPropStore.readFromZk(propCacheKey, propStoreWatcher, zrw);
         if (results != null) {

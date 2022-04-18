@@ -52,6 +52,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
@@ -145,11 +146,16 @@ public class Upgrader9to10 implements Upgrader {
    */
   private void setMetaTableProps(ServerContext context) {
     try {
-      TablePropUtil.factory().setProperties(context, RootTable.ID, Map.of(
-          Property.TABLE_COMPACTION_DISPATCHER.getKey(), SimpleCompactionDispatcher.class.getName(),
-          Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "root",
-          Property.TABLE_COMPACTION_DISPATCHER.getKey(), SimpleCompactionDispatcher.class.getName(),
-          Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "meta"));
+      // root compaction props
+      TablePropUtil.factory().setProperties(context, RootTable.ID,
+          Map.of(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
+              SimpleCompactionDispatcher.class.getName(),
+              Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "root"));
+      // metadata compaction props
+      TablePropUtil.factory().setProperties(context, MetadataTable.ID,
+          Map.of(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
+              SimpleCompactionDispatcher.class.getName(),
+              Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "meta"));
     } catch (PropStoreException e) {
       throw new RuntimeException("Unable to set system table properties", e);
     }
