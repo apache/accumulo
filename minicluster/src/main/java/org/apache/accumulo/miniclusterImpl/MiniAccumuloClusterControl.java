@@ -38,6 +38,7 @@ import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
+import org.apache.accumulo.core.rpc.ThriftClientTypes;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -134,8 +135,8 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     if (coordinatorHost.isEmpty()) {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }
-    CompactionCoordinatorService.Client client = ThriftUtil.getClient(
-        new CompactionCoordinatorService.Client.Factory(), coordinatorHost.get(), context);
+    CompactionCoordinatorService.Client client =
+        ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.get(), context);
     try {
       return client.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
     } finally {

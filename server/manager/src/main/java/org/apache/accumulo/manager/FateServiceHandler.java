@@ -96,7 +96,7 @@ import org.slf4j.Logger;
 
 class FateServiceHandler implements FateService.Iface {
 
-  protected final Manager manager;
+  private final Manager manager;
   protected static final Logger log = Manager.log;
 
   public FateServiceHandler(Manager manager) {
