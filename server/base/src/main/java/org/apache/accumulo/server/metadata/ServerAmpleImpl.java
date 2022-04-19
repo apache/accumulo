@@ -187,8 +187,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
         throw new RuntimeException(e);
       }
       scanner.setRange(range);
-      return StreamSupport.stream(scanner.spliterator(), false)
-          .filter(entry -> entry.getValue().equals(SkewedKeyValue.NAME))
+      return scanner.stream().filter(entry -> entry.getValue().equals(SkewedKeyValue.NAME))
           .map(entry -> DeletesSection.decodeRow(entry.getKey().getRow().toString())).iterator();
     } else {
       throw new IllegalArgumentException();
@@ -252,7 +251,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
     scanner.setRange(ExternalCompactionSection.getRange());
     int pLen = ExternalCompactionSection.getRowPrefix().length();
-    return StreamSupport.stream(scanner.spliterator(), false)
+    return scanner.stream()
         .map(e -> ExternalCompactionFinalState.fromJson(
             ExternalCompactionId.of(e.getKey().getRowData().toString().substring(pLen)),
             e.getValue().toString()));

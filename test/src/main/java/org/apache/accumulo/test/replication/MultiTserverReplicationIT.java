@@ -113,7 +113,7 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
       assertEquals(1, context.getManagerLocations().size());
 
       // Get the manager thrift service addr
-      String managerAddr = Iterables.getOnlyElement(context.getManagerLocations());
+      String managerAddr = getOnlyElement(context.getManagerLocations());
 
       // Get the manager replication coordinator addr
       String replCoordAddr =

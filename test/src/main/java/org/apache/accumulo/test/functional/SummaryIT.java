@@ -42,7 +42,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.LongSummaryStatistics;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -50,8 +49,6 @@ import java.util.function.IntPredicate;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -92,7 +89,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 public class SummaryIT extends SharedMiniClusterBase {
@@ -110,8 +106,7 @@ public class SummaryIT extends SharedMiniClusterBase {
   private LongSummaryStatistics getTimestampStats(final String table, AccumuloClient c)
       throws TableNotFoundException {
     try (Scanner scanner = c.createScanner(table, Authorizations.EMPTY)) {
-      Stream<Entry<Key,Value>> stream = StreamSupport.stream(scanner.spliterator(), false);
-      return stream.mapToLong(e -> e.getKey().getTimestamp()).summaryStatistics();
+      return scanner.stream().mapToLong(e -> e.getKey().getTimestamp()).summaryStatistics();
     }
   }
 
@@ -119,14 +114,13 @@ public class SummaryIT extends SharedMiniClusterBase {
       String startRow, String endRow) throws TableNotFoundException {
     try (Scanner scanner = c.createScanner(table, Authorizations.EMPTY)) {
       scanner.setRange(new Range(startRow, false, endRow, true));
-      Stream<Entry<Key,Value>> stream = StreamSupport.stream(scanner.spliterator(), false);
-      return stream.mapToLong(e -> e.getKey().getTimestamp()).summaryStatistics();
+      return scanner.stream().mapToLong(e -> e.getKey().getTimestamp()).summaryStatistics();
     }
   }
 
   private void checkSummaries(Collection<Summary> summaries, SummarizerConfiguration sc, int total,
       int missing, int extra, Object... kvs) {
-    Summary summary = Iterables.getOnlyElement(summaries);
+    Summary summary = getOnlyElement(summaries);
     assertEquals(total, summary.getFileStatistics().getTotal(), "total wrong");
     assertEquals(missing, summary.getFileStatistics().getMissing(), "missing wrong");
     assertEquals(extra, summary.getFileStatistics().getExtra(), "extra wrong");
@@ -222,7 +216,7 @@ public class SummaryIT extends SharedMiniClusterBase {
 
       summaries = c.tableOperations().summaries(table).startRow(String.format("r%09x", 75_000))
           .endRow(String.format("r%09x", 80_000)).retrieve();
-      Summary summary = Iterables.getOnlyElement(summaries);
+      Summary summary = getOnlyElement(summaries);
       assertEquals(1, summary.getFileStatistics().getTotal());
       assertEquals(1, summary.getFileStatistics().getExtra());
       long total = summary.getStatistics().get(TOTAL_STAT);
@@ -558,11 +552,11 @@ public class SummaryIT extends SharedMiniClusterBase {
       c.tableOperations().compact(table, compactConfig);
 
       try (Scanner scanner = c.createScanner(table, Authorizations.EMPTY)) {
-        Stream<Entry<Key,Value>> stream = StreamSupport.stream(scanner.spliterator(), false);
-        Map<String,Long> counts = stream.map(e -> e.getKey().getRowData().toString()) // convert to
-                                                                                      // row
-            .map(r -> r.replaceAll("[0-9]+", "")) // strip numbers off row
-            .collect(groupingBy(identity(), counting())); // count different row types
+        // convert to row
+        Map<String,
+            Long> counts = scanner.stream().map(e -> e.getKey().getRowData().toString())
+                .map(r -> r.replaceAll("[0-9]+", "")) // strip numbers off row
+                .collect(groupingBy(identity(), counting())); // count different row types
         assertEquals(1L, (long) counts.getOrDefault("foo", 0L));
         assertEquals(2L, (long) counts.getOrDefault("bar", 0L));
         assertEquals(2, counts.size());
@@ -578,11 +572,11 @@ public class SummaryIT extends SharedMiniClusterBase {
       c.tableOperations().compact(table, compactConfig);
 
       try (Scanner scanner = c.createScanner(table, Authorizations.EMPTY)) {
-        Stream<Entry<Key,Value>> stream = StreamSupport.stream(scanner.spliterator(), false);
-        Map<String,Long> counts = stream.map(e -> e.getKey().getRowData().toString()) // convert to
-                                                                                      // row
-            .map(r -> r.replaceAll("[0-9]+", "")) // strip numbers off row
-            .collect(groupingBy(identity(), counting())); // count different row types
+        // convert to row
+        Map<String,
+            Long> counts = scanner.stream().map(e -> e.getKey().getRowData().toString())
+                .map(r -> r.replaceAll("[0-9]+", "")) // strip numbers off row
+                .collect(groupingBy(identity(), counting())); // count different row types
         assertEquals(0L, (long) counts.getOrDefault("foo", 0L));
         assertEquals(2L, (long) counts.getOrDefault("bar", 0L));
         assertEquals(1, counts.size());

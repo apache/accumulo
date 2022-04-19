@@ -77,8 +77,6 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
-
 public class InMemoryMap {
   private SimpleMap map = null;
 
@@ -810,8 +808,8 @@ public class InMemoryMap {
   }
 
   private AccumuloConfiguration createSampleConfig(AccumuloConfiguration siteConf) {
-    ConfigurationCopy confCopy = new ConfigurationCopy(Iterables.filter(siteConf,
-        input -> !input.getKey().startsWith(Property.TABLE_SAMPLER.getKey())));
+    ConfigurationCopy confCopy = new ConfigurationCopy(siteConf.stream()
+        .filter(input -> !input.getKey().startsWith(Property.TABLE_SAMPLER.getKey())));
 
     for (Entry<String,String> entry : samplerRef.get().getFirst().toTablePropertiesMap()
         .entrySet()) {

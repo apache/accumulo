@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -561,8 +560,7 @@ public class Upgrader9to10 implements Upgrader {
     Range range = DeletesSection.getRange();
     Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY);
     scanner.setRange(range);
-    return StreamSupport.stream(scanner.spliterator(), false)
-        .filter(entry -> !entry.getValue().equals(UPGRADED))
+    return scanner.stream().filter(entry -> !entry.getValue().equals(UPGRADED))
         .map(entry -> entry.getKey().getRow().toString().substring(OLD_DELETE_PREFIX.length()))
         .iterator();
   }

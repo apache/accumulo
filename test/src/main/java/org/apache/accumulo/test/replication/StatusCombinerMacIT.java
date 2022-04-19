@@ -53,8 +53,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Iterables;
-
 @Disabled("Replication ITs are not stable and not currently maintained")
 @Deprecated
 public class StatusCombinerMacIT extends SharedMiniClusterBase {
@@ -120,7 +118,7 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
 
       Entry<Key,Value> entry;
       try (Scanner s = ReplicationTable.getScanner(client)) {
-        entry = Iterables.getOnlyElement(s);
+        entry = getOnlyElement(s);
         assertEquals(StatusUtil.fileCreatedValue(createTime), entry.getValue());
 
         bw = ReplicationTable.getBatchWriter(client);
@@ -136,7 +134,7 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
       }
 
       try (Scanner s = ReplicationTable.getScanner(client)) {
-        entry = Iterables.getOnlyElement(s);
+        entry = getOnlyElement(s);
         Status stat = Status.parseFrom(entry.getValue().get());
         assertEquals(Long.MAX_VALUE, stat.getBegin());
       }

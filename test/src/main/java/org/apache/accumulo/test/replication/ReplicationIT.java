@@ -42,6 +42,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -109,7 +110,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -255,7 +255,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       boolean foundLocalityGroupDef1 = false;
       boolean foundLocalityGroupDef2 = false;
       boolean foundFormatter = false;
-      Joiner j = Joiner.on(",");
+      var joiner = Collectors.joining(",");
       for (Entry<String,String> p : tops.getProperties(ReplicationTable.NAME)) {
         String key = p.getKey();
         String val = p.getValue();
@@ -265,20 +265,20 @@ public class ReplicationIT extends ConfigurableMacBase {
           // look for formatter
           foundFormatter = true;
         } else if (key.equals(Property.TABLE_LOCALITY_GROUPS.getKey())
-            && val.equals(j.join(ReplicationTable.LOCALITY_GROUPS.keySet()))) {
+            && val.equals(ReplicationTable.LOCALITY_GROUPS.keySet().stream().collect(joiner))) {
           // look for locality groups enabled
           foundLocalityGroups = true;
         } else if (key.startsWith(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey())) {
           // look for locality group column family definitions
           if (key.equals(
               Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + ReplicationTable.STATUS_LG_NAME)
-              && val.equals(j
-                  .join(Iterables.transform(ReplicationTable.STATUS_LG_COLFAMS, Text::toString)))) {
+              && val.equals(ReplicationTable.STATUS_LG_COLFAMS.stream().map(Text::toString)
+                  .collect(joiner))) {
             foundLocalityGroupDef1 = true;
           } else if (key
               .equals(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + ReplicationTable.WORK_LG_NAME)
               && val.equals(
-                  j.join(Iterables.transform(ReplicationTable.WORK_LG_COLFAMS, Text::toString)))) {
+                  ReplicationTable.WORK_LG_COLFAMS.stream().map(Text::toString).collect(joiner))) {
             foundLocalityGroupDef2 = true;
           }
         }
@@ -667,7 +667,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
         s.setRange(ReplicationSection.getRange());
 
-        actual = Status.parseFrom(Iterables.getOnlyElement(s).getValue().get());
+        actual = Status.parseFrom(getOnlyElement(s).getValue().get());
         assertEquals(stat1, actual);
 
         try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
@@ -681,7 +681,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
         s.setRange(ReplicationSection.getRange());
 
-        actual = Status.parseFrom(Iterables.getOnlyElement(s).getValue().get());
+        actual = Status.parseFrom(getOnlyElement(s).getValue().get());
         Status expected = Status.newBuilder().setBegin(0).setEnd(0).setClosed(true)
             .setInfiniteEnd(true).setCreatedTime(100).build();
 
@@ -921,7 +921,7 @@ public class ReplicationIT extends ConfigurableMacBase {
         // This record will move from new to new with infinite length because of the minc (flush)
         while (entry == null && attempts > 0) {
           try {
-            entry = Iterables.getOnlyElement(s);
+            entry = getOnlyElement(s);
             Status actual = Status.parseFrom(entry.getValue().get());
             if (actual.getInfiniteEnd() != expectedStatus.getInfiniteEnd()) {
               entry = null;
@@ -1084,7 +1084,7 @@ public class ReplicationIT extends ConfigurableMacBase {
         try (Scanner s = ReplicationTable.getScanner(client)) {
           WorkSection.limit(s);
           try {
-            Entry<Key,Value> e = Iterables.getOnlyElement(s);
+            Entry<Key,Value> e = getOnlyElement(s);
             Text expectedColqual = new ReplicationTarget("cluster1", "4", tableId).toText();
             assertEquals(expectedColqual, e.getKey().getColumnQualifier());
             notFound = false;
@@ -1365,7 +1365,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       for (int i = 0; i < 10 && notFound; i++) {
         try (Scanner s = ReplicationTable.getScanner(client)) {
           WorkSection.limit(s);
-          Entry<Key,Value> e = Iterables.getOnlyElement(s);
+          Entry<Key,Value> e = getOnlyElement(s);
           log.info("Found entry: {}", e.getKey().toStringNoTruncate());
           Text expectedColqual = new ReplicationTarget("cluster1", "4", tableId).toText();
           assertEquals(expectedColqual, e.getKey().getColumnQualifier());

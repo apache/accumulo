@@ -100,8 +100,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
-
 public class ConditionalWriterIT extends SharedMiniClusterBase {
 
   private static final Logger log = LoggerFactory.getLogger(ConditionalWriterIT.class);
@@ -207,7 +205,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         // ensure rejected mutations did not write
         scanner.fetchColumn("name", "last");
         scanner.setRange(new Range("99006"));
-        Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
+        Entry<Key,Value> entry = getOnlyElement(scanner);
         assertEquals("Doe", entry.getValue().toString());
 
         // test w/ two conditions that are met
@@ -218,7 +216,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         cm6.put("tx", "seq", "3");
         assertEquals(Status.ACCEPTED, cw.write(cm6).getStatus());
 
-        entry = Iterables.getOnlyElement(scanner);
+        entry = getOnlyElement(scanner);
         assertEquals("DOE", entry.getValue().toString());
 
         // test a conditional mutation that deletes
@@ -235,7 +233,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         assertEquals(Status.ACCEPTED, cw.write(cm0).getStatus());
         assertEquals(Status.REJECTED, cw.write(cm0).getStatus());
 
-        entry = Iterables.getOnlyElement(scanner);
+        entry = getOnlyElement(scanner);
         assertEquals("doe", entry.getValue().toString());
       }
     }
@@ -283,7 +281,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
           scanner.setRange(new Range("99006"));
           // TODO verify all columns
           scanner.fetchColumn("tx", "seq");
-          Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
+          Entry<Key,Value> entry = getOnlyElement(scanner);
           assertEquals("1", entry.getValue().toString());
           long ts = entry.getKey().getTimestamp();
 
@@ -328,7 +326,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
           assertEquals(Status.REJECTED, cw.write(cm5).getStatus());
 
           // ensure no updates were made
-          entry = Iterables.getOnlyElement(scanner);
+          entry = getOnlyElement(scanner);
           assertEquals("1", entry.getValue().toString());
 
           // set all columns correctly
@@ -339,7 +337,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
           cm6.put("tx", "seq", cva, "2");
           assertEquals(Status.ACCEPTED, cw.write(cm6).getStatus());
 
-          entry = Iterables.getOnlyElement(scanner);
+          entry = getOnlyElement(scanner);
           assertEquals("2", entry.getValue().toString());
         }
       }
@@ -534,7 +532,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         scanner.setRange(new Range("ACCUMULO-1000"));
         scanner.fetchColumn("count", "comments");
 
-        Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
+        Entry<Key,Value> entry = getOnlyElement(scanner);
         assertEquals("3", entry.getValue().toString());
 
         try (ConditionalWriter cw = client.createConditionalWriter(tableName)) {
@@ -543,21 +541,21 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
               new Condition("count", "comments").setValue("3"));
           cm0.put("count", "comments", "1");
           assertEquals(Status.REJECTED, cw.write(cm0).getStatus());
-          entry = Iterables.getOnlyElement(scanner);
+          entry = getOnlyElement(scanner);
           assertEquals("3", entry.getValue().toString());
 
           ConditionalMutation cm1 = new ConditionalMutation("ACCUMULO-1000",
               new Condition("count", "comments").setIterators(iterConfig).setValue("3"));
           cm1.put("count", "comments", "1");
           assertEquals(Status.ACCEPTED, cw.write(cm1).getStatus());
-          entry = Iterables.getOnlyElement(scanner);
+          entry = getOnlyElement(scanner);
           assertEquals("4", entry.getValue().toString());
 
           ConditionalMutation cm2 = new ConditionalMutation("ACCUMULO-1000",
               new Condition("count", "comments").setValue("4"));
           cm2.put("count", "comments", "1");
           assertEquals(Status.REJECTED, cw.write(cm1).getStatus());
-          entry = Iterables.getOnlyElement(scanner);
+          entry = getOnlyElement(scanner);
           assertEquals("4", entry.getValue().toString());
 
           // run test with multiple iterators passed in same batch and condition with two iterators
@@ -680,7 +678,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         scanner.setRange(new Range("ACCUMULO-1000"));
         scanner.fetchColumn("count", "comments");
 
-        Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
+        Entry<Key,Value> entry = getOnlyElement(scanner);
         assertEquals("9", entry.getValue().toString());
 
         ConditionalMutation cm7 = new ConditionalMutation("ACCUMULO-1000",
@@ -688,7 +686,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         cm7.put("count", "comments", "8");
         assertEquals(Status.ACCEPTED, cw.write(cm7).getStatus());
 
-        entry = Iterables.getOnlyElement(scanner);
+        entry = getOnlyElement(scanner);
         assertEquals("10", entry.getValue().toString());
 
         ConditionalMutation cm8 = new ConditionalMutation("ACCUMULO-1000",
@@ -696,7 +694,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         cm8.put("count", "comments", "9");
         assertEquals(Status.ACCEPTED, cw.write(cm8).getStatus());
 
-        entry = Iterables.getOnlyElement(scanner);
+        entry = getOnlyElement(scanner);
         assertEquals("11", entry.getValue().toString());
 
         ConditionalMutation cm3 = new ConditionalMutation("ACCUMULO-1000",
@@ -785,7 +783,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
         for (String row : new String[] {"99006", "59056", "19059"}) {
           scanner.setRange(new Range(row));
-          Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
+          Entry<Key,Value> entry = getOnlyElement(scanner);
           assertEquals("1", entry.getValue().toString());
         }
 
@@ -833,17 +831,17 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
         for (String row : new String[] {"59056", "19059"}) {
           scanner.setRange(new Range(row));
-          Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
+          Entry<Key,Value> entry = getOnlyElement(scanner);
           assertEquals("1", entry.getValue().toString());
         }
 
         scanner.setRange(new Range("99006"));
-        Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
+        Entry<Key,Value> entry = getOnlyElement(scanner);
         assertEquals("2", entry.getValue().toString());
 
         scanner.clearColumns();
         scanner.fetchColumn("name", "last");
-        entry = Iterables.getOnlyElement(scanner);
+        entry = getOnlyElement(scanner);
         assertEquals("Doe", entry.getValue().toString());
       }
     }
@@ -1006,7 +1004,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         assertEquals(4, rows.size());
 
         scanner.fetchColumn("tx", "seq");
-        Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
+        Entry<Key,Value> entry = getOnlyElement(scanner);
         assertEquals("1", entry.getValue().toString());
       }
     }

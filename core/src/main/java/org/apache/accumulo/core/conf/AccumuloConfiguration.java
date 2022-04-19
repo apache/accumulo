@@ -36,6 +36,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.conf.PropertyType.PortRange;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
@@ -611,4 +613,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * this configuration.
    */
   public void invalidateCache() {}
+
+  public Stream<Entry<String,String>> stream() {
+    return StreamSupport.stream(this.spliterator(), false);
+  }
 }

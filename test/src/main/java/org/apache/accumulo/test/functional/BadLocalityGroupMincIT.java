@@ -36,8 +36,6 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Iterables;
-
 public class BadLocalityGroupMincIT extends AccumuloClusterHarness {
 
   @Override
@@ -77,7 +75,7 @@ public class BadLocalityGroupMincIT extends AccumuloClusterHarness {
       FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 1, 1);
 
       Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
-      Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
+      Entry<Key,Value> entry = getOnlyElement(scanner);
 
       assertEquals("r1", entry.getKey().getRowData().toString());
       assertEquals("acf", entry.getKey().getColumnFamilyData().toString());
