@@ -45,6 +45,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TColumn;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.metadata.MetadataServicer;
+import org.apache.accumulo.core.rpc.ThriftClientTypes;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
@@ -159,7 +160,8 @@ public class VerifyTabletAssignments {
   private static void checkTabletServer(ClientContext context,
       Entry<HostAndPort,List<KeyExtent>> entry, HashSet<KeyExtent> failures)
       throws ThriftSecurityException, TException, NoSuchScanIDException {
-    TabletClientService.Iface client = ThriftUtil.getTServerClient(entry.getKey(), context);
+    TabletClientService.Iface client =
+        ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, entry.getKey(), context);
 
     Map<TKeyExtent,List<TRange>> batch = new TreeMap<>();
 

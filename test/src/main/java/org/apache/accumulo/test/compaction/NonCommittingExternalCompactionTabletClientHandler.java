@@ -23,15 +23,17 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.thrift.TInfo;
+import org.apache.accumulo.server.zookeeper.TransactionWatcher;
+import org.apache.accumulo.tserver.TabletClientHandler;
 import org.apache.accumulo.tserver.TabletServer;
-import org.apache.accumulo.tserver.ThriftClientHandler;
 import org.apache.thrift.TException;
 
-public class NonCommittingExternalCompactionThriftClientHandler extends ThriftClientHandler
+public class NonCommittingExternalCompactionTabletClientHandler extends TabletClientHandler
     implements TabletClientService.Iface {
 
-  public NonCommittingExternalCompactionThriftClientHandler(TabletServer server) {
-    super(server);
+  public NonCommittingExternalCompactionTabletClientHandler(TabletServer server,
+      TransactionWatcher watcher) {
+    super(server, watcher);
   }
 
   @Override

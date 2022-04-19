@@ -74,13 +74,11 @@ import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.manager.state.Assignment;
 import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.thrift.TException;
 
 import com.beust.jcommander.Parameter;
@@ -92,14 +90,9 @@ import com.beust.jcommander.Parameter;
  */
 public class NullTserver {
 
-  public static class ThriftClientHandler extends ClientServiceHandler
-      implements TabletClientService.Iface {
+  public static class NullTServerThriftClientHandler implements TabletClientService.Iface {
 
     private long updateSession = 1;
-
-    public ThriftClientHandler(ServerContext context, TransactionWatcher watcher) {
-      super(context, watcher);
-    }
 
     @Override
     public long startUpdate(TInfo tinfo, TCredentials credentials, TDurability durability) {
@@ -324,8 +317,7 @@ public class NullTserver {
         (int) DefaultConfiguration.getInstance().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
     var siteConfig = SiteConfiguration.auto();
     ServerContext context = ServerContext.override(siteConfig, opts.iname, opts.keepers, zkTimeOut);
-    TransactionWatcher watcher = new TransactionWatcher(context);
-    ThriftClientHandler tch = new ThriftClientHandler(context, watcher);
+    NullTServerThriftClientHandler tch = new NullTServerThriftClientHandler();
     Processor<Iface> processor = new Processor<>(tch);
     TServerUtils.startTServer(context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA, processor,
         "NullTServer", "null tserver", 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000,

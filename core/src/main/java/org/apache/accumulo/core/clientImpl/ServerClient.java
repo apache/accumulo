@@ -31,6 +31,8 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Client;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.rpc.ThriftClientTypes;
+import org.apache.accumulo.core.rpc.ThriftClientTypes.ThriftClientType;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
@@ -39,7 +41,6 @@ import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TServiceClient;
-import org.apache.thrift.TServiceClientFactory;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
@@ -50,14 +51,14 @@ public class ServerClient {
 
   public static <T> T execute(ClientContext context, ClientExecReturn<T,ClientService.Client> exec)
       throws AccumuloException, AccumuloSecurityException {
-    return execute(context, new ClientService.Client.Factory(), exec);
+    return execute(context, ThriftClientTypes.CLIENT, exec);
   }
 
   public static <CT extends TServiceClient,RT> RT execute(ClientContext context,
-      TServiceClientFactory<CT> factory, ClientExecReturn<RT,CT> exec)
+      ThriftClientType<CT,?> type, ClientExecReturn<RT,CT> exec)
       throws AccumuloException, AccumuloSecurityException {
     try {
-      return executeRaw(context, factory, exec);
+      return executeRaw(context, type, exec);
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code, e);
     } catch (AccumuloException e) {
@@ -82,16 +83,16 @@ public class ServerClient {
 
   public static <T> T executeRaw(ClientContext context,
       ClientExecReturn<T,ClientService.Client> exec) throws Exception {
-    return executeRaw(context, new ClientService.Client.Factory(), exec);
+    return executeRaw(context, ThriftClientTypes.CLIENT, exec);
   }
 
   public static <CT extends TServiceClient,RT> RT executeRaw(ClientContext context,
-      TServiceClientFactory<CT> factory, ClientExecReturn<RT,CT> exec) throws Exception {
+      ThriftClientType<CT,?> type, ClientExecReturn<RT,CT> exec) throws Exception {
     while (true) {
       CT client = null;
       String server = null;
       try {
-        Pair<String,CT> pair = ServerClient.getConnection(context, factory, true);
+        Pair<String,CT> pair = ServerClient.getConnection(context, type, true);
         server = pair.getFirst();
         client = pair.getSecond();
         return exec.execute(client);
@@ -114,7 +115,7 @@ public class ServerClient {
       String server = null;
       try {
         Pair<String,Client> pair =
-            ServerClient.getConnection(context, new ClientService.Client.Factory(), true);
+            ServerClient.getConnection(context, ThriftClientTypes.CLIENT, true);
         server = pair.getFirst();
         client = pair.getSecond();
         exec.execute(client);
@@ -134,8 +135,7 @@ public class ServerClient {
   static volatile boolean warnedAboutTServersBeingDown = false;
 
   public static <CT extends TServiceClient> Pair<String,CT> getConnection(ClientContext context,
-      TServiceClientFactory<CT> factory, boolean preferCachedConnections)
-      throws TTransportException {
+      ThriftClientType<CT,?> type, boolean preferCachedConnections) throws TTransportException {
     checkArgument(context != null, "context is null");
     long rpcTimeout = context.getClientTimeoutInMillis();
     // create list of servers
@@ -159,7 +159,7 @@ public class ServerClient {
     try {
       Pair<String,TTransport> pair =
           context.getTransportPool().getAnyTransport(servers, preferCachedConnections);
-      CT client = ThriftUtil.createClient(factory, pair.getSecond());
+      CT client = ThriftUtil.createClient(type, pair.getSecond());
       opened = true;
       warnedAboutTServersBeingDown = false;
       return new Pair<>(pair.getFirst(), client);

@@ -121,7 +121,7 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.server.client.ClientServiceHandler;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionInfo;
 import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.server.conf.TableConfiguration;
@@ -129,6 +129,8 @@ import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.fs.TooManyFilesException;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.rpc.TServerUtils;
+import org.apache.accumulo.server.security.AuditedSecurityOperation;
+import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.tserver.ConditionCheckerContext.ConditionChecker;
 import org.apache.accumulo.tserver.RowLocks.RowLock;
@@ -162,21 +164,26 @@ import com.google.common.collect.Collections2;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
-public class ThriftClientHandler extends ClientServiceHandler implements TabletClientService.Iface {
+public class TabletClientHandler implements TabletClientService.Iface {
 
-  private static final Logger log = LoggerFactory.getLogger(ThriftClientHandler.class);
+  private static final Logger log = LoggerFactory.getLogger(TabletClientHandler.class);
   private final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS;
   private static final long RECENTLY_SPLIT_MILLIES = MINUTES.toMillis(1);
   private final TabletServer server;
+  protected final TransactionWatcher watcher;
+  protected final ServerContext context;
+  protected final SecurityOperation security;
   private final WriteTracker writeTracker = new WriteTracker();
   private final RowLocks rowLocks = new RowLocks();
 
-  public ThriftClientHandler(TabletServer server) {
-    super(server.getContext(), new TransactionWatcher(server.getContext()));
+  public TabletClientHandler(TabletServer server, TransactionWatcher watcher) {
+    this.context = server.getContext();
+    this.watcher = watcher;
+    this.security = AuditedSecurityOperation.getInstance(context);
     this.server = server;
     MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = server.getContext().getConfiguration()
         .getTimeInMillis(Property.TSERV_SCAN_RESULTS_MAX_TIMEOUT);
-    log.debug("{} created", ThriftClientHandler.class.getName());
+    log.debug("{} created", TabletClientHandler.class.getName());
   }
 
   @Override
@@ -190,7 +197,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
     }
 
     try {
-      return transactionWatcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
+      return watcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
         List<TKeyExtent> failures = new ArrayList<>();
 
         for (Entry<TKeyExtent,Map<String,MapFileInfo>> entry : files.entrySet()) {
@@ -236,7 +243,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
           SecurityErrorCode.PERMISSION_DENIED);
     }
 
-    transactionWatcher.runQuietly(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
+    watcher.runQuietly(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
       tabletImports.forEach((tke, fileMap) -> {
         Map<TabletFile,MapFileInfo> newFileMap = new HashMap<>();
 

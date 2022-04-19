@@ -47,7 +47,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,16 +58,12 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  */
 public class ZombieTServer {
 
-  public static class ThriftClientHandler
-      extends org.apache.accumulo.test.performance.NullTserver.ThriftClientHandler {
+  public static class ZombieTServerThriftClientHandler
+      extends org.apache.accumulo.test.performance.NullTserver.NullTServerThriftClientHandler {
 
     int statusCount = 0;
 
     boolean halted = false;
-
-    ThriftClientHandler(ServerContext context, TransactionWatcher watcher) {
-      super(context, watcher);
-    }
 
     @Override
     public synchronized void fastHalt(TInfo tinfo, TCredentials credentials, String lock) {
@@ -102,8 +97,7 @@ public class ZombieTServer {
   public static void main(String[] args) throws Exception {
     int port = random.nextInt(30000) + 2000;
     var context = new ServerContext(SiteConfiguration.auto());
-    TransactionWatcher watcher = new TransactionWatcher(context);
-    final ThriftClientHandler tch = new ThriftClientHandler(context, watcher);
+    final ZombieTServerThriftClientHandler tch = new ZombieTServerThriftClientHandler();
     Processor<Iface> processor = new Processor<>(tch);
     ServerAddress serverPort =
         TServerUtils.startTServer(context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA,

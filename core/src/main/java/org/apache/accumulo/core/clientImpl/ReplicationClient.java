@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
+import org.apache.accumulo.core.rpc.ThriftClientTypes;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
@@ -106,7 +107,7 @@ public class ReplicationClient {
 
     try {
       // Manager requests can take a long time: don't ever time out
-      return ThriftUtil.getClientNoTimeout(new ReplicationCoordinator.Client.Factory(),
+      return ThriftUtil.getClientNoTimeout(ThriftClientTypes.REPLICATION_COORDINATOR,
           coordinatorAddr, context);
     } catch (TTransportException tte) {
       log.debug("Failed to connect to manager coordinator service ({})", coordinatorAddr, tte);
@@ -131,8 +132,7 @@ public class ReplicationClient {
     requireNonNull(server);
 
     try {
-      return ThriftUtil.getClient(new ReplicationServicer.Client.Factory(), server, context,
-          timeout);
+      return ThriftUtil.getClient(ThriftClientTypes.REPLICATION_SERVICER, server, context, timeout);
     } catch (TTransportException tte) {
       log.debug("Failed to connect to servicer ({}), will retry...", server, tte);
       throw tte;
