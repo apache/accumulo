@@ -35,7 +35,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -49,6 +48,7 @@ import java.util.function.IntPredicate;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -134,14 +134,14 @@ public class SummaryIT extends SharedMiniClusterBase {
   private void addSplits(final String table, AccumuloClient c, String... splits)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     c.tableOperations().addSplits(table,
-        Arrays.stream(splits).map(Text::new).collect(Collectors.toCollection(TreeSet::new)));
+        Stream.of(splits).map(Text::new).collect(Collectors.toCollection(TreeSet::new)));
   }
 
   @Test
   public void basicSummaryTest() throws Exception {
     final String table = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      NewTableConfiguration ntc = new NewTableConfiguration();
+      NewTableConfiguration   = new NewTableConfiguration();
       SummarizerConfiguration sc1 =
           SummarizerConfiguration.builder(BasicSummarizer.class.getName()).build();
       ntc.enableSummarization(sc1);
