@@ -30,7 +30,7 @@ public class ExternalCompactionTServer extends TabletServer {
   }
 
   @Override
-  protected TabletClientHandler getThriftClientHandler(TransactionWatcher watcher) {
+  protected TabletClientHandler newTabletClientHandler(TransactionWatcher watcher) {
     return new NonCommittingExternalCompactionTabletClientHandler(this, watcher);
   }
 

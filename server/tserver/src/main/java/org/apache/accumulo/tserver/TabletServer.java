@@ -589,12 +589,12 @@ public class TabletServer extends AbstractServer {
     return null;
   }
 
-  protected ClientServiceHandler getClientHandler(TransactionWatcher watcher) {
+  protected ClientServiceHandler newClientHandler(TransactionWatcher watcher) {
     return new ClientServiceHandler(context, watcher);
   }
 
   // exists to be overridden in tests
-  protected TabletClientHandler getThriftClientHandler(TransactionWatcher watcher) {
+  protected TabletClientHandler newTabletClientHandler(TransactionWatcher watcher) {
     return new TabletClientHandler(this, watcher);
   }
 
@@ -605,8 +605,8 @@ public class TabletServer extends AbstractServer {
   private HostAndPort startTabletClientService() throws UnknownHostException {
     // start listening for client connection last
     TransactionWatcher watcher = new TransactionWatcher(context);
-    clientHandler = getClientHandler(watcher);
-    thriftClientHandler = getThriftClientHandler(watcher);
+    clientHandler = newClientHandler(watcher);
+    thriftClientHandler = newTabletClientHandler(watcher);
 
     try {
       TProcessor processor = ThriftProcessorTypes.getTabletServerTProcessor(clientHandler,
