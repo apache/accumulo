@@ -29,6 +29,7 @@ import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.TServiceClientFactory;
+import org.apache.thrift.protocol.TMultiplexedProtocol;
 import org.apache.thrift.protocol.TProtocol;
 
 public class ThriftClientTypes {
@@ -37,13 +38,11 @@ public class ThriftClientTypes {
       F extends TServiceClientFactory<C>> {
 
     private final String serviceName;
-    private final boolean multiplexed;
     private final F clientFactory;
 
-    public ThriftClientType(String serviceName, boolean multiplexed, F clientFactory) {
+    public ThriftClientType(String serviceName, F clientFactory) {
       super();
       this.serviceName = serviceName;
-      this.multiplexed = multiplexed;
       this.clientFactory = clientFactory;
     }
 
@@ -51,51 +50,48 @@ public class ThriftClientTypes {
       return serviceName;
     }
 
-    public boolean isMultiplexed() {
-      return multiplexed;
-    }
-
     public F getClientFactory() {
       return clientFactory;
     }
 
     public C getClient(TProtocol prot) {
-      return clientFactory.getClient(prot);
+      // All server side TProcessors are multiplexed. Wrap this protocol.
+      return clientFactory.getClient(new TMultiplexedProtocol(prot, getServiceName()));
     }
 
   }
 
   public static final ThriftClientType<ClientService.Client,ClientService.Client.Factory> CLIENT =
-      new ThriftClientType<>("ClientService", true, new ClientService.Client.Factory());
+      new ThriftClientType<>("ClientService", new ClientService.Client.Factory());
 
   public static final ThriftClientType<CompactorService.Client,
       CompactorService.Client.Factory> COMPACTOR =
-          new ThriftClientType<>("CompactorService", false, new CompactorService.Client.Factory());
+          new ThriftClientType<>("CompactorService", new CompactorService.Client.Factory());
 
   public static final ThriftClientType<CompactionCoordinatorService.Client,
       CompactionCoordinatorService.Client.Factory> COORDINATOR = new ThriftClientType<>(
-          "CompactionCoordinatorService", false, new CompactionCoordinatorService.Client.Factory());
+          "CompactionCoordinatorService", new CompactionCoordinatorService.Client.Factory());
 
   public static final ThriftClientType<FateService.Client,FateService.Client.Factory> FATE =
-      new ThriftClientType<>("FateService", true, new FateService.Client.Factory());
+      new ThriftClientType<>("FateService", new FateService.Client.Factory());
 
   public static final ThriftClientType<GCMonitorService.Client,GCMonitorService.Client.Factory> GC =
-      new ThriftClientType<>("GCMonitorService", false, new GCMonitorService.Client.Factory());
+      new ThriftClientType<>("GCMonitorService", new GCMonitorService.Client.Factory());
 
   public static final ThriftClientType<ManagerClientService.Client,
-      ManagerClientService.Client.Factory> MANAGER = new ThriftClientType<>("ManagerClientService",
-          true, new ManagerClientService.Client.Factory());
+      ManagerClientService.Client.Factory> MANAGER =
+          new ThriftClientType<>("ManagerClientService", new ManagerClientService.Client.Factory());
 
   public static final ThriftClientType<ReplicationCoordinator.Client,
       ReplicationCoordinator.Client.Factory> REPLICATION_COORDINATOR = new ThriftClientType<>(
-          "ReplicationCoordinator", false, new ReplicationCoordinator.Client.Factory());
+          "ReplicationCoordinator", new ReplicationCoordinator.Client.Factory());
 
   public static final ThriftClientType<ReplicationServicer.Client,
-      ReplicationServicer.Client.Factory> REPLICATION_SERVICER = new ThriftClientType<>(
-          "ReplicationServicer", false, new ReplicationServicer.Client.Factory());
+      ReplicationServicer.Client.Factory> REPLICATION_SERVICER =
+          new ThriftClientType<>("ReplicationServicer", new ReplicationServicer.Client.Factory());
 
   public static final ThriftClientType<TabletClientService.Client,
-      TabletClientService.Client.Factory> TABLET_SERVER = new ThriftClientType<>(
-          "TabletClientService", true, new TabletClientService.Client.Factory());
+      TabletClientService.Client.Factory> TABLET_SERVER =
+          new ThriftClientType<>("TabletClientService", new TabletClientService.Client.Factory());
 
 }

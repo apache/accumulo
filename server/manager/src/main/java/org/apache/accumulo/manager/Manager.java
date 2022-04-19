@@ -1023,23 +1023,19 @@ public class Manager extends AbstractServer
         HighlyAvailableServiceWrapper.service(managerClientHandler, this);
 
     ServerAddress sa;
-    try {
-      TProcessor processor = ThriftProcessorTypes.getManagerTProcessor(fateServiceHandler, haProxy,
-          getContext(), getConfiguration());
+    TProcessor processor = ThriftProcessorTypes.getManagerTProcessor(fateServiceHandler, haProxy,
+        getContext(), getConfiguration());
 
-      try {
-        sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT,
-            processor, "Manager", "Manager Client Service Handler", null,
-            Property.MANAGER_MINTHREADS, Property.MANAGER_MINTHREADS_TIMEOUT,
-            Property.MANAGER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
-      } catch (UnknownHostException e) {
-        throw new IllegalStateException("Unable to start server on host " + getHostname(), e);
-      }
-      clientService = sa.server;
-      log.info("Started Manager client service at {}", sa.address);
-    } catch (Exception e2) {
-      throw new RuntimeException("Error creating thrift server processor", e2);
+    try {
+      sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT, processor,
+          "Manager", "Manager Client Service Handler", null, Property.MANAGER_MINTHREADS,
+          Property.MANAGER_MINTHREADS_TIMEOUT, Property.MANAGER_THREADCHECK,
+          Property.GENERAL_MAX_MESSAGE_SIZE);
+    } catch (UnknownHostException e) {
+      throw new IllegalStateException("Unable to start server on host " + getHostname(), e);
     }
+    clientService = sa.server;
+    log.info("Started Manager client service at {}", sa.address);
 
     // block until we can obtain the ZK lock for the manager
     try {

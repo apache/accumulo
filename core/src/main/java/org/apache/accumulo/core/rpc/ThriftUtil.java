@@ -40,8 +40,6 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.UserGroupInformation.AuthenticationMethod;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
-import org.apache.thrift.protocol.TMultiplexedProtocol;
-import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.protocol.TProtocolFactory;
 import org.apache.thrift.transport.TSSLTransportFactory;
 import org.apache.thrift.transport.TSaslClientTransport;
@@ -94,12 +92,7 @@ public class ThriftUtil {
    */
   public static <T extends TServiceClient> T createClient(ThriftClientType<T,?> type,
       TTransport transport) {
-
-    TProtocol protocol = protocolFactory.getProtocol(transport);
-    if (type.isMultiplexed()) {
-      protocol = new TMultiplexedProtocol(protocol, type.getServiceName());
-    }
-    return type.getClient(protocol);
+    return type.getClient(protocolFactory.getProtocol(transport));
   }
 
   /**
