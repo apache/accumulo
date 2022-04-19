@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.iteratortest;
+package org.apache.accumulo.iteratortest.testcases;
 
 import static java.util.Objects.requireNonNull;
 
@@ -25,14 +25,15 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
-import org.apache.accumulo.iteratortest.testcases.IteratorTestCase;
+import org.apache.accumulo.iteratortest.IteratorTestCase;
+import org.apache.accumulo.iteratortest.IteratorTestInput;
 
 /**
  * A collection of methods that are helpful to the development of {@link IteratorTestCase}s.
  */
-public class IteratorTestUtil {
+class IteratorTestUtil {
 
-  public static SortedKeyValueIterator<Key,Value> instantiateIterator(IteratorTestInput input) {
+  static SortedKeyValueIterator<Key,Value> instantiateIterator(IteratorTestInput input) {
     try {
       return requireNonNull(input.getIteratorClass()).getDeclaredConstructor().newInstance();
     } catch (ReflectiveOperationException e) {
@@ -40,7 +41,7 @@ public class IteratorTestUtil {
     }
   }
 
-  public static SortedKeyValueIterator<Key,Value> createSource(IteratorTestInput input) {
+  static SortedKeyValueIterator<Key,Value> createSource(IteratorTestInput input) {
     return new SimpleKVReusingIterator(
         new ColumnFamilySkippingIterator(new SortedMapIterator(requireNonNull(input).getInput())));
   }

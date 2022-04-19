@@ -16,19 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.iteratortest.testcases;
+package org.apache.accumulo.iteratortest;
 
-import org.apache.accumulo.iteratortest.IteratorTestOutput;
+public class IteratorTestParameters {
 
-/**
- * Base {@link IteratorTestCase} implementation that performs verification on the expected and
- * actual outcome.
- */
-public abstract class OutputVerifyingTestCase implements IteratorTestCase {
+  final IteratorTestInput input;
+  final IteratorTestOutput expectedOutput;
+  final IteratorTestCase testCase;
+
+  // users should call testCase.toParameters(input, expectedOutput)
+  IteratorTestParameters(IteratorTestInput input, IteratorTestOutput expectedOutput,
+      IteratorTestCase testCase) {
+    this.input = input;
+    this.expectedOutput = expectedOutput;
+    this.testCase = testCase;
+  }
 
   @Override
-  public boolean verify(IteratorTestOutput expected, IteratorTestOutput actual) {
-    return expected.equals(actual);
+  public String toString() {
+    return String.format("%s (input = %s)", testCase.displayName(), input);
   }
 
 }

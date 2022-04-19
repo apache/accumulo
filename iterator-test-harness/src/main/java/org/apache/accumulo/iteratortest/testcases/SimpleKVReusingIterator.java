@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.iteratortest;
+package org.apache.accumulo.iteratortest.testcases;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -33,13 +33,13 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
  * Internally, Accumulo reuses the same instance of Key and Value to reduce the number of objects to
  * be garbage collected. This iterator simulates that.
  */
-public class SimpleKVReusingIterator implements SortedKeyValueIterator<Key,Value> {
+class SimpleKVReusingIterator implements SortedKeyValueIterator<Key,Value> {
 
   private final SortedKeyValueIterator<Key,Value> source;
   private final Key topKey = new Key();
   private final Value topValue = new Value();
 
-  public SimpleKVReusingIterator(SortedKeyValueIterator<Key,Value> source) {
+  SimpleKVReusingIterator(SortedKeyValueIterator<Key,Value> source) {
     this.source = source;
   }
 

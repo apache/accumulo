@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.crypto;
 
+import static com.google.common.collect.MoreCollectors.onlyElement;
 import static org.apache.accumulo.core.conf.Property.INSTANCE_CRYPTO_PREFIX;
 import static org.apache.accumulo.core.crypto.CryptoUtils.getFileDecrypter;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -73,8 +74,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
-import com.google.common.collect.Iterables;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -297,7 +296,7 @@ public class CryptoTest {
 
     Collection<Summary> summaries =
         RFile.summaries().from(file).withFileSystem(fs).withTableProperties(cryptoOnConf).read();
-    Summary summary = Iterables.getOnlyElement(summaries);
+    Summary summary = summaries.stream().collect(onlyElement());
     assertEquals(keys.size(), (long) summary.getStatistics().get("keys"));
     assertEquals(1, summary.getStatistics().size());
     assertEquals(0, summary.getFileStatistics().getInaccurate());

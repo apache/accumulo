@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.harness;
 
+import static com.google.common.collect.MoreCollectors.onlyElement;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -25,7 +26,12 @@ import java.io.File;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.time.Duration;
+import java.util.Collection;
+import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.slf4j.Logger;
@@ -44,6 +50,14 @@ public class AccumuloITBase extends WithTestNames {
   public static final String SUNNY_DAY = "SunnyDay";
   public static final String MINI_CLUSTER_ONLY = "MiniClusterOnly";
   public static final String ZOOKEEPER_TESTING_SERVER = "ZooKeeperTestingServer";
+
+  protected <T> T getOnlyElement(Collection<T> c) {
+    return c.stream().collect(onlyElement());
+  }
+
+  protected Entry<Key,Value> getOnlyElement(Scanner s) {
+    return s.stream().collect(onlyElement());
+  }
 
   public String[] getUniqueNames(int num) {
     String[] names = new String[num];

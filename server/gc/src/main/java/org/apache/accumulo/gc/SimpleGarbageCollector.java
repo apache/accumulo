@@ -39,7 +39,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -229,7 +228,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       var scanner =
           new IsolatedScanner(getContext().createScanner(level.metaTable(), Authorizations.EMPTY));
       scanner.setRange(BlipSection.getRange());
-      return StreamSupport.stream(scanner.spliterator(), false)
+      return scanner.stream()
           .map(entry -> entry.getKey().getRow().toString().substring(blipPrefixLen))
           .onClose(scanner::close);
     }

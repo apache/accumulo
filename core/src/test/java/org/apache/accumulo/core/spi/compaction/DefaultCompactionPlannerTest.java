@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.spi.compaction;
 
+import static com.google.common.collect.MoreCollectors.onlyElement;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -40,11 +41,14 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment.Configuration;
 import org.apache.accumulo.core.spi.compaction.CompactionPlan.Builder;
 import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlanImpl;
-import org.apache.hadoop.shaded.com.google.common.collect.Iterables;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
 
 public class DefaultCompactionPlannerTest {
+
+  private static <T> T getOnlyElement(Collection<T> c) {
+    return c.stream().collect(onlyElement());
+  }
 
   @Test
   public void testFindFilesToCompact() {
@@ -146,7 +150,7 @@ public class DefaultCompactionPlannerTest {
 
     // The result of the running compaction would not be included in future compactions, so the
     // planner should compact.
-    var job = Iterables.getOnlyElement(plan.getJobs());
+    var job = getOnlyElement(plan.getJobs());
     assertEquals(candidates, job.getFiles());
     assertEquals(CompactionExecutorIdImpl.externalId("medium"), job.getExecutor());
   }
@@ -162,7 +166,7 @@ public class DefaultCompactionPlannerTest {
     var plan = planner.makePlan(params);
 
     // a running non-user compaction should not prevent a user compaction
-    var job = Iterables.getOnlyElement(plan.getJobs());
+    var job = getOnlyElement(plan.getJobs());
     assertEquals(candidates, job.getFiles());
     assertEquals(CompactionExecutorIdImpl.externalId("medium"), job.getExecutor());
 
@@ -180,7 +184,7 @@ public class DefaultCompactionPlannerTest {
     compacting = Set.of();
     params = createPlanningParams(all, all, compacting, 2, CompactionKind.USER);
     plan = planner.makePlan(params);
-    job = Iterables.getOnlyElement(plan.getJobs());
+    job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs("F1", "1M", "F2", "2M", "F3", "4M"), job.getFiles());
     assertEquals(CompactionExecutorIdImpl.externalId("small"), job.getExecutor());
 
@@ -190,7 +194,7 @@ public class DefaultCompactionPlannerTest {
         "FG", "32G", "FH", "64G");
     params = createPlanningParams(all, all, compacting, 2, CompactionKind.USER);
     plan = planner.makePlan(params);
-    job = Iterables.getOnlyElement(plan.getJobs());
+    job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
     assertEquals(CompactionExecutorIdImpl.externalId("huge"), job.getExecutor());
 
@@ -200,7 +204,7 @@ public class DefaultCompactionPlannerTest {
         "52M");
     params = createPlanningParams(all, all, compacting, 2, CompactionKind.USER);
     plan = planner.makePlan(params);
-    job = Iterables.getOnlyElement(plan.getJobs());
+    job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs("F1", "3M", "F2", "4M", "F3", "5M", "F4", "6M"), job.getFiles());
     assertEquals(CompactionExecutorIdImpl.externalId("small"), job.getExecutor());
 
@@ -209,7 +213,7 @@ public class DefaultCompactionPlannerTest {
     all = createCFs("F1", "3M", "F2", "4M", "F3", "5M", "F4", "6M", "F5", "50M");
     params = createPlanningParams(all, all, compacting, 2, CompactionKind.USER);
     plan = planner.makePlan(params);
-    job = Iterables.getOnlyElement(plan.getJobs());
+    job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
     assertEquals(CompactionExecutorIdImpl.externalId("medium"), job.getExecutor());
 
@@ -223,14 +227,14 @@ public class DefaultCompactionPlannerTest {
     var plan = planner.makePlan(params);
 
     // should only compact files less than max size
-    var job = Iterables.getOnlyElement(plan.getJobs());
+    var job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs("F1", "128M", "F2", "129M", "F3", "130M"), job.getFiles());
     assertEquals(CompactionExecutorIdImpl.externalId("large"), job.getExecutor());
 
     // user compaction can exceed the max size
     params = createPlanningParams(all, all, Set.of(), 2, CompactionKind.USER);
     plan = planner.makePlan(params);
-    job = Iterables.getOnlyElement(plan.getJobs());
+    job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
     assertEquals(CompactionExecutorIdImpl.externalId("large"), job.getExecutor());
   }

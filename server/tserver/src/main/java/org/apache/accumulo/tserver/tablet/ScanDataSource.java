@@ -26,14 +26,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.core.conf.IterConfigUtil;
-import org.apache.accumulo.core.conf.IterLoad;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.IteratorBuilder;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
@@ -52,8 +52,6 @@ import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Iterables;
 
 class ScanDataSource implements DataSource {
 
@@ -165,8 +163,7 @@ class ScanDataSource implements DataSource {
     Collection<InterruptibleIterator> mapfiles =
         fileManager.openFiles(files, scanParams.isIsolated(), samplerConfig);
 
-    for (SortedKeyValueIterator<Key,Value> skvi : Iterables.concat(mapfiles, memIters))
-      ((InterruptibleIterator) skvi).setInterruptFlag(interruptFlag);
+    List.of(mapfiles, memIters).forEach(c -> c.forEach(ii -> ii.setInterruptFlag(interruptFlag)));
 
     List<SortedKeyValueIterator<Key,Value>> iters =
         new ArrayList<>(mapfiles.size() + memIters.size());
@@ -204,8 +201,8 @@ class ScanDataSource implements DataSource {
         // iterator options.
         iterOpts = new HashMap<>(pic.getOpts().size() + scanParams.getSsio().size());
         iterInfos = new ArrayList<>(pic.getIterInfo().size() + scanParams.getSsiList().size());
-        IterConfigUtil.mergeIteratorConfig(iterInfos, iterOpts, pic.getIterInfo(), pic.getOpts(),
-            scanParams.getSsiList(), scanParams.getSsio());
+        IteratorConfigUtil.mergeIteratorConfig(iterInfos, iterOpts, pic.getIterInfo(),
+            pic.getOpts(), scanParams.getSsiList(), scanParams.getSsio());
       }
 
       String context;
@@ -223,9 +220,10 @@ class ScanDataSource implements DataSource {
         }
       }
 
-      IterLoad il = new IterLoad().iters(iterInfos).iterOpts(iterOpts).iterEnv(iterEnv)
-          .useAccumuloClassLoader(true).context(context);
-      return iterEnv.getTopLevelIterator(IterConfigUtil.loadIterators(visFilter, il));
+      var iteratorBuilder = IteratorBuilder.builder(iterInfos).opts(iterOpts).env(iterEnv)
+          .useClassLoader(context).build();
+      return iterEnv
+          .getTopLevelIterator(IteratorConfigUtil.loadIterators(visFilter, iteratorBuilder));
     } else {
       return visFilter;
     }

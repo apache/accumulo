@@ -60,7 +60,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
 public class MetadataIT extends AccumuloClusterHarness {
@@ -190,8 +189,8 @@ public class MetadataIT extends AccumuloClusterHarness {
       TabletsMetadata tablets = cc.getAmple().readTablets().forTable(TableId.of("1"))
           .overlapping(startRow, endRow).fetch(FILES, LOCATION, LAST, PREV_ROW).build();
 
-      TabletMetadata tabletMetadata0 = Iterables.get(tablets, 0);
-      TabletMetadata tabletMetadata1 = Iterables.get(tablets, 1);
+      TabletMetadata tabletMetadata0 = tablets.stream().findFirst().get();
+      TabletMetadata tabletMetadata1 = tablets.stream().skip(1).findFirst().get();
 
       String infoTabletId0 = tabletMetadata0.getTableId().toString();
       String infoExtent0 = tabletMetadata0.getExtent().toString();

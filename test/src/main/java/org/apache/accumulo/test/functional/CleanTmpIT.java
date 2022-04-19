@@ -47,7 +47,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
 public class CleanTmpIT extends ConfigurableMacBase {
@@ -92,7 +91,7 @@ public class CleanTmpIT extends ConfigurableMacBase {
       try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
         s.setRange(Range.prefix(id));
         s.fetchColumnFamily(DataFileColumnFamily.NAME);
-        Entry<Key,Value> entry = Iterables.getOnlyElement(s);
+        Entry<Key,Value> entry = getOnlyElement(s);
         file = new Path(entry.getKey().getColumnQualifier().toString());
       }
 

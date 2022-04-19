@@ -127,7 +127,7 @@ public class WorkMakerIT extends ConfigurableMacBase {
     try (Scanner s = ReplicationTable.getScanner(client)) {
       WorkSection.limit(s);
 
-      Entry<Key,Value> workEntry = Iterables.getOnlyElement(s);
+      Entry<Key,Value> workEntry = getOnlyElement(s);
       Key workKey = workEntry.getKey();
       ReplicationTarget actual = ReplicationTarget.from(workKey.getColumnQualifier());
 

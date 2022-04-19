@@ -26,9 +26,9 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.YieldCallback;
+import org.apache.accumulo.iteratortest.IteratorTestCase;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
-import org.apache.accumulo.iteratortest.IteratorTestUtil;
 
 /**
  * Test case that verifies that an iterator works correctly with the yielding api. Note that most
@@ -37,7 +37,7 @@ import org.apache.accumulo.iteratortest.IteratorTestUtil;
  * ensures that it works correctly iff the iterator actually decides to yield. Nothing can force an
  * iterator to yield without knowing something about the internals of the iterator being tested.
  */
-public class YieldingTestCase extends OutputVerifyingTestCase {
+public class YieldingTestCase implements IteratorTestCase {
 
   @Override
   public IteratorTestOutput test(IteratorTestInput testInput) {

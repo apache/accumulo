@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.master.balancer;
 
+import static java.util.stream.Collectors.toList;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -47,8 +49,6 @@ import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Iterables;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -218,7 +218,7 @@ public abstract class TabletBalancer
        * information.
        */
       balancerLog.debug("Sample up to 10 outstanding migrations: {}",
-          Iterables.limit(migrations, 10));
+          migrations.stream().limit(10).collect(toList()));
     }
   }
 
