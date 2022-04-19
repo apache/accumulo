@@ -35,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -141,7 +142,7 @@ public class SummaryIT extends SharedMiniClusterBase {
   public void basicSummaryTest() throws Exception {
     final String table = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      NewTableConfiguration   = new NewTableConfiguration();
+      NewTableConfiguration ntc = new NewTableConfiguration();
       SummarizerConfiguration sc1 =
           SummarizerConfiguration.builder(BasicSummarizer.class.getName()).build();
       ntc.enableSummarization(sc1);
