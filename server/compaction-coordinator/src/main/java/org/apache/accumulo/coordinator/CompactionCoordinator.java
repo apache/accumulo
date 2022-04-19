@@ -78,7 +78,7 @@ import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
-import org.apache.accumulo.server.rpc.ThriftServerTypes;
+import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.thrift.TException;
@@ -229,7 +229,7 @@ public class CompactionCoordinator extends AbstractServer
     TProcessor processor = null;
     try {
       processor =
-          ThriftServerTypes.getCoordinatorThriftServer(this, getContext(), getConfiguration());
+          ThriftProcessorTypes.getCoordinatorTProcessor(this, getContext(), getConfiguration());
     } catch (Exception e) {
       throw new RuntimeException("Error creating thrift server processor", e);
     }

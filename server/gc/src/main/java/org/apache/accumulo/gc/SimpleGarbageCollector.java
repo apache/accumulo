@@ -87,7 +87,7 @@ import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
-import org.apache.accumulo.server.rpc.ThriftServerTypes;
+import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.thrift.TProcessor;
@@ -664,7 +664,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
     try {
       TProcessor processor =
-          ThriftServerTypes.getGcThriftServer(this, getContext(), getConfiguration());
+          ThriftProcessorTypes.getGcTProcessor(this, getContext(), getConfiguration());
       IntStream port = getConfiguration().getPortStream(Property.GC_PORT);
       HostAndPort[] addresses = TServerUtils.getHostAndPorts(getHostname(), port);
       long maxMessageSize = getConfiguration().getAsBytes(Property.GENERAL_MAX_MESSAGE_SIZE);

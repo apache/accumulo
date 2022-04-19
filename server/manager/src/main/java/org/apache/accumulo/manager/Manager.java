@@ -127,7 +127,7 @@ import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.rpc.HighlyAvailableServiceWrapper;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
-import org.apache.accumulo.server.rpc.ThriftServerTypes;
+import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenKeyManager;
@@ -1024,7 +1024,7 @@ public class Manager extends AbstractServer
 
     ServerAddress sa;
     try {
-      TProcessor processor = ThriftServerTypes.getManagerThriftServer(fateServiceHandler, haProxy,
+      TProcessor processor = ThriftProcessorTypes.getManagerTProcessor(fateServiceHandler, haProxy,
           getContext(), getConfiguration());
 
       try {
@@ -1373,7 +1373,7 @@ public class Manager extends AbstractServer
 
     TProcessor processor = null;
     try {
-      processor = ThriftServerTypes.getReplicationCoordinatorThriftServer(haReplicationProxy,
+      processor = ThriftProcessorTypes.getReplicationCoordinatorTProcessor(haReplicationProxy,
           getContext(), getConfiguration());
     } catch (Exception e) {
       throw new RuntimeException("Error creating thrift server processor", e);

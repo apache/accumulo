@@ -103,7 +103,7 @@ import org.apache.accumulo.server.compaction.RetryableThriftFunction;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
-import org.apache.accumulo.server.rpc.ThriftServerTypes;
+import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.hadoop.fs.Path;
@@ -339,7 +339,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     TProcessor processor = null;
     try {
       processor =
-          ThriftServerTypes.getCompactorThriftServer(this, getContext(), getConfiguration());
+          ThriftProcessorTypes.getCompactorTProcessor(this, getContext(), getConfiguration());
     } catch (Exception e) {
       throw new RuntimeException("Error creating thrift server processor", e);
     }

@@ -164,26 +164,26 @@ import com.google.common.collect.Collections2;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
-public class ThriftClientHandler implements TabletClientService.Iface {
+public class TabletClientHandler implements TabletClientService.Iface {
 
-  private static final Logger log = LoggerFactory.getLogger(ThriftClientHandler.class);
+  private static final Logger log = LoggerFactory.getLogger(TabletClientHandler.class);
   private final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS;
   private static final long RECENTLY_SPLIT_MILLIES = MINUTES.toMillis(1);
   private final TabletServer server;
-  protected final TransactionWatcher transactionWatcher;
+  protected final TransactionWatcher watcher;
   protected final ServerContext context;
   protected final SecurityOperation security;
   private final WriteTracker writeTracker = new WriteTracker();
   private final RowLocks rowLocks = new RowLocks();
 
-  public ThriftClientHandler(TabletServer server) {
+  public TabletClientHandler(TabletServer server, TransactionWatcher watcher) {
     this.context = server.getContext();
-    this.transactionWatcher = new TransactionWatcher(server.getContext());
+    this.watcher = watcher;
     this.security = AuditedSecurityOperation.getInstance(context);
     this.server = server;
     MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = server.getContext().getConfiguration()
         .getTimeInMillis(Property.TSERV_SCAN_RESULTS_MAX_TIMEOUT);
-    log.debug("{} created", ThriftClientHandler.class.getName());
+    log.debug("{} created", TabletClientHandler.class.getName());
   }
 
   @Override
@@ -197,7 +197,7 @@ public class ThriftClientHandler implements TabletClientService.Iface {
     }
 
     try {
-      return transactionWatcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
+      return watcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
         List<TKeyExtent> failures = new ArrayList<>();
 
         for (Entry<TKeyExtent,Map<String,MapFileInfo>> entry : files.entrySet()) {
@@ -243,7 +243,7 @@ public class ThriftClientHandler implements TabletClientService.Iface {
           SecurityErrorCode.PERMISSION_DENIED);
     }
 
-    transactionWatcher.runQuietly(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
+    watcher.runQuietly(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
       tabletImports.forEach((tke, fileMap) -> {
         Map<TabletFile,MapFileInfo> newFileMap = new HashMap<>();
 
