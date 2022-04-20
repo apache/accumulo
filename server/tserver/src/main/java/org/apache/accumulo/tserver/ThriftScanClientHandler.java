@@ -34,7 +34,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.TabletType;
@@ -67,9 +66,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
 import org.apache.accumulo.core.tabletserver.thrift.TSamplerConfiguration;
 import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
 import org.apache.accumulo.core.trace.thrift.TInfo;
-import org.apache.accumulo.core.util.Halt;
-import org.apache.accumulo.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.TooManyFilesException;
 import org.apache.accumulo.server.rpc.TServerUtils;
@@ -106,60 +102,6 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
     this.security = AuditedSecurityOperation.getInstance(context);
     MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = server.getContext().getConfiguration()
         .getTimeInMillis(Property.TSERV_SCAN_RESULTS_MAX_TIMEOUT);
-  }
-
-  private void checkPermission(TCredentials credentials, String lock, final String request)
-      throws ThriftSecurityException {
-    try {
-      log.trace("Got {} message from user: {}", request, credentials.getPrincipal());
-      if (!security.canPerformSystemActions(credentials)) {
-        log.warn("Got {} message from user: {}", request, credentials.getPrincipal());
-        throw new ThriftSecurityException(credentials.getPrincipal(),
-            SecurityErrorCode.PERMISSION_DENIED);
-      }
-    } catch (ThriftSecurityException e) {
-      log.warn("Got {} message from unauthenticatable user: {}", request, e.getUser());
-      if (context.getCredentials().getToken().getClass().getName()
-          .equals(credentials.getTokenClassName())) {
-        log.error("Got message from a service with a mismatched configuration."
-            + " Please ensure a compatible configuration.", e);
-      }
-      throw e;
-    }
-
-    if (server.getLock() == null || !server.getLock().wasLockAcquired()) {
-      log.debug("Got {} message before my lock was acquired, ignoring...", request);
-      throw new RuntimeException("Lock not acquired");
-    }
-
-    if (server.getLock() != null && server.getLock().wasLockAcquired()
-        && !server.getLock().isLocked()) {
-      Halt.halt(1, () -> {
-        log.info("Tablet server no longer holds lock during checkPermission() : {}, exiting",
-            request);
-        server.gcLogger.logGCInfo(server.getConfiguration());
-      });
-    }
-
-    if (lock != null) {
-      ZooUtil.LockID lid =
-          new ZooUtil.LockID(context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK, lock);
-
-      try {
-        if (!ServiceLock.isLockHeld(server.managerLockCache, lid)) {
-          // maybe the cache is out of date and a new manager holds the
-          // lock?
-          server.managerLockCache.clear();
-          if (!ServiceLock.isLockHeld(server.managerLockCache, lid)) {
-            log.warn("Got {} message from a manager that does not hold the current lock {}",
-                request, lock);
-            throw new RuntimeException("bad manager lock");
-          }
-        }
-      } catch (Exception e) {
-        throw new RuntimeException("bad manager lock", e);
-      }
-    }
   }
 
   private NamespaceId getNamespaceId(TCredentials credentials, TableId tableId)
@@ -519,7 +461,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
   public List<ActiveScan> getActiveScans(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException, TException {
     try {
-      checkPermission(credentials, null, "getScans");
+      TabletClientHandler.checkPermission(security, context, server, credentials, null, "getScans");
     } catch (ThriftSecurityException e) {
       log.error("Caller doesn't have permission to get active scans", e);
       throw e;

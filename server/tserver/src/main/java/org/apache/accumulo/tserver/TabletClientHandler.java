@@ -1040,7 +1040,8 @@ public class TabletClientHandler implements TabletClientService.Iface {
     return result;
   }
 
-  private void checkPermission(TCredentials credentials, String lock, final String request)
+  static void checkPermission(SecurityOperation security, ServerContext context,
+      TabletServer server, TCredentials credentials, String lock, final String request)
       throws ThriftSecurityException {
     try {
       log.trace("Got {} message from user: {}", request, credentials.getPrincipal());
@@ -1099,7 +1100,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
       final TKeyExtent textent) {
 
     try {
-      checkPermission(credentials, lock, "loadTablet");
+      checkPermission(security, context, server, credentials, lock, "loadTablet");
     } catch (ThriftSecurityException e) {
       log.error("Caller doesn't have permission to load a tablet", e);
       throw new RuntimeException(e);
@@ -1182,7 +1183,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
   public void unloadTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent textent,
       TUnloadTabletGoal goal, long requestTime) {
     try {
-      checkPermission(credentials, lock, "unloadTablet");
+      checkPermission(security, context, server, credentials, lock, "unloadTablet");
     } catch (ThriftSecurityException e) {
       log.error("Caller doesn't have permission to unload a tablet", e);
       throw new RuntimeException(e);
@@ -1198,7 +1199,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
   public void flush(TInfo tinfo, TCredentials credentials, String lock, String tableId,
       ByteBuffer startRow, ByteBuffer endRow) {
     try {
-      checkPermission(credentials, lock, "flush");
+      checkPermission(security, context, server, credentials, lock, "flush");
     } catch (ThriftSecurityException e) {
       log.error("Caller doesn't have permission to flush a table", e);
       throw new RuntimeException(e);
@@ -1236,7 +1237,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
   @Override
   public void flushTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent textent) {
     try {
-      checkPermission(credentials, lock, "flushTablet");
+      checkPermission(security, context, server, credentials, lock, "flushTablet");
     } catch (ThriftSecurityException e) {
       log.error("Caller doesn't have permission to flush a tablet", e);
       throw new RuntimeException(e);
@@ -1258,7 +1259,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
   public void halt(TInfo tinfo, TCredentials credentials, String lock)
       throws ThriftSecurityException {
 
-    checkPermission(credentials, lock, "halt");
+    checkPermission(security, context, server, credentials, lock, "halt");
 
     Halt.halt(0, () -> {
       log.info("Manager requested tablet server halt");
@@ -1289,7 +1290,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
   @Override
   public void chop(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent textent) {
     try {
-      checkPermission(credentials, lock, "chop");
+      checkPermission(security, context, server, credentials, lock, "chop");
     } catch (ThriftSecurityException e) {
       log.error("Caller doesn't have permission to chop extent", e);
       throw new RuntimeException(e);
@@ -1307,7 +1308,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
   public void compact(TInfo tinfo, TCredentials credentials, String lock, String tableId,
       ByteBuffer startRow, ByteBuffer endRow) {
     try {
-      checkPermission(credentials, lock, "compact");
+      checkPermission(security, context, server, credentials, lock, "compact");
     } catch (ThriftSecurityException e) {
       log.error("Caller doesn't have permission to compact a table", e);
       throw new RuntimeException(e);
@@ -1339,7 +1340,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
   public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException, TException {
     try {
-      checkPermission(credentials, null, "getActiveCompactions");
+      checkPermission(security, context, server, credentials, null, "getActiveCompactions");
     } catch (ThriftSecurityException e) {
       log.error("Caller doesn't have permission to get active compactions", e);
       throw e;
