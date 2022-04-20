@@ -21,7 +21,6 @@ package org.apache.accumulo.core.classloader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
@@ -40,7 +39,7 @@ public class URLClassLoaderFactory implements ContextClassLoaderFactory {
       } catch (MalformedURLException e) {
         throw new IllegalArgumentException("Error creating URL from classpath segment: " + p, e);
       }
-    }).collect(Collectors.toList()).toArray(new URL[0]);
+    }).toArray(URL[]::new);
     return URLClassLoader.newInstance(urls);
   }
 
