@@ -88,7 +88,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
-import com.google.common.collect.Lists;
 import com.google.common.hash.Hashing;
 
 /**
@@ -220,8 +219,8 @@ public class Gatherer {
       }
 
       // merge contiguous ranges
-      List<Range> merged = Range
-          .mergeOverlapping(Lists.transform(entry.getValue(), tm -> tm.getExtent().toDataRange()));
+      List<Range> merged = Range.mergeOverlapping(entry.getValue().stream()
+          .map(tm -> tm.getExtent().toDataRange()).collect(Collectors.toList()));
       List<TRowRange> ranges =
           merged.stream().map(r -> toClippedExtent(r).toThrift()).collect(Collectors.toList()); // clip
                                                                                                 // ranges
@@ -528,7 +527,8 @@ public class Gatherer {
     List<CompletableFuture<SummaryCollection>> futures = new ArrayList<>();
     for (Entry<String,List<TRowRange>> entry : files.entrySet()) {
       futures.add(CompletableFuture.supplyAsync(() -> {
-        List<RowRange> rrl = Lists.transform(entry.getValue(), RowRange::new);
+        List<RowRange> rrl =
+            entry.getValue().stream().map(RowRange::new).collect(Collectors.toList());
         return getSummaries(volMgr, entry.getKey(), rrl, summaryCache, indexCache, fileLenCache);
       }, srp));
     }

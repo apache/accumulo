@@ -166,7 +166,7 @@ public class ExternalCompactionMetricsIT extends SharedMiniClusterBase {
         UtilWaitThread.sleep(100);
         try (TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets()
             .forLevel(DataLevel.USER).fetch(ColumnType.ECOMP).build()) {
-          count = tm.stream().flatMap(t -> t.getExternalCompactions().keySet().stream()).count();
+          count = tm.stream().mapToLong(t -> t.getExternalCompactions().keySet().size()).sum();
         }
       } while (count > 0);
 

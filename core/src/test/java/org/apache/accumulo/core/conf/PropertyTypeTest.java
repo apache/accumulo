@@ -23,8 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -64,22 +63,22 @@ public class PropertyTypeTest extends WithTestNames {
     assertEquals("string", PropertyType.STRING.toString());
   }
 
+  /**
+   * This test checks the remainder of the methods in this class to ensure each property type has a
+   * corresponding test
+   */
   @Test
   public void testFullCoverage() {
-    // This test checks the remainder of the methods in this class to ensure each property type has
-    // a corresponding test
-    Stream<String> types = Arrays.stream(PropertyType.values()).map(Enum<PropertyType>::name);
 
-    List<String> typesTested = Arrays.stream(this.getClass().getMethods()).map(Method::getName)
-        .filter(m -> m.startsWith("testType")).map(m -> m.substring(8))
-        .collect(Collectors.toList());
+    String typePrefix = "testType";
+    Set<String> typesTested = Stream.of(this.getClass().getMethods()).map(Method::getName)
+        .filter(m -> m.startsWith(typePrefix)).map(m -> m.substring(typePrefix.length()))
+        .collect(Collectors.toSet());
 
-    types = types.map(t -> {
-      assertTrue(typesTested.contains(t),
-          PropertyType.class.getSimpleName() + "." + t + " does not have a test.");
-      return t;
-    });
-    assertEquals(types.count(), typesTested.size());
+    Set<String> types =
+        Stream.of(PropertyType.values()).map(Enum<PropertyType>::name).collect(Collectors.toSet());
+
+    assertEquals(types, typesTested, "Expected to see a test method for each property type");
   }
 
   private void valid(final String... args) {

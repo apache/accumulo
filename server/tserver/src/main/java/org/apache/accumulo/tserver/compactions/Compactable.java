@@ -62,11 +62,12 @@ public interface Compactable {
         Set<StoredTabletFile> candidates, Collection<CompactionJob> running,
         Map<String,String> executionHints) {
 
-      this.allFiles = Collections.unmodifiableSet(allFiles.entrySet().stream()
+      this.allFiles = allFiles.entrySet().stream()
           .map(entry -> new CompactableFileImpl(entry.getKey(), entry.getValue()))
-          .collect(Collectors.toSet()));
-      this.candidates = Collections.unmodifiableSet(candidates.stream()
-          .map(stf -> new CompactableFileImpl(stf, allFiles.get(stf))).collect(Collectors.toSet()));
+          .collect(Collectors.toUnmodifiableSet());
+      this.candidates =
+          candidates.stream().map(stf -> new CompactableFileImpl(stf, allFiles.get(stf)))
+              .collect(Collectors.toUnmodifiableSet());
 
       this.compacting = Set.copyOf(running);
 
