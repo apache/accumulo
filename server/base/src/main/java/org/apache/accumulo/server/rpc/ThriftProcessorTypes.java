@@ -39,16 +39,20 @@ import org.apache.thrift.TProcessor;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.TServiceClientFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+
 public class ThriftProcessorTypes {
 
-  private static class ProcessorType<C extends TServiceClient,F extends TServiceClientFactory<C>>
+  @VisibleForTesting
+  public static class ProcessorType<C extends TServiceClient,F extends TServiceClientFactory<C>>
       extends ThriftClientType<C,F> {
 
     public ProcessorType(ThriftClientType<C,F> type) {
       super(type.getServiceName(), type.getClientFactory());
     }
 
-    private <I,H extends I,P extends TBaseProcessor<?>> TProcessor getTProcessor(
+    @VisibleForTesting
+    public <I,H extends I,P extends TBaseProcessor<?>> TProcessor getTProcessor(
         Class<P> processorClass, Class<I> interfaceClass, H serviceHandler, ServerContext context,
         AccumuloConfiguration conf) {
       I rpcProxy = TraceUtil.wrapService(serviceHandler);
@@ -65,7 +69,8 @@ public class ThriftProcessorTypes {
     }
   }
 
-  private static final ProcessorType<ClientService.Client,ClientService.Client.Factory> CLIENT =
+  @VisibleForTesting
+  public static final ProcessorType<ClientService.Client,ClientService.Client.Factory> CLIENT =
       new ProcessorType<>(ThriftClientTypes.CLIENT);
 
   private static final ProcessorType<CompactorService.Client,
@@ -92,7 +97,8 @@ public class ThriftProcessorTypes {
       ReplicationServicer.Client.Factory> REPLICATION_SERVICER =
           new ProcessorType<>(ThriftClientTypes.REPLICATION_SERVICER);
 
-  private static final ProcessorType<TabletClientService.Client,
+  @VisibleForTesting
+  public static final ProcessorType<TabletClientService.Client,
       TabletClientService.Client.Factory> TABLET_SERVER =
           new ProcessorType<>(ThriftClientTypes.TABLET_SERVER);
 
