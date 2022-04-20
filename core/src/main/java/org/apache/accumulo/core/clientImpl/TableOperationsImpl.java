@@ -253,11 +253,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  private long beginFateOperation() throws ThriftSecurityException, TException {
+  private long beginFateOperation() throws ThriftSecurityException, TException, AccumuloException {
     while (true) {
-      FateService.Iface client = null;
+      FateService.Client client = null;
       try {
-        client = FateManagerClient.getConnectionWithRetry(context);
+        client = ThriftClientTypes.FATE.getManagerConnectionWithRetry(context);
         return client.beginFateOperation(TraceUtil.traceInfo(), context.rpcCreds());
       } catch (TTransportException tte) {
         log.debug("Failed to call beginFateOperation(), retrying ... ", tte);
@@ -267,7 +267,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         log.debug("Contacted a Manager which is no longer active, retrying");
         sleepUninterruptibly(100, MILLISECONDS);
       } finally {
-        FateManagerClient.close(client, context);
+        ThriftUtil.close(client, context);
       }
     }
   }
@@ -276,11 +276,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
   // anything else it passes to the caller to deal with
   private void executeFateOperation(long opid, FateOperation op, List<ByteBuffer> args,
       Map<String,String> opts, boolean autoCleanUp)
-      throws ThriftSecurityException, TException, ThriftTableOperationException {
+      throws ThriftSecurityException, TException, ThriftTableOperationException, AccumuloException {
     while (true) {
-      FateService.Iface client = null;
+      FateService.Client client = null;
       try {
-        client = FateManagerClient.getConnectionWithRetry(context);
+        client = ThriftClientTypes.FATE.getManagerConnectionWithRetry(context);
         client.executeFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), opid, op, args, opts,
             autoCleanUp);
         return;
@@ -292,17 +292,17 @@ public class TableOperationsImpl extends TableOperationsHelper {
         log.debug("Contacted a Manager which is no longer active, retrying");
         sleepUninterruptibly(100, MILLISECONDS);
       } finally {
-        FateManagerClient.close(client, context);
+        ThriftUtil.close(client, context);
       }
     }
   }
 
   private String waitForFateOperation(long opid)
-      throws ThriftSecurityException, TException, ThriftTableOperationException {
+      throws ThriftSecurityException, TException, ThriftTableOperationException, AccumuloException {
     while (true) {
-      FateService.Iface client = null;
+      FateService.Client client = null;
       try {
-        client = FateManagerClient.getConnectionWithRetry(context);
+        client = ThriftClientTypes.FATE.getManagerConnectionWithRetry(context);
         return client.waitForFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), opid);
       } catch (TTransportException tte) {
         log.debug("Failed to call waitForFateOperation(), retrying ... ", tte);
@@ -312,16 +312,16 @@ public class TableOperationsImpl extends TableOperationsHelper {
         log.debug("Contacted a Manager which is no longer active, retrying");
         sleepUninterruptibly(100, MILLISECONDS);
       } finally {
-        FateManagerClient.close(client, context);
+        ThriftUtil.close(client, context);
       }
     }
   }
 
-  private void finishFateOperation(long opid) throws ThriftSecurityException, TException {
+  private void finishFateOperation(long opid) throws ThriftSecurityException, TException, AccumuloException {
     while (true) {
-      FateService.Iface client = null;
+      FateService.Client client = null;
       try {
-        client = FateManagerClient.getConnectionWithRetry(context);
+        client = ThriftClientTypes.FATE.getManagerConnectionWithRetry(context);
         client.finishFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), opid);
         break;
       } catch (TTransportException tte) {
@@ -332,7 +332,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         log.debug("Contacted a Manager which is no longer active, retrying");
         sleepUninterruptibly(100, MILLISECONDS);
       } finally {
-        FateManagerClient.close(client, context);
+        ThriftUtil.close(client, context);
       }
     }
   }
@@ -947,9 +947,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
       // so pass the tableid to both calls
 
       while (true) {
-        ManagerClientService.Iface client = null;
+        ManagerClientService.Client client = null;
         try {
-          client = ManagerClient.getConnectionWithRetry(context);
+          client = ThriftClientTypes.MANAGER.getManagerConnectionWithRetry(context);
           flushID =
               client.initiateFlush(TraceUtil.traceInfo(), context.rpcCreds(), tableId.canonical());
           break;
@@ -961,14 +961,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
           log.debug("Contacted a Manager which is no longer active, retrying");
           sleepUninterruptibly(100, MILLISECONDS);
         } finally {
-          ManagerClient.close(client, context);
+          ThriftUtil.close(client, context);
         }
       }
 
       while (true) {
-        ManagerClientService.Iface client = null;
+        ManagerClientService.Client client = null;
         try {
-          client = ManagerClient.getConnectionWithRetry(context);
+          client = ThriftClientTypes.MANAGER.getManagerConnectionWithRetry(context);
           client.waitForFlush(TraceUtil.traceInfo(), context.rpcCreds(), tableId.canonical(),
               TextUtil.getByteBuffer(start), TextUtil.getByteBuffer(end), flushID,
               wait ? Long.MAX_VALUE : 1);
@@ -981,7 +981,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           log.debug("Contacted a Manager which is no longer active, retrying");
           sleepUninterruptibly(100, MILLISECONDS);
         } finally {
-          ManagerClient.close(client, context);
+          ThriftUtil.close(client, context);
         }
       }
     } catch (ThriftSecurityException e) {
@@ -1465,7 +1465,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         // this operation may us a lot of memory... its likely that connections to tabletservers
         // hosting metadata tablets will be cached, so do not use cached
         // connections
-        pair = ServerClient.getConnection(context, ThriftClientTypes.CLIENT, false);
+        pair = ThriftClientTypes.CLIENT.getTabletServerConnection(context, false);
         diskUsages = pair.getSecond().getDiskUsage(tableNames, context.rpcCreds());
       } catch (ThriftTableOperationException e) {
         switch (e.getType()) {
@@ -1492,7 +1492,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       } finally {
         // must always return thrift connection
         if (pair != null)
-          ServerClient.close(pair.getSecond(), context);
+          ThriftUtil.close(pair.getSecond(), context);
       }
     }
 

@@ -30,6 +30,7 @@ import org.apache.accumulo.core.clientImpl.ManagerClient;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
+import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -53,11 +54,11 @@ public class ListBulkCommand extends Command {
     List<String> tservers;
 
     ManagerMonitorInfo stats;
-    ManagerClientService.Iface client = null;
+    ManagerClientService.Client client = null;
     ClientContext context = shellState.getContext();
     while (true) {
       try {
-        client = ManagerClient.getConnectionWithRetry(context);
+        client = ManagerClient.getManagerConnectionWithRetry(context);
         stats = client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
         break;
       } catch (ThriftNotActiveServiceException e) {
@@ -65,7 +66,7 @@ public class ListBulkCommand extends Command {
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
         if (client != null)
-          ManagerClient.close(client, context);
+          ThriftUtil.close(client, context);
       }
     }
 

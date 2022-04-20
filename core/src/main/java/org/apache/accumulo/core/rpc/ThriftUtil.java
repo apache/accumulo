@@ -148,6 +148,15 @@ public class ThriftUtil {
     return createClient(type, transport);
   }
 
+  public static void close(TServiceClient client, ClientContext context) {
+    if (client != null && client.getInputProtocol() != null
+        && client.getInputProtocol().getTransport() != null) {
+      context.getTransportPool().returnTransport(client.getInputProtocol().getTransport());
+    } else {
+      log.debug("Attempt to close null connection to a server", new Exception());
+    }
+  }
+
   /**
    * Return the transport used by the client to the shared pool.
    *

@@ -19,6 +19,7 @@
 package org.apache.accumulo.shell.commands;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -30,14 +31,21 @@ import java.util.Formatter;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.FateManagerClient;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.manager.thrift.FateService;
+import org.apache.accumulo.core.rpc.ThriftClientTypes;
+import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.ReadOnlyRepo;
@@ -54,6 +62,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
 
 import com.google.gson.Gson;
@@ -272,7 +281,7 @@ public class FateCommand extends Command {
       boolean cancelTx =
           line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
       if (cancelTx) {
-        boolean cancelled = FateManagerClient.cancelFateOperation(context, txid);
+        boolean cancelled = cancelFateOperation(context, txid, shellState);
         if (cancelled) {
           shellState.getWriter()
               .println("FaTE transaction " + txid + " was cancelled or already completed.");
@@ -286,6 +295,34 @@ public class FateCommand extends Command {
     }
     return true;
   }
+  
+  private static boolean cancelFateOperation(ClientContext context, long txid, final Shell shellState)
+      throws AccumuloException, AccumuloSecurityException {
+    while (true) {
+      FateService.Client client = null;
+      try {
+        client = ThriftClientTypes.FATE.getManagerConnectionWithRetry(context);
+        return client.cancelFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), txid);
+      } catch (TTransportException tte) {
+        shellState.getWriter().println("ManagerClient request failed, retrying. Cause: " + tte.getMessage());
+        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+      } catch (ThriftSecurityException e) {
+        throw new AccumuloSecurityException(e.user, e.code, e);
+      } catch (ThriftTableOperationException e) {
+        throw new AccumuloException(e);
+      } catch (ThriftNotActiveServiceException e) {
+        // Let it loop, fetching a new location
+        shellState.getWriter().println("Contacted a Manager which is no longer active, " +
+            "re-creating the connection to the active Manager");
+      } catch (Exception e) {
+        throw new AccumuloException(e);
+      } finally {
+        if (client != null)
+          ThriftUtil.close(client, context);
+      }
+    }
+  }
+  
 
   public boolean failTx(AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs, ZooReaderWriter zk,
       ServiceLockPath managerLockPath, String[] args) {

@@ -86,13 +86,13 @@ public class ServerClient {
     return executeRaw(context, ThriftClientTypes.CLIENT, exec);
   }
 
-  public static <CT extends TServiceClient,RT> RT executeRaw(ClientContext context,
-      ThriftClientType<CT,?> type, ClientExecReturn<RT,CT> exec) throws Exception {
+  private static <RT> RT executeRaw(ClientContext context,
+      ThriftClientType<ClientService.Client,?> type, ClientExecReturn<RT,ClientService.Client> exec) throws Exception {
     while (true) {
-      CT client = null;
+      ClientService.Client client = null;
       String server = null;
       try {
-        Pair<String,CT> pair = ServerClient.getConnection(context, type, true);
+        Pair<String,ClientService.Client> pair = ThriftClientTypes.CLIENT.getTabletServerConnection(context, true);
         server = pair.getFirst();
         client = pair.getSecond();
         return exec.execute(client);
@@ -103,7 +103,7 @@ public class ServerClient {
         sleepUninterruptibly(100, MILLISECONDS);
       } finally {
         if (client != null)
-          ServerClient.close(client, context);
+          ThriftUtil.close(client, context);
       }
     }
   }
@@ -115,7 +115,7 @@ public class ServerClient {
       String server = null;
       try {
         Pair<String,Client> pair =
-            ServerClient.getConnection(context, ThriftClientTypes.CLIENT, true);
+            ThriftClientTypes.CLIENT.getTabletServerConnection(context, true);
         server = pair.getFirst();
         client = pair.getSecond();
         exec.execute(client);
@@ -127,62 +127,9 @@ public class ServerClient {
         sleepUninterruptibly(100, MILLISECONDS);
       } finally {
         if (client != null)
-          ServerClient.close(client, context);
+          ThriftUtil.close(client, context);
       }
     }
   }
 
-  static volatile boolean warnedAboutTServersBeingDown = false;
-
-  public static <CT extends TServiceClient> Pair<String,CT> getConnection(ClientContext context,
-      ThriftClientType<CT,?> type, boolean preferCachedConnections) throws TTransportException {
-    checkArgument(context != null, "context is null");
-    long rpcTimeout = context.getClientTimeoutInMillis();
-    // create list of servers
-    ArrayList<ThriftTransportKey> servers = new ArrayList<>();
-
-    // add tservers
-    ZooCache zc = context.getZooCache();
-    for (String tserver : zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS)) {
-      var zLocPath =
-          ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + tserver);
-      byte[] data = zc.getLockData(zLocPath);
-      if (data != null) {
-        String strData = new String(data, UTF_8);
-        if (!strData.equals("manager"))
-          servers.add(new ThriftTransportKey(
-              new ServerServices(strData).getAddress(Service.TSERV_CLIENT), rpcTimeout, context));
-      }
-    }
-
-    boolean opened = false;
-    try {
-      Pair<String,TTransport> pair =
-          context.getTransportPool().getAnyTransport(servers, preferCachedConnections);
-      CT client = ThriftUtil.createClient(type, pair.getSecond());
-      opened = true;
-      warnedAboutTServersBeingDown = false;
-      return new Pair<>(pair.getFirst(), client);
-    } finally {
-      if (!opened) {
-        if (!warnedAboutTServersBeingDown) {
-          if (servers.isEmpty()) {
-            log.warn("There are no tablet servers: check that zookeeper and accumulo are running.");
-          } else {
-            log.warn("Failed to find an available server in the list of servers: {}", servers);
-          }
-          warnedAboutTServersBeingDown = true;
-        }
-      }
-    }
-  }
-
-  public static void close(TServiceClient client, ClientContext context) {
-    if (client != null && client.getInputProtocol() != null
-        && client.getInputProtocol().getTransport() != null) {
-      context.getTransportPool().returnTransport(client.getInputProtocol().getTransport());
-    } else {
-      log.debug("Attempt to close null connection to a server", new Exception());
-    }
-  }
 }

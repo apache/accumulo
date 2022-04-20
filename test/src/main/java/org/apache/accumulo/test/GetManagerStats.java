@@ -35,18 +35,19 @@ import org.apache.accumulo.core.master.thrift.BulkImportStatus;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.TableInfoUtil;
 
 public class GetManagerStats {
   public static void main(String[] args) throws Exception {
-    ManagerClientService.Iface client = null;
+    ManagerClientService.Client client = null;
     ManagerMonitorInfo stats = null;
     var context = new ServerContext(SiteConfiguration.auto());
     while (true) {
       try {
-        client = ManagerClient.getConnectionWithRetry(context);
+        client = ManagerClient.getManagerConnectionWithRetry(context);
         stats = client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
         break;
       } catch (ThriftNotActiveServiceException e) {
@@ -54,7 +55,7 @@ public class GetManagerStats {
         sleepUninterruptibly(100, MILLISECONDS);
       } finally {
         if (client != null) {
-          ManagerClient.close(client, context);
+          ThriftUtil.close(client, context);
         }
       }
     }

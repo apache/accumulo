@@ -39,6 +39,7 @@ import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
@@ -80,10 +81,10 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
       ManagerMonitorInfo stats = null;
       int unassignedTablets = 1;
       for (int i = 0; unassignedTablets > 0 && i < 20; i++) {
-        ManagerClientService.Iface client = null;
+        ManagerClientService.Client client = null;
         while (true) {
           try {
-            client = ManagerClient.getConnectionWithRetry((ClientContext) c);
+            client = ManagerClient.getManagerConnectionWithRetry((ClientContext) c);
             stats = client.getManagerStats(TraceUtil.traceInfo(),
                 creds.toThrift(c.instanceOperations().getInstanceId()));
             break;
@@ -92,7 +93,7 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
             sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
           } finally {
             if (client != null)
-              ManagerClient.close(client, (ClientContext) c);
+              ThriftUtil.close(client, (ClientContext) c);
           }
         }
         unassignedTablets = stats.getUnassignedTablets();

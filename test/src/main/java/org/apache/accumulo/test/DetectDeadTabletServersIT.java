@@ -35,6 +35,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService.Client;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.fate.util.UtilWaitThread;
@@ -93,7 +94,7 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
     Client client = null;
     while (true) {
       try {
-        client = ManagerClient.getConnectionWithRetry(context);
+        client = ManagerClient.getManagerConnectionWithRetry(context);
         log.info("Fetching manager stats");
         return client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
       } catch (ThriftNotActiveServiceException e) {
@@ -101,7 +102,7 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
         if (client != null) {
-          ManagerClient.close(client, context);
+          ThriftUtil.close(client, context);
         }
       }
     }

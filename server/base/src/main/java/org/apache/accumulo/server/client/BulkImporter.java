@@ -40,7 +40,6 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ServerClient;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
@@ -257,7 +256,7 @@ public class BulkImporter {
       return assignmentStats;
     } finally {
       if (client != null) {
-        ServerClient.close(client, context);
+        ThriftUtil.close(client, context);
       }
     }
   }

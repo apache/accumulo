@@ -43,6 +43,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
+import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -151,11 +152,11 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
       log.debug("fetch the list of tablets assigned to each tserver.");
 
-      ManagerClientService.Iface client = null;
+      ManagerClientService.Client client = null;
       ManagerMonitorInfo stats;
       while (true) {
         try {
-          client = ManagerClient.getConnectionWithRetry((ClientContext) accumuloClient);
+          client = ManagerClient.getManagerConnectionWithRetry((ClientContext) accumuloClient);
           stats = client.getManagerStats(TraceUtil.traceInfo(),
               creds.toThrift(accumuloClient.instanceOperations().getInstanceId()));
           break;
@@ -169,7 +170,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
           throw new AccumuloException(exception);
         } finally {
           if (client != null) {
-            ManagerClient.close(client, (ClientContext) accumuloClient);
+            ThriftUtil.close(client, (ClientContext) accumuloClient);
           }
         }
       }

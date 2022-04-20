@@ -18,12 +18,8 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-
-import java.net.UnknownHostException;
-import java.util.List;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -35,8 +31,6 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.rpc.ThriftClientTypes;
 import org.apache.accumulo.core.rpc.ThriftUtil;
-import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,53 +38,6 @@ import org.slf4j.LoggerFactory;
 public class ManagerClient {
   private static final Logger log = LoggerFactory.getLogger(ManagerClient.class);
 
-  public static ManagerClientService.Client getConnectionWithRetry(ClientContext context) {
-    while (true) {
-
-      ManagerClientService.Client result = getConnection(context);
-      if (result != null)
-        return result;
-      sleepUninterruptibly(250, MILLISECONDS);
-    }
-  }
-
-  public static ManagerClientService.Client getConnection(ClientContext context) {
-    checkArgument(context != null, "context is null");
-
-    List<String> locations = context.getManagerLocations();
-
-    if (locations.isEmpty()) {
-      log.debug("No managers...");
-      return null;
-    }
-
-    HostAndPort manager = HostAndPort.fromString(locations.get(0));
-    if (manager.getPort() == 0)
-      return null;
-
-    try {
-      // Manager requests can take a long time: don't ever time out
-      return ThriftUtil.getClientNoTimeout(ThriftClientTypes.MANAGER, manager, context);
-    } catch (TTransportException tte) {
-      Throwable cause = tte.getCause();
-      if (cause != null && cause instanceof UnknownHostException) {
-        // do not expect to recover from this
-        throw new RuntimeException(tte);
-      }
-      log.debug("Failed to connect to manager=" + manager + ", will retry... ", tte);
-      return null;
-    }
-  }
-
-  public static void close(ManagerClientService.Iface iface, ClientContext context) {
-    TServiceClient client = (TServiceClient) iface;
-    if (client != null && client.getInputProtocol() != null
-        && client.getInputProtocol().getTransport() != null) {
-      context.getTransportPool().returnTransport(client.getInputProtocol().getTransport());
-    } else {
-      log.debug("Attempt to close null connection to the manager", new Exception());
-    }
-  }
 
   public static <T> T execute(ClientContext context,
       ClientExecReturn<T,ManagerClientService.Client> exec)
@@ -98,7 +45,7 @@ public class ManagerClient {
     ManagerClientService.Client client = null;
     while (true) {
       try {
-        client = getConnectionWithRetry(context);
+        client = ThriftClientTypes.MANAGER.getManagerConnectionWithRetry(context);
         return exec.execute(client);
       } catch (TTransportException tte) {
         log.debug("ManagerClient request failed, retrying ... ", tte);
@@ -124,7 +71,7 @@ public class ManagerClient {
         throw new AccumuloException(e);
       } finally {
         if (client != null)
-          close(client, context);
+          ThriftUtil.close(client, context);
       }
     }
   }
@@ -135,7 +82,7 @@ public class ManagerClient {
     ManagerClientService.Client client = null;
     while (true) {
       try {
-        client = getConnectionWithRetry(context);
+        client = ThriftClientTypes.MANAGER.getManagerConnectionWithRetry(context);
         exec.execute(client);
         break;
       } catch (TTransportException tte) {
@@ -162,7 +109,7 @@ public class ManagerClient {
         throw new AccumuloException(e);
       } finally {
         if (client != null)
-          close(client, context);
+          ThriftUtil.close(client, context);
       }
     }
   }

@@ -39,6 +39,7 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
@@ -87,7 +88,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
         Client client = null;
         try {
           ClientContext context = (ClientContext) c;
-          client = ManagerClient.getConnectionWithRetry(context);
+          client = ManagerClient.getManagerConnectionWithRetry(context);
           log.info("Fetching stats");
           stats = client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
         } catch (ThriftNotActiveServiceException e) {
@@ -96,7 +97,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
           continue;
         } finally {
           if (client != null)
-            ManagerClient.close(client, (ClientContext) c);
+            ThriftUtil.close(client, (ClientContext) c);
         }
         int tablets = 0;
         for (TabletServerStatus tserver : stats.tServerInfo) {

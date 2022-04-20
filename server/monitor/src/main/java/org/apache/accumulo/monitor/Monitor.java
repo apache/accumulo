@@ -269,9 +269,9 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     // Otherwise, we'll never release the lock by unsetting 'fetching' in the the finally block
     try {
       while (retry) {
-        ManagerClientService.Iface client = null;
+        ManagerClientService.Client client = null;
         try {
-          client = ManagerClient.getConnection(context);
+          client = ManagerClient.getManagerConnection(context);
           if (client != null) {
             mmi = client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
             retry = false;
@@ -285,7 +285,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
           log.info("Error fetching stats: ", e);
         } finally {
           if (client != null) {
-            ManagerClient.close(client, context);
+            ThriftUtil.close(client, context);
           }
         }
         if (mmi == null) {

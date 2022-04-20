@@ -41,6 +41,7 @@ import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.fate.util.UtilWaitThread;
@@ -111,10 +112,10 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
     ManagerMonitorInfo stats = null;
     int unassignedTablets = 1;
     for (int i = 0; unassignedTablets > 0 && i < 10; i++) {
-      ManagerClientService.Iface client = null;
+      ManagerClientService.Client client = null;
       while (true) {
         try {
-          client = ManagerClient.getConnectionWithRetry(context);
+          client = ManagerClient.getManagerConnectionWithRetry(context);
           stats = client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
           break;
         } catch (ThriftNotActiveServiceException e) {
@@ -123,7 +124,7 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         } finally {
           if (client != null)
-            ManagerClient.close(client, context);
+            ThriftUtil.close(client, context);
         }
       }
       unassignedTablets = stats.getUnassignedTablets();
