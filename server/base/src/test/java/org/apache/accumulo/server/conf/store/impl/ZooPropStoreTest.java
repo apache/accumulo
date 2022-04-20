@@ -54,7 +54,7 @@ import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.PropStoreException;
-import org.apache.accumulo.server.conf.util.TransformLock;
+import org.apache.accumulo.server.conf.util.TransformToken;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.easymock.Capture;
@@ -420,7 +420,7 @@ public class ZooPropStoreTest {
         .andReturn(List.of("master.bulk.retries", "master.bulk.timeout")).once();
 
     // transform lock calls
-    String lockPath = sysKey.getBasePath() + TransformLock.LOCK_NAME;
+    String lockPath = sysKey.getBasePath() + TransformToken.TRANSFORM_TOKEN;
     expect(zrw.exists(lockPath)).andReturn(false).once();
     Capture<byte[]> lockId = newCapture();
     zrw.putEphemeralData(eq(lockPath), capture(lockId));

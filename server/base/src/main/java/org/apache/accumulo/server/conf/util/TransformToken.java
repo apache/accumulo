@@ -34,9 +34,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Provides a lock used in property conversion. The lock is limit the number of processes that try
- * to create a property node and transform the legacy property format to the 2.1 encoded properties.
- * Processes do not queue for a lock (using a sequential node)
+ * Provides a token used in property conversion. The token is used to limit the number of processes
+ * that try to create a property node and transform the legacy property format to the 2.1 encoded
+ * properties. Processes do not queue for a token (using a sequential node) - processes should look
+ * for the token to exist, and if present wait and then periodically re-check for the property node
+ * to be created by the process that created / has the token.
  * <p>
  * Features
  * <ul>
@@ -46,16 +48,16 @@ import org.slf4j.LoggerFactory;
  * changes.</li>
  * </ul>
  */
-public class TransformLock {
-  public static final String LOCK_NAME = "/transform_lock";
-  private static final Logger log = LoggerFactory.getLogger(TransformLock.class);
-  private final LockId lockId = new LockId();
+public class TransformToken {
+  public static final String TRANSFORM_TOKEN = "/transform_token";
+  private static final Logger log = LoggerFactory.getLogger(TransformToken.class);
+  private final TokenUUID tokenUUID = new TokenUUID();
   private final String path;
   private final ZooReaderWriter zrw;
-  private boolean locked = false;
+  private boolean haveToken = false;
 
-  private TransformLock(final @NonNull PropCacheKey key, final ZooReaderWriter zrw) {
-    path = key.getBasePath() + LOCK_NAME;
+  private TransformToken(final @NonNull PropCacheKey key, final ZooReaderWriter zrw) {
+    path = key.getBasePath() + TRANSFORM_TOKEN;
     this.zrw = zrw;
   }
 
@@ -74,15 +76,15 @@ public class TransformLock {
    * @throws PropStoreException
    *           is the lock creation fails due to an underlying ZooKeeper exception.
    */
-  public static TransformLock createLock(final @NonNull PropCacheKey key,
+  public static TransformToken createToken(final @NonNull PropCacheKey key,
       final ZooReaderWriter zrw) {
-    TransformLock lock = new TransformLock(key, zrw);
-    lock.locked = lock.lock();
-    return lock;
+    TransformToken token = new TransformToken(key, zrw);
+    token.haveToken = token.holdToken();
+    return token;
   }
 
-  public boolean lock() {
-    if (locked) {
+  public boolean holdToken() {
+    if (haveToken) {
       return true;
     }
     try {
@@ -91,8 +93,8 @@ public class TransformLock {
         return false;
       }
       // if this completes this thread has created the lock
-      zrw.putEphemeralData(path, lockId.asBytes());
-      log.trace("wrote property upgrade lock: {} - {}", path, lockId);
+      zrw.putEphemeralData(path, tokenUUID.asBytes());
+      log.trace("wrote property upgrade lock: {} - {}", path, tokenUUID);
       return true;
     } catch (KeeperException ex) {
       log.debug(
@@ -106,12 +108,12 @@ public class TransformLock {
   }
 
   /**
-   * Return the lock status
+   * Return the token status
    *
-   * @return true if this instance has created the lock, false otherwise.
+   * @return true if this instance has created the token, false otherwise.
    */
-  public boolean isLocked() {
-    return locked;
+  public boolean haveToken() {
+    return haveToken;
   }
 
   /**
@@ -119,11 +121,11 @@ public class TransformLock {
    *
    * @return true if lock is valid, false otherwise
    */
-  public boolean validateLock() {
+  public boolean validateToken() {
     try {
       byte[] readId = zrw.getData(path);
-      log.trace("validate lock: read: {} - expected: {}", readId, lockId);
-      return Arrays.equals(readId, lockId.asBytes());
+      log.trace("validate token: read: {} - expected: {}", readId, tokenUUID);
+      return Arrays.equals(readId, tokenUUID.asBytes());
     } catch (KeeperException ex) {
       throw new PropStoreException("Failed to validate lock", ex);
     } catch (InterruptedException ex) {
@@ -136,28 +138,28 @@ public class TransformLock {
    * If the lock was created by this instance the uuid created nad the uuid stored in the ZooKeeper
    * data will match.
    */
-  public void unLock() {
+  public void releaseToken() {
     try {
-      log.trace("unlock called - {} - exists in ZooKeeper: {}", path, zrw.exists(path));
+      log.trace("releaseToken called - {} - exists in ZooKeeper: {}", path, zrw.exists(path));
 
       Stat stat = new Stat();
       byte[] readId = zrw.getData(path, stat);
-      if (!Arrays.equals(readId, lockId.asBytes())) {
-        throw new PropStoreException("tried to unlock a lock that was not held by current thread",
+      if (!Arrays.equals(readId, tokenUUID.asBytes())) {
+        throw new PropStoreException("tried to release a token that was not held by current thread",
             null);
       }
 
-      log.trace("unlock read id: {} - exists: {}", readId, zrw.exists(path));
+      log.trace("releaseToken read id: {} - exists: {}", readId, zrw.exists(path));
 
       // make sure we are deleting the same node version just checked.
       zrw.deleteStrict(path, stat.getVersion());
     } catch (KeeperException ex) {
-      throw new PropStoreException("Failed to unlock transform lock for " + path, ex);
+      throw new PropStoreException("Failed to release transform lock for " + path, ex);
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
-      throw new PropStoreException("Interrupted getting transform lock", ex);
+      throw new PropStoreException("Interrupted getting transform token", ex);
     }
-    locked = false;
+    haveToken = false;
   }
 
   @Override
@@ -166,21 +168,21 @@ public class TransformLock {
       return true;
     if (o == null || getClass() != o.getClass())
       return false;
-    TransformLock that = (TransformLock) o;
-    return path.equals(that.path) && Arrays.equals(lockId.asBytes(), that.lockId.asBytes());
+    TransformToken that = (TransformToken) o;
+    return path.equals(that.path) && Arrays.equals(tokenUUID.asBytes(), that.tokenUUID.asBytes());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(path, Arrays.hashCode(lockId.asBytes()));
+    return Objects.hash(path, Arrays.hashCode(tokenUUID.asBytes()));
   }
 
   @Override
   public String toString() {
-    return "TransformLock{ path='" + path + "', locked='" + locked + "' id=" + lockId + "'}'";
+    return "TransformLock{ path='" + path + "', locked='" + haveToken + "' id=" + tokenUUID + "'}'";
   }
 
-  private static class LockId {
+  private static class TokenUUID {
     private final String id = UUID.randomUUID().toString();
     private final byte[] idBytes = id.getBytes(UTF_8);
 

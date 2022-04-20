@@ -45,7 +45,7 @@ import org.apache.accumulo.server.conf.store.PropStoreException;
 import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.conf.util.ConfigTransformer;
-import org.apache.accumulo.server.conf.util.TransformLock;
+import org.apache.accumulo.server.conf.util.TransformToken;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZKUtil;
@@ -161,7 +161,7 @@ public class ConfigTransformerTest {
 
     ConfigTransformer transformer = new ConfigTransformer(zrw, codec, watcher, retry);
     // manually create a lock so transformer fails
-    zrw.putEphemeralData(sysPropKey.getBasePath() + TransformLock.LOCK_NAME, new byte[0]);
+    zrw.putEphemeralData(sysPropKey.getBasePath() + TransformToken.TRANSFORM_TOKEN, new byte[0]);
 
     assertThrows(PropStoreException.class, () -> transformer.transform(sysPropKey));
 

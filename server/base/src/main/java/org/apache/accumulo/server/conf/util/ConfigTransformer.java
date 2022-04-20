@@ -105,13 +105,13 @@ public class ConfigTransformer {
    * @return the encoded properties.
    */
   public VersionedProperties transform(final PropCacheKey propCacheKey) {
-    TransformLock lock = TransformLock.createLock(propCacheKey, zrw);
-    return transform(propCacheKey, lock);
+    TransformToken token = TransformToken.createToken(propCacheKey, zrw);
+    return transform(propCacheKey, token);
   }
 
-  // Allow external (mocked) TransformLock to be used
+  // Allow external (mocked) TransformToken to be used
   @VisibleForTesting
-  VersionedProperties transform(final PropCacheKey propCacheKey, final TransformLock lock) {
+  VersionedProperties transform(final PropCacheKey propCacheKey, final TransformToken token) {
 
     log.info("checking for legacy property upgrade transform for {}", propCacheKey);
 
@@ -125,30 +125,30 @@ public class ConfigTransformer {
         log.debug(
             "Found existing node at {}. skipping legacy prop conversion - version: {}, timestamp: {}",
             propCacheKey, results.getDataVersion(), results.getTimestamp());
-        var keyBasePath = propCacheKey.getBasePath();
         return results;
       }
 
-      while (!lock.isLocked()) {
+      while (!token.haveToken()) {
         try {
           retry.useRetry();
           retry.waitForNextAttempt();
-          // look and return node if created while trying to lock.
-          log.trace("have lock - look for existing encoded node at: {}", propCacheKey.getPath());
+          // look and return node if created while trying to token.
+          log.trace("own the token - look for existing encoded node at: {}",
+              propCacheKey.getPath());
           results = ZooPropStore.readFromZk(propCacheKey, propStoreWatcher, zrw);
           if (results != null) {
             log.debug(
-                "Found existing node after locked at {}. skipping legacy prop conversion - version: {}, timestamp: {}",
+                "Found existing node after getting token at {}. skipping legacy prop conversion - version: {}, timestamp: {}",
                 propCacheKey, results.getDataVersion(), results.getTimestamp());
             return results;
           }
           // still does not exist - try again.
-          lock.lock();
+          token.holdToken();
         } catch (InterruptedException ex) {
           Thread.currentThread().interrupt();
-          throw new PropStoreException("Failed to get transform lock for " + propCacheKey, ex);
+          throw new PropStoreException("Failed to hold transform token for " + propCacheKey, ex);
         } catch (IllegalStateException ex) {
-          throw new PropStoreException("Failed to get transform lock for " + propCacheKey, ex);
+          throw new PropStoreException("Failed to hold transform token for " + propCacheKey, ex);
         }
       }
 
@@ -170,10 +170,10 @@ public class ConfigTransformer {
         throw new PropStoreException("Could not create properties for " + propCacheKey, null);
       }
 
-      // validate lock still valid before deletion.
-      if (!lock.validateLock()) {
+      // validate token still valid before deletion.
+      if (!token.validateToken()) {
         throw new PropStoreException(
-            "legacy conversion failed. Lost transform lock for " + propCacheKey, null);
+            "legacy conversion failed. Lost transform token for " + propCacheKey, null);
       }
 
       int errorCount = deleteLegacyProps(upgradeNodes);
@@ -186,7 +186,7 @@ public class ConfigTransformer {
     } catch (Exception ex) {
       log.info("Exception on upgrading legacy properties for: " + propCacheKey, ex);
     } finally {
-      lock.unLock();
+      token.releaseToken();
     }
     return null;
   }
@@ -217,14 +217,14 @@ public class ConfigTransformer {
     Set<LegacyPropNode> legacyProps = new TreeSet<>();
 
     // strip leading slash
-    var lockName = TransformLock.LOCK_NAME.substring(1);
+    var tokenName = TransformToken.TRANSFORM_TOKEN.substring(1);
 
     try {
       var keyBasePath = propCacheKey.getBasePath();
       List<String> childNames = zrw.getChildren(keyBasePath);
       for (String propName : childNames) {
         log.trace("processing ZooKeeper child node: {} for: {}", propName, propCacheKey);
-        if (lockName.equals(propName)) {
+        if (tokenName.equals(propName)) {
           continue;
         }
         if (PropCacheKey.PROP_NODE_NAME.equals(propName)) {

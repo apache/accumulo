@@ -40,7 +40,7 @@ import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStoreException;
 import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
-import org.apache.accumulo.server.conf.util.TransformLock;
+import org.apache.accumulo.server.conf.util.TransformToken;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZKUtil;
@@ -54,7 +54,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 @Tag(ZOOKEEPER_TESTING_SERVER)
-public class TransformLockTest {
+public class TransformTokenTest {
 
   @TempDir
   private static File tempDir;
@@ -93,7 +93,7 @@ public class TransformLockTest {
   }
 
   @Test
-  public void lockGoPathTest() throws Exception {
+  public void tokenGoPathTest() throws Exception {
 
     List<LegacyPropData.PropNode> nodes = LegacyPropData.getData(instanceId);
     for (LegacyPropData.PropNode node : nodes) {
@@ -113,19 +113,19 @@ public class TransformLockTest {
 
     var sysPropKey = PropCacheKey.forSystem(instanceId);
 
-    TransformLock lock = TransformLock.createLock(sysPropKey, zrw);
+    TransformToken token = TransformToken.createToken(sysPropKey, zrw);
 
-    assertTrue(lock.isLocked());
-    lock.unLock();
-    assertFalse(lock.isLocked());
+    assertTrue(token.haveToken());
+    token.releaseToken();
+    assertFalse(token.haveToken());
 
     // relock by getting a new lock
-    TransformLock lock2 = TransformLock.createLock(sysPropKey, zrw);
-    assertTrue(lock2.isLocked());
+    TransformToken lock2 = TransformToken.createToken(sysPropKey, zrw);
+    assertTrue(lock2.haveToken());
 
     // fail with a current lock node present
-    TransformLock lock3 = TransformLock.createLock(sysPropKey, zrw);
-    assertFalse(lock3.isLocked());
+    TransformToken lock3 = TransformToken.createToken(sysPropKey, zrw);
+    assertFalse(lock3.haveToken());
 
   }
 
@@ -149,24 +149,23 @@ public class TransformLockTest {
     replay(context, watcher);
 
     var sysPropKey = PropCacheKey.forSystem(instanceId);
-    var lockPath = sysPropKey.getBasePath() + TransformLock.LOCK_NAME;
+    var tokenPath = sysPropKey.getBasePath() + TransformToken.TRANSFORM_TOKEN;
 
-    TransformLock lock = TransformLock.createLock(sysPropKey, zrw);
+    TransformToken lock = TransformToken.createToken(sysPropKey, zrw);
 
     // force change in lock
-    assertTrue(lock.isLocked());
-    zrw.mutateExisting(lockPath, v -> UUID.randomUUID().toString().getBytes(UTF_8));
-    assertThrows(PropStoreException.class, lock::unLock,
+    assertTrue(lock.haveToken());
+    zrw.mutateExisting(tokenPath, v -> UUID.randomUUID().toString().getBytes(UTF_8));
+    assertThrows(PropStoreException.class, lock::releaseToken,
         "Expected unlock to fail on different UUID");
 
     // clean-up and get new lock
-    zrw.delete(lockPath);
-    TransformLock lock3 = TransformLock.createLock(sysPropKey, zrw);
-    assertTrue(lock3.isLocked());
-    zrw.delete(lockPath);
-    assertThrows(PropStoreException.class, lock::unLock,
+    zrw.delete(tokenPath);
+    TransformToken lock3 = TransformToken.createToken(sysPropKey, zrw);
+    assertTrue(lock3.haveToken());
+    zrw.delete(tokenPath);
+    assertThrows(PropStoreException.class, lock::releaseToken,
         "Expected unlock to fail when no lock present");
 
   }
-
 }
