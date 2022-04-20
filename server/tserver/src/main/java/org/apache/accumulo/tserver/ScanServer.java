@@ -45,8 +45,6 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
-import org.apache.accumulo.core.clientImpl.thrift.TDiskUsage;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -93,10 +91,8 @@ import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
 import org.apache.accumulo.core.tabletserver.thrift.TSamplerConfiguration;
 import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -110,10 +106,10 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.rpc.ServerAddress;
-import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
 import org.apache.accumulo.server.rpc.TServerUtils;
-import org.apache.accumulo.server.rpc.ThriftServerType;
+import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.security.SecurityUtil;
+import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
 import org.apache.accumulo.tserver.compactions.Compactable;
 import org.apache.accumulo.tserver.compactions.CompactionManager;
@@ -127,6 +123,7 @@ import org.apache.accumulo.tserver.session.SingleScanSession;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletData;
 import org.apache.thrift.TException;
+import org.apache.thrift.TProcessor;
 import org.apache.zookeeper.KeeperException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
@@ -221,7 +218,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
 
   private static final Logger LOG = LoggerFactory.getLogger(ScanServer.class);
 
-  protected ThriftClientHandler handler;
+  protected TabletClientHandler delegate;
   private UUID serverLockUUID;
   private final TabletMetadataLoader tabletMetadataLoader;
   private final LoadingCache<KeyExtent,TabletMetadata> tabletMetadataCache;
@@ -286,7 +283,9 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
           Caffeine.newBuilder().expireAfterWrite(cacheExpiration, TimeUnit.MILLISECONDS)
               .scheduler(Scheduler.systemScheduler()).build(tabletMetadataLoader);
     }
-    handler = getHandler();
+
+    TransactionWatcher watcher = new TransactionWatcher(getContext());
+    delegate = newTabletClientHandler(watcher);
 
     ThreadPools.watchCriticalScheduledTask(getContext().getScheduledExecutor()
         .scheduleWithFixedDelay(() -> cleanUpReservedFiles(scanServerReservationExpiration),
@@ -296,8 +295,8 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
   }
 
   @VisibleForTesting
-  protected ThriftClientHandler getHandler() {
-    return new ThriftClientHandler(this);
+  protected TabletClientHandler newTabletClientHandler(TransactionWatcher watcher) {
+    return new TabletClientHandler(this, watcher);
   }
 
   /**
@@ -308,12 +307,11 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
    *           host unknown
    */
   protected ServerAddress startScanServerClientService() throws UnknownHostException {
-    Iface rpcProxy = TraceUtil.wrapService(this);
-    if (getContext().getThriftServerType() == ThriftServerType.SASL) {
-      rpcProxy = TCredentialsUpdatingWrapper.service(rpcProxy, getClass(), getConfiguration());
-    }
-    final TabletClientService.Processor<Iface> processor =
-        new TabletClientService.Processor<>(rpcProxy);
+
+    // This class implements TabletClientService.Iface and then delegates calls. Be sure
+    // to set up the ThriftProcessor using this class, not the delegate.
+    TProcessor processor =
+        ThriftProcessorTypes.getScanServerTProcessor(this, getContext(), getConfiguration());
 
     Property maxMessageSizeProperty =
         (getConfiguration().get(Property.SSERV_MAX_MESSAGE_SIZE) != null
@@ -583,7 +581,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
   private Map<KeyExtent,TabletMetadata> reserveFilesInner(Collection<KeyExtent> extents,
       long myReservationId) throws NotServingTabletException, AccumuloException {
     // RFS is an acronym for Reference files for scan
-    LOG.trace("RFFS {} ensuring files are referenced for scan of extents {}", myReservationId,
+    LOG.debug("RFFS {} ensuring files are referenced for scan of extents {}", myReservationId,
         extents);
 
     Map<KeyExtent,TabletMetadata> tabletsMetadata = getTabletMetadata(extents);
@@ -591,13 +589,13 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
     for (KeyExtent extent : extents) {
       var tabletMetadata = tabletsMetadata.get(extent);
       if (tabletMetadata == null) {
-        LOG.trace("RFFS {} extent not found in metadata table {}", myReservationId, extent);
+        LOG.info("RFFS {} extent not found in metadata table {}", myReservationId, extent);
         throw new NotServingTabletException(extent.toThrift());
       }
 
       if (!AssignmentHandler.checkTabletMetadata(extent, getTabletSession(), tabletMetadata,
           true)) {
-        LOG.trace("RFFS {} extent unable to load {} as AssignmentHandler returned false",
+        LOG.info("RFFS {} extent unable to load {} as AssignmentHandler returned false",
             myReservationId, extent);
         throw new NotServingTabletException(extent.toThrift());
       }
@@ -644,6 +642,8 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
           TabletMetadata metadataAfter = tabletsToCheckMetadata.get(extent);
           if (metadataAfter == null) {
             getContext().getAmple().deleteScanServerFileReferences(refs);
+            LOG.info("RFFS {} extent unable to load {} as metadata no longer referencing files",
+                myReservationId, extent);
             throw new NotServingTabletException(extent.toThrift());
           }
 
@@ -655,7 +655,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
         // tablets. This means there could have been a time gap where nothing referenced a file
         // meaning it could have been GCed.
         if (!filesToReserve.isEmpty()) {
-          LOG.trace("RFFS {} tablet files changed while attempting to reference files {}",
+          LOG.info("RFFS {} tablet files changed while attempting to reference files {}",
               myReservationId, filesToReserve);
           getContext().getAmple().deleteScanServerFileReferences(refs);
           return null;
@@ -792,6 +792,8 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
         if (extent.equals(t.getExtent())) {
           return t;
         } else {
+          LOG.warn("TabletResolver passed the wrong tablet. Known extent: {}, requested extent: {}",
+              t.getExtent(), extent);
           return null;
         }
       }
@@ -842,7 +844,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
 
       Tablet tablet = reservation.newTablet(extent);
 
-      InitialScan is = handler.startScan(tinfo, credentials, extent, range, columns, batchSize,
+      InitialScan is = delegate.startScan(tinfo, credentials, extent, range, columns, batchSize,
           ssiList, ssio, authorizations, waitForWrites, isolated, readaheadThreshold, samplerConfig,
           batchTimeOut, classLoaderContext, executionHints, getScanTabletResolver(tablet),
           busyTimeout);
@@ -862,14 +864,14 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
     LOG.debug("continue scan: {}", scanID);
 
     try (ScanReservation reservation = reserveFiles(scanID)) {
-      return handler.continueScan(tinfo, scanID, busyTimeout);
+      return delegate.continueScan(tinfo, scanID, busyTimeout);
     }
   }
 
   @Override
   public void closeScan(TInfo tinfo, long scanID) throws TException {
     LOG.debug("close scan: {}", scanID);
-    handler.closeScan(tinfo, scanID);
+    delegate.closeScan(tinfo, scanID);
   }
 
   @Override
@@ -902,7 +904,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
         }
       });
 
-      InitialMultiScan ims = handler.startMultiScan(tinfo, credentials, tcolumns, ssiList, batch,
+      InitialMultiScan ims = delegate.startMultiScan(tinfo, credentials, tcolumns, ssiList, batch,
           ssio, authorizations, waitForWrites, tSamplerConfig, batchTimeOut, contextArg,
           executionHints, getBatchScanTabletResolver(tablets), busyTimeout);
 
@@ -923,14 +925,14 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
     LOG.debug("continue multi scan: {}", scanID);
 
     try (ScanReservation reservation = reserveFiles(scanID)) {
-      return handler.continueMultiScan(tinfo, scanID, busyTimeout);
+      return delegate.continueMultiScan(tinfo, scanID, busyTimeout);
     }
   }
 
   @Override
   public void closeMultiScan(TInfo tinfo, long scanID) throws NoSuchScanIDException, TException {
     LOG.debug("close multi scan: {}", scanID);
-    handler.closeMultiScan(tinfo, scanID);
+    delegate.closeMultiScan(tinfo, scanID);
   }
 
   @Override
@@ -944,168 +946,6 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
     try (ScanServer tserver = new ScanServer(new ServerOpts(), args)) {
       tserver.runServer();
     }
-  }
-
-  @Override
-  public String getRootTabletLocation() throws TException {
-    return null;
-  }
-
-  @Override
-  public String getInstanceId() throws TException {
-    return null;
-  }
-
-  @Override
-  public String getZooKeepers() throws TException {
-    return null;
-  }
-
-  @Override
-  public List<String> bulkImportFiles(TInfo tinfo, TCredentials credentials, long tid,
-      String tableId, List<String> files, String errorDir, boolean setTime)
-      throws ThriftSecurityException, ThriftTableOperationException, TException {
-    return null;
-  }
-
-  @Override
-  public boolean isActive(TInfo tinfo, long tid) throws TException {
-    return false;
-  }
-
-  @Override
-  public void ping(TCredentials credentials) throws ThriftSecurityException, TException {}
-
-  @Override
-  public List<TDiskUsage> getDiskUsage(Set<String> tables, TCredentials credentials)
-      throws ThriftSecurityException, ThriftTableOperationException, TException {
-    return null;
-  }
-
-  @Override
-  public Set<String> listLocalUsers(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException, TException {
-    return null;
-  }
-
-  @Override
-  public void createLocalUser(TInfo tinfo, TCredentials credentials, String principal,
-      ByteBuffer password) throws ThriftSecurityException, TException {}
-
-  @Override
-  public void dropLocalUser(TInfo tinfo, TCredentials credentials, String principal)
-      throws ThriftSecurityException, TException {}
-
-  @Override
-  public void changeLocalUserPassword(TInfo tinfo, TCredentials credentials, String principal,
-      ByteBuffer password) throws ThriftSecurityException, TException {}
-
-  @Override
-  public boolean authenticate(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException, TException {
-    return false;
-  }
-
-  @Override
-  public boolean authenticateUser(TInfo tinfo, TCredentials credentials, TCredentials toAuth)
-      throws ThriftSecurityException, TException {
-    return false;
-  }
-
-  @Override
-  public void changeAuthorizations(TInfo tinfo, TCredentials credentials, String principal,
-      List<ByteBuffer> authorizations) throws ThriftSecurityException, TException {}
-
-  @Override
-  public List<ByteBuffer> getUserAuthorizations(TInfo tinfo, TCredentials credentials,
-      String principal) throws ThriftSecurityException, TException {
-    return null;
-  }
-
-  @Override
-  public boolean hasSystemPermission(TInfo tinfo, TCredentials credentials, String principal,
-      byte sysPerm) throws ThriftSecurityException, TException {
-    return false;
-  }
-
-  @Override
-  public boolean hasTablePermission(TInfo tinfo, TCredentials credentials, String principal,
-      String tableName, byte tblPerm)
-      throws ThriftSecurityException, ThriftTableOperationException, TException {
-    return false;
-  }
-
-  @Override
-  public boolean hasNamespacePermission(TInfo tinfo, TCredentials credentials, String principal,
-      String ns, byte tblNspcPerm)
-      throws ThriftSecurityException, ThriftTableOperationException, TException {
-    return false;
-  }
-
-  @Override
-  public void grantSystemPermission(TInfo tinfo, TCredentials credentials, String principal,
-      byte permission) throws ThriftSecurityException, TException {}
-
-  @Override
-  public void revokeSystemPermission(TInfo tinfo, TCredentials credentials, String principal,
-      byte permission) throws ThriftSecurityException, TException {}
-
-  @Override
-  public void grantTablePermission(TInfo tinfo, TCredentials credentials, String principal,
-      String tableName, byte permission)
-      throws ThriftSecurityException, ThriftTableOperationException, TException {}
-
-  @Override
-  public void revokeTablePermission(TInfo tinfo, TCredentials credentials, String principal,
-      String tableName, byte permission)
-      throws ThriftSecurityException, ThriftTableOperationException, TException {}
-
-  @Override
-  public void grantNamespacePermission(TInfo tinfo, TCredentials credentials, String principal,
-      String ns, byte permission)
-      throws ThriftSecurityException, ThriftTableOperationException, TException {}
-
-  @Override
-  public void revokeNamespacePermission(TInfo tinfo, TCredentials credentials, String principal,
-      String ns, byte permission)
-      throws ThriftSecurityException, ThriftTableOperationException, TException {}
-
-  @Override
-  public Map<String,String> getConfiguration(TInfo tinfo, TCredentials credentials,
-      ConfigurationType type) throws TException {
-    return null;
-  }
-
-  @Override
-  public Map<String,String> getTableConfiguration(TInfo tinfo, TCredentials credentials,
-      String tableName) throws ThriftTableOperationException, TException {
-    return null;
-  }
-
-  @Override
-  public Map<String,String> getNamespaceConfiguration(TInfo tinfo, TCredentials credentials,
-      String ns) throws ThriftTableOperationException, TException {
-    return null;
-  }
-
-  @Override
-  public boolean checkClass(TInfo tinfo, TCredentials credentials, String className,
-      String interfaceMatch) throws TException {
-    return false;
-  }
-
-  @Override
-  public boolean checkTableClass(TInfo tinfo, TCredentials credentials, String tableId,
-      String className, String interfaceMatch)
-      throws ThriftSecurityException, ThriftTableOperationException, TException {
-    return false;
-  }
-
-  @Override
-  public boolean checkNamespaceClass(TInfo tinfo, TCredentials credentials, String namespaceId,
-      String className, String interfaceMatch)
-      throws ThriftSecurityException, ThriftTableOperationException, TException {
-    return false;
   }
 
   @Override
@@ -1213,13 +1053,13 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
 
   @Override
   public void fastHalt(TInfo tinfo, TCredentials credentials, String lock) throws TException {
-    handler.fastHalt(tinfo, credentials, lock);
+    delegate.fastHalt(tinfo, credentials, lock);
   }
 
   @Override
   public List<ActiveScan> getActiveScans(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException, TException {
-    return handler.getActiveScans(tinfo, credentials);
+    return delegate.getActiveScans(tinfo, credentials);
   }
 
   @Override

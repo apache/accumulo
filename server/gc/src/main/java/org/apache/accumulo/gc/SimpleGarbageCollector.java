@@ -49,7 +49,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService.Iface;
-import org.apache.accumulo.core.gc.thrift.GCMonitorService.Processor;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -87,11 +86,11 @@ import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.rpc.ServerAddress;
-import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
 import org.apache.accumulo.server.rpc.TServerUtils;
-import org.apache.accumulo.server.rpc.ThriftServerType;
+import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.thrift.TProcessor;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -667,18 +666,13 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   }
 
   private HostAndPort startStatsService() {
-    Iface rpcProxy = TraceUtil.wrapService(this);
-    final Processor<Iface> processor;
-    if (getContext().getThriftServerType() == ThriftServerType.SASL) {
-      Iface tcProxy = TCredentialsUpdatingWrapper.service(rpcProxy, getClass(), getConfiguration());
-      processor = new Processor<>(tcProxy);
-    } else {
-      processor = new Processor<>(rpcProxy);
-    }
-    IntStream port = getConfiguration().getPortStream(Property.GC_PORT);
-    HostAndPort[] addresses = TServerUtils.getHostAndPorts(getHostname(), port);
-    long maxMessageSize = getConfiguration().getAsBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
+
     try {
+      TProcessor processor =
+          ThriftProcessorTypes.getGcTProcessor(this, getContext(), getConfiguration());
+      IntStream port = getConfiguration().getPortStream(Property.GC_PORT);
+      HostAndPort[] addresses = TServerUtils.getHostAndPorts(getHostname(), port);
+      long maxMessageSize = getConfiguration().getAsBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
       ServerAddress server = TServerUtils.startTServer(getConfiguration(),
           getContext().getThriftServerType(), processor, this.getClass().getSimpleName(),
           "GC Monitor Service", 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, maxMessageSize,

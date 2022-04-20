@@ -198,7 +198,7 @@ struct TCompactionStats{
   3:i64 fileSize;
 }
 
-service TabletClientService extends client.ClientService {
+service TabletClientService {
 
   // scan a range of keys
   data.InitialScan startScan(

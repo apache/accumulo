@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
+
 import java.time.Duration;
 import java.util.Properties;
 
@@ -27,6 +29,7 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 /**
  * Do a selection of ITs with SSL turned on that cover a range of different connection scenarios.
@@ -48,6 +51,7 @@ public class SslIT extends ConfigurableMacBase {
   }
 
   @Test
+  @Timeout(value = 4, unit = MINUTES)
   public void binary() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
@@ -57,6 +61,7 @@ public class SslIT extends ConfigurableMacBase {
   }
 
   @Test
+  @Timeout(value = 2, unit = MINUTES)
   public void concurrency() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       ConcurrencyIT.runTest(client, getUniqueNames(1)[0]);
@@ -64,6 +69,7 @@ public class SslIT extends ConfigurableMacBase {
   }
 
   @Test
+  @Timeout(value = 3, unit = MINUTES)
   public void adminStop() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       ShutdownIT.runAdminStopTest(client, getCluster());
@@ -71,6 +77,7 @@ public class SslIT extends ConfigurableMacBase {
   }
 
   @Test
+  @Timeout(value = 4, unit = MINUTES)
   public void bulk() throws Exception {
     Properties props = getClientProperties();
     try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
@@ -82,6 +89,7 @@ public class SslIT extends ConfigurableMacBase {
 
   @SuppressWarnings("deprecation")
   @Test
+  @Timeout(value = 1, unit = MINUTES)
   public void mapReduce() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       // testing old mapreduce code from core jar; the new mapreduce module should have its own test

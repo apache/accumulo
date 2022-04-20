@@ -58,6 +58,7 @@ import org.apache.accumulo.core.dataImpl.thrift.InitialScan;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.dataImpl.thrift.ScanResult;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
+import org.apache.accumulo.core.rpc.ThriftClientTypes;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
@@ -106,7 +107,8 @@ public class ThriftScanner {
     final HostAndPort parsedServer = HostAndPort.fromString(server);
     try {
       TInfo tinfo = TraceUtil.traceInfo();
-      TabletClientService.Client client = ThriftUtil.getTServerClient(parsedServer, context);
+      TabletClientService.Client client =
+          ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedServer, context);
       try {
         // not reading whole rows (or stopping on row boundaries) so there is no need to enable
         // isolation below
@@ -581,7 +583,8 @@ public class ThriftScanner {
 
     final HostAndPort parsedLocation = HostAndPort.fromString(loc.tablet_location);
 
-    TabletClientService.Client client = ThriftUtil.getTServerClient(parsedLocation, context);
+    TabletClientService.Client client =
+        ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedLocation, context);
 
     String old = Thread.currentThread().getName();
     try {
@@ -714,7 +717,8 @@ public class ThriftScanner {
       HostAndPort parsedLocation = HostAndPort.fromString(scanState.prevLoc.tablet_location);
       TabletClientService.Client client = null;
       try {
-        client = ThriftUtil.getTServerClient(parsedLocation, scanState.context);
+        client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedLocation,
+            scanState.context);
         client.closeScan(tinfo, scanState.scanID);
       } catch (TException e) {
         // ignore this is a best effort

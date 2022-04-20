@@ -53,6 +53,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TSamplerConfiguration;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.ServerOpts;
+import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.tserver.ScanServer.ScanReservation;
 import org.apache.accumulo.tserver.session.ScanSession.TabletResolver;
 import org.apache.accumulo.tserver.tablet.Tablet;
@@ -73,8 +74,8 @@ public class ScanServerTest {
     }
 
     @Override
-    protected ThriftClientHandler getHandler() {
-      return handler;
+    protected TabletClientHandler newTabletClientHandler(TransactionWatcher watcher) {
+      return delegate;
     }
 
     @Override
@@ -108,11 +109,11 @@ public class ScanServerTest {
 
   }
 
-  private ThriftClientHandler handler;
+  private TabletClientHandler handler;
 
   @Test
   public void testScan() throws Exception {
-    handler = createMock(ThriftClientHandler.class);
+    handler = createMock(TabletClientHandler.class);
 
     TInfo tinfo = createMock(TInfo.class);
     TCredentials tcreds = createMock(TCredentials.class);
@@ -141,7 +142,7 @@ public class ScanServerTest {
     replay(reservation, handler);
 
     TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
-    ss.handler = handler;
+    ss.delegate = handler;
     ss.extent = sextent;
     ss.resolver = resolver;
     ss.reservation = reservation;
@@ -161,7 +162,7 @@ public class ScanServerTest {
 
   @Test
   public void testTabletLoadFailure() throws Exception {
-    handler = createMock(ThriftClientHandler.class);
+    handler = createMock(TabletClientHandler.class);
 
     TInfo tinfo = createMock(TInfo.class);
     TCredentials tcreds = createMock(TCredentials.class);
@@ -184,7 +185,7 @@ public class ScanServerTest {
     replay(handler);
 
     TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
-    ss.handler = handler;
+    ss.delegate = handler;
     ss.loadTabletFailure = true;
 
     assertThrows(NotServingTabletException.class, () -> {
@@ -195,7 +196,7 @@ public class ScanServerTest {
 
   @Test
   public void testBatchScan() throws Exception {
-    handler = createMock(ThriftClientHandler.class);
+    handler = createMock(TabletClientHandler.class);
 
     TInfo tinfo = createMock(TInfo.class);
     TCredentials tcreds = createMock(TCredentials.class);
@@ -234,7 +235,7 @@ public class ScanServerTest {
     replay(reservation, handler);
 
     TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
-    ss.handler = handler;
+    ss.delegate = handler;
     ss.extent = extent;
     ss.resolver = resolver;
     ss.reservation = reservation;
@@ -256,7 +257,7 @@ public class ScanServerTest {
 
   @Test
   public void testBatchScanNoRanges() throws Exception {
-    handler = createMock(ThriftClientHandler.class);
+    handler = createMock(TabletClientHandler.class);
 
     TInfo tinfo = createMock(TInfo.class);
     TCredentials tcreds = createMock(TCredentials.class);
@@ -282,7 +283,7 @@ public class ScanServerTest {
     replay(handler);
 
     TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
-    ss.handler = handler;
+    ss.delegate = handler;
     ss.resolver = resolver;
     ss.lockedFiles = new HashSet<>();
     ss.reservedFiles = new ConcurrentHashMap<>();

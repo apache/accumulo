@@ -52,6 +52,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationTable;
+import org.apache.accumulo.core.rpc.ThriftClientTypes;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
@@ -393,7 +394,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     // Get the active WALs from that server
     log.info("Fetching active WALs from {}", tserver);
 
-    Client cli = ThriftUtil.getTServerClient(tserver, context);
+    Client cli = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, tserver, context);
     List<String> activeWalsForTserver =
         cli.getActiveLogs(TraceUtil.traceInfo(), context.rpcCreds());
 

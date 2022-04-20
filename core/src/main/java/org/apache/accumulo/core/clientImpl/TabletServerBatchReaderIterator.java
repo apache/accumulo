@@ -62,6 +62,7 @@ import org.apache.accumulo.core.dataImpl.thrift.MultiScanResult;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
+import org.apache.accumulo.core.rpc.ThriftClientTypes;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
@@ -780,9 +781,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       final HostAndPort parsedServer = HostAndPort.fromString(server);
       final TabletClientService.Client client;
       if (timeoutTracker.getTimeOut() < context.getClientTimeoutInMillis())
-        client = ThriftUtil.getTServerClient(parsedServer, context, timeoutTracker.getTimeOut());
+        client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedServer, context,
+            timeoutTracker.getTimeOut());
       else
-        client = ThriftUtil.getTServerClient(parsedServer, context);
+        client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedServer, context);
 
       try {
 
