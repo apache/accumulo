@@ -72,7 +72,7 @@
                 REST <span class="caret"></span>
               </a>
               <ul class="dropdown-menu">
-                <li><a href="/debug">All Endpoints</a></li>
+                <li><a href="/all">All Endpoints</a></li>
                 <li><a href="/rest/xml">XML Summary</a></li>
                 <li><a href="/rest/json">JSON Summary</a></li>
               </ul>

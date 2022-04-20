@@ -448,9 +448,9 @@ public class WebViews {
   }
 
   @GET
-  @Path("debug")
+  @Path("all")
   @Template(name = "/default.ftl")
-  public Map<String,Object> getDebug() {
+  public Map<String,Object> getRestView() {
 
     Map<String,Object> model = getModel();
     model.put("title", "Rest Endpoints");
