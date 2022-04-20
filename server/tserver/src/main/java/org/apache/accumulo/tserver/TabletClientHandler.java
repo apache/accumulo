@@ -21,7 +21,6 @@ package org.apache.accumulo.tserver;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.stream.Collectors.toList;
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -35,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -46,7 +44,6 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Durability;
-import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.CompressedIterators;
@@ -57,29 +54,18 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan;
-import org.apache.accumulo.core.dataImpl.thrift.InitialScan;
-import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
-import org.apache.accumulo.core.dataImpl.thrift.MultiScanResult;
-import org.apache.accumulo.core.dataImpl.thrift.ScanResult;
 import org.apache.accumulo.core.dataImpl.thrift.TCMResult;
 import org.apache.accumulo.core.dataImpl.thrift.TCMStatus;
-import org.apache.accumulo.core.dataImpl.thrift.TColumn;
 import org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation;
 import org.apache.accumulo.core.dataImpl.thrift.TConditionalSession;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
-import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
 import org.apache.accumulo.core.dataImpl.thrift.TMutation;
-import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
@@ -92,24 +78,19 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.cache.BlockCache;
-import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.core.summary.Gatherer;
 import org.apache.accumulo.core.summary.Gatherer.FileSystemResolver;
 import org.apache.accumulo.core.summary.SummaryCollection;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
-import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
 import org.apache.accumulo.core.tabletserver.thrift.TDurability;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
-import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
-import org.apache.accumulo.core.tabletserver.thrift.TSamplerConfiguration;
 import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
@@ -135,18 +116,11 @@ import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.tserver.ConditionCheckerContext.ConditionChecker;
 import org.apache.accumulo.tserver.RowLocks.RowLock;
 import org.apache.accumulo.tserver.data.ServerConditionalMutation;
-import org.apache.accumulo.tserver.scan.LookupTask;
-import org.apache.accumulo.tserver.scan.NextBatchTask;
-import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.apache.accumulo.tserver.session.ConditionalSession;
-import org.apache.accumulo.tserver.session.MultiScanSession;
-import org.apache.accumulo.tserver.session.SingleScanSession;
 import org.apache.accumulo.tserver.session.SummarySession;
 import org.apache.accumulo.tserver.session.UpdateSession;
 import org.apache.accumulo.tserver.tablet.CommitSession;
-import org.apache.accumulo.tserver.tablet.KVEntry;
 import org.apache.accumulo.tserver.tablet.PreparedMutations;
-import org.apache.accumulo.tserver.tablet.ScanBatch;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletClosedException;
 import org.apache.hadoop.fs.FSError;
@@ -159,7 +133,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.cache.Cache;
-import com.google.common.collect.Collections2;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
@@ -173,12 +146,14 @@ public class TabletClientHandler implements TabletClientService.Iface {
   protected final TransactionWatcher watcher;
   protected final ServerContext context;
   protected final SecurityOperation security;
-  private final WriteTracker writeTracker = new WriteTracker();
+  private final WriteTracker writeTracker;
   private final RowLocks rowLocks = new RowLocks();
 
-  public TabletClientHandler(TabletServer server, TransactionWatcher watcher) {
+  public TabletClientHandler(TabletServer server, TransactionWatcher watcher,
+      WriteTracker writeTracker) {
     this.context = server.getContext();
     this.watcher = watcher;
+    this.writeTracker = writeTracker;
     this.security = AuditedSecurityOperation.getInstance(context);
     this.server = server;
     MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = server.getContext().getConfiguration()
@@ -272,349 +247,6 @@ public class TabletClientHandler implements TabletClientService.Iface {
       });
     });
 
-  }
-
-  private ScanDispatcher getScanDispatcher(KeyExtent extent) {
-    if (extent.isRootTablet() || extent.isMeta()) {
-      // dispatcher is only for user tables
-      return null;
-    }
-
-    return context.getTableConfiguration(extent.tableId()).getScanDispatcher();
-  }
-
-  @Override
-  public InitialScan startScan(TInfo tinfo, TCredentials credentials, TKeyExtent textent,
-      TRange range, List<TColumn> columns, int batchSize, List<IterInfo> ssiList,
-      Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
-      boolean isolated, long readaheadThreshold, TSamplerConfiguration tSamplerConfig,
-      long batchTimeOut, String contextArg, Map<String,String> executionHints)
-      throws NotServingTabletException, ThriftSecurityException,
-      org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException,
-      TSampleNotPresentException {
-
-    TableId tableId = TableId.of(new String(textent.getTable(), UTF_8));
-    NamespaceId namespaceId;
-    try {
-      namespaceId = server.getContext().getNamespaceId(tableId);
-    } catch (TableNotFoundException e1) {
-      throw new NotServingTabletException(textent);
-    }
-    if (!security.canScan(credentials, tableId, namespaceId, range, columns, ssiList, ssio,
-        authorizations)) {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
-    }
-
-    if (!security.authenticatedUserHasAuthorizations(credentials, authorizations)) {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.BAD_AUTHORIZATIONS);
-    }
-
-    final KeyExtent extent = KeyExtent.fromThrift(textent);
-
-    // wait for any writes that are in flight.. this done to ensure
-    // consistency across client restarts... assume a client writes
-    // to accumulo and dies while waiting for a confirmation from
-    // accumulo... the client process restarts and tries to read
-    // data from accumulo making the assumption that it will get
-    // any writes previously made... however if the server side thread
-    // processing the write from the dead client is still in progress,
-    // the restarted client may not see the write unless we wait here.
-    // this behavior is very important when the client is reading the
-    // metadata
-    if (waitForWrites) {
-      writeTracker.waitForWrites(TabletType.type(extent));
-    }
-
-    Tablet tablet = server.getOnlineTablet(extent);
-    if (tablet == null) {
-      throw new NotServingTabletException(textent);
-    }
-
-    HashSet<Column> columnSet = new HashSet<>();
-    for (TColumn tcolumn : columns) {
-      columnSet.add(new Column(tcolumn));
-    }
-
-    ScanParameters scanParams = new ScanParameters(batchSize, new Authorizations(authorizations),
-        columnSet, ssiList, ssio, isolated, SamplerConfigurationImpl.fromThrift(tSamplerConfig),
-        batchTimeOut, contextArg);
-
-    final SingleScanSession scanSession =
-        new SingleScanSession(credentials, extent, scanParams, readaheadThreshold, executionHints);
-    scanSession.scanner =
-        tablet.createScanner(new Range(range), scanParams, scanSession.interruptFlag);
-
-    long sid = server.sessionManager.createSession(scanSession, true);
-
-    ScanResult scanResult;
-    try {
-      scanResult = continueScan(tinfo, sid, scanSession);
-    } catch (NoSuchScanIDException e) {
-      log.error("The impossible happened", e);
-      throw new RuntimeException();
-    } finally {
-      server.sessionManager.unreserveSession(sid);
-    }
-
-    return new InitialScan(sid, scanResult);
-  }
-
-  @Override
-  public ScanResult continueScan(TInfo tinfo, long scanID) throws NoSuchScanIDException,
-      NotServingTabletException, org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException,
-      TSampleNotPresentException {
-    SingleScanSession scanSession =
-        (SingleScanSession) server.sessionManager.reserveSession(scanID);
-    if (scanSession == null) {
-      throw new NoSuchScanIDException();
-    }
-
-    try {
-      return continueScan(tinfo, scanID, scanSession);
-    } finally {
-      server.sessionManager.unreserveSession(scanSession);
-    }
-  }
-
-  private ScanResult continueScan(TInfo tinfo, long scanID, SingleScanSession scanSession)
-      throws NoSuchScanIDException, NotServingTabletException,
-      org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException,
-      TSampleNotPresentException {
-
-    if (scanSession.nextBatchTask == null) {
-      scanSession.nextBatchTask = new NextBatchTask(server, scanID, scanSession.interruptFlag);
-      server.resourceManager.executeReadAhead(scanSession.extent,
-          getScanDispatcher(scanSession.extent), scanSession, scanSession.nextBatchTask);
-    }
-
-    ScanBatch bresult;
-    try {
-      bresult = scanSession.nextBatchTask.get(MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS,
-          TimeUnit.MILLISECONDS);
-      scanSession.nextBatchTask = null;
-    } catch (ExecutionException e) {
-      server.sessionManager.removeSession(scanID);
-      if (e.getCause() instanceof NotServingTabletException) {
-        throw (NotServingTabletException) e.getCause();
-      } else if (e.getCause() instanceof TooManyFilesException) {
-        throw new org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException(
-            scanSession.extent.toThrift());
-      } else if (e.getCause() instanceof SampleNotPresentException) {
-        throw new TSampleNotPresentException(scanSession.extent.toThrift());
-      } else if (e.getCause() instanceof IOException) {
-        sleepUninterruptibly(MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS, TimeUnit.MILLISECONDS);
-        List<KVEntry> empty = Collections.emptyList();
-        bresult = new ScanBatch(empty, true);
-        scanSession.nextBatchTask = null;
-      } else {
-        throw new RuntimeException(e);
-      }
-    } catch (CancellationException ce) {
-      server.sessionManager.removeSession(scanID);
-      Tablet tablet = server.getOnlineTablet(scanSession.extent);
-      if (tablet == null || tablet.isClosed()) {
-        throw new NotServingTabletException(scanSession.extent.toThrift());
-      } else {
-        throw new NoSuchScanIDException();
-      }
-    } catch (TimeoutException e) {
-      List<TKeyValue> param = Collections.emptyList();
-      long timeout = server.getConfiguration().getTimeInMillis(Property.TSERV_CLIENT_TIMEOUT);
-      server.sessionManager.removeIfNotAccessed(scanID, timeout);
-      return new ScanResult(param, true);
-    } catch (Exception t) {
-      server.sessionManager.removeSession(scanID);
-      log.warn("Failed to get next batch", t);
-      throw new RuntimeException(t);
-    }
-
-    ScanResult scanResult = new ScanResult(Key.compress(bresult.getResults()), bresult.isMore());
-
-    scanSession.entriesReturned += scanResult.results.size();
-
-    scanSession.batchCount++;
-
-    if (scanResult.more && scanSession.batchCount > scanSession.readaheadThreshold) {
-      // start reading next batch while current batch is transmitted
-      // to client
-      scanSession.nextBatchTask = new NextBatchTask(server, scanID, scanSession.interruptFlag);
-      server.resourceManager.executeReadAhead(scanSession.extent,
-          getScanDispatcher(scanSession.extent), scanSession, scanSession.nextBatchTask);
-    }
-
-    if (!scanResult.more) {
-      closeScan(tinfo, scanID);
-    }
-
-    return scanResult;
-  }
-
-  @Override
-  public void closeScan(TInfo tinfo, long scanID) {
-    final SingleScanSession ss = (SingleScanSession) server.sessionManager.removeSession(scanID);
-    if (ss != null) {
-      long t2 = System.currentTimeMillis();
-
-      if (log.isTraceEnabled()) {
-        log.trace(String.format("ScanSess tid %s %s %,d entries in %.2f secs, nbTimes = [%s] ",
-            TServerUtils.clientAddress.get(), ss.extent.tableId(), ss.entriesReturned,
-            (t2 - ss.startTime) / 1000.0, ss.runStats.toString()));
-      }
-
-      server.scanMetrics.addScan(t2 - ss.startTime);
-      server.scanMetrics.addResult(ss.entriesReturned);
-    }
-  }
-
-  @Override
-  public InitialMultiScan startMultiScan(TInfo tinfo, TCredentials credentials,
-      Map<TKeyExtent,List<TRange>> tbatch, List<TColumn> tcolumns, List<IterInfo> ssiList,
-      Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
-      TSamplerConfiguration tSamplerConfig, long batchTimeOut, String contextArg,
-      Map<String,String> executionHints)
-      throws ThriftSecurityException, TSampleNotPresentException {
-    // find all of the tables that need to be scanned
-    final HashSet<TableId> tables = new HashSet<>();
-    for (TKeyExtent keyExtent : tbatch.keySet()) {
-      tables.add(TableId.of(new String(keyExtent.getTable(), UTF_8)));
-    }
-
-    if (tables.size() != 1) {
-      throw new IllegalArgumentException("Cannot batch scan over multiple tables");
-    }
-
-    // check if user has permission to the tables
-    for (TableId tableId : tables) {
-      NamespaceId namespaceId = getNamespaceId(credentials, tableId);
-      if (!security.canScan(credentials, tableId, namespaceId, tbatch, tcolumns, ssiList, ssio,
-          authorizations)) {
-        throw new ThriftSecurityException(credentials.getPrincipal(),
-            SecurityErrorCode.PERMISSION_DENIED);
-      }
-    }
-
-    try {
-      if (!security.authenticatedUserHasAuthorizations(credentials, authorizations)) {
-        throw new ThriftSecurityException(credentials.getPrincipal(),
-            SecurityErrorCode.BAD_AUTHORIZATIONS);
-      }
-    } catch (ThriftSecurityException tse) {
-      log.error("{} is not authorized", credentials.getPrincipal(), tse);
-      throw tse;
-    }
-
-    // @formatter:off
-    Map<KeyExtent, List<Range>> batch = tbatch.entrySet().stream().collect(Collectors.toMap(
-                    entry -> KeyExtent.fromThrift(entry.getKey()),
-                    entry -> entry.getValue().stream().map(Range::new).collect(Collectors.toList())
-    ));
-    // @formatter:on
-
-    // This is used to determine which thread pool to use
-    KeyExtent threadPoolExtent = batch.keySet().iterator().next();
-
-    if (waitForWrites) {
-      writeTracker.waitForWrites(TabletType.type(batch.keySet()));
-    }
-
-    Set<Column> columnSet = tcolumns.isEmpty() ? Collections.emptySet()
-        : new HashSet<>(Collections2.transform(tcolumns, Column::new));
-
-    ScanParameters scanParams =
-        new ScanParameters(-1, new Authorizations(authorizations), columnSet, ssiList, ssio, false,
-            SamplerConfigurationImpl.fromThrift(tSamplerConfig), batchTimeOut, contextArg);
-
-    final MultiScanSession mss =
-        new MultiScanSession(credentials, threadPoolExtent, batch, scanParams, executionHints);
-
-    mss.numTablets = batch.size();
-    for (List<Range> ranges : batch.values()) {
-      mss.numRanges += ranges.size();
-    }
-
-    long sid = server.sessionManager.createSession(mss, true);
-
-    MultiScanResult result;
-    try {
-      result = continueMultiScan(sid, mss);
-    } finally {
-      server.sessionManager.unreserveSession(sid);
-    }
-
-    return new InitialMultiScan(sid, result);
-  }
-
-  @Override
-  public MultiScanResult continueMultiScan(TInfo tinfo, long scanID)
-      throws NoSuchScanIDException, TSampleNotPresentException {
-
-    MultiScanSession session = (MultiScanSession) server.sessionManager.reserveSession(scanID);
-
-    if (session == null) {
-      throw new NoSuchScanIDException();
-    }
-
-    try {
-      return continueMultiScan(scanID, session);
-    } finally {
-      server.sessionManager.unreserveSession(session);
-    }
-  }
-
-  private MultiScanResult continueMultiScan(long scanID, MultiScanSession session)
-      throws TSampleNotPresentException {
-
-    if (session.lookupTask == null) {
-      session.lookupTask = new LookupTask(server, scanID);
-      server.resourceManager.executeReadAhead(session.threadPoolExtent,
-          getScanDispatcher(session.threadPoolExtent), session, session.lookupTask);
-    }
-
-    try {
-      MultiScanResult scanResult =
-          session.lookupTask.get(MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS, TimeUnit.MILLISECONDS);
-      session.lookupTask = null;
-      return scanResult;
-    } catch (ExecutionException e) {
-      server.sessionManager.removeSession(scanID);
-      if (e.getCause() instanceof SampleNotPresentException) {
-        throw new TSampleNotPresentException();
-      } else {
-        log.warn("Failed to get multiscan result", e);
-        throw new RuntimeException(e);
-      }
-    } catch (TimeoutException e1) {
-      long timeout = server.getConfiguration().getTimeInMillis(Property.TSERV_CLIENT_TIMEOUT);
-      server.sessionManager.removeIfNotAccessed(scanID, timeout);
-      List<TKeyValue> results = Collections.emptyList();
-      Map<TKeyExtent,List<TRange>> failures = Collections.emptyMap();
-      List<TKeyExtent> fullScans = Collections.emptyList();
-      return new MultiScanResult(results, failures, fullScans, null, null, false, true);
-    } catch (Exception t) {
-      server.sessionManager.removeSession(scanID);
-      log.warn("Failed to get multiscan result", t);
-      throw new RuntimeException(t);
-    }
-  }
-
-  @Override
-  public void closeMultiScan(TInfo tinfo, long scanID) throws NoSuchScanIDException {
-    MultiScanSession session = (MultiScanSession) server.sessionManager.removeSession(scanID);
-    if (session == null) {
-      throw new NoSuchScanIDException();
-    }
-
-    long t2 = System.currentTimeMillis();
-
-    if (log.isTraceEnabled()) {
-      log.trace(String.format(
-          "MultiScanSess %s %,d entries in %.2f secs"
-              + " (lookup_time:%.2f secs tablets:%,d ranges:%,d) ",
-          TServerUtils.clientAddress.get(), session.numEntries, (t2 - session.startTime) / 1000.0,
-          session.totalLookupTime / 1000.0, session.numTablets, session.numRanges));
-    }
   }
 
   @Override
@@ -1652,19 +1284,6 @@ public class TabletClientHandler implements TabletClientService.Iface {
   @Override
   public TabletStats getHistoricalStats(TInfo tinfo, TCredentials credentials) {
     return server.statsKeeper.getTabletStats();
-  }
-
-  @Override
-  public List<ActiveScan> getActiveScans(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException, TException {
-    try {
-      checkPermission(credentials, null, "getScans");
-    } catch (ThriftSecurityException e) {
-      log.error("Caller doesn't have permission to get active scans", e);
-      throw e;
-    }
-
-    return server.sessionManager.getActiveScans();
   }
 
   @Override

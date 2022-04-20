@@ -69,6 +69,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processor;
+import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -90,7 +91,8 @@ import com.beust.jcommander.Parameter;
  */
 public class NullTserver {
 
-  public static class NullTServerThriftClientHandler implements TabletClientService.Iface {
+  public static class NullTServerThriftClientHandler
+      implements TabletClientService.Iface, TabletScanClientService.Iface {
 
     private long updateSession = 1;
 
