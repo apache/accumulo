@@ -295,6 +295,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
   }
 
   @VisibleForTesting
+  @Override
   protected TabletClientHandler newTabletClientHandler(TransactionWatcher watcher) {
     return new TabletClientHandler(this, watcher);
   }
