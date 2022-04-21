@@ -26,14 +26,15 @@ import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.tserver.TabletClientHandler;
 import org.apache.accumulo.tserver.TabletServer;
+import org.apache.accumulo.tserver.WriteTracker;
 import org.apache.thrift.TException;
 
 public class NonCommittingExternalCompactionTabletClientHandler extends TabletClientHandler
     implements TabletClientService.Iface {
 
   public NonCommittingExternalCompactionTabletClientHandler(TabletServer server,
-      TransactionWatcher watcher) {
-    super(server, watcher);
+      TransactionWatcher watcher, WriteTracker writeTracker) {
+    super(server, watcher, writeTracker);
   }
 
   @Override

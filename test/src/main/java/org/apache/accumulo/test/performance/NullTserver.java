@@ -69,6 +69,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.tabletserver.thrift.TSamplerConfiguration;
 import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -94,7 +95,8 @@ import com.beust.jcommander.Parameter;
  */
 public class NullTserver {
 
-  public static class NullTServerTabletClientHandler implements TabletClientService.Iface {
+  public static class NullTServerTabletClientHandler
+      implements TabletClientService.Iface, TabletScanClientService.Iface {
 
     private long updateSession = 1;
 
@@ -331,6 +333,10 @@ public class NullTserver {
     muxProcessor.registerProcessor(ThriftClientTypes.TABLET_SERVER.getServiceName(),
         ThriftProcessorTypes.TABLET_SERVER.getTProcessor(TabletClientService.Processor.class,
             TabletClientService.Iface.class, tch, context, context.getConfiguration()));
+    muxProcessor.registerProcessor(ThriftProcessorTypes.TABLET_SERVER_SCAN.getServiceName(),
+        ThriftProcessorTypes.TABLET_SERVER_SCAN.getTProcessor(
+            TabletScanClientService.Processor.class, TabletScanClientService.Iface.class, tch,
+            context, context.getConfiguration()));
 
     TServerUtils.startTServer(context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA,
         muxProcessor, "NullTServer", "null tserver", 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000,
