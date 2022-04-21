@@ -98,5 +98,4 @@ public class ThriftClientTypes {
   public static final ThriftClientType<TabletScanClientService.Client,
       TabletScanClientService.Client.Factory> TABLET_SCAN = new ThriftClientType<>(
           "TabletScanClientService", new TabletScanClientService.Client.Factory());
-
 }
