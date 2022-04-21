@@ -35,7 +35,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -49,6 +48,7 @@ import java.util.function.IntPredicate;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -88,8 +88,6 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
-import com.google.common.collect.Lists;
 
 public class SummaryIT extends SharedMiniClusterBase {
 
@@ -136,7 +134,7 @@ public class SummaryIT extends SharedMiniClusterBase {
   private void addSplits(final String table, AccumuloClient c, String... splits)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     c.tableOperations().addSplits(table,
-        new TreeSet<>(Lists.transform(Arrays.asList(splits), Text::new)));
+        Stream.of(splits).map(Text::new).collect(Collectors.toCollection(TreeSet::new)));
   }
 
   @Test

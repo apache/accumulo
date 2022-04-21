@@ -27,11 +27,13 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.rpc.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processor;
+import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -44,9 +46,13 @@ import org.apache.accumulo.fate.zookeeper.ServiceLock.LockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
+import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.rpc.ThriftServerType;
+import org.apache.accumulo.server.zookeeper.TransactionWatcher;
+import org.apache.thrift.TMultiplexedProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +65,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class ZombieTServer {
 
   public static class ZombieTServerThriftClientHandler
-      extends org.apache.accumulo.test.performance.NullTserver.NullTServerThriftClientHandler {
+      extends org.apache.accumulo.test.performance.NullTserver.NullTServerTabletClientHandler
+      implements TabletClientService.Iface, TabletScanClientService.Iface {
 
     int statusCount = 0;
 
@@ -97,11 +104,25 @@ public class ZombieTServer {
   public static void main(String[] args) throws Exception {
     int port = random.nextInt(30000) + 2000;
     var context = new ServerContext(SiteConfiguration.auto());
+    final ClientServiceHandler csh =
+        new ClientServiceHandler(context, new TransactionWatcher(context));
     final ZombieTServerThriftClientHandler tch = new ZombieTServerThriftClientHandler();
-    Processor<Iface> processor = new Processor<>(tch);
+
+    TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
+    muxProcessor.registerProcessor(ThriftClientTypes.CLIENT.getServiceName(),
+        ThriftProcessorTypes.CLIENT.getTProcessor(ClientService.Processor.class,
+            ClientService.Iface.class, csh, context, context.getConfiguration()));
+    muxProcessor.registerProcessor(ThriftClientTypes.TABLET_SERVER.getServiceName(),
+        ThriftProcessorTypes.TABLET_SERVER.getTProcessor(TabletClientService.Processor.class,
+            TabletClientService.Iface.class, tch, context, context.getConfiguration()));
+    muxProcessor.registerProcessor(ThriftProcessorTypes.TABLET_SERVER_SCAN.getServiceName(),
+        ThriftProcessorTypes.TABLET_SERVER_SCAN.getTProcessor(
+            TabletScanClientService.Processor.class, TabletScanClientService.Iface.class, tch,
+            context, context.getConfiguration()));
+
     ServerAddress serverPort =
         TServerUtils.startTServer(context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA,
-            processor, "ZombieTServer", "walking dead", 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS,
+            muxProcessor, "ZombieTServer", "walking dead", 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS,
             1000, 10 * 1024 * 1024, null, null, -1, HostAndPort.fromParts("0.0.0.0", port));
 
     String addressString = serverPort.address.toString();
