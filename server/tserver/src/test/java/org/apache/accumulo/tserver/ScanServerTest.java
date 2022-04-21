@@ -53,7 +53,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TSamplerConfiguration;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.ServerOpts;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.tserver.ScanServer.ScanReservation;
 import org.apache.accumulo.tserver.session.ScanSession.TabletResolver;
 import org.apache.accumulo.tserver.tablet.Tablet;
@@ -74,7 +73,7 @@ public class ScanServerTest {
     }
 
     @Override
-    protected TabletClientHandler newTabletClientHandler(TransactionWatcher watcher) {
+    protected ThriftScanClientHandler newThriftScanClientHandler(WriteTracker writeTracker) {
       return delegate;
     }
 
@@ -109,11 +108,11 @@ public class ScanServerTest {
 
   }
 
-  private TabletClientHandler handler;
+  private ThriftScanClientHandler handler;
 
   @Test
   public void testScan() throws Exception {
-    handler = createMock(TabletClientHandler.class);
+    handler = createMock(ThriftScanClientHandler.class);
 
     TInfo tinfo = createMock(TInfo.class);
     TCredentials tcreds = createMock(TCredentials.class);
@@ -162,7 +161,7 @@ public class ScanServerTest {
 
   @Test
   public void testTabletLoadFailure() throws Exception {
-    handler = createMock(TabletClientHandler.class);
+    handler = createMock(ThriftScanClientHandler.class);
 
     TInfo tinfo = createMock(TInfo.class);
     TCredentials tcreds = createMock(TCredentials.class);
@@ -196,7 +195,7 @@ public class ScanServerTest {
 
   @Test
   public void testBatchScan() throws Exception {
-    handler = createMock(TabletClientHandler.class);
+    handler = createMock(ThriftScanClientHandler.class);
 
     TInfo tinfo = createMock(TInfo.class);
     TCredentials tcreds = createMock(TCredentials.class);
@@ -257,7 +256,7 @@ public class ScanServerTest {
 
   @Test
   public void testBatchScanNoRanges() throws Exception {
-    handler = createMock(TabletClientHandler.class);
+    handler = createMock(ThriftScanClientHandler.class);
 
     TInfo tinfo = createMock(TInfo.class);
     TCredentials tcreds = createMock(TCredentials.class);

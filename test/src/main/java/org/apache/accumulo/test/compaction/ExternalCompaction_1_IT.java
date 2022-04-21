@@ -397,7 +397,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       LOG.info("Waiting for external compaction to complete.");
       TableId tid = getCluster().getServerContext().getTableId(table3);
       Stream<ExternalCompactionFinalState> fs = getFinalStatesForTable(getCluster(), tid);
-      while (fs.count() == 0) {
+      while (fs.findAny().isEmpty()) {
         LOG.info("Waiting for compaction completed marker to appear");
         UtilWaitThread.sleep(250);
         fs = getFinalStatesForTable(getCluster(), tid);
@@ -435,7 +435,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       // Wait for the compaction to be committed.
       LOG.info("Waiting for compaction completed marker to disappear");
       Stream<ExternalCompactionFinalState> fs2 = getFinalStatesForTable(getCluster(), tid);
-      while (fs2.count() != 0) {
+      while (fs2.findAny().isPresent()) {
         LOG.info("Waiting for compaction completed marker to disappear");
         UtilWaitThread.sleep(500);
         fs2 = getFinalStatesForTable(getCluster(), tid);

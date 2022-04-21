@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -36,7 +37,6 @@ import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.apache.accumulo.tserver.tablet.Tablet;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 
 public abstract class ScanSession extends Session implements ScanInfo {
 
@@ -160,7 +160,7 @@ public abstract class ScanSession extends Session implements ScanInfo {
 
   @Override
   public Collection<IteratorConfiguration> getClientScanIterators() {
-    return Lists.transform(scanParams.getSsiList(), IterConfImpl::new);
+    return scanParams.getSsiList().stream().map(IterConfImpl::new).collect(Collectors.toList());
   }
 
   @Override

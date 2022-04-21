@@ -1023,10 +1023,10 @@ public class Manager extends AbstractServer
     ManagerClientService.Iface haProxy =
         HighlyAvailableServiceWrapper.service(managerClientHandler, this);
 
-    ServerAddress sa;
     TProcessor processor = ThriftProcessorTypes.getManagerTProcessor(fateServiceHandler, haProxy,
         getContext(), getConfiguration());
 
+    ServerAddress sa;
     try {
       sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT, processor,
           "Manager", "Manager Client Service Handler", null, Property.MANAGER_MINTHREADS,

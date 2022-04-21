@@ -27,6 +27,7 @@ import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.TServiceClientFactory;
 import org.apache.thrift.protocol.TMultiplexedProtocol;
@@ -93,5 +94,9 @@ public class ThriftClientTypes {
   public static final ThriftClientType<TabletClientService.Client,
       TabletClientService.Client.Factory> TABLET_SERVER =
           new ThriftClientType<>("TabletClientService", new TabletClientService.Client.Factory());
+
+  public static final ThriftClientType<TabletScanClientService.Client,
+      TabletScanClientService.Client.Factory> TABLET_SCAN = new ThriftClientType<>(
+          "TabletScanClientService", new TabletScanClientService.Client.Factory());
 
 }

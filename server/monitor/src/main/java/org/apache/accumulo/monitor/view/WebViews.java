@@ -446,4 +446,49 @@ public class WebViews {
 
     return model;
   }
+
+  @GET
+  @Path("all")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getRestView() {
+
+    Map<String,Object> model = getModel();
+    model.put("title", "Rest Endpoints");
+
+    model.put("template", "debug.ftl");
+    model.put("js", "functions.js");
+
+    model.put("endpoints", getEndpoints());
+
+    return model;
+  }
+
+  private List<String> getEndpoints() {
+    List<String> endpoints = new ArrayList<>();
+    endpoints.add("/rest/manager");
+    endpoints.add("/rest/tables/namespaces");
+    endpoints.add("/rest/problems/summary");
+    endpoints.add("/rest/tables");
+    endpoints.add("/rest/tservers");
+    endpoints.add("/rest/scans");
+    endpoints.add("/rest/bulkImports");
+    endpoints.add("/rest/tservers/serverStats");
+    endpoints.add("/rest/tservers/recovery");
+    endpoints.add("/rest/logs");
+    endpoints.add("/rest/problems/details");
+    endpoints.add("/rest/replication");
+    endpoints.add("/rest/statistics/time/ingestRate");
+    endpoints.add("/rest/statistics/time/scanEntries");
+    endpoints.add("/rest/statistics/time/ingestByteRate");
+    endpoints.add("/rest/statistics/time/queryByteRate");
+    endpoints.add("/rest/statistics/time/load");
+    endpoints.add("/rest/statistics/time/lookups");
+    endpoints.add("/rest/statistics/time/minorCompactions");
+    endpoints.add("/rest/statistics/time/majorCompactions");
+    endpoints.add("/rest/statistics/time/indexCacheHitRate");
+    endpoints.add("/rest/statistics/time/dataCacheHitRate");
+    endpoints.add("/rest/status");
+    return endpoints;
+  }
+
 }

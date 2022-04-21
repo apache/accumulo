@@ -30,6 +30,7 @@ import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.rpc.ThriftClientTypes;
 import org.apache.accumulo.core.rpc.ThriftClientTypes.ThriftClientType;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -39,16 +40,20 @@ import org.apache.thrift.TProcessor;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.TServiceClientFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+
 public class ThriftProcessorTypes {
 
-  private static class ProcessorType<C extends TServiceClient,F extends TServiceClientFactory<C>>
+  @VisibleForTesting
+  public static class ProcessorType<C extends TServiceClient,F extends TServiceClientFactory<C>>
       extends ThriftClientType<C,F> {
 
     public ProcessorType(ThriftClientType<C,F> type) {
       super(type.getServiceName(), type.getClientFactory());
     }
 
-    private <I,H extends I,P extends TBaseProcessor<?>> TProcessor getTProcessor(
+    @VisibleForTesting
+    public <I,H extends I,P extends TBaseProcessor<?>> TProcessor getTProcessor(
         Class<P> processorClass, Class<I> interfaceClass, H serviceHandler, ServerContext context,
         AccumuloConfiguration conf) {
       I rpcProxy = TraceUtil.wrapService(serviceHandler);
@@ -65,7 +70,8 @@ public class ThriftProcessorTypes {
     }
   }
 
-  private static final ProcessorType<ClientService.Client,ClientService.Client.Factory> CLIENT =
+  @VisibleForTesting
+  public static final ProcessorType<ClientService.Client,ClientService.Client.Factory> CLIENT =
       new ProcessorType<>(ThriftClientTypes.CLIENT);
 
   private static final ProcessorType<CompactorService.Client,
@@ -92,9 +98,15 @@ public class ThriftProcessorTypes {
       ReplicationServicer.Client.Factory> REPLICATION_SERVICER =
           new ProcessorType<>(ThriftClientTypes.REPLICATION_SERVICER);
 
-  private static final ProcessorType<TabletClientService.Client,
+  @VisibleForTesting
+  public static final ProcessorType<TabletClientService.Client,
       TabletClientService.Client.Factory> TABLET_SERVER =
           new ProcessorType<>(ThriftClientTypes.TABLET_SERVER);
+
+  @VisibleForTesting
+  public static final ProcessorType<TabletScanClientService.Client,
+      TabletScanClientService.Client.Factory> TABLET_SERVER_SCAN =
+          new ProcessorType<>(ThriftClientTypes.TABLET_SCAN);
 
   public static TMultiplexedProcessor getCompactorTProcessor(CompactorService.Iface serviceHandler,
       ServerContext context, AccumuloConfiguration conf) {
@@ -156,22 +168,27 @@ public class ThriftProcessorTypes {
   }
 
   public static TMultiplexedProcessor getScanServerTProcessor(
-      TabletClientService.Iface tserverHandler, ServerContext context, AccumuloConfiguration conf) {
+      TabletScanClientService.Iface tserverHandler, ServerContext context,
+      AccumuloConfiguration conf) {
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
-    muxProcessor.registerProcessor(TABLET_SERVER.getServiceName(),
-        TABLET_SERVER.getTProcessor(TabletClientService.Processor.class,
-            TabletClientService.Iface.class, tserverHandler, context, conf));
+    muxProcessor.registerProcessor(TABLET_SERVER_SCAN.getServiceName(),
+        TABLET_SERVER_SCAN.getTProcessor(TabletScanClientService.Processor.class,
+            TabletScanClientService.Iface.class, tserverHandler, context, conf));
     return muxProcessor;
   }
 
   public static TMultiplexedProcessor getTabletServerTProcessor(ClientServiceHandler clientHandler,
-      TabletClientService.Iface tserverHandler, ServerContext context, AccumuloConfiguration conf) {
+      TabletClientService.Iface tserverHandler, TabletScanClientService.Iface tserverScanHandler,
+      ServerContext context, AccumuloConfiguration conf) {
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
     muxProcessor.registerProcessor(CLIENT.getServiceName(), CLIENT.getTProcessor(
         ClientService.Processor.class, ClientService.Iface.class, clientHandler, context, conf));
     muxProcessor.registerProcessor(TABLET_SERVER.getServiceName(),
         TABLET_SERVER.getTProcessor(TabletClientService.Processor.class,
             TabletClientService.Iface.class, tserverHandler, context, conf));
+    muxProcessor.registerProcessor(TABLET_SERVER_SCAN.getServiceName(),
+        TABLET_SERVER_SCAN.getTProcessor(TabletScanClientService.Processor.class,
+            TabletScanClientService.Iface.class, tserverScanHandler, context, conf));
     return muxProcessor;
   }
 

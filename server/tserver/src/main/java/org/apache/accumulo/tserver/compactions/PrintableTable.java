@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.tserver.compactions;
 
-import java.util.Arrays;
+import java.util.stream.Stream;
 
 public class PrintableTable {
   private String[] columns;
@@ -33,7 +33,7 @@ public class PrintableTable {
 
   @Override
   public String toString() {
-    int widestRow = Arrays.asList(rows).stream().mapToInt(String::length).max().getAsInt();
+    int widestRow = Stream.of(rows).mapToInt(String::length).max().getAsInt();
 
     StringBuilder sb = new StringBuilder();
 
