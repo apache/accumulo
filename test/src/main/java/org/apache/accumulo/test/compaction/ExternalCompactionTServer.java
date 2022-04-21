@@ -22,6 +22,7 @@ import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.tserver.TabletClientHandler;
 import org.apache.accumulo.tserver.TabletServer;
+import org.apache.accumulo.tserver.WriteTracker;
 
 public class ExternalCompactionTServer extends TabletServer {
 
@@ -30,8 +31,9 @@ public class ExternalCompactionTServer extends TabletServer {
   }
 
   @Override
-  protected TabletClientHandler newTabletClientHandler(TransactionWatcher watcher) {
-    return new NonCommittingExternalCompactionTabletClientHandler(this, watcher);
+  protected TabletClientHandler newTabletClientHandler(TransactionWatcher watcher,
+      WriteTracker writeTracker) {
+    return new NonCommittingExternalCompactionTabletClientHandler(this, watcher, writeTracker);
   }
 
   public static void main(String[] args) throws Exception {
