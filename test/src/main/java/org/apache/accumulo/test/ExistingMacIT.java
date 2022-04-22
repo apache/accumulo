@@ -88,20 +88,21 @@ public class ExistingMacIT extends ConfigurableMacBase {
   @Test
   public void testExistingInstance() throws Exception {
 
+    final String rootUser = "root";
     AccumuloClient client =
-        getCluster().createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD));
+        getCluster().createAccumuloClient(rootUser, new PasswordToken(ROOT_PASSWORD));
 
-    client.tableOperations().create("table1");
+    final String table1 = "table1";
+    client.tableOperations().create(table1);
 
-    try (BatchWriter bw = client.createBatchWriter("table1")) {
+    try (BatchWriter bw = client.createBatchWriter(table1)) {
       Mutation m1 = new Mutation("00081");
       m1.put("math", "sqroot", "9");
       m1.put("math", "sq", "6560");
       bw.addMutation(m1);
     }
 
-    client.tableOperations().flush("table1", null, null, true);
-    // TODO use constants
+    client.tableOperations().flush(table1, null, null, true);
     client.tableOperations().flush(MetadataTable.NAME, null, null, true);
     client.tableOperations().flush(RootTable.NAME, null, null, true);
 
@@ -138,9 +139,9 @@ public class ExistingMacIT extends ConfigurableMacBase {
     MiniAccumuloClusterImpl accumulo2 = new MiniAccumuloClusterImpl(macConfig2);
     accumulo2.start();
 
-    client = accumulo2.createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD));
+    client = accumulo2.createAccumuloClient(rootUser, new PasswordToken(ROOT_PASSWORD));
 
-    try (Scanner scanner = client.createScanner("table1", Authorizations.EMPTY)) {
+    try (Scanner scanner = client.createScanner(table1, Authorizations.EMPTY)) {
       int sum = 0;
       for (Entry<Key,Value> entry : scanner) {
         sum += Integer.parseInt(entry.getValue().toString());

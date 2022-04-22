@@ -44,6 +44,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.Accumulo;
@@ -883,14 +884,18 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
         int count = 0;
 
-        // TODO check got each row back
+        Set<String> rowsReceived = new HashSet<>();
         while (results.hasNext()) {
           Result result = results.next();
+          rowsReceived.add(new String(result.getMutation().getRow()));
           assertEquals(Status.ACCEPTED, result.getStatus());
           count++;
         }
 
         assertEquals(num, count, "Did not receive the expected number of results");
+
+        Set<String> rowsExpected = rows.stream().map(String::new).collect(Collectors.toSet());
+        assertEquals(rowsExpected, rowsReceived, "Did not receive all expected rows");
 
         ArrayList<ConditionalMutation> cml2 = new ArrayList<>(num);
 
