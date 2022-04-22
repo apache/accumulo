@@ -21,6 +21,7 @@ package org.apache.accumulo.test.functional;
 import static org.apache.accumulo.test.functional.FunctionalTestUtils.checkRFiles;
 import static org.apache.accumulo.test.functional.FunctionalTestUtils.nm;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -105,8 +106,7 @@ public class RowDeleteIT extends AccumuloClusterHarness {
       }
 
       try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
-        count = Iterators.size(scanner.iterator());
-        assertEquals(0, count, "count == " + count);
+        assertTrue(scanner.stream().findAny().isEmpty());
         bw.close();
       }
     }

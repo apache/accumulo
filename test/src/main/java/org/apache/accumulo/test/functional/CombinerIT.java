@@ -18,23 +18,18 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.collect.MoreCollectors.onlyElement;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.Iterator;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.LongCombiner.Type;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
@@ -50,11 +45,8 @@ public class CombinerIT extends AccumuloClusterHarness {
 
   private void checkSum(String tableName, AccumuloClient c) throws Exception {
     try (Scanner s = c.createScanner(tableName, Authorizations.EMPTY)) {
-      Iterator<Entry<Key,Value>> i = s.iterator();
-      assertTrue(i.hasNext());
-      Entry<Key,Value> entry = i.next();
-      assertEquals("45", entry.getValue().toString());
-      assertFalse(i.hasNext());
+      String actual = s.stream().collect(onlyElement()).getValue().toString();
+      assertEquals("45", actual);
     }
   }
 

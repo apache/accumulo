@@ -19,7 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Map;
@@ -41,9 +41,6 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
 
 public class DeleteEverythingIT extends AccumuloClusterHarness {
 
@@ -103,8 +100,8 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
 
       try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(new Range());
-        int count = Iterators.size(scanner.iterator());
-        assertEquals(0, count, "count == " + count);
+
+        assertTrue(scanner.stream().findAny().isEmpty());
         c.tableOperations().flush(tableName, null, null, true);
 
         c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1.0");
@@ -114,11 +111,8 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
 
         bw.close();
 
-        count = Iterables.size(scanner);
+        assertTrue(scanner.stream().findAny().isEmpty());
 
-        if (count != 0) {
-          throw new Exception("count == " + count);
-        }
       }
     }
   }

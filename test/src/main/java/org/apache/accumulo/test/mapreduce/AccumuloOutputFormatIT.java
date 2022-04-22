@@ -18,14 +18,12 @@
  */
 package org.apache.accumulo.test.mapreduce;
 
+import static com.google.common.collect.MoreCollectors.onlyElement;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -164,11 +162,9 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
       assertNull(e1);
 
       try (Scanner scanner = c.createScanner(table2, new Authorizations())) {
-        Iterator<Entry<Key,Value>> iter = scanner.iterator();
-        assertTrue(iter.hasNext());
-        Entry<Key,Value> entry = iter.next();
-        assertEquals(Integer.parseInt(new String(entry.getValue().get())), 100);
-        assertFalse(iter.hasNext());
+        int actual = scanner.stream().map(Entry::getValue).map(Value::get).map(String::new)
+            .map(Integer::parseInt).collect(onlyElement());
+        assertEquals(actual, 100);
       }
     }
   }

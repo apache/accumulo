@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.collect.MoreCollectors.onlyElement;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -33,7 +34,6 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
@@ -379,12 +379,9 @@ public class KerberosIT extends AccumuloITBase {
 
       // Read (and proper authorizations)
       try (Scanner s = client.createScanner(table, new Authorizations(viz))) {
-        Iterator<Entry<Key,Value>> iter = s.iterator();
-        assertTrue(iter.hasNext(), "No results from iterator");
-        Entry<Key,Value> entry = iter.next();
+        Entry<Key,Value> entry = s.stream().collect(onlyElement());
         assertEquals(new Key("a", "b", "c", viz, ts), entry.getKey());
         assertEquals(new Value("d"), entry.getValue());
-        assertFalse(iter.hasNext(), "Had more results from iterator");
         return null;
       }
     });

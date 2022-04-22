@@ -18,16 +18,13 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.collect.MoreCollectors.onlyElement;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -36,9 +33,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -83,10 +78,8 @@ public class ZookeeperRestartIT extends ConfigurableMacBase {
 
       // use the tservers
       try (Scanner s = c.createScanner("test_ingest", Authorizations.EMPTY)) {
-        Iterator<Entry<Key,Value>> i = s.iterator();
-        assertTrue(i.hasNext());
-        assertEquals("row", i.next().getKey().getRow().toString());
-        assertFalse(i.hasNext());
+        String actual = s.stream().collect(onlyElement()).getKey().getRow().toString();
+        assertEquals("row", actual);
         // use the manager
         c.tableOperations().delete("test_ingest");
       }

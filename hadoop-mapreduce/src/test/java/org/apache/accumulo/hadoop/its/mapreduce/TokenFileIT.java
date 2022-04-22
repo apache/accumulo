@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.hadoop.its.mapreduce;
 
+import static com.google.common.collect.MoreCollectors.onlyElement;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -27,8 +27,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Paths;
-import java.util.Iterator;
-import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -164,11 +162,9 @@ public class TokenFileIT extends AccumuloClusterHarness {
       assertNull(e1);
 
       try (Scanner scanner = c.createScanner(table2, new Authorizations())) {
-        Iterator<Entry<Key,Value>> iter = scanner.iterator();
-        assertTrue(iter.hasNext());
-        Entry<Key,Value> entry = iter.next();
-        assertEquals(Integer.parseInt(new String(entry.getValue().get())), 100);
-        assertFalse(iter.hasNext());
+        int i = scanner.stream().map(entry -> Integer.parseInt(new String(entry.getValue().get())))
+            .collect(onlyElement());
+        assertEquals(100, i);
       }
     }
   }

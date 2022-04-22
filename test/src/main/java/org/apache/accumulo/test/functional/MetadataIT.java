@@ -31,6 +31,7 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -143,25 +144,16 @@ public class MetadataIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableName);
 
       // batch scan regular metadata table
-      int count = 0;
       try (BatchScanner s = c.createBatchScanner(MetadataTable.NAME)) {
         s.setRanges(Collections.singleton(new Range()));
-        for (Entry<Key,Value> e : s) {
-          if (e != null)
-            count++;
-        }
+        long count = s.stream().filter(Objects::nonNull).count();
+        assertTrue(count > 0);
       }
-
-      assertTrue(count > 0);
 
       // batch scan root metadata table
       try (BatchScanner s = c.createBatchScanner(RootTable.NAME)) {
         s.setRanges(Collections.singleton(new Range()));
-        count = 0;
-        for (Entry<Key,Value> e : s) {
-          if (e != null)
-            count++;
-        }
+        long count = s.stream().filter(Objects::nonNull).count();
         assertTrue(count > 0);
       }
     }
