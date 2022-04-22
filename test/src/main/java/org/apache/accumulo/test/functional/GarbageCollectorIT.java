@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.collect.MoreCollectors.onlyElement;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -241,7 +240,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       }
 
       try (Scanner scanner = c.createScanner(table, Authorizations.EMPTY)) {
-        Entry<Key,Value> entry = scanner.stream().collect(onlyElement());
+        Entry<Key,Value> entry = getOnlyElement(scanner);
         assertEquals("r1", entry.getKey().getRow().toString());
         assertEquals("cf1", entry.getKey().getColumnFamily().toString());
         assertEquals("cq1", entry.getKey().getColumnQualifier().toString());

@@ -144,15 +144,13 @@ public class MetadataIT extends AccumuloClusterHarness {
       // batch scan regular metadata table
       try (BatchScanner s = c.createBatchScanner(MetadataTable.NAME)) {
         s.setRanges(Collections.singleton(new Range()));
-        long count = s.stream().filter(Objects::nonNull).count();
-        assertTrue(count > 0);
+        assertTrue(s.stream().anyMatch(Objects::nonNull));
       }
 
       // batch scan root metadata table
       try (BatchScanner s = c.createBatchScanner(RootTable.NAME)) {
         s.setRanges(Collections.singleton(new Range()));
-        long count = s.stream().filter(Objects::nonNull).count();
-        assertTrue(count > 0);
+        assertTrue(s.stream().anyMatch(Objects::nonNull));
       }
     }
   }

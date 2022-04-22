@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.collect.MoreCollectors.onlyElement;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -114,7 +113,7 @@ public class ClassLoaderIT extends AccumuloClusterHarness {
 
   private void scanCheck(AccumuloClient c, String tableName, String expected) throws Exception {
     try (Scanner bs = c.createScanner(tableName, Authorizations.EMPTY)) {
-      String actual = bs.stream().collect(onlyElement()).getValue().toString();
+      String actual = getOnlyElement(bs).getValue().toString();
       assertEquals(expected, actual);
     }
   }

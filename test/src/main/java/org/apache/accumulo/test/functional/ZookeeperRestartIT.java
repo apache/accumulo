@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.collect.MoreCollectors.onlyElement;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -78,7 +77,7 @@ public class ZookeeperRestartIT extends ConfigurableMacBase {
 
       // use the tservers
       try (Scanner s = c.createScanner("test_ingest", Authorizations.EMPTY)) {
-        String actual = s.stream().collect(onlyElement()).getKey().getRow().toString();
+        String actual = getOnlyElement(s).getKey().getRow().toString();
         assertEquals("row", actual);
         // use the manager
         c.tableOperations().delete("test_ingest");

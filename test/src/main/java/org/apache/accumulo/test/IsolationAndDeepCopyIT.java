@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test;
 
-import static com.google.common.collect.MoreCollectors.onlyElement;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -65,8 +64,7 @@ public class IsolationAndDeepCopyIT extends AccumuloClusterHarness {
         scanner.addScanIterator(iterCfg);
 
         for (int i = 0; i < 100; i++) {
-          String actual =
-              scanner.stream().collect(onlyElement()).getKey().getColumnQualifierData().toString();
+          String actual = getOnlyElement(scanner).getKey().getColumnQualifierData().toString();
           assertEquals("000A", actual);
         }
       }

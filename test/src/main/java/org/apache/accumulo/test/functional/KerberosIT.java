@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.collect.MoreCollectors.onlyElement;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -379,7 +378,7 @@ public class KerberosIT extends AccumuloITBase {
 
       // Read (and proper authorizations)
       try (Scanner s = client.createScanner(table, new Authorizations(viz))) {
-        Entry<Key,Value> entry = s.stream().collect(onlyElement());
+        Entry<Key,Value> entry = getOnlyElement(s);
         assertEquals(new Key("a", "b", "c", viz, ts), entry.getKey());
         assertEquals(new Value("d"), entry.getValue());
         return null;

@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.collect.MoreCollectors.onlyElement;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.Duration;
@@ -45,7 +44,7 @@ public class CombinerIT extends AccumuloClusterHarness {
 
   private void checkSum(String tableName, AccumuloClient c) throws Exception {
     try (Scanner s = c.createScanner(tableName, Authorizations.EMPTY)) {
-      String actual = s.stream().collect(onlyElement()).getValue().toString();
+      String actual = getOnlyElement(s).getValue().toString();
       assertEquals("45", actual);
     }
   }
