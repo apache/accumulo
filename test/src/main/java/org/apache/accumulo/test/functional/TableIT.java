@@ -78,12 +78,12 @@ public class TableIT extends AccumuloClusterHarness {
       try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
         s.setRange(new KeyExtent(id, null, null).toMetaRange());
         s.fetchColumnFamily(DataFileColumnFamily.NAME);
-        assertTrue(Iterators.size(s.iterator()) > 0);
+        assertTrue(s.stream().findAny().isPresent());
 
         FileSystem fs = getCluster().getFileSystem();
         assertTrue(fs.listStatus(new Path(rootPath + "/accumulo/tables/" + id)).length > 0);
         to.delete(tableName);
-        assertEquals(0, Iterators.size(s.iterator()));
+        assertTrue(s.stream().findAny().isEmpty());
 
         try {
           assertEquals(0, fs.listStatus(new Path(rootPath + "/accumulo/tables/" + id)).length);

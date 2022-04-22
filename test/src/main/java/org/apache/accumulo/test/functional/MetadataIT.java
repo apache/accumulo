@@ -129,7 +129,7 @@ public class MetadataIT extends AccumuloClusterHarness {
       c.tableOperations().merge(MetadataTable.NAME, null, null);
       try (Scanner s = c.createScanner(RootTable.NAME, Authorizations.EMPTY)) {
         s.setRange(DeletesSection.getRange());
-        while (Iterators.size(s.iterator()) == 0) {
+        while (s.stream().findAny().isEmpty()) {
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         }
         assertEquals(0, c.tableOperations().listSplits(MetadataTable.NAME).size());

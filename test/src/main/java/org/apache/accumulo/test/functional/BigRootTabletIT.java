@@ -67,7 +67,7 @@ public class BigRootTabletIT extends AccumuloClusterHarness {
       cluster.stop();
       cluster.start();
       assertTrue(
-          Iterators.size(c.createScanner(RootTable.NAME, Authorizations.EMPTY).iterator()) > 0);
+          c.createScanner(RootTable.NAME, Authorizations.EMPTY).stream().findAny().isPresent());
     }
   }
 
