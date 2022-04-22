@@ -47,8 +47,6 @@ import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Iterators;
-
 @Tag(MINI_CLUSTER_ONLY)
 public class TableIT extends AccumuloClusterHarness {
 

@@ -61,8 +61,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Iterators;
-
 public class MetadataIT extends AccumuloClusterHarness {
 
   @Override
