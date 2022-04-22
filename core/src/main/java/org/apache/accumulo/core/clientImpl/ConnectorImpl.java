@@ -40,6 +40,7 @@ import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.rpc.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
@@ -66,10 +67,11 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
     // server jar
     final String tokenClassName = context.getCredentials().getToken().getClass().getName();
     if (!SYSTEM_TOKEN_NAME.equals(tokenClassName)) {
-      ServerClient.executeVoid(context, iface -> {
-        if (!iface.authenticate(TraceUtil.traceInfo(), context.rpcCreds()))
+      ThriftClientTypes.CLIENT.executeOnTServer(context, client -> {
+        if (!client.authenticate(TraceUtil.traceInfo(), context.rpcCreds()))
           throw new AccumuloSecurityException("Authentication failed, access denied",
               SecurityErrorCode.BAD_CREDENTIALS);
+        return null;
       });
     }
   }

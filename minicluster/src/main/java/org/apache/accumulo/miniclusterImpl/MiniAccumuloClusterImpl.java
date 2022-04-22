@@ -64,9 +64,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ManagerClient;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -74,10 +71,9 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
-import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
@@ -101,7 +97,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
-import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.ZooKeeper.States;
@@ -883,25 +878,10 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   public ManagerMonitorInfo getManagerMonitorInfo()
       throws AccumuloException, AccumuloSecurityException {
     try (AccumuloClient c = Accumulo.newClient().from(clientProperties.get()).build()) {
-      while (true) {
-        ManagerClientService.Client client = null;
-        try {
-          client = ManagerClient.getManagerConnectionWithRetry((ClientContext) c);
-          return client.getManagerStats(TraceUtil.traceInfo(), ((ClientContext) c).rpcCreds());
-        } catch (ThriftSecurityException exception) {
-          throw new AccumuloSecurityException(exception);
-        } catch (ThriftNotActiveServiceException e) {
-          // Let it loop, fetching a new location
-          log.debug("Contacted a Manager which is no longer active, retrying");
-          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-        } catch (TException exception) {
-          throw new AccumuloException(exception);
-        } finally {
-          if (client != null) {
-            ThriftUtil.close(client, (ClientContext) c);
-          }
-        }
-      }
+      ClientContext context = (ClientContext) c;
+      return ThriftClientTypes.MANAGER.executeAdminOnManager(context, client -> {
+        return client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
+      });
     }
   }
 

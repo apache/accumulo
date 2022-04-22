@@ -295,16 +295,17 @@ public class FateCommand extends Command {
     }
     return true;
   }
-  
-  private static boolean cancelFateOperation(ClientContext context, long txid, final Shell shellState)
-      throws AccumuloException, AccumuloSecurityException {
+
+  private static boolean cancelFateOperation(ClientContext context, long txid,
+      final Shell shellState) throws AccumuloException, AccumuloSecurityException {
     while (true) {
       FateService.Client client = null;
       try {
         client = ThriftClientTypes.FATE.getManagerConnectionWithRetry(context);
         return client.cancelFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), txid);
       } catch (TTransportException tte) {
-        shellState.getWriter().println("ManagerClient request failed, retrying. Cause: " + tte.getMessage());
+        shellState.getWriter()
+            .println("ManagerClient request failed, retrying. Cause: " + tte.getMessage());
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } catch (ThriftSecurityException e) {
         throw new AccumuloSecurityException(e.user, e.code, e);
@@ -312,8 +313,8 @@ public class FateCommand extends Command {
         throw new AccumuloException(e);
       } catch (ThriftNotActiveServiceException e) {
         // Let it loop, fetching a new location
-        shellState.getWriter().println("Contacted a Manager which is no longer active, " +
-            "re-creating the connection to the active Manager");
+        shellState.getWriter().println("Contacted a Manager which is no longer active, "
+            + "re-creating the connection to the active Manager");
       } catch (Exception e) {
         throw new AccumuloException(e);
       } finally {
@@ -322,7 +323,6 @@ public class FateCommand extends Command {
       }
     }
   }
-  
 
   public boolean failTx(AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs, ZooReaderWriter zk,
       ServiceLockPath managerLockPath, String[] args) {

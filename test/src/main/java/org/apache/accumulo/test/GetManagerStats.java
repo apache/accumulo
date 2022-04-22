@@ -18,47 +18,29 @@
  */
 package org.apache.accumulo.test;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.clientImpl.ManagerClient;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.manager.thrift.DeadServer;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.BulkImportStatus;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.TableInfoUtil;
 
 public class GetManagerStats {
   public static void main(String[] args) throws Exception {
-    ManagerClientService.Client client = null;
     ManagerMonitorInfo stats = null;
     var context = new ServerContext(SiteConfiguration.auto());
-    while (true) {
-      try {
-        client = ManagerClient.getManagerConnectionWithRetry(context);
-        stats = client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
-        break;
-      } catch (ThriftNotActiveServiceException e) {
-        // Let it loop, fetching a new location
-        sleepUninterruptibly(100, MILLISECONDS);
-      } finally {
-        if (client != null) {
-          ThriftUtil.close(client, context);
-        }
-      }
-    }
+    stats = ThriftClientTypes.MANAGER.executeAdminOnManager(context, client -> {
+      return client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
+    });
     out(0, "State: " + stats.state.name());
     out(0, "Goal State: " + stats.goalState.name());
     if (stats.serversShuttingDown != null && !stats.serversShuttingDown.isEmpty()) {

@@ -82,8 +82,10 @@ public class InstanceOperationsImpl implements InstanceOperations {
       log.warn("{} was deprecated and will be removed in a future release;"
           + " setting its replacement {} instead", property, replacement);
     });
-    ManagerClient.executeVoid(context, client -> client.setSystemProperty(TraceUtil.traceInfo(),
-        context.rpcCreds(), property, value));
+    ThriftClientTypes.MANAGER.executeAdminOnManager(context, client -> {
+      client.setSystemProperty(TraceUtil.traceInfo(), context.rpcCreds(), property, value);
+      return null;
+    });
     checkLocalityGroups(property);
   }
 
@@ -97,8 +99,10 @@ public class InstanceOperationsImpl implements InstanceOperations {
       log.warn("{} was deprecated and will be removed in a future release; assuming user meant"
           + " its replacement {} and will remove that instead", property, replacement);
     });
-    ManagerClient.executeVoid(context,
-        client -> client.removeSystemProperty(TraceUtil.traceInfo(), context.rpcCreds(), property));
+    ThriftClientTypes.MANAGER.executeAdminOnManager(context, client -> {
+      client.removeSystemProperty(TraceUtil.traceInfo(), context.rpcCreds(), property);
+      return null;
+    });
     checkLocalityGroups(property);
   }
 
@@ -120,15 +124,19 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public Map<String,String> getSystemConfiguration()
       throws AccumuloException, AccumuloSecurityException {
-    return ServerClient.execute(context, client -> client.getConfiguration(TraceUtil.traceInfo(),
-        context.rpcCreds(), ConfigurationType.CURRENT));
+    return ThriftClientTypes.CLIENT.executeOnTServer(context, client -> {
+      return client.getConfiguration(TraceUtil.traceInfo(), context.rpcCreds(),
+          ConfigurationType.CURRENT);
+    });
   }
 
   @Override
   public Map<String,String> getSiteConfiguration()
       throws AccumuloException, AccumuloSecurityException {
-    return ServerClient.execute(context, client -> client.getConfiguration(TraceUtil.traceInfo(),
-        context.rpcCreds(), ConfigurationType.SITE));
+    return ThriftClientTypes.CLIENT.executeOnTServer(context, client -> {
+      return client.getConfiguration(TraceUtil.traceInfo(), context.rpcCreds(),
+          ConfigurationType.SITE);
+    });
   }
 
   @Override
@@ -185,8 +193,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public boolean testClassLoad(final String className, final String asTypeName)
       throws AccumuloException, AccumuloSecurityException {
-    return ServerClient.execute(context, client -> client.checkClass(TraceUtil.traceInfo(),
-        context.rpcCreds(), className, asTypeName));
+    return ThriftClientTypes.CLIENT.executeOnTServer(context, client -> {
+      return client.checkClass(TraceUtil.traceInfo(), context.rpcCreds(), className, asTypeName);
+    });
   }
 
   @Override
@@ -275,7 +284,10 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public void waitForBalance() throws AccumuloException {
     try {
-      ManagerClient.executeVoid(context, client -> client.waitForBalance(TraceUtil.traceInfo()));
+      ThriftClientTypes.MANAGER.executeAdminOnManager(context, client -> {
+        client.waitForBalance(TraceUtil.traceInfo());
+        return null;
+      });
     } catch (AccumuloSecurityException ex) {
       // should never happen
       throw new RuntimeException("Unexpected exception thrown", ex);

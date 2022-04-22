@@ -46,7 +46,7 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientExecReturn;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
-import org.apache.accumulo.core.clientImpl.ReplicationClient;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
@@ -57,6 +57,8 @@ import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer.Client;
 import org.apache.accumulo.core.replication.thrift.WalEdits;
+import org.apache.accumulo.core.rpc.ThriftClientTypes;
+import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -218,8 +220,10 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         Span span2 = TraceUtil.startSpan(this.getClass(), "_replicate::Fetch peer tserver");
         try (Scope scope = span2.makeCurrent()) {
           // Ask the manager on the remote what TServer we should talk with to replicate the data
-          peerTserverStr = ReplicationClient.executeCoordinatorWithReturn(peerContext,
-              client -> client.getServicerAddress(remoteTableId, peerContext.rpcCreds()));
+          peerTserverStr = ThriftClientTypes.REPLICATION_COORDINATOR
+              .executeAdminOnManager(peerContext, client -> {
+                return client.getServicerAddress(remoteTableId, peerContext.rpcCreds());
+              });
         } catch (AccumuloException | AccumuloSecurityException e) {
           // No progress is made
           log.error(
@@ -303,8 +307,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     Status lastStatus = status, currentStatus = status;
     while (true) {
       // Read and send a batch of mutations
-      ReplicationStats replResult = ReplicationClient.executeServicerWithReturn(peerContext,
-          peerTserver, new RFileClientExecReturn(), timeout);
+      ReplicationStats replResult =
+          executeServicerWithReturn(peerContext, peerTserver, new RFileClientExecReturn(), timeout);
 
       // Catch the overflow
       long newBegin = currentStatus.getBegin() + replResult.entriesConsumed;
@@ -383,7 +387,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
           span2.setAttribute("Remote table ID", remoteTableId);
 
           // Read and send a batch of mutations
-          replResult = ReplicationClient.executeServicerWithReturn(peerContext, peerTserver,
+          replResult = executeServicerWithReturn(peerContext, peerTserver,
               new WalClientExecReturn(this, target, input, p, currentStatus, sizeLimit,
                   remoteTableId, tcreds, tids),
               timeout);
@@ -719,6 +723,26 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     }
 
     return mutationsToSend;
+  }
+
+  private static <T> T executeServicerWithReturn(ClientContext context, HostAndPort tserver,
+      ClientExecReturn<T,ReplicationServicer.Client> exec, long timeout)
+      throws AccumuloException, AccumuloSecurityException {
+    ReplicationServicer.Client client = null;
+    try {
+      client =
+          ThriftUtil.getClient(ThriftClientTypes.REPLICATION_SERVICER, tserver, context, timeout);
+      return exec.execute(client);
+    } catch (ThriftSecurityException e) {
+      throw new AccumuloSecurityException(e.user, e.code, e);
+    } catch (AccumuloException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new AccumuloException(e);
+    } finally {
+      if (client != null)
+        ThriftUtil.close(client, context);
+    }
   }
 
 }

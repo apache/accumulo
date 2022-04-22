@@ -18,19 +18,13 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ManagerClient;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
-import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -53,22 +47,10 @@ public class ListBulkCommand extends Command {
 
     List<String> tservers;
 
-    ManagerMonitorInfo stats;
-    ManagerClientService.Client client = null;
     ClientContext context = shellState.getContext();
-    while (true) {
-      try {
-        client = ManagerClient.getManagerConnectionWithRetry(context);
-        stats = client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
-        break;
-      } catch (ThriftNotActiveServiceException e) {
-        // Let it loop, fetching a new location
-        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-      } finally {
-        if (client != null)
-          ThriftUtil.close(client, context);
-      }
-    }
+    ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.executeAdminOnManager(context, client -> {
+      return client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
+    });
 
     final boolean paginate = !cl.hasOption(disablePaginationOpt.getOpt());
 

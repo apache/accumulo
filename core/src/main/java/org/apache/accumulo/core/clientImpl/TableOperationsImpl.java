@@ -317,7 +317,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  private void finishFateOperation(long opid) throws ThriftSecurityException, TException, AccumuloException {
+  private void finishFateOperation(long opid)
+      throws ThriftSecurityException, TException, AccumuloException {
     while (true) {
       FateService.Client client = null;
       try {
@@ -1023,8 +1024,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
   private void setPropertyNoChecks(final String tableName, final String property,
       final String value)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    ManagerClient.executeTable(context, client -> client.setTableProperty(TraceUtil.traceInfo(),
-        context.rpcCreds(), tableName, property, value));
+    ThriftClientTypes.MANAGER.executeOnManager(context, client -> {
+      client.setTableProperty(TraceUtil.traceInfo(), context.rpcCreds(), tableName, property,
+          value);
+      return null;
+    });
   }
 
   @Override
@@ -1044,8 +1048,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   private void removePropertyNoChecks(final String tableName, final String property)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    ManagerClient.executeTable(context, client -> client.removeTableProperty(TraceUtil.traceInfo(),
-        context.rpcCreds(), tableName, property));
+    ThriftClientTypes.MANAGER.executeOnManager(context, client -> {
+      client.removeTableProperty(TraceUtil.traceInfo(), context.rpcCreds(), tableName, property);
+      return null;
+    });
   }
 
   void checkLocalityGroups(String tableName, String propChanged)
@@ -1071,20 +1077,24 @@ public class TableOperationsImpl extends TableOperationsHelper {
     EXISTING_TABLE_NAME.validate(tableName);
 
     try {
-      return ServerClient.executeRaw(context, client -> client
-          .getTableConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), tableName));
-    } catch (ThriftTableOperationException e) {
-      switch (e.getType()) {
-        case NOTFOUND:
-          throw new TableNotFoundException(e);
-        case NAMESPACE_NOTFOUND:
-          throw new TableNotFoundException(tableName, new NamespaceNotFoundException(e));
-        default:
-          throw new AccumuloException(e.description, e);
-      }
+      return ThriftClientTypes.CLIENT.executeOnTServer(context, client -> {
+        return client.getTableConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), tableName);
+      });
     } catch (AccumuloException e) {
+      Throwable t = e.getCause();
+      if (t instanceof ThriftTableOperationException) {
+        ThriftTableOperationException ttoe = (ThriftTableOperationException) t;
+        switch (ttoe.getType()) {
+          case NOTFOUND:
+            throw new TableNotFoundException(ttoe);
+          case NAMESPACE_NOTFOUND:
+            throw new TableNotFoundException(tableName, new NamespaceNotFoundException(ttoe));
+          default:
+            throw e;
+        }
+      }
       throw e;
-    } catch (Exception e) {
+    } catch (AccumuloSecurityException e) {
       throw new AccumuloException(e);
     }
   }
@@ -1655,24 +1665,24 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(asTypeName != null, "asTypeName is null");
 
     try {
-      return ServerClient.executeRaw(context,
-          client -> client.checkTableClass(TraceUtil.traceInfo(), context.rpcCreds(), tableName,
-              className, asTypeName));
-    } catch (ThriftTableOperationException e) {
-      switch (e.getType()) {
-        case NOTFOUND:
-          throw new TableNotFoundException(e);
-        case NAMESPACE_NOTFOUND:
-          throw new TableNotFoundException(tableName, new NamespaceNotFoundException(e));
-        default:
-          throw new AccumuloException(e.description, e);
-      }
-    } catch (ThriftSecurityException e) {
-      throw new AccumuloSecurityException(e.user, e.code, e);
+      return ThriftClientTypes.CLIENT.executeOnTServer(context, client -> {
+        return client.checkTableClass(TraceUtil.traceInfo(), context.rpcCreds(), tableName,
+            className, asTypeName);
+      });
     } catch (AccumuloException e) {
+      Throwable t = e.getCause();
+      if (t instanceof ThriftTableOperationException) {
+        ThriftTableOperationException ttoe = (ThriftTableOperationException) t;
+        switch (ttoe.getType()) {
+          case NOTFOUND:
+            throw new TableNotFoundException(ttoe);
+          case NAMESPACE_NOTFOUND:
+            throw new TableNotFoundException(tableName, new NamespaceNotFoundException(ttoe));
+          default:
+            throw e;
+        }
+      }
       throw e;
-    } catch (Exception e) {
-      throw new AccumuloException(e);
     }
   }
 
@@ -1902,7 +1912,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           _flush(tableId, startRow, endRow, true);
         }
 
-        TSummaries ret = ServerClient.execute(context, ThriftClientTypes.TABLET_SERVER, client -> {
+        TSummaries ret = ThriftClientTypes.TABLET_SERVER.executeOnTServer(context, client -> {
           TSummaries tsr =
               client.startGetSummaries(TraceUtil.traceInfo(), context.rpcCreds(), request);
           while (!tsr.finished) {

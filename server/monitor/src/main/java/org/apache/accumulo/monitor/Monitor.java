@@ -46,7 +46,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import jakarta.inject.Singleton;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.ManagerClient;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
@@ -272,7 +271,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       while (retry) {
         ManagerClientService.Client client = null;
         try {
-          client = ManagerClient.getManagerConnection(context);
+          client = ThriftClientTypes.MANAGER.getManagerConnection(context);
           if (client != null) {
             mmi = client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
             retry = false;

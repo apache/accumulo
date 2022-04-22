@@ -30,16 +30,13 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ManagerClient;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService.Client;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
@@ -84,21 +81,11 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
       }
 
       while (true) {
-        ManagerMonitorInfo stats;
-        Client client = null;
-        try {
-          ClientContext context = (ClientContext) c;
-          client = ManagerClient.getManagerConnectionWithRetry(context);
-          log.info("Fetching stats");
-          stats = client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
-        } catch (ThriftNotActiveServiceException e) {
-          // Let it loop, fetching a new location
-          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-          continue;
-        } finally {
-          if (client != null)
-            ThriftUtil.close(client, (ClientContext) c);
-        }
+        ClientContext context = (ClientContext) c;
+        ManagerMonitorInfo stats =
+            ThriftClientTypes.MANAGER.executeAdminOnManager(context, client -> {
+              return client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
+            });
         int tablets = 0;
         for (TabletServerStatus tserver : stats.tServerInfo) {
           for (Entry<String,TableInfo> entry : tserver.tableMap.entrySet()) {

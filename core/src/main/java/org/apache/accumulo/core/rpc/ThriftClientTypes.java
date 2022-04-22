@@ -30,9 +30,16 @@ import java.util.List;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.clientImpl.AccumuloServerException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ThriftTransportKey;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService;
@@ -42,6 +49,7 @@ import org.apache.accumulo.core.manager.thrift.ManagerClientService.Client;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
@@ -49,7 +57,7 @@ import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
-import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
+import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.TServiceClientFactory;
 import org.apache.thrift.protocol.TMultiplexedProtocol;
@@ -61,11 +69,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ThriftClientTypes {
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(ThriftClientTypes.class);
 
   public static class ThriftClientType<C extends TServiceClient,
       F extends TServiceClientFactory<C>> {
+
+    @FunctionalInterface
+    public interface Exec<R,C> {
+      R execute(C client) throws Exception;
+    }
 
     private final String serviceName;
     private final F clientFactory;
@@ -88,11 +101,43 @@ public class ThriftClientTypes {
       // All server side TProcessors are multiplexed. Wrap this protocol.
       return clientFactory.getClient(new TMultiplexedProtocol(prot, getServiceName()));
     }
-    
+
+    public Pair<String,C> getTabletServerConnection(ClientContext context,
+        boolean preferCachedConnections) throws TTransportException {
+      throw new UnsupportedOperationException("This method has not been implemented");
+    }
+
+    public <R> R executeOnTServer(ClientContext context, Exec<R,C> exec)
+        throws AccumuloException, AccumuloSecurityException {
+      while (true) {
+        String server = null;
+        C client = null;
+        try {
+          Pair<String,C> pair = getTabletServerConnection(context, true);
+          server = pair.getFirst();
+          client = pair.getSecond();
+          return exec.execute(client);
+        } catch (ThriftSecurityException e) {
+          throw new AccumuloSecurityException(e.user, e.code, e);
+        } catch (TApplicationException tae) {
+          throw new AccumuloServerException(server, tae);
+        } catch (TTransportException tte) {
+          LOG.debug("ClientService request failed " + server + ", retrying ... ", tte);
+          sleepUninterruptibly(100, MILLISECONDS);
+        } catch (Exception e) {
+          throw new AccumuloException(e);
+        } finally {
+          if (client != null) {
+            ThriftUtil.close(client, context);
+          }
+        }
+      }
+    }
+
     public C getManagerConnection(ClientContext context) {
       throw new UnsupportedOperationException("This method has not been implemented");
     }
-    
+
     public C getManagerConnectionWithRetry(ClientContext context) throws AccumuloException {
       while (true) {
 
@@ -100,64 +145,110 @@ public class ThriftClientTypes {
         if (result != null)
           return result;
         sleepUninterruptibly(250, MILLISECONDS);
-      }     
+      }
     }
-    
-    public Pair<String,C> getTabletServerConnection(ClientContext context, boolean preferCachedConnections) throws TTransportException{
-      throw new UnsupportedOperationException("This method has not been implemented");
+
+    public <R> R executeAdminOnManager(ClientContext context, Exec<R,C> exec)
+        throws AccumuloException, AccumuloSecurityException {
+      try {
+        return executeOnManager(context, exec);
+      } catch (TableNotFoundException e) {
+        throw new AssertionError(e);
+      }
+    }
+
+    public <R> R executeOnManager(ClientContext context, Exec<R,C> exec)
+        throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      C client = null;
+      while (true) {
+        try {
+          client = getManagerConnectionWithRetry(context);
+          return exec.execute(client);
+        } catch (TTransportException tte) {
+          LOG.debug("ManagerClient request failed, retrying ... ", tte);
+          sleepUninterruptibly(100, MILLISECONDS);
+        } catch (ThriftSecurityException e) {
+          throw new AccumuloSecurityException(e.user, e.code, e);
+        } catch (AccumuloException e) {
+          throw e;
+        } catch (ThriftTableOperationException e) {
+          switch (e.getType()) {
+            case NAMESPACE_NOTFOUND:
+              throw new TableNotFoundException(e.getTableName(), new NamespaceNotFoundException(e));
+            case NOTFOUND:
+              throw new TableNotFoundException(e);
+            default:
+              throw new AccumuloException(e);
+          }
+        } catch (ThriftNotActiveServiceException e) {
+          // Let it loop, fetching a new location
+          LOG.debug("Contacted a Manager which is no longer active, retrying");
+          sleepUninterruptibly(100, MILLISECONDS);
+        } catch (Exception e) {
+          throw new AccumuloException(e);
+        } finally {
+          if (client != null)
+            ThriftUtil.close(client, context);
+        }
+      }
+
     }
 
   }
 
   public static final ThriftClientType<ClientService.Client,ClientService.Client.Factory> CLIENT =
       new ThriftClientType<>("ClientService", new ClientService.Client.Factory()) {
-    volatile boolean warnedAboutTServersBeingDown = false;
+        volatile boolean warnedAboutTServersBeingDown = false;
 
-    @Override
-    public Pair<String,org.apache.accumulo.core.clientImpl.thrift.ClientService.Client>
-        getTabletServerConnection(ClientContext context, boolean preferCachedConnections) throws TTransportException {
-      checkArgument(context != null, "context is null");
-      long rpcTimeout = context.getClientTimeoutInMillis();
-      // create list of servers
-      ArrayList<ThriftTransportKey> servers = new ArrayList<>();
+        @Override
+        public Pair<String,org.apache.accumulo.core.clientImpl.thrift.ClientService.Client>
+            getTabletServerConnection(ClientContext context, boolean preferCachedConnections)
+                throws TTransportException {
+          checkArgument(context != null, "context is null");
+          long rpcTimeout = context.getClientTimeoutInMillis();
+          // create list of servers
+          ArrayList<ThriftTransportKey> servers = new ArrayList<>();
 
-      // add tservers
-      ZooCache zc = context.getZooCache();
-      for (String tserver : zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS)) {
-        var zLocPath =
-            ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + tserver);
-        byte[] data = zc.getLockData(zLocPath);
-        if (data != null) {
-          String strData = new String(data, UTF_8);
-          if (!strData.equals("manager"))
-            servers.add(new ThriftTransportKey(
-                new ServerServices(strData).getAddress(Service.TSERV_CLIENT), rpcTimeout, context));
-        }
-      }
-
-      boolean opened = false;
-      try {
-        Pair<String,TTransport> pair =
-            context.getTransportPool().getAnyTransport(servers, preferCachedConnections);
-        var client = ThriftUtil.createClient(this, pair.getSecond());
-        opened = true;
-        warnedAboutTServersBeingDown = false;
-        return new Pair<>(pair.getFirst(), client);
-      } finally {
-        if (!opened) {
-          if (!warnedAboutTServersBeingDown) {
-            if (servers.isEmpty()) {
-              LOG.warn("There are no tablet servers: check that zookeeper and accumulo are running.");
-            } else {
-              LOG.warn("Failed to find an available server in the list of servers: {}", servers);
+          // add tservers
+          ZooCache zc = context.getZooCache();
+          for (String tserver : zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS)) {
+            var zLocPath =
+                ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + tserver);
+            byte[] data = zc.getLockData(zLocPath);
+            if (data != null) {
+              String strData = new String(data, UTF_8);
+              if (!strData.equals("manager"))
+                servers.add(new ThriftTransportKey(
+                    new ServerServices(strData).getAddress(Service.TSERV_CLIENT), rpcTimeout,
+                    context));
             }
-            warnedAboutTServersBeingDown = true;
+          }
+
+          boolean opened = false;
+          try {
+            Pair<String,TTransport> pair =
+                context.getTransportPool().getAnyTransport(servers, preferCachedConnections);
+            var client = ThriftUtil.createClient(this, pair.getSecond());
+            opened = true;
+            warnedAboutTServersBeingDown = false;
+            return new Pair<>(pair.getFirst(), client);
+          } finally {
+            if (!opened) {
+              if (!warnedAboutTServersBeingDown) {
+                if (servers.isEmpty()) {
+                  LOG.warn(
+                      "There are no tablet servers: check that zookeeper and accumulo are running.");
+                } else {
+                  LOG.warn("Failed to find an available server in the list of servers: {}",
+                      servers);
+                }
+                warnedAboutTServersBeingDown = true;
+              }
+            }
           }
         }
-      }
-    }
-    
-  };
+
+      };
 
   public static final ThriftClientType<CompactorService.Client,
       CompactorService.Client.Factory> COMPACTOR =
@@ -199,123 +290,125 @@ public class ThriftClientTypes {
             return null;
           }
         }
-  };
+      };
 
   public static final ThriftClientType<GCMonitorService.Client,GCMonitorService.Client.Factory> GC =
       new ThriftClientType<>("GCMonitorService", new GCMonitorService.Client.Factory());
 
   public static final ThriftClientType<ManagerClientService.Client,
-      ManagerClientService.Client.Factory> MANAGER =
-          new ThriftClientType<>("ManagerClientService", new ManagerClientService.Client.Factory()) {
+      ManagerClientService.Client.Factory> MANAGER = new ThriftClientType<>("ManagerClientService",
+          new ManagerClientService.Client.Factory()) {
 
-            @Override
-            public Client getManagerConnection(ClientContext context) {
-              checkArgument(context != null, "context is null");
+        @Override
+        public Client getManagerConnection(ClientContext context) {
+          checkArgument(context != null, "context is null");
 
-              List<String> locations = context.getManagerLocations();
+          List<String> locations = context.getManagerLocations();
 
-              if (locations.isEmpty()) {
-                LOG.debug("No managers...");
-                return null;
-              }
+          if (locations.isEmpty()) {
+            LOG.debug("No managers...");
+            return null;
+          }
 
-              HostAndPort manager = HostAndPort.fromString(locations.get(0));
-              if (manager.getPort() == 0)
-                return null;
+          HostAndPort manager = HostAndPort.fromString(locations.get(0));
+          if (manager.getPort() == 0)
+            return null;
 
-              try {
-                // Manager requests can take a long time: don't ever time out
-                return ThriftUtil.getClientNoTimeout(ThriftClientTypes.MANAGER, manager, context);
-              } catch (TTransportException tte) {
-                Throwable cause = tte.getCause();
-                if (cause != null && cause instanceof UnknownHostException) {
-                  // do not expect to recover from this
-                  throw new RuntimeException(tte);
-                }
-                LOG.debug("Failed to connect to manager=" + manager + ", will retry... ", tte);
-                return null;
-              }
-
+          try {
+            // Manager requests can take a long time: don't ever time out
+            return ThriftUtil.getClientNoTimeout(ThriftClientTypes.MANAGER, manager, context);
+          } catch (TTransportException tte) {
+            Throwable cause = tte.getCause();
+            if (cause != null && cause instanceof UnknownHostException) {
+              // do not expect to recover from this
+              throw new RuntimeException(tte);
             }
-    
-  };
+            LOG.debug("Failed to connect to manager=" + manager + ", will retry... ", tte);
+            return null;
+          }
+
+        }
+
+      };
 
   public static final ThriftClientType<ReplicationCoordinator.Client,
       ReplicationCoordinator.Client.Factory> REPLICATION_COORDINATOR = new ThriftClientType<>(
           "ReplicationCoordinator", new ReplicationCoordinator.Client.Factory()) {
 
-            @Override
-            public org.apache.accumulo.core.replication.thrift.ReplicationCoordinator.Client
-                getManagerConnection(ClientContext context) {
-              List<String> locations = context.getManagerLocations();
+        @Override
+        public org.apache.accumulo.core.replication.thrift.ReplicationCoordinator.Client
+            getManagerConnection(ClientContext context) {
+          List<String> locations = context.getManagerLocations();
 
-              if (locations.isEmpty()) {
-                LOG.debug("No managers for replication to instance {}", context.getInstanceName());
-                return null;
-              }
+          if (locations.isEmpty()) {
+            LOG.debug("No managers for replication to instance {}", context.getInstanceName());
+            return null;
+          }
 
-              // This is the manager thrift service, we just want the hostname, not the port
-              String managerThriftService = locations.get(0);
-              if (managerThriftService.endsWith(":0")) {
-                LOG.warn("Manager found for {} did not have real location {}", context.getInstanceName(),
-                    managerThriftService);
-                return null;
-              }
+          // This is the manager thrift service, we just want the hostname, not the port
+          String managerThriftService = locations.get(0);
+          if (managerThriftService.endsWith(":0")) {
+            LOG.warn("Manager found for {} did not have real location {}",
+                context.getInstanceName(), managerThriftService);
+            return null;
+          }
 
-              String zkPath = context.getZooKeeperRoot() + Constants.ZMANAGER_REPLICATION_COORDINATOR_ADDR;
-              String replCoordinatorAddr;
+          String zkPath =
+              context.getZooKeeperRoot() + Constants.ZMANAGER_REPLICATION_COORDINATOR_ADDR;
+          String replCoordinatorAddr;
 
-              LOG.debug("Using ZooKeeper quorum at {} with path {} to find peer Manager information",
-                  context.getZooKeepers(), zkPath);
+          LOG.debug("Using ZooKeeper quorum at {} with path {} to find peer Manager information",
+              context.getZooKeepers(), zkPath);
 
-              // Get the coordinator port for the manager we're trying to connect to
-              try {
-                ZooReader reader = context.getZooReader();
-                replCoordinatorAddr = new String(reader.getData(zkPath), UTF_8);
-              } catch (KeeperException | InterruptedException e) {
-                LOG.error("Could not fetch remote coordinator port", e);
-                return null;
-              }
+          // Get the coordinator port for the manager we're trying to connect to
+          try {
+            ZooReader reader = context.getZooReader();
+            replCoordinatorAddr = new String(reader.getData(zkPath), UTF_8);
+          } catch (KeeperException | InterruptedException e) {
+            LOG.error("Could not fetch remote coordinator port", e);
+            return null;
+          }
 
-              // Throw the hostname and port through HostAndPort to get some normalization
-              HostAndPort coordinatorAddr = HostAndPort.fromString(replCoordinatorAddr);
+          // Throw the hostname and port through HostAndPort to get some normalization
+          HostAndPort coordinatorAddr = HostAndPort.fromString(replCoordinatorAddr);
 
-              LOG.debug("Connecting to manager at {}", coordinatorAddr);
+          LOG.debug("Connecting to manager at {}", coordinatorAddr);
 
-              try {
-                // Manager requests can take a long time: don't ever time out
-                return ThriftUtil.getClientNoTimeout(ThriftClientTypes.REPLICATION_COORDINATOR,
-                    coordinatorAddr, context);
-              } catch (TTransportException tte) {
-                LOG.debug("Failed to connect to manager coordinator service ({})", coordinatorAddr, tte);
-                return null;
-              }
+          try {
+            // Manager requests can take a long time: don't ever time out
+            return ThriftUtil.getClientNoTimeout(ThriftClientTypes.REPLICATION_COORDINATOR,
+                coordinatorAddr, context);
+          } catch (TTransportException tte) {
+            LOG.debug("Failed to connect to manager coordinator service ({})", coordinatorAddr,
+                tte);
+            return null;
+          }
+        }
+
+        @Override
+        public org.apache.accumulo.core.replication.thrift.ReplicationCoordinator.Client
+            getManagerConnectionWithRetry(ClientContext context) throws AccumuloException {
+          requireNonNull(context);
+
+          for (int attempts = 1; attempts <= 10; attempts++) {
+
+            ReplicationCoordinator.Client result = getManagerConnection(context);
+            if (result != null)
+              return result;
+            LOG.debug("Could not get ReplicationCoordinator connection to {}, will retry",
+                context.getInstanceName());
+            try {
+              Thread.sleep(attempts * 250L);
+            } catch (InterruptedException e) {
+              throw new AccumuloException(e);
             }
+          }
 
-            @Override
-            public org.apache.accumulo.core.replication.thrift.ReplicationCoordinator.Client
-                getManagerConnectionWithRetry(ClientContext context)  throws AccumuloException {
-              requireNonNull(context);
+          throw new AccumuloException(
+              "Timed out trying to communicate with manager from " + context.getInstanceName());
+        }
 
-              for (int attempts = 1; attempts <= 10; attempts++) {
-
-                ReplicationCoordinator.Client result = getManagerConnection(context);
-                if (result != null)
-                  return result;
-                LOG.debug("Could not get ReplicationCoordinator connection to {}, will retry",
-                    context.getInstanceName());
-                try {
-                  Thread.sleep(attempts * 250L);
-                } catch (InterruptedException e) {
-                  throw new AccumuloException(e);
-                }
-              }
-
-              throw new AccumuloException(
-                  "Timed out trying to communicate with manager from " + context.getInstanceName());
-            }
-    
-  };
+      };
 
   public static final ThriftClientType<ReplicationServicer.Client,
       ReplicationServicer.Client.Factory> REPLICATION_SERVICER =
@@ -323,7 +416,60 @@ public class ThriftClientTypes {
 
   public static final ThriftClientType<TabletClientService.Client,
       TabletClientService.Client.Factory> TABLET_SERVER =
-          new ThriftClientType<>("TabletClientService", new TabletClientService.Client.Factory());
+          new ThriftClientType<>("TabletClientService", new TabletClientService.Client.Factory()) {
+            volatile boolean warnedAboutTServersBeingDown = false;
+
+            @Override
+            public
+                Pair<String,org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client>
+                getTabletServerConnection(ClientContext context, boolean preferCachedConnections)
+                    throws TTransportException {
+              checkArgument(context != null, "context is null");
+              long rpcTimeout = context.getClientTimeoutInMillis();
+              // create list of servers
+              ArrayList<ThriftTransportKey> servers = new ArrayList<>();
+
+              // add tservers
+              ZooCache zc = context.getZooCache();
+              for (String tserver : zc
+                  .getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS)) {
+                var zLocPath = ServiceLock
+                    .path(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + tserver);
+                byte[] data = zc.getLockData(zLocPath);
+                if (data != null) {
+                  String strData = new String(data, UTF_8);
+                  if (!strData.equals("manager"))
+                    servers.add(new ThriftTransportKey(
+                        new ServerServices(strData).getAddress(Service.TSERV_CLIENT), rpcTimeout,
+                        context));
+                }
+              }
+
+              boolean opened = false;
+              try {
+                Pair<String,TTransport> pair =
+                    context.getTransportPool().getAnyTransport(servers, preferCachedConnections);
+                var client = ThriftUtil.createClient(this, pair.getSecond());
+                opened = true;
+                warnedAboutTServersBeingDown = false;
+                return new Pair<>(pair.getFirst(), client);
+              } finally {
+                if (!opened) {
+                  if (!warnedAboutTServersBeingDown) {
+                    if (servers.isEmpty()) {
+                      LOG.warn(
+                          "There are no tablet servers: check that zookeeper and accumulo are running.");
+                    } else {
+                      LOG.warn("Failed to find an available server in the list of servers: {}",
+                          servers);
+                    }
+                    warnedAboutTServersBeingDown = true;
+                  }
+                }
+              }
+            }
+
+          };
 
   public static final ThriftClientType<TabletScanClientService.Client,
       TabletScanClientService.Client.Factory> TABLET_SCAN = new ThriftClientType<>(
