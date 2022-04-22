@@ -63,6 +63,7 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
+import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -694,9 +695,9 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     ServerContext context = getContext();
     for (String server : context.instanceOperations().getTabletServers()) {
       final HostAndPort parsedServer = HostAndPort.fromString(server);
-      Client tserver = null;
+      TabletScanClientService.Client tserver = null;
       try {
-        tserver = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedServer, context);
+        tserver = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, context);
         List<ActiveScan> scans = tserver.getActiveScans(null, context.rpcCreds());
         allScans.put(parsedServer, new ScanStats(scans));
         scansFetchedNanos = System.nanoTime();

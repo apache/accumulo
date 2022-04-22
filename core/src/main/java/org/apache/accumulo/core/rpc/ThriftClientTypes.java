@@ -49,6 +49,7 @@ import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
+import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.TServiceClientFactory;
 import org.apache.thrift.protocol.TMultiplexedProtocol;
@@ -324,4 +325,7 @@ public class ThriftClientTypes {
       TabletClientService.Client.Factory> TABLET_SERVER =
           new ThriftClientType<>("TabletClientService", new TabletClientService.Client.Factory());
 
+  public static final ThriftClientType<TabletScanClientService.Client,
+      TabletScanClientService.Client.Factory> TABLET_SCAN = new ThriftClientType<>(
+          "TabletScanClientService", new TabletScanClientService.Client.Factory());
 }

@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
  * started before the read. It assumes that the operation ids are monotonically increasing.
  *
  */
-class WriteTracker {
+public class WriteTracker {
   private static final Logger log = LoggerFactory.getLogger(WriteTracker.class);
 
   private static final AtomicLong operationCounter = new AtomicLong(1);
