@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.clientImpl;
+package org.apache.accumulo.tserver.replication;
 
+@Deprecated
 public interface ClientExecReturn<T,C> {
   T execute(C client) throws Exception;
 }

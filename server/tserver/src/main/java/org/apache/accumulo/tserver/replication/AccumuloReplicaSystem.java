@@ -44,7 +44,6 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ClientExecReturn;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -86,6 +85,7 @@ import io.opentelemetry.context.Scope;
 
 @Deprecated
 public class AccumuloReplicaSystem implements ReplicaSystem {
+
   private static final Logger log = LoggerFactory.getLogger(AccumuloReplicaSystem.class);
   private static final String RFILE_SUFFIX = "." + RFile.EXTENSION;
 

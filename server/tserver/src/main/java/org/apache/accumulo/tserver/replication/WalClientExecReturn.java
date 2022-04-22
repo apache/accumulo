@@ -21,7 +21,6 @@ package org.apache.accumulo.tserver.replication;
 import java.io.DataInputStream;
 import java.util.Set;
 
-import org.apache.accumulo.core.clientImpl.ClientExecReturn;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer.Client;
