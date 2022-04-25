@@ -240,11 +240,17 @@ public class ShellOptionsJC {
   }
 
   static class PositiveInteger implements IParameterValidator {
+    @Override
     public void validate(String name, String value) throws ParameterException {
-      int n = Integer.parseInt(value);
+      int n = -1;
+      try {
+        n = Integer.parseInt(value);
+      } catch (NumberFormatException e) {
+        // ignore, will be handled below
+      }
       if (n < 0) {
         throw new ParameterException(
-            "Parameter " + name + " should be positive (found " + value + ")");
+            "Parameter " + name + " should be a positive integer (was " + value + ")");
       }
     }
   }
