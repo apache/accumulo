@@ -274,7 +274,6 @@ public class Manager extends AbstractServer
     }
 
     if (oldState != newState && (newState == ManagerState.HAVE_LOCK)) {
-      convertPropsToSingleNode();
       upgradeCoordinator.upgradeZookeeper(getContext(), nextEvent);
     }
 
@@ -285,18 +284,6 @@ public class Manager extends AbstractServer
             + " all logs and file a bug.");
       }
       upgradeMetadataFuture = upgradeCoordinator.upgradeMetadata(getContext(), nextEvent);
-    }
-  }
-
-  private void convertPropsToSingleNode() {
-    try {
-      log.info("Starting property conversion");
-      var context = getContext();
-      ConfigPropertyUpgrader configUpgrader = new ConfigPropertyUpgrader();
-      configUpgrader.doUpgrade(context.getInstanceID(), context.getZooReaderWriter());
-      log.info("Completed property conversion");
-    } catch (Exception ex) {
-      throw new IllegalStateException("Failed to convert properties to single node format", ex);
     }
   }
 

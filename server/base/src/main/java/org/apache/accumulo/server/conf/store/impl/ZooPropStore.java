@@ -268,12 +268,14 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   public static @Nullable VersionedProperties readFromZk(final PropCacheKey propCacheKey,
       final PropStoreWatcher watcher, final ZooReaderWriter zrw)
       throws IOException, KeeperException, InterruptedException {
-    if (zrw.exists(propCacheKey.getPath())) {
+    try {
       Stat stat = new Stat();
       byte[] bytes = zrw.getData(propCacheKey.getPath(), watcher, stat);
       return codec.fromBytes(stat.getVersion(), bytes);
+    } catch (KeeperException.NoNodeException ex) {
+      // ignore no node - allow other exceptions to propagate
+      return null;
     }
-    return null;
   }
 
   /**

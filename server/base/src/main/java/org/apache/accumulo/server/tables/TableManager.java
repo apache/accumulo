@@ -123,8 +123,6 @@ public class TableManager {
         context.getInstanceID(), tableId, namespaceId, tableName, state, existsPolicy);
   }
 
-  // context, REPL_TABLE_ID, replicationTableName,
-  // TableState.OFFLINE, Namespace.ACCUMULO.id(), ZooUtil.NodeExistsPolicy.FAIL
   public TableManager(ServerContext context) {
     this.context = context;
     zkRoot = context.getZooKeeperRoot();

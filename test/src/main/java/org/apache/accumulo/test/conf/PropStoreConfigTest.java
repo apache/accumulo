@@ -30,11 +30,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
-import org.apache.accumulo.server.conf.store.PropStore;
-import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
-import org.apache.accumulo.server.conf.util.ConfigPropertyPrinter;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -58,23 +53,6 @@ public class PropStoreConfigTest extends AccumuloClusterHarness {
   @AfterAll
   public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
-  }
-
-  @Test
-  public void initTest() throws Exception {
-
-    ServerContext context = cluster.getServerContext();
-    Thread.sleep(5_000);
-
-    PropStore propStore = new ZooPropStore.Builder(context).build();
-
-    ConfigPropertyPrinter propertyPrinter = new ConfigPropertyPrinter();
-
-    log.debug("Sys: {}", propStore.get(PropCacheKey.forSystem(context)));
-
-    propertyPrinter.print(context, null, false);
-
-    // TODO - need to add asserts
   }
 
   @Test

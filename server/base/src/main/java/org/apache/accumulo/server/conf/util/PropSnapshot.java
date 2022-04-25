@@ -58,9 +58,7 @@ public class PropSnapshot {
    * @return the current property snapshot.
    */
   public @NonNull VersionedProperties get() {
-    if (needsUpdate.get()) {
-      updateSnapshot();
-    }
+    updateSnapshot();
     var answer = vPropRef.get();
     if (answer == null) {
       throw new PropStoreException("Invalid state for property snapshot, no value has been set",

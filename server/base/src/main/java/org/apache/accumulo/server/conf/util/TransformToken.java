@@ -140,7 +140,9 @@ public class TransformToken {
    */
   public void releaseToken() {
     try {
-      log.trace("releaseToken called - {} - exists in ZooKeeper: {}", path, zrw.exists(path));
+      if (log.isTraceEnabled()) {
+        log.trace("releaseToken called - {} - exists in ZooKeeper: {}", path, zrw.exists(path));
+      }
 
       Stat stat = new Stat();
       byte[] readId = zrw.getData(path, stat);
@@ -149,7 +151,9 @@ public class TransformToken {
             null);
       }
 
-      log.trace("releaseToken read id: {} - exists: {}", readId, zrw.exists(path));
+      if (log.isTraceEnabled()) {
+        log.trace("releaseToken read id: {} - exists: {}", readId, zrw.exists(path));
+      }
 
       // make sure we are deleting the same node version just checked.
       zrw.deleteStrict(path, stat.getVersion());
