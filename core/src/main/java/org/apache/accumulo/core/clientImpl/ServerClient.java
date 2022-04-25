@@ -88,9 +88,6 @@ public class ServerClient {
   public static <CT extends TServiceClient,RT> RT executeRaw(ClientContext context,
       TServiceClientFactory<CT> factory, ClientExecReturn<RT,CT> exec) throws Exception {
     while (true) {
-      if (Thread.currentThread().isInterrupted()) {
-        throw new AccumuloException("Thread interrupted");
-      }
       CT client = null;
       String server = null;
       try {
@@ -113,9 +110,6 @@ public class ServerClient {
   public static void executeRawVoid(ClientContext context, ClientExec<ClientService.Client> exec)
       throws Exception {
     while (true) {
-      if (Thread.currentThread().isInterrupted()) {
-        throw new AccumuloException("Thread interrupted");
-      }
       ClientService.Client client = null;
       String server = null;
       try {

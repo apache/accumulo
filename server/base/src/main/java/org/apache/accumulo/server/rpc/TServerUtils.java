@@ -21,10 +21,12 @@ package org.apache.accumulo.server.rpc;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.UnknownHostException;
+import java.nio.channels.AsynchronousCloseException;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -527,6 +529,12 @@ public class TServerUtils {
       serverUser = UserGroupInformation.getLoginUser();
     } catch (IOException e) {
       transport.close();
+      if (e instanceof AsynchronousCloseException) {
+        if (Thread.currentThread().isInterrupted()) {
+          Thread.currentThread().interrupt();
+          throw new UncheckedIOException(e);
+        }
+      }
       throw new TTransportException(e);
     }
 
