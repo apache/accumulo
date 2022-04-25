@@ -56,8 +56,8 @@ import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer.Client;
 import org.apache.accumulo.core.replication.thrift.WalEdits;
-import org.apache.accumulo.core.rpc.ThriftClientTypes;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -220,10 +220,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         Span span2 = TraceUtil.startSpan(this.getClass(), "_replicate::Fetch peer tserver");
         try (Scope scope = span2.makeCurrent()) {
           // Ask the manager on the remote what TServer we should talk with to replicate the data
-          peerTserverStr = ThriftClientTypes.REPLICATION_COORDINATOR
-              .executeAdminOnManager(peerContext, client -> {
-                return client.getServicerAddress(remoteTableId, peerContext.rpcCreds());
-              });
+          peerTserverStr = ThriftClientTypes.REPLICATION_COORDINATOR.execute(peerContext,
+              client -> client.getServicerAddress(remoteTableId, peerContext.rpcCreds()));
         } catch (AccumuloException | AccumuloSecurityException e) {
           // No progress is made
           log.error(

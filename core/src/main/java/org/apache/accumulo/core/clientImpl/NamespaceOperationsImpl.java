@@ -52,7 +52,7 @@ import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.manager.thrift.FateOperation;
-import org.apache.accumulo.core.rpc.ThriftClientTypes;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
@@ -181,11 +181,9 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     checkArgument(value != null, "value is null");
 
     try {
-      ThriftClientTypes.MANAGER.executeOnManager(context, client -> {
-        client.setNamespaceProperty(TraceUtil.traceInfo(), context.rpcCreds(), namespace, property,
-            value);
-        return null;
-      });
+      ThriftClientTypes.MANAGER.executeVoidTableCommand(context,
+          client -> client.setNamespaceProperty(TraceUtil.traceInfo(), context.rpcCreds(),
+              namespace, property, value));
     } catch (TableNotFoundException e) {
       if (e.getCause() instanceof NamespaceNotFoundException)
         throw (NamespaceNotFoundException) e.getCause();
@@ -200,11 +198,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     EXISTING_NAMESPACE_NAME.validate(namespace);
     checkArgument(property != null, "property is null");
     try {
-      ThriftClientTypes.MANAGER.executeOnManager(context, client -> {
-        client.removeNamespaceProperty(TraceUtil.traceInfo(), context.rpcCreds(), namespace,
-            property);
-        return null;
-      });
+      ThriftClientTypes.MANAGER.executeVoidTableCommand(context, client -> client
+          .removeNamespaceProperty(TraceUtil.traceInfo(), context.rpcCreds(), namespace, property));
     } catch (TableNotFoundException e) {
       if (e.getCause() instanceof NamespaceNotFoundException)
         throw (NamespaceNotFoundException) e.getCause();
@@ -218,10 +213,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     EXISTING_NAMESPACE_NAME.validate(namespace);
 
     try {
-      return ThriftClientTypes.CLIENT.executeOnTServer(context, client -> {
-        return client.getNamespaceConfiguration(TraceUtil.traceInfo(), context.rpcCreds(),
-            namespace);
-      });
+      return ThriftClientTypes.CLIENT.execute(context, client -> client
+          .getNamespaceConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), namespace));
     } catch (AccumuloException e) {
       Throwable t = e.getCause();
       if (t instanceof ThriftTableOperationException) {
@@ -234,7 +227,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
         }
       }
       throw e;
-    } catch (AccumuloSecurityException e) {
+    } catch (Exception e) {
       throw new AccumuloException(e);
     }
   }
@@ -256,11 +249,10 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     checkArgument(asTypeName != null, "asTypeName is null");
 
     try {
-      return ThriftClientTypes.CLIENT.executeOnTServer(context, client -> {
-        return client.checkNamespaceClass(TraceUtil.traceInfo(), context.rpcCreds(), namespace,
-            className, asTypeName);
-      });
-    } catch (AccumuloException e) {
+      return ThriftClientTypes.CLIENT.execute(context,
+          client -> client.checkNamespaceClass(TraceUtil.traceInfo(), context.rpcCreds(), namespace,
+              className, asTypeName));
+    } catch (AccumuloSecurityException | AccumuloException e) {
       Throwable t = e.getCause();
       if (t instanceof ThriftTableOperationException) {
         ThriftTableOperationException ttoe = (ThriftTableOperationException) t;
@@ -272,6 +264,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
         }
       }
       throw e;
+    } catch (Exception e) {
+      throw new AccumuloException(e);
     }
 
   }

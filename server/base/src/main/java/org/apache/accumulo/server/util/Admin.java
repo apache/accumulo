@@ -48,7 +48,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.rpc.ThriftClientTypes;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -369,10 +369,8 @@ public class Admin implements KeywordExecutable {
   private static void stopServer(final ClientContext context, final boolean tabletServersToo)
       throws AccumuloException, AccumuloSecurityException {
 
-    ThriftClientTypes.MANAGER.executeAdminOnManager(context, client -> {
-      client.shutdown(TraceUtil.traceInfo(), context.rpcCreds(), tabletServersToo);
-      return null;
-    });
+    ThriftClientTypes.MANAGER.executeVoid(context,
+        client -> client.shutdown(TraceUtil.traceInfo(), context.rpcCreds(), tabletServersToo));
   }
 
   private static void stopTabletServer(final ClientContext context, List<String> servers,
@@ -389,11 +387,8 @@ public class Admin implements KeywordExecutable {
         final String finalServer =
             qualifyWithZooKeeperSessionId(zTServerRoot, zc, address.toString());
         log.info("Stopping server {}", finalServer);
-        ThriftClientTypes.MANAGER.executeAdminOnManager(context, client -> {
-          client.shutdownTabletServer(TraceUtil.traceInfo(), context.rpcCreds(), finalServer,
-              force);
-          return null;
-        });
+        ThriftClientTypes.MANAGER.executeVoid(context, client -> client
+            .shutdownTabletServer(TraceUtil.traceInfo(), context.rpcCreds(), finalServer, force));
       }
     }
   }

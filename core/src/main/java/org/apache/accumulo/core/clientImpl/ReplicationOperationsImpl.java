@@ -38,7 +38,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
-import org.apache.accumulo.core.rpc.ThriftClientTypes;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -106,9 +106,8 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
   protected boolean getManagerDrain(final TInfo tinfo, final TCredentials rpcCreds,
       final String tableName, final Set<String> wals)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    return ThriftClientTypes.MANAGER.executeAdminOnManager(context, client -> {
-      return client.drainReplicationTable(tinfo, rpcCreds, tableName, wals);
-    });
+    return ThriftClientTypes.MANAGER.execute(context,
+        client -> client.drainReplicationTable(tinfo, rpcCreds, tableName, wals));
   }
 
   @Override

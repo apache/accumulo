@@ -36,7 +36,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-import org.apache.accumulo.core.rpc.ThriftClientTypes;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
@@ -79,10 +79,9 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
       ManagerMonitorInfo stats = null;
       ClientContext context = (ClientContext) c;
       for (int i = 0; unassignedTablets > 0 && i < 20; i++) {
-        stats = ThriftClientTypes.MANAGER.executeAdminOnManager(context, client -> {
-          return client.getManagerStats(TraceUtil.traceInfo(),
-              creds.toThrift(c.instanceOperations().getInstanceId()));
-        });
+        stats = ThriftClientTypes.MANAGER.execute(context,
+            client -> client.getManagerStats(TraceUtil.traceInfo(),
+                creds.toThrift(c.instanceOperations().getInstanceId())));
         unassignedTablets = stats.getUnassignedTablets();
         if (unassignedTablets > 0) {
           log.info("Found {} unassigned tablets, sleeping 3 seconds for tablet assignment",

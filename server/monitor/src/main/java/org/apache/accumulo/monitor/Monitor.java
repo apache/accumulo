@@ -57,8 +57,8 @@ import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-import org.apache.accumulo.core.rpc.ThriftClientTypes;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
@@ -271,7 +271,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       while (retry) {
         ManagerClientService.Client client = null;
         try {
-          client = ThriftClientTypes.MANAGER.getManagerConnection(context);
+          client = ThriftClientTypes.MANAGER.getConnection(context);
           if (client != null) {
             mmi = client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
             retry = false;

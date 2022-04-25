@@ -29,7 +29,7 @@ import org.apache.accumulo.core.master.thrift.BulkImportStatus;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-import org.apache.accumulo.core.rpc.ThriftClientTypes;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.TableInfoUtil;
@@ -38,9 +38,8 @@ public class GetManagerStats {
   public static void main(String[] args) throws Exception {
     ManagerMonitorInfo stats = null;
     var context = new ServerContext(SiteConfiguration.auto());
-    stats = ThriftClientTypes.MANAGER.executeAdminOnManager(context, client -> {
-      return client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
-    });
+    stats = ThriftClientTypes.MANAGER.execute(context,
+        client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()));
     out(0, "State: " + stats.state.name());
     out(0, "Goal State: " + stats.goalState.name());
     if (stats.serversShuttingDown != null && !stats.serversShuttingDown.isEmpty()) {

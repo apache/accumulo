@@ -36,7 +36,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-import org.apache.accumulo.core.rpc.ThriftClientTypes;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.fate.util.UtilWaitThread;
@@ -107,9 +107,8 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
     ManagerMonitorInfo stats = null;
     int unassignedTablets = 1;
     for (int i = 0; unassignedTablets > 0 && i < 10; i++) {
-      stats = ThriftClientTypes.MANAGER.executeAdminOnManager(context, client -> {
-        return client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
-      });
+      stats = ThriftClientTypes.MANAGER.execute(context,
+          client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()));
       unassignedTablets = stats.getUnassignedTablets();
       if (unassignedTablets > 0) {
         log.info("Found {} unassigned tablets, sleeping 3 seconds for tablet assignment",

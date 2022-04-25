@@ -57,7 +57,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
-import org.apache.accumulo.core.rpc.ThriftClientTypes;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.balancer.HostRegexTableLoadBalancer;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -206,9 +206,9 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
       for (int i1 = 0; i1 < count; ++i1) {
         final String tserverName = tserversList.get(i1).getHostPortSession();
-        ThriftClientTypes.MANAGER.executeAdminOnManager(ctx, client -> {
+        ThriftClientTypes.MANAGER.executeVoid(ctx, client -> {
+          log.info("Sending shutdown command to {} via ManagerClientService", tserverName);
           client.shutdownTabletServer(null, ctx.rpcCreds(), tserverName, false);
-          return null;
         });
       }
 

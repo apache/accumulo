@@ -24,7 +24,7 @@ import java.util.List;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
-import org.apache.accumulo.core.rpc.ThriftClientTypes;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -48,9 +48,8 @@ public class ListBulkCommand extends Command {
     List<String> tservers;
 
     ClientContext context = shellState.getContext();
-    ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.executeAdminOnManager(context, client -> {
-      return client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
-    });
+    ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.execute(context,
+        client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()));
 
     final boolean paginate = !cl.hasOption(disablePaginationOpt.getOpt());
 

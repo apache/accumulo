@@ -38,7 +38,7 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService.Client;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
-import org.apache.accumulo.core.rpc.ThriftClientTypes;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.singletons.SingletonManager;
@@ -429,14 +429,14 @@ public class ManagerApiIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps())
         .as(user.getPrincipal(), user.getToken()).build()) {
       ClientContext context = (ClientContext) client;
-      ThriftClientTypes.MANAGER.executeOnManager(context, op);
+      ThriftClientTypes.MANAGER.execute(context, op);
     }
   }
 
   private static void expectPermissionSuccess(
       ThriftClientTypes.ThriftClientType.Exec<Void,ManagerClientService.Client> op,
       ClientContext context) throws Exception {
-    ThriftClientTypes.MANAGER.executeOnManager(context, op);
+    ThriftClientTypes.MANAGER.execute(context, op);
   }
 
   private static void expectPermissionDenied(

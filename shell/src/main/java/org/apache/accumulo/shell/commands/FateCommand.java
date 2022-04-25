@@ -43,8 +43,8 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.manager.thrift.FateService;
-import org.apache.accumulo.core.rpc.ThriftClientTypes;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.FateTxId;
@@ -301,7 +301,7 @@ public class FateCommand extends Command {
     while (true) {
       FateService.Client client = null;
       try {
-        client = ThriftClientTypes.FATE.getManagerConnectionWithRetry(context);
+        client = ThriftClientTypes.FATE.getConnectionWithRetry(context);
         return client.cancelFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), txid);
       } catch (TTransportException tte) {
         shellState.getWriter()

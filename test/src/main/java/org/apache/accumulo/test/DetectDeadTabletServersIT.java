@@ -29,7 +29,7 @@ import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.rpc.ThriftClientTypes;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.fate.util.UtilWaitThread;
@@ -85,9 +85,8 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
 
   private ManagerMonitorInfo getStats(AccumuloClient c) throws Exception {
     final ClientContext context = (ClientContext) c;
-    return ThriftClientTypes.MANAGER.executeAdminOnManager(context, client -> {
-      return client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
-    });
+    return ThriftClientTypes.MANAGER.execute(context,
+        client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()));
   }
 
 }
