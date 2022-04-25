@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -202,21 +203,21 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       String table2 = instanceName + "_t2";
       c.tableOperations().create(table1);
       c.tableOperations().create(table2);
-      BatchWriter bw = c.createBatchWriter(table1);
-      for (int i = 0; i < 100; i++) {
-        Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-        m.put("", "", String.format("%09x", i));
-        bw.addMutation(m);
+      try (BatchWriter bw = c.createBatchWriter(table1)) {
+        for (int i = 0; i < 100; i++) {
+          Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
+          m.put("", "", String.format("%09x", i));
+          bw.addMutation(m);
+        }
       }
-      bw.close();
 
       MRTester.main(new String[] {"root", ROOT_PASSWORD, table1, table2, instanceName,
           getCluster().getZooKeepers()});
       assertNull(e1);
 
       try (Scanner scanner = c.createScanner(table2, new Authorizations())) {
-        int i = scanner.stream().map(entry -> Integer.parseInt(new String(entry.getValue().get())))
-            .collect(onlyElement());
+        int i = scanner.stream().map(Map.Entry::getValue).map(Value::get).map(String::new)
+            .map(Integer::parseInt).collect(onlyElement());
         assertEquals(100, i);
       }
     }

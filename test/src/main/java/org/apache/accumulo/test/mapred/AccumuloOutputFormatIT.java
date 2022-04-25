@@ -234,7 +234,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       try (Scanner scanner = c.createScanner(table2, new Authorizations())) {
         int actual = scanner.stream().map(Entry::getValue).map(Value::get).map(String::new)
             .map(Integer::parseInt).collect(onlyElement());
-        assertEquals(actual, 100);
+        assertEquals(100, actual);
       }
     }
   }
