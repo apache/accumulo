@@ -92,17 +92,17 @@ public class ExistingMacIT extends ConfigurableMacBase {
     AccumuloClient client =
         getCluster().createAccumuloClient(rootUser, new PasswordToken(ROOT_PASSWORD));
 
-    final String table1 = "table1";
-    client.tableOperations().create(table1);
+    final String table = getUniqueNames(1)[0];
+    client.tableOperations().create(table);
 
-    try (BatchWriter bw = client.createBatchWriter(table1)) {
+    try (BatchWriter bw = client.createBatchWriter(table)) {
       Mutation m1 = new Mutation("00081");
       m1.put("math", "sqroot", "9");
       m1.put("math", "sq", "6560");
       bw.addMutation(m1);
     }
 
-    client.tableOperations().flush(table1, null, null, true);
+    client.tableOperations().flush(table, null, null, true);
     client.tableOperations().flush(MetadataTable.NAME, null, null, true);
     client.tableOperations().flush(RootTable.NAME, null, null, true);
 
@@ -141,7 +141,7 @@ public class ExistingMacIT extends ConfigurableMacBase {
 
     client = accumulo2.createAccumuloClient(rootUser, new PasswordToken(ROOT_PASSWORD));
 
-    try (Scanner scanner = client.createScanner(table1, Authorizations.EMPTY)) {
+    try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
       int sum = 0;
       for (Entry<Key,Value> entry : scanner) {
         sum += Integer.parseInt(entry.getValue().toString());

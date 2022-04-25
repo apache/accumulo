@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -887,14 +888,15 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         Set<String> rowsReceived = new HashSet<>();
         while (results.hasNext()) {
           Result result = results.next();
-          rowsReceived.add(new String(result.getMutation().getRow()));
+          rowsReceived.add(new String(result.getMutation().getRow(), UTF_8));
           assertEquals(Status.ACCEPTED, result.getStatus());
           count++;
         }
 
         assertEquals(num, count, "Did not receive the expected number of results");
 
-        Set<String> rowsExpected = rows.stream().map(String::new).collect(Collectors.toSet());
+        Set<String> rowsExpected =
+            rows.stream().map(row -> new String(row, UTF_8)).collect(Collectors.toSet());
         assertEquals(rowsExpected, rowsReceived, "Did not receive all expected rows");
 
         ArrayList<ConditionalMutation> cml2 = new ArrayList<>(num);
