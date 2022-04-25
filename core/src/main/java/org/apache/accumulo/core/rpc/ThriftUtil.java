@@ -22,7 +22,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetAddress;
-import java.nio.channels.AsynchronousCloseException;
+import java.nio.channels.ClosedByInterruptException;
 import java.security.KeyStore;
 import java.security.SecureRandom;
 import java.util.HashMap;
@@ -360,11 +360,9 @@ public class ThriftUtil {
           throw e;
         } catch (IOException e) {
           log.warn("Failed to open SASL transport", e);
-          if (e instanceof AsynchronousCloseException) {
-            if (Thread.currentThread().isInterrupted()) {
-              Thread.currentThread().interrupt();
-              throw new UncheckedIOException(e);
-            }
+          if (e instanceof ClosedByInterruptException) {
+            Thread.currentThread().interrupt();
+            throw new UncheckedIOException(e);
           }
           throw new TTransportException(e);
         }
