@@ -297,17 +297,24 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    *           if the values cannot be written or if an underlying store exception occurs.
    */
   @Override
-  public void putAll(PropCacheKey propCacheKey, Map<String,String> props) {
+  public void putAll(@NonNull PropCacheKey propCacheKey, @NonNull Map<String,String> props) {
+    if (props.isEmpty()) {
+      return; // no props - noop
+    }
     mutateVersionedProps(propCacheKey, VersionedProperties::addOrUpdate, props);
   }
 
   @Override
-  public void removeProperties(PropCacheKey propCacheKey, Collection<String> keys) {
+  public void removeProperties(@NonNull PropCacheKey propCacheKey,
+      @NonNull Collection<String> keys) {
+    if (keys.isEmpty()) {
+      return; // no keys - noop.
+    }
     mutateVersionedProps(propCacheKey, VersionedProperties::remove, keys);
   }
 
   @Override
-  public void delete(PropCacheKey propCacheKey) throws PropStoreException {
+  public void delete(@NonNull PropCacheKey propCacheKey) throws PropStoreException {
     Objects.requireNonNull(propCacheKey, "prop store delete() - Must provide propCacheId");
     try {
       log.trace("called delete() for: {}", propCacheKey);
