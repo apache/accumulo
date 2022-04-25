@@ -61,7 +61,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
@@ -101,8 +101,8 @@ public class ThriftScanner {
     final HostAndPort parsedServer = HostAndPort.fromString(server);
     try {
       TInfo tinfo = TraceUtil.traceInfo();
-      TabletClientService.Client client =
-          ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedServer, context);
+      TabletScanClientService.Client client =
+          ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, context);
       try {
         // not reading whole rows (or stopping on row boundaries) so there is no need to enable
         // isolation below
@@ -452,8 +452,8 @@ public class ThriftScanner {
 
     final TInfo tinfo = TraceUtil.traceInfo();
     final HostAndPort parsedLocation = HostAndPort.fromString(loc.tablet_location);
-    TabletClientService.Client client =
-        ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedLocation, context);
+    TabletScanClientService.Client client =
+        ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedLocation, context);
 
     String old = Thread.currentThread().getName();
     try {
@@ -584,10 +584,10 @@ public class ThriftScanner {
 
       log.debug("Closing active scan {} {}", scanState.prevLoc, scanState.scanID);
       HostAndPort parsedLocation = HostAndPort.fromString(scanState.prevLoc.tablet_location);
-      TabletClientService.Client client = null;
+      TabletScanClientService.Client client = null;
       try {
-        client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedLocation,
-            scanState.context);
+        client =
+            ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedLocation, scanState.context);
         client.closeScan(tinfo, scanState.scanID);
       } catch (TException e) {
         // ignore this is a best effort

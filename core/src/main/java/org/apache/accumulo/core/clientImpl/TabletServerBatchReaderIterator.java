@@ -64,7 +64,7 @@ import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -652,12 +652,12 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     timeoutTracker.startingScan();
     try {
       final HostAndPort parsedServer = HostAndPort.fromString(server);
-      final TabletClientService.Client client;
+      final TabletScanClientService.Client client;
       if (timeoutTracker.getTimeOut() < context.getClientTimeoutInMillis())
-        client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedServer, context,
+        client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, context,
             timeoutTracker.getTimeOut());
       else
-        client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedServer, context);
+        client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, context);
 
       try {
 
