@@ -72,6 +72,7 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.util.ConfigPropertyUpgrader;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.server.metadata.RootGcCandidates;
@@ -118,6 +119,7 @@ public class Upgrader9to10 implements Upgrader {
 
   @Override
   public void upgradeZookeeper(ServerContext context) {
+    upgradePropertyStorage(context);
     setMetaTableProps(context);
     upgradeRootTabletMetadata(context);
     createExternalCompactionNodes(context);
@@ -137,6 +139,16 @@ public class Upgrader9to10 implements Upgrader {
     upgradeRelativePaths(context, Ample.DataLevel.USER);
     upgradeDirColumns(context, Ample.DataLevel.USER);
     upgradeFileDeletes(context, Ample.DataLevel.USER);
+  }
+
+  /**
+   * Convert system properties (if necessary) and all table properties to a single node
+   */
+  private void upgradePropertyStorage(ServerContext context) {
+    log.info("Starting property conversion");
+    ConfigPropertyUpgrader configUpgrader = new ConfigPropertyUpgrader();
+    configUpgrader.doUpgrade(context.getInstanceID(), context.getZooReaderWriter());
+    log.info("Completed property conversion");
   }
 
   /**

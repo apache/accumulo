@@ -114,7 +114,6 @@ import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
-import org.apache.accumulo.server.conf.util.ConfigPropertyUpgrader;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
@@ -259,18 +258,6 @@ public class Manager extends AbstractServer
         Manager.this.nextEvent.event("stopped event loop");
       }, 100L, 1000L, TimeUnit.MILLISECONDS);
       ThreadPools.watchNonCriticalScheduledTask(future);
-    }
-
-    if (oldState != newState && (newState == ManagerState.HAVE_LOCK)) {
-      try {
-        log.info("Starting property conversion");
-        var context = getContext();
-        ConfigPropertyUpgrader configUpgrader = new ConfigPropertyUpgrader();
-        configUpgrader.doUpgrade(context.getInstanceID(), context.getZooReaderWriter());
-        log.info("Completed property conversion");
-      } catch (Exception ex) {
-        throw new IllegalStateException("Failed to convert properties to single node format", ex);
-      }
     }
 
     if (oldState != newState && (newState == ManagerState.HAVE_LOCK)) {
