@@ -119,7 +119,7 @@ public class ZooKeeperTestingServer implements AutoCloseable {
       for (String p : paths) {
         if (!p.isEmpty()) {
           path = path + slash + p;
-          log.warn("building default paths, creating node {}", path);
+          log.debug("building default paths, creating node {}", path);
           zoo.create(path, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
         }
       }
