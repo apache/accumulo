@@ -151,7 +151,6 @@ public class ZooReaderWriter extends ZooReader {
    */
   public boolean overwritePersistentData(String zPath, byte[] data, final int expectedVersion)
       throws KeeperException, InterruptedException {
-    // zk allows null ACLs, but it's probably a bug in Accumulo if we see it used in our code
     return retryLoop(zk -> {
       try {
         zk.setData(zPath, data, expectedVersion);
