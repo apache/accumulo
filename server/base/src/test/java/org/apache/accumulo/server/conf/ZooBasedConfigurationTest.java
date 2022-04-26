@@ -220,22 +220,17 @@ public class ZooBasedConfigurationTest {
   }
 
   @Test
-  public void loadFailTest() {
+  public void loadFailBecauseNodeNotExistTest() {
 
     PropCacheKey sysPropKey = PropCacheKey.forSystem(instanceId);
 
     expect(propStore.get(eq(sysPropKey))).andThrow(new IllegalStateException("fake no node"))
         .once();
 
-    propStore.registerAsListener(anyObject(), anyObject());
-    expectLastCall();
-
     replay(propStore, context);
 
-    AccumuloConfiguration defaultConfig = new ConfigurationCopy(DefaultConfiguration.getInstance());
-
-    assertThrows(IllegalStateException.class,
-        () -> new ZooBasedConfiguration(log, context, sysPropKey, defaultConfig));
+    assertThrows(IllegalStateException.class, () -> new ZooBasedConfiguration(log, context,
+        sysPropKey, DefaultConfiguration.getInstance()));
     verify(propStore, context);
   }
 

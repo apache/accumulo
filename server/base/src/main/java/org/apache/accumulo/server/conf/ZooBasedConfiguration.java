@@ -28,7 +28,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
-import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.util.PropSnapshot;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -60,9 +59,7 @@ public class ZooBasedConfiguration extends AccumuloConfiguration implements Prop
     this.propCacheKey = requireNonNull(propCacheKey, "a PropCacheId must be supplied");
     this.parent = requireNonNull(parent, "An AccumuloConfiguration parent must be supplied");
 
-    PropStore propStore =
-        requireNonNull(context.getPropStore(), "The PropStore must be supplied and exist");
-
+    var propStore = context.getPropStore();
     snapshot = new PropSnapshot(propCacheKey, propStore);
     propStore.registerAsListener(propCacheKey, this);
   }
