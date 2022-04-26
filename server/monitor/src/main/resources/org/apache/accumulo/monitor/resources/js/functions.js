@@ -616,3 +616,13 @@ function getStatus() {
     sessionStorage.status = JSON.stringify(data);
   });
 }
+
+/*
+ * Jquery call to clear all data from cells of a table
+ */
+function clearAllTableCells(tableId) {
+    console.log("Clearing all table cell data for " + tableId);
+    $("#" + tableId + " > tbody > tr > td").each(function () {
+        $(this).text("");
+    });
+}

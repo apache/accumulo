@@ -17,6 +17,7 @@
  * under the License.
  */
 
+var dashCell = "<td>&mdash;</td>";
 var serv;
 var tabletResults;
 /**
@@ -45,9 +46,7 @@ function refreshDetailTable() {
     var data = sessionStorage.server === undefined ?
         [] : JSON.parse(sessionStorage.server);
     if (data.length === 0 || data.details === undefined) {
-        $("#tServerDetail > tbody > tr > td").each(function () {
-            $(this).text(0);
-        });
+        clearAllTableCells("tServerDetail");
     } else {
         $("#hostedTablets").text(bigNumberForQuantity(data.details.hostedTablets));
         $("#entries").text(bigNumberForQuantity(data.details.entries));
@@ -58,23 +57,14 @@ function refreshDetailTable() {
 }
 
 /**
- * Generates the server history table
+ * Populates the All Time Tablet Operations table
  */
 function refreshHistoryTable() {
-
-  clearTableBody('opHistoryDetails');
-
   var data = sessionStorage.server === undefined ?
       [] : JSON.parse(sessionStorage.server);
 
   if (data.length === 0 || data.allTimeTabletResults === undefined) {
-    var row = [];
-
-    row.push(createEmptyRow(8, 'Empty'));
-
-    $('<tr/>', {
-      html: row.join('')
-    }).appendTo('#opHistoryDetails tbody');
+    clearAllTableCells("opHistoryDetails");
   } else {
     var totalTimeSpent = 0;
     $.each(data.allTimeTabletResults, function(key, val) {
@@ -82,91 +72,65 @@ function refreshHistoryTable() {
     });
 
     $.each(data.allTimeTabletResults, function(key, val) {
-      var row = [];
+      // use the first 5 characters of the operation for the jquery selector
+      var rowId = "#" + val.operation.slice(0, 5) + "Row";
+      console.log("Populating rowId " + rowId + " with " + val.operation + " data");
 
-      row.push(createFirstCell(val.operation, val.operation));
+      $(rowId).append("<td>" + val.operation + "</td>");
+      $(rowId).append("<td>" + bigNumberForQuantity(val.success) + "</td>");
+      $(rowId).append("<td>" + bigNumberForQuantity(val.failure) + "</td>");
 
-      row.push(createRightCell(val.success, bigNumberForQuantity(val.success)));
+      if (val.avgQueueTime == null) {
+        $(rowId).append(dashCell);
+      } else {
+        $(rowId).append("<td>" + timeDuration(val.avgQueueTime * 1000.0) + "</td>");
+      }
 
-      row.push(createRightCell(val.failure,
-          bigNumberForQuantity(val.failure)));
+      if (val.queueStdDev == null) {
+        $(rowId).append(dashCell);
+      } else {
+        $(rowId).append("<td>" + timeDuration(val.queueStdDev * 1000.0) + "</td>");
+      }
 
-      row.push(createRightCell((val.avgQueueTime == null ?
-          '-' : val.avgQueueTime * 1000.0),
-          (val.avgQueueTime == null ?
-          '&mdash;' : timeDuration(val.avgQueueTime * 1000.0))));
+      if (val.avgTime == null) {
+        $(rowId).append(dashCell);
+      } else {
+        $(rowId).append("<td>" + timeDuration(val.avgTime * 1000.0) + "</td>");
+      }
 
-      row.push(createRightCell((val.queueStdDev == null ?
-          '-' : val.queueStdDev * 1000.0),
-          (val.queueStdDev == null ?
-          '&mdash;' : timeDuration(val.queueStdDev * 1000.0))));
+      if (val.stdDev == null) {
+        $(rowId).append(dashCell);
+      } else {
+        $(rowId).append("<td>" + timeDuration(val.stdDev * 1000.0) + "</td>");
+      }
 
-      row.push(createRightCell((val.avgTime == null ?
-          '-' : val.avgTime * 1000.0),
-          (val.avgTime == null ?
-          '&mdash;' : timeDuration(val.avgTime * 1000.0))));
+      var percent = Math.floor((val.timeSpent / totalTimeSpent) * 100);
+      var progressBarCell = '<td><div class="progress"><div class="progress-bar"' +
+         ' role="progressbar" style="min-width: 2em; width:' + percent + '%;">' +
+         percent + '%</div></div></td>';
+      console.log("Time spent percent = " + val.timeSpent + "/" + totalTimeSpent + " " + percent);
 
-      row.push(createRightCell((val.stdDev == null ?
-          '-' : val.stdDev * 1000.0),
-          (val.stdDev == null ?
-          '&mdash;' : timeDuration(val.stdDev * 1000.0))));
-
-      row.push(createRightCell(((val.timeSpent / totalTimeSpent) * 100),
-          '<div class="progress"><div class="progress-bar"' +
-          ' role="progressbar" style="min-width: 2em; width:' +
-          Math.floor((val.timeSpent / totalTimeSpent) * 100) +
-          '%;">' + Math.floor((val.timeSpent / totalTimeSpent) * 100) +
-          '%</div></div>'));
-
-      $('<tr/>', {
-        html: row.join('')
-      }).appendTo('#opHistoryDetails tbody');
-
+      $(rowId).append(progressBarCell);
     });
   }
 }
 
 /**
- * Generates the current server table
+ * Populates the current tablet operations results table
  */
 function refreshCurrentTable() {
-
-  clearTableBody('currentTabletOps');
-
   var data = sessionStorage.server === undefined ?
       [] : JSON.parse(sessionStorage.server);
 
-  var items = [];
   if (data.length === 0 || data.currentTabletOperationResults === undefined) {
-    items.push(createEmptyRow(4, 'Empty'));
+      clearAllTableCells("currentTabletOps");
   } else {
     var current = data.currentTabletOperationResults;
-
-    items.push(createFirstCell((current.currentMinorAvg == null ?
-        '-' : current.currentMinorAvg * 1000.0),
-        (current.currentMinorAvg == null ?
-        '&mdash;' : timeDuration(current.currentMinorAvg * 1000.0))));
-
-    items.push(createRightCell((current.currentMinorStdDev == null ?
-        '-' : current.currentMinorStdDev * 1000.0),
-        (current.currentMinorStdDev == null ?
-        '&mdash;' : timeDuration(current.currentMinorStdDev * 1000.0))));
-
-    items.push(createRightCell((current.currentMajorAvg == null ?
-        '-' : current.currentMajorAvg * 1000.0),
-        (current.currentMajorAvg == null ?
-        '&mdash;' : timeDuration(current.currentMajorAvg * 1000.0))));
-
-    items.push(createRightCell((current.currentMajorStdDev == null ?
-        '-' : current.currentMajorStdDev * 1000.0),
-        (current.currentMajorStdDev == null ?
-        '&mdash;' : timeDuration(current.currentMajorStdDev * 1000.0))));
+    $("#currentMinorAvg").html(timeDuration(current.currentMinorAvg * 1000.0));
+    $("#currentMinorStdDev").html(timeDuration(current.currentMinorStdDev * 1000.0));
+    $("#currentMajorAvg").html(timeDuration(current.currentMajorAvg * 1000.0));
+    $("#currentMajorStdDev").html(timeDuration(current.currentMajorStdDev * 1000.0));
   }
-
-  $('<tr/>', {
-      html: items.join('')
-  }).appendTo('#currentTabletOps tbody');
-
 }
 
 /**
