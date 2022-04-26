@@ -39,39 +39,23 @@ function refresh() {
 }
 
 /**
- * Generates the server details table
+ * Populates the server details table
  */
 function refreshDetailTable() {
-
-  clearTableBody('tServerDetail');
-
-  var data = sessionStorage.server === undefined ?
-      [] : JSON.parse(sessionStorage.server);
-
-  var items = [];
-
-  if (data.length === 0 || data.details === undefined) {
-    items.push(createEmptyRow(5, 'Empty'));
-  } else {
-    items.push(createFirstCell(data.details.hostedTablets,
-        bigNumberForQuantity(data.details.hostedTablets)));
-
-    items.push(createRightCell(data.details.entries,
-        bigNumberForQuantity(data.details.entries)));
-
-    items.push(createRightCell(data.details.minors,
-        bigNumberForQuantity(data.details.minors)));
-
-    items.push(createRightCell(data.details.majors,
-        bigNumberForQuantity(data.details.majors)));
-
-    items.push(createRightCell(data.details.splits,
-        bigNumberForQuantity(data.details.splits)));
-  }
-
-  $('<tr/>', {
-    html: items.join('')
-  }).appendTo('#tServerDetail tbody');
+    clearTableBody('tServerDetail');
+    var data = sessionStorage.server === undefined ?
+        [] : JSON.parse(sessionStorage.server);
+    if (data.length === 0 || data.details === undefined) {
+        $("#tServerDetail > tbody > tr > td").each(function () {
+            $(this).text(0);
+        });
+    } else {
+        $("#hostedTablets").text(bigNumberForQuantity(data.details.hostedTablets));
+        $("#entries").text(bigNumberForQuantity(data.details.entries));
+        $("#minors").text(bigNumberForQuantity(data.details.minors));
+        $("#majors").text(bigNumberForQuantity(data.details.majors));
+        $("#splits").text(bigNumberForQuantity(data.details.splits));
+    }
 }
 
 /**
