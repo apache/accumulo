@@ -158,7 +158,10 @@ public class ZooBasedConfigIT {
     expect(context.getZooKeepersSessionTimeOut()).andReturn(zooKeeper.getSessionTimeout())
         .anyTimes();
     expect(context.getPropStore()).andReturn(propStore).anyTimes();
-    expect(context.getSiteConfiguration()).andReturn(SiteConfiguration.auto()).anyTimes();
+    expect(context.getSiteConfiguration())
+        .andReturn(
+            SiteConfiguration.fromFile(new File("src/test/resources/accumulo.properties")).build())
+        .anyTimes();
 
   }
 

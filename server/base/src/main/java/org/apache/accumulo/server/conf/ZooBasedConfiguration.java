@@ -63,10 +63,8 @@ public class ZooBasedConfiguration extends AccumuloConfiguration implements Prop
     PropStore propStore =
         requireNonNull(context.getPropStore(), "The PropStore must be supplied and exist");
 
-    propStore.registerAsListener(propCacheKey, this);
-
     snapshot = new PropSnapshot(propCacheKey, propStore);
-
+    propStore.registerAsListener(propCacheKey, this);
   }
 
   public long getDataVersion() {
