@@ -39,6 +39,7 @@ public class ClientServiceThriftClient extends ThriftClientType<Client,Factory>
     super(serviceName, clientFactory);
   }
 
+  @Override
   public Pair<String,Client> getTabletServerConnection(ClientContext context,
       boolean preferCachedConnections) throws TTransportException {
     return getTabletServerConnection(LOG, this, context, preferCachedConnections,
