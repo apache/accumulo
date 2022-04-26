@@ -42,7 +42,6 @@ function refresh() {
  * Populates the server details table
  */
 function refreshDetailTable() {
-    clearTableBody('tServerDetail');
     var data = sessionStorage.server === undefined ?
         [] : JSON.parse(sessionStorage.server);
     if (data.length === 0 || data.details === undefined) {
