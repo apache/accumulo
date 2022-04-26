@@ -45,53 +45,37 @@ import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.zookeeper.ZooDefs.Ids;
+import org.apache.zookeeper.common.StringUtils;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
-
-import com.beust.jcommander.Parameter;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
 public class ChangeSecret {
 
-  static class Opts extends ServerUtilOpts {
-    @Parameter(names = "--old", description = "old zookeeper password", password = true,
-        hidden = true)
-    String oldPass;
-    @Parameter(names = "--new", description = "new zookeeper password", password = true,
-        hidden = true)
-    String newPass;
-  }
-
   public static void main(String[] args) throws Exception {
     var siteConfig = SiteConfiguration.auto();
     var hadoopConf = new Configuration();
 
-    Opts opts = new Opts();
+    ServerUtilOpts opts = new ServerUtilOpts();
     ServerContext context = opts.getServerContext();
     try (var fs = context.getVolumeManager()) {
       ServerDirs serverDirs = new ServerDirs(siteConfig, hadoopConf);
       verifyHdfsWritePermission(serverDirs, fs);
 
-      List<String> argsList = new ArrayList<>(args.length + 2);
-      argsList.add("--old");
-      argsList.add("--new");
-      argsList.addAll(Arrays.asList(args));
-
-      opts.parseArgs(ChangeSecret.class.getName(), args);
       String oldPass = String.valueOf(System.console().readPassword("Old password: "));
       String newPass = String.valueOf(System.console().readPassword("New password: "));
       Span span = TraceUtil.startSpan(ChangeSecret.class, "main");
       try (Scope scope = span.makeCurrent()) {
 
-        verifyAccumuloIsDown(context, opts.oldPass);
+        verifyAccumuloIsDown(context, oldPass);
 
         final InstanceId newInstanceId = InstanceId.of(UUID.randomUUID());
         updateHdfs(serverDirs, fs, newInstanceId);
-        rewriteZooKeeperInstance(context, newInstanceId, opts.oldPass, opts.newPass);
-        if (opts.oldPass != null) {
-          deleteInstance(context, opts.oldPass);
+        rewriteZooKeeperInstance(context, newInstanceId, oldPass, newPass);
+        if (!StringUtils.isBlank(oldPass)) {
+          deleteInstance(context, oldPass);
         }
         System.out.println("New instance id is " + newInstanceId);
         System.out.println("Be sure to put your new secret in accumulo.properties");
