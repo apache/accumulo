@@ -37,6 +37,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -74,11 +75,15 @@ import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
+import org.apache.accumulo.server.util.NamespacePropUtil;
+import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Suppliers;
 
 /**
  * Provides a server context for Accumulo server components that operate with the system credentials
@@ -90,6 +95,8 @@ public class ServerContext extends ClientContext {
   private final ServerInfo info;
   private final ZooReaderWriter zooReaderWriter;
   private final ServerDirs serverDirs;
+  private final Supplier<TablePropUtil> tablePropUtilSupplier;
+  private final Supplier<NamespacePropUtil> namespacePropUtilSupplier;
 
   private TableManager tableManager;
   private UniqueNameAllocator nameAllocator;
@@ -113,6 +120,9 @@ public class ServerContext extends ClientContext {
     serverDirs = info.getServerDirs();
 
     propStore = ZooPropStore.initialize(info.getInstanceID(), zooReaderWriter);
+
+    tablePropUtilSupplier = Suppliers.memoize(() -> new TablePropUtil(this));
+    namespacePropUtilSupplier = Suppliers.memoize(() -> new NamespacePropUtil(this));
   }
 
   /**
@@ -475,6 +485,14 @@ public class ServerContext extends ClientContext {
   @Override
   protected long getTransportPoolMaxAgeMillis() {
     return getClientTimeoutInMillis();
+  }
+
+  public TablePropUtil tablePropUtil() {
+    return tablePropUtilSupplier.get();
+  }
+
+  public NamespacePropUtil namespacePropUtil() {
+    return namespacePropUtilSupplier.get();
   }
 
 }

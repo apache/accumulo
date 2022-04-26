@@ -26,10 +26,14 @@ import org.apache.accumulo.server.ServerContext;
 
 public abstract class PropUtil<T extends AbstractId<T>> {
 
-  public abstract void setProperties(final ServerContext context, final T id,
-      final Map<String,String> props);
+  protected final ServerContext context;
 
-  public abstract void removeProperties(final ServerContext context, final T id,
-      final Collection<String> propertyNames);
+  protected PropUtil(ServerContext context) {
+    this.context = context;
+  }
+
+  public abstract void setProperties(final T id, final Map<String,String> props);
+
+  public abstract void removeProperties(final T id, final Collection<String> propertyNames);
 
 }

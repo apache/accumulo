@@ -76,7 +76,6 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.server.metadata.RootGcCandidates;
 import org.apache.accumulo.server.metadata.TabletMutatorBase;
-import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -146,12 +145,12 @@ public class Upgrader9to10 implements Upgrader {
   private void setMetaTableProps(ServerContext context) {
     try {
       // root compaction props
-      TablePropUtil.factory().setProperties(context, RootTable.ID,
+      context.tablePropUtil().setProperties(RootTable.ID,
           Map.of(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
               SimpleCompactionDispatcher.class.getName(),
               Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "root"));
       // metadata compaction props
-      TablePropUtil.factory().setProperties(context, MetadataTable.ID,
+      context.tablePropUtil().setProperties(MetadataTable.ID,
           Map.of(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
               SimpleCompactionDispatcher.class.getName(),
               Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "meta"));

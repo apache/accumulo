@@ -28,15 +28,12 @@ import org.apache.accumulo.server.conf.store.PropCacheKey;
 
 public class NamespacePropUtil extends PropUtil<NamespaceId> {
 
-  private NamespacePropUtil() {}
-
-  public static NamespacePropUtil factory() {
-    return new NamespacePropUtil();
+  public NamespacePropUtil(ServerContext context) {
+    super(context);
   }
 
   @Override
-  public void setProperties(ServerContext context, NamespaceId namespaceId,
-      Map<String,String> properties) {
+  public void setProperties(NamespaceId namespaceId, Map<String,String> properties) {
     for (Map.Entry<String,String> prop : properties.entrySet()) {
       // TODO reconcile with TablePropUtil see https://github.com/apache/accumulo/issues/2633
       if (!Property.isTablePropertyValid(prop.getKey(), prop.getValue())) {
@@ -48,9 +45,9 @@ public class NamespacePropUtil extends PropUtil<NamespaceId> {
   }
 
   @Override
-  public void removeProperties(ServerContext context, NamespaceId namespaceId,
-      Collection<String> propertyNames) {
+  public void removeProperties(NamespaceId namespaceId, Collection<String> propertyNames) {
     context.getPropStore().removeProperties(PropCacheKey.forNamespace(context, namespaceId),
         propertyNames);
   }
+
 }

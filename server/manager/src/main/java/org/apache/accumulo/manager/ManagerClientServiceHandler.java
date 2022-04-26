@@ -84,9 +84,7 @@ import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
-import org.apache.accumulo.server.util.NamespacePropUtil;
 import org.apache.accumulo.server.util.SystemPropUtil;
-import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.token.Token;
 import org.apache.thrift.TException;
@@ -397,10 +395,9 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
     try {
       if (value == null) {
-        NamespacePropUtil.factory().removeProperties(manager.getContext(), namespaceId,
-            List.of(property));
+        manager.getContext().namespacePropUtil().removeProperties(namespaceId, List.of(property));
       } else {
-        NamespacePropUtil.factory().setProperties(manager.getContext(), namespaceId,
+        manager.getContext().namespacePropUtil().setProperties(namespaceId,
             Map.of(property, value));
       }
     } catch (IllegalStateException ex) {
@@ -422,10 +419,9 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
     try {
       if (value == null || value.isEmpty()) {
-        TablePropUtil.factory().removeProperties(manager.getContext(), tableId, List.of(property));
+        manager.getContext().tablePropUtil().removeProperties(tableId, List.of(property));
       } else {
-        TablePropUtil.factory().setProperties(manager.getContext(), tableId,
-            Map.of(property, value));
+        manager.getContext().tablePropUtil().setProperties(tableId, Map.of(property, value));
       }
     } catch (IllegalStateException ex) {
       log.warn("Invalid table property, tried to set: tableId: " + tableId.canonical() + " to: "
