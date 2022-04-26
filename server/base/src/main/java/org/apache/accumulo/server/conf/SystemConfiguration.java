@@ -18,9 +18,6 @@
  */
 package org.apache.accumulo.server.conf;
 
-import java.util.Map;
-import java.util.Objects;
-
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.ServerContext;
@@ -32,37 +29,24 @@ public class SystemConfiguration extends ZooBasedConfiguration {
 
   private static final Logger log = LoggerFactory.getLogger(SystemConfiguration.class);
 
-  private final RuntimeFixedProperties fixedProperties;
+  private final RuntimeFixedProperties runtimeFixedProps;
 
   public SystemConfiguration(ServerContext context, PropCacheKey propCacheKey,
       AccumuloConfiguration parent) {
     super(log, context, propCacheKey, parent);
-    var sysProps = getSnapshot();
-    fixedProperties = new RuntimeFixedProperties(context.getSiteConfiguration(),
-        Objects.requireNonNullElseGet(sysProps, Map::of));
+    runtimeFixedProps = new RuntimeFixedProperties(getSnapshot(), context.getSiteConfiguration());
   }
 
-  // TODO - this needs tested - logic seems to ignore child and return parent.
   @Override
   public String get(Property property) {
     log.trace("system config get() - property request for {}", property);
+    if (Property.isFixedZooPropertyKey(property))
+      return runtimeFixedProps.get(property);
 
-    if (Property.isFixedZooPropertyKey(property)) {
-      String val = fixedProperties.get(property);
-      if (val != null) {
-        return val;
-      }
-    }
-
-    return _get(property);
-  }
-
-  private String _get(Property property) {
     String key = property.getKey();
     String value = null;
     if (Property.isValidZooPropertyKey(key)) {
-      Map<String,String> m = getSnapshot();
-      value = m == null ? null : m.get(key);
+      value = getSnapshot().get(key);
     }
 
     if (value == null || !property.getType().isValidFormat(value)) {
@@ -70,13 +54,13 @@ public class SystemConfiguration extends ZooBasedConfiguration {
         log.error("Using parent value for {} due to improperly formatted {}: {}", key,
             property.getType(), value);
       }
-      value = super.getParent().get(property);
+      value = getParent().get(property);
     }
     return value;
   }
 
   @Override
   public boolean isPropertySet(Property prop) {
-    return fixedProperties.get(prop) != null || super.isPropertySet(prop);
+    return runtimeFixedProps.get(prop) != null || super.isPropertySet(prop);
   }
 }

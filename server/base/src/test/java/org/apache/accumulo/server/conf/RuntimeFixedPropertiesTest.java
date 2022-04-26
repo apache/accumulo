@@ -38,7 +38,7 @@ public class RuntimeFixedPropertiesTest {
     var siteConfig = SiteConfiguration.fromEnv().build();
     Map<String,String> storedProps = new HashMap<>();
 
-    RuntimeFixedProperties fixed = new RuntimeFixedProperties(siteConfig, storedProps);
+    RuntimeFixedProperties fixed = new RuntimeFixedProperties(storedProps, siteConfig);
 
     assertEquals("true", fixed.get(Property.TSERV_NATIVEMAP_ENABLED));
   }
@@ -48,7 +48,7 @@ public class RuntimeFixedPropertiesTest {
     var siteConfig = SiteConfiguration.fromEnv().build();
     Map<String,String> storedProps = Map.of("tserver.memory.maps.native.enabled", "false");
 
-    RuntimeFixedProperties fixed = new RuntimeFixedProperties(siteConfig, storedProps);
+    RuntimeFixedProperties fixed = new RuntimeFixedProperties(storedProps, siteConfig);
 
     assertEquals("false", fixed.get(Property.TSERV_NATIVEMAP_ENABLED));
   }
@@ -58,7 +58,7 @@ public class RuntimeFixedPropertiesTest {
     var siteConfig = SiteConfiguration.fromEnv().build();
     Map<String,String> storedProps = new HashMap<>();
 
-    RuntimeFixedProperties fixed = new RuntimeFixedProperties(siteConfig, storedProps);
+    RuntimeFixedProperties fixed = new RuntimeFixedProperties(storedProps, siteConfig);
 
     assertEquals(Property.fixedProperties.size(), fixed.getAll().size());
   }
@@ -68,7 +68,7 @@ public class RuntimeFixedPropertiesTest {
     var siteConfig = SiteConfiguration.fromEnv().build();
     Map<String,String> storedProps = Map.of(TSERV_NATIVEMAP_ENABLED.getKey(), "false");
 
-    RuntimeFixedProperties fixed = new RuntimeFixedProperties(siteConfig, storedProps);
+    RuntimeFixedProperties fixed = new RuntimeFixedProperties(storedProps, siteConfig);
 
     // prop removed - changed
     assertTrue(fixed.hasChanged(Map.of()));

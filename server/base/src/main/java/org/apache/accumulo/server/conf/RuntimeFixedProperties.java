@@ -30,6 +30,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+
 /**
  * Utility class to a manage a fixed set of defined properties (designated in Properties as fixed).
  * Certain properties are stored for persistence across restarts, they are read during start-up and
@@ -50,38 +52,32 @@ public class RuntimeFixedProperties {
   // original, stored fixed props.
   private final Map<String,String> origStored = new HashMap<>();
 
-  public RuntimeFixedProperties(final SiteConfiguration siteConfig,
-      final Map<String,String> storedProps) {
+  public RuntimeFixedProperties(final Map<String,String> storedProps,
+      final SiteConfiguration siteConfig) {
     requireNonNull(siteConfig, "a site configuration must be provided");
     requireNonNull(storedProps, "stored property map must be provided");
-    for (Property prop : Property.fixedProperties) {
+    Property.fixedProperties.forEach(prop -> {
       String key = prop.getKey();
-      String value;
+      String value = storedProps.get(key);
       // use value in ZooKeeper
-      if (storedProps.containsKey(key)) {
-        value = storedProps.get(key);
-        fixed.put(key, value);
+      if (value != null) {
         origStored.put(key, value);
       } else {
         // Not in ZK, use config or default.
         value = siteConfig.get(key);
-        fixed.put(key, value);
       }
+      fixed.put(key, value);
       log.trace("fixed property name: {} = {}", key, value);
-    }
+    });
   }
 
   @Nullable
   public String get(final Property property) {
-    return get(property.getKey());
+    return fixed.get(property.getKey());
   }
 
-  @Nullable
-  public String get(final String key) {
-    return fixed.get(key);
-  }
-
-  public Map<String,String> getAll() {
+  @VisibleForTesting
+  Map<String,String> getAll() {
     return Collections.unmodifiableMap(fixed);
   }
 
@@ -93,7 +89,8 @@ public class RuntimeFixedProperties {
    *          a map of the current stored properties.
    * @return true if changed and restart required, false otherwise
    */
-  public boolean hasChanged(final Map<String,String> current) {
+  @VisibleForTesting
+  boolean hasChanged(final Map<String,String> current) {
     for (Property prop : Property.fixedProperties) {
       var key = prop.getKey();
       if (current.containsKey(key)) {
@@ -103,7 +100,6 @@ public class RuntimeFixedProperties {
       } else if (origStored.containsKey(key)) {
         return true;
       }
-
     }
     return false;
   }
