@@ -79,7 +79,7 @@ public class ChangeSecret {
       argsList.add("--new");
       argsList.addAll(Arrays.asList(args));
 
-      opts.parseArgs(ChangeSecret.class.getName(), args);
+      opts.parseArgs(ChangeSecret.class.getName(), argsList.toArray(new String[0]));
       Span span = TraceUtil.startSpan(ChangeSecret.class, "main");
       try (Scope scope = span.makeCurrent()) {
 
