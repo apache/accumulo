@@ -64,8 +64,8 @@ public class ChangeSecret {
       ServerDirs serverDirs = new ServerDirs(siteConfig, hadoopConf);
       verifyHdfsWritePermission(serverDirs, fs);
 
-      String oldPass = String.valueOf(System.console().readPassword("Old password: "));
-      String newPass = String.valueOf(System.console().readPassword("New password: "));
+      String oldPass = String.valueOf(System.console().readPassword("Old secret: "));
+      String newPass = String.valueOf(System.console().readPassword("New secret: "));
       Span span = TraceUtil.startSpan(ChangeSecret.class, "main");
       try (Scope scope = span.makeCurrent()) {
 
