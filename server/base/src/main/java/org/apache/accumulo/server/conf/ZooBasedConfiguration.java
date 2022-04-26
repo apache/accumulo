@@ -178,14 +178,14 @@ public class ZooBasedConfiguration extends AccumuloConfiguration implements Prop
   public void deleteEvent(final PropCacheKey eventPropKey) {
     if (propCacheKey.equals(eventPropKey)) {
       snapshot.requireUpdate();
-      log.info("Received property delete event for {}", propCacheKey);
+      log.debug("Received property delete event for {}", propCacheKey);
     }
   }
 
   @Override
   public void connectionEvent() {
     snapshot.requireUpdate();
-    log.info("Received connection event - update properties required");
+    log.debug("Received connection event - update properties required");
   }
 
 }
