@@ -26,7 +26,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStore;
-import org.apache.accumulo.server.conf.store.PropStoreException;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
 /**
@@ -61,8 +60,7 @@ public class PropSnapshot {
     updateSnapshot();
     var answer = vPropRef.get();
     if (answer == null) {
-      throw new PropStoreException("Invalid state for property snapshot, no value has been set",
-          null);
+      throw new IllegalStateException("Invalid state for property snapshot, no value has been set");
     }
     return answer;
   }
@@ -82,10 +80,10 @@ public class PropSnapshot {
   /**
    * Update the current snapshot if a refresh is required.
    *
-   * @throws PropStoreException
+   * @throws IllegalStateException
    *           if the properties cannot be retrieved from the underlying store.
    */
-  private void updateSnapshot() throws PropStoreException {
+  private void updateSnapshot() {
     if (!needsUpdate.get()) {
       return;
     }

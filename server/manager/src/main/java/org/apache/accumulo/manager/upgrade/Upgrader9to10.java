@@ -72,7 +72,6 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.store.PropStoreException;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.server.metadata.RootGcCandidates;
@@ -156,8 +155,8 @@ public class Upgrader9to10 implements Upgrader {
           Map.of(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
               SimpleCompactionDispatcher.class.getName(),
               Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "meta"));
-    } catch (PropStoreException e) {
-      throw new RuntimeException("Unable to set system table properties", e);
+    } catch (IllegalStateException ex) {
+      throw new RuntimeException("Unable to set system table properties", ex);
     }
   }
 

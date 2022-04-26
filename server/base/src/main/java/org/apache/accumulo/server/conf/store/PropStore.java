@@ -32,7 +32,7 @@ public interface PropStore {
    * @param propCacheKey
    *          the prop cache key
    * @return true if the property node exists, false otherwise.
-   * @throws PropStoreException
+   * @throws IllegalStateException
    *           if the check fails due to interrupt.
    */
   boolean exists(PropCacheKey propCacheKey);
@@ -45,7 +45,7 @@ public interface PropStore {
    *          the prop cache key
    * @param props
    *          a map of property k,v pairs
-   * @throws PropStoreException
+   * @throws IllegalStateException
    *           if the updates fails because of an underlying store exception
    */
   void create(PropCacheKey propCacheKey, Map<String,String> props);
@@ -55,7 +55,7 @@ public interface PropStore {
    * @param propCacheId
    *          the prop cache key
    * @return The versioned properties or null if the properties do not exist for the id.
-   * @throws PropStoreException
+   * @throws IllegalStateException
    *           if the updates fails because of an underlying store exception
    */
   @Nullable
@@ -69,7 +69,7 @@ public interface PropStore {
    *          the prop cache key
    * @param props
    *          a map of property k,v pairs
-   * @throws PropStoreException
+   * @throws IllegalStateException
    *           if the values cannot be written or if an underlying store exception occurs.
    */
   void putAll(PropCacheKey propCacheKey, Map<String,String> props);
@@ -79,7 +79,7 @@ public interface PropStore {
    *
    * @param propCacheKey
    *          the prop cache key
-   * @throws PropStoreException
+   * @throws IllegalStateException
    *           if the updates fails because of an underlying store exception
    */
   void delete(PropCacheKey propCacheKey);
@@ -91,7 +91,7 @@ public interface PropStore {
    *          the prop cache key
    * @param keys
    *          a set of keys.
-   * @throws PropStoreException
+   * @throws IllegalStateException
    *           if the values cannot be deleted or if an underlying store exception occurs.
    */
   void removeProperties(PropCacheKey propCacheKey, Collection<String> keys);

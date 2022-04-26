@@ -50,7 +50,6 @@ import org.apache.accumulo.server.conf.ZooBasedConfiguration;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.accumulo.server.conf.store.PropStore;
-import org.apache.accumulo.server.conf.store.PropStoreException;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.CreateMode;
@@ -231,7 +230,8 @@ public class ZooBasedConfigIT {
     ZooPropStore.initSysProps(context, Map.of());
 
     PropCacheKey propKey = PropCacheKey.forTable(INSTANCE_ID, tidA);
-    assertThrows(PropStoreException.class, () -> new SystemConfiguration(context, propKey, parent));
+    assertThrows(IllegalStateException.class,
+        () -> new SystemConfiguration(context, propKey, parent));
   }
 
   @Test

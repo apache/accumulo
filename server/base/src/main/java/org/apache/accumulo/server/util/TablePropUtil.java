@@ -27,7 +27,6 @@ import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
-import org.apache.accumulo.server.conf.store.PropStoreException;
 
 public class TablePropUtil implements PropUtil {
 
@@ -40,7 +39,7 @@ public class TablePropUtil implements PropUtil {
   /**
    * Helper method to set provided properties for the provided table.
    *
-   * @throws PropStoreException
+   * @throws IllegalStateException
    *           if an underlying exception (KeeperException, InterruptException) or other failure to
    *           read properties from the cache / backend store
    */

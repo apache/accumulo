@@ -55,7 +55,6 @@ import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStore;
-import org.apache.accumulo.server.conf.store.PropStoreException;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.zookeeper.data.Stat;
 import org.junit.jupiter.api.BeforeEach;
@@ -109,7 +108,7 @@ public class ZooBasedConfigurationTest {
   }
 
   @Test
-  public void get() throws PropStoreException {
+  public void get() {
     PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TableId.of("a"));
 
     propStore.registerAsListener(anyObject(), anyObject());
@@ -225,7 +224,7 @@ public class ZooBasedConfigurationTest {
 
     PropCacheKey sysPropKey = PropCacheKey.forSystem(instanceId);
 
-    expect(propStore.get(eq(sysPropKey))).andThrow(new PropStoreException("fake no node", null))
+    expect(propStore.get(eq(sysPropKey))).andThrow(new IllegalStateException("fake no node"))
         .once();
 
     propStore.registerAsListener(anyObject(), anyObject());
@@ -235,7 +234,7 @@ public class ZooBasedConfigurationTest {
 
     AccumuloConfiguration defaultConfig = new ConfigurationCopy(DefaultConfiguration.getInstance());
 
-    assertThrows(PropStoreException.class,
+    assertThrows(IllegalStateException.class,
         () -> new ZooBasedConfiguration(log, context, sysPropKey, defaultConfig));
     verify(propStore, context);
   }
@@ -283,7 +282,7 @@ public class ZooBasedConfigurationTest {
         new VersionedProperties(123, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true")))
         .once();
 
-    expect(propStore.get(eq(sysPropKey))).andThrow(new PropStoreException("Fake node delete", null))
+    expect(propStore.get(eq(sysPropKey))).andThrow(new IllegalStateException("Fake node delete"))
         .once();
 
     replay(propStore, context);
@@ -297,7 +296,7 @@ public class ZooBasedConfigurationTest {
 
     // change event expected to trigger re-read.
     sysConfig.deleteEvent(sysPropKey);
-    assertThrows(PropStoreException.class, () -> sysConfig.get(TABLE_BLOOM_ENABLED));
+    assertThrows(IllegalStateException.class, () -> sysConfig.get(TABLE_BLOOM_ENABLED));
 
     verify(propStore, context);
   }
@@ -390,7 +389,7 @@ public class ZooBasedConfigurationTest {
     PropCacheKey sysPropKey = PropCacheKey.forSystem(instanceId);
     VersionedProperties sysProps = new VersionedProperties(100, Instant.now(), Map.of());
     expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).once();
-    expect(propStore.get(eq(sysPropKey))).andThrow(new PropStoreException("fake no node", null))
+    expect(propStore.get(eq(sysPropKey))).andThrow(new IllegalStateException("fake no node"))
         .anyTimes();
     // mock node deleted after event
 
@@ -420,9 +419,9 @@ public class ZooBasedConfigurationTest {
 
     sysConfig.deleteEvent(sysPropKey);
 
-    assertThrows(PropStoreException.class, sysConfig::getUpdateCount);
-    assertThrows(PropStoreException.class, nsConfig::getUpdateCount);
-    assertThrows(PropStoreException.class, tableConfig::getUpdateCount);
+    assertThrows(IllegalStateException.class, sysConfig::getUpdateCount);
+    assertThrows(IllegalStateException.class, nsConfig::getUpdateCount);
+    assertThrows(IllegalStateException.class, tableConfig::getUpdateCount);
   }
 
   /**
@@ -446,7 +445,7 @@ public class ZooBasedConfigurationTest {
     PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TableId.of("ns1.table1"));
     VersionedProperties tableProps = new VersionedProperties(3, Instant.now(), Map.of());
     expect(propStore.get(eq(tablePropKey))).andReturn(tableProps).once();
-    expect(propStore.get(eq(tablePropKey))).andThrow(new PropStoreException("fake no node", null))
+    expect(propStore.get(eq(tablePropKey))).andThrow(new IllegalStateException("fake no node"))
         .once();
 
     replay(propStore, context);
@@ -467,7 +466,7 @@ public class ZooBasedConfigurationTest {
 
     tableConfig.deleteEvent(tablePropKey);
 
-    assertThrows(PropStoreException.class, tableConfig::getUpdateCount);
+    assertThrows(IllegalStateException.class, tableConfig::getUpdateCount);
 
     verify(propStore, context);
   }

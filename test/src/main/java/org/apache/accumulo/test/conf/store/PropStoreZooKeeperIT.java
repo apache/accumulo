@@ -46,7 +46,6 @@ import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.accumulo.server.conf.store.PropStore;
-import org.apache.accumulo.server.conf.store.PropStoreException;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.CreateMode;
@@ -139,7 +138,7 @@ public class PropStoreZooKeeperIT {
    * Verify that when a config node does not exist, null is returned instead of an exception.
    */
   @Test
-  public void createNoProps() throws PropStoreException, InterruptedException, KeeperException {
+  public void createNoProps() throws InterruptedException, KeeperException {
 
     ZooPropStore propStore = new ZooPropStore.Builder(context).build();
 
@@ -147,11 +146,11 @@ public class PropStoreZooKeeperIT {
 
     // read from ZK, after delete no node and node not created.
     assertNull(zooKeeper.exists(propKey.getPath(), false));
-    assertThrows(PropStoreException.class, () -> propStore.get(propKey));
+    assertThrows(IllegalStateException.class, () -> propStore.get(propKey));
   }
 
   @Test
-  public void failOnDuplicate() throws PropStoreException, InterruptedException, KeeperException {
+  public void failOnDuplicate() throws InterruptedException, KeeperException {
 
     PropStore propStore = new ZooPropStore.Builder(context).build();
 
@@ -163,14 +162,13 @@ public class PropStoreZooKeeperIT {
     Thread.sleep(25); // yield.
 
     assertNotNull(zooKeeper.exists(propKey.getPath(), false)); // check not created
-    assertThrows(PropStoreException.class, () -> propStore.create(propKey, null));
+    assertThrows(IllegalStateException.class, () -> propStore.create(propKey, null));
 
     assertNotNull(propStore.get(propKey));
   }
 
   @Test
-  public void createWithProps()
-      throws PropStoreException, InterruptedException, KeeperException, IOException {
+  public void createWithProps() throws InterruptedException, KeeperException, IOException {
 
     PropStore propStore = new ZooPropStore.Builder(context).build();
 
@@ -191,7 +189,7 @@ public class PropStoreZooKeeperIT {
   }
 
   @Test
-  public void update() throws PropStoreException, InterruptedException {
+  public void update() throws InterruptedException {
 
     PropStore propStore = new ZooPropStore.Builder(context).build();
 
@@ -289,13 +287,11 @@ public class PropStoreZooKeeperIT {
    * that should only be coordinating via ZooKeeper events. When a node is deleted, the ZooKeeper
    * node deleted event should also clear the node from all caches.
    *
-   * @throws PropStoreException
-   *           Any exception is a test failure.
    * @throws InterruptedException
    *           Any exception is a test failure.
    */
   @Test
-  public void deleteThroughWatcher() throws PropStoreException, InterruptedException {
+  public void deleteThroughWatcher() throws InterruptedException {
 
     PropStore propStore = new ZooPropStore.Builder(context).build();
 
@@ -325,7 +321,7 @@ public class PropStoreZooKeeperIT {
     Thread.sleep(150);
 
     // no node should not be created, should throw an exception
-    assertThrows(PropStoreException.class, () -> propStore.get(tableAPropKey));
+    assertThrows(IllegalStateException.class, () -> propStore.get(tableAPropKey));
     assertNotNull(propStore.get(tableBPropKey));
 
     // validate change count not triggered
@@ -341,8 +337,7 @@ public class PropStoreZooKeeperIT {
    * Simulate change in props by process external to the prop store instance.
    */
   @Test
-  public void externalChange()
-      throws IOException, PropStoreException, InterruptedException, KeeperException {
+  public void externalChange() throws IOException, InterruptedException, KeeperException {
 
     PropStore propStore = new ZooPropStore.Builder(context).build();
 

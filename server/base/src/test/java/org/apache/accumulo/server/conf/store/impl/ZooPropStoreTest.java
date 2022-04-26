@@ -36,7 +36,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.time.Instant;
 import java.util.List;
@@ -53,7 +52,6 @@ import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStore;
-import org.apache.accumulo.server.conf.store.PropStoreException;
 import org.apache.accumulo.server.conf.util.TransformToken;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
@@ -150,11 +148,7 @@ public class ZooPropStoreTest {
     assertNotNull(propStore.get(propCacheKey)); // next call will fetch from cache.
 
     var p = propStore.get(propCacheKey);
-    if (p == null) {
-      fail("Did not get expected versioned properties - instead got null;");
-    } else {
-      assertEquals("true", p.getProperties().get(Property.TABLE_BLOOM_ENABLED.getKey()));
-    }
+    assertEquals("true", p.getProperties().get(Property.TABLE_BLOOM_ENABLED.getKey()));
   }
 
   @Test
@@ -304,14 +298,14 @@ public class ZooPropStoreTest {
     Set<String> deleteNames =
         Set.of(TABLE_BULK_MAX_TABLETS.getKey(), TABLE_SPLIT_THRESHOLD.getKey());
 
-    // Parse error converted to PropStoreException
-    assertThrows(PropStoreException.class,
+    // Parse error converted to IllegalStateException
+    assertThrows(IllegalStateException.class,
         () -> propStore.removeProperties(propCacheKey, deleteNames));
-    // ZK exception converted to PropStoreException
-    assertThrows(PropStoreException.class,
+    // ZK exception converted to IllegalStateException
+    assertThrows(IllegalStateException.class,
         () -> propStore.removeProperties(propCacheKey, deleteNames));
-    // InterruptException converted to PropStoreException
-    assertThrows(PropStoreException.class,
+    // InterruptException converted to IllegalStateException
+    assertThrows(IllegalStateException.class,
         () -> propStore.removeProperties(propCacheKey, deleteNames));
   }
 
@@ -368,8 +362,6 @@ public class ZooPropStoreTest {
   /**
    * Verify that a node is created when it does not exist.
    *
-   * @throws Exception
-   *           any exception is a test failure.
    */
   // @Test
   public void getNoNodeTest() {
@@ -397,11 +389,8 @@ public class ZooPropStoreTest {
     assertNotNull(propStore.get(propCacheKey)); // first call will fetch from ZooKeeper
     assertNotNull(propStore.get(propCacheKey)); // next call will fetch from cache.
     var p = propStore.get(propCacheKey);
-    if (p == null) {
-      fail("Did not get expected versioned properties - instead got null;");
-    } else {
-      assertEquals("true", p.getProperties().get(Property.TABLE_BLOOM_ENABLED.getKey()));
-    }
+    assertEquals("true", p.getProperties().get(Property.TABLE_BLOOM_ENABLED.getKey()));
+
     propStore.delete(propCacheKey);
     Thread.sleep(50);
   }
@@ -491,7 +480,7 @@ public class ZooPropStoreTest {
 
     ZooPropStore propStore = new ZooPropStore.Builder(context).build();
     var vProps = propStore.get(PropCacheKey.forSystem(instanceId));
-    assertNull(vProps);
+    assertNotNull(vProps);
 
     // assertEquals(0, "4".compareTo(vProps.getProperties().get("master.bulk.retries")));
     // assertEquals(0, "10m".compareTo(vProps.getProperties().get("master.bulk.timeout")));

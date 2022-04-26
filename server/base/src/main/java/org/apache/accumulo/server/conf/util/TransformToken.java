@@ -26,7 +26,6 @@ import java.util.UUID;
 
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
-import org.apache.accumulo.server.conf.store.PropStoreException;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -73,7 +72,7 @@ public class TransformToken {
    * @param zrw
    *          a ZooReaderWriter
    * @return an TransformLock instance.
-   * @throws PropStoreException
+   * @throws IllegalStateException
    *           is the lock creation fails due to an underlying ZooKeeper exception.
    */
   public static TransformToken createToken(final @NonNull PropCacheKey key,
@@ -103,7 +102,7 @@ public class TransformToken {
       return false;
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
-      throw new PropStoreException("Interrupted getting transform lock", ex);
+      throw new IllegalStateException("Interrupted getting transform lock", ex);
     }
   }
 
@@ -127,10 +126,10 @@ public class TransformToken {
       log.trace("validate token: read: {} - expected: {}", readId, tokenUUID);
       return Arrays.equals(readId, tokenUUID.asBytes());
     } catch (KeeperException ex) {
-      throw new PropStoreException("Failed to validate lock", ex);
+      throw new IllegalStateException("Failed to validate lock", ex);
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
-      throw new PropStoreException("Interrupted while validating lock", ex);
+      throw new IllegalStateException("Interrupted while validating lock", ex);
     }
   }
 
@@ -147,8 +146,8 @@ public class TransformToken {
       Stat stat = new Stat();
       byte[] readId = zrw.getData(path, stat);
       if (!Arrays.equals(readId, tokenUUID.asBytes())) {
-        throw new PropStoreException("tried to release a token that was not held by current thread",
-            null);
+        throw new IllegalStateException(
+            "tried to release a token that was not held by current thread");
       }
 
       if (log.isTraceEnabled()) {
@@ -158,10 +157,10 @@ public class TransformToken {
       // make sure we are deleting the same node version just checked.
       zrw.deleteStrict(path, stat.getVersion());
     } catch (KeeperException ex) {
-      throw new PropStoreException("Failed to release transform lock for " + path, ex);
+      throw new IllegalStateException("Failed to release transform lock for " + path, ex);
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
-      throw new PropStoreException("Interrupted getting transform token", ex);
+      throw new IllegalStateException("Interrupted getting transform token", ex);
     }
     haveToken = false;
   }

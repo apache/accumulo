@@ -81,7 +81,6 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.tserverOps.ShutdownTServer;
 import org.apache.accumulo.server.client.ClientServiceHandler;
-import org.apache.accumulo.server.conf.store.PropStoreException;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
@@ -91,7 +90,6 @@ import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.token.Token;
 import org.apache.thrift.TException;
-import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -405,19 +403,13 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
         NamespacePropUtil.factory().setProperties(manager.getContext(), namespaceId,
             Map.of(property, value));
       }
-    } catch (PropStoreException ex) {
-      if (ex.getCause() instanceof KeeperException.NoNodeException) {
-        // race condition... namespace no longer exists? This call will throw an exception if the
-        // namespace was deleted:
-        ClientServiceHandler.checkNamespaceId(manager.getContext(), namespace, op);
-        log.info("Error altering namespace property", ex);
-        throw new ThriftTableOperationException(namespaceId.canonical(), namespace, op,
-            TableOperationExceptionType.OTHER, "Problem altering namespaceproperty");
-      }
+    } catch (IllegalStateException ex) {
+      // race condition on delete... namespace no longer exists? An undelying ZooKeeper.NoNode
+      // exception will be thrown an exception if the namespace was deleted:
       ClientServiceHandler.checkNamespaceId(manager.getContext(), namespace, op);
       log.info("Error altering namespace property", ex);
       throw new ThriftTableOperationException(namespaceId.canonical(), namespace, op,
-          TableOperationExceptionType.OTHER, "Problem altering namespaceproperty");
+          TableOperationExceptionType.OTHER, "Problem altering namespace property");
     }
   }
 
@@ -435,17 +427,12 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
         TablePropUtil.factory().setProperties(manager.getContext(), tableId,
             Map.of(property, value));
       }
-    } catch (PropStoreException ex) {
+    } catch (IllegalStateException ex) {
       log.warn("Invalid table property, tried to set: tableId: " + tableId.canonical() + " to: "
           + property + "=" + value);
-      if (ex.getCause() instanceof KeeperException.NoNodeException) {
-        // race condition... table no longer exists? This call will throw an exception if the table
-        // was deleted:
-        ClientServiceHandler.checkTableId(manager.getContext(), tableName, op);
-        log.info("Error altering table property", ex);
-        throw new ThriftTableOperationException(tableId.canonical(), tableName, op,
-            TableOperationExceptionType.OTHER, "Problem altering table property");
-      }
+      // race condition... table no longer exists? This call will throw an exception if the table
+      // was deleted:
+      ClientServiceHandler.checkTableId(manager.getContext(), tableName, op);
       throw new ThriftTableOperationException(tableId.canonical(), tableName, op,
           TableOperationExceptionType.OTHER, "Invalid table property, tried to set: tableId: "
               + tableId.canonical() + " to: " + property + "=" + value);

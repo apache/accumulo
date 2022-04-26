@@ -41,7 +41,6 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
-import org.apache.accumulo.server.conf.store.PropStoreException;
 import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.zookeeper.KeeperException;
@@ -146,9 +145,9 @@ public class ConfigTransformer {
           token.holdToken();
         } catch (InterruptedException ex) {
           Thread.currentThread().interrupt();
-          throw new PropStoreException("Failed to hold transform token for " + propCacheKey, ex);
+          throw new IllegalStateException("Failed to hold transform token for " + propCacheKey, ex);
         } catch (IllegalStateException ex) {
-          throw new PropStoreException("Failed to hold transform token for " + propCacheKey, ex);
+          throw new IllegalStateException("Failed to hold transform token for " + propCacheKey, ex);
         }
       }
 
@@ -167,13 +166,13 @@ public class ConfigTransformer {
       results = writeConverted(propCacheKey, upgradeNodes);
 
       if (results == null) {
-        throw new PropStoreException("Could not create properties for " + propCacheKey, null);
+        throw new IllegalStateException("Could not create properties for " + propCacheKey);
       }
 
       // validate token still valid before deletion.
       if (!token.validateToken()) {
-        throw new PropStoreException(
-            "legacy conversion failed. Lost transform token for " + propCacheKey, null);
+        throw new IllegalStateException(
+            "legacy conversion failed. Lost transform token for " + propCacheKey);
       }
 
       int errorCount = deleteLegacyProps(upgradeNodes);
@@ -269,7 +268,7 @@ public class ConfigTransformer {
         zrw.deleteStrict(n.getPath(), n.getNodeVersion());
       } catch (InterruptedException ex) {
         Thread.currentThread().interrupt();
-        throw new PropStoreException("interrupt received during upgrade node clean-up", ex);
+        throw new IllegalStateException("interrupt received during upgrade node clean-up", ex);
       } catch (KeeperException ex) {
         errorCount++;
         log.info("Failed to delete node during upgrade clean-up", ex);
@@ -283,18 +282,19 @@ public class ConfigTransformer {
     final Map<String,String> props = new HashMap<>();
     nodes.forEach((node) -> props.put(node.getPropName(), node.getData()));
     VersionedProperties vProps = new VersionedProperties(props);
+    String path = propCacheKey.getPath();
     try {
-      String path = propCacheKey.getPath();
-      zrw.putPersistentData(path, codec.toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
-    } catch (KeeperException.NodeExistsException ex) {
-      // TODO - re-read and return?
-    } catch (IOException | KeeperException ex) {
-      throw new PropStoreException("failed to create node for " + propCacheKey + " on conversion",
-          ex);
-    } catch (InterruptedException ex) {
-      Thread.currentThread().interrupt();
-      throw new PropStoreException("failed to create node for " + propCacheKey + " on conversion",
-          ex);
+      try {
+        zrw.putPersistentData(path, codec.toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
+      } catch (KeeperException.NodeExistsException ex) {
+        vProps = ZooPropStore.readFromZk(propCacheKey, propStoreWatcher, zrw);
+      }
+    } catch (InterruptedException | IOException | KeeperException ex) {
+      if (ex instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
+      throw new IllegalStateException(
+          "failed to create node for " + propCacheKey + " on conversion", ex);
     }
     if (!validateWrite(propCacheKey, vProps)) {
       // failed validation
@@ -308,15 +308,15 @@ public class ConfigTransformer {
     try {
       Stat stat = zrw.getStatus(propCacheKey.getPath(), propStoreWatcher);
       if (stat == null) {
-        throw new PropStoreException(
-            "failed to get stat to validate created node for " + propCacheKey, null);
+        throw new IllegalStateException(
+            "failed to get stat to validate created node for " + propCacheKey);
       }
       return stat.getVersion() == vProps.getDataVersion();
     } catch (KeeperException ex) {
-      throw new PropStoreException("failed to validate created node for " + propCacheKey, ex);
+      throw new IllegalStateException("failed to validate created node for " + propCacheKey, ex);
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
-      throw new PropStoreException("failed to validate created node for " + propCacheKey, ex);
+      throw new IllegalStateException("failed to validate created node for " + propCacheKey, ex);
     }
   }
 

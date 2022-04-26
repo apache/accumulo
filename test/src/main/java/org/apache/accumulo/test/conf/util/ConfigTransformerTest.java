@@ -41,7 +41,6 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
-import org.apache.accumulo.server.conf.store.PropStoreException;
 import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.conf.util.ConfigTransformer;
@@ -163,7 +162,7 @@ public class ConfigTransformerTest {
     // manually create a lock so transformer fails
     zrw.putEphemeralData(sysPropKey.getBasePath() + TransformToken.TRANSFORM_TOKEN, new byte[0]);
 
-    assertThrows(PropStoreException.class, () -> transformer.transform(sysPropKey));
+    assertThrows(IllegalStateException.class, () -> transformer.transform(sysPropKey));
 
   }
 
