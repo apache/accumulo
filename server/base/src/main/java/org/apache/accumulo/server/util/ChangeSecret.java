@@ -79,7 +79,9 @@ public class ChangeSecret {
       argsList.add("--new");
       argsList.addAll(Arrays.asList(args));
 
-      opts.parseArgs(ChangeSecret.class.getName(), argsList.toArray(new String[0]));
+      opts.parseArgs(ChangeSecret.class.getName(), args);
+      String oldPass = String.valueOf(System.console().readPassword("Old password: "));
+      String newPass = String.valueOf(System.console().readPassword("New password: "));
       Span span = TraceUtil.startSpan(ChangeSecret.class, "main");
       try (Scope scope = span.makeCurrent()) {
 
