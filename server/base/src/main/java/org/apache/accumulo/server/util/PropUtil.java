@@ -24,12 +24,12 @@ import java.util.Map;
 import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.server.ServerContext;
 
-public interface PropUtil {
+public abstract class PropUtil<T extends AbstractId<T>> {
 
-  void setProperties(final ServerContext context, final AbstractId<?> id,
+  public abstract void setProperties(final ServerContext context, final T id,
       final Map<String,String> props);
 
-  void removeProperties(final ServerContext context, final AbstractId<?> id,
+  public abstract void removeProperties(final ServerContext context, final T id,
       final Collection<String> propertyNames);
 
 }

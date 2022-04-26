@@ -68,13 +68,9 @@ class FileSystemInitializer {
 
   // config only for root table
   private final InitialConfiguration initConfig;
-  private final ZooReaderWriter zoo;
-  private final String zkRoot;
 
   FileSystemInitializer(InitialConfiguration initConfig, ZooReaderWriter zoo, InstanceId uuid) {
     this.initConfig = initConfig;
-    this.zoo = zoo;
-    this.zkRoot = Constants.ZROOT + "/" + uuid;
   }
 
   private static class Tablet {

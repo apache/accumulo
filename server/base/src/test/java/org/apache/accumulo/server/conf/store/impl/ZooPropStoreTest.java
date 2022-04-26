@@ -361,7 +361,6 @@ public class ZooPropStoreTest {
 
   /**
    * Verify that a node is created when it does not exist.
-   *
    */
   // @Test
   public void getNoNodeTest() {

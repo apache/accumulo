@@ -109,35 +109,6 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     return new ZooPropStore.Builder(instanceId, zrw, zrw.getSessionTimeout()).build();
   }
 
-  /**
-   * Create the system configuration node and initialize with empty props - used when creating a new
-   * Accumulo instance.
-   * <p>
-   * Needs to be called early in the Accumulo ZooKeeper initialization sequence so that correct
-   * watchers can be created for the instance when the PropStore is instantiated.
-   *
-   * @param instanceId
-   *          the instance uuid.
-   * @param zrw
-   *          a ZooReaderWriter
-   */
-  public static void instancePathInit(final InstanceId instanceId, final ZooReaderWriter zrw)
-      throws InterruptedException, KeeperException {
-    var sysPropPath = PropCacheKey.forSystem(instanceId).getPath();
-    VersionedProperties vProps = new VersionedProperties();
-    try {
-      var created =
-          zrw.putPersistentData(sysPropPath, codec.toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
-      if (!created) {
-        throw new IllegalStateException(
-            "Failed to create default system props during initialization at: {}" + sysPropPath);
-      }
-    } catch (IOException ex) {
-      throw new IllegalStateException(
-          "Failed to create default system props during initialization at: {}" + sysPropPath, ex);
-    }
-  }
-
   @Override
   public boolean exists(final PropCacheKey propCacheKey) {
     try {

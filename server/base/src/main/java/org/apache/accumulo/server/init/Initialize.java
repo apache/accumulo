@@ -48,11 +48,9 @@ import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
-import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -68,7 +66,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZooDefs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -196,36 +193,6 @@ public class Initialize implements KeywordExecutable {
       return false;
     }
     return true;
-  }
-
-  private void initRequiredPropStoreZKPaths(final Opts opts, final ZooReaderWriter zoo,
-      final String instanceNamePath, final InstanceId instanceId) {
-
-    try {
-
-      zoo.putPersistentData(Constants.ZROOT, new byte[0], ZooUtil.NodeExistsPolicy.SKIP,
-          ZooDefs.Ids.OPEN_ACL_UNSAFE);
-      zoo.putPersistentData(Constants.ZROOT + Constants.ZINSTANCES, new byte[0],
-          ZooUtil.NodeExistsPolicy.SKIP, ZooDefs.Ids.OPEN_ACL_UNSAFE);
-
-      // setup instance name
-      if (opts.clearInstanceName) {
-        zoo.recursiveDelete(instanceNamePath, ZooUtil.NodeMissingPolicy.SKIP);
-      }
-
-      zoo.putPersistentData(instanceNamePath, instanceId.toString().getBytes(UTF_8),
-          ZooUtil.NodeExistsPolicy.FAIL);
-      zoo.putPersistentData(Constants.ZROOT + "/" + instanceId, new byte[0],
-          ZooUtil.NodeExistsPolicy.FAIL);
-      zoo.putPersistentData(Constants.ZROOT + "/" + instanceId + Constants.ZCONFIG, new byte[0],
-          ZooUtil.NodeExistsPolicy.FAIL);
-
-      // TODO init prop store
-      ZooPropStore.instancePathInit(instanceId, zoo);
-
-    } catch (KeeperException | InterruptedException ex) {
-      log.warn("Failed to create initial instance paths in ZooKeeper", ex);
-    }
   }
 
   private void checkUploadProps(ServerContext context, InitialConfiguration initConfig, Opts opts)

@@ -184,8 +184,6 @@ public class PropCacheCaffeineImplTest {
   public void expireTest() {
     expect(zooPropLoader.load(eq(tablePropKey))).andReturn(vProps).times(2);
 
-    CompletableFuture future = CompletableFuture.supplyAsync(this::asyncProps);
-
     replay(context, propStoreWatcher, zooPropLoader);
     assertNotNull(cache.get(tablePropKey)); // will call load
 

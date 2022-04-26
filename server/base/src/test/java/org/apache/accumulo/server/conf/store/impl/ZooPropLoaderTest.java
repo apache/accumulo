@@ -135,7 +135,7 @@ public class ZooPropLoaderTest {
 
     VersionedProperties defaultProps = new VersionedProperties();
 
-    expect(zrw.getStatus(propCacheKey.getPath())).andThrow(new KeeperException.NoNodeException() {})
+    expect(zrw.getStatus(propCacheKey.getPath())).andThrow(new KeeperException.NoNodeException())
         .anyTimes();
     expect(zrw.getData(eq(propCacheKey.getPath()), anyObject(), anyObject()))
         .andReturn(propCodec.toBytes(defaultProps)).once();

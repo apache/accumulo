@@ -23,12 +23,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
 
-public class TablePropUtil implements PropUtil {
+public class TablePropUtil extends PropUtil<TableId> {
 
   private TablePropUtil() {}
 
@@ -44,20 +43,18 @@ public class TablePropUtil implements PropUtil {
    *           read properties from the cache / backend store
    */
   @Override
-  public void setProperties(ServerContext context, AbstractId<?> tableId,
-      Map<String,String> props) {
+  public void setProperties(ServerContext context, TableId tableId, Map<String,String> props) {
     Map<String,String> tempProps = new HashMap<>(props);
     // TODO reconcile with NamespacePropUtil see https://github.com/apache/accumulo/issues/2633
     tempProps.entrySet().removeIf(e -> !Property.isTablePropertyValid(e.getKey(), e.getValue()));
 
-    context.getPropStore().putAll(PropCacheKey.forTable(context, (TableId) tableId), props);
+    context.getPropStore().putAll(PropCacheKey.forTable(context, tableId), props);
   }
 
   @Override
-  public void removeProperties(final ServerContext context, final AbstractId<?> tableId,
+  public void removeProperties(final ServerContext context, final TableId tableId,
       Collection<String> propertyNames) {
-    context.getPropStore().removeProperties(PropCacheKey.forTable(context, (TableId) tableId),
-        propertyNames);
+    context.getPropStore().removeProperties(PropCacheKey.forTable(context, tableId), propertyNames);
   }
 
 }

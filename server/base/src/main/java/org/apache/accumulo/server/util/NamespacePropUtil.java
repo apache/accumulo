@@ -22,14 +22,11 @@ import java.util.Collection;
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
 
-public class NamespacePropUtil implements PropUtil {
-
-  private NamespaceId namespaceId;
+public class NamespacePropUtil extends PropUtil<NamespaceId> {
 
   private NamespacePropUtil() {}
 
@@ -38,7 +35,7 @@ public class NamespacePropUtil implements PropUtil {
   }
 
   @Override
-  public void setProperties(ServerContext context, AbstractId<?> namespaceId,
+  public void setProperties(ServerContext context, NamespaceId namespaceId,
       Map<String,String> properties) {
     for (Map.Entry<String,String> prop : properties.entrySet()) {
       // TODO reconcile with TablePropUtil see https://github.com/apache/accumulo/issues/2633
@@ -47,14 +44,13 @@ public class NamespacePropUtil implements PropUtil {
             + " name: " + prop.getKey() + ", value: " + prop.getValue());
       }
     }
-    context.getPropStore().putAll(PropCacheKey.forNamespace(context, (NamespaceId) namespaceId),
-        properties);
+    context.getPropStore().putAll(PropCacheKey.forNamespace(context, namespaceId), properties);
   }
 
   @Override
-  public void removeProperties(ServerContext context, AbstractId<?> namespaceId,
+  public void removeProperties(ServerContext context, NamespaceId namespaceId,
       Collection<String> propertyNames) {
-    context.getPropStore().removeProperties(
-        PropCacheKey.forNamespace(context, (NamespaceId) namespaceId), propertyNames);
+    context.getPropStore().removeProperties(PropCacheKey.forNamespace(context, namespaceId),
+        propertyNames);
   }
 }

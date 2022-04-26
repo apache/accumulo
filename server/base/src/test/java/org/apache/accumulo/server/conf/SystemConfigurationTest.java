@@ -48,12 +48,8 @@ import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class SystemConfigurationTest {
-
-  private static final Logger log = LoggerFactory.getLogger(SystemConfigurationTest.class);
 
   private InstanceId instanceId;
 
