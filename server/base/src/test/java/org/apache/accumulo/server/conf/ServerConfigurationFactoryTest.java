@@ -42,7 +42,6 @@ import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -73,11 +72,6 @@ public class ServerConfigurationFactoryTest {
     context = MockServerContext.getWithZK(IID, ZK_HOST, ZK_TIMEOUT);
     expect(context.getPropStore()).andReturn(propStore).anyTimes();
     expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
-  }
-
-  @AfterEach
-  public void tearDown() {
-    ServerConfigurationFactory.clearCachedConfigurations();
   }
 
   private void ready() {
