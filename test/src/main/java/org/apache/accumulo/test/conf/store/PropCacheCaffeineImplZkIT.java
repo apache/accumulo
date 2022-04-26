@@ -24,6 +24,10 @@ import static org.apache.accumulo.core.conf.Property.TSERV_CLIENTPORT;
 import static org.apache.accumulo.core.conf.Property.TSERV_NATIVEMAP_ENABLED;
 import static org.apache.accumulo.core.conf.Property.TSERV_SCAN_MAX_OPENFILES;
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
+import static org.easymock.EasyMock.createNiceMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -55,7 +59,6 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
-import org.easymock.EasyMock;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -67,9 +70,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Tag(ZOOKEEPER_TESTING_SERVER)
-public class PropCacheCaffeineImplZkTest {
+public class PropCacheCaffeineImplZkIT {
 
-  private static final Logger log = LoggerFactory.getLogger(PropCacheCaffeineImplZkTest.class);
+  private static final Logger log = LoggerFactory.getLogger(PropCacheCaffeineImplZkIT.class);
   private static final InstanceId INSTANCE_ID = InstanceId.of(UUID.randomUUID());
 
   private static ZooKeeperTestingServer testZk = null;
@@ -79,6 +82,7 @@ public class PropCacheCaffeineImplZkTest {
   private final TableId tIdA = TableId.of("A");
   private final TableId tIdB = TableId.of("B");
   private final PropStoreMetrics cacheMetrics = new PropStoreMetrics();
+  private static ServerContext context;
 
   @TempDir
   private static File tempDir;
@@ -90,15 +94,16 @@ public class PropCacheCaffeineImplZkTest {
     zooKeeper = testZk.getZooKeeper();
 
     zrw = testZk.getZooReaderWriter();
-    ServerContext context = EasyMock.createNiceMock(ServerContext.class);
-    EasyMock.expect(context.getInstanceID()).andReturn(INSTANCE_ID).anyTimes();
-    EasyMock.expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
+    context = createNiceMock(ServerContext.class);
+    expect(context.getInstanceID()).andReturn(INSTANCE_ID).anyTimes();
+    expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
 
-    EasyMock.replay(context);
+    replay(context);
   }
 
   @AfterAll
   public static void shutdownZK() throws Exception {
+    verify(context);
     testZk.close();
   }
 

@@ -26,12 +26,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -39,46 +35,32 @@ import org.slf4j.LoggerFactory;
 
 @Tag(MINI_CLUSTER_ONLY)
 @Tag(SUNNY_DAY)
-public class PropStoreConfigTest extends AccumuloClusterHarness {
+public class PropStoreConfigIT extends AccumuloClusterHarness {
 
-  private static final Logger log = LoggerFactory.getLogger(PropStoreConfigTest.class);
-
-  private AccumuloClient accumuloClient;
-
-  @BeforeEach
-  public void setup() {
-    accumuloClient = Accumulo.newClient().from(getClientProps()).build();
-  }
-
-  @AfterAll
-  public static void teardown() {
-    SharedMiniClusterBase.stopMiniCluster();
-  }
+  private static final Logger log = LoggerFactory.getLogger(PropStoreConfigIT.class);
 
   @Test
   public void setTablePropTest() throws Exception {
-    String tableName = getUniqueNames(1)[0];
-    accumuloClient.tableOperations().create(tableName);
+    String table = getUniqueNames(1)[0];
 
-    log.info("Tables: {}", accumuloClient.tableOperations().list());
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
 
-    accumuloClient.instanceOperations().setProperty(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
+      client.tableOperations().create(table);
 
-    accumuloClient.tableOperations().setProperty(tableName, Property.TABLE_BLOOM_ENABLED.getKey(),
-        "true");
+      log.info("Tables: {}", client.tableOperations().list());
 
-    try {
+      client.instanceOperations().setProperty(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
+      client.tableOperations().setProperty(table, Property.TABLE_BLOOM_ENABLED.getKey(), "true");
+
       Thread.sleep(SECONDS.toMillis(3L));
-    } catch (InterruptedException ex) {
-      // ignore
-    }
 
-    var props = accumuloClient.tableOperations().getProperties(tableName);
-    log.info("Props: {}", props);
-    for (Map.Entry<String,String> e : props) {
-      if (e.getKey().contains("table.bloom.enabled")) {
-        log.info("after bloom property: {}={}", e.getKey(), e.getValue());
-        assertEquals("true", e.getValue());
+      var props = client.tableOperations().getProperties(table);
+      log.info("Props: {}", props);
+      for (Map.Entry<String,String> e : props) {
+        if (e.getKey().contains("table.bloom.enabled")) {
+          log.info("after bloom property: {}={}", e.getKey(), e.getValue());
+          assertEquals("true", e.getValue());
+        }
       }
     }
   }

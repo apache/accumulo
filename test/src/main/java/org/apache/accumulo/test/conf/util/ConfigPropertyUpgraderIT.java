@@ -18,33 +18,28 @@
  */
 package org.apache.accumulo.test.conf.util;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
-import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.createNiceMock;
 import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
-import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
+import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
-import org.apache.accumulo.server.conf.util.ConfigTransformer;
-import org.apache.accumulo.server.conf.util.TransformToken;
+import org.apache.accumulo.server.conf.util.ConfigPropertyUpgrader;
+import org.apache.accumulo.test.conf.store.PropStoreZooKeeperIT;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZKUtil;
@@ -60,19 +55,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Tag(ZOOKEEPER_TESTING_SERVER)
-public class ConfigTransformerTest {
+public class ConfigPropertyUpgraderIT {
 
-  private static final Logger log = LoggerFactory.getLogger(ConfigTransformerTest.class);
-  private final static VersionedPropCodec codec = VersionedPropCodec.getDefault();
-  @TempDir
-  private static File tempDir;
+  private static final Logger log = LoggerFactory.getLogger(PropStoreZooKeeperIT.class);
   private static ZooKeeperTestingServer testZk = null;
   private static ZooKeeper zooKeeper;
   private static ZooReaderWriter zrw;
 
   private InstanceId instanceId = null;
-  private ZooPropStore propStore = null;
-  private PropStoreWatcher watcher = null;
+
+  @TempDir
+  private static File tempDir;
 
   @BeforeAll
   public static void setupZk() {
@@ -80,7 +73,10 @@ public class ConfigTransformerTest {
     // using default zookeeper port - we don't have a full configuration
     testZk = new ZooKeeperTestingServer(tempDir);
     zooKeeper = testZk.getZooKeeper();
+    zooKeeper.addAuthInfo("digest", "accumulo:test".getBytes(UTF_8));
+
     zrw = testZk.getZooReaderWriter();
+
   }
 
   @AfterAll
@@ -89,25 +85,32 @@ public class ConfigTransformerTest {
   }
 
   @BeforeEach
-  public void testSetup() throws Exception {
+  public void setupZnodes() throws Exception {
+
     instanceId = InstanceId.of(UUID.randomUUID());
+
+    testZk.initPaths(ZooUtil.getRoot(instanceId));
+
+    ServerContext context = createNiceMock(ServerContext.class);
+    expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
+    expect(context.getZooKeepersSessionTimeOut()).andReturn(zooKeeper.getSessionTimeout())
+        .anyTimes();
+    expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
 
     List<LegacyPropData.PropNode> nodes = LegacyPropData.getData(instanceId);
     for (LegacyPropData.PropNode node : nodes) {
       zrw.putPersistentData(node.getPath(), node.getData(), ZooUtil.NodeExistsPolicy.SKIP);
     }
 
-    propStore = new ZooPropStore.Builder(instanceId, zrw, 30_000).build();
-
-    ServerContext context = createMock(ServerContext.class);
-    expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
-    expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
-    expect(context.getPropStore()).andReturn(propStore).anyTimes();
-
-    watcher = createMock(PropStoreWatcher.class);
-
-    replay(context, watcher);
-
+    try {
+      zrw.putPersistentData(ZooUtil.getRoot(instanceId) + Constants.ZCONFIG, new byte[0],
+          ZooUtil.NodeExistsPolicy.SKIP);
+    } catch (KeeperException ex) {
+      log.trace("Issue during zk initialization, skipping", ex);
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Interrupted during zookeeper path initialization", ex);
+    }
   }
 
   @AfterEach
@@ -120,60 +123,32 @@ public class ConfigTransformerTest {
   }
 
   @Test
-  public void propStoreConversionTest() throws Exception {
+  void doUpgrade() {
+    ConfigPropertyUpgrader upgrader = new ConfigPropertyUpgrader();
+    upgrader.doUpgrade(instanceId, zrw);
 
-    var sysPropKey = PropCacheKey.forSystem(instanceId);
+    PropStore propStore =
+        new ZooPropStore.Builder(instanceId, zrw, zooKeeper.getSessionTimeout()).build();
 
-    List<String> sysLegacy = zrw.getChildren(sysPropKey.getBasePath());
-    log.info("Before: {}", sysLegacy);
+    var sysKey = PropCacheKey.forSystem(instanceId);
+    log.info("PropStore: {}", propStore.get(sysKey));
 
-    var vProps = propStore.get(sysPropKey);
-    assertNotNull(vProps);
-    log.info("Converted: {}", vProps);
+    var vProps = propStore.get(sysKey);
+    if (vProps == null) {
+      fail("unexpected null returned from prop store get for " + sysKey);
+      return; // keep spotbugs happy
+    }
 
-    sysLegacy = zrw.getChildren(sysPropKey.getBasePath());
-    log.info("After: {}", sysLegacy);
+    Map<String,String> props = vProps.getProperties();
 
-  }
+    // also validates that rname from deprecated master to manager occured.
+    assertEquals(5, props.size());
+    assertEquals("4", props.get("manager.bulk.retries"));
+    assertEquals("10m", props.get("manager.bulk.timeout"));
+    assertEquals("10", props.get("manager.bulk.rename.threadpool.size"));
+    assertEquals("4", props.get("manager.bulk.threadpool.size"));
 
-  @Test
-  public void transformTest() throws Exception {
-
-    var sysPropKey = PropCacheKey.forSystem(instanceId);
-
-    ConfigTransformer transformer = new ConfigTransformer(zrw, codec, watcher);
-    List<String> sysLegacy = zrw.getChildren(sysPropKey.getBasePath());
-    log.info("Before: {}", sysLegacy);
-
-    var converted = transformer.transform(sysPropKey);
-
-    assertEquals(sysLegacy.size(), converted.getProperties().size());
-  }
-
-  @Test
-  public void failToGetLock() throws Exception {
-    var sysPropKey = PropCacheKey.forSystem(instanceId);
-
-    Retry retry =
-        Retry.builder().maxRetries(3).retryAfter(250, MILLISECONDS).incrementBy(500, MILLISECONDS)
-            .maxWait(5, SECONDS).backOffFactor(1.75).logInterval(3, MINUTES).createRetry();
-
-    ConfigTransformer transformer = new ConfigTransformer(zrw, codec, watcher, retry);
-    // manually create a lock so transformer fails
-    zrw.putEphemeralData(sysPropKey.getBasePath() + TransformToken.TRANSFORM_TOKEN, new byte[0]);
-
-    assertThrows(IllegalStateException.class, () -> transformer.transform(sysPropKey));
+    assertEquals("true", props.get("table.bloom.enabled"));
 
   }
-
-  @Test
-  public void continueOnLockRelease() {
-
-  }
-
-  @Test
-  public void createdByAnother() {
-
-  }
-
 }

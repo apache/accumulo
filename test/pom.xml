@@ -284,6 +284,20 @@
               </arguments>
             </configuration>
           </execution>
+          <execution>
+            <id>check-for-misplaced-UTs</id>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <phase>validate</phase>
+            <configuration>
+              <executable>bash</executable>
+              <arguments>
+                <argument>-c</argument>
+                <argument>! find src/main/java -name '*Test.java' -exec echo '[ERROR] {} should be in src/test/java' \; | grep 'src/main/java'</argument>
+              </arguments>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
       <plugin>
