@@ -156,11 +156,10 @@ public class ZooPropLoaderTest {
     assertNotNull(cache.get(propCacheKey));
   }
 
-  // TODO - may be just an exception on Zk read.
   @Test
   public void getExpireTimeoutTest() {
     replay(context, zrw, propStoreWatcher, cacheMetrics);
-    // TODO implement test
+    // TODO check into implementing an explicit test.
     // fail("Implement test");
   }
 
@@ -286,12 +285,8 @@ public class ZooPropLoaderTest {
 
     assertNotNull(cache.get(propCacheKey));
 
-    try {
-      // yield so async thread completes.
-      Thread.sleep(250);
-    } catch (InterruptedException ex) {
-      // empty
-    }
+    // yield so async thread completes.
+    Thread.sleep(250);
 
     assertNull(cache.get(propCacheKey));
   }
@@ -576,12 +571,8 @@ public class ZooPropLoaderTest {
 
     assertNotNull(vPropsRead);
 
-    try {
-      Thread.sleep(250);
-      cache.get(propCacheKey);
-    } catch (InterruptedException ex) {
-      // empty
-    }
+    Thread.sleep(250);
+    cache.get(propCacheKey);
 
     verify(mockProps);
   }

@@ -59,15 +59,12 @@ public class MockServerContext {
 
   public static ServerContext getMockContextWithPropStore(final InstanceId instanceID,
       ZooReaderWriter zrw, PropStore propStore) {
-    try {
-      ServerContext sc = createMock(ServerContext.class);
-      expect(sc.getInstanceID()).andReturn(instanceID).anyTimes();
-      expect(sc.getZooReaderWriter()).andReturn(zrw).anyTimes();
-      expect(sc.getZooKeeperRoot()).andReturn("/accumulo/" + instanceID).anyTimes();
-      expect(sc.getPropStore()).andReturn(propStore).anyTimes();
-      return sc;
-    } catch (NullPointerException ex) {
-      throw new IllegalStateException("Failed to create mock test context", ex);
-    }
+
+    ServerContext sc = createMock(ServerContext.class);
+    expect(sc.getInstanceID()).andReturn(instanceID).anyTimes();
+    expect(sc.getZooReaderWriter()).andReturn(zrw).anyTimes();
+    expect(sc.getZooKeeperRoot()).andReturn("/accumulo/" + instanceID).anyTimes();
+    expect(sc.getPropStore()).andReturn(propStore).anyTimes();
+    return sc;
   }
 }

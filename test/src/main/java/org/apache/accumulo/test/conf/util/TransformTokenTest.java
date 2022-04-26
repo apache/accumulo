@@ -23,6 +23,7 @@ import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVE
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -126,6 +127,10 @@ public class TransformTokenTest {
     // fail with a current lock node present
     TransformToken lock3 = TransformToken.createToken(sysPropKey, zrw);
     assertFalse(lock3.haveToken());
+    // and confirm lock still present
+    assertTrue(lock2.haveToken());
+
+    verify(context, watcher);
 
   }
 
