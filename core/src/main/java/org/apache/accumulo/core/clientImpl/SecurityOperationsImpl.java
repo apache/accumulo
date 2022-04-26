@@ -53,10 +53,20 @@ public class SecurityOperationsImpl implements SecurityOperations {
 
   private final ClientContext context;
 
-  private <R> R exec(Exec<R,ClientService.Client> exec)
+  /**
+   * Execute a method on the client API that does not return a value
+   *
+   * @param exec
+   *          client operation to execute
+   * @throws AccumuloException
+   *           error executing client operation
+   * @throws AccumuloSecurityException
+   *           error executing client operation
+   */
+  private void executeVoid(ExecVoid<ClientService.Client> exec)
       throws AccumuloException, AccumuloSecurityException {
     try {
-      return ThriftClientTypes.CLIENT.execute(context, client -> exec.execute(client));
+      ThriftClientTypes.CLIENT.executeVoid(context, client -> exec.execute(client));
     } catch (AccumuloSecurityException | AccumuloException e) {
       Throwable t = e.getCause();
       if (t instanceof ThriftTableOperationException) {
@@ -75,10 +85,23 @@ public class SecurityOperationsImpl implements SecurityOperations {
     }
   }
 
-  private void execVoid(ExecVoid<ClientService.Client> exec)
+  /**
+   * Execute a method on the client API that returns an instance of type R
+   *
+   * @param <R>
+   *          return type
+   * @param exec
+   *          client operation to execute
+   * @return instance of type R
+   * @throws AccumuloException
+   *           error executing client operation
+   * @throws AccumuloSecurityException
+   *           error executing client operation
+   */
+  private <R> R execute(Exec<R,ClientService.Client> exec)
       throws AccumuloException, AccumuloSecurityException {
     try {
-      ThriftClientTypes.CLIENT.executeVoid(context, client -> exec.execute(client));
+      return ThriftClientTypes.CLIENT.execute(context, client -> exec.execute(client));
     } catch (AccumuloSecurityException | AccumuloException e) {
       Throwable t = e.getCause();
       if (t instanceof ThriftTableOperationException) {
@@ -109,7 +132,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     if (context.getSaslParams() == null) {
       checkArgument(password != null, "password is null");
     }
-    execVoid(client -> {
+    executeVoid(client -> {
       if (context.getSaslParams() == null) {
         client.createLocalUser(TraceUtil.traceInfo(), context.rpcCreds(), principal,
             ByteBuffer.wrap(password.getPassword()));
@@ -125,7 +148,8 @@ public class SecurityOperationsImpl implements SecurityOperations {
       throws AccumuloException, AccumuloSecurityException {
     checkArgument(principal != null, "principal is null");
 
-    execVoid(client -> client.dropLocalUser(TraceUtil.traceInfo(), context.rpcCreds(), principal));
+    executeVoid(
+        client -> client.dropLocalUser(TraceUtil.traceInfo(), context.rpcCreds(), principal));
   }
 
   @Override
@@ -135,7 +159,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     checkArgument(token != null, "token is null");
 
     final Credentials toAuth = new Credentials(principal, token);
-    return exec(client -> client.authenticateUser(TraceUtil.traceInfo(), context.rpcCreds(),
+    return execute(client -> client.authenticateUser(TraceUtil.traceInfo(), context.rpcCreds(),
         toAuth.toThrift(context.getInstanceID())));
   }
 
@@ -146,7 +170,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     checkArgument(token != null, "token is null");
 
     final Credentials toChange = new Credentials(principal, token);
-    execVoid(client -> client.changeLocalUserPassword(TraceUtil.traceInfo(), context.rpcCreds(),
+    executeVoid(client -> client.changeLocalUserPassword(TraceUtil.traceInfo(), context.rpcCreds(),
         principal, ByteBuffer.wrap(token.getPassword())));
     if (context.getCredentials().getPrincipal().equals(principal)) {
       context.setCredentials(toChange);
@@ -159,7 +183,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     checkArgument(principal != null, "principal is null");
     checkArgument(authorizations != null, "authorizations is null");
 
-    execVoid(client -> client.changeAuthorizations(TraceUtil.traceInfo(), context.rpcCreds(),
+    executeVoid(client -> client.changeAuthorizations(TraceUtil.traceInfo(), context.rpcCreds(),
         principal, ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations())));
   }
 
@@ -168,7 +192,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
       throws AccumuloException, AccumuloSecurityException {
     checkArgument(principal != null, "principal is null");
 
-    return exec(client -> new Authorizations(
+    return execute(client -> new Authorizations(
         client.getUserAuthorizations(TraceUtil.traceInfo(), context.rpcCreds(), principal)));
   }
 
@@ -178,7 +202,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     checkArgument(principal != null, "principal is null");
     checkArgument(perm != null, "perm is null");
 
-    return exec(client -> client.hasSystemPermission(TraceUtil.traceInfo(), context.rpcCreds(),
+    return execute(client -> client.hasSystemPermission(TraceUtil.traceInfo(), context.rpcCreds(),
         principal, perm.getId()));
   }
 
@@ -190,7 +214,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     checkArgument(perm != null, "perm is null");
 
     try {
-      return exec(client -> client.hasTablePermission(TraceUtil.traceInfo(), context.rpcCreds(),
+      return execute(client -> client.hasTablePermission(TraceUtil.traceInfo(), context.rpcCreds(),
           principal, table, perm.getId()));
     } catch (AccumuloSecurityException e) {
       if (e.getSecurityErrorCode() == NAMESPACE_DOESNT_EXIST)
@@ -207,8 +231,8 @@ public class SecurityOperationsImpl implements SecurityOperations {
     EXISTING_NAMESPACE_NAME.validate(namespace);
     checkArgument(permission != null, "permission is null");
 
-    return exec(client -> client.hasNamespacePermission(TraceUtil.traceInfo(), context.rpcCreds(),
-        principal, namespace, permission.getId()));
+    return execute(client -> client.hasNamespacePermission(TraceUtil.traceInfo(),
+        context.rpcCreds(), principal, namespace, permission.getId()));
   }
 
   @Override
@@ -217,7 +241,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     checkArgument(principal != null, "principal is null");
     checkArgument(permission != null, "permission is null");
 
-    execVoid(client -> client.grantSystemPermission(TraceUtil.traceInfo(), context.rpcCreds(),
+    executeVoid(client -> client.grantSystemPermission(TraceUtil.traceInfo(), context.rpcCreds(),
         principal, permission.getId()));
   }
 
@@ -229,7 +253,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     checkArgument(permission != null, "permission is null");
 
     try {
-      execVoid(client -> client.grantTablePermission(TraceUtil.traceInfo(), context.rpcCreds(),
+      executeVoid(client -> client.grantTablePermission(TraceUtil.traceInfo(), context.rpcCreds(),
           principal, table, permission.getId()));
     } catch (AccumuloSecurityException e) {
       if (e.getSecurityErrorCode() == NAMESPACE_DOESNT_EXIST)
@@ -246,7 +270,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     EXISTING_NAMESPACE_NAME.validate(namespace);
     checkArgument(permission != null, "permission is null");
 
-    execVoid(client -> client.grantNamespacePermission(TraceUtil.traceInfo(), context.rpcCreds(),
+    executeVoid(client -> client.grantNamespacePermission(TraceUtil.traceInfo(), context.rpcCreds(),
         principal, namespace, permission.getId()));
   }
 
@@ -256,7 +280,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     checkArgument(principal != null, "principal is null");
     checkArgument(permission != null, "permission is null");
 
-    execVoid(client -> client.revokeSystemPermission(TraceUtil.traceInfo(), context.rpcCreds(),
+    executeVoid(client -> client.revokeSystemPermission(TraceUtil.traceInfo(), context.rpcCreds(),
         principal, permission.getId()));
   }
 
@@ -268,7 +292,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     checkArgument(permission != null, "permission is null");
 
     try {
-      execVoid(client -> client.revokeTablePermission(TraceUtil.traceInfo(), context.rpcCreds(),
+      executeVoid(client -> client.revokeTablePermission(TraceUtil.traceInfo(), context.rpcCreds(),
           principal, table, permission.getId()));
     } catch (AccumuloSecurityException e) {
       if (e.getSecurityErrorCode() == NAMESPACE_DOESNT_EXIST)
@@ -285,13 +309,13 @@ public class SecurityOperationsImpl implements SecurityOperations {
     EXISTING_NAMESPACE_NAME.validate(namespace);
     checkArgument(permission != null, "permission is null");
 
-    execVoid(client -> client.revokeNamespacePermission(TraceUtil.traceInfo(), context.rpcCreds(),
-        principal, namespace, permission.getId()));
+    executeVoid(client -> client.revokeNamespacePermission(TraceUtil.traceInfo(),
+        context.rpcCreds(), principal, namespace, permission.getId()));
   }
 
   @Override
   public Set<String> listLocalUsers() throws AccumuloException, AccumuloSecurityException {
-    return exec(client -> client.listLocalUsers(TraceUtil.traceInfo(), context.rpcCreds()));
+    return execute(client -> client.listLocalUsers(TraceUtil.traceInfo(), context.rpcCreds()));
   }
 
   @Override

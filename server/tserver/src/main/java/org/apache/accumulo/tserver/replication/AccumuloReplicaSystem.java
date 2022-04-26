@@ -58,6 +58,7 @@ import org.apache.accumulo.core.replication.thrift.ReplicationServicer.Client;
 import org.apache.accumulo.core.replication.thrift.WalEdits;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.ThriftClientType.Exec;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -507,7 +508,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
   @Deprecated
   protected static class RFileClientExecReturn
-      implements ClientExecReturn<ReplicationStats,ReplicationServicer.Client> {
+      implements Exec<ReplicationStats,ReplicationServicer.Client> {
 
     @Override
     public ReplicationStats execute(Client client) {
@@ -724,7 +725,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   }
 
   private static <T> T executeServicerWithReturn(ClientContext context, HostAndPort tserver,
-      ClientExecReturn<T,ReplicationServicer.Client> exec, long timeout)
+      Exec<T,ReplicationServicer.Client> exec, long timeout)
       throws AccumuloException, AccumuloSecurityException {
     ReplicationServicer.Client client = null;
     try {

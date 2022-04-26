@@ -24,7 +24,6 @@ import static java.util.Objects.requireNonNull;
 import java.util.List;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator.Client;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator.Client.Factory;
@@ -95,7 +94,7 @@ public class ReplicationCoordinatorThriftClient extends ThriftClientType<Client,
   }
 
   @Override
-  public Client getConnectionWithRetry(ClientContext context) throws AccumuloException {
+  public Client getConnectionWithRetry(ClientContext context) {
     requireNonNull(context);
 
     for (int attempts = 1; attempts <= 10; attempts++) {
@@ -108,11 +107,11 @@ public class ReplicationCoordinatorThriftClient extends ThriftClientType<Client,
       try {
         Thread.sleep(attempts * 250L);
       } catch (InterruptedException e) {
-        throw new AccumuloException(e);
+        throw new RuntimeException(e);
       }
     }
 
-    throw new AccumuloException(
+    throw new RuntimeException(
         "Timed out trying to communicate with manager from " + context.getInstanceName());
   }
 

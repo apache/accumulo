@@ -317,8 +317,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  private void finishFateOperation(long opid)
-      throws ThriftSecurityException, TException {
+  private void finishFateOperation(long opid) throws ThriftSecurityException, TException {
     while (true) {
       FateService.Client client = null;
       try {
