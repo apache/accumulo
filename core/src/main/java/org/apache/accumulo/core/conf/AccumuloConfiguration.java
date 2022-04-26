@@ -97,7 +97,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * Given a property and a deprecated property determine which one to use base on which one is set.
    */
   public Property resolve(Property property, Property deprecatedProperty) {
-    if (isPropertySet(property, true) || !isPropertySet(deprecatedProperty, true)) {
+    if (isPropertySet(property) || !isPropertySet(deprecatedProperty)) {
       return property;
     } else {
       return deprecatedProperty;
@@ -405,7 +405,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     }
   }
 
-  public boolean isPropertySet(Property prop, boolean cacheAndWatch) {
+  public boolean isPropertySet(Property prop) {
     throw new UnsupportedOperationException();
   }
 
@@ -428,14 +428,14 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
       return null;
     }
 
-    if (!isPropertySet(prop, true) && isPropertySet(deprecatedProp, true)) {
+    if (!isPropertySet(prop) && isPropertySet(deprecatedProp)) {
       if (!depPropWarned) {
         depPropWarned = true;
         log.warn("Property {} is deprecated, use {} instead.", deprecatedProp.getKey(),
             prop.getKey());
       }
       return Integer.valueOf(get(deprecatedProp));
-    } else if (isPropertySet(prop, true) && isPropertySet(deprecatedProp, true) && !depPropWarned) {
+    } else if (isPropertySet(prop) && isPropertySet(deprecatedProp) && !depPropWarned) {
       depPropWarned = true;
       log.warn("Deprecated property {} ignored because {} is set", deprecatedProp.getKey(),
           prop.getKey());

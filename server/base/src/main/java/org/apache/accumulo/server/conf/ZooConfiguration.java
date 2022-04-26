@@ -96,26 +96,20 @@ public class ZooConfiguration extends AccumuloConfiguration {
   }
 
   @Override
-  public boolean isPropertySet(Property prop, boolean cacheAndWatch) {
+  public boolean isPropertySet(Property prop) {
     if (fixedProps.containsKey(prop.getKey())) {
       return true;
     }
-    if (cacheAndWatch) {
-      if (getRaw(prop.getKey()) != null) {
+    ZooReader zr = context.getZooReaderWriter();
+    String zPath = propPathPrefix + "/" + prop.getKey();
+    try {
+      if (zr.exists(zPath)) {
         return true;
       }
-    } else {
-      ZooReader zr = context.getZooReaderWriter();
-      String zPath = propPathPrefix + "/" + prop.getKey();
-      try {
-        if (zr.exists(zPath)) {
-          return true;
-        }
-      } catch (KeeperException | InterruptedException e) {
-        throw new IllegalStateException(e);
-      }
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException(e);
     }
-    return parent.isPropertySet(prop, cacheAndWatch);
+    return parent.isPropertySet(prop);
   }
 
   private String getRaw(String key) {

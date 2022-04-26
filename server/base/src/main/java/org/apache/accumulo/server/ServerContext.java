@@ -399,7 +399,7 @@ public class ServerContext extends ClientContext {
       String key = entry.getKey();
       log.info("{} = {}", key, (Property.isSensitive(key) ? "<hidden>" : entry.getValue()));
       Property prop = Property.getPropertyByKey(key);
-      if (prop != null && conf.isPropertySet(prop, false)) {
+      if (prop != null && conf.isPropertySet(prop)) {
         if (prop.isDeprecated()) {
           Property replacedBy = prop.replacedBy();
           if (replacedBy != null) {

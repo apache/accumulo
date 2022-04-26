@@ -483,7 +483,7 @@ public class CompactableUtils {
 
       CompactionStrategyConfig stratCfg = null;
 
-      if (cselCfg == null && tconf.isPropertySet(Property.TABLE_COMPACTION_STRATEGY, true)) {
+      if (cselCfg == null && tconf.isPropertySet(Property.TABLE_COMPACTION_STRATEGY)) {
         var stratClassName = tconf.get(Property.TABLE_COMPACTION_STRATEGY);
 
         try {
