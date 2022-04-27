@@ -34,7 +34,6 @@ import org.apache.accumulo.core.replication.thrift.ReplicationCoordinatorExcepti
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
@@ -60,7 +59,7 @@ public class ManagerReplicationCoordinator implements ReplicationCoordinator.Ifa
   protected ManagerReplicationCoordinator(Manager manager, ZooReader reader) {
     this.manager = manager;
     this.reader = reader;
-    this.security = AuditedSecurityOperation.getInstance(manager.getContext());
+    this.security = manager.getContext().getSecurityOperation();
   }
 
   @Override

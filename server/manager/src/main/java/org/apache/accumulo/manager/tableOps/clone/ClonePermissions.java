@@ -27,7 +27,6 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
-import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.slf4j.LoggerFactory;
 
 class ClonePermissions extends ManagerRepo {
@@ -50,7 +49,7 @@ class ClonePermissions extends ManagerRepo {
     // give all table permissions to the creator
     for (TablePermission permission : TablePermission.values()) {
       try {
-        AuditedSecurityOperation.getInstance(environment.getContext()).grantTablePermission(
+        environment.getContext().getSecurityOperation().grantTablePermission(
             environment.getContext().rpcCreds(), cloneInfo.user, cloneInfo.tableId, permission,
             cloneInfo.namespaceId);
       } catch (ThriftSecurityException e) {
@@ -73,7 +72,7 @@ class ClonePermissions extends ManagerRepo {
 
   @Override
   public void undo(long tid, Manager environment) throws Exception {
-    AuditedSecurityOperation.getInstance(environment.getContext())
-        .deleteTable(environment.getContext().rpcCreds(), cloneInfo.tableId, cloneInfo.namespaceId);
+    environment.getContext().getSecurityOperation().deleteTable(environment.getContext().rpcCreds(),
+        cloneInfo.tableId, cloneInfo.namespaceId);
   }
 }

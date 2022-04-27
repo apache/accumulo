@@ -52,6 +52,7 @@ public class ManagerReplicationCoordinatorTest {
     expect(context.getInstanceID()).andReturn(InstanceId.of("1234")).anyTimes();
     expect(context.getZooReader()).andReturn(null).anyTimes();
     expect(context.getZooReaderWriter()).andReturn(null).anyTimes();
+    expect(context.getSecurityOperation()).andReturn(null).anyTimes();
     expect(manager.getContext()).andReturn(context);
     expect(manager.getInstanceID()).andReturn(InstanceId.of("1234"));
     replay(manager, context, reader);
@@ -70,6 +71,7 @@ public class ManagerReplicationCoordinatorTest {
     expect(context.getInstanceID()).andReturn(InstanceId.of("1234")).anyTimes();
     expect(context.getZooReader()).andReturn(null).anyTimes();
     expect(context.getZooReaderWriter()).andReturn(null).anyTimes();
+    expect(context.getSecurityOperation()).andReturn(null).anyTimes();
     ZooReader reader = createMock(ZooReader.class);
     expect(manager.getContext()).andReturn(context);
     expect(manager.getInstanceID()).andReturn(InstanceId.of("1234"));
@@ -89,6 +91,7 @@ public class ManagerReplicationCoordinatorTest {
     expect(context.getInstanceID()).andReturn(InstanceId.of("1234")).anyTimes();
     expect(context.getZooReader()).andReturn(null).anyTimes();
     expect(context.getZooReaderWriter()).andReturn(null).anyTimes();
+    expect(context.getSecurityOperation()).andReturn(null).anyTimes();
     expect(manager.getInstanceID()).andReturn(InstanceId.of("1234")).anyTimes();
     expect(manager.getContext()).andReturn(context).anyTimes();
     replay(manager, context, reader);

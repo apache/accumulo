@@ -74,6 +74,7 @@ public class TServerUtilsTest {
     expect(context.getServerSslParams()).andReturn(null).anyTimes();
     expect(context.getSaslParams()).andReturn(null).anyTimes();
     expect(context.getClientTimeoutInMillis()).andReturn((long) 1000).anyTimes();
+    expect(context.getSecurityOperation()).andReturn(null).anyTimes();
     replay(context);
   }
 
