@@ -339,10 +339,7 @@ public class ThriftUtil {
           throw e;
         } catch (IOException e) {
           log.warn("Failed to open SASL transport", e);
-          if (e instanceof ClosedByInterruptException) {
-            Thread.currentThread().interrupt();
-            throw new UncheckedIOException(e);
-          }
+          ThriftUtil.checkIOExceptionCause(e);
           throw new TTransportException(e);
         }
       } else {
@@ -503,6 +500,13 @@ public class ThriftUtil {
       } catch (IOException ioe) {}
 
       throw new TTransportException("Could not connect to " + host + " on port " + port, e);
+    }
+  }
+
+  public static void checkIOExceptionCause(IOException e) {
+    if (e instanceof ClosedByInterruptException) {
+      Thread.currentThread().interrupt();
+      throw new UncheckedIOException(e);
     }
   }
 }
