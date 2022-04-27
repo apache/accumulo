@@ -68,6 +68,8 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.metadata.ServerAmpleImpl;
 import org.apache.accumulo.server.rpc.SaslServerConnectionParams;
 import org.apache.accumulo.server.rpc.ThriftServerType;
+import org.apache.accumulo.server.security.AuditedSecurityOperation;
+import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
 import org.apache.accumulo.server.tables.TableManager;
@@ -97,6 +99,7 @@ public class ServerContext extends ClientContext {
   private AuthenticationTokenSecretManager secretManager;
   private CryptoService cryptoService = null;
   private ScheduledThreadPoolExecutor sharedScheduledThreadPool = null;
+  private AuditedSecurityOperation securityOperation = null;
 
   public ServerContext(SiteConfiguration siteConfig) {
     this(new ServerInfo(siteConfig));
@@ -464,6 +467,14 @@ public class ServerContext extends ClientContext {
   @Override
   protected long getTransportPoolMaxAgeMillis() {
     return getClientTimeoutInMillis();
+  }
+
+  public AuditedSecurityOperation getSecurityOperation() {
+    if (securityOperation == null) {
+      securityOperation = new AuditedSecurityOperation(this, SecurityOperation.getAuthorizor(this),
+          SecurityOperation.getAuthenticator(this), SecurityOperation.getPermHandler(this));
+    }
+    return securityOperation;
   }
 
 }

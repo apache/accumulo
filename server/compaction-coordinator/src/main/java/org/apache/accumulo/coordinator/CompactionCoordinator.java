@@ -79,7 +79,6 @@ import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
-import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
@@ -159,7 +158,7 @@ public class CompactionCoordinator extends AbstractServer
 
   protected void setupSecurity() {
     getContext().setupCrypto();
-    security = AuditedSecurityOperation.getInstance(getContext());
+    security = getContext().getSecurityOperation();
   }
 
   protected void startGCLogger(ScheduledThreadPoolExecutor schedExecutor) {

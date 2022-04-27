@@ -78,31 +78,21 @@ public class SecurityOperation {
 
   protected final ServerContext context;
 
-  static SecurityOperation instance;
-
-  public static synchronized SecurityOperation getInstance(ServerContext context) {
-    if (instance == null) {
-      instance = new SecurityOperation(context, getAuthorizor(context), getAuthenticator(context),
-          getPermHandler(context));
-    }
-    return instance;
-  }
-
-  protected static Authorizor getAuthorizor(ServerContext context) {
+  public static Authorizor getAuthorizor(ServerContext context) {
     Authorizor toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
         Property.INSTANCE_SECURITY_AUTHORIZOR, Authorizor.class, new ZKAuthorizor());
     toRet.initialize(context);
     return toRet;
   }
 
-  protected static Authenticator getAuthenticator(ServerContext context) {
+  public static Authenticator getAuthenticator(ServerContext context) {
     Authenticator toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
         Property.INSTANCE_SECURITY_AUTHENTICATOR, Authenticator.class, new ZKAuthenticator());
     toRet.initialize(context);
     return toRet;
   }
 
-  protected static PermissionHandler getPermHandler(ServerContext context) {
+  public static PermissionHandler getPermHandler(ServerContext context) {
     PermissionHandler toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
         Property.INSTANCE_SECURITY_PERMISSION_HANDLER, PermissionHandler.class,
         new ZKPermHandler());
@@ -110,15 +100,11 @@ public class SecurityOperation {
     return toRet;
   }
 
-  protected SecurityOperation(ServerContext context) {
+  protected SecurityOperation(ServerContext context, Authorizor author, Authenticator authent,
+      PermissionHandler pm) {
     this.context = context;
     ZKUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
     zooCache = new ZooCache(context.getZooReader(), null);
-  }
-
-  public SecurityOperation(ServerContext context, Authorizor author, Authenticator authent,
-      PermissionHandler pm) {
-    this(context);
     authorizor = author;
     authenticator = authent;
     permHandle = pm;

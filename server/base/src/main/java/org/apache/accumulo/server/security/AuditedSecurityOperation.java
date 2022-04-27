@@ -64,14 +64,6 @@ public class AuditedSecurityOperation extends SecurityOperation {
     super(context, author, authent, pm);
   }
 
-  public static synchronized SecurityOperation getInstance(ServerContext context) {
-    if (instance == null) {
-      instance = new AuditedSecurityOperation(context, getAuthorizor(context),
-          getAuthenticator(context), getPermHandler(context));
-    }
-    return instance;
-  }
-
   private String getTableName(TableId tableId) {
     try {
       return context.getTableName(tableId);
