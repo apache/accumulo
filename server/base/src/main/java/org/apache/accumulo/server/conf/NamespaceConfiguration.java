@@ -53,15 +53,6 @@ public class NamespaceConfiguration extends AccumuloConfiguration {
         + Constants.ZNAMESPACE_CONF;
   }
 
-  /**
-   * Gets the parent configuration of this configuration.
-   *
-   * @return parent configuration
-   */
-  public AccumuloConfiguration getParentConfiguration() {
-    return parent;
-  }
-
   void setZooCacheFactory(ZooCacheFactory zcf) {
     this.zcf = zcf;
   }
@@ -141,5 +132,10 @@ public class NamespaceConfiguration extends AccumuloConfiguration {
   @Override
   public long getUpdateCount() {
     return parent.getUpdateCount() + getPropCacheAccessor().getZooCache().getUpdateCount();
+  }
+
+  @Override
+  public AccumuloConfiguration getParent() {
+    return parent;
   }
 }

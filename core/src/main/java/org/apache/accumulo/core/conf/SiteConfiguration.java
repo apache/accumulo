@@ -277,4 +277,9 @@ public class SiteConfiguration extends AccumuloConfiguration {
       }
     });
   }
+
+  @Override
+  public AccumuloConfiguration getParent() {
+    return parent;
+  }
 }

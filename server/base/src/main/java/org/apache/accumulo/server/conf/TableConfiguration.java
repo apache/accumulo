@@ -134,15 +134,6 @@ public class TableConfiguration extends AccumuloConfiguration {
     return tableId;
   }
 
-  /**
-   * Gets the parent configuration of this configuration.
-   *
-   * @return parent configuration
-   */
-  public NamespaceConfiguration getParentConfiguration() {
-    return parent;
-  }
-
   @Override
   public synchronized void invalidateCache() {
     ZooCachePropertyAccessor pca = propCacheAccessor.get();
@@ -263,5 +254,10 @@ public class TableConfiguration extends AccumuloConfiguration {
 
   public CompactionDispatcher getCompactionDispatcher() {
     return compactionDispatchDeriver.derive();
+  }
+
+  @Override
+  public AccumuloConfiguration getParent() {
+    return parent;
   }
 }
