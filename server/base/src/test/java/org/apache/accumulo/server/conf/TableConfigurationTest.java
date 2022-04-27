@@ -74,7 +74,7 @@ public class TableConfigurationTest {
   @Test
   public void testGetters() {
     assertEquals(TID, c.getTableId());
-    assertEquals(parent, c.getParentConfiguration());
+    assertEquals(parent, c.getParent());
   }
 
   @Test

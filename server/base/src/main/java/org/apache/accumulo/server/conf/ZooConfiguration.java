@@ -141,4 +141,9 @@ public class ZooConfiguration extends AccumuloConfiguration {
   public long getUpdateCount() {
     return parent.getUpdateCount() + propCache.getUpdateCount();
   }
+
+  @Override
+  public AccumuloConfiguration getParent() {
+    return parent;
+  }
 }

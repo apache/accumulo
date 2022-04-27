@@ -78,7 +78,7 @@ public class NamespaceConfigurationTest {
   @Test
   public void testGetters() {
     assertEquals(NSID, c.getNamespaceId());
-    assertEquals(parent, c.getParentConfiguration());
+    assertEquals(parent, c.getParent());
   }
 
   @Test
