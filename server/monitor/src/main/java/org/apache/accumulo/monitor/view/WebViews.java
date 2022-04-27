@@ -30,6 +30,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 import jakarta.inject.Inject;
 import jakarta.validation.constraints.Max;
@@ -463,8 +465,8 @@ public class WebViews {
     return model;
   }
 
-  private List<String> getEndpoints() {
-    List<String> endpoints = new ArrayList<>();
+  private Set<String> getEndpoints() {
+    Set<String> endpoints = new TreeSet<>();
     endpoints.add("/rest/manager");
     endpoints.add("/rest/tables/namespaces");
     endpoints.add("/rest/problems/summary");
@@ -488,6 +490,7 @@ public class WebViews {
     endpoints.add("/rest/statistics/time/indexCacheHitRate");
     endpoints.add("/rest/statistics/time/dataCacheHitRate");
     endpoints.add("/rest/status");
+
     return endpoints;
   }
 

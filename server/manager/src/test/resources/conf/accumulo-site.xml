@@ -41,10 +41,9 @@
   <property>
     <name>instance.secret</name>
     <value>DEFAULT</value>
-    <description>A secret unique to a given instance that all servers must know in order to communicate with one another.
-      Change it before initialization. To
-      change it later use ./bin/accumulo org.apache.accumulo.server.util.ChangeSecret [oldpasswd] [newpasswd],
-      and then update this file.
+    <description>A secret unique to a given instance that all servers must know in order to
+      communicate with one another. Change it before initialization. To change it later use
+      ./bin/accumulo org.apache.accumulo.server.util.ChangeSecret, and then update this file.
     </description>
   </property>
 
