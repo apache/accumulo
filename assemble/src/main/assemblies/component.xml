@@ -49,10 +49,10 @@
         <include>commons-io:commons-io</include>
         <include>commons-logging:commons-logging</include>
         <include>com.sun.istack:istack-commons-runtime</include>
+        <include>io.micrometer:micrometer-core</include>
         <include>io.opentelemetry:opentelemetry-api</include>
         <include>io.opentelemetry:opentelemetry-context</include>
         <include>io.opentelemetry:opentelemetry-semconv</include>
-        <include>io.micrometer:micrometer-core</include>
         <include>jakarta.activation:jakarta.activation-api</include>
         <include>jakarta.annotation:jakarta.annotation-api</include>
         <include>jakarta.el:jakarta.el-api</include>
@@ -90,6 +90,7 @@
         <include>org.glassfish:jakarta.el</include>
         <include>org.glassfish.jaxb:jaxb-core</include>
         <include>org.glassfish.jaxb:jaxb-runtime</include>
+        <include>org.glassfish.jaxb:txw2</include>
         <include>org.glassfish.jersey.containers:jersey-container-jetty-http</include>
         <include>org.glassfish.jersey.containers:jersey-container-servlet-core</include>
         <include>org.glassfish.jersey.containers:jersey-container-servlet</include>
