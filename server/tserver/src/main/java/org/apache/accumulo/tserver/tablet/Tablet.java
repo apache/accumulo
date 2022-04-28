@@ -169,8 +169,8 @@ public class Tablet extends TabletBase {
 
   private boolean updatingFlushID = false;
 
-  private volatile long lastFlushID = -1;
-  private volatile long lastCompactID = -1;
+  private AtomicLong lastFlushID =  new AtomicLong(-1);
+  private AtomicLong lastCompactID = new AtomicLong(-1);
 
   private static class CompactionWaitInfo {
     long flushID = -1;
@@ -289,8 +289,8 @@ public class Tablet extends TabletBase {
     this.tabletServer = tabletServer;
     this.tabletResources = trm;
     this.lastLocation = data.getLastLocation();
-    this.lastFlushID = data.getFlushID();
-    this.lastCompactID = data.getCompactID();
+    this.lastFlushID.set(data.getFlushID());
+    this.lastCompactID.set(data.getCompactID());
     this.splitCreationTime = data.getSplitTime();
     this.tabletTime = TabletTime.getInstance(data.getTime());
     this.persistedTime = tabletTime.getTime();
@@ -550,7 +550,7 @@ public class Tablet extends TabletBase {
           return;
         }
 
-        if (lastFlushID >= tableFlushID) {
+        if (lastFlushID.get() >= tableFlushID) {
           return;
         }
 
@@ -560,7 +560,7 @@ public class Tablet extends TabletBase {
         }
 
         if (getTabletMemory().getMemTable().getNumEntries() == 0) {
-          lastFlushID = tableFlushID;
+          lastFlushID.set(tableFlushID);
           updatingFlushID = true;
           updateMetadata = true;
         } else {
@@ -1074,7 +1074,7 @@ public class Tablet extends TabletBase {
       }
 
       tabletMeta.getFlushId().ifPresent(flushId -> {
-        if (flushId != lastFlushID) {
+        if (flushId != lastFlushID.get()) {
           String msg = "Closed tablet " + extent + " lastFlushID is inconsistent with metadata : "
               + flushId + " != " + lastFlushID;
           log.error(msg);
@@ -1083,7 +1083,7 @@ public class Tablet extends TabletBase {
       });
 
       tabletMeta.getCompactId().ifPresent(compactId -> {
-        if (compactId != lastCompactID) {
+        if (compactId != lastCompactID.get()) {
           String msg = "Closed tablet " + extent + " lastCompactID is inconsistent with metadata : "
               + compactId + " != " + lastCompactID;
           log.error(msg);
@@ -1491,17 +1491,17 @@ public class Tablet extends TabletBase {
       MetadataTableUtil.splitTablet(high, extent.prevEndRow(), splitRatio,
           getTabletServer().getContext(), getTabletServer().getLock(), ecids);
       ManagerMetadataUtil.addNewTablet(getTabletServer().getContext(), low, lowDirectoryName,
-          getTabletServer().getTabletSession(), lowDatafileSizes, bulkImported, time, lastFlushID,
-          lastCompactID, getTabletServer().getLock());
+          getTabletServer().getTabletSession(), lowDatafileSizes, bulkImported, time, lastFlushID.get(),
+          lastCompactID.get(), getTabletServer().getLock());
       MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove,
           getTabletServer().getContext(), getTabletServer().getLock());
 
       TabletLogger.split(extent, low, high, getTabletServer().getTabletSession());
 
-      newTablets.put(high, new TabletData(dirName, highDatafileSizes, time, lastFlushID,
-          lastCompactID, lastLocation, bulkImported));
-      newTablets.put(low, new TabletData(lowDirectoryName, lowDatafileSizes, time, lastFlushID,
-          lastCompactID, lastLocation, bulkImported));
+      newTablets.put(high, new TabletData(dirName, highDatafileSizes, time, lastFlushID.get(),
+          lastCompactID.get(), lastLocation, bulkImported));
+      newTablets.put(low, new TabletData(lowDirectoryName, lowDatafileSizes, time, lastFlushID.get(),
+          lastCompactID.get(), lastLocation, bulkImported));
 
       long t2 = System.currentTimeMillis();
 
@@ -1543,7 +1543,7 @@ public class Tablet extends TabletBase {
   }
 
   public long totalQueriesResults() {
-    return this.queryResultCount;
+    return this.queryResultCount.get();
   }
 
   public long totalIngest() {
@@ -1555,7 +1555,7 @@ public class Tablet extends TabletBase {
   }
 
   public long totalQueryResultsBytes() {
-    return this.queryResultBytes;
+    return this.queryResultBytes.get();
   }
 
   public long totalScannedCount() {
@@ -1563,13 +1563,13 @@ public class Tablet extends TabletBase {
   }
 
   public long totalLookupCount() {
-    return this.lookupCount;
+    return this.lookupCount.get();
   }
 
   // synchronized?
   public void updateRates(long now) {
-    queryRate.update(now, queryResultCount);
-    queryByteRate.update(now, queryResultBytes);
+    queryRate.update(now, queryResultCount.get());
+    queryByteRate.update(now, queryResultBytes.get());
     ingestRate.update(now, ingestCount);
     ingestByteRate.update(now, ingestBytes);
     scannedRate.update(now, scannedCount.get());
@@ -1881,19 +1881,19 @@ public class Tablet extends TabletBase {
   public void compactAll(long compactionId, CompactionConfig compactionConfig) {
 
     synchronized (this) {
-      if (lastCompactID >= compactionId) {
+      if (lastCompactID.get() >= compactionId) {
         return;
       }
 
       if (isMinorCompactionRunning()) {
         // want to wait for running minc to finish before starting majc, see ACCUMULO-3041
         if (compactionWaitInfo.compactionID == compactionId) {
-          if (lastFlushID == compactionWaitInfo.flushID) {
+          if (lastFlushID.get() == compactionWaitInfo.flushID) {
             return;
           }
         } else {
           compactionWaitInfo.compactionID = compactionId;
-          compactionWaitInfo.flushID = lastFlushID;
+          compactionWaitInfo.flushID = lastFlushID.get();
           return;
         }
       }
@@ -2014,7 +2014,7 @@ public class Tablet extends TabletBase {
     lastLocation = null;
     dataSourceDeletions.incrementAndGet();
     tabletMemory.finishedMinC();
-    lastFlushID = flushId;
+    lastFlushID.set(flushId);
     computeNumEntries();
   }
 
@@ -2026,7 +2026,7 @@ public class Tablet extends TabletBase {
 
   public synchronized void setLastCompactionID(Long compactionId) {
     if (compactionId != null) {
-      this.lastCompactID = compactionId;
+      this.lastCompactID.set(compactionId);
     }
   }
 

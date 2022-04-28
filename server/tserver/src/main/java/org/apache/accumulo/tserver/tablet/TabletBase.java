@@ -73,9 +73,9 @@ public abstract class TabletBase {
   protected final KeyExtent extent;
   protected final ServerContext context;
 
-  protected volatile long lookupCount = 0;
-  protected volatile long queryResultCount = 0;
-  protected volatile long queryResultBytes = 0;
+  protected AtomicLong lookupCount = new AtomicLong(0);
+  protected AtomicLong queryResultCount = new AtomicLong(0);
+  protected AtomicLong queryResultBytes = new AtomicLong(0);
 
   protected final Set<ScanDataSource> activeScans = new HashSet<>();
 
@@ -200,7 +200,7 @@ public abstract class TabletBase {
 
     try {
       SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
-      lookupCount++;
+      lookupCount.incrementAndGet();
       result = lookup(iter, ranges, results, scanParams, maxResultSize);
       return result;
     } catch (IOException ioe) {
@@ -212,9 +212,9 @@ public abstract class TabletBase {
       dataSource.close(false);
 
       synchronized (this) {
-        queryResultCount += results.size();
+        queryResultCount.addAndGet(results.size());
         if (result != null) {
-          queryResultBytes += result.dataSize;
+          queryResultBytes.addAndGet(result.dataSize);
         }
       }
     }
@@ -456,7 +456,7 @@ public abstract class TabletBase {
   }
 
   public synchronized void updateQueryStats(int size, long numBytes) {
-    queryResultCount += size;
-    queryResultBytes += numBytes;
+    queryResultCount.addAndGet(size);
+    queryResultBytes.addAndGet(numBytes);
   }
 }
