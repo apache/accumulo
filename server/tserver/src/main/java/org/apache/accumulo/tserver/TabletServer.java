@@ -170,7 +170,7 @@ import com.google.common.collect.Iterators;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
-public class TabletServer extends AbstractServer {
+public class TabletServer extends AbstractServer implements TabletHostingServer {
 
   private static final SecureRandom random = new SecureRandom();
   private static final Logger log = LoggerFactory.getLogger(TabletServer.class);
@@ -188,6 +188,7 @@ public class TabletServer extends AbstractServer {
   TabletServerMinCMetrics mincMetrics;
   CompactionExecutorsMetrics ceMetrics;
 
+  @Override
   public TabletServerScanMetrics getScanMetrics() {
     return scanMetrics;
   }
@@ -422,6 +423,7 @@ public class TabletServer extends AbstractServer {
     return totalQueuedMutationSize.addAndGet(additionalMutationSize);
   }
 
+  @Override
   public Session getSession(long sessionId) {
     return sessionManager.getSession(sessionId);
   }
@@ -651,8 +653,19 @@ public class TabletServer extends AbstractServer {
     }
   }
 
+  @Override
   public ServiceLock getLock() {
     return tabletServerLock;
+  }
+
+  @Override
+  public ZooCache getManagerLockCache() {
+    return managerLockCache;
+  }
+
+  @Override
+  public GarbageCollectionLogger getGcLogger() {
+    return gcLogger;
   }
 
   private void announceExistence() {
@@ -1204,6 +1217,7 @@ public class TabletServer extends AbstractServer {
     return logId;
   }
 
+  @Override
   public TableConfiguration getTableConfiguration(KeyExtent extent) {
     return getContext().getTableConfiguration(extent.tableId());
   }
@@ -1227,8 +1241,19 @@ public class TabletServer extends AbstractServer {
     return onlineTablets.snapshot();
   }
 
+  @Override
   public Tablet getOnlineTablet(KeyExtent extent) {
     return onlineTablets.snapshot().get(extent);
+  }
+
+  @Override
+  public SessionManager getSessionManager() {
+    return sessionManager;
+  }
+
+  @Override
+  public TabletServerResourceManager getResourceManager() {
+    return resourceManager;
   }
 
   public VolumeManager getVolumeManager() {
