@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+"use strict";
 
 // Suffixes for quantity
 var QUANTITY_SUFFIX = ['', 'K', 'M', 'B', 'T', 'e15', 'e18', 'e21'];
