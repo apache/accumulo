@@ -80,29 +80,10 @@ function refreshHistoryTable() {
       $(rowId).append("<td>" + bigNumberForQuantity(val.success) + "</td>");
       $(rowId).append("<td>" + bigNumberForQuantity(val.failure) + "</td>");
 
-      if (val.avgQueueTime == null) {
-        $(rowId).append(dashCell);
-      } else {
-        $(rowId).append("<td>" + timeDuration(val.avgQueueTime * 1000.0) + "</td>");
-      }
-
-      if (val.queueStdDev == null) {
-        $(rowId).append(dashCell);
-      } else {
-        $(rowId).append("<td>" + timeDuration(val.queueStdDev * 1000.0) + "</td>");
-      }
-
-      if (val.avgTime == null) {
-        $(rowId).append(dashCell);
-      } else {
-        $(rowId).append("<td>" + timeDuration(val.avgTime * 1000.0) + "</td>");
-      }
-
-      if (val.stdDev == null) {
-        $(rowId).append(dashCell);
-      } else {
-        $(rowId).append("<td>" + timeDuration(val.stdDev * 1000.0) + "</td>");
-      }
+      appendDurationToRow(rowId, val.avgQueueTime);
+      appendDurationToRow(rowId, val.queueStdDev);
+      appendDurationToRow(rowId, val.avgTime);
+      appendDurationToRow(rowId, val.stdDev);
 
       var percent = Math.floor((val.timeSpent / totalTimeSpent) * 100);
       var progressBarCell = '<td><div class="progress"><div class="progress-bar"' +
@@ -138,4 +119,15 @@ function refreshCurrentTable() {
  */
 function refreshResultsTable() {
   tabletResults.ajax.reload(null, false ); // user paging is not reset on reload
+}
+
+/*
+ * Appends a table cell containing value to the rowId, if value is not null
+ */
+function appendDurationToRow(rowId, value) {
+  let v = dashCell;
+  if (value != null) {
+    v = "<td>" + timeDuration(value * 1000.0) + "</td>";
+  }
+  $(rowId).append(v);
 }
