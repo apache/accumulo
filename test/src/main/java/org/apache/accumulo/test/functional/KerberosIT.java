@@ -33,7 +33,6 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
@@ -379,12 +378,9 @@ public class KerberosIT extends AccumuloITBase {
 
       // Read (and proper authorizations)
       try (Scanner s = client.createScanner(table, new Authorizations(viz))) {
-        Iterator<Entry<Key,Value>> iter = s.iterator();
-        assertTrue(iter.hasNext(), "No results from iterator");
-        Entry<Key,Value> entry = iter.next();
+        Entry<Key,Value> entry = getOnlyElement(s);
         assertEquals(new Key("a", "b", "c", viz, ts), entry.getKey());
         assertEquals(new Value("d"), entry.getValue());
-        assertFalse(iter.hasNext(), "Had more results from iterator");
         return null;
       }
     });

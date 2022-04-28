@@ -264,7 +264,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
 
   public static final String CAN_DELETE_TABLE_AUDIT_TEMPLATE =
-      "action: deleteTable; targetTable: %s;";
+      "action: deleteTable; targetTable: %s:%s";
 
   @Override
   public boolean canDeleteTable(TCredentials c, TableId tableId, NamespaceId namespaceId)
@@ -682,7 +682,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
 
   public static final String CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE =
-      "action: %s; targetTable: %s;";
+      "action: %s; targetTable: %s:%s";
 
   @Override
   public boolean canOnlineOfflineTable(TCredentials credentials, TableId tableId, FateOperation op,

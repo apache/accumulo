@@ -18,13 +18,13 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static com.google.common.base.Suppliers.memoize;
+
 import java.util.Arrays;
 import java.util.Map;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-
-import com.google.common.base.Suppliers;
 
 /**
  * An {@link AccumuloConfiguration} that contains only default values for properties. This class is
@@ -32,8 +32,7 @@ import com.google.common.base.Suppliers;
  */
 public class DefaultConfiguration extends AccumuloConfiguration {
 
-  private static final Supplier<DefaultConfiguration> singleton =
-      Suppliers.memoize(DefaultConfiguration::new);
+  private static final Supplier<DefaultConfiguration> instance = memoize(DefaultConfiguration::new);
 
   private final Map<String,String> resolvedProps =
       Arrays.stream(Property.values()).filter(p -> p.getType() != PropertyType.PREFIX)
@@ -47,7 +46,7 @@ public class DefaultConfiguration extends AccumuloConfiguration {
    * @return default configuration
    */
   public static DefaultConfiguration getInstance() {
-    return singleton.get();
+    return instance.get();
   }
 
   @Override

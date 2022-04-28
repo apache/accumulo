@@ -55,29 +55,15 @@ public class TraceUtil {
 
   public static void initializeTracer(AccumuloConfiguration conf) {
     enabled = conf.getBoolean(Property.GENERAL_OPENTELEMETRY_ENABLED);
-    logTracingState(false);
+    logTracingState();
   }
 
-  public static void enable() {
-    enabled = true;
-    logTracingState(true);
-  }
-
-  public static void disable() {
-    enabled = false;
-    logTracingState(true);
-  }
-
-  private static void logTracingState(boolean debug) {
+  private static void logTracingState() {
     var msg = "Trace enabled in Accumulo: {}, OpenTelemetry instance: {}, Tracer instance: {}";
     var enabledInAccumulo = enabled ? "yes" : "no";
     var openTelemetry = getOpenTelemetry();
     var tracer = getTracer(openTelemetry);
-    if (debug) {
-      LOG.debug(msg, enabledInAccumulo, openTelemetry.getClass(), tracer.getClass());
-    } else {
-      LOG.info(msg, enabledInAccumulo, openTelemetry.getClass(), tracer.getClass());
-    }
+    LOG.info(msg, enabledInAccumulo, openTelemetry.getClass(), tracer.getClass());
   }
 
   private static OpenTelemetry getOpenTelemetry() {

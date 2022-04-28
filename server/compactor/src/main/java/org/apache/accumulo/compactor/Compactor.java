@@ -191,7 +191,6 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   }
 
   protected void setupSecurity() {
-    getContext().setupCrypto();
     security = getContext().getSecurityOperation();
   }
 
