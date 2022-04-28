@@ -57,7 +57,7 @@ class ScanDataSource implements DataSource {
 
   private static final Logger log = LoggerFactory.getLogger(ScanDataSource.class);
   // data source state
-  private final Tablet tablet;
+  private final TabletBase tablet;
   private ScanFileManager fileManager;
   private SortedKeyValueIterator<Key,Value> iter;
   private long expectedDeletionCount;
@@ -70,7 +70,7 @@ class ScanDataSource implements DataSource {
   private final boolean loadIters;
   private final byte[] defaultLabels;
 
-  ScanDataSource(Tablet tablet, ScanParameters scanParams, boolean loadIters,
+  ScanDataSource(TabletBase tablet, ScanParameters scanParams, boolean loadIters,
       AtomicBoolean interruptFlag) {
     this.tablet = tablet;
     this.expectedDeletionCount = tablet.getDataSourceDeletions();
@@ -91,14 +91,14 @@ class ScanDataSource implements DataSource {
     else {
       // log.debug("Switching data sources during a scan");
       if (memIters != null) {
-        tablet.getTabletMemory().returnIterators(memIters);
+        tablet.returnMemIterators(memIters);
         memIters = null;
-        tablet.getDatafileManager().returnFilesForScan(fileReservationId);
+        tablet.returnFilesForScan(fileReservationId);
         fileReservationId = -1;
       }
 
       if (fileManager != null) {
-        tablet.getTabletServer().getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
+        tablet.getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
         fileManager.releaseOpenFiles(false);
       }
 
@@ -142,7 +142,7 @@ class ScanDataSource implements DataSource {
       // only acquire the file manager when we know the tablet is open
       if (fileManager == null) {
         fileManager = tablet.getTabletResources().newScanFileManager(scanParams.getScanDispatch());
-        tablet.getTabletServer().getScanMetrics().incrementOpenFiles(fileManager.getNumOpenFiles());
+        tablet.getScanMetrics().incrementOpenFiles(fileManager.getNumOpenFiles());
         tablet.addActiveScans(this);
       }
 
@@ -153,9 +153,8 @@ class ScanDataSource implements DataSource {
       // getIterators() throws an exception
       expectedDeletionCount = tablet.getDataSourceDeletions();
 
-      memIters = tablet.getTabletMemory().getIterators(samplerConfig);
-      Pair<Long,Map<TabletFile,DataFileValue>> reservation =
-          tablet.getDatafileManager().reserveFilesForScan();
+      memIters = tablet.getMemIterators(samplerConfig);
+      Pair<Long,Map<TabletFile,DataFileValue>> reservation = tablet.reserveFilesForScan();
       fileReservationId = reservation.getFirst();
       files = reservation.getSecond();
     }
@@ -173,10 +172,9 @@ class ScanDataSource implements DataSource {
 
     MultiIterator multiIter = new MultiIterator(iters, tablet.getExtent());
 
-    TabletIteratorEnvironment iterEnv =
-        new TabletIteratorEnvironment(tablet.getTabletServer().getContext(), IteratorScope.scan,
-            tablet.getTableConfiguration(), tablet.getExtent().tableId(), fileManager, files,
-            scanParams.getAuthorizations(), samplerConfig, new ArrayList<>());
+    TabletIteratorEnvironment iterEnv = new TabletIteratorEnvironment(tablet.getContext(),
+        IteratorScope.scan, tablet.getTableConfiguration(), tablet.getExtent().tableId(),
+        fileManager, files, scanParams.getAuthorizations(), samplerConfig, new ArrayList<>());
 
     statsIterator =
         new StatsIterator(multiIter, TabletServer.seekCount, tablet.getScannedCounter());
@@ -229,12 +227,13 @@ class ScanDataSource implements DataSource {
     }
   }
 
-  void close(boolean sawErrors) {
+  @Override
+  public void close(boolean sawErrors) {
 
     if (memIters != null) {
-      tablet.getTabletMemory().returnIterators(memIters);
+      tablet.returnMemIterators(memIters);
       memIters = null;
-      tablet.getDatafileManager().returnFilesForScan(fileReservationId);
+      tablet.returnFilesForScan(fileReservationId);
       fileReservationId = -1;
     }
 
@@ -244,7 +243,7 @@ class ScanDataSource implements DataSource {
     }
 
     if (fileManager != null) {
-      tablet.getTabletServer().getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
+      tablet.getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
       fileManager.releaseOpenFiles(sawErrors);
       fileManager = null;
     }
