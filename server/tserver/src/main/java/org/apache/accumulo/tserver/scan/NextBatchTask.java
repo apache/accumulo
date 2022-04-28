@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.server.fs.TooManyFilesException;
-import org.apache.accumulo.tserver.TabletServer;
+import org.apache.accumulo.tserver.TabletHostingServer;
 import org.apache.accumulo.tserver.session.SingleScanSession;
 import org.apache.accumulo.tserver.tablet.ScanBatch;
 import org.apache.accumulo.tserver.tablet.Tablet;
@@ -38,7 +38,7 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
 
   private final long scanID;
 
-  public NextBatchTask(TabletServer server, long scanID, AtomicBoolean interruptFlag) {
+  public NextBatchTask(TabletHostingServer server, long scanID, AtomicBoolean interruptFlag) {
     super(server);
     this.scanID = scanID;
     this.interruptFlag = interruptFlag;
