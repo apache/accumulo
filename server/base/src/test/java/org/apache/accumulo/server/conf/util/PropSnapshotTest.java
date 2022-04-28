@@ -72,8 +72,7 @@ class PropSnapshotTest {
         .andReturn(new VersionedProperties(124, Instant.now(), Map.of("k3", "v3"))).once();
 
     replay(propStore);
-    PropSnapshot snapshot =
-        PropSnapshot.create(PropCacheKey.forSystem(instanceId), propStore);
+    PropSnapshot snapshot = PropSnapshot.create(PropCacheKey.forSystem(instanceId), propStore);
 
     assertEquals("v1", snapshot.getVersionedProperties().asMap().get("k1"));
     assertEquals("v2", snapshot.getVersionedProperties().asMap().get("k2"));
