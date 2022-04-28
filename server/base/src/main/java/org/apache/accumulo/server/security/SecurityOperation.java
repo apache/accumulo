@@ -24,6 +24,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -62,19 +63,21 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Suppliers;
+
 /**
  * Utility class for performing various security operations with the appropriate checks
  */
 public class SecurityOperation {
   private static final Logger log = LoggerFactory.getLogger(SecurityOperation.class);
 
-  protected Authorizor authorizor;
-  protected Authenticator authenticator;
-  protected PermissionHandler permHandle;
-  protected boolean isKerberos;
-  private static String rootUserName = null;
+  private final Authorizor authorizor;
+  private final Authenticator authenticator;
+  private final PermissionHandler permHandle;
+  private final boolean isKerberos;
+  private final Supplier<String> rootUserName;
   private final ZooCache zooCache;
-  private final String ZKUserPath;
+  private final String zkUserPath;
 
   protected final ServerContext context;
 
@@ -103,8 +106,9 @@ public class SecurityOperation {
   protected SecurityOperation(ServerContext context, Authorizor author, Authenticator authent,
       PermissionHandler pm) {
     this.context = context;
-    ZKUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
+    zkUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
     zooCache = new ZooCache(context.getZooReader(), null);
+    rootUserName = Suppliers.memoize(() -> new String(zooCache.get(zkUserPath), UTF_8));
     authorizor = author;
     authenticator = authent;
     permHandle = pm;
@@ -137,10 +141,8 @@ public class SecurityOperation {
     }
   }
 
-  public synchronized String getRootUsername() {
-    if (rootUserName == null)
-      rootUserName = new String(zooCache.get(ZKUserPath), UTF_8);
-    return rootUserName;
+  private String getRootUsername() {
+    return rootUserName.get();
   }
 
   public boolean isSystemUser(TCredentials credentials) {
@@ -348,7 +350,7 @@ public class SecurityOperation {
    *
    * @return true if a user exists and has permission; false otherwise
    */
-  protected boolean _hasTablePermission(String user, TableId table, TablePermission permission,
+  private boolean _hasTablePermission(String user, TableId table, TablePermission permission,
       boolean useCached) throws ThriftSecurityException {
     targetUserExists(user);
 
@@ -374,7 +376,7 @@ public class SecurityOperation {
    *
    * @return true if a user exists and has permission; false otherwise
    */
-  protected boolean _hasNamespacePermission(String user, NamespaceId namespace,
+  private boolean _hasNamespacePermission(String user, NamespaceId namespace,
       NamespacePermission permission, boolean useCached) throws ThriftSecurityException {
     if (permission == null)
       return false;
@@ -671,7 +673,7 @@ public class SecurityOperation {
     }
   }
 
-  protected void _createUser(TCredentials credentials, Credentials newUser)
+  private void _createUser(TCredentials credentials, Credentials newUser)
       throws ThriftSecurityException {
     try {
       AuthenticationToken token = newUser.getToken();
