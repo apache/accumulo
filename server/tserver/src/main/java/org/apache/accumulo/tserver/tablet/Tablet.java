@@ -169,7 +169,7 @@ public class Tablet extends TabletBase {
 
   private boolean updatingFlushID = false;
 
-  private AtomicLong lastFlushID =  new AtomicLong(-1);
+  private AtomicLong lastFlushID = new AtomicLong(-1);
   private AtomicLong lastCompactID = new AtomicLong(-1);
 
   private static class CompactionWaitInfo {
@@ -1491,8 +1491,8 @@ public class Tablet extends TabletBase {
       MetadataTableUtil.splitTablet(high, extent.prevEndRow(), splitRatio,
           getTabletServer().getContext(), getTabletServer().getLock(), ecids);
       ManagerMetadataUtil.addNewTablet(getTabletServer().getContext(), low, lowDirectoryName,
-          getTabletServer().getTabletSession(), lowDatafileSizes, bulkImported, time, lastFlushID.get(),
-          lastCompactID.get(), getTabletServer().getLock());
+          getTabletServer().getTabletSession(), lowDatafileSizes, bulkImported, time,
+          lastFlushID.get(), lastCompactID.get(), getTabletServer().getLock());
       MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove,
           getTabletServer().getContext(), getTabletServer().getLock());
 
@@ -1500,8 +1500,8 @@ public class Tablet extends TabletBase {
 
       newTablets.put(high, new TabletData(dirName, highDatafileSizes, time, lastFlushID.get(),
           lastCompactID.get(), lastLocation, bulkImported));
-      newTablets.put(low, new TabletData(lowDirectoryName, lowDatafileSizes, time, lastFlushID.get(),
-          lastCompactID.get(), lastLocation, bulkImported));
+      newTablets.put(low, new TabletData(lowDirectoryName, lowDatafileSizes, time,
+          lastFlushID.get(), lastCompactID.get(), lastLocation, bulkImported));
 
       long t2 = System.currentTimeMillis();
 
