@@ -47,8 +47,6 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Iterators;
-
 public class SplitRecoveryIT extends AccumuloClusterHarness {
 
   @Override
@@ -67,7 +65,7 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
     try (Scanner scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       scanner.setRange(new Range(new Text(tableId + ";"), new Text(tableId + "<")));
       scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
-      return Iterators.size(scanner.iterator()) == 0;
+      return scanner.stream().findAny().isEmpty();
     }
   }
 

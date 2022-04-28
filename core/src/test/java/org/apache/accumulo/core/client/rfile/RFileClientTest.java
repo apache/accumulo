@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.client.rfile;
 
+import static com.google.common.collect.MoreCollectors.onlyElement;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -521,10 +522,8 @@ public class RFileClientTest {
 
     random.ints(100, 0, 10_000).forEach(r -> {
       scanner.setRange(new Range(rowStr(r)));
-      Iterator<Entry<Key,Value>> iter = scanner.iterator();
-      assertTrue(iter.hasNext());
-      assertEquals(rowStr(r), iter.next().getKey().getRow().toString());
-      assertFalse(iter.hasNext());
+      String actual = scanner.stream().collect(onlyElement()).getKey().getRow().toString();
+      assertEquals(rowStr(r), actual);
     });
 
     scanner.close();
