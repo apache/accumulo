@@ -60,7 +60,6 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.TableDiskUsage;
@@ -79,7 +78,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   public ClientServiceHandler(ServerContext context, TransactionWatcher transactionWatcher) {
     this.context = context;
     this.transactionWatcher = transactionWatcher;
-    this.security = AuditedSecurityOperation.getInstance(context);
+    this.security = context.getSecurityOperation();
   }
 
   public static TableId checkTableId(ClientContext context, String tableName,

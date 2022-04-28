@@ -294,7 +294,7 @@ public class CompactCommand extends TableOperation {
     opts.addOption(outIndexBlockSizeOpt);
     outCompressionOpt = newLAO("out-compress",
         "Compression to use for compaction output file. Either snappy, gz, bzip2, lzo,"
-            + "lz4, zstd, or none. Uses table settings if not specified.");
+            + " lz4, zstd, or none. Uses table settings if not specified.");
     opts.addOption(outCompressionOpt);
     outReplication =
         newLAO("out-replication", "HDFS replication to use for compaction output file. Uses table"

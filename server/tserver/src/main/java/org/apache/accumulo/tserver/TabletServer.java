@@ -123,10 +123,8 @@ import org.apache.accumulo.server.manager.recovery.RecoveryPath;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
-import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.SecurityUtil;
-import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
 import org.apache.accumulo.server.security.delegation.ZooAuthenticationKeyWatcher;
 import org.apache.accumulo.server.util.FileSystemMonitor;
 import org.apache.accumulo.server.util.ServerBulkImportStatus;
@@ -253,7 +251,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   protected TabletServer(ServerOpts opts, String[] args) {
     super("tserver", opts, args);
     context = super.getContext();
-    context.setupCrypto();
     this.managerLockCache = new ZooCache(context.getZooReader(), null);
     final AccumuloConfiguration aconf = getConfiguration();
     log.info("Version " + Constants.VERSION);
@@ -368,13 +365,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     walMarker = new WalStateManager(context);
 
     this.resourceManager = new TabletServerResourceManager(context, this);
-    this.security = AuditedSecurityOperation.getInstance(context);
+    this.security = context.getSecurityOperation();
+
     watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
         TabletLocator::clearLocators, jitter(), jitter(), TimeUnit.MILLISECONDS));
 
-    // Create the secret manager
-    context.setSecretManager(new AuthenticationTokenSecretManager(context.getInstanceID(),
-        aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME)));
     if (aconf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       log.info("SASL is enabled, creating ZooKeeper watcher for AuthenticationKeys");
       // Watcher to notice new AuthenticationKeys which enable delegation tokens

@@ -18,67 +18,50 @@
  */
 package org.apache.accumulo.server.conf;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigCheckUtil;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.ServerContext;
 
+import com.google.common.base.Suppliers;
+
 /**
  * A factor for configurations used by a server process. Instance of this class are thread-safe.
  */
 public class ServerConfigurationFactory extends ServerConfiguration {
 
-  private static final Map<InstanceId,Map<TableId,TableConfiguration>> tableConfigs =
-      new HashMap<>(1);
-  private static final Map<InstanceId,Map<NamespaceId,NamespaceConfiguration>> namespaceConfigs =
-      new HashMap<>(1);
-  private static final Map<InstanceId,Map<TableId,NamespaceConfiguration>> tableParentConfigs =
-      new HashMap<>(1);
+  private final Map<TableId,NamespaceConfiguration> tableParentConfigs = new ConcurrentHashMap<>();
+  private final Map<TableId,TableConfiguration> tableConfigs = new ConcurrentHashMap<>();
+  private final Map<NamespaceId,NamespaceConfiguration> namespaceConfigs =
+      new ConcurrentHashMap<>();
 
-  private static void addInstanceToCaches(InstanceId iid) {
-    synchronized (tableConfigs) {
-      tableConfigs.computeIfAbsent(iid, k -> new HashMap<>());
-    }
-    synchronized (namespaceConfigs) {
-      namespaceConfigs.computeIfAbsent(iid, k -> new HashMap<>());
-    }
-    synchronized (tableParentConfigs) {
-      tableParentConfigs.computeIfAbsent(iid, k -> new HashMap<>());
-    }
-  }
-
-  static void clearCachedConfigurations() {
-    synchronized (tableConfigs) {
-      tableConfigs.clear();
-    }
-    synchronized (namespaceConfigs) {
-      namespaceConfigs.clear();
-    }
-    synchronized (tableParentConfigs) {
-      tableParentConfigs.clear();
-    }
-  }
+  private final Supplier<ZooConfiguration> systemConfig;
 
   private final ServerContext context;
   private final SiteConfiguration siteConfig;
-  private final InstanceId instanceID;
   private ZooCacheFactory zcf = new ZooCacheFactory();
 
   public ServerConfigurationFactory(ServerContext context, SiteConfiguration siteConfig) {
     this.context = context;
     this.siteConfig = siteConfig;
-    instanceID = context.getInstanceID();
-    addInstanceToCaches(instanceID);
+    systemConfig = Suppliers.memoize(() -> {
+      // Force the creation of a new ZooCache instead of using a shared one.
+      // This is done so that the ZooCache will update less often, causing the
+      // configuration update count to increment more slowly.
+      ZooCache propCache =
+          zcf.getNewZooCache(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
+      return new ZooConfiguration(context, propCache, siteConfig);
+    });
   }
 
   public ServerContext getServerContext() {
@@ -89,109 +72,51 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     this.zcf = zcf;
   }
 
-  private DefaultConfiguration defaultConfig = null;
-  private AccumuloConfiguration systemConfig = null;
-
   public SiteConfiguration getSiteConfiguration() {
     return siteConfig;
   }
 
-  public synchronized DefaultConfiguration getDefaultConfiguration() {
-    if (defaultConfig == null) {
-      defaultConfig = DefaultConfiguration.getInstance();
-    }
-    return defaultConfig;
+  public DefaultConfiguration getDefaultConfiguration() {
+    return DefaultConfiguration.getInstance();
   }
 
   @Override
-  public synchronized AccumuloConfiguration getSystemConfiguration() {
-    if (systemConfig == null) {
-      // Force the creation of a new ZooCache instead of using a shared one.
-      // This is done so that the ZooCache will update less often, causing the
-      // configuration update count to increment more slowly.
-      ZooCache propCache =
-          zcf.getNewZooCache(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
-      systemConfig = new ZooConfiguration(context, propCache, getSiteConfiguration());
-    }
-    return systemConfig;
+  public AccumuloConfiguration getSystemConfiguration() {
+    return systemConfig.get();
   }
 
   @Override
   public TableConfiguration getTableConfiguration(TableId tableId) {
-    TableConfiguration conf;
-    synchronized (tableConfigs) {
-      conf = tableConfigs.get(instanceID).get(tableId);
-    }
-
-    // Can't hold the lock during the construction and validation of the config,
-    // which would result in creating multiple objects for the same id.
-    //
-    // ACCUMULO-3859 We _cannot_ allow multiple instances to be created for a table. If the
-    // TableConfiguration
-    // instance a Tablet holds is not the same as the one cached here, any ConfigurationObservers
-    // that
-    // Tablet sets will never see updates from ZooKeeper which means that things like constraints
-    // and
-    // default visibility labels will never be updated in a Tablet until it is reloaded.
-    if (conf == null && context.tableNodeExists(tableId)) {
-      conf = new TableConfiguration(context, tableId, getNamespaceConfigurationForTable(tableId));
-      ConfigCheckUtil.validate(conf);
-      synchronized (tableConfigs) {
-        Map<TableId,TableConfiguration> configs = tableConfigs.get(instanceID);
-        TableConfiguration existingConf = configs.get(tableId);
-        if (existingConf == null) {
-          // Configuration doesn't exist yet
-          configs.put(tableId, conf);
-        } else {
-          // Someone beat us to the punch, reuse their instance instead of replacing it
-          conf = existingConf;
-        }
+    return tableConfigs.computeIfAbsent(tableId, key -> {
+      if (context.tableNodeExists(tableId)) {
+        var conf =
+            new TableConfiguration(context, tableId, getNamespaceConfigurationForTable(tableId));
+        ConfigCheckUtil.validate(conf);
+        return conf;
       }
-    }
-    return conf;
+      return null;
+    });
   }
 
   public NamespaceConfiguration getNamespaceConfigurationForTable(TableId tableId) {
-    NamespaceConfiguration conf;
-    synchronized (tableParentConfigs) {
-      conf = tableParentConfigs.get(instanceID).get(tableId);
+    NamespaceId namespaceId;
+    try {
+      namespaceId = context.getNamespaceId(tableId);
+    } catch (TableNotFoundException e) {
+      throw new RuntimeException(e);
     }
-    // can't hold the lock during the construction and validation of the config,
-    // which may result in creating multiple objects for the same id, but that's ok.
-    if (conf == null) {
-      NamespaceId namespaceId;
-      try {
-        namespaceId = context.getNamespaceId(tableId);
-      } catch (TableNotFoundException e) {
-        throw new RuntimeException(e);
-      }
-      conf = new NamespaceConfiguration(namespaceId, context, getSystemConfiguration());
-      ConfigCheckUtil.validate(conf);
-      synchronized (tableParentConfigs) {
-        tableParentConfigs.get(instanceID).put(tableId, conf);
-      }
-    }
-    return conf;
+    return tableParentConfigs.computeIfAbsent(tableId,
+        key -> getNamespaceConfiguration(namespaceId));
   }
 
   @Override
   public NamespaceConfiguration getNamespaceConfiguration(NamespaceId namespaceId) {
-    NamespaceConfiguration conf;
-    // can't hold the lock during the construction and validation of the config,
-    // which may result in creating multiple objects for the same id, but that's ok.
-    synchronized (namespaceConfigs) {
-      conf = namespaceConfigs.get(instanceID).get(namespaceId);
-    }
-    if (conf == null) {
-      // changed - include instance in constructor call
-      conf = new NamespaceConfiguration(namespaceId, context, getSystemConfiguration());
+    return namespaceConfigs.computeIfAbsent(namespaceId, key -> {
+      var conf = new NamespaceConfiguration(namespaceId, context, getSystemConfiguration());
       conf.setZooCacheFactory(zcf);
       ConfigCheckUtil.validate(conf);
-      synchronized (namespaceConfigs) {
-        namespaceConfigs.get(instanceID).put(namespaceId, conf);
-      }
-    }
-    return conf;
+      return conf;
+    });
   }
 
 }

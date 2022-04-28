@@ -994,6 +994,7 @@
                 <unused>org.apache.hadoop:hadoop-client:jar:*</unused>
                 <unused>org.apache.hadoop:hadoop-client-runtime:jar:*</unused>
                 <unused>org.apache.hadoop:hadoop-minicluster:jar:*</unused>
+                <unused>org.glassfish.jaxb:txw2:jar:*</unused>
                 <unused>org.glassfish.jersey.ext:jersey-bean-validation:jar:*</unused>
                 <unused>org.glassfish.jersey.inject:jersey-hk2:jar:*</unused>
                 <unused>org.glassfish.jersey.test-framework.providers:jersey-test-framework-provider-grizzly2:jar:*</unused>

@@ -154,8 +154,6 @@ public class ScanServer extends AbstractServer
 
   private static final Logger LOG = LoggerFactory.getLogger(ScanServer.class);
 
-  private volatile boolean shutdownComplete = false;
-
   protected ThriftScanClientHandler delegate;
   private UUID serverLockUUID;
   private final TabletMetadataLoader tabletMetadataLoader;
@@ -180,8 +178,6 @@ public class ScanServer extends AbstractServer
     super("sserver", opts, args);
 
     context = super.getContext();
-    context.setupCrypto();
-    final AccumuloConfiguration aconf = getConfiguration();
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + getContext().getInstanceID());
     this.sessionManager = new SessionManager(context);
