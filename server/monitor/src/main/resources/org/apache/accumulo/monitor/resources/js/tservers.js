@@ -164,5 +164,27 @@ function clearDeadTServers(server) {
  * Generates the tserver table
  */
 function refreshTServersTable() {
-  if(tserversList) tserversList.ajax.reload(null, false ); // user paging is not reset on reload
+  if (tserversList) tserversList.ajax.reload(null, false); // user paging is not reset on reload
+
+  // highlight rows if its tserver is recovering
+  getRecoveryList().then(function () {
+
+    const recoveryList = []
+    JSON.parse(sessionStorage.recoveryList).recoveryList.forEach(entry => {
+      recoveryList.push(entry.server);
+    });
+
+    if (recoveryList.length === 0)
+      return;
+
+    console.log('List of recovering tservers to be highlighted: ' + recoveryList);
+
+    const table = $('#tservers').DataTable();
+    table.rows().every(function (index) {
+      $(table.row(index).node()).css('background-color', ''); // reset background
+      if (recoveryList.includes(this.data().hostname)) { // if its in the list of recovering servers
+        $(table.row(index).node()).css('background-color', 'lightcoral'); // highlight row
+      }
+    });
+  });
 }
