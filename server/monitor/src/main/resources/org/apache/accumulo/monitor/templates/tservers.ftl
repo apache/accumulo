@@ -49,6 +49,7 @@
             </thead>
             <tbody></tbody>
           </table>
+          <span id="recovery-caption" style="background-color: gold;"></span>
           <table id="tservers" class="table table-bordered table-striped table-condensed">
             <thead>
               <tr>
