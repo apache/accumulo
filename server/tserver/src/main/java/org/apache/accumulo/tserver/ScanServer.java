@@ -61,49 +61,48 @@ import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguratio
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
-import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
-import org.apache.accumulo.core.spi.compaction.CompactionServices;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
-import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
 import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
 import org.apache.accumulo.core.tabletserver.thrift.TSamplerConfiguration;
 import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.Halt;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.LockWatcher;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.server.AbstractServer;
+import org.apache.accumulo.server.GarbageCollectionLogger;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
+import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
-import org.apache.accumulo.tserver.compactions.Compactable;
-import org.apache.accumulo.tserver.compactions.CompactionManager;
-import org.apache.accumulo.tserver.compactions.ExternalCompactionJob;
-import org.apache.accumulo.tserver.metrics.CompactionExecutorsMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.session.MultiScanSession;
 import org.apache.accumulo.tserver.session.ScanSession;
 import org.apache.accumulo.tserver.session.ScanSession.TabletResolver;
+import org.apache.accumulo.tserver.session.Session;
+import org.apache.accumulo.tserver.session.SessionManager;
 import org.apache.accumulo.tserver.session.SingleScanSession;
+import org.apache.accumulo.tserver.tablet.SnapshotTablet;
 import org.apache.accumulo.tserver.tablet.Tablet;
-import org.apache.accumulo.tserver.tablet.TabletData;
+import org.apache.accumulo.tserver.tablet.TabletBase;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.apache.zookeeper.KeeperException;
@@ -118,85 +117,10 @@ import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 
-public class ScanServer extends TabletServer implements TabletScanClientService.Iface {
+public class ScanServer extends AbstractServer
+    implements TabletScanClientService.Iface, TabletHostingServer {
 
-  /**
-   * A compaction manager that does nothing
-   */
-  private static class ScanServerCompactionManager extends CompactionManager {
-
-    public ScanServerCompactionManager(ServerContext context,
-        CompactionExecutorsMetrics ceMetrics) {
-      super(new ArrayList<>(), context, ceMetrics);
-    }
-
-    @Override
-    public void compactableChanged(Compactable compactable) {}
-
-    @Override
-    public void start() {}
-
-    @Override
-    public CompactionServices getServices() {
-      return null;
-    }
-
-    @Override
-    public boolean isCompactionQueued(KeyExtent extent, Set<CompactionServiceId> servicesUsed) {
-      return false;
-    }
-
-    @Override
-    public int getCompactionsRunning() {
-      return 0;
-    }
-
-    @Override
-    public int getCompactionsQueued() {
-      return 0;
-    }
-
-    @Override
-    public ExternalCompactionJob reserveExternalCompaction(String queueName, long priority,
-        String compactorId, ExternalCompactionId externalCompactionId) {
-      return null;
-    }
-
-    @Override
-    public void registerExternalCompaction(ExternalCompactionId ecid, KeyExtent extent,
-        CompactionExecutorId ceid) {}
-
-    @Override
-    public void commitExternalCompaction(ExternalCompactionId extCompactionId,
-        KeyExtent extentCompacted, Map<KeyExtent,Tablet> currentTablets, long fileSize,
-        long entries) {}
-
-    @Override
-    public void externalCompactionFailed(ExternalCompactionId ecid, KeyExtent extentCompacted,
-        Map<KeyExtent,Tablet> currentTablets) {}
-
-    @Override
-    public List<TCompactionQueueSummary> getCompactionQueueSummaries() {
-      return null;
-    }
-
-    @Override
-    public Collection<ExtCompMetric> getExternalMetrics() {
-      return Collections.emptyList();
-    }
-
-    @Override
-    public void compactableClosed(KeyExtent extent, Set<CompactionServiceId> servicesUsed,
-        Set<ExternalCompactionId> ecids) {}
-
-  }
-
-  public static class ScanServerCompactionExecutorMetrics extends CompactionExecutorsMetrics {
-
-    @Override
-    protected void startUpdateThread() {}
-
-  }
+  private static final Logger log = LoggerFactory.getLogger(ScanServer.class);
 
   private static class TabletMetadataLoader implements CacheLoader<KeyExtent,TabletMetadata> {
 
@@ -230,6 +154,8 @@ public class ScanServer extends TabletServer implements TabletScanClientService.
 
   private static final Logger LOG = LoggerFactory.getLogger(ScanServer.class);
 
+  private volatile boolean shutdownComplete = false;
+
   protected ThriftScanClientHandler delegate;
   private UUID serverLockUUID;
   private final TabletMetadataLoader tabletMetadataLoader;
@@ -238,8 +164,32 @@ public class ScanServer extends TabletServer implements TabletScanClientService.
   protected Map<StoredTabletFile,ReservedFile> reservedFiles = new ConcurrentHashMap<>();
   protected AtomicLong nextScanReservationId = new AtomicLong();
 
+  private final ServerContext context;
+  private final SessionManager sessionManager;
+  private final TabletServerResourceManager resourceManager;
+  HostAndPort clientAddress;
+  private final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
+
+  private volatile boolean serverStopRequested = false;
+  private ServiceLock scanServerLock;
+  protected TabletServerScanMetrics scanMetrics;
+
+  private ZooCache managerLockCache;
+
   public ScanServer(ServerOpts opts, String[] args) {
-    super(opts, args, true);
+    super("sserver", opts, args);
+
+    context = super.getContext();
+    context.setupCrypto();
+    final AccumuloConfiguration aconf = getConfiguration();
+    log.info("Version " + Constants.VERSION);
+    log.info("Instance " + getContext().getInstanceID());
+    this.sessionManager = new SessionManager(context);
+
+    this.resourceManager = new TabletServerResourceManager(context, this);
+
+    this.managerLockCache = new ZooCache(context.getZooReader(), null);
+
     // Note: The way to control the number of concurrent scans that a ScanServer will
     // perform is by using Property.SSERV_SCAN_EXECUTORS_DEFAULT_THREADS or the number
     // of threads in Property.SSERV_SCAN_EXECUTORS_PREFIX.
@@ -275,7 +225,6 @@ public class ScanServer extends TabletServer implements TabletScanClientService.
   }
 
   @VisibleForTesting
-  @Override
   protected ThriftScanClientHandler newThriftScanClientHandler(WriteTracker writeTracker) {
     return new ThriftScanClientHandler(this, writeTracker);
   }
@@ -306,6 +255,13 @@ public class ScanServer extends TabletServer implements TabletScanClientService.
     return sp;
   }
 
+  public String getClientAddressString() {
+    if (clientAddress == null) {
+      return null;
+    }
+    return clientAddress.getHost() + ":" + clientAddress.getPort();
+  }
+
   /**
    * Set up nodes and locks in ZooKeeper for this Compactor
    */
@@ -328,7 +284,7 @@ public class ScanServer extends TabletServer implements TabletScanClientService.
       }
 
       serverLockUUID = UUID.randomUUID();
-      tabletServerLock = new ServiceLock(zoo.getZooKeeper(), zLockPath, serverLockUUID);
+      scanServerLock = new ServiceLock(zoo.getZooKeeper(), zLockPath, serverLockUUID);
 
       LockWatcher lw = new LockWatcher() {
 
@@ -354,9 +310,9 @@ public class ScanServer extends TabletServer implements TabletScanClientService.
       for (int i = 0; i < 120 / 5; i++) {
         zoo.putPersistentData(zLockPath.toString(), new byte[0], NodeExistsPolicy.SKIP);
 
-        if (tabletServerLock.tryLock(lw, lockContent)) {
-          LOG.debug("Obtained scan server lock {}", tabletServerLock.getLockPath());
-          return tabletServerLock;
+        if (scanServerLock.tryLock(lw, lockContent)) {
+          LOG.debug("Obtained scan server lock {}", scanServerLock.getLockPath());
+          return scanServerLock;
         }
         LOG.info("Waiting for scan server lock");
         sleepUninterruptibly(5, TimeUnit.SECONDS);
@@ -392,8 +348,6 @@ public class ScanServer extends TabletServer implements TabletScanClientService.
     MetricsUtil.initializeProducers(scanMetrics);
 
     // We need to set the compaction manager so that we don't get an NPE in CompactableImpl.close
-    ceMetrics = new ScanServerCompactionExecutorMetrics();
-    this.compactionManager = new ScanServerCompactionManager(getContext(), ceMetrics);
 
     ServiceLock lock = announceExistence();
 
@@ -532,12 +486,12 @@ public class ScanServer extends TabletServer implements TabletScanClientService.
       return tabletsMetadata.get(extent);
     }
 
-    Tablet newTablet(KeyExtent extent) throws IOException {
+    SnapshotTablet newTablet(KeyExtent extent) throws IOException {
       var tabletMetadata = getTabletMetadata(extent);
-      TabletData data = new TabletData(tabletMetadata);
-      TabletResourceManager trm = resourceManager.createTabletResourceManager(
-          tabletMetadata.getExtent(), getTableConfiguration(tabletMetadata.getExtent()));
-      return new Tablet(ScanServer.this, tabletMetadata.getExtent(), trm, data, true);
+      TabletResourceManager trm =
+          resourceManager.createTabletResourceManager(tabletMetadata.getExtent(),
+              context.getTableConfiguration(tabletMetadata.getExtent().tableId()));
+      return new SnapshotTablet(getContext(), tabletMetadata, trm, scanMetrics);
     }
 
     @Override
@@ -574,8 +528,7 @@ public class ScanServer extends TabletServer implements TabletScanClientService.
         throw new NotServingTabletException(extent.toThrift());
       }
 
-      if (!AssignmentHandler.checkTabletMetadata(extent, getTabletSession(), tabletMetadata,
-          true)) {
+      if (!AssignmentHandler.checkTabletMetadata(extent, null, tabletMetadata, true)) {
         LOG.info("RFFS {} extent unable to load {} as AssignmentHandler returned false",
             myReservationId, extent);
         throw new NotServingTabletException(extent.toThrift());
@@ -764,12 +717,12 @@ public class ScanServer extends TabletServer implements TabletScanClientService.
     return KeyExtent.fromThrift(textent);
   }
 
-  protected TabletResolver getScanTabletResolver(final Tablet tablet) {
+  protected TabletResolver getScanTabletResolver(final TabletBase tablet) {
     return new TabletResolver() {
-      final Tablet t = tablet;
+      final TabletBase t = tablet;
 
       @Override
-      public Tablet getTablet(KeyExtent extent) {
+      public TabletBase getTablet(KeyExtent extent) {
         if (extent.equals(t.getExtent())) {
           return t;
         } else {
@@ -790,10 +743,10 @@ public class ScanServer extends TabletServer implements TabletScanClientService.
     };
   }
 
-  protected TabletResolver getBatchScanTabletResolver(final HashMap<KeyExtent,Tablet> tablets) {
+  protected TabletResolver getBatchScanTabletResolver(final HashMap<KeyExtent,TabletBase> tablets) {
     return new TabletResolver() {
       @Override
-      public Tablet getTablet(KeyExtent extent) {
+      public TabletBase getTablet(KeyExtent extent) {
         return tablets.get(extent);
       }
 
@@ -823,7 +776,7 @@ public class ScanServer extends TabletServer implements TabletScanClientService.
 
     try (ScanReservation reservation = reserveFiles(Collections.singleton(extent))) {
 
-      Tablet tablet = reservation.newTablet(extent);
+      TabletBase tablet = reservation.newTablet(extent);
 
       InitialScan is = delegate.startScan(tinfo, credentials, extent, range, columns, batchSize,
           ssiList, ssio, authorizations, waitForWrites, isolated, readaheadThreshold, samplerConfig,
@@ -876,7 +829,7 @@ public class ScanServer extends TabletServer implements TabletScanClientService.
 
     try (ScanReservation reservation = reserveFiles(batch.keySet())) {
 
-      HashMap<KeyExtent,Tablet> tablets = new HashMap<>();
+      HashMap<KeyExtent,TabletBase> tablets = new HashMap<>();
       batch.keySet().forEach(extent -> {
         try {
           tablets.put(extent, reservation.newTablet(extent));
@@ -920,6 +873,51 @@ public class ScanServer extends TabletServer implements TabletScanClientService.
   public List<ActiveScan> getActiveScans(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException, TException {
     return delegate.getActiveScans(tinfo, credentials);
+  }
+
+  @Override
+  public Tablet getOnlineTablet(KeyExtent extent) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public SessionManager getSessionManager() {
+    return sessionManager;
+  }
+
+  @Override
+  public TabletServerResourceManager getResourceManager() {
+    return resourceManager;
+  }
+
+  @Override
+  public TabletServerScanMetrics getScanMetrics() {
+    return scanMetrics;
+  }
+
+  @Override
+  public Session getSession(long scanID) {
+    return sessionManager.getSession(scanID);
+  }
+
+  @Override
+  public TableConfiguration getTableConfiguration(KeyExtent extent) {
+    return getContext().getTableConfiguration(extent.tableId());
+  }
+
+  @Override
+  public ServiceLock getLock() {
+    return scanServerLock;
+  }
+
+  @Override
+  public ZooCache getManagerLockCache() {
+    return managerLockCache;
+  }
+
+  @Override
+  public GarbageCollectionLogger getGcLogger() {
+    return gcLogger;
   }
 
   @Override

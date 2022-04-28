@@ -162,7 +162,7 @@ class AssignmentHandler implements Runnable {
           server.getTableConfiguration(extent));
       TabletData data = new TabletData(tabletMetadata);
 
-      tablet = new Tablet(server, extent, trm, data, false);
+      tablet = new Tablet(server, extent, trm, data);
       // If a minor compaction starts after a tablet opens, this indicates a log recovery
       // occurred. This recovered data must be minor compacted.
       // There are three reasons to wait for this minor compaction to finish before placing the

@@ -34,14 +34,14 @@ import org.apache.accumulo.core.spi.common.Stats;
 import org.apache.accumulo.core.spi.scan.ScanInfo;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.tserver.scan.ScanParameters;
-import org.apache.accumulo.tserver.tablet.Tablet;
+import org.apache.accumulo.tserver.tablet.TabletBase;
 
 import com.google.common.base.Preconditions;
 
 public abstract class ScanSession extends Session implements ScanInfo {
 
-  public static interface TabletResolver {
-    Tablet getTablet(KeyExtent extent);
+  public interface TabletResolver {
+    TabletBase getTablet(KeyExtent extent);
 
     void close();
   }

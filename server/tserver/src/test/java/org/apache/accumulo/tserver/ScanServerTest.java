@@ -55,7 +55,9 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.tserver.ScanServer.ScanReservation;
 import org.apache.accumulo.tserver.session.ScanSession.TabletResolver;
+import org.apache.accumulo.tserver.tablet.SnapshotTablet;
 import org.apache.accumulo.tserver.tablet.Tablet;
+import org.apache.accumulo.tserver.tablet.TabletBase;
 import org.apache.thrift.TException;
 import org.junit.jupiter.api.Test;
 
@@ -83,12 +85,13 @@ public class ScanServerTest {
     }
 
     @Override
-    protected TabletResolver getScanTabletResolver(Tablet tablet) {
+    protected TabletResolver getScanTabletResolver(TabletBase tablet) {
       return resolver;
     }
 
     @Override
-    protected TabletResolver getBatchScanTabletResolver(final HashMap<KeyExtent,Tablet> tablets) {
+    protected TabletResolver
+        getBatchScanTabletResolver(final HashMap<KeyExtent,TabletBase> tablets) {
       return resolver;
     }
 
@@ -118,7 +121,7 @@ public class ScanServerTest {
     TCredentials tcreds = createMock(TCredentials.class);
     KeyExtent sextent = createMock(KeyExtent.class);
     ScanReservation reservation = createMock(ScanReservation.class);
-    Tablet tablet = createMock(Tablet.class);
+    SnapshotTablet tablet = createMock(SnapshotTablet.class);
     TRange trange = createMock(TRange.class);
     List<TColumn> tcols = new ArrayList<>();
     List<IterInfo> titer = new ArrayList<>();
@@ -202,7 +205,7 @@ public class ScanServerTest {
     List<TRange> ranges = new ArrayList<>();
     KeyExtent extent = createMock(KeyExtent.class);
     ScanReservation reservation = createMock(ScanReservation.class);
-    Tablet tablet = createMock(Tablet.class);
+    SnapshotTablet tablet = createMock(SnapshotTablet.class);
     Map<KeyExtent,List<TRange>> batch = new HashMap<>();
     batch.put(extent, ranges);
     List<TColumn> tcols = new ArrayList<>();
@@ -212,10 +215,10 @@ public class ScanServerTest {
     TSamplerConfiguration tsc = createMock(TSamplerConfiguration.class);
     String classLoaderContext = new String();
     Map<String,String> execHints = new HashMap<>();
-    Map<KeyExtent,Tablet> tablets = new HashMap<>();
+    Map<KeyExtent,TabletBase> tablets = new HashMap<>();
     TabletResolver resolver = new TabletResolver() {
       @Override
-      public Tablet getTablet(KeyExtent extent) {
+      public TabletBase getTablet(KeyExtent extent) {
         return tablets.get(extent);
       }
 

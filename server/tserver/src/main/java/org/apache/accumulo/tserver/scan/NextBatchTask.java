@@ -24,10 +24,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.server.fs.TooManyFilesException;
-import org.apache.accumulo.tserver.TabletServer;
+import org.apache.accumulo.tserver.TabletHostingServer;
 import org.apache.accumulo.tserver.session.SingleScanSession;
 import org.apache.accumulo.tserver.tablet.ScanBatch;
-import org.apache.accumulo.tserver.tablet.Tablet;
+import org.apache.accumulo.tserver.tablet.TabletBase;
 import org.apache.accumulo.tserver.tablet.TabletClosedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +38,7 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
 
   private final long scanID;
 
-  public NextBatchTask(TabletServer server, long scanID, AtomicBoolean interruptFlag) {
+  public NextBatchTask(TabletHostingServer server, long scanID, AtomicBoolean interruptFlag) {
     super(server);
     this.scanID = scanID;
     this.interruptFlag = interruptFlag;
@@ -64,7 +64,7 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
           .setName("User: " + scanSession.getUser() + " Start: " + scanSession.startTime
               + " Client: " + scanSession.client + " Tablet: " + scanSession.extent);
 
-      Tablet tablet = scanSession.getTabletResolver().getTablet(scanSession.extent);
+      TabletBase tablet = scanSession.getTabletResolver().getTablet(scanSession.extent);
 
       if (tablet == null) {
         addResult(new org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException(

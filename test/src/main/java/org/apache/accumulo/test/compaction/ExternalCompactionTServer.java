@@ -27,7 +27,7 @@ import org.apache.accumulo.tserver.WriteTracker;
 public class ExternalCompactionTServer extends TabletServer {
 
   ExternalCompactionTServer(ServerOpts opts, String[] args) {
-    super(opts, args, false);
+    super(opts, args);
   }
 
   @Override

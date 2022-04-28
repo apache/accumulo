@@ -40,11 +40,11 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.tserver.TabletServer;
+import org.apache.accumulo.tserver.TabletHostingServer;
 import org.apache.accumulo.tserver.session.MultiScanSession;
 import org.apache.accumulo.tserver.tablet.KVEntry;
-import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.Tablet.LookupResult;
+import org.apache.accumulo.tserver.tablet.TabletBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +54,7 @@ public class LookupTask extends ScanTask<MultiScanResult> {
 
   private final long scanID;
 
-  public LookupTask(TabletServer server, long scanID) {
+  public LookupTask(TabletHostingServer server, long scanID) {
     super(server);
     this.scanID = scanID;
   }
@@ -99,7 +99,7 @@ public class LookupTask extends ScanTask<MultiScanResult> {
         iter.remove();
 
         // check that tablet server is serving requested tablet
-        Tablet tablet = session.getTabletResolver().getTablet(entry.getKey());
+        TabletBase tablet = session.getTabletResolver().getTablet(entry.getKey());
         if (tablet == null) {
           failures.put(entry.getKey(), entry.getValue());
           continue;
