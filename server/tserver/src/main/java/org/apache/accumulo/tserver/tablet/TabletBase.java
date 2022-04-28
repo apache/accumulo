@@ -73,10 +73,9 @@ public abstract class TabletBase {
   protected final KeyExtent extent;
   protected final ServerContext context;
 
-  // TODO these are written in synch block but read w/o sync so maybe should be volatile
-  protected long lookupCount = 0;
-  protected long queryResultCount = 0;
-  protected long queryResultBytes = 0;
+  protected volatile long lookupCount = 0;
+  protected volatile long queryResultCount = 0;
+  protected volatile long queryResultBytes = 0;
 
   protected final Set<ScanDataSource> activeScans = new HashSet<>();
 

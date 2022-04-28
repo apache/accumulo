@@ -169,9 +169,8 @@ public class Tablet extends TabletBase {
 
   private boolean updatingFlushID = false;
 
-  // TODO volatile ?
-  private long lastFlushID = -1;
-  private long lastCompactID = -1;
+  private volatile long lastFlushID = -1;
+  private volatile long lastCompactID = -1;
 
   private static class CompactionWaitInfo {
     long flushID = -1;
