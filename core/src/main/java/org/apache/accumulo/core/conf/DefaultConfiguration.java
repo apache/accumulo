@@ -18,9 +18,12 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static com.google.common.base.Suppliers.memoize;
+
 import java.util.Arrays;
 import java.util.Map;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -29,7 +32,9 @@ import java.util.stream.Collectors;
  */
 public class DefaultConfiguration extends AccumuloConfiguration {
 
-  private static final Map<String,String> resolvedProps =
+  private static final Supplier<DefaultConfiguration> instance = memoize(DefaultConfiguration::new);
+
+  private final Map<String,String> resolvedProps =
       Arrays.stream(Property.values()).filter(p -> p.getType() != PropertyType.PREFIX)
           .collect(Collectors.toMap(Property::getKey, Property::getDefaultValue));
 
@@ -41,7 +46,7 @@ public class DefaultConfiguration extends AccumuloConfiguration {
    * @return default configuration
    */
   public static DefaultConfiguration getInstance() {
-    return new DefaultConfiguration();
+    return instance.get();
   }
 
   @Override

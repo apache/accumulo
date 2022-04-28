@@ -18,13 +18,12 @@
  */
 package org.apache.accumulo.server.conf;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.endsWith;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -38,6 +37,7 @@ import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.MockServerContext;
 import org.apache.accumulo.server.ServerContext;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,7 +51,7 @@ public class ServerConfigurationFactoryTest {
   // use the same mock ZooCacheFactory and ZooCache for all tests
   private static ZooCacheFactory zcf;
   private static ZooCache zc;
-  private static SiteConfiguration siteConfig = SiteConfiguration.auto();
+  private static SiteConfiguration siteConfig = SiteConfiguration.empty().build();
 
   @BeforeAll
   public static void setUpClass() {
@@ -62,9 +62,12 @@ public class ServerConfigurationFactoryTest {
     replay(zcf);
 
     expect(zc.getChildren(anyObject(String.class))).andReturn(null).anyTimes();
-    // CheckServerConfig looks at timeout
-    expect(zc.get(endsWith("timeout"))).andReturn(("" + ZK_TIMEOUT + "ms").getBytes(UTF_8));
     replay(zc);
+  }
+
+  @AfterAll
+  public static void verifyClassMocks() {
+    verify(zcf, zc);
   }
 
   private ServerContext context;
@@ -73,36 +76,30 @@ public class ServerConfigurationFactoryTest {
   @BeforeEach
   public void setUp() {
     context = MockServerContext.getWithZK(IID, ZK_HOST, ZK_TIMEOUT);
-  }
-
-  @AfterEach
-  public void tearDown() {
-    ServerConfigurationFactory.clearCachedConfigurations();
-  }
-
-  private void ready() {
     replay(context);
     scf = new ServerConfigurationFactory(context, siteConfig);
     scf.setZooCacheFactory(zcf);
   }
 
+  @AfterEach
+  public void verifyMocks() {
+    verify(context);
+  }
+
   @Test
   public void testGetDefaultConfiguration() {
-    ready();
     DefaultConfiguration c = scf.getDefaultConfiguration();
     assertNotNull(c);
   }
 
   @Test
   public void testGetSiteConfiguration() {
-    ready();
     var c = scf.getSiteConfiguration();
     assertNotNull(c);
   }
 
   @Test
   public void testGetConfiguration() {
-    ready();
     AccumuloConfiguration c = scf.getSystemConfiguration();
     assertNotNull(c);
   }
@@ -111,7 +108,6 @@ public class ServerConfigurationFactoryTest {
 
   @Test
   public void testGetNamespaceConfiguration() {
-    ready();
     NamespaceConfiguration c = scf.getNamespaceConfiguration(NSID);
     assertEquals(NSID, c.getNamespaceId());
     assertSame(c, scf.getNamespaceConfiguration(NSID));

@@ -60,7 +60,7 @@ public class SimpleGarbageCollectorTest {
   private Credentials credentials;
   private SimpleGarbageCollector gc;
   private ConfigurationCopy systemConfig;
-  private static SiteConfiguration siteConfig = SiteConfiguration.auto();
+  private static SiteConfiguration siteConfig = SiteConfiguration.empty().build();
 
   @BeforeEach
   public void setUp() {

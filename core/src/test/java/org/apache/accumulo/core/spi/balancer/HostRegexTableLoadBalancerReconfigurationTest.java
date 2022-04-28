@@ -63,7 +63,7 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     tables.put(BAR.getTableName(), BAR.getId());
     tables.put(BAZ.getTableName(), BAZ.getId());
 
-    ConfigurationCopy config = new ConfigurationCopy(SiteConfiguration.auto());
+    ConfigurationCopy config = new ConfigurationCopy(SiteConfiguration.empty().build());
     DEFAULT_TABLE_PROPERTIES.forEach(config::set);
     ConfigurationImpl configImpl = new ConfigurationImpl(config);
     BalancerEnvironment environment = createMock(BalancerEnvironment.class);

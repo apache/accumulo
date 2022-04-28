@@ -77,8 +77,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
     // visible to package-private for testing only
     Builder() {}
 
-    // exists for testing only
-    OverridesOption noFile() {
+    private OverridesOption noFile() {
       return this;
     }
 
@@ -194,6 +193,13 @@ public class SiteConfiguration extends AccumuloConfiguration {
    */
   public static SiteConfiguration.OverridesOption fromFile(File propertiesFileLocation) {
     return new SiteConfiguration.Builder().fromFile(propertiesFileLocation);
+  }
+
+  /**
+   * Build a SiteConfiguration that is initially empty with the option to override.
+   */
+  public static SiteConfiguration.OverridesOption empty() {
+    return new SiteConfiguration.Builder().noFile();
   }
 
   /**
