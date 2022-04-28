@@ -179,13 +179,13 @@ public class PropStoreZooKeeperIT {
 
     VersionedProperties vProps = propStore.get(propKey);
     assertNotNull(vProps);
-    assertEquals("true", vProps.getProperties().get(Property.TABLE_BLOOM_ENABLED.getKey()));
+    assertEquals("true", vProps.asMap().get(Property.TABLE_BLOOM_ENABLED.getKey()));
 
     // check using direct read from ZK
     byte[] bytes = zooKeeper.getData(propKey.getPath(), false, new Stat());
     var readFromZk = propCodec.fromBytes(0, bytes);
     var propsA = propStore.get(propKey);
-    assertEquals(readFromZk.getProperties(), propsA.getProperties());
+    assertEquals(readFromZk.asMap(), propsA.asMap());
   }
 
   @Test
@@ -204,7 +204,7 @@ public class PropStoreZooKeeperIT {
 
     var props1 = propStore.get(propKey);
 
-    assertEquals("true", props1.getProperties().get(Property.TABLE_BLOOM_ENABLED.getKey()));
+    assertEquals("true", props1.asMap().get(Property.TABLE_BLOOM_ENABLED.getKey()));
 
     int version0 = props1.getDataVersion();
 
@@ -230,9 +230,9 @@ public class PropStoreZooKeeperIT {
     assertTrue(version0 < version1);
 
     assertNotNull(propStore.get(propKey));
-    assertEquals(2, props2.getProperties().size());
-    assertEquals("false", props2.getProperties().get(Property.TABLE_BLOOM_ENABLED.getKey()));
-    assertEquals("5", props2.getProperties().get(Property.TABLE_MAJC_RATIO.getKey()));
+    assertEquals(2, props2.asMap().size());
+    assertEquals("false", props2.asMap().get(Property.TABLE_BLOOM_ENABLED.getKey()));
+    assertEquals("5", props2.asMap().get(Property.TABLE_MAJC_RATIO.getKey()));
 
     propStore.removeProperties(propKey,
         Collections.singletonList(Property.TABLE_MAJC_RATIO.getKey()));
@@ -252,9 +252,9 @@ public class PropStoreZooKeeperIT {
     Thread.sleep(150);
 
     var props4 = propStore.get(propKey);
-    assertEquals(1, props4.getProperties().size());
-    assertEquals("false", props4.getProperties().get(Property.TABLE_BLOOM_ENABLED.getKey()));
-    assertNull(props4.getProperties().get(Property.TABLE_MAJC_RATIO.getKey()));
+    assertEquals(1, props4.asMap().size());
+    assertEquals("false", props4.asMap().get(Property.TABLE_BLOOM_ENABLED.getKey()));
+    assertNull(props4.asMap().get(Property.TABLE_MAJC_RATIO.getKey()));
 
     log.trace("changed count: {}", listener.changeCounts);
 
@@ -279,7 +279,7 @@ public class PropStoreZooKeeperIT {
     assertNotNull(propStore.get(tableBPropKey));
 
     var props1 = propStore.get(tableAPropKey);
-    assertEquals("true", props1.getProperties().get(Property.TABLE_BLOOM_ENABLED.getKey()));
+    assertEquals("true", props1.asMap().get(Property.TABLE_BLOOM_ENABLED.getKey()));
   }
 
   /**
@@ -310,7 +310,7 @@ public class PropStoreZooKeeperIT {
 
     var propsA = propStore.get(tableAPropKey);
 
-    assertEquals("true", propsA.getProperties().get(Property.TABLE_BLOOM_ENABLED.getKey()));
+    assertEquals("true", propsA.asMap().get(Property.TABLE_BLOOM_ENABLED.getKey()));
 
     // use 3nd prop store - change will propagate via ZooKeeper
     PropStore propStore2 = new ZooPropStore.Builder(context).build();
@@ -358,10 +358,10 @@ public class PropStoreZooKeeperIT {
     assertNotNull(propStore.get(tableBPropKey));
 
     VersionedProperties firstRead = propStore.get(tableAPropKey);
-    assertEquals("true", firstRead.getProperties().get(Property.TABLE_BLOOM_ENABLED.getKey()));
+    assertEquals("true", firstRead.asMap().get(Property.TABLE_BLOOM_ENABLED.getKey()));
 
     // This assumes default is resolved at a higher level
-    assertNull(firstRead.getProperties().get(Property.TABLE_BLOOM_SIZE.getKey()));
+    assertNull(firstRead.asMap().get(Property.TABLE_BLOOM_SIZE.getKey()));
 
     Map<String,String> update = new HashMap<>();
     var bloomSize = "1_000_000";
@@ -383,12 +383,12 @@ public class PropStoreZooKeeperIT {
     log.trace("Re-read: {}", updateRead.print(true));
 
     // original values
-    assertNull(firstRead.getProperties().get(Property.TABLE_BLOOM_SIZE.getKey()));
+    assertNull(firstRead.asMap().get(Property.TABLE_BLOOM_SIZE.getKey()));
 
     log.trace("Updated: {}", updateRead.print(true));
     // values after update
-    assertNotNull(updateRead.getProperties().get(Property.TABLE_BLOOM_SIZE.getKey()));
-    assertEquals(bloomSize, updateRead.getProperties().get(Property.TABLE_BLOOM_SIZE.getKey()));
+    assertNotNull(updateRead.asMap().get(Property.TABLE_BLOOM_SIZE.getKey()));
+    assertEquals(bloomSize, updateRead.asMap().get(Property.TABLE_BLOOM_SIZE.getKey()));
 
     log.trace("Prop changes {}", listener.getChangeCounts());
     log.trace("Prop deletes {}", listener.getDeleteCounts());

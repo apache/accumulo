@@ -24,17 +24,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * Provides a barrier to block operations until a resource signals that it is ready. This class
  * encapsulates a wait / notify operation using a lock and condition. Instances are initialized with
  * the resource unavailable - call {@link #setReady()} when the resource is available
  */
 public class ReadyMonitor {
-
-  private final static Logger log = LoggerFactory.getLogger(ReadyMonitor.class);
 
   private final String resourceName;
   private final long timeout;
@@ -91,7 +86,6 @@ public class ReadyMonitor {
         lock.lock();
         if (!readySignal.await(timeout, TimeUnit.MILLISECONDS)) {
           var msg = resourceName + " failed to be ready within " + timeout + " ms";
-          log.info(msg);
           throw new IllegalStateException(msg);
         }
         // re-signal in case notification missed

@@ -27,11 +27,12 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
-import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.accumulo.server.conf.util.PropSnapshot;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
+
+import com.google.common.annotations.VisibleForTesting;
 
 /**
  * Instances maintain a local cache of the AccumuloConfiguration hierarchy that will be consistent
@@ -44,13 +45,13 @@ import org.slf4j.Logger;
  * changes without reading the properties. When the update count changes, the next getProperties
  * call will update the local copy and the change count.
  */
-public class ZooBasedConfiguration extends AccumuloConfiguration implements PropChangeListener {
+public class ZooBasedConfiguration extends AccumuloConfiguration {
 
   protected final Logger log;
   private final AccumuloConfiguration parent;
   private final PropCacheKey propCacheKey;
 
-  private final PropSnapshot snapshot;
+  private final PropSnapshot propSnapshot;
 
   public ZooBasedConfiguration(Logger log, ServerContext context, PropCacheKey propCacheKey,
       AccumuloConfiguration parent) {
@@ -59,13 +60,16 @@ public class ZooBasedConfiguration extends AccumuloConfiguration implements Prop
     this.propCacheKey = requireNonNull(propCacheKey, "a PropCacheId must be supplied");
     this.parent = requireNonNull(parent, "An AccumuloConfiguration parent must be supplied");
 
-    var propStore = context.getPropStore();
-    snapshot = new PropSnapshot(propCacheKey, propStore);
-    propStore.registerAsListener(propCacheKey, this);
+    propSnapshot = PropSnapshot.create(propCacheKey, context.getPropStore());
+  }
+
+  @VisibleForTesting
+  public void zkChangeEvent(PropCacheKey propCacheKey) {
+    propSnapshot.zkChangeEvent(propCacheKey);
   }
 
   public long getDataVersion() {
-    return snapshot.get().getDataVersion();
+    return propSnapshot.getVersionedProperties().getDataVersion();
   }
 
   /**
@@ -149,40 +153,12 @@ public class ZooBasedConfiguration extends AccumuloConfiguration implements Prop
   }
 
   public @NonNull Map<String,String> getSnapshot() {
-    return snapshot.get().getProperties();
+    return propSnapshot.getVersionedProperties().asMap();
   }
 
   @Override
   public void invalidateCache() {
-    snapshot.requireUpdate();
-  }
-
-  @Override
-  public void zkChangeEvent(final PropCacheKey eventPropKey) {
-    if (propCacheKey.equals(eventPropKey)) {
-      snapshot.requireUpdate();
-    }
-  }
-
-  @Override
-  public void cacheChangeEvent(final PropCacheKey eventPropKey) {
-    if (propCacheKey.equals(eventPropKey)) {
-      snapshot.requireUpdate();
-    }
-  }
-
-  @Override
-  public void deleteEvent(final PropCacheKey eventPropKey) {
-    if (propCacheKey.equals(eventPropKey)) {
-      snapshot.requireUpdate();
-      log.debug("Received property delete event for {}", propCacheKey);
-    }
-  }
-
-  @Override
-  public void connectionEvent() {
-    snapshot.requireUpdate();
-    log.debug("Received connection event - update properties required");
+    propSnapshot.requireUpdate();
   }
 
 }

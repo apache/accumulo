@@ -32,6 +32,7 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.reset;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.time.Instant;
@@ -272,12 +273,7 @@ public class TableConfigurationTest {
 
   @Test
   public void getParsedIteratorConfig() {
-
-    reset(propStore);
-
     var iterConfig = tableConfig.getParsedIteratorConfig(IteratorUtil.IteratorScope.scan);
-    log.info("PI: {}", iterConfig);
-    log.info("Config: info={}, opts={}, env={}", iterConfig.getIterInfo(), iterConfig.getOpts(),
-        iterConfig.getServiceEnv());
+    assertNotNull(iterConfig);
   }
 }

@@ -147,7 +147,7 @@ public class ConfigTransformerIT {
 
     var converted = transformer.transform(sysPropKey);
 
-    assertEquals(sysLegacy.size(), converted.getProperties().size());
+    assertEquals(sysLegacy.size(), converted.asMap().size());
   }
 
   @Test

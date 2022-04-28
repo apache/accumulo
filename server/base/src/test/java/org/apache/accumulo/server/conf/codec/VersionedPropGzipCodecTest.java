@@ -46,13 +46,13 @@ public class VersionedPropGzipCodecTest {
 
     VersionedProperties decodedProps = encoder.fromBytes(0, encodedMapBytes);
 
-    log.debug("Decoded: {}", decodedProps.getProperties());
+    log.debug("Decoded: {}", decodedProps.asMap());
 
     // default - first write version should be 0
     assertEquals(0, decodedProps.getDataVersion(), "default - first write version should be 0");
     assertTrue(vProps.getTimestamp().compareTo(Instant.now()) <= 0,
         "timestamp should be now or earlier");
-    assertEquals(vProps.getProperties(), decodedProps.getProperties());
+    assertEquals(vProps.asMap(), decodedProps.asMap());
   }
 
   @Test
@@ -65,12 +65,12 @@ public class VersionedPropGzipCodecTest {
 
     VersionedProperties decodedProps = codec.fromBytes(0, encodedMapBytes);
 
-    log.debug("Decoded: {}", decodedProps.getProperties());
+    log.debug("Decoded: {}", decodedProps.asMap());
 
     assertEquals(0, decodedProps.getDataVersion(), "default - first write version should be 0");
     assertTrue(vProps.getTimestamp().compareTo(Instant.now()) <= 0,
         "timestamp should be now or earlier");
-    assertEquals(vProps.getProperties(), decodedProps.getProperties());
+    assertEquals(vProps.asMap(), decodedProps.asMap());
   }
 
   /**
@@ -90,7 +90,7 @@ public class VersionedPropGzipCodecTest {
 
     log.trace("Decoded: {}", decodedProps.print(true));
 
-    assertEquals(vProps.getProperties(), decodedProps.getProperties());
+    assertEquals(vProps.asMap(), decodedProps.asMap());
 
     // validate that the expected node version matches original version.
     assertEquals(aVersion, vProps.getDataVersion());
@@ -118,7 +118,7 @@ public class VersionedPropGzipCodecTest {
 
     log.debug("Decoded: {}", decodedProps.print(true));
 
-    assertEquals(vProps.getProperties(), decodedProps.getProperties());
+    assertEquals(vProps.asMap(), decodedProps.asMap());
 
   }
 }

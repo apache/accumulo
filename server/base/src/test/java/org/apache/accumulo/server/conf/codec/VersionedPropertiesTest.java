@@ -47,7 +47,7 @@ public class VersionedPropertiesTest {
     initProps.put("key3", "value3");
     VersionedProperties vProps = new VersionedProperties(initProps);
 
-    Map<String,String> propMap = vProps.getProperties();
+    Map<String,String> propMap = vProps.asMap();
 
     assertEquals(initProps.size(), propMap.size());
 
@@ -65,9 +65,9 @@ public class VersionedPropertiesTest {
     VersionedProperties vProps = new VersionedProperties();
 
     assertNotNull(vProps);
-    assertEquals(0, vProps.getProperties().size());
-    assertNull(vProps.getProperties().get("key1"));
-    assertEquals(Collections.emptyMap(), vProps.getProperties());
+    assertEquals(0, vProps.asMap().size());
+    assertNull(vProps.asMap().get("key1"));
+    assertEquals(Collections.emptyMap(), vProps.asMap());
   }
 
   @Test
@@ -85,7 +85,7 @@ public class VersionedPropertiesTest {
 
     VersionedProperties vProps = new VersionedProperties(aMap);
 
-    Map<String,String> rMap = vProps.getProperties();
+    Map<String,String> rMap = vProps.asMap();
     assertEquals(aMap.size(), rMap.size());
 
     assertThrows(UnsupportedOperationException.class, () -> rMap.put("k3", "v3"));
@@ -98,12 +98,12 @@ public class VersionedPropertiesTest {
     VersionedProperties vProps = new VersionedProperties();
     vProps = vProps.addOrUpdate("k1", "v1");
 
-    assertEquals("v1", vProps.getProperties().get("k1"));
-    assertEquals(1, vProps.getProperties().size());
+    assertEquals("v1", vProps.asMap().get("k1"));
+    assertEquals(1, vProps.asMap().size());
 
     vProps = vProps.addOrUpdate("k1", "v1-2");
 
-    assertEquals("v1-2", vProps.getProperties().get("k1"));
+    assertEquals("v1-2", vProps.asMap().get("k1"));
   }
 
   @Test
@@ -115,8 +115,8 @@ public class VersionedPropertiesTest {
 
     VersionedProperties vProps = new VersionedProperties(aMap);
 
-    assertEquals("v1", vProps.getProperties().get("k1"));
-    assertEquals(aMap.size(), vProps.getProperties().size());
+    assertEquals("v1", vProps.asMap().get("k1"));
+    assertEquals(aMap.size(), vProps.asMap().size());
 
     Map<String,String> bMap = new HashMap<>();
     bMap.put("k1", "v1-1");
@@ -124,10 +124,10 @@ public class VersionedPropertiesTest {
 
     VersionedProperties updated = vProps.addOrUpdate(bMap);
 
-    assertEquals(2, vProps.getProperties().size());
-    assertEquals(3, updated.getProperties().size());
+    assertEquals(2, vProps.asMap().size());
+    assertEquals(3, updated.asMap().size());
 
-    assertEquals("v1-1", updated.getProperties().get("k1"));
+    assertEquals("v1-1", updated.asMap().get("k1"));
 
   }
 
@@ -140,15 +140,15 @@ public class VersionedPropertiesTest {
 
     VersionedProperties vProps = new VersionedProperties(aMap);
 
-    assertEquals("v1", vProps.getProperties().get("k1"));
-    assertEquals(aMap.size(), vProps.getProperties().size());
+    assertEquals("v1", vProps.asMap().get("k1"));
+    assertEquals(aMap.size(), vProps.asMap().size());
 
     // remove 1 existing and 1 not present
     VersionedProperties vProps2 = vProps.remove(Arrays.asList("k1", "k3"));
 
-    assertEquals(1, vProps2.getProperties().size());
-    assertNull(vProps2.getProperties().get("k1"));
-    assertEquals("v2", vProps2.getProperties().get("k2"));
+    assertEquals(1, vProps2.asMap().size());
+    assertNull(vProps2.asMap().get("k1"));
+    assertEquals("v2", vProps2.asMap().get("k2"));
   }
 
   @Test

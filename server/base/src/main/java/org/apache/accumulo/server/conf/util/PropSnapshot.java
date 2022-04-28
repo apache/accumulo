@@ -25,8 +25,11 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
+import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class provides a secondary, local cache of properties and is intended to be used to optimize
@@ -36,7 +39,9 @@ import org.checkerframework.checker.nullness.qual.NonNull;
  * The updateCount is checked frequently and the configuration hierarchy rebuilt when a change is
  * detected.
  */
-public class PropSnapshot {
+public class PropSnapshot implements PropChangeListener {
+
+  private static final Logger log = LoggerFactory.getLogger(PropSnapshot.class);
 
   private final Lock updateLock = new ReentrantLock();
   private final AtomicBoolean needsUpdate = new AtomicBoolean(true);
@@ -44,11 +49,15 @@ public class PropSnapshot {
   private final PropCacheKey propCacheKey;
   private final PropStore propStore;
 
-  public PropSnapshot(final PropCacheKey propCacheKey, final PropStore propStore) {
+  public static PropSnapshot create(final PropCacheKey propCacheKey, final PropStore propStore) {
+    var ps = new PropSnapshot(propCacheKey, propStore);
+    propStore.registerAsListener(propCacheKey, ps);
+    return ps;
+  }
+
+  private PropSnapshot(final PropCacheKey propCacheKey, final PropStore propStore) {
     this.propCacheKey = propCacheKey;
     this.propStore = propStore;
-
-    updateSnapshot();
   }
 
   /**
@@ -56,7 +65,7 @@ public class PropSnapshot {
    *
    * @return the current property snapshot.
    */
-  public @NonNull VersionedProperties get() {
+  public @NonNull VersionedProperties getVersionedProperties() {
     updateSnapshot();
     var answer = vPropRef.get();
     if (answer == null) {
@@ -99,4 +108,33 @@ public class PropSnapshot {
       updateLock.unlock();
     }
   }
+
+  @Override
+  public void zkChangeEvent(final PropCacheKey eventPropKey) {
+    if (propCacheKey.equals(eventPropKey)) {
+      requireUpdate();
+    }
+  }
+
+  @Override
+  public void cacheChangeEvent(final PropCacheKey eventPropKey) {
+    if (propCacheKey.equals(eventPropKey)) {
+      requireUpdate();
+    }
+  }
+
+  @Override
+  public void deleteEvent(final PropCacheKey eventPropKey) {
+    if (propCacheKey.equals(eventPropKey)) {
+      requireUpdate();
+      log.debug("Received property delete event for {}", propCacheKey);
+    }
+  }
+
+  @Override
+  public void connectionEvent() {
+    requireUpdate();
+    log.debug("Received connection event - update properties required");
+  }
+
 }

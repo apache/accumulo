@@ -500,7 +500,7 @@ public class ZooPropLoaderTest {
     // first call after refresh return original and schedules update
     var originalProps = cache.get(propCacheKey);
     assertNotNull(originalProps);
-    assertEquals("7G", originalProps.getProperties().get(Property.TABLE_SPLIT_THRESHOLD.getKey()));
+    assertEquals("7G", originalProps.asMap().get(Property.TABLE_SPLIT_THRESHOLD.getKey()));
 
     // allow refresh thread to run
     Thread.sleep(50);
@@ -512,7 +512,7 @@ public class ZooPropLoaderTest {
     assertNotNull(updatedProps);
     Thread.sleep(250);
 
-    assertEquals("12G", updatedProps.getProperties().get(Property.TABLE_SPLIT_THRESHOLD.getKey()));
+    assertEquals("12G", updatedProps.asMap().get(Property.TABLE_SPLIT_THRESHOLD.getKey()));
   }
 
   /**
@@ -530,7 +530,7 @@ public class ZooPropLoaderTest {
 
     VersionedProperties mockProps = createMock(VersionedProperties.class);
     expect(mockProps.getTimestamp()).andReturn(Instant.now()).once();
-    expect(mockProps.getProperties()).andReturn(Map.of());
+    expect(mockProps.asMap()).andReturn(Map.of());
 
     Capture<Stat> stat = newCapture();
 

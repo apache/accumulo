@@ -45,7 +45,7 @@ public class VersionedPropGzipCodec extends VersionedPropCodec {
   void encodePayload(final OutputStream out, final VersionedProperties vProps,
       final EncodingOptions encodingOpts) throws IOException {
 
-    Map<String,String> props = vProps.getProperties();
+    Map<String,String> props = vProps.asMap();
 
     if (getEncodingOpts().isCompressed()) {
       // Write the property map to the output stream, compressing the output using GZip

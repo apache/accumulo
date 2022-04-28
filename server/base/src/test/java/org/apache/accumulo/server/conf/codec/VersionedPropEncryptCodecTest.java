@@ -117,7 +117,7 @@ public class VersionedPropEncryptCodecTest {
 
     log.debug("Decoded: {}", decodedProps.print(true));
 
-    assertEquals(vProps.getProperties(), decodedProps.getProperties());
+    assertEquals(vProps.asMap(), decodedProps.asMap());
 
     // validate that the expected node version matches original version.
     assertEquals(aVersion, vProps.getDataVersion());
@@ -165,7 +165,7 @@ public class VersionedPropEncryptCodecTest {
 
     log.debug("Decoded: {}", decodedProps.print(true));
 
-    assertEquals(vProps.getProperties(), decodedProps.getProperties());
+    assertEquals(vProps.asMap(), decodedProps.asMap());
 
     // validate that the expected node version matches original version.
     assertEquals(aVersion, vProps.getDataVersion());
@@ -207,14 +207,14 @@ public class VersionedPropEncryptCodecTest {
     VersionedProperties from2 = codec1.fromBytes(0, encodedBytes2);
     VersionedProperties from1 = codec2.fromBytes(0, encodedBytes1);
 
-    assertEquals(from1.getProperties(), from2.getProperties());
+    assertEquals(from1.asMap(), from2.asMap());
 
     VersionedPropCodec codec3 = VersionedPropEncryptCodec.codec(false,
         new VersionedPropEncryptCodec.GCMCipherParams(pass, salt));
 
     VersionedProperties from3 = codec3.fromBytes(0, encodedBytes1);
     assertEquals(from1.getDataVersion(), from3.getDataVersion());
-    assertEquals(from1.getProperties(), from3.getProperties());
+    assertEquals(from1.asMap(), from3.asMap());
 
     assertNotEquals(encodedBytes1, encodedBytes2);
 

@@ -104,8 +104,8 @@ public class ZooPropStoreTest {
     var decoded = propCodec.fromBytes(0, bytes.getValue());
     assertNotNull(decoded);
     assertEquals(0, decoded.getDataVersion());
-    assertEquals("1234", decoded.getProperties().get(TABLE_BULK_MAX_TABLETS.getKey()));
-    assertEquals("512M", decoded.getProperties().get(TABLE_FILE_BLOCK_SIZE.getKey()));
+    assertEquals("1234", decoded.asMap().get(TABLE_BULK_MAX_TABLETS.getKey()));
+    assertEquals("512M", decoded.asMap().get(TABLE_FILE_BLOCK_SIZE.getKey()));
   }
 
   @Test
@@ -148,7 +148,7 @@ public class ZooPropStoreTest {
     assertNotNull(propStore.get(propCacheKey)); // next call will fetch from cache.
 
     var p = propStore.get(propCacheKey);
-    assertEquals("true", p.getProperties().get(Property.TABLE_BLOOM_ENABLED.getKey()));
+    assertEquals("true", p.asMap().get(Property.TABLE_BLOOM_ENABLED.getKey()));
   }
 
   @Test
@@ -203,13 +203,13 @@ public class ZooPropStoreTest {
     expect(zrw.overwritePersistentData(eq(propCacheKey.getPath()), capture(bytes), eq(0)))
         .andAnswer(() -> {
           var stored = propCodec.fromBytes(0, bytes.getValue());
-          assertEquals(3, stored.getProperties().size());
+          assertEquals(3, stored.asMap().size());
           // overwritten
-          assertEquals("4321", stored.getProperties().get(TABLE_BULK_MAX_TABLETS.getKey()));
+          assertEquals("4321", stored.asMap().get(TABLE_BULK_MAX_TABLETS.getKey()));
           // unchanged
-          assertEquals("512M", stored.getProperties().get(TABLE_FILE_BLOCK_SIZE.getKey()));
+          assertEquals("512M", stored.asMap().get(TABLE_FILE_BLOCK_SIZE.getKey()));
           // new
-          assertEquals("123M", stored.getProperties().get(TABLE_SPLIT_THRESHOLD.getKey()));
+          assertEquals("123M", stored.asMap().get(TABLE_SPLIT_THRESHOLD.getKey()));
           return true;
         }).once();
 
@@ -247,13 +247,13 @@ public class ZooPropStoreTest {
     expect(zrw.overwritePersistentData(eq(propCacheKey.getPath()), capture(bytes), eq(123)))
         .andAnswer(() -> {
           var stored = propCodec.fromBytes(124, bytes.getValue());
-          assertEquals(1, stored.getProperties().size());
+          assertEquals(1, stored.asMap().size());
           // deleted
-          assertNull(stored.getProperties().get(TABLE_BULK_MAX_TABLETS.getKey()));
+          assertNull(stored.asMap().get(TABLE_BULK_MAX_TABLETS.getKey()));
           // unchanged
-          assertEquals("512M", stored.getProperties().get(TABLE_FILE_BLOCK_SIZE.getKey()));
+          assertEquals("512M", stored.asMap().get(TABLE_FILE_BLOCK_SIZE.getKey()));
           // never existed
-          assertNull(stored.getProperties().get(TABLE_SPLIT_THRESHOLD.getKey()));
+          assertNull(stored.asMap().get(TABLE_SPLIT_THRESHOLD.getKey()));
           return true;
         }).once();
 
@@ -388,7 +388,7 @@ public class ZooPropStoreTest {
     assertNotNull(propStore.get(propCacheKey)); // first call will fetch from ZooKeeper
     assertNotNull(propStore.get(propCacheKey)); // next call will fetch from cache.
     var p = propStore.get(propCacheKey);
-    assertEquals("true", p.getProperties().get(Property.TABLE_BLOOM_ENABLED.getKey()));
+    assertEquals("true", p.asMap().get(Property.TABLE_BLOOM_ENABLED.getKey()));
 
     propStore.delete(propCacheKey);
     Thread.sleep(50);

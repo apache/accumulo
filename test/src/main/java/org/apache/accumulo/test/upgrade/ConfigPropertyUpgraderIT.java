@@ -140,7 +140,7 @@ public class ConfigPropertyUpgraderIT {
       return; // keep spotbugs happy
     }
 
-    Map<String,String> props = vProps.getProperties();
+    Map<String,String> props = vProps.asMap();
 
     // also validates that rname from deprecated master to manager occured.
     assertEquals(5, props.size());

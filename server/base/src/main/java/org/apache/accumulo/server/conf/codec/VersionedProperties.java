@@ -97,7 +97,7 @@ public class VersionedProperties {
    *
    * @return An unmodifiable view of the property key, value pairs.
    */
-  public @NonNull Map<String,String> getProperties() {
+  public @NonNull Map<String,String> asMap() {
     return props;
   }
 

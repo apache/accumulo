@@ -251,8 +251,8 @@ public class PropStoreEventTest {
     // load cache
     var read1 = cache.get(tablePropKey);
     assertNotNull(read1);
-    assertEquals("1234", read1.getProperties().get(TABLE_BULK_MAX_TABLETS.getKey()));
-    assertEquals("512M", read1.getProperties().get(TABLE_FILE_BLOCK_SIZE.getKey()));
+    assertEquals("1234", read1.asMap().get(TABLE_BULK_MAX_TABLETS.getKey()));
+    assertEquals("512M", read1.asMap().get(TABLE_FILE_BLOCK_SIZE.getKey()));
 
     watcher.process(
         new WatchedEvent(Watcher.Event.EventType.NodeDataChanged, null, tablePropKey.getPath()));

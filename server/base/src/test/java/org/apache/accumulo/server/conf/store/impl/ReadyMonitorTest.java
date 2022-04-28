@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.conf.store.impl;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -32,7 +33,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.junit.jupiter.api.AfterEach;
@@ -68,7 +68,7 @@ public class ReadyMonitorTest {
   public void teardown() {
     workerPool.shutdownNow();
     try {
-      boolean terminated = workerPool.awaitTermination(2000, TimeUnit.MILLISECONDS);
+      boolean terminated = workerPool.awaitTermination(2000, MILLISECONDS);
       log.trace("Worked pool successfully terminated: {}", terminated);
     } catch (InterruptedException ex) {
       // don't care.
@@ -116,7 +116,7 @@ public class ReadyMonitorTest {
     ReadyMonitor readyMonitor = new ReadyMonitor("test", readyTestTimeout);
     assertFalse(readyMonitor.test());
 
-    log.info("start latch - {}", readyToRunLatch.getCount());
+    log.debug("start latch - {}", readyToRunLatch.getCount());
 
     List<Future<Long>> tasks = new ArrayList<>();
     for (int i = 0; i < numWorkerThreads; i++) {
@@ -126,7 +126,7 @@ public class ReadyMonitorTest {
 
     Thread.sleep(1_000);
 
-    var allReady = readyToRunLatch.await(10_000, TimeUnit.MILLISECONDS);
+    var allReady = readyToRunLatch.await(10_000, MILLISECONDS);
     var readyCount = readyToRunLatch.getCount();
     log.trace("All ready: {}, have {}", allReady, readyCount);
 
@@ -135,16 +135,15 @@ public class ReadyMonitorTest {
 
     readyMonitor.setReady();
 
-    var allComplete = completedLatch.await(20_000, TimeUnit.MILLISECONDS);
+    var allComplete = completedLatch.await(20_000, MILLISECONDS);
     assertTrue(allComplete,
         "failed - all expected tasks did not complete - count=" + completedLatch.getCount());
 
     tasks.forEach(f -> {
       try {
         var timeWaiting = f.get();
-        log.debug("Received: {}", TimeUnit.NANOSECONDS.toMillis(timeWaiting));
-        log.info("waiting: {}", NANOSECONDS.toSeconds(timeWaiting));
-        assertTrue(timeWaiting < TimeUnit.MILLISECONDS.toNanos(readyTestTimeout));
+        log.debug("waiting: {}", NANOSECONDS.toSeconds(timeWaiting));
+        assertTrue(timeWaiting < MILLISECONDS.toNanos(readyTestTimeout));
       } catch (ExecutionException | InterruptedException ex) {
         log.warn("Task failed", ex);
         fail("Task failed with exception - " + ex.getMessage());
