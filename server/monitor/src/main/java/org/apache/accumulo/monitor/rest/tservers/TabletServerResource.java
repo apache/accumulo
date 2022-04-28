@@ -117,9 +117,6 @@ public class TabletServerResource {
   public TabletServersRecovery getTserverRecovery() {
     TabletServersRecovery recoveryList = new TabletServersRecovery();
 
-    recoveryList.addRecovery(new TabletServerRecoveryInformation("localhost:10000", "log", 5000,
-            0.34));
-
     ManagerMonitorInfo mmi = monitor.getMmi();
     if (mmi == null) {
       return new TabletServersRecovery();
