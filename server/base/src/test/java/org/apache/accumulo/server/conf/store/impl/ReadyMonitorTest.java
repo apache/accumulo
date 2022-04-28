@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.conf.store.impl;
 
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -43,12 +45,11 @@ public class ReadyMonitorTest {
 
   private static final Logger log = LoggerFactory.getLogger(ReadyMonitorTest.class);
 
-  // TODO - evaluate stress test private final int numWorkerThreads = 64;
-  private final int numWorkerThreads = 4;
+  private final int numWorkerThreads = 16;
   private CountDownLatch readyToRunLatch = null;
   private CountDownLatch completedLatch = null;
 
-  private ThreadPoolExecutor pool = null;
+  private ThreadPoolExecutor workerPool = null;
 
   @BeforeEach
   public void init() {
@@ -56,27 +57,28 @@ public class ReadyMonitorTest {
     readyToRunLatch = new CountDownLatch(numWorkerThreads);
     completedLatch = new CountDownLatch(numWorkerThreads);
 
-    // these tests wait for all workers to signal ready using count down latch.
-    // make thread pool larger to all to run and the wait for count down to reach 0 to proceed.
-    int numPoolThreads = numWorkerThreads + 2;
-    pool = ThreadPools.getServerThreadPools().createFixedThreadPool(numPoolThreads,
+    // these tests wait for workers to signal ready using count down latch.
+    // size pool so some threads are likely to wait on others to complete.
+    int numPoolThreads = numWorkerThreads / 2;
+    workerPool = ThreadPools.getServerThreadPools().createFixedThreadPool(numPoolThreads,
         "readyMonitor-test-pool", false);
   }
 
   @AfterEach
   public void teardown() {
-    pool.shutdownNow();
+    workerPool.shutdownNow();
     try {
-      pool.awaitTermination(1000, TimeUnit.MILLISECONDS);
+      boolean terminated = workerPool.awaitTermination(2000, TimeUnit.MILLISECONDS);
+      log.trace("Worked pool successfully terminated: {}", terminated);
     } catch (InterruptedException ex) {
       // don't care.
-      pool.shutdownNow();
+      workerPool.shutdownNow();
     }
   }
 
   @Test
   public void isReadyST() {
-    ReadyMonitor readyMonitor = new ReadyMonitor("test", 100);
+    ReadyMonitor readyMonitor = new ReadyMonitor("test", SECONDS.toMillis(1));
     assertFalse(readyMonitor.test());
 
     readyMonitor.setReady();
@@ -88,7 +90,7 @@ public class ReadyMonitorTest {
   @Test
   public void clearTest() {
 
-    ReadyMonitor readyMonitor = new ReadyMonitor("test", 100);
+    ReadyMonitor readyMonitor = new ReadyMonitor("test", SECONDS.toMillis(1));
     assertFalse(readyMonitor.test());
 
     readyMonitor.setReady();
@@ -102,29 +104,34 @@ public class ReadyMonitorTest {
 
   @Test
   public void notReady() {
-    ReadyMonitor readyMonitor = new ReadyMonitor("test", 100);
+    ReadyMonitor readyMonitor = new ReadyMonitor("test", SECONDS.toMillis(1));
     assertFalse(readyMonitor.test());
 
     assertThrows(IllegalStateException.class, readyMonitor::isReady);
   }
 
   @Test
-  public void isReadyMT() throws Exception {
-    ReadyMonitor readyMonitor = new ReadyMonitor("test", 100);
+  public void isReadyMultiThread() throws Exception {
+    final long readyTestTimeout = SECONDS.toMillis(20);
+    ReadyMonitor readyMonitor = new ReadyMonitor("test", readyTestTimeout);
     assertFalse(readyMonitor.test());
 
     log.info("start latch - {}", readyToRunLatch.getCount());
 
-    var readyTimeout = 10_000;
-
     List<Future<Long>> tasks = new ArrayList<>();
     for (int i = 0; i < numWorkerThreads; i++) {
-      ReadyTask r = new ReadyTask(readyMonitor, readyTimeout, readyToRunLatch, completedLatch);
-      tasks.add(pool.submit(r));
+      ReadyTask r = new ReadyTask(readyMonitor, readyToRunLatch, completedLatch);
+      tasks.add(workerPool.submit(r));
     }
 
-    var allPresent = readyToRunLatch.await(10_000, TimeUnit.MILLISECONDS);
-    assertTrue(allPresent, "failed - all worker tasks did not report ready");
+    Thread.sleep(1_000);
+
+    var allReady = readyToRunLatch.await(10_000, TimeUnit.MILLISECONDS);
+    var readyCount = readyToRunLatch.getCount();
+    log.trace("All ready: {}, have {}", allReady, readyCount);
+
+    assertTrue(readyCount > 1,
+        "failed - all worker tasks did not report ready - have: " + readyCount);
 
     readyMonitor.setReady();
 
@@ -136,7 +143,8 @@ public class ReadyMonitorTest {
       try {
         var timeWaiting = f.get();
         log.debug("Received: {}", TimeUnit.NANOSECONDS.toMillis(timeWaiting));
-        assertTrue(timeWaiting < TimeUnit.MILLISECONDS.toNanos(readyTimeout));
+        log.info("waiting: {}", NANOSECONDS.toSeconds(timeWaiting));
+        assertTrue(timeWaiting < TimeUnit.MILLISECONDS.toNanos(readyTestTimeout));
       } catch (ExecutionException | InterruptedException ex) {
         log.warn("Task failed", ex);
         fail("Task failed with exception - " + ex.getMessage());
@@ -150,8 +158,8 @@ public class ReadyMonitorTest {
     private final CountDownLatch readyToRunLatch;
     private final CountDownLatch finishedLatch;
 
-    public ReadyTask(final ReadyMonitor readyMonitor, final long readyTimeout,
-        final CountDownLatch readyToRunLatch, final CountDownLatch finishedLatch) {
+    public ReadyTask(final ReadyMonitor readyMonitor, final CountDownLatch readyToRunLatch,
+        final CountDownLatch finishedLatch) {
       this.readyMonitor = readyMonitor;
       this.readyToRunLatch = readyToRunLatch;
       this.finishedLatch = finishedLatch;
