@@ -92,7 +92,7 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
         TestDefaultBalancer.class.getName());
   }
 
-  private static SiteConfiguration siteConfg = SiteConfiguration.auto();
+  private static SiteConfiguration siteConfg = SiteConfiguration.empty().build();
 
   protected static class TestServerConfigurationFactory extends ServerConfigurationFactory {
 
