@@ -47,8 +47,6 @@ public class TooManyDeletesIT extends AccumuloClusterHarness {
 
       SummarizerConfiguration sc = SummarizerConfiguration.builder(DeletesSummarizer.class).build();
 
-      // TODO open issue about programmatic config of compaction strategies
-
       NewTableConfiguration ntc = new NewTableConfiguration().enableSummarization(sc);
       HashMap<String,String> props = new HashMap<>();
       props.put(Property.TABLE_COMPACTION_STRATEGY.getKey(),

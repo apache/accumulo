@@ -125,7 +125,11 @@
                 <th>Percentage&nbsp;Time&nbsp;Spent&nbsp;</th>
               </tr>
             </thead>
-            <tbody></tbody>
+            <tbody>
+              <tr id="MinorRow"></tr>
+              <tr id="MajorRow"></tr>
+              <tr id="SplitRow"></tr>
+            </tbody>
           </table>
         </div>
       </div>
@@ -141,7 +145,14 @@
                 <th>Major&nbsp;Std&nbsp;Dev&nbsp;</th>
               </tr>
             </thead>
-            <tbody></tbody>
+            <tbody>
+                <tr>
+                  <td id="currentMinorAvg"></td>
+                  <td id="currentMinorStdDev"></td>
+                  <td id="currentMajorAvg"></td>
+                  <td id="currentMajorStdDev"></td>
+                </tr>
+            </tbody>
           </table>
         </div>
       </div>

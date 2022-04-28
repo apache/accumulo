@@ -44,18 +44,15 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   private final Map<NamespaceId,NamespaceConfiguration> namespaceConfigs =
       new ConcurrentHashMap<>();
 
-  private final Supplier<SystemConfiguration> systemConfigSupplier;
-
   private final ServerContext context;
   private final SiteConfiguration siteConfig;
-  private final PropCacheKey sysPropCacheKey;
+  private final Supplier<SystemConfiguration> systemConfig;
 
   public ServerConfigurationFactory(ServerContext context, SiteConfiguration siteConfig) {
     this.context = context;
     this.siteConfig = siteConfig;
-    sysPropCacheKey = PropCacheKey.forSystem(context);
-    systemConfigSupplier = Suppliers
-        .memoize(() -> new SystemConfiguration(context, sysPropCacheKey, getSiteConfiguration()));
+    systemConfig = Suppliers.memoize(() -> new SystemConfiguration(context,
+        PropCacheKey.forSystem(context), getSiteConfiguration()));
   }
 
   public ServerContext getServerContext() {
@@ -72,7 +69,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
 
   @Override
   public AccumuloConfiguration getSystemConfiguration() {
-    return systemConfigSupplier.get();
+    return systemConfig.get();
   }
 
   @Override

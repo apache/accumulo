@@ -19,6 +19,7 @@
 package org.apache.accumulo.server;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Suppliers.memoize;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -71,6 +72,8 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.metadata.ServerAmpleImpl;
 import org.apache.accumulo.server.rpc.SaslServerConnectionParams;
 import org.apache.accumulo.server.rpc.ThriftServerType;
+import org.apache.accumulo.server.security.AuditedSecurityOperation;
+import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
 import org.apache.accumulo.server.tables.TableManager;
@@ -83,8 +86,6 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Suppliers;
-
 /**
  * Provides a server context for Accumulo server components that operate with the system credentials
  * and have access to the system files and configuration.
@@ -95,19 +96,19 @@ public class ServerContext extends ClientContext {
   private final ServerInfo info;
   private final ZooReaderWriter zooReaderWriter;
   private final ServerDirs serverDirs;
+  private final PropStore propStore;
+
+  // lazily loaded resources, only loaded when needed
+  private final Supplier<TableManager> tableManager;
+  private final Supplier<UniqueNameAllocator> nameAllocator;
+  private final Supplier<ServerConfigurationFactory> serverConfFactory;
+  private final Supplier<SystemConfiguration> systemConfig;
+  private final Supplier<AuthenticationTokenSecretManager> secretManager;
+  private final Supplier<CryptoService> cryptoService;
+  private final Supplier<ScheduledThreadPoolExecutor> sharedScheduledThreadPool;
+  private final Supplier<AuditedSecurityOperation> securityOperation;
   private final Supplier<TablePropUtil> tablePropUtilSupplier;
   private final Supplier<NamespacePropUtil> namespacePropUtilSupplier;
-
-  private TableManager tableManager;
-  private UniqueNameAllocator nameAllocator;
-  private ServerConfigurationFactory serverConfFactory = null;
-  private DefaultConfiguration defaultConfig = null;
-  private AccumuloConfiguration systemConfig = null;
-  private AuthenticationTokenSecretManager secretManager;
-  private CryptoService cryptoService = null;
-  private ScheduledThreadPoolExecutor sharedScheduledThreadPool = null;
-
-  private final PropStore propStore;
 
   public ServerContext(SiteConfiguration siteConfig) {
     this(new ServerInfo(siteConfig));
@@ -118,11 +119,24 @@ public class ServerContext extends ClientContext {
     this.info = info;
     zooReaderWriter = new ZooReaderWriter(info.getSiteConfiguration());
     serverDirs = info.getServerDirs();
-
     propStore = ZooPropStore.initialize(info.getInstanceID(), zooReaderWriter);
 
-    tablePropUtilSupplier = Suppliers.memoize(() -> new TablePropUtil(this));
-    namespacePropUtilSupplier = Suppliers.memoize(() -> new NamespacePropUtil(this));
+    tableManager = memoize(() -> new TableManager(this));
+    nameAllocator = memoize(() -> new UniqueNameAllocator(this));
+    serverConfFactory = memoize(() -> new ServerConfigurationFactory(this, getSiteConfiguration()));
+    systemConfig = memoize(() -> new SystemConfiguration(this,
+        PropCacheKey.forSystem(getInstanceID()), getSiteConfiguration()));
+    secretManager = memoize(() -> new AuthenticationTokenSecretManager(getInstanceID(),
+        getConfiguration().getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME)));
+    cryptoService = memoize(
+        () -> CryptoServiceFactory.newInstance(getConfiguration(), ClassloaderType.ACCUMULO));
+    sharedScheduledThreadPool = memoize(() -> ThreadPools.getServerThreadPools()
+        .createGeneralScheduledExecutorService(getConfiguration()));
+    securityOperation =
+        memoize(() -> new AuditedSecurityOperation(this, SecurityOperation.getAuthorizor(this),
+            SecurityOperation.getAuthenticator(this), SecurityOperation.getPermHandler(this)));
+    tablePropUtilSupplier = memoize(() -> new TablePropUtil(this));
+    namespacePropUtilSupplier = memoize(() -> new NamespacePropUtil(this));
   }
 
   /**
@@ -147,55 +161,25 @@ public class ServerContext extends ClientContext {
     return info.getInstanceID();
   }
 
-  /**
-   * Should only be called by the Tablet server
-   */
-  public synchronized void setupCrypto() throws CryptoService.CryptoException {
-    if (cryptoService != null) {
-      throw new CryptoService.CryptoException("Crypto Service " + cryptoService.getClass().getName()
-          + " already exists and cannot be setup again");
-    }
-
-    AccumuloConfiguration acuConf = getConfiguration();
-    cryptoService = CryptoServiceFactory.newInstance(acuConf, ClassloaderType.ACCUMULO);
-  }
-
   public SiteConfiguration getSiteConfiguration() {
     return info.getSiteConfiguration();
   }
 
-  public synchronized ServerConfigurationFactory getServerConfFactory() {
-    if (serverConfFactory == null) {
-      serverConfFactory = new ServerConfigurationFactory(this, info.getSiteConfiguration());
-    }
-    return serverConfFactory;
-  }
-
   @Override
   public AccumuloConfiguration getConfiguration() {
-    if (systemConfig == null) {
-      // this call ensures that system props are upgraded if necessary and fixed props are loaded
-      var sysZkProps = propStore.get(PropCacheKey.forSystem(getInstanceID()));
-      log.trace("loaded system props from zookeeper: {}", sysZkProps);
-      systemConfig = new SystemConfiguration(this, PropCacheKey.forSystem(getInstanceID()),
-          getSiteConfiguration());
-    }
-    return systemConfig;
+    return systemConfig.get();
   }
 
   public TableConfiguration getTableConfiguration(TableId id) {
-    return getServerConfFactory().getTableConfiguration(id);
+    return serverConfFactory.get().getTableConfiguration(id);
   }
 
   public NamespaceConfiguration getNamespaceConfiguration(NamespaceId namespaceId) {
-    return getServerConfFactory().getNamespaceConfiguration(namespaceId);
+    return serverConfFactory.get().getNamespaceConfiguration(namespaceId);
   }
 
   public DefaultConfiguration getDefaultConfiguration() {
-    if (defaultConfig == null) {
-      defaultConfig = DefaultConfiguration.getInstance();
-    }
-    return defaultConfig;
+    return DefaultConfiguration.getInstance();
   }
 
   public ServerDirs getServerDirs() {
@@ -208,7 +192,7 @@ public class ServerContext extends ClientContext {
    */
   // Should be private, but package-protected so EasyMock will work
   void enforceKerberosLogin() {
-    final AccumuloConfiguration conf = getServerConfFactory().getSiteConfiguration();
+    final AccumuloConfiguration conf = getSiteConfiguration();
     // Unwrap _HOST into the FQDN to make the kerberos principal we'll compare against
     final String kerberosPrincipal =
         SecurityUtil.getServerPrincipal(conf.get(Property.GENERAL_KERBEROS_PRINCIPAL));
@@ -248,11 +232,11 @@ public class ServerContext extends ClientContext {
 
   @Override
   public SaslServerConnectionParams getSaslParams() {
-    AccumuloConfiguration conf = getServerConfFactory().getSiteConfiguration();
+    AccumuloConfiguration conf = getSiteConfiguration();
     if (!conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       return null;
     }
-    return new SaslServerConnectionParams(conf, getCredentials().getToken(), secretManager);
+    return new SaslServerConnectionParams(conf, getCredentials().getToken(), getSecretManager());
   }
 
   /**
@@ -283,33 +267,20 @@ public class ServerContext extends ClientContext {
     }
   }
 
-  public void setSecretManager(AuthenticationTokenSecretManager secretManager) {
-    this.secretManager = secretManager;
-  }
-
   public AuthenticationTokenSecretManager getSecretManager() {
-    return secretManager;
+    return secretManager.get();
   }
 
-  public synchronized TableManager getTableManager() {
-    if (tableManager == null) {
-      tableManager = new TableManager(this);
-    }
-    return tableManager;
+  public TableManager getTableManager() {
+    return tableManager.get();
   }
 
-  public synchronized UniqueNameAllocator getUniqueNameAllocator() {
-    if (nameAllocator == null) {
-      nameAllocator = new UniqueNameAllocator(this);
-    }
-    return nameAllocator;
+  public UniqueNameAllocator getUniqueNameAllocator() {
+    return nameAllocator.get();
   }
 
   public CryptoService getCryptoService() {
-    if (cryptoService == null) {
-      throw new CryptoService.CryptoException("Crypto service not initialized.");
-    }
-    return cryptoService;
+    return cryptoService.get();
   }
 
   @Override
@@ -467,15 +438,8 @@ public class ServerContext extends ClientContext {
     ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
-  /**
-   * return a shared scheduled executor
-   */
-  public synchronized ScheduledThreadPoolExecutor getScheduledExecutor() {
-    if (sharedScheduledThreadPool == null) {
-      sharedScheduledThreadPool = ThreadPools.getServerThreadPools()
-          .createGeneralScheduledExecutorService(getConfiguration());
-    }
-    return sharedScheduledThreadPool;
+  public ScheduledThreadPoolExecutor getScheduledExecutor() {
+    return sharedScheduledThreadPool.get();
   }
 
   public PropStore getPropStore() {
@@ -485,6 +449,10 @@ public class ServerContext extends ClientContext {
   @Override
   protected long getTransportPoolMaxAgeMillis() {
     return getClientTimeoutInMillis();
+  }
+
+  public AuditedSecurityOperation getSecurityOperation() {
+    return securityOperation.get();
   }
 
   public TablePropUtil tablePropUtil() {

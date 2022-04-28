@@ -78,6 +78,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
   private static final String AUDIT_USER_2 = "AuditUser2";
   private static final String PASSWORD = "password";
   private static final String OLD_TEST_TABLE_NAME = "apples";
+  private static final String OLD_TEST_TABLE_NAME_ID = "1";
   private static final String NEW_TEST_TABLE_NAME = "oranges";
   private static final String THIRD_TEST_TABLE_NAME = "pears";
   private static final Authorizations auths = new Authorizations("private", "public");
@@ -361,7 +362,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
     assertEquals(1,
         findAuditMessage(auditMessages,
             String.format(AuditedSecurityOperation.CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE,
-                "offlineTable", OLD_TEST_TABLE_NAME)));
+                "offlineTable", OLD_TEST_TABLE_NAME, OLD_TEST_TABLE_NAME_ID)));
     assertEquals(1, findAuditMessage(auditMessages, String.format(
         AuditedSecurityOperation.CAN_EXPORT_AUDIT_TEMPLATE, OLD_TEST_TABLE_NAME, exportDir)));
     assertEquals(1,
@@ -377,7 +378,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
     assertEquals(1,
         findAuditMessage(auditMessages,
             String.format(AuditedSecurityOperation.CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE,
-                "onlineTable", OLD_TEST_TABLE_NAME)));
+                "onlineTable", OLD_TEST_TABLE_NAME, OLD_TEST_TABLE_NAME_ID)));
 
   }
 
@@ -494,13 +495,16 @@ public class AuditMessageIT extends ConfigurableMacBase {
             "operation: denied;.*"
                 + String.format(AuditedSecurityOperation.CAN_CLONE_TABLE_AUDIT_TEMPLATE,
                     OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME)));
-    assertEquals(1, findAuditMessage(auditMessages, "operation: denied;.*" + String
-        .format(AuditedSecurityOperation.CAN_DELETE_TABLE_AUDIT_TEMPLATE, OLD_TEST_TABLE_NAME)));
+    assertEquals(1,
+        findAuditMessage(auditMessages,
+            "operation: denied;.*"
+                + String.format(AuditedSecurityOperation.CAN_DELETE_TABLE_AUDIT_TEMPLATE,
+                    OLD_TEST_TABLE_NAME, OLD_TEST_TABLE_NAME_ID)));
     assertEquals(1,
         findAuditMessage(auditMessages,
             "operation: denied;.*"
                 + String.format(AuditedSecurityOperation.CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE,
-                    "offlineTable", OLD_TEST_TABLE_NAME)));
+                    "offlineTable", OLD_TEST_TABLE_NAME, OLD_TEST_TABLE_NAME_ID)));
     assertEquals(1, findAuditMessage(auditMessages,
         "operation: denied;.*action: scan; targetTable: " + OLD_TEST_TABLE_NAME));
     assertEquals(1,

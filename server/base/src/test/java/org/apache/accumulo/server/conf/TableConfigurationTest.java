@@ -75,7 +75,7 @@ public class TableConfigurationTest {
     expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
     propStore = createMock(ZooPropStore.class);
     expect(context.getPropStore()).andReturn(propStore).anyTimes();
-    var siteConfig = SiteConfiguration.auto();
+    var siteConfig = SiteConfiguration.empty().build();
     expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
 
     replay(context); // prop store is read from context.

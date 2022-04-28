@@ -54,7 +54,6 @@ import org.apache.accumulo.server.ServerDirs;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
-import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.util.ChangeSecret;
 import org.apache.accumulo.server.util.SystemPropUtil;
@@ -389,8 +388,7 @@ public class Initialize implements KeywordExecutable {
 
   private static void initSecurity(ServerContext context, Opts opts, String rootUser)
       throws AccumuloSecurityException {
-    AuditedSecurityOperation.getInstance(context).initializeSecurity(context.rpcCreds(), rootUser,
-        opts.rootpass);
+    context.getSecurityOperation().initializeSecurity(context.rpcCreds(), rootUser, opts.rootpass);
   }
 
   static boolean isInitialized(VolumeManager fs, InitialConfiguration initConfig)

@@ -110,7 +110,6 @@ import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.fs.TooManyFilesException;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.rpc.TServerUtils;
-import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.tserver.ConditionCheckerContext.ConditionChecker;
@@ -154,7 +153,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
     this.context = server.getContext();
     this.watcher = watcher;
     this.writeTracker = writeTracker;
-    this.security = AuditedSecurityOperation.getInstance(context);
+    this.security = context.getSecurityOperation();
     this.server = server;
     MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = server.getContext().getConfiguration()
         .getTimeInMillis(Property.TSERV_SCAN_RESULTS_MAX_TIMEOUT);

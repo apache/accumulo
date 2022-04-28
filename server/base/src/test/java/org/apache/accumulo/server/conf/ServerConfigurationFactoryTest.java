@@ -24,94 +24,46 @@ import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.reset;
+import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 import java.util.Map;
+import java.util.UUID;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.server.MockServerContext;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class ServerConfigurationFactoryTest {
   private static final String ZK_HOST = "localhost";
-  private static final int ZK_TIMEOUT = 120000;
-  private static final InstanceId IID = InstanceId.of("iid");
+  private static final int ZK_TIMEOUT = 120_000;
+  private static final InstanceId IID = InstanceId.of(UUID.randomUUID());
+  private static final TableId TID = TableId.of("TABLE");
+  private static final NamespaceId NSID = NamespaceId.of("NAMESPACE");
+  private static final SiteConfiguration siteConfig = SiteConfiguration.empty().build();
 
-  // use the same mock ZooCacheFactory and ZooCache for all tests
-  private static final SiteConfiguration siteConfig = SiteConfiguration.auto();
   private PropStore propStore;
-
-  @BeforeAll
-  public static void setUpClass() {}
-
   private ServerContext context;
   private ServerConfigurationFactory scf;
 
   @BeforeEach
   public void setUp() {
     propStore = createMock(ZooPropStore.class);
-    // expect(propStore.readFixed()).andReturn(Map.of()).anyTimes();
-
-    propStore.registerAsListener(anyObject(), anyObject());
-    expectLastCall().anyTimes();
-
-    context = MockServerContext.getWithZK(IID, ZK_HOST, ZK_TIMEOUT);
-    expect(context.getPropStore()).andReturn(propStore).anyTimes();
-    expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
-  }
-
-  private void ready() {
-    replay(context, propStore);
-    scf = new ServerConfigurationFactory(context, siteConfig);
-  }
-
-  @Test
-  public void testGetDefaultConfiguration() {
-    ready();
-    DefaultConfiguration c = scf.getDefaultConfiguration();
-    assertNotNull(c);
-  }
-
-  @Test
-  public void testGetSiteConfiguration() {
-    ready();
-    var c = scf.getSiteConfiguration();
-    assertNotNull(c);
-  }
-
-  @Test
-  public void testGetConfiguration() {
     expect(propStore.get(eq(PropCacheKey.forSystem(IID))))
         .andReturn(new VersionedProperties(Map.of())).anyTimes();
-    ready();
-    AccumuloConfiguration c = scf.getSystemConfiguration();
-    assertNotNull(c);
-  }
-
-  private static final NamespaceId NSID = NamespaceId.of("NAMESPACE");
-
-  @Test
-  public void testGetNamespaceConfiguration() {
-    expect(propStore.get(eq(PropCacheKey.forSystem(IID))))
-        .andReturn(new VersionedProperties(Map.of())).anyTimes();
-    ready();
-    reset(context);
-    PropStore propStore = createMock(ZooPropStore.class);
-    expect(propStore.get(eq(PropCacheKey.forSystem(IID))))
+    expect(propStore.get(eq(PropCacheKey.forTable(IID, TID))))
         .andReturn(new VersionedProperties(Map.of())).anyTimes();
     expect(propStore.get(eq(PropCacheKey.forNamespace(IID, NSID))))
         .andReturn(new VersionedProperties(Map.of())).anyTimes();
@@ -119,14 +71,52 @@ public class ServerConfigurationFactoryTest {
     propStore.registerAsListener(anyObject(), anyObject());
     expectLastCall().anyTimes();
 
-    expect(context.getPropStore()).andReturn(propStore).anyTimes();
+    context = createMock(ServerContext.class);
+    expect(context.getZooKeeperRoot()).andReturn("/accumulo/" + IID).anyTimes();
     expect(context.getInstanceID()).andReturn(IID).anyTimes();
+    expect(context.getZooKeepers()).andReturn(ZK_HOST).anyTimes();
+    expect(context.getZooKeepersSessionTimeOut()).andReturn(ZK_TIMEOUT).anyTimes();
     expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
+    expect(context.tableNodeExists(TID)).andReturn(true).anyTimes();
+    expect(context.getPropStore()).andReturn(propStore).anyTimes();
+
+    scf = new ServerConfigurationFactory(context, siteConfig) {
+      @Override
+      public NamespaceConfiguration getNamespaceConfigurationForTable(TableId tableId) {
+        if (tableId.equals(TID)) {
+          return getNamespaceConfiguration(NSID);
+        }
+        throw new UnsupportedOperationException();
+      }
+    };
 
     replay(propStore, context);
-    NamespaceConfiguration c = scf.getNamespaceConfiguration(NSID);
-    assertEquals(NSID, c.getNamespaceId());
-    assertSame(c, scf.getNamespaceConfiguration(NSID));
+  }
+
+  @AfterEach
+  public void verifyMocks() {
+    verify(propStore, context);
+  }
+
+  @Test
+  public void testGetters() {
+    assertSame(DefaultConfiguration.getInstance(), scf.getDefaultConfiguration());
+    assertSame(siteConfig, scf.getSiteConfiguration());
+    assertNotNull(scf.getSystemConfiguration());
+  }
+
+  @Test
+  public void testGetNamespaceConfiguration() {
+    NamespaceConfiguration namespaceConfigSingleton = scf.getNamespaceConfiguration(NSID);
+    assertEquals(NSID, namespaceConfigSingleton.getNamespaceId());
+    assertSame(namespaceConfigSingleton, scf.getNamespaceConfiguration(NSID));
+  }
+
+  @Test
+  public void testGetTableConfiguration() {
+    TableConfiguration tableConfigSingleton = scf.getTableConfiguration(TID);
+    assertEquals(TID, tableConfigSingleton.getTableId());
+    assertSame(tableConfigSingleton, scf.getTableConfiguration(TID));
   }
 
 }

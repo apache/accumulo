@@ -21,11 +21,10 @@ package org.apache.accumulo.test.functional;
 import static org.apache.accumulo.test.functional.FunctionalTestUtils.checkRFiles;
 import static org.apache.accumulo.test.functional.FunctionalTestUtils.nm;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
-import java.util.Collections;
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -34,6 +33,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.user.RowDeletingIterator;
@@ -63,27 +63,26 @@ public class RowDeleteIT extends AccumuloClusterHarness {
   @Test
   public void run() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = getUniqueNames(1)[0];
-      c.tableOperations().create(tableName);
-      Map<String,Set<Text>> groups = new HashMap<>();
-      groups.put("lg1", Collections.singleton(new Text("foo")));
-      c.tableOperations().setLocalityGroups(tableName, groups);
+      final String tableName = getUniqueNames(1)[0];
+      NewTableConfiguration ntc = new NewTableConfiguration();
       IteratorSetting setting = new IteratorSetting(30, RowDeletingIterator.class);
-      c.tableOperations().attachIterator(tableName, setting, EnumSet.of(IteratorScope.majc));
-      c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "100");
+      ntc.attachIterator(setting, EnumSet.of(IteratorScope.majc));
+      ntc.setLocalityGroups(Map.of("lg1", Set.of(new Text("foo"))));
+      ntc.setProperties(Map.of(Property.TABLE_MAJC_RATIO.getKey(), "100"));
+      c.tableOperations().create(tableName, ntc);
 
-      BatchWriter bw = c.createBatchWriter(tableName);
+      try (BatchWriter bw = c.createBatchWriter(tableName);
+          Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
 
-      bw.addMutation(nm("r1", "foo", "cf1", "v1"));
-      bw.addMutation(nm("r1", "bar", "cf1", "v2"));
+        bw.addMutation(nm("r1", "foo", "cf1", "v1"));
+        bw.addMutation(nm("r1", "bar", "cf1", "v2"));
 
-      bw.flush();
-      c.tableOperations().flush(tableName, null, null, true);
+        bw.flush();
+        c.tableOperations().flush(tableName, null, null, true);
 
-      checkRFiles(c, tableName, 1, 1, 1, 1);
+        checkRFiles(c, tableName, 1, 1, 1, 1);
 
-      int count;
-      try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
+        int count;
         count = Iterators.size(scanner.iterator());
         assertEquals(2, count, "count == " + count);
 
@@ -93,21 +92,15 @@ public class RowDeleteIT extends AccumuloClusterHarness {
         c.tableOperations().flush(tableName, null, null, true);
 
         checkRFiles(c, tableName, 1, 1, 2, 2);
-      }
 
-      try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
         count = Iterators.size(scanner.iterator());
         assertEquals(3, count, "count == " + count);
 
         c.tableOperations().compact(tableName, null, null, false, true);
 
         checkRFiles(c, tableName, 1, 1, 0, 0);
-      }
 
-      try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
-        count = Iterators.size(scanner.iterator());
-        assertEquals(0, count, "count == " + count);
-        bw.close();
+        assertTrue(scanner.stream().findAny().isEmpty());
       }
     }
   }

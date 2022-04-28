@@ -93,7 +93,7 @@ public class ZooBasedConfigurationTest {
     propStore.registerAsListener(anyObject(), anyObject());
     expectLastCall();
 
-    var siteConfig = SiteConfiguration.auto();
+    var siteConfig = SiteConfiguration.empty().build();
     expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
 
     expect(propStore.get(eq(sysKey))).andReturn(new VersionedProperties()).once(); // default empty
@@ -114,7 +114,7 @@ public class ZooBasedConfigurationTest {
     propStore.registerAsListener(anyObject(), anyObject());
     expectLastCall();
 
-    var siteConfig = SiteConfiguration.auto();
+    var siteConfig = SiteConfiguration.empty().build();
     expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
     expect(propStore.get(eq(PropCacheKey.forSystem(instanceId))))
         .andReturn(new VersionedProperties()).once(); // default empty sys props
@@ -179,7 +179,7 @@ public class ZooBasedConfigurationTest {
     expect(zrw.getData(eq(tablePropKey.getPath()), anyObject(), anyObject()))
         .andReturn(codec.toBytes(vProps)).once();
 
-    var siteConfig = SiteConfiguration.auto();
+    var siteConfig = SiteConfiguration.empty().build();
     expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
 
     NamespaceConfiguration nsConfig = createMock(NamespaceConfiguration.class);

@@ -39,7 +39,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class SystemCredentialsTest {
 
-  private static SiteConfiguration siteConfig = SiteConfiguration.auto();
+  private static SiteConfiguration siteConfig = SiteConfiguration.empty().build();
   private InstanceId instanceId =
       InstanceId.of(UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0}));
 

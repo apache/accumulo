@@ -48,7 +48,6 @@ import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
 import org.apache.accumulo.server.problems.ProblemReports;
-import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -199,8 +198,8 @@ class CleanUp extends ManagerRepo {
 
     // remove any permissions associated with this table
     try {
-      AuditedSecurityOperation.getInstance(manager.getContext())
-          .deleteTable(manager.getContext().rpcCreds(), tableId, namespaceId);
+      manager.getContext().getSecurityOperation().deleteTable(manager.getContext().rpcCreds(),
+          tableId, namespaceId);
     } catch (ThriftSecurityException e) {
       log.error("{}", e.getMessage(), e);
     }
