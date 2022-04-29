@@ -22,6 +22,22 @@ var tserversList;
  * Creates tservers initial table
  */
 $(document).ready(function() {
+    
+  const recoveryList = []
+  getRecoveryList().then(function () {
+    // fill recoveryList
+    JSON.parse(sessionStorage.recoveryList).recoveryList.forEach(entry => {
+      recoveryList.push(entry.server);
+    });
+
+    // only show the note about highlighted rows if there are rows to highlight
+    if (recoveryList.length === 0) {
+      $('#recovery-caption').hide();
+    } else {
+      $('#recovery-caption').show();
+    }
+  });
+    
     // Create a table for tserver list
     tserversList = $('#tservers').DataTable({
       "ajax": {
@@ -70,7 +86,19 @@ $(document).ready(function() {
         { "data": "indexCacheHitRate" },
         { "data": "dataCacheHitRate" },
         { "data": "osload" }
-      ]
+      ],
+      "rowCallback": function (row, data, index) {
+        // reset background of each row
+        $(row).css('background-color', '');
+
+        // return if current rows tserver is not recovering
+        if (!recoveryList.includes(data.hostname))
+          return;
+
+        // highlight current row
+        console.log('Highlighting row index:' + index + ' tserver:' + data.hostname);
+        $(row).css('background-color', 'gold');
+      }
     });
     refreshTServers();
 });
@@ -166,34 +194,34 @@ function clearDeadTServers(server) {
 function refreshTServersTable() {
   if (tserversList) tserversList.ajax.reload(null, false); // user paging is not reset on reload
 
-  getRecoveryList().then(function () {
+  // getRecoveryList().then(function () {
+  //   hide the highlighted row note by default
+  //   $('#recovery-caption').hide();
 
-    // reset background for all rows
-    const table = $('#tservers').DataTable();
-    table.rows().every(function (index) {
-      $(table.row(index).node()).css('background-color', '');
-    });
+  //   reset background for all rows
+  //   const table = $('#tservers').DataTable();
+  //   table.rows().every(function (index) {
+  //     $(table.row(index).node()).removeClass('bg-warning');
+  //   });
 
-    const recoveryList = []
-    JSON.parse(sessionStorage.recoveryList).recoveryList.forEach(entry => {
-      recoveryList.push(entry.server);
-    });
+  //   const recoveryList = []
+  //   JSON.parse(sessionStorage.recoveryList).recoveryList.forEach(entry => {
+  //     recoveryList.push(entry.server);
+  //   });
 
-    if (recoveryList.length === 0) {
-      $('#recovery-caption').text('');
-      return;
-    } else {
-      $('#recovery-caption').text('Highlighted rows represent recovering tservers');
-    }
+  //   if (recoveryList.length === 0)
+  //     return;
+  
 
+  //   $('#recovery-caption').show();
 
-    console.log('List of recovering tservers to be highlighted: ' + recoveryList);
+  //   console.log('List of recovering tservers to be highlighted: ' + recoveryList);
 
-    // highlight rows if thier tserver is recovering
-    table.rows().every(function (index) {
-      if (recoveryList.includes(this.data().hostname)) {
-        $(table.row(index).node()).css('background-color', 'gold');
-      }
-    });
-  });
+  //   highlight rows if their tserver is recovering
+  //   table.rows().every(function (index) {
+  //     if (recoveryList.includes(this.data().hostname)) {
+  //       $(table.row(index).node()).addClass('bg-warning');
+  //     }
+  //   });
+  // });
 }
