@@ -108,6 +108,10 @@ public class ClusterConfigParser {
         }
       }
     }
+    if (config.containsKey("sserver")) {
+      out.printf(PROPERTY_FORMAT, "SSERVER_HOSTS", config.get("sserver"));
+    }
+
     out.flush();
   }
 

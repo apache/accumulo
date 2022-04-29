@@ -181,6 +181,7 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
         throw new IOException(e);
       }
 
+      scanner.setConsistencyLevel(tableConfig.getConsistencyLevel());
       scanner.setRanges(batchSplit.getRanges());
       scannerBase = scanner;
     } else {
@@ -208,6 +209,7 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
           // Not using public API to create scanner so that we can use table ID
           // Table ID is used in case of renames during M/R job
           scanner = new ScannerImpl(context, TableId.of(split.getTableId()), authorizations);
+          scanner.setConsistencyLevel(tableConfig.getConsistencyLevel());
         }
         if (isIsolated) {
           log.info("Creating isolated scanner");

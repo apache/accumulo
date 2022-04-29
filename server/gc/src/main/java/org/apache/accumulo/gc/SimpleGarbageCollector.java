@@ -116,7 +116,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
   private final GcCycleMetrics gcCycleMetrics = new GcCycleMetrics();
 
-  SimpleGarbageCollector(ServerOpts opts, String[] args) {
+  public SimpleGarbageCollector(ServerOpts opts, String[] args) {
     super("gc", opts, args);
 
     final AccumuloConfiguration conf = getConfiguration();
@@ -183,11 +183,11 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     return getConfiguration().getBoolean(Property.GC_SAFEMODE);
   }
 
-  private class GCEnv implements GarbageCollectionEnvironment {
+  public class GCEnv implements GarbageCollectionEnvironment {
 
     private final DataLevel level;
 
-    GCEnv(Ample.DataLevel level) {
+    public GCEnv(Ample.DataLevel level) {
       this.level = level;
     }
 
@@ -246,7 +246,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
             .checkConsistency().fetch(DIR, FILES, SCANS).build().stream();
       }
 
-      return tabletStream.flatMap(tm -> {
+      var tabletReferences = tabletStream.flatMap(tm -> {
         Stream<Reference> refs = Stream.concat(tm.getFiles().stream(), tm.getScans().stream())
             .map(f -> new Reference(tm.getTableId(), f.getMetaUpdateDelete(), false));
         if (tm.getDirName() != null) {
@@ -255,6 +255,11 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         }
         return refs;
       });
+
+      var scanServerRefs = getContext().getAmple().getScanServerFileReferences()
+          .map(sfr -> new Reference(sfr.getTableId(), sfr.getPathStr(), false));
+
+      return Stream.concat(tabletReferences, scanServerRefs);
     }
 
     @Override

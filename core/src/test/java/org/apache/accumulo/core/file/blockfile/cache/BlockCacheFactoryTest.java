@@ -53,7 +53,9 @@ public class BlockCacheFactoryTest {
   public void testStartWithDefault() throws Exception {
     DefaultConfiguration dc = DefaultConfiguration.getInstance();
     BlockCacheManager manager = BlockCacheManagerFactory.getInstance(dc);
-    manager.start(new BlockCacheConfiguration(dc));
+    manager.start(new BlockCacheConfiguration(dc, Property.TSERV_PREFIX,
+        Property.TSERV_INDEXCACHE_SIZE, Property.TSERV_DATACACHE_SIZE,
+        Property.TSERV_SUMMARYCACHE_SIZE, Property.TSERV_DEFAULT_BLOCKSIZE));
     assertNotNull(manager.getBlockCache(CacheType.INDEX));
   }
 }

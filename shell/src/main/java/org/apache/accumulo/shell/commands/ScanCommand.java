@@ -33,6 +33,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
@@ -70,6 +71,7 @@ public class ScanCommand extends Command {
   private Option sampleOpt;
   private Option contextOpt;
   private Option executionHintsOpt;
+  private Option scanServerOpt;
 
   protected void setupSampling(final String tableName, final CommandLine cl, final Shell shellState,
       ScannerBase scanner)
@@ -83,6 +85,15 @@ public class ScanCommand extends Command {
       }
       Shell.log.debug("Using sampling configuration : {}", samplerConfig);
       scanner.setSamplerConfiguration(samplerConfig);
+    }
+  }
+
+  protected ConsistencyLevel getConsistency(CommandLine cl) {
+    if (cl.hasOption(scanServerOpt.getOpt())) {
+      String arg = cl.getOptionValue(scanServerOpt.getOpt());
+      return ConsistencyLevel.valueOf(arg.toUpperCase());
+    } else {
+      return ConsistencyLevel.IMMEDIATE;
     }
   }
 
@@ -122,6 +133,12 @@ public class ScanCommand extends Command {
       setupSampling(tableName, cl, shellState, scanner);
 
       scanner.setExecutionHints(ShellUtil.parseMapOpt(cl, executionHintsOpt));
+
+      try {
+        scanner.setConsistencyLevel(getConsistency(cl));
+      } catch (IllegalArgumentException e) {
+        Shell.log.error("Consistency Level argument must be immediate or eventual", e);
+      }
 
       // output the records
 
@@ -405,6 +422,8 @@ public class ScanCommand extends Command {
     sampleOpt = new Option(null, "sample", false, "Show sample");
     contextOpt = new Option("cc", "context", true, "name of the classloader context");
     executionHintsOpt = new Option(null, "execution-hints", true, "Execution hints map");
+    scanServerOpt =
+        new Option("cl", "consistency-level", true, "set consistency level (experimental)");
 
     scanOptAuths.setArgName("comma-separated-authorizations");
     scanOptRow.setArgName("row");
@@ -419,6 +438,7 @@ public class ScanCommand extends Command {
     outputFileOpt.setArgName("file");
     contextOpt.setArgName("context");
     executionHintsOpt.setArgName("<key>=<value>{,<key>=<value>}");
+    scanServerOpt.setArgName("immediate|eventual");
 
     profileOpt = new Option("pn", "profile", true, "iterator profile name");
     profileOpt.setArgName("profile");
@@ -453,6 +473,7 @@ public class ScanCommand extends Command {
     o.addOption(sampleOpt);
     o.addOption(contextOpt);
     o.addOption(executionHintsOpt);
+    o.addOption(scanServerOpt);
 
     return o;
   }

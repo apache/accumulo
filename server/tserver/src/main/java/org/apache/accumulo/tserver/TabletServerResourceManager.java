@@ -51,7 +51,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration.ScanExecutorConfig;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
 import org.apache.accumulo.core.file.blockfile.impl.ScanCacheProvider;
 import org.apache.accumulo.core.spi.cache.BlockCache;
@@ -249,7 +248,7 @@ public class TabletServerResourceManager {
 
   @SuppressFBWarnings(value = "DM_GC",
       justification = "GC is run to get a good estimate of memory availability")
-  public TabletServerResourceManager(ServerContext context) {
+  public TabletServerResourceManager(ServerContext context, TabletHostingServer tserver) {
     this.context = context;
     final AccumuloConfiguration acuConf = context.getConfiguration();
 
@@ -267,7 +266,7 @@ public class TabletServerResourceManager {
       throw new RuntimeException("Error creating BlockCacheManager", e);
     }
 
-    cacheManager.start(new BlockCacheConfiguration(acuConf));
+    cacheManager.start(tserver.getBlockCacheConfiguration(acuConf));
 
     _iCache = cacheManager.getBlockCache(CacheType.INDEX);
     _dCache = cacheManager.getBlockCache(CacheType.DATA);
@@ -358,7 +357,9 @@ public class TabletServerResourceManager {
         () -> context.getConfiguration().getCount(Property.TSERV_SUMMARY_PARTITION_THREADS),
         "summary partition", summaryPartitionPool);
 
-    Collection<ScanExecutorConfig> scanExecCfg = acuConf.getScanExecutors();
+    boolean isScanServer = (tserver instanceof ScanServer);
+
+    Collection<ScanExecutorConfig> scanExecCfg = acuConf.getScanExecutors(isScanServer);
     Map<String,Queue<Runnable>> scanExecQueues = new HashMap<>();
     scanExecutors = scanExecCfg.stream().collect(
         toUnmodifiableMap(cfg -> cfg.name, cfg -> createPriorityExecutor(cfg, scanExecQueues)));

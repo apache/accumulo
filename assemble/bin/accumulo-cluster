@@ -121,12 +121,14 @@ function control_service() {
 
   local last_instance_id; last_instance_id=1
   [[ "$service" == "tserver" ]] && last_instance_id=${NUM_TSERVERS:-1}
+  [[ "$service" == "sserver" ]] && last_instance_id=${NUM_SSERVERS:-1}
 
   for (( inst_id=1; inst_id<=last_instance_id; inst_id++ ))
   do
     ACCUMULO_SERVICE_INSTANCE=""
     [[ "$service" == "tserver" && ${NUM_TSERVERS:-1} -gt 1 ]] && ACCUMULO_SERVICE_INSTANCE=${inst_id}
     [[ "$service" == "compactor" ]] && ACCUMULO_SERVICE_INSTANCE="${inst_id}_${5}"
+    [[ "$service" == "sserver" && ${NUM_SSERVERS:-1} -gt 1 ]] && ACCUMULO_SERVICE_INSTANCE=${inst_id}
 
     if [[ $host == localhost || $host == "$(hostname -s)" || $host == "$(hostname -f)" || $host == $(get_ip) ]] ; then
       #
@@ -187,6 +189,10 @@ function start_all() {
     start_service "$monitor" monitor
   done
 
+  for sserver in $SSERVER_HOSTS; do
+    start_service "$sserver" sserver
+  done
+
   for coordinator in $COORDINATOR_HOSTS; do
     start_service "$coordinator" compaction-coordinator
   done
@@ -235,6 +241,15 @@ function start_here() {
     for monitor in $MONITOR_HOSTS; do
       if echo "$monitor" | grep -q "^${host}\$"; then
         start_service "$host" monitor
+        break
+      fi
+    done
+  done
+
+  for host in $local_hosts; do
+    for sserver in $SSERVER_HOSTS; do
+      if echo "$sserver" | grep -q "^${host}\$"; then
+        start_service "$host" sserver
         break
       fi
     done
@@ -306,6 +321,10 @@ function kill_all() {
     kill_service "$monitor" monitor
   done
 
+  for sserver in $SSERVER_HOSTS; do
+    kill_service "$sserver" sserver
+  done
+
   for host in $TSERVER_HOSTS; do
     kill_service "$host" tserver
   done
@@ -322,7 +341,7 @@ function kill_all() {
   done
 
   echo "Cleaning all server entries in ZooKeeper"
-  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -compaction-coordinators -compactors
+  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -compaction-coordinators -compactors -sservers
 }
 
 
@@ -357,6 +376,10 @@ function stop_all() {
       end_service $end_cmd "$monitor" monitor
     done
 
+    for sserver in $SSERVER_HOSTS; do
+      end_service $end_cmd "$sserver" sserver
+    done
+
     for coordinator in $COORDINATOR_HOSTS; do
       end_service $end_cmd "$coordinator" compaction-coordinator
     done
@@ -374,7 +397,7 @@ function stop_all() {
   stop_tservers
 
   echo "Cleaning all server entries in ZooKeeper"
-  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -compaction-coordinators -compactors
+  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -compaction-coordinators -compactors -sservers
 }
 
 function stop_here() {
@@ -395,7 +418,7 @@ function stop_here() {
 
   for host in "${hosts_to_check[@]}"; do
     for end_cmd in "stop" "kill"; do
-      for svc in tserver gc manager monitor compaction-coordinator; do
+      for svc in tserver gc manager monitor compaction-coordinator sserver; do
         end_service $end_cmd "$host" $svc
       done
       for queue in $COMPACTION_QUEUES; do
@@ -454,6 +477,9 @@ tserver:
 #        - localhost
 #    - q2:
 #        - localhost
+#
+#sserver:
+#  - localhost
 EOF
       ;;
     restart)

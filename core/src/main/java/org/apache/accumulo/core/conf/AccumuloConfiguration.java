@@ -380,28 +380,39 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     public final OptionalInt priority;
     public final Optional<String> prioritizerClass;
     public final Map<String,String> prioritizerOpts;
+    public final boolean isScanServer;
 
     public ScanExecutorConfig(String name, int maxThreads, OptionalInt priority,
-        Optional<String> comparatorFactory, Map<String,String> comparatorFactoryOpts) {
+        Optional<String> comparatorFactory, Map<String,String> comparatorFactoryOpts,
+        boolean isScanServer) {
       this.name = name;
       this.maxThreads = maxThreads;
       this.priority = priority;
       this.prioritizerClass = comparatorFactory;
       this.prioritizerOpts = comparatorFactoryOpts;
+      this.isScanServer = isScanServer;
     }
 
     /**
      * Re-reads the max threads from the configuration that created this class
      */
     public int getCurrentMaxThreads() {
-      Integer depThreads = getDeprecatedScanThreads(name);
+      Integer depThreads = getDeprecatedScanThreads(name, isScanServer);
       if (depThreads != null) {
         return depThreads;
       }
 
-      String prop = Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey() + name + "." + SCAN_EXEC_THREADS;
-      String val = getAllPropertiesWithPrefix(Property.TSERV_SCAN_EXECUTORS_PREFIX).get(prop);
-      return Integer.parseInt(val);
+      if (isScanServer) {
+        String prop =
+            Property.SSERV_SCAN_EXECUTORS_PREFIX.getKey() + name + "." + SCAN_EXEC_THREADS;
+        String val = getAllPropertiesWithPrefix(Property.SSERV_SCAN_EXECUTORS_PREFIX).get(prop);
+        return Integer.parseInt(val);
+      } else {
+        String prop =
+            Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey() + name + "." + SCAN_EXEC_THREADS;
+        String val = getAllPropertiesWithPrefix(Property.TSERV_SCAN_EXECUTORS_PREFIX).get(prop);
+        return Integer.parseInt(val);
+      }
     }
   }
 
@@ -413,16 +424,18 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   boolean depPropWarned = false;
 
   @SuppressWarnings("deprecation")
-  Integer getDeprecatedScanThreads(String name) {
+  Integer getDeprecatedScanThreads(String name, boolean isScanServer) {
 
     Property prop;
     Property deprecatedProp;
 
     if (name.equals(SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME)) {
-      prop = Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS;
+      prop = isScanServer ? Property.SSERV_SCAN_EXECUTORS_DEFAULT_THREADS
+          : Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS;
       deprecatedProp = Property.TSERV_READ_AHEAD_MAXCONCURRENT;
     } else if (name.equals("meta")) {
-      prop = Property.TSERV_SCAN_EXECUTORS_META_THREADS;
+      prop = isScanServer ? Property.SSERV_SCAN_EXECUTORS_META_THREADS
+          : Property.TSERV_SCAN_EXECUTORS_META_THREADS;
       deprecatedProp = Property.TSERV_METADATA_READ_AHEAD_MAXCONCURRENT;
     } else {
       return null;
@@ -533,17 +546,18 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   private static final String SCAN_EXEC_PRIORITIZER = "prioritizer";
   private static final String SCAN_EXEC_PRIORITIZER_OPTS = "prioritizer.opts.";
 
-  public Collection<ScanExecutorConfig> getScanExecutors() {
+  public Collection<ScanExecutorConfig> getScanExecutors(boolean isScanServer) {
+
+    Property prefix =
+        isScanServer ? Property.SSERV_SCAN_EXECUTORS_PREFIX : Property.TSERV_SCAN_EXECUTORS_PREFIX;
 
     Map<String,Map<String,String>> propsByName = new HashMap<>();
 
     List<ScanExecutorConfig> scanResources = new ArrayList<>();
 
-    for (Entry<String,String> entry : getAllPropertiesWithPrefix(
-        Property.TSERV_SCAN_EXECUTORS_PREFIX).entrySet()) {
+    for (Entry<String,String> entry : getAllPropertiesWithPrefix(prefix).entrySet()) {
 
-      String suffix =
-          entry.getKey().substring(Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey().length());
+      String suffix = entry.getKey().substring(prefix.getKey().length());
       String[] tokens = suffix.split("\\.", 2);
       String name = tokens[0];
 
@@ -562,7 +576,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
         String val = subEntry.getValue();
 
         if (opt.equals(SCAN_EXEC_THREADS)) {
-          Integer depThreads = getDeprecatedScanThreads(name);
+          Integer depThreads = getDeprecatedScanThreads(name, isScanServer);
           if (depThreads == null) {
             threads = Integer.parseInt(val);
           } else {
@@ -588,7 +602,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
 
       scanResources.add(new ScanExecutorConfig(name, threads,
           prio == null ? OptionalInt.empty() : OptionalInt.of(prio),
-          Optional.ofNullable(prioritizerClass), prioritizerOpts));
+          Optional.ofNullable(prioritizerClass), prioritizerOpts, isScanServer));
     }
 
     return scanResources;

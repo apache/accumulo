@@ -53,6 +53,7 @@ public class ListScansCommand extends Command {
       tservers.add(cl.getOptionValue(tserverOption.getOpt()));
     } else {
       tservers = instanceOps.getTabletServers();
+      tservers.addAll(instanceOps.getScanServers());
     }
 
     shellState.printLines(new ActiveScanIterator(tservers, instanceOps), paginate);

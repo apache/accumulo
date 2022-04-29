@@ -27,7 +27,7 @@ import org.apache.accumulo.server.fs.TooManyFilesException;
 import org.apache.accumulo.tserver.TabletHostingServer;
 import org.apache.accumulo.tserver.session.SingleScanSession;
 import org.apache.accumulo.tserver.tablet.ScanBatch;
-import org.apache.accumulo.tserver.tablet.Tablet;
+import org.apache.accumulo.tserver.tablet.TabletBase;
 import org.apache.accumulo.tserver.tablet.TabletClosedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,13 +57,14 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
       if (isCancelled() || scanSession == null)
         return;
 
-      runState.set(ScanRunState.RUNNING);
+      if (!transitionToRunning())
+        return;
 
       Thread.currentThread()
           .setName("User: " + scanSession.getUser() + " Start: " + scanSession.startTime
               + " Client: " + scanSession.client + " Tablet: " + scanSession.extent);
 
-      Tablet tablet = server.getOnlineTablet(scanSession.extent);
+      TabletBase tablet = scanSession.getTabletResolver().getTablet(scanSession.extent);
 
       if (tablet == null) {
         addResult(new org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException(

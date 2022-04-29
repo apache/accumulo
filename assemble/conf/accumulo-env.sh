@@ -85,6 +85,7 @@ case "$cmd" in
   tserver) JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx768m' '-Xms768m') ;;
   compaction-coordinator) JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx512m' '-Xms512m') ;;
   compactor) JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx256m' '-Xms256m') ;;
+  sserver) JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx512m' '-Xms512m') ;;
   *)       JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx256m' '-Xms64m') ;;
 esac
 
@@ -106,7 +107,7 @@ JAVA_OPTS=("${JAVA_OPTS[@]}"
 #JAVA_OPTS=("${JAVA_OPTS[@]}"  "-javaagent:path/to/opentelemetry-javaagent-all.jar")
 
 case "$cmd" in
-  monitor|gc|manager|master|tserver|compaction-coordinator|compactor)
+  monitor|gc|manager|master|tserver|compaction-coordinator|compactor|sserver)
     JAVA_OPTS=("${JAVA_OPTS[@]}" "-Dlog4j.configurationFile=log4j2-service.properties")
     ;;
   *)

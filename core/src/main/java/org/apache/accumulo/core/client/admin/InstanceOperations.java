@@ -86,6 +86,13 @@ public interface InstanceOperations {
   List<String> getManagerLocations();
 
   /**
+   * Returns the locations of the active scan servers
+   *
+   * @return A list of currently active scan servers.
+   */
+  List<String> getScanServers();
+
+  /**
    * List the currently active tablet servers participating in the accumulo instance
    *
    * @return A list of currently active tablet servers.

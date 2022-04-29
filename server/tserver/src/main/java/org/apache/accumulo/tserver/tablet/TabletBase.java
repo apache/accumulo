@@ -62,7 +62,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This class exists to share code for scanning a tablet between TabletHostingServer implementations
+ * This class exists to share code for scanning a tablet between {@link Tablet} and
+ * {@link SnapshotTablet}
  */
 public abstract class TabletBase {
 

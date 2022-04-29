@@ -43,8 +43,8 @@ import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.tserver.TabletHostingServer;
 import org.apache.accumulo.tserver.session.MultiScanSession;
 import org.apache.accumulo.tserver.tablet.KVEntry;
-import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.Tablet.LookupResult;
+import org.apache.accumulo.tserver.tablet.TabletBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,10 +68,12 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       if (isCancelled() || session == null)
         return;
 
+      if (!transitionToRunning())
+        return;
+
       TableConfiguration acuTableConf = server.getTableConfiguration(session.threadPoolExtent);
       long maxResultsSize = acuTableConf.getAsBytes(Property.TABLE_SCAN_MAXMEM);
 
-      runState.set(ScanRunState.RUNNING);
       Thread.currentThread().setName("Client: " + session.client + " User: " + session.getUser()
           + " Start: " + session.startTime + " Table: ");
 
@@ -97,7 +99,7 @@ public class LookupTask extends ScanTask<MultiScanResult> {
         iter.remove();
 
         // check that tablet server is serving requested tablet
-        Tablet tablet = server.getOnlineTablet(entry.getKey());
+        TabletBase tablet = session.getTabletResolver().getTablet(entry.getKey());
         if (tablet == null) {
           failures.put(entry.getKey(), entry.getValue());
           continue;

@@ -29,10 +29,14 @@ import java.lang.Thread.UncaughtExceptionHandler;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
@@ -82,12 +86,15 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonReservation;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
+import org.apache.accumulo.core.spi.scan.ScanServerDispatcher;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.tables.TableZooHelper;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.accumulo.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
@@ -117,6 +124,7 @@ public class ClientContext implements AccumuloClient {
 
   private Credentials creds;
   private BatchWriterConfig batchWriterConfig;
+  private ScanServerDispatcher scanServerDispatcher;
   private ConditionalWriterConfig conditionalWriterConfig;
   private final AccumuloConfiguration serverConf;
   private final Configuration hadoopConf;
@@ -330,6 +338,75 @@ public class ClientContext implements AccumuloClient {
       batchWriterConfig = getBatchWriterConfig(info.getProperties());
     }
     return batchWriterConfig;
+  }
+
+  /**
+   * @return map of live scan server addresses to lock uuids.
+   */
+  public Map<String,UUID> getScanServers() {
+    Map<String,UUID> liveScanServers = new HashMap<>();
+    String root = this.getZooKeeperRoot() + Constants.ZSSERVERS;
+    var addrs = this.getZooCache().getChildren(root);
+    for (String addr : addrs) {
+      try {
+        final var zLockPath = ServiceLock.path(root + "/" + addr);
+        ZcStat stat = new ZcStat();
+        byte[] lockData = ServiceLock.getLockData(getZooCache(), zLockPath, stat);
+        if (lockData != null) {
+          UUID uuid = UUID.fromString(new String(lockData, UTF_8));
+          liveScanServers.put(addr, uuid);
+        }
+      } catch (Exception e) {
+        log.error("Error validating zookeeper scan server node: " + addr, e);
+      }
+    }
+    return liveScanServers;
+  }
+
+  /**
+   * @return the scan server dispatcher implementation used for determining which scan servers will
+   *         be used when performing an eventually consistent scan
+   */
+  public synchronized ScanServerDispatcher getScanServerDispatcher() {
+    ensureOpen();
+    if (scanServerDispatcher == null) {
+      String clazz = ClientProperty.SCAN_SERVER_DISPATCHER.getValue(info.getProperties());
+      try {
+        Class<? extends ScanServerDispatcher> impl =
+            Class.forName(clazz).asSubclass(ScanServerDispatcher.class);
+        scanServerDispatcher = impl.getDeclaredConstructor().newInstance();
+
+        Map<String,String> sserverProps = new HashMap<>();
+        ClientProperty.getPrefix(info.getProperties(),
+            ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey()).forEach((k, v) -> {
+              sserverProps.put(
+                  k.toString().substring(
+                      ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey().length()),
+                  v.toString());
+            });
+
+        scanServerDispatcher.init(new ScanServerDispatcher.InitParameters() {
+          @Override
+          public Map<String,String> getOptions() {
+            return Collections.unmodifiableMap(sserverProps);
+          }
+
+          @Override
+          public ServiceEnvironment getServiceEnv() {
+            return new ClientServiceEnvironmentImpl(ClientContext.this);
+          }
+
+          @Override
+          public Supplier<Set<String>> getScanServers() {
+            return () -> new HashSet<>(ClientContext.this.getScanServers().keySet());
+          }
+        });
+      } catch (Exception e) {
+        throw new RuntimeException("Error creating ScanServerDispatcher implementation: " + clazz,
+            e);
+      }
+    }
+    return scanServerDispatcher;
   }
 
   static ConditionalWriterConfig getConditionalWriterConfig(Properties props) {

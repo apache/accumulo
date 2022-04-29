@@ -197,13 +197,13 @@ public class VerifyTabletAssignments {
     List<TColumn> emptyListColumn = Collections.emptyList();
     InitialMultiScan is = client.startMultiScan(tinfo, context.rpcCreds(), batch, emptyListColumn,
         emptyListIterInfo, emptyMapSMapSS, Authorizations.EMPTY.getAuthorizationsBB(), false, null,
-        0L, null, null);
+        0L, null, null, 0L);
     if (is.result.more) {
-      MultiScanResult result = client.continueMultiScan(tinfo, is.scanID);
+      MultiScanResult result = client.continueMultiScan(tinfo, is.scanID, 0L);
       checkFailures(entry.getKey(), failures, result);
 
       while (result.more) {
-        result = client.continueMultiScan(tinfo, is.scanID);
+        result = client.continueMultiScan(tinfo, is.scanID, 0L);
         checkFailures(entry.getKey(), failures, result);
       }
     }

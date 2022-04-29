@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.Range;
@@ -237,5 +238,10 @@ public interface InputFormatBuilder {
      * By default, this feature is <b>disabled</b>.
      */
     InputFormatOptions<T> batchScan(boolean value);
+
+    /**
+     * Enables the user to set the consistency level
+     */
+    InputFormatOptions<T> consistencyLevel(ConsistencyLevel level);
   }
 }

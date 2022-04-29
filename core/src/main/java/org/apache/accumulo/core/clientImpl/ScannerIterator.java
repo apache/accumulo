@@ -28,6 +28,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
+import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.clientImpl.ThriftScanner.ScanState;
@@ -84,7 +85,8 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
         new ScanState(context, tableId, authorizations, new Range(range), options.fetchedColumns,
             size, options.serverSideIteratorList, options.serverSideIteratorOptions, isolated,
             readaheadThreshold, options.getSamplerConfiguration(), options.batchTimeOut,
-            options.classLoaderContext, options.executionHints);
+            options.classLoaderContext, options.executionHints,
+            (options.getConsistencyLevel().equals(ConsistencyLevel.EVENTUAL)) ? true : false);
 
     // If we want to start readahead immediately, don't wait for hasNext to be called
     if (readaheadThreshold == 0L) {

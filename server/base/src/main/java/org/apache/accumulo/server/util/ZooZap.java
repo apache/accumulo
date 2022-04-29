@@ -78,6 +78,8 @@ public class ZooZap implements KeywordExecutable {
     boolean zapCoordinators = false;
     @Parameter(names = "-compactors", description = "remove compactor locks")
     boolean zapCompactors = false;
+    @Parameter(names = "-sservers", description = "remove scan server locks")
+    boolean zapScanServers = false;
     @Parameter(names = "-verbose", description = "print out messages about progress")
     boolean verbose = false;
   }
@@ -174,6 +176,23 @@ public class ZooZap implements KeywordExecutable {
           log.error("Error deleting compactors from zookeeper, {}", e.getMessage(), e);
         }
 
+      }
+
+      if (opts.zapScanServers) {
+        String sserversPath = Constants.ZROOT + "/" + iid + Constants.ZSSERVERS;
+        try {
+          List<String> children = zoo.getChildren(sserversPath);
+          for (String child : children) {
+            message("Deleting " + sserversPath + "/" + child + " from zookeeper", opts);
+
+            var zLockPath = ServiceLock.path(sserversPath + "/" + child);
+            if (!zoo.getChildren(zLockPath.toString()).isEmpty()) {
+              ServiceLock.deleteLock(zoo, zLockPath);
+            }
+          }
+        } catch (Exception e) {
+          log.error("{}", e.getMessage(), e);
+        }
       }
 
     } finally {
