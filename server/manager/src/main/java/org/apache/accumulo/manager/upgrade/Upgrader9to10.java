@@ -467,7 +467,7 @@ public class Upgrader9to10 implements Upgrader {
     Ample ample = context.getAmple();
 
     // find all deletes
-    try (BatchWriter writer = ((AccumuloClient) context).createBatchWriter(tableName)) {
+    try (BatchWriter writer = context.createBatchWriter(tableName)) {
       log.info("looking for candidates in table {}", tableName);
       Iterator<String> oldCandidates = getOldCandidates(context, tableName);
       String upgradeProp =
@@ -563,9 +563,8 @@ public class Upgrader9to10 implements Upgrader {
   public void upgradeDirColumns(ServerContext context, Ample.DataLevel level) {
     String tableName = level.metaTable();
 
-    try (
-        Scanner scanner = ((AccumuloClient) context).createScanner(tableName, Authorizations.EMPTY);
-        BatchWriter writer = ((AccumuloClient) context).createBatchWriter(tableName)) {
+    try (Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY);
+        BatchWriter writer = context.createBatchWriter(tableName)) {
       DIRECTORY_COLUMN.fetch(scanner);
 
       for (Entry<Key,Value> entry : scanner) {
