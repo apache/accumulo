@@ -150,11 +150,11 @@ public class TabletClientHandler implements TabletClientService.Iface {
 
   public TabletClientHandler(TabletServer server, TransactionWatcher watcher,
       WriteTracker writeTracker) {
-    this.server = server;
     this.context = server.getContext();
     this.watcher = watcher;
     this.writeTracker = writeTracker;
     this.security = context.getSecurityOperation();
+    this.server = server;
     MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = server.getContext().getConfiguration()
         .getTimeInMillis(Property.TSERV_SCAN_RESULTS_MAX_TIMEOUT);
     log.debug("{} created", TabletClientHandler.class.getName());
@@ -1555,5 +1555,4 @@ public class TabletClientHandler implements TabletClientService.Iface {
       return handleTimeout(sessionId);
     }
   }
-
 }

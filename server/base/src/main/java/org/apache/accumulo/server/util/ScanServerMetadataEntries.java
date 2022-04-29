@@ -26,12 +26,8 @@ import java.util.UUID;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ScanServerMetadataEntries {
-
-  private static Logger LOG = LoggerFactory.getLogger(ScanServerMetadataEntries.class);
 
   public static void clean(ServerContext context) {
 

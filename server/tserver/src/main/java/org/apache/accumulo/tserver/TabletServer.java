@@ -168,7 +168,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterators;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
@@ -182,7 +181,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
   final ZooCache managerLockCache;
 
-  TabletServerLogger logger;
+  final TabletServerLogger logger;
 
   private TabletServerMetrics metrics;
   TabletServerUpdateMetrics updateMetrics;
@@ -199,10 +198,10 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     return mincMetrics;
   }
 
-  private LogSorter logSorter;
+  private final LogSorter logSorter;
   @SuppressWarnings("deprecation")
   private org.apache.accumulo.tserver.replication.ReplicationWorker replWorker = null;
-  TabletStatsKeeper statsKeeper;
+  final TabletStatsKeeper statsKeeper;
   private final AtomicInteger logIdGenerator = new AtomicInteger();
 
   private final AtomicLong flushCounter = new AtomicLong(0);
@@ -220,10 +219,10 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   HostAndPort clientAddress;
 
-  protected volatile boolean serverStopRequested = false;
+  private volatile boolean serverStopRequested = false;
   private volatile boolean shutdownComplete = false;
 
-  protected ServiceLock tabletServerLock;
+  private ServiceLock tabletServerLock;
 
   private TServer server;
   private volatile TServer replServer;
@@ -237,7 +236,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private final AtomicLong totalMinorCompactions = new AtomicLong(0);
 
   private final ZooAuthenticationKeyWatcher authKeyWatcher;
-  private WalStateManager walMarker;
+  private final WalStateManager walMarker;
   private final ServerContext context;
 
   public static void main(String[] args) throws Exception {
@@ -246,8 +245,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
   }
 
-  @SuppressFBWarnings(value = "SC_START_IN_CTOR",
-      justification = "bad practice to start threads in constructor; probably needs rewrite")
   protected TabletServer(ServerOpts opts, String[] args) {
     super("tserver", opts, args);
     context = super.getContext();
@@ -256,7 +253,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + getInstanceID());
     this.sessionManager = new SessionManager(context);
-
     this.logSorter = new LogSorter(context, aconf);
     @SuppressWarnings("deprecation")
     var replWorker = new org.apache.accumulo.tserver.replication.ReplicationWorker(context);
@@ -360,15 +356,12 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
     logger = new TabletServerLogger(this, walMaxSize, syncCounter, flushCounter,
         walCreationRetryFactory, walWritingRetryFactory, walMaxAge);
-    Threads.createThread("Split/MajC initiator", new MajorCompactor(context)).start();
-    FileSystemMonitor.start(aconf, Property.TSERV_MONITOR_FS);
-    walMarker = new WalStateManager(context);
-
     this.resourceManager = new TabletServerResourceManager(context, this);
     this.security = context.getSecurityOperation();
 
     watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
         TabletLocator::clearLocators, jitter(), jitter(), TimeUnit.MILLISECONDS));
+    walMarker = new WalStateManager(context);
 
     if (aconf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       log.info("SASL is enabled, creating ZooKeeper watcher for AuthenticationKeys");
@@ -379,13 +372,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     } else {
       authKeyWatcher = null;
     }
-    log.info("Tablet server starting on {}", getHostname());
-    clientAddress = HostAndPort.fromParts(getHostname(), 0);
-
-    Runnable gcDebugTask = () -> gcLogger.logGCInfo(getConfiguration());
-    future = context.getScheduledExecutor().scheduleWithFixedDelay(gcDebugTask, 0,
-        TIME_BETWEEN_GC_CHECKS, TimeUnit.MILLISECONDS);
-    ThreadPools.watchNonCriticalScheduledTask(future);
+    config();
   }
 
   public InstanceId getInstanceID() {
@@ -410,13 +397,13 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private TabletClientHandler thriftClientHandler;
   private ThriftScanClientHandler scanClientHandler;
   private final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
-  protected CompactionManager compactionManager;
+  private CompactionManager compactionManager;
 
   String getLockID() {
     return lockID;
   }
 
-  public void requestStop() {
+  void requestStop() {
     serverStopRequested = true;
   }
 
@@ -1062,6 +1049,23 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
             + " Data loss may occur.", logPath);
       }
     }
+  }
+
+  private void config() {
+    log.info("Tablet server starting on {}", getHostname());
+    Threads.createThread("Split/MajC initiator", new MajorCompactor(context)).start();
+
+    clientAddress = HostAndPort.fromParts(getHostname(), 0);
+
+    final AccumuloConfiguration aconf = getConfiguration();
+
+    FileSystemMonitor.start(aconf, Property.TSERV_MONITOR_FS);
+
+    Runnable gcDebugTask = () -> gcLogger.logGCInfo(getConfiguration());
+
+    ScheduledFuture<?> future = context.getScheduledExecutor().scheduleWithFixedDelay(gcDebugTask,
+        0, TIME_BETWEEN_GC_CHECKS, TimeUnit.MILLISECONDS);
+    watchNonCriticalScheduledTask(future);
   }
 
   public TabletServerStatus getStats(Map<TableId,MapCounter<ScanRunState>> scanCounts) {

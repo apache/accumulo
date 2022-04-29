@@ -344,7 +344,7 @@ public class ClientContext implements AccumuloClient {
    * @return map of live scan server addresses to lock uuids.
    */
   public Map<String,UUID> getScanServers() {
-    Map<String,UUID> liveScanServer = new HashMap<>();
+    Map<String,UUID> liveScanServers = new HashMap<>();
     String root = this.getZooKeeperRoot() + Constants.ZSSERVERS;
     var addrs = this.getZooCache().getChildren(root);
     for (String addr : addrs) {
@@ -354,13 +354,13 @@ public class ClientContext implements AccumuloClient {
         byte[] lockData = ServiceLock.getLockData(getZooCache(), zLockPath, stat);
         if (lockData != null) {
           UUID uuid = UUID.fromString(new String(lockData, UTF_8));
-          liveScanServer.put(addr, uuid);
+          liveScanServers.put(addr, uuid);
         }
       } catch (Exception e) {
         log.error("Error validating zookeeper scan server node: " + addr, e);
       }
     }
-    return liveScanServer;
+    return liveScanServers;
   }
 
   /**

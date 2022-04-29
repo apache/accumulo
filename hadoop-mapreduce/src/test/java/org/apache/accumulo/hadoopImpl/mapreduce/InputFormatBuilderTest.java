@@ -28,7 +28,6 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.hadoop.mapreduce.InputFormatBuilder;
-import org.apache.accumulo.hadoop.mapreduce.InputFormatBuilder.InputFormatOptions;
 import org.apache.hadoop.mapred.JobConf;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

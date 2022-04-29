@@ -302,7 +302,6 @@ public class Tablet extends TabletBase {
         .isEnabled(extent, this.tableConfiguration);
     TabletFiles tabletPaths =
         new TabletFiles(data.getDirectoryName(), data.getLogEntries(), data.getDataFiles());
-
     tabletPaths = VolumeUtil.updateTabletVolumes(tabletServer.getContext(), tabletServer.getLock(),
         extent, tabletPaths, replicationEnabled);
 
