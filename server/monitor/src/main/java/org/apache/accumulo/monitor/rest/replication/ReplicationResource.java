@@ -149,6 +149,12 @@ public class ReplicationResource {
       });
     }
 
+    //Ensure replication table is online before attempting to create BatchScanner
+    if (!ReplicationTable.isOnline(client)) {
+        log.error("Replication table is offline");
+        return Collections.emptyList();
+    }
+    
     // Read over the queued work
     BatchScanner bs;
     try {
