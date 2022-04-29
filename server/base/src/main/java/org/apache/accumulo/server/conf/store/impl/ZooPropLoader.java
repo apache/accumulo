@@ -146,8 +146,8 @@ public class ZooPropLoader implements CacheLoader<PropCacheKey,VersionedProperti
       propStoreWatcher.signalCacheChangeEvent(propCacheId);
       log.trace("Updated value {}", updatedValue == null ? "null" : updatedValue.print(true));
       return updatedValue;
-    } catch (Exception ex) {
-      log.info("async exception occurred reading properties from ZooKeeper for: {} returning null",
+    } catch (RuntimeException | KeeperException | InterruptedException ex) {
+      log.warn("async exception occurred reading properties from ZooKeeper for: {} returning null",
           propCacheId, ex);
       metrics.incrZkError();
       propStoreWatcher.signalZkChangeEvent(propCacheId);
