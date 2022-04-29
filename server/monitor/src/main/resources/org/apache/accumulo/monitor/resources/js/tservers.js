@@ -189,39 +189,8 @@ function clearDeadTServers(server) {
 }
 
 /**
- * Generates the tserver table and highlights rows that have recovering tservers
+ * Generates the tserver table
  */
 function refreshTServersTable() {
   if (tserversList) tserversList.ajax.reload(null, false); // user paging is not reset on reload
-
-  // getRecoveryList().then(function () {
-  //   hide the highlighted row note by default
-  //   $('#recovery-caption').hide();
-
-  //   reset background for all rows
-  //   const table = $('#tservers').DataTable();
-  //   table.rows().every(function (index) {
-  //     $(table.row(index).node()).removeClass('bg-warning');
-  //   });
-
-  //   const recoveryList = []
-  //   JSON.parse(sessionStorage.recoveryList).recoveryList.forEach(entry => {
-  //     recoveryList.push(entry.server);
-  //   });
-
-  //   if (recoveryList.length === 0)
-  //     return;
-  
-
-  //   $('#recovery-caption').show();
-
-  //   console.log('List of recovering tservers to be highlighted: ' + recoveryList);
-
-  //   highlight rows if their tserver is recovering
-  //   table.rows().every(function (index) {
-  //     if (recoveryList.includes(this.data().hostname)) {
-  //       $(table.row(index).node()).addClass('bg-warning');
-  //     }
-  //   });
-  // });
 }
