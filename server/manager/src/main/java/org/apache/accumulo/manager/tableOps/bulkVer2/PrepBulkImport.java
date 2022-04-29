@@ -183,8 +183,8 @@ public class PrepBulkImport extends ManagerRepo {
     VolumeManager fs = manager.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.sourceDir);
 
-    int maxTablets = Integer.parseInt(manager.getContext().getTableConfiguration(bulkInfo.tableId)
-        .get(Property.TABLE_BULK_MAX_TABLETS));
+    int maxTablets = manager.getContext().getTableConfiguration(bulkInfo.tableId)
+        .getCount(Property.TABLE_BULK_MAX_TABLETS);
 
     try (LoadMappingIterator lmi =
         BulkSerialize.readLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open)) {
