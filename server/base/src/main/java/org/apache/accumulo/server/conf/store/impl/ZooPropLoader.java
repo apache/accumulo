@@ -85,7 +85,7 @@ public class ZooPropLoader implements CacheLoader<PropCacheKey,VersionedProperti
 
   @Override
   public CompletableFuture<? extends VersionedProperties> asyncLoad(PropCacheKey propCacheKey,
-      Executor executor) {
+      Executor executor) throws Exception {
     log.trace("asyncLoad called for key: {}", propCacheKey);
     return CacheLoader.super.asyncLoad(propCacheKey, executor);
   }
