@@ -69,7 +69,7 @@ public class ReplicationUtil {
 
     // The number of threads each tserver will use at most to replicate data
     int replicationThreadsPerServer =
-        Integer.parseInt(context.getConfiguration().get(Property.REPLICATION_WORKER_THREADS));
+        context.getConfiguration().getCount(Property.REPLICATION_WORKER_THREADS);
 
     // The total number of "slots" we have to replicate data
     return activeTservers * replicationThreadsPerServer;
