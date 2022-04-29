@@ -46,7 +46,7 @@ public class SiteConfigurationTest {
 
     var overrides =
         Map.of(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), credProvPath);
-    var config = new SiteConfiguration.Builder().noFile().withOverrides(overrides).build();
+    var config = SiteConfiguration.empty().withOverrides(overrides).build();
 
     assertEquals("mysecret", config.get(Property.INSTANCE_SECRET));
     assertNull(config.get("ignored.property"));
@@ -56,7 +56,7 @@ public class SiteConfigurationTest {
 
   @Test
   public void testDefault() {
-    var conf = SiteConfiguration.auto();
+    var conf = SiteConfiguration.empty().build();
     assertEquals("localhost:2181", conf.get(Property.INSTANCE_ZK_HOST));
     assertEquals("DEFAULT", conf.get(Property.INSTANCE_SECRET));
     assertEquals("", conf.get(Property.INSTANCE_VOLUMES));
@@ -84,10 +84,10 @@ public class SiteConfigurationTest {
 
   @Test
   public void testConfigOverrides() {
-    var conf = SiteConfiguration.auto();
+    var conf = SiteConfiguration.empty().build();
     assertEquals("localhost:2181", conf.get(Property.INSTANCE_ZK_HOST));
 
-    conf = new SiteConfiguration.Builder().noFile()
+    conf = SiteConfiguration.empty()
         .withOverrides(Map.of(Property.INSTANCE_ZK_HOST.getKey(), "myhost:2181")).build();
     assertEquals("myhost:2181", conf.get(Property.INSTANCE_ZK_HOST));
 

@@ -255,7 +255,7 @@
       <dependency>
         <groupId>com.github.ben-manes.caffeine</groupId>
         <artifactId>caffeine</artifactId>
-        <version>3.0.5</version>
+        <version>3.1.0</version>
       </dependency>
       <dependency>
         <groupId>com.github.spotbugs</groupId>
@@ -994,6 +994,7 @@
                 <unused>org.apache.hadoop:hadoop-client:jar:*</unused>
                 <unused>org.apache.hadoop:hadoop-client-runtime:jar:*</unused>
                 <unused>org.apache.hadoop:hadoop-minicluster:jar:*</unused>
+                <unused>org.glassfish.jaxb:txw2:jar:*</unused>
                 <unused>org.glassfish.jersey.ext:jersey-bean-validation:jar:*</unused>
                 <unused>org.glassfish.jersey.inject:jersey-hk2:jar:*</unused>
                 <unused>org.glassfish.jersey.test-framework.providers:jersey-test-framework-provider-grizzly2:jar:*</unused>

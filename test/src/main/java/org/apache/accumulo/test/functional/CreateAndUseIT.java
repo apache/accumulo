@@ -19,10 +19,10 @@
 package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -42,8 +42,6 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
-import com.google.common.collect.Iterators;
 
 public class CreateAndUseIT extends AccumuloClusterHarness {
 
@@ -133,9 +131,7 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
 
       try (BatchScanner bs = client.createBatchScanner(table3)) {
         bs.setRanges(ranges);
-        Iterator<Entry<Key,Value>> iter = bs.iterator();
-        int count = Iterators.size(iter);
-        assertEquals(0, count, "Did not expect to find any entries");
+        assertTrue(bs.stream().findAny().isEmpty(), "Did not expect to find any entries");
       }
     }
   }

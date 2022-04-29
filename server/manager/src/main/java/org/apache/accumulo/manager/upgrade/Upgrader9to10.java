@@ -376,8 +376,6 @@ public class Upgrader9to10 implements Upgrader {
   MetadataTime computeRootTabletTime(ServerContext context, Collection<String> goodPaths) {
 
     try {
-      context.setupCrypto();
-
       long rtime = Long.MIN_VALUE;
       for (String good : goodPaths) {
         Path path = new Path(good);
