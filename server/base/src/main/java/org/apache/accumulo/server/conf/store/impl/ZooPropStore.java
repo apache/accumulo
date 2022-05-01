@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.conf.store.impl;
 
+import static java.util.Objects.requireNonNullElseGet;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
@@ -64,31 +66,47 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    *          the instance id
    * @param zrw
    *          a wrapper set of utilities for accessing ZooKeeper.
-   * @param readyMonitor
-   *          coordination utility for ZooKeeper connection status.
-   * @param propStoreWatcher
-   *          an extended ZooKeeper watcher
-   * @param ticker
-   *          a synthetic clock used for testing.
    */
-  private ZooPropStore(final InstanceId instanceId, final ZooReaderWriter zrw,
-      final ReadyMonitor readyMonitor, final PropStoreWatcher propStoreWatcher,
-      final Ticker ticker) {
+  private ZooPropStore(final InstanceId instanceId, final ZooReaderWriter zrw) {
+    this(instanceId, zrw, null, null, null);
+  }
+
+  /**
+   * For testing create an instance with the optionally pass synthetic clock (Ticker), a
+   * ReadyMonitor and a PropStore watcher allowing them to be mocked. If the optional components are
+   * passed as null an internal instance is created.
+   *
+   * @param instanceId
+   *          the instance id
+   * @param zrw
+   *          a wrapper set of utilities for accessing ZooKeeper.
+   * @param monitor
+   *          a ready monitor. Optional, if null, one is created.
+   * @param watcher
+   *          a watcher. Optional, if null, one is created.
+   * @param ticker
+   *          a synthetic clock used for testing. Optional, if null, one is created.
+   */
+  ZooPropStore(final InstanceId instanceId, final ZooReaderWriter zrw, final ReadyMonitor monitor,
+      final PropStoreWatcher watcher, final Ticker ticker) {
 
     this.zrw = zrw;
-    this.zkReadyMon = readyMonitor;
-    this.propStoreWatcher = propStoreWatcher;
 
-    MetricsUtil.initializeProducers(cacheMetrics);
+    this.zkReadyMon = requireNonNullElseGet(monitor,
+        () -> new ReadyMonitor("prop-store", Math.round(zrw.getSessionTimeout() * 1.75)));
 
-    ZooPropLoader propLoader = new ZooPropLoader(zrw, codec, propStoreWatcher, cacheMetrics);
+    this.propStoreWatcher = requireNonNullElseGet(watcher, () -> new PropStoreWatcher(zkReadyMon));
+
+    ZooPropLoader propLoader = new ZooPropLoader(zrw, codec, this.propStoreWatcher, cacheMetrics);
 
     if (ticker == null) {
-      cache = new PropCacheCaffeineImpl.Builder(propLoader, cacheMetrics).build();
+      this.cache = new PropCacheCaffeineImpl.Builder(propLoader, cacheMetrics).build();
     } else {
-      cache =
+      this.cache =
           new PropCacheCaffeineImpl.Builder(propLoader, cacheMetrics).withTicker(ticker).build();
     }
+
+    MetricsUtil.initializeProducers(cacheMetrics);
 
     try {
       var path = ZooUtil.getRoot(instanceId);
@@ -105,8 +123,9 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     }
   }
 
-  public static PropStore initialize(final InstanceId instanceId, final ZooReaderWriter zrw) {
-    return new ZooPropStore.Builder(instanceId, zrw, zrw.getSessionTimeout()).build();
+  public static PropStore initialize(@NonNull final InstanceId instanceId,
+      @NonNull final ZooReaderWriter zrw) {
+    return new ZooPropStore(instanceId, zrw);
   }
 
   @Override
@@ -412,90 +431,6 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
       throw new IllegalStateException("Interrupt received during ZooKeeper read", ex);
-    }
-  }
-
-  /**
-   * Construct a ZooPropStore instance. For production only a ServerContext is required to
-   * instantiate the prop store. The capability to supply an external watcher is to help with
-   * testing so that the tests can mock or have access to the watcher.
-   */
-  public static class Builder {
-
-    private final InstanceId instanceId;
-    private final ZooReaderWriter zrw;
-    private final ReadyMonitor readyMonitor;
-    private PropStoreWatcher propStoreWatcher = null;
-    private Ticker ticker = null;
-
-    /**
-     * Create a Builder instance, using provided context to get necessary parameters.
-     *
-     * @param context
-     *          a ServerContext
-     */
-    public Builder(final ServerContext context) {
-      this(context.getInstanceID(), context.getZooReaderWriter(),
-          context.getZooKeepersSessionTimeOut());
-    }
-
-    /**
-     * Alternate builder that makes mocking easier by removing ServerContext dependency and using
-     * parameters injected directly.
-     *
-     * @param instanceId
-     *          the instance id.
-     * @param zrw
-     *          a ZooReaderWriter
-     * @param zooSessionTimeout
-     *          the zoo session timeout in milliseconds.
-     */
-    @VisibleForTesting
-    public Builder(final InstanceId instanceId, final ZooReaderWriter zrw,
-        final long zooSessionTimeout) {
-      this.instanceId = instanceId;
-      this.zrw = zrw;
-
-      long readyTimeout = Math.round(zooSessionTimeout * 1.75);
-      readyMonitor = new ReadyMonitor("prop-store", readyTimeout);
-    }
-
-    /**
-     * Construct a ZooPropStore instance.
-     *
-     * @return a ZooPropStore.
-     */
-    public ZooPropStore build() {
-      if (propStoreWatcher == null) { // if watcher not provided, create one.
-        propStoreWatcher = new PropStoreWatcher(readyMonitor);
-      }
-      return new ZooPropStore(instanceId, zrw, readyMonitor, propStoreWatcher, ticker);
-    }
-
-    /**
-     * Use an external PropStoreWatcher - for testing so that the watcher is accessible to the tests
-     * or can be a mock instance.
-     *
-     * @param watcher
-     *          a PropStoreWatcher.
-     * @return reference to the builder for fluent style chaining.
-     */
-    public Builder withWatcher(final PropStoreWatcher watcher) {
-      propStoreWatcher = watcher;
-      return this;
-    }
-
-    /**
-     * Allow a fake clock to be used for testing operations in the cache such as expiration without
-     * needing to wait the required wall clock time.
-     *
-     * @param ticker
-     *          a synthetic clock used for testing
-     * @return reference to the builder for fluent style chaining.
-     */
-    public Builder withTicker(final Ticker ticker) {
-      this.ticker = ticker;
-      return this;
     }
   }
 }

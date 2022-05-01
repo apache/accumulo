@@ -100,7 +100,7 @@ public class TransformTokenIT {
       zrw.putPersistentData(node.getPath(), node.getData(), ZooUtil.NodeExistsPolicy.SKIP);
     }
 
-    ZooPropStore propStore = new ZooPropStore.Builder(instanceId, zrw, 30_000).build();
+    ZooPropStore propStore = (ZooPropStore) ZooPropStore.initialize(instanceId, zrw);
 
     ServerContext context = createMock(ServerContext.class);
     expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
@@ -141,7 +141,7 @@ public class TransformTokenIT {
       zrw.putPersistentData(node.getPath(), node.getData(), ZooUtil.NodeExistsPolicy.SKIP);
     }
 
-    ZooPropStore propStore = new ZooPropStore.Builder(instanceId, zrw, 30_000).build();
+    ZooPropStore propStore = (ZooPropStore) ZooPropStore.initialize(instanceId, zrw);
 
     ServerContext context = createMock(ServerContext.class);
     expect(context.getInstanceID()).andReturn(instanceId).anyTimes();

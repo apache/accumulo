@@ -28,6 +28,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.newCapture;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -49,6 +50,7 @@ import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
 import org.easymock.Capture;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -80,6 +82,11 @@ public class PropStoreEventTest {
     readyMonitor = createMock(ReadyMonitor.class);
   }
 
+  @AfterEach
+  public void verifyMocks() {
+    verify(context, zrw, readyMonitor);
+  }
+
   @Test
   public void zkChangeEventTest() throws Exception {
 
@@ -90,10 +97,12 @@ public class PropStoreEventTest {
     WatchedEvent zkEvent = createMock(WatchedEvent.class);
     expect(zkEvent.getPath()).andReturn(tablePropKey.getPath()).once();
     expect(zkEvent.getType()).andReturn(Watcher.Event.EventType.NodeDataChanged);
+    readyMonitor.setReady();
+    expectLastCall().once();
+
     replay(context, zrw, readyMonitor, zkEvent);
 
-    PropStore propStore = new ZooPropStore.Builder(context).withWatcher(watcher).build();
-
+    PropStore propStore = new ZooPropStore(instanceId, zrw, readyMonitor, watcher, null);
     StoreTestListener listener = new StoreTestListener();
 
     propStore.registerAsListener(tablePropKey, listener);
@@ -115,9 +124,13 @@ public class PropStoreEventTest {
     WatchedEvent zkEvent = createMock(WatchedEvent.class);
     expect(zkEvent.getPath()).andReturn(tablePropKey.getPath()).once();
     expect(zkEvent.getType()).andReturn(Watcher.Event.EventType.NodeDeleted);
+
+    readyMonitor.setReady();
+    expectLastCall().once();
+
     replay(context, zrw, readyMonitor, zkEvent);
 
-    PropStore propStore = new ZooPropStore.Builder(context).withWatcher(watcher).build();
+    PropStore propStore = new ZooPropStore(instanceId, zrw, readyMonitor, watcher, null);
 
     StoreTestListener listener = new StoreTestListener();
 
@@ -141,12 +154,14 @@ public class PropStoreEventTest {
     expect(zkEvent.getType()).andReturn(Watcher.Event.EventType.None);
     expect(zkEvent.getState()).andReturn(Watcher.Event.KeeperState.Disconnected).once();
 
+    readyMonitor.setReady();
+    expectLastCall().once();
     readyMonitor.clearReady();
     expectLastCall();
 
     replay(context, zrw, readyMonitor, zkEvent);
 
-    PropStore propStore = new ZooPropStore.Builder(context).withWatcher(watcher).build();
+    PropStore propStore = new ZooPropStore(instanceId, zrw, readyMonitor, watcher, null);
 
     StoreTestListener listener = new StoreTestListener();
 
@@ -170,6 +185,8 @@ public class PropStoreEventTest {
     expect(zkEvent.getType()).andReturn(Watcher.Event.EventType.None);
     expect(zkEvent.getState()).andReturn(Watcher.Event.KeeperState.Closed).once();
 
+    readyMonitor.setReady();
+    expectLastCall();
     readyMonitor.clearReady();
     expectLastCall();
     readyMonitor.setClosed();
@@ -177,7 +194,7 @@ public class PropStoreEventTest {
 
     replay(context, zrw, readyMonitor, zkEvent);
 
-    PropStore propStore = new ZooPropStore.Builder(context).withWatcher(watcher).build();
+    PropStore propStore = new ZooPropStore(instanceId, zrw, readyMonitor, watcher, null);
 
     StoreTestListener listener = new StoreTestListener();
 
@@ -191,8 +208,6 @@ public class PropStoreEventTest {
 
     log.info("Ready: {}", readyMonitor);
 
-    // TODO how to mock so connect state shows closed?
-    // propStore.get(tablePropKey);
   }
 
   @Test
@@ -201,10 +216,12 @@ public class PropStoreEventTest {
     PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TableId.of("a1"));
 
     PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
+    readyMonitor.setReady();
+    expectLastCall().once();
 
     replay(context, zrw, readyMonitor);
 
-    ZooPropStore propStore = new ZooPropStore.Builder(context).withWatcher(watcher).build();
+    PropStore propStore = new ZooPropStore(instanceId, zrw, readyMonitor, watcher, null);
 
     StoreTestListener listener = new StoreTestListener();
 

@@ -22,7 +22,7 @@ import java.util.Collection;
 import java.util.Map;
 
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 public interface PropStore {
 
@@ -54,11 +54,12 @@ public interface PropStore {
    *
    * @param propCacheId
    *          the prop cache key
-   * @return The versioned properties or null if the properties do not exist for the id.
+   * @return The versioned properties.
    * @throws IllegalStateException
-   *           if the updates fails because of an underlying store exception
+   *           if the updates fails because of an underlying store exception or if the properties do
+   *           not exist for the propCacheId
    */
-  @Nullable
+  @NonNull
   VersionedProperties get(PropCacheKey propCacheId);
 
   /**

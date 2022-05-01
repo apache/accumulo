@@ -128,8 +128,7 @@ public class ConfigPropertyUpgraderIT {
     ConfigPropertyUpgrader upgrader = new ConfigPropertyUpgrader();
     upgrader.doUpgrade(instanceId, zrw);
 
-    PropStore propStore =
-        new ZooPropStore.Builder(instanceId, zrw, zooKeeper.getSessionTimeout()).build();
+    PropStore propStore = ZooPropStore.initialize(instanceId, zrw);
 
     var sysKey = PropCacheKey.forSystem(instanceId);
     log.info("PropStore: {}", propStore.get(sysKey));

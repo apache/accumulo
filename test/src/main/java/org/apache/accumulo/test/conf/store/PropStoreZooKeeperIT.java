@@ -74,6 +74,7 @@ public class PropStoreZooKeeperIT {
   private static ZooKeeper zooKeeper;
   private ServerContext context;
   private InstanceId instanceId = null;
+  private PropStore propStore = null;
   private final TableId tIdA = TableId.of("A");
   private final TableId tIdB = TableId.of("B");
 
@@ -123,6 +124,12 @@ public class PropStoreZooKeeperIT {
       Thread.currentThread().interrupt();
       throw new IllegalStateException("Interrupted during zookeeper path initialization", ex);
     }
+
+    log.warn("IID: {}", instanceId);
+    log.warn("ZRW: {}", context.getZooReaderWriter());
+
+    propStore = ZooPropStore.initialize(instanceId, context.getZooReaderWriter());
+
   }
 
   @AfterEach
@@ -139,9 +146,6 @@ public class PropStoreZooKeeperIT {
    */
   @Test
   public void createNoProps() throws InterruptedException, KeeperException {
-
-    ZooPropStore propStore = new ZooPropStore.Builder(context).build();
-
     PropCacheKey propKey = PropCacheKey.forTable(instanceId, tIdA);
 
     // read from ZK, after delete no node and node not created.
@@ -151,9 +155,6 @@ public class PropStoreZooKeeperIT {
 
   @Test
   public void failOnDuplicate() throws InterruptedException, KeeperException {
-
-    PropStore propStore = new ZooPropStore.Builder(context).build();
-
     PropCacheKey propKey = PropCacheKey.forTable(instanceId, tIdA);
 
     assertNull(zooKeeper.exists(propKey.getPath(), false)); // check node does not exist in ZK
@@ -169,9 +170,6 @@ public class PropStoreZooKeeperIT {
 
   @Test
   public void createWithProps() throws InterruptedException, KeeperException, IOException {
-
-    PropStore propStore = new ZooPropStore.Builder(context).build();
-
     PropCacheKey propKey = PropCacheKey.forTable(instanceId, tIdA);
     Map<String,String> initialProps = new HashMap<>();
     initialProps.put(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
@@ -190,9 +188,6 @@ public class PropStoreZooKeeperIT {
 
   @Test
   public void update() throws InterruptedException {
-
-    PropStore propStore = new ZooPropStore.Builder(context).build();
-
     TestChangeListener listener = new TestChangeListener();
 
     PropCacheKey propKey = PropCacheKey.forTable(instanceId, tIdA);
@@ -265,8 +260,6 @@ public class PropStoreZooKeeperIT {
 
   @Test
   public void deleteTest() {
-    PropStore propStore = new ZooPropStore.Builder(context).build();
-
     PropCacheKey tableAPropKey = PropCacheKey.forTable(instanceId, tIdA);
     PropCacheKey tableBPropKey = PropCacheKey.forTable(instanceId, tIdB);
 
@@ -292,9 +285,6 @@ public class PropStoreZooKeeperIT {
    */
   @Test
   public void deleteThroughWatcher() throws InterruptedException {
-
-    PropStore propStore = new ZooPropStore.Builder(context).build();
-
     TestChangeListener listener = new TestChangeListener();
 
     PropCacheKey tableAPropKey = PropCacheKey.forTable(instanceId, tIdA);
@@ -312,8 +302,9 @@ public class PropStoreZooKeeperIT {
 
     assertEquals("true", propsA.asMap().get(Property.TABLE_BLOOM_ENABLED.getKey()));
 
-    // use 3nd prop store - change will propagate via ZooKeeper
-    PropStore propStore2 = new ZooPropStore.Builder(context).build();
+    // use alternate prop store - change will propagate via ZooKeeper
+    PropStore propStore2 = ZooPropStore.initialize(instanceId, context.getZooReaderWriter());
+
     propStore2.delete(tableAPropKey);
 
     log.trace("After delete on 2nd store for table: {}", tableAPropKey);
@@ -338,8 +329,6 @@ public class PropStoreZooKeeperIT {
    */
   @Test
   public void externalChange() throws IOException, InterruptedException, KeeperException {
-
-    PropStore propStore = new ZooPropStore.Builder(context).build();
 
     TestChangeListener listener = new TestChangeListener();
 

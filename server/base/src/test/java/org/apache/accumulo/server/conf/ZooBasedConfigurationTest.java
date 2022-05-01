@@ -18,17 +18,18 @@
  */
 package org.apache.accumulo.server.conf;
 
+import static org.apache.accumulo.core.conf.Property.GC_PORT;
+import static org.apache.accumulo.core.conf.Property.MANAGER_BULK_RETRIES;
 import static org.apache.accumulo.core.conf.Property.TABLE_BLOOM_ENABLED;
 import static org.apache.accumulo.core.conf.Property.TABLE_BLOOM_SIZE;
 import static org.apache.accumulo.core.conf.Property.TABLE_DURABILITY;
+import static org.apache.accumulo.core.conf.Property.TABLE_SPLIT_THRESHOLD;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.reset;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -48,15 +49,12 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
-import org.apache.zookeeper.data.Stat;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -76,13 +74,19 @@ public class ZooBasedConfigurationTest {
     context = createMock(ServerContext.class);
     expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
     propStore = createMock(ZooPropStore.class);
+    propStore.registerAsListener(anyObject(), anyObject());
+    expectLastCall().anyTimes();
     expect(context.getPropStore()).andReturn(propStore).anyTimes();
+  }
+
+  @AfterEach
+  public void verifyMocks() {
+    // verify mocks common to each test
+    verify(context, propStore);
   }
 
   @Test
   public void defaultInitializationTest() {
-    propStore.registerAsListener(anyObject(), anyObject());
-    expectLastCall();
     replay(context, propStore);
     assertNotNull(context.getPropStore());
   }
@@ -90,15 +94,12 @@ public class ZooBasedConfigurationTest {
   @Test
   public void defaultSysConfigTest() {
     PropCacheKey sysKey = PropCacheKey.forSystem(instanceId);
-    propStore.registerAsListener(anyObject(), anyObject());
-    expectLastCall();
 
     var siteConfig = SiteConfiguration.empty().build();
     expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
 
     expect(propStore.get(eq(sysKey))).andReturn(new VersionedProperties()).once(); // default empty
                                                                                    // sys props
-
     replay(context, propStore);
     assertNotNull(context.getPropStore());
 
@@ -111,80 +112,44 @@ public class ZooBasedConfigurationTest {
   public void get() {
     PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TableId.of("a"));
 
-    propStore.registerAsListener(anyObject(), anyObject());
-    expectLastCall();
-
     var siteConfig = SiteConfiguration.empty().build();
     expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
-    expect(propStore.get(eq(PropCacheKey.forSystem(instanceId))))
-        .andReturn(new VersionedProperties()).once(); // default empty sys props
 
-    VersionedProperties vProps =
-        new VersionedProperties(3, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
+    VersionedProperties vProps = new VersionedProperties(3, Instant.now(), Map
+        .of(TABLE_BLOOM_ENABLED.getKey(), "true", TABLE_SPLIT_THRESHOLD.getKey(), "int expected"));
     expect(propStore.get(eq(tablePropKey))).andReturn(vProps).once();
 
-    VersionedProperties invalid =
-        new VersionedProperties(4, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "1234"));
-    expect(propStore.get(eq(tablePropKey))).andReturn(invalid);
+    replay(context, propStore);
 
-    AccumuloConfiguration parent = mock(AccumuloConfiguration.class);
-    // expect(parent.get(isA(Property.class))).andReturn(null);
-
-    replay(context, propStore, parent);
-
-    ZooBasedConfiguration configuration = new SystemConfiguration(context, tablePropKey, parent);
+    ZooBasedConfiguration configuration =
+        new SystemConfiguration(context, tablePropKey, siteConfig);
 
     assertNotNull(configuration);
-
-    verify(context, parent);
+    assertEquals("1G", configuration.get(TABLE_SPLIT_THRESHOLD));
+    assertEquals("true", configuration.get(TABLE_BLOOM_ENABLED));
   }
 
   @Test
-  public void getPropertiesTest() throws Exception {
-
+  public void getPropertiesTest() {
     var tableId = TableId.of("t1");
     PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, tableId);
-    VersionedPropCodec codec = VersionedPropCodec.getDefault();
 
-    ServerContext context = createMock(ServerContext.class);
-    ZooReaderWriter zrw = createMock(ZooReaderWriter.class);
-
-    // set-up mocks for prop store initialization.
-    expect(context.getZooKeepersSessionTimeOut()).andReturn(5_000).anyTimes();
-    expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
-    expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
-
-    expect(zrw.exists(eq(ZooUtil.getRoot(instanceId)), anyObject())).andReturn(true).anyTimes();
-    expect(zrw.getStatus(eq(ZooUtil.getRoot(instanceId)), anyObject())).andReturn(new Stat())
-        .anyTimes();
-
-    // expect(propStore.get(eq(PropCacheKey.forSystem(instanceId)))).andReturn(new
-    // VersionedProperties()).once(); // default empty sys props
-
-    replay(context, zrw);
-
-    PropStore propStore = new ZooPropStore.Builder(context).build();
-
-    // set-up mock for ZooBasedConfig
-    reset(context, zrw);
-
-    AccumuloConfiguration parent = createMock(AccumuloConfiguration.class);
-
-    expect(context.getPropStore()).andReturn(propStore).anyTimes();
-    expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
-
-    VersionedProperties vProps =
+    VersionedProperties tProps =
         new VersionedProperties(Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
-    // expect(zrw.getStatus(eq(tablePropKey.getPath()))).andReturn(new Stat()).once();
-    expect(zrw.getData(eq(tablePropKey.getPath()), anyObject(), anyObject()))
-        .andReturn(codec.toBytes(vProps)).once();
 
     var siteConfig = SiteConfiguration.empty().build();
-    expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
+    // expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
 
-    NamespaceConfiguration nsConfig = createMock(NamespaceConfiguration.class);
+    expect(propStore.get(eq(tablePropKey))).andReturn(tProps).once();
+    NamespaceId nsId = NamespaceId.of("n1");
 
-    replay(context, parent, nsConfig, zrw);
+    VersionedProperties nProps =
+        new VersionedProperties(Map.of(TABLE_SPLIT_THRESHOLD.getKey(), "3G"));
+    expect(propStore.get(eq(PropCacheKey.forNamespace(instanceId, nsId)))).andReturn(nProps).once();
+
+    replay(context, propStore);
+
+    NamespaceConfiguration nsConfig = new NamespaceConfiguration(nsId, context, siteConfig);
 
     ZooBasedConfiguration zbc = new TableConfiguration(context, tableId, nsConfig);
     Map<String,String> readProps = zbc.getSnapshot();
@@ -193,15 +158,19 @@ public class ZooBasedConfigurationTest {
     assertEquals("true", readProps.get(TABLE_BLOOM_ENABLED.getKey()));
     assertEquals("true", zbc.get(TABLE_BLOOM_ENABLED));
 
-    verify(context, zrw);
+    // read a property that is from the namespace config
+    assertEquals("3G", zbc.get(TABLE_SPLIT_THRESHOLD));
+    // TABLE_SPLIT_THRESHOLD
+
+    // read a fixed property from the system config
+    assertEquals("9998", zbc.get(GC_PORT));
+
+    // read a property from the sysconfig
+    assertEquals("3", zbc.get(MANAGER_BULK_RETRIES));
   }
 
   @Test
   public void systemPropTest() {
-
-    propStore.registerAsListener(anyObject(), anyObject());
-    expectLastCall();
-
     PropCacheKey sysPropKey = PropCacheKey.forSystem(instanceId);
     VersionedProperties vProps =
         new VersionedProperties(99, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
@@ -215,16 +184,10 @@ public class ZooBasedConfigurationTest {
         new ZooBasedConfiguration(log, context, sysPropKey, defaultConfig);
     assertNotNull(sysConfig);
     assertEquals("true", sysConfig.get(TABLE_BLOOM_ENABLED));
-
-    verify(propStore, context);
   }
 
   @Test
   public void loadFailBecauseNodeNotExistTest() {
-
-    propStore.registerAsListener(anyObject(), anyObject());
-    expectLastCall().once();
-
     PropCacheKey sysPropKey = PropCacheKey.forSystem(instanceId);
 
     expect(propStore.get(eq(sysPropKey))).andThrow(new IllegalStateException("fake no node"))
@@ -235,7 +198,6 @@ public class ZooBasedConfigurationTest {
     var zbc =
         new ZooBasedConfiguration(log, context, sysPropKey, DefaultConfiguration.getInstance());
     assertThrows(IllegalStateException.class, () -> zbc.get("anyproperty"));
-    verify(propStore, context);
   }
 
   /**
@@ -243,10 +205,6 @@ public class ZooBasedConfigurationTest {
    */
   @Test
   public void tablePropTest() {
-    // this test is ignoring listeners
-    propStore.registerAsListener(anyObject(), anyObject());
-    expectLastCall().anyTimes();
-
     PropCacheKey sysPropKey = PropCacheKey.forSystem(instanceId);
     VersionedProperties sysProps =
         new VersionedProperties(1, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
@@ -310,7 +268,6 @@ public class ZooBasedConfigurationTest {
     assertNull(props.get(TABLE_BLOOM_SIZE.getKey()));
     // in parent - allowed by filter
     assertEquals(TABLE_DURABILITY.getDefaultValue(), props.get(TABLE_DURABILITY.getKey()));
-    verify(propStore, context);
   }
 
   /**
@@ -319,10 +276,6 @@ public class ZooBasedConfigurationTest {
    */
   @Test
   public void updateCountTest() {
-    // this test is ignoring listeners
-    propStore.registerAsListener(anyObject(), anyObject());
-    expectLastCall().anyTimes();
-
     PropCacheKey sysPropKey = PropCacheKey.forSystem(instanceId);
     VersionedProperties sysProps = new VersionedProperties(100, Instant.now(), Map.of());
     expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).once();
@@ -362,10 +315,6 @@ public class ZooBasedConfigurationTest {
    */
   @Test
   public void updateCountTableTest() {
-    // this test is ignoring listeners
-    propStore.registerAsListener(anyObject(), anyObject());
-    expectLastCall().anyTimes();
-
     PropCacheKey sysPropKey = PropCacheKey.forSystem(instanceId);
     VersionedProperties sysProps = new VersionedProperties(100, Instant.now(), Map.of());
     expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).once();
@@ -393,7 +342,5 @@ public class ZooBasedConfigurationTest {
     assertEquals(100, sysConfig.getUpdateCount());
     assertEquals(120, nsConfig.getUpdateCount());
     assertEquals(123, tableConfig.getUpdateCount());
-
-    verify(propStore, context);
   }
 }
