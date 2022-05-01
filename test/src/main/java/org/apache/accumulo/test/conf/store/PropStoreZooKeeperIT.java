@@ -124,12 +124,7 @@ public class PropStoreZooKeeperIT {
       Thread.currentThread().interrupt();
       throw new IllegalStateException("Interrupted during zookeeper path initialization", ex);
     }
-
-    log.warn("IID: {}", instanceId);
-    log.warn("ZRW: {}", context.getZooReaderWriter());
-
     propStore = ZooPropStore.initialize(instanceId, context.getZooReaderWriter());
-
   }
 
   @AfterEach
