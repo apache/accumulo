@@ -622,15 +622,16 @@ public class GarbageCollectionTest {
     gce.candidates.clear();
     gce.candidates.add("/9/default_tablet");
     gce.candidates.add("/9/default_tablet/someFile");
-    gca.collect(gce);
+    long blipCount = gca.collect(gce);
     assertRemoved(gce);
+    assertEquals(0, blipCount);
 
     gce = new TestGCE();
     gce.blips.add("/1636/b-0001");
     gce.candidates.add("/1636/b-0001/I0000");
-    gca.collect(gce);
+    blipCount = gca.collect(gce);
     assertRemoved(gce);
-
+    assertEquals(1, blipCount);
   }
 
   @Test

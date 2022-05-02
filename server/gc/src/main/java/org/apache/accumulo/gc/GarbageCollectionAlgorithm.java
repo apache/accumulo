@@ -127,9 +127,13 @@ public class GarbageCollectionAlgorithm {
     return ret;
   }
 
-  private void confirmDeletes(GarbageCollectionEnvironment gce,
+  /**
+   * Return the number of BLIP flags seen.
+   */
+  private long confirmDeletes(GarbageCollectionEnvironment gce,
       SortedMap<String,String> candidateMap) throws TableNotFoundException {
     boolean checkForBulkProcessingFiles = false;
+    long blipCount = 0;
     Iterator<String> relativePaths = candidateMap.keySet().iterator();
     while (!checkForBulkProcessingFiles && relativePaths.hasNext())
       checkForBulkProcessingFiles |=
@@ -160,8 +164,10 @@ public class GarbageCollectionAlgorithm {
             }
           }
 
-          if (count > 0)
+          if (count > 0) {
             log.debug("Folder has bulk processing flag: {}", blipPath);
+            blipCount++;
+          }
         }
       }
     }
@@ -206,6 +212,7 @@ public class GarbageCollectionAlgorithm {
 
     confirmDeletesFromReplication(gce.getReplicationNeededIterator(),
         candidateMap.entrySet().iterator());
+    return blipCount;
   }
 
   protected void confirmDeletesFromReplication(
@@ -269,17 +276,19 @@ public class GarbageCollectionAlgorithm {
     }
   }
 
-  private void confirmDeletesTrace(GarbageCollectionEnvironment gce,
+  private long confirmDeletesTrace(GarbageCollectionEnvironment gce,
       SortedMap<String,String> candidateMap) throws TableNotFoundException {
+    long blips = 0;
     Span confirmDeletesSpan = TraceUtil.startSpan(this.getClass(), "confirmDeletes");
     try (Scope scope = confirmDeletesSpan.makeCurrent()) {
-      confirmDeletes(gce, candidateMap);
+      blips = confirmDeletes(gce, candidateMap);
     } catch (Exception e) {
       TraceUtil.setException(confirmDeletesSpan, e, true);
       throw e;
     } finally {
       confirmDeletesSpan.end();
     }
+    return blips;
   }
 
   private void deleteConfirmed(GarbageCollectionEnvironment gce,
@@ -297,9 +306,10 @@ public class GarbageCollectionAlgorithm {
     cleanUpDeletedTableDirs(gce, candidateMap);
   }
 
-  public void collect(GarbageCollectionEnvironment gce) throws TableNotFoundException, IOException {
+  public long collect(GarbageCollectionEnvironment gce) throws TableNotFoundException, IOException {
 
     Iterator<String> candidatesIter = gce.getCandidates();
+    long totalBlips = 0;
 
     while (candidatesIter.hasNext()) {
       List<String> batchOfCandidates;
@@ -312,14 +322,15 @@ public class GarbageCollectionAlgorithm {
       } finally {
         candidatesSpan.end();
       }
-      deleteBatch(gce, batchOfCandidates);
+      totalBlips += deleteBatch(gce, batchOfCandidates);
     }
+    return totalBlips;
   }
 
   /**
    * Given a sub-list of possible deletion candidates, process and remove valid deletion candidates.
    */
-  private void deleteBatch(GarbageCollectionEnvironment gce, List<String> currentBatch)
+  private long deleteBatch(GarbageCollectionEnvironment gce, List<String> currentBatch)
       throws TableNotFoundException, IOException {
 
     long origSize = currentBatch.size();
@@ -327,10 +338,12 @@ public class GarbageCollectionAlgorithm {
 
     SortedMap<String,String> candidateMap = makeRelative(currentBatch);
 
-    confirmDeletesTrace(gce, candidateMap);
+    long blips = confirmDeletesTrace(gce, candidateMap);
     gce.incrementInUseStat(origSize - candidateMap.size());
 
     deleteConfirmed(gce, candidateMap);
+
+    return blips;
   }
 
 }
