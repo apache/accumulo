@@ -338,7 +338,6 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     log.info("Number of data file candidates still in use: {}", status.current.inUse);
     log.info("Number of successfully deleted data files: {}", status.current.deleted);
     log.info("Number of data files delete failures: {}", status.current.errors);
-    log.info("Number of bulk files in progress: {}", status.current.bulks);
   }
 
   /**
