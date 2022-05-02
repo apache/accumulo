@@ -118,19 +118,19 @@ public class TransformTokenIT {
 
     TransformToken token = TransformToken.createToken(sysPropKey, zrw);
 
-    assertTrue(token.haveToken());
+    assertTrue(token.haveTokenOwnership());
     token.releaseToken();
-    assertFalse(token.haveToken());
+    assertFalse(token.haveTokenOwnership());
 
     // relock by getting a new lock
     TransformToken lock2 = TransformToken.createToken(sysPropKey, zrw);
-    assertTrue(lock2.haveToken());
+    assertTrue(lock2.haveTokenOwnership());
 
     // fail with a current lock node present
     TransformToken lock3 = TransformToken.createToken(sysPropKey, zrw);
-    assertFalse(lock3.haveToken());
+    assertFalse(lock3.haveTokenOwnership());
     // and confirm lock still present
-    assertTrue(lock2.haveToken());
+    assertTrue(lock2.haveTokenOwnership());
   }
 
   @Test
@@ -144,7 +144,7 @@ public class TransformTokenIT {
     TransformToken lock = TransformToken.createToken(sysPropKey, zrw);
 
     // force change in lock
-    assertTrue(lock.haveToken());
+    assertTrue(lock.haveTokenOwnership());
     zrw.mutateExisting(tokenPath, v -> UUID.randomUUID().toString().getBytes(UTF_8));
     assertThrows(IllegalStateException.class, lock::releaseToken,
         "Expected unlock to fail on different UUID");
@@ -152,7 +152,7 @@ public class TransformTokenIT {
     // clean-up and get new lock
     zrw.delete(tokenPath);
     TransformToken lock3 = TransformToken.createToken(sysPropKey, zrw);
-    assertTrue(lock3.haveToken());
+    assertTrue(lock3.haveTokenOwnership());
     zrw.delete(tokenPath);
     assertThrows(IllegalStateException.class, lock::releaseToken,
         "Expected unlock to fail when no lock present");

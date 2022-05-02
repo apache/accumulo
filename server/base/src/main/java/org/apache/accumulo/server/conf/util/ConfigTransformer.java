@@ -127,7 +127,7 @@ public class ConfigTransformer {
         return results;
       }
 
-      while (!token.haveToken()) {
+      while (!token.haveTokenOwnership()) {
         try {
           retry.useRetry();
           retry.waitForNextAttempt();
@@ -142,7 +142,7 @@ public class ConfigTransformer {
             return results;
           }
           // still does not exist - try again.
-          token.holdToken();
+          token.getTokenOwnership();
         } catch (InterruptedException ex) {
           Thread.currentThread().interrupt();
           throw new IllegalStateException("Failed to hold transform token for " + propCacheKey, ex);

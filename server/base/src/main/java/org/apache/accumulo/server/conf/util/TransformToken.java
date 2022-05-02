@@ -58,6 +58,9 @@ public class TransformToken {
   private TransformToken(final @NonNull PropCacheKey key, final ZooReaderWriter zrw) {
     path = key.getBasePath() + TRANSFORM_TOKEN;
     this.zrw = zrw;
+
+    boolean t = getTokenOwnership();
+    log.trace("created token - token held: {}", t);
   }
 
   /**
@@ -77,12 +80,16 @@ public class TransformToken {
    */
   public static TransformToken createToken(final @NonNull PropCacheKey key,
       final ZooReaderWriter zrw) {
-    TransformToken token = new TransformToken(key, zrw);
-    token.haveToken = token.holdToken();
-    return token;
+    return new TransformToken(key, zrw);
   }
 
-  public boolean holdToken() {
+  /**
+   * Create and try to establish ownership (hold the token). Token ownership can be tested with
+   * {@link #haveTokenOwnership() haveTokenOwnership}
+   *
+   * @return true if able to get ownership, false otherwise.
+   */
+  public boolean getTokenOwnership() {
     if (haveToken) {
       return true;
     }
@@ -93,32 +100,33 @@ public class TransformToken {
       }
       // if this completes this thread has created the lock
       zrw.putEphemeralData(path, tokenUUID.asBytes());
-      log.trace("wrote property upgrade lock: {} - {}", path, tokenUUID);
+      log.trace("wrote property transform token: {} - {}", path, tokenUUID);
+      haveToken = true;
       return true;
     } catch (KeeperException ex) {
       log.debug(
-          "Failed to write transform lock for " + path + " another process may have created one",
+          "Failed to write transform token for " + path + " another process may have created one",
           ex);
       return false;
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
-      throw new IllegalStateException("Interrupted getting transform lock", ex);
+      throw new IllegalStateException("Interrupted getting transform token", ex);
     }
   }
 
   /**
-   * Return the token status
+   * Return the token ownership status
    *
-   * @return true if this instance has created the token, false otherwise.
+   * @return true if this instance has ownership of the token, false otherwise.
    */
-  public boolean haveToken() {
+  public boolean haveTokenOwnership() {
     return haveToken;
   }
 
   /**
-   * Verify lock is still present and valid while keeping the lock.
+   * Verify ownership is still valid while holding the token.
    *
-   * @return true if lock is valid, false otherwise
+   * @return true if token is still owned, false otherwise
    */
   public boolean validateToken() {
     try {
@@ -126,16 +134,16 @@ public class TransformToken {
       log.trace("validate token: read: {} - expected: {}", readId, tokenUUID);
       return Arrays.equals(readId, tokenUUID.asBytes());
     } catch (KeeperException ex) {
-      throw new IllegalStateException("Failed to validate lock", ex);
+      throw new IllegalStateException("Failed to validate token", ex);
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
-      throw new IllegalStateException("Interrupted while validating lock", ex);
+      throw new IllegalStateException("Interrupted while validating token", ex);
     }
   }
 
   /**
-   * If the lock was created by this instance the uuid created nad the uuid stored in the ZooKeeper
-   * data will match.
+   * If the token was created by this instance, the uuid of this instance and the uuid stored in the
+   * ZooKeeper data will match.
    */
   public void releaseToken() {
     try {
@@ -195,7 +203,7 @@ public class TransformToken {
 
     @Override
     public String toString() {
-      return "LockId{id='" + id + '}';
+      return "TransformToken{id='" + id + '}';
     }
   }
 }
