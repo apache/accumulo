@@ -53,8 +53,12 @@ import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SimpleGarbageCollectorTest {
+  private static final Logger log = LoggerFactory.getLogger(SimpleGarbageCollectorTest.class);
+
   private VolumeManager volMgr;
   private ServerContext context;
   private Credentials credentials;
@@ -178,7 +182,7 @@ public class SimpleGarbageCollectorTest {
 
     List<String> processedDeletes = new ArrayList<>();
 
-    SimpleGarbageCollector.minimizeDeletes(confirmed, processedDeletes, volMgr2);
+    GCRun.minimizeDeletes(confirmed, processedDeletes, volMgr2, log);
 
     TreeMap<String,String> expected = new TreeMap<>();
     expected.put("5a/t-0001", "hdfs://nn1/accumulo/tables/5a/t-0001");
