@@ -98,10 +98,11 @@ public class PropSnapshot implements PropChangeListener {
     }
     updateLock.lock();
     try {
-      var vProps = propStore.get(propCacheKey);
-      if (vProps == null) {
-        throw new IllegalStateException("Failed to read properties for " + propCacheKey);
+      // check after locked - another thread could have updated while waiting for lock
+      if (!needsUpdate.get()) {
+        return;
       }
+      var vProps = propStore.get(propCacheKey);
       vPropRef.set(vProps);
       needsUpdate.set(false);
     } finally {
