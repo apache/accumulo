@@ -25,6 +25,7 @@ import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVE
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -72,6 +73,7 @@ public class ConfigTransformerIT {
 
   private InstanceId instanceId = null;
   private ZooPropStore propStore = null;
+  private ServerContext context = null;
   private PropStoreWatcher watcher = null;
 
   @BeforeAll
@@ -98,7 +100,7 @@ public class ConfigTransformerIT {
     }
     propStore = (ZooPropStore) ZooPropStore.initialize(instanceId, zrw);
 
-    ServerContext context = createMock(ServerContext.class);
+    context = createMock(ServerContext.class);
     expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
     expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
     expect(context.getPropStore()).andReturn(propStore).anyTimes();
@@ -116,6 +118,7 @@ public class ConfigTransformerIT {
     } catch (KeeperException | InterruptedException ex) {
       throw new IllegalStateException("Failed to clean-up test zooKeeper nodes.", ex);
     }
+    verify(context, watcher);
   }
 
   @Test

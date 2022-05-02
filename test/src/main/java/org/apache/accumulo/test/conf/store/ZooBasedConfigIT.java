@@ -23,6 +23,7 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.reset;
+import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -78,7 +79,7 @@ public class ZooBasedConfigIT {
   private static ZooKeeperTestingServer testZk = null;
   private static ZooReaderWriter zrw;
   private static ZooKeeper zooKeeper;
-  private static ServerContext context;
+  private ServerContext context;
 
   // fake ids
   private final TableId tidA = TableId.of("A");
@@ -98,9 +99,6 @@ public class ZooBasedConfigIT {
     testZk = new ZooKeeperTestingServer(tempDir);
     zooKeeper = testZk.getZooKeeper();
     zrw = testZk.getZooReaderWriter();
-
-    context = createMock(ServerContext.class);
-
   }
 
   @AfterAll
@@ -110,6 +108,7 @@ public class ZooBasedConfigIT {
 
   @BeforeEach
   public void initPaths() {
+    context = createMock(ServerContext.class);
     testZk.initPaths(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZCONFIG);
 
     try {
@@ -169,6 +168,7 @@ public class ZooBasedConfigIT {
     } catch (KeeperException | InterruptedException ex) {
       throw new IllegalStateException("Failed to clean-up test zooKeeper nodes.", ex);
     }
+    verify(context);
   }
 
   /**

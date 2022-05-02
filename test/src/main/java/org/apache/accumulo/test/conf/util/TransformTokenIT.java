@@ -64,6 +64,9 @@ public class TransformTokenIT {
   private static ZooReaderWriter zrw;
   private InstanceId instanceId = null;
 
+  private ServerContext context = null;
+  private PropStoreWatcher watcher = null;
+
   @BeforeAll
   public static void setupZk() {
 
@@ -79,8 +82,22 @@ public class TransformTokenIT {
   }
 
   @BeforeEach
-  public void testSetup() {
+  public void testSetup() throws Exception {
     instanceId = InstanceId.of(UUID.randomUUID());
+
+    List<LegacyPropData.PropNode> nodes = LegacyPropData.getData(instanceId);
+    for (LegacyPropData.PropNode node : nodes) {
+      zrw.putPersistentData(node.getPath(), node.getData(), ZooUtil.NodeExistsPolicy.SKIP);
+    }
+
+    ZooPropStore propStore = (ZooPropStore) ZooPropStore.initialize(instanceId, zrw);
+
+    context = createMock(ServerContext.class);
+    expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
+    expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
+    expect(context.getPropStore()).andReturn(propStore).anyTimes();
+
+    watcher = createMock(PropStoreWatcher.class);
   }
 
   @AfterEach
@@ -90,25 +107,11 @@ public class TransformTokenIT {
     } catch (KeeperException | InterruptedException ex) {
       throw new IllegalStateException("Failed to clean-up test zooKeeper nodes.", ex);
     }
+    verify(context, watcher);
   }
 
   @Test
-  public void tokenGoPathTest() throws Exception {
-
-    List<LegacyPropData.PropNode> nodes = LegacyPropData.getData(instanceId);
-    for (LegacyPropData.PropNode node : nodes) {
-      zrw.putPersistentData(node.getPath(), node.getData(), ZooUtil.NodeExistsPolicy.SKIP);
-    }
-
-    ZooPropStore propStore = (ZooPropStore) ZooPropStore.initialize(instanceId, zrw);
-
-    ServerContext context = createMock(ServerContext.class);
-    expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
-    expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
-    expect(context.getPropStore()).andReturn(propStore).anyTimes();
-
-    PropStoreWatcher watcher = createMock(PropStoreWatcher.class);
-
+  public void tokenGoPathTest() {
     replay(context, watcher);
 
     var sysPropKey = PropCacheKey.forSystem(instanceId);
@@ -128,27 +131,10 @@ public class TransformTokenIT {
     assertFalse(lock3.haveToken());
     // and confirm lock still present
     assertTrue(lock2.haveToken());
-
-    verify(context, watcher);
-
   }
 
   @Test
   public void failOnInvalidLockTest() throws Exception {
-
-    List<LegacyPropData.PropNode> nodes = LegacyPropData.getData(instanceId);
-    for (LegacyPropData.PropNode node : nodes) {
-      zrw.putPersistentData(node.getPath(), node.getData(), ZooUtil.NodeExistsPolicy.SKIP);
-    }
-
-    ZooPropStore propStore = (ZooPropStore) ZooPropStore.initialize(instanceId, zrw);
-
-    ServerContext context = createMock(ServerContext.class);
-    expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
-    expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
-    expect(context.getPropStore()).andReturn(propStore).anyTimes();
-
-    PropStoreWatcher watcher = createMock(PropStoreWatcher.class);
 
     replay(context, watcher);
 
