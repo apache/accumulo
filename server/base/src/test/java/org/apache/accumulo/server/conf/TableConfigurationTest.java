@@ -109,13 +109,13 @@ public class TableConfigurationTest {
     replay(propStore);
 
     SystemConfiguration sysConfig = new SystemConfiguration(context, sysPropKey, defaultConfig);
-    NamespaceId nsid = (NamespaceId) nsPropKey.getId();
+    NamespaceId nsid = nsPropKey.getId();
     if (nsid == null) {
       throw new IllegalStateException("missing test namespaceId");
     }
     nsConfig = new NamespaceConfiguration(context, nsid, sysConfig);
 
-    TableId tid = (TableId) tablePropKey.getId();
+    TableId tid = tablePropKey.getId();
     if (tid == null) {
       throw new IllegalStateException("missing test tableId");
     }
