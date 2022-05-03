@@ -42,12 +42,15 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.SystemConfiguration;
 import org.apache.accumulo.server.conf.ZooBasedConfiguration;
+import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.accumulo.server.conf.store.PropStore;
@@ -84,6 +87,7 @@ public class ZooBasedConfigIT {
   private ServerContext context;
 
   // fake ids
+  private final NamespaceId nsId = NamespaceId.of("nsIdForTest");
   private final TableId tidA = TableId.of("A");
   private final TableId tidB = TableId.of("B");
 
@@ -126,6 +130,14 @@ public class ZooBasedConfigIT {
           new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
       zooKeeper.create(
           ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES + "/" + tidB.canonical() + "/conf",
+          new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+      zooKeeper.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZNAMESPACES, new byte[0],
+          ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+      zooKeeper.create(
+          ZooUtil.getRoot(INSTANCE_ID) + Constants.ZNAMESPACES + "/" + nsId.canonical(),
+          new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+      zooKeeper.create(
+          ZooUtil.getRoot(INSTANCE_ID) + Constants.ZNAMESPACES + "/" + nsId.canonical() + "/conf",
           new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
     } catch (KeeperException ex) {
@@ -190,14 +202,12 @@ public class ZooBasedConfigIT {
 
     replay(context);
 
-    ZooPropStore.initSysProps(context, Map.of());
-
-    PropCacheKey propKey = TablePropKey.of(INSTANCE_ID, tidA);
-
-    ZooPropStore.createInitialProps(context, propKey,
+    propStore.create(SystemPropKey.of(context),
         Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
 
-    ZooBasedConfiguration zbc = new SystemConfiguration(context, propKey, parent);
+    var sysPropKey = SystemPropKey.of(INSTANCE_ID);
+
+    ZooBasedConfiguration zbc = new SystemConfiguration(context, sysPropKey, parent);
 
     assertNotNull(zbc.getSnapshot());
     assertEquals("true", zbc.get(Property.TABLE_BLOOM_ENABLED));
@@ -205,35 +215,46 @@ public class ZooBasedConfigIT {
   }
 
   @Test
-  public void getPropertiesFromParentTest() {
-
-    // expect(parent.get(eq(Property.TABLE_BLOOM_ENABLED))).andReturn("false").once();
+  public void failOnDuplicateCreate() {
 
     replay(context);
 
-    ZooPropStore.initSysProps(context, Map.of());
+    var sysPropKey = SystemPropKey.of(INSTANCE_ID);
 
-    PropCacheKey propKey = TablePropKey.of(INSTANCE_ID, tidA);
+    propStore.create(sysPropKey, Map.of());
+    assertThrows(IllegalStateException.class, () -> propStore.create(sysPropKey, Map.of()));
 
-    ZooPropStore.createInitialProps(context, propKey, Map.of());
+    propStore.create(NamespacePropKey.of(context, nsId), Map.of());
+    assertThrows(IllegalStateException.class,
+        () -> propStore.create(NamespacePropKey.of(context, nsId), Map.of()));
 
-    ZooBasedConfiguration zbc = new SystemConfiguration(context, propKey, parent);
-
-    assertNotNull(zbc.getSnapshot());
-    assertEquals("false", zbc.get(Property.TABLE_BLOOM_ENABLED));
-
+    propStore.create(TablePropKey.of(context, tidA), Map.of());
+    assertThrows(IllegalStateException.class,
+        () -> propStore.create(TablePropKey.of(context, tidA), Map.of()));
   }
 
   @Test
-  public void getNullPropertiesTest() {
+  public void getPropertiesFromParentTest() {
 
     replay(context);
 
-    ZooPropStore.initSysProps(context, Map.of());
+    var sysPropKey = SystemPropKey.of(INSTANCE_ID);
 
-    PropCacheKey propKey = TablePropKey.of(INSTANCE_ID, tidA);
-    assertThrows(IllegalStateException.class,
-        () -> new SystemConfiguration(context, propKey, parent));
+    propStore.create(sysPropKey, Map.of());
+
+    propStore.create(NamespacePropKey.of(context, nsId), Map.of());
+
+    ZooBasedConfiguration zbc = new NamespaceConfiguration(context, nsId, parent);
+
+    assertNotNull(zbc.getSnapshot());
+    assertEquals("false", zbc.get(Property.TABLE_BLOOM_ENABLED));
+  }
+
+  @Test
+  public void throwOnNoNode() {
+    replay(context);
+    var nsConf = new NamespaceConfiguration(context, nsId, parent);
+    assertThrows(IllegalStateException.class, () -> nsConf.getSnapshot());
   }
 
   @Test
@@ -242,17 +263,15 @@ public class ZooBasedConfigIT {
     // expect(parent.getUpdateCount()).andReturn(123L).anyTimes();
     replay(context);
 
-    ZooPropStore.initSysProps(context, Map.of());
-
-    PropCacheKey tableAPropKey = TablePropKey.of(INSTANCE_ID, tidA);
-
-    TestListener testListener = new TestListener();
-    propStore.registerAsListener(tableAPropKey, testListener);
-
-    ZooPropStore.createInitialProps(context, tableAPropKey,
+    propStore.create(SystemPropKey.of(context),
         Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
 
-    ZooBasedConfiguration zbc = new SystemConfiguration(context, tableAPropKey, parent);
+    var sysPropKey = SystemPropKey.of(INSTANCE_ID);
+
+    TestListener testListener = new TestListener();
+    propStore.registerAsListener(sysPropKey, testListener);
+
+    ZooBasedConfiguration zbc = new SystemConfiguration(context, sysPropKey, parent);
 
     assertNotNull(zbc.getSnapshot());
     assertEquals("true", zbc.get(Property.TABLE_BLOOM_ENABLED));
@@ -264,8 +283,8 @@ public class ZooBasedConfigIT {
 
     // force clean-up and cache activity to get async unload to occur.
     ((ZooPropStore) propStore).cleanUp();
-    PropCacheKey tableBPropKey = TablePropKey.of(INSTANCE_ID, tidB);
-    ZooPropStore.createInitialProps(context, tableBPropKey, Map.of());
+    var tableBPropKey = TablePropKey.of(INSTANCE_ID, tidB);
+    propStore.create(tableBPropKey, Map.of());
     Thread.sleep(150);
 
     int changeCount = testListener.getZkChangeCount();
@@ -273,8 +292,8 @@ public class ZooBasedConfigIT {
     // force an "external update" directly in ZK - emulates a change external to the prop store.
     // just echoing the same data - but it will update the ZooKeeper node data version.
     Stat stat = new Stat();
-    byte[] bytes = zrw.getData(tableAPropKey.getPath(), stat);
-    zrw.overwritePersistentData(tableAPropKey.getPath(), bytes, stat.getVersion());
+    byte[] bytes = zrw.getData(sysPropKey.getPath(), stat);
+    zrw.overwritePersistentData(sysPropKey.getPath(), bytes, stat.getVersion());
 
     // allow ZooKeeper notification time to propagate
 
@@ -321,19 +340,19 @@ public class ZooBasedConfigIT {
     }
 
     @Override
-    public void zkChangeEvent(PropCacheKey propCacheKey) {
+    public void zkChangeEvent(PropCacheKey<?> propCacheKey) {
       log.debug("Received zkChangeEvent for {}", propCacheKey);
       zkChangeCount.incrementAndGet();
     }
 
     @Override
-    public void cacheChangeEvent(PropCacheKey propCacheKey) {
+    public void cacheChangeEvent(PropCacheKey<?> propCacheKey) {
       log.debug("Received cacheChangeEvent for {}", propCacheKey);
       cacheChangeCount.incrementAndGet();
     }
 
     @Override
-    public void deleteEvent(PropCacheKey propCacheKey) {
+    public void deleteEvent(PropCacheKey<?> propCacheKey) {
       log.debug("Received deleteEvent for: {}", propCacheKey);
       deleteCount.incrementAndGet();
     }

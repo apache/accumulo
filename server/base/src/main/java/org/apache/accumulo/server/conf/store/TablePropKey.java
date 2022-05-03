@@ -27,38 +27,33 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
-public class TablePropKey extends PropCacheKey {
-
-  private TablePropKey(final InstanceId instanceId, final String path, final TableId tableId) {
-    super(instanceId, path, tableId);
-  }
-
-  private static String getNodeName(final InstanceId instanceId, final TableId id) {
-    return ZooUtil.getRoot(instanceId) + ZTABLES + "/" + id.canonical() + ZTABLE_CONF + "/"
-        + PROP_NODE_NAME;
-  }
+public class TablePropKey extends PropCacheKey<TableId> {
 
   public static TablePropKey of(final ServerContext context, final TableId tableId) {
     return of(context.getInstanceID(), tableId);
   }
 
   public static TablePropKey of(final InstanceId instanceId, final TableId tableId) {
-    return new TablePropKey(instanceId, getNodeName(instanceId, tableId), tableId);
+    return new TablePropKey(instanceId, getNodePath(instanceId, tableId), tableId);
+  }
+
+  private TablePropKey(final InstanceId instanceId, final String path, final TableId tableId) {
+    super(instanceId, path, tableId);
+  }
+
+  private static String getNodePath(final InstanceId instanceId, final TableId id) {
+    return ZooUtil.getRoot(instanceId) + ZTABLES + "/" + id.canonical() + ZTABLE_CONF + "/"
+        + PROP_NODE_NAME;
   }
 
   @Override
-  public @NonNull String getNodeName() {
-    return getNodeName(instanceId, (TableId) id);
+  public @NonNull String getNodePath() {
+    return getNodePath(instanceId, (TableId) id);
   }
 
   @Override
   public @NonNull String getBasePath() {
     return ZooUtil.getRoot(instanceId) + ZTABLES + "/" + id.canonical() + ZTABLE_CONF;
-  }
-
-  @Override
-  public String toString() {
-    return "TablePropKey{tableId=" + id.canonical() + "'}";
   }
 
 }

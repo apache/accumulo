@@ -83,19 +83,19 @@ public class NamespaceConfigurationTest {
 
     replay(propStore, context);
 
-    nsConfig = new NamespaceConfiguration(NSID, context, parent);
+    nsConfig = new NamespaceConfiguration(context, NSID, parent);
   }
 
   @Test
   public void testGetters() {
-    NamespaceConfiguration nsConfig = new NamespaceConfiguration(NSID, context, parent);
+    NamespaceConfiguration nsConfig = new NamespaceConfiguration(context, NSID, parent);
     assertEquals(NSID, nsConfig.getNamespaceId());
     assertEquals(parent, nsConfig.getParent());
   }
 
   @Test
   public void testGet_InZK() {
-    nsConfig = new NamespaceConfiguration(NSID, context, parent);
+    nsConfig = new NamespaceConfiguration(context, NSID, parent);
 
     assertEquals("sekrit", nsConfig.get(Property.INSTANCE_SECRET));
 
@@ -109,7 +109,7 @@ public class NamespaceConfigurationTest {
     expect(parent.get(p.getKey())).andReturn("sekrit");
     replay(parent);
 
-    nsConfig = new NamespaceConfiguration(NSID, context, parent);
+    nsConfig = new NamespaceConfiguration(context, NSID, parent);
 
     assertEquals("sekrit", nsConfig.get(Property.INSTANCE_SECRET));
 
@@ -127,7 +127,7 @@ public class NamespaceConfigurationTest {
     replay(propStore);
 
     NamespaceConfiguration accumuloNsConfig =
-        new NamespaceConfiguration(Namespace.ACCUMULO.id(), context, parent);
+        new NamespaceConfiguration(context, Namespace.ACCUMULO.id(), parent);
     assertNull(accumuloNsConfig.get(Property.INSTANCE_SECRET));
   }
 
@@ -152,7 +152,7 @@ public class NamespaceConfigurationTest {
 
     replay(propStore);
 
-    nsConfig = new NamespaceConfiguration(NSID, context, parent);
+    nsConfig = new NamespaceConfiguration(context, NSID, parent);
 
     nsConfig.getProperties(props, all);
     assertEquals(4, props.size());
@@ -164,7 +164,7 @@ public class NamespaceConfigurationTest {
 
   @Test
   public void testInvalidateCache() {
-    nsConfig = new NamespaceConfiguration(NSID, context, parent);
+    nsConfig = new NamespaceConfiguration(context, NSID, parent);
 
     var value = nsConfig.get(Property.INSTANCE_SECRET);
     assertEquals("sekrit", value);

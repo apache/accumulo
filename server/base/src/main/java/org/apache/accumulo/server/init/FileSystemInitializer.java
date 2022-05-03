@@ -51,7 +51,6 @@ import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -169,7 +168,7 @@ class FileSystemInitializer {
   private void setTableProperties(final ServerContext context, TableId tableId,
       HashMap<String,String> props) {
     var propStore = context.getPropStore();
-    PropCacheKey tablePropKey = TablePropKey.of(context, tableId);
+    TablePropKey tablePropKey = TablePropKey.of(context, tableId);
     if (propStore.exists(tablePropKey)) {
       propStore.putAll(tablePropKey, props);
     } else {

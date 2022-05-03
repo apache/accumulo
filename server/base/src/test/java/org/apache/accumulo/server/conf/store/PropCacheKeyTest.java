@@ -97,18 +97,18 @@ public class PropCacheKeyTest {
   @Test
   public void fromPathTest() {
 
-    PropCacheKey t1 = PropCacheKey
+    PropCacheKey<?> t1 = PropCacheKey
         .fromPath("/accumulo/3f9976c6-3bf1-41ab-9751-1b0a9be3551d/tables/t1/conf/encoded_props");
     assertNotNull(t1);
     assertEquals(TableId.of("t1"), t1.getId());
 
-    PropCacheKey n1 = PropCacheKey.fromPath(
+    PropCacheKey<?> n1 = PropCacheKey.fromPath(
         "/accumulo/3f9976c6-3bf1-41ab-9751-1b0a9be3551d/namespaces/n1/conf/encoded_props");
     assertNotNull(n1);
     assertEquals(NamespaceId.of("n1"), n1.getId());
     assertNotNull(n1.getId());
 
-    PropCacheKey s1 = PropCacheKey
+    PropCacheKey<?> s1 = PropCacheKey
         .fromPath("/accumulo/3f9976c6-3bf1-41ab-9751-1b0a9be3551d/config/encoded_props");
     assertNotNull(s1);
     assertNull(s1.getId());

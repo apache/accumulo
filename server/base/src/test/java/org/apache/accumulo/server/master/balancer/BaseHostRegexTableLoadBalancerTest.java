@@ -126,7 +126,7 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     public TableConfiguration getTableConfiguration(final TableId tableId) {
       // create a dummy namespaceConfiguration to satisfy requireNonNull in TableConfiguration
       // constructor
-      NamespaceConfiguration dummyConf = new NamespaceConfiguration(Namespace.DEFAULT.id(), context,
+      NamespaceConfiguration dummyConf = new NamespaceConfiguration(context, Namespace.DEFAULT.id(),
           DefaultConfiguration.getInstance());
       return new TableConfiguration(context, tableId, dummyConf) {
         @Override

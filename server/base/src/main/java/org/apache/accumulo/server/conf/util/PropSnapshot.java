@@ -46,16 +46,16 @@ public class PropSnapshot implements PropChangeListener {
   private final Lock updateLock = new ReentrantLock();
   private final AtomicBoolean needsUpdate = new AtomicBoolean(true);
   private final AtomicReference<VersionedProperties> vPropRef = new AtomicReference<>();
-  private final PropCacheKey propCacheKey;
+  private final PropCacheKey<?> propCacheKey;
   private final PropStore propStore;
 
-  public static PropSnapshot create(final PropCacheKey propCacheKey, final PropStore propStore) {
+  public static PropSnapshot create(final PropCacheKey<?> propCacheKey, final PropStore propStore) {
     var ps = new PropSnapshot(propCacheKey, propStore);
     propStore.registerAsListener(propCacheKey, ps);
     return ps;
   }
 
-  private PropSnapshot(final PropCacheKey propCacheKey, final PropStore propStore) {
+  private PropSnapshot(final PropCacheKey<?> propCacheKey, final PropStore propStore) {
     this.propCacheKey = propCacheKey;
     this.propStore = propStore;
   }
@@ -111,21 +111,21 @@ public class PropSnapshot implements PropChangeListener {
   }
 
   @Override
-  public void zkChangeEvent(final PropCacheKey eventPropKey) {
+  public void zkChangeEvent(final PropCacheKey<?> eventPropKey) {
     if (propCacheKey.equals(eventPropKey)) {
       requireUpdate();
     }
   }
 
   @Override
-  public void cacheChangeEvent(final PropCacheKey eventPropKey) {
+  public void cacheChangeEvent(final PropCacheKey<?> eventPropKey) {
     if (propCacheKey.equals(eventPropKey)) {
       requireUpdate();
     }
   }
 
   @Override
-  public void deleteEvent(final PropCacheKey eventPropKey) {
+  public void deleteEvent(final PropCacheKey<?> eventPropKey) {
     if (propCacheKey.equals(eventPropKey)) {
       requireUpdate();
       log.debug("Received property delete event for {}", propCacheKey);

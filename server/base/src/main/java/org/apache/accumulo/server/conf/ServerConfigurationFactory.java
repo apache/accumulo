@@ -99,7 +99,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   @Override
   public NamespaceConfiguration getNamespaceConfiguration(NamespaceId namespaceId) {
     return namespaceConfigs.computeIfAbsent(namespaceId, key -> {
-      var conf = new NamespaceConfiguration(namespaceId, context, getSystemConfiguration());
+      var conf = new NamespaceConfiguration(context, namespaceId, getSystemConfiguration());
       ConfigCheckUtil.validate(conf);
       return conf;
     });

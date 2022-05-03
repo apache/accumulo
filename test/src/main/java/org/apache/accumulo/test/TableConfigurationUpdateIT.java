@@ -61,8 +61,8 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
       String table = getUniqueNames(1)[0];
       client.tableOperations().create(table);
 
-      final NamespaceConfiguration defaultConf = new NamespaceConfiguration(Namespace.DEFAULT.id(),
-          context, DefaultConfiguration.getInstance());
+      final NamespaceConfiguration defaultConf = new NamespaceConfiguration(context,
+          Namespace.DEFAULT.id(), DefaultConfiguration.getInstance());
 
       // Cache invalidates 25% of the time
       int randomMax = 4;

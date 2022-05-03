@@ -47,9 +47,7 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStore;
-import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
@@ -85,17 +83,19 @@ public class ZooPropStoreTest {
   }
 
   @Test
-  public void initSysPropsTest() throws Exception {
-    // checks for system props existence
-    expect(zrw.exists(SystemPropKey.of(instanceId).getPath())).andReturn(false).once();
+  public void create() throws Exception {
+
+    var propCacheKey = TablePropKey.of(instanceId, TableId.of("propCacheKey"));
 
     Capture<byte[]> bytes = newCapture();
-    expect(zrw.putPersistentData(eq(SystemPropKey.of(instanceId).getPath()), capture(bytes),
-        anyObject())).andReturn(true).once();
+    expect(zrw.putPersistentData(eq(propCacheKey.getPath()), capture(bytes), anyObject()))
+        .andReturn(true).once();
 
     replay(context, zrw);
 
-    ZooPropStore.initSysProps(context,
+    PropStore propStore = ZooPropStore.initialize(instanceId, zrw);
+
+    propStore.create(propCacheKey,
         Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "1234", TABLE_FILE_BLOCK_SIZE.getKey(), "512M"));
 
     var decoded = propCodec.fromBytes(0, bytes.getValue());
@@ -103,21 +103,6 @@ public class ZooPropStoreTest {
     assertEquals(0, decoded.getDataVersion());
     assertEquals("1234", decoded.asMap().get(TABLE_BULK_MAX_TABLETS.getKey()));
     assertEquals("512M", decoded.asMap().get(TABLE_FILE_BLOCK_SIZE.getKey()));
-  }
-
-  @Test
-  public void create() throws Exception {
-
-    PropCacheKey propCacheKey = TablePropKey.of(instanceId, TableId.of("propCacheKey"));
-
-    expect(zrw.putPersistentData(eq(propCacheKey.getPath()), anyObject(), anyObject()))
-        .andReturn(true).once();
-
-    replay(context, zrw);
-
-    PropStore propStore = ZooPropStore.initialize(instanceId, zrw);
-
-    propStore.create(propCacheKey, Map.of());
   }
 
   /**
@@ -129,7 +114,7 @@ public class ZooPropStoreTest {
   @Test
   public void getTest() throws Exception {
 
-    PropCacheKey propCacheKey = TablePropKey.of(instanceId, TableId.of("propCacheKey"));
+    var propCacheKey = TablePropKey.of(instanceId, TableId.of("propCacheKey"));
 
     var vProps = new VersionedProperties(Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
 
@@ -152,7 +137,7 @@ public class ZooPropStoreTest {
   @Test
   public void versionTest() throws Exception {
 
-    PropCacheKey propCacheKey = TablePropKey.of(instanceId, TableId.of("table1"));
+    var propCacheKey = TablePropKey.of(instanceId, TableId.of("table1"));
     Map<String,String> props =
         Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "1234", TABLE_FILE_BLOCK_SIZE.getKey(), "512M");
 
@@ -188,7 +173,7 @@ public class ZooPropStoreTest {
   @Test
   public void putAllTest() throws Exception {
 
-    PropCacheKey propCacheKey = TablePropKey.of(instanceId, TableId.of("table1"));
+    var propCacheKey = TablePropKey.of(instanceId, TableId.of("table1"));
 
     var initialProps = new VersionedProperties(0, Instant.now(),
         Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "1234", TABLE_FILE_BLOCK_SIZE.getKey(), "512M"));
@@ -226,7 +211,7 @@ public class ZooPropStoreTest {
   @Test
   public void removeTest() throws Exception {
 
-    PropCacheKey propCacheKey = TablePropKey.of(instanceId, TableId.of("table1"));
+    var propCacheKey = TablePropKey.of(instanceId, TableId.of("table1"));
 
     var initialProps = new VersionedProperties(123, Instant.now(),
         Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "1234", TABLE_FILE_BLOCK_SIZE.getKey(), "512M"));
@@ -269,7 +254,7 @@ public class ZooPropStoreTest {
   @Test
   public void removeWithExceptionsTest() throws Exception {
 
-    PropCacheKey propCacheKey = TablePropKey.of(instanceId, TableId.of("table1"));
+    var propCacheKey = TablePropKey.of(instanceId, TableId.of("table1"));
 
     // return "bad data"
     Capture<Stat> stat = newCapture();
@@ -310,7 +295,7 @@ public class ZooPropStoreTest {
   @Test
   public void validateWatcherSetTest() throws Exception {
 
-    PropCacheKey tablePropKey = TablePropKey.of(instanceId, TableId.of("table1"));
+    var tablePropKey = TablePropKey.of(instanceId, TableId.of("table1"));
     Map<String,String> props =
         Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "1234", TABLE_FILE_BLOCK_SIZE.getKey(), "512M");
 
@@ -391,7 +376,7 @@ public class ZooPropStoreTest {
   @Test
   public void deleteTest() throws Exception {
 
-    PropCacheKey propCacheKey = TablePropKey.of(instanceId, TableId.of("propCacheKey"));
+    var propCacheKey = TablePropKey.of(instanceId, TableId.of("propCacheKey"));
 
     var vProps = new VersionedProperties(Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
 

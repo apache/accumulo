@@ -35,7 +35,7 @@ public class NamespaceConfiguration extends ZooBasedConfiguration {
   private static final Logger log = LoggerFactory.getLogger(NamespaceConfiguration.class);
   protected ServerContext context;
 
-  public NamespaceConfiguration(NamespaceId namespaceId, ServerContext context,
+  public NamespaceConfiguration(ServerContext context, NamespaceId namespaceId,
       AccumuloConfiguration parent) {
     super(log, context, NamespacePropKey.of(context, namespaceId), parent);
   }

@@ -86,7 +86,7 @@ public class PropStoreEventTest {
   @Test
   public void zkChangeEventTest() throws Exception {
 
-    PropCacheKey tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
+    var tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
 
     PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
 
@@ -115,7 +115,7 @@ public class PropStoreEventTest {
   @Test
   public void deleteEventTest() throws Exception {
 
-    PropCacheKey tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
+    var tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
 
     PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
 
@@ -145,7 +145,7 @@ public class PropStoreEventTest {
   @Test
   public void disconnectEventTest() throws Exception {
 
-    PropCacheKey tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
+    var tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
 
     PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
 
@@ -177,7 +177,7 @@ public class PropStoreEventTest {
   @Test
   public void closedEventTest() throws Exception {
 
-    PropCacheKey tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
+    var tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
 
     PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
 
@@ -210,7 +210,7 @@ public class PropStoreEventTest {
   @Test
   public void cacheChangeEventTest() throws Exception {
 
-    PropCacheKey tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
+    var tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
 
     PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
     readyMonitor.setReady();
@@ -232,7 +232,7 @@ public class PropStoreEventTest {
 
   @Test
   public void validateWatcherSetTest() throws Exception {
-    PropCacheKey tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
+    var tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
 
     Map<String,String> props1 =
         Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "1234", TABLE_FILE_BLOCK_SIZE.getKey(), "512M");
@@ -280,17 +280,17 @@ public class PropStoreEventTest {
     private int connectionEventCount = 0;
 
     @Override
-    public void zkChangeEvent(PropCacheKey propCacheKey) {
+    public void zkChangeEvent(PropCacheKey<?> propCacheKey) {
       zkChangeEventCount++;
     }
 
     @Override
-    public void cacheChangeEvent(PropCacheKey propCacheKey) {
+    public void cacheChangeEvent(PropCacheKey<?> propCacheKey) {
       cacheChangeEventCount++;
     }
 
     @Override
-    public void deleteEvent(PropCacheKey propCacheKey) {
+    public void deleteEvent(PropCacheKey<?> propCacheKey) {
       deleteEventCount++;
     }
 

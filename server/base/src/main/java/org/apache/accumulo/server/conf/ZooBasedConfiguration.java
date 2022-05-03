@@ -49,11 +49,11 @@ public class ZooBasedConfiguration extends AccumuloConfiguration {
 
   protected final Logger log;
   private final AccumuloConfiguration parent;
-  private final PropCacheKey propCacheKey;
+  private final PropCacheKey<?> propCacheKey;
 
   private final PropSnapshot propSnapshot;
 
-  public ZooBasedConfiguration(Logger log, ServerContext context, PropCacheKey propCacheKey,
+  public ZooBasedConfiguration(Logger log, ServerContext context, PropCacheKey<?> propCacheKey,
       AccumuloConfiguration parent) {
     this.log = requireNonNull(log, "a Logger must be supplied");
     requireNonNull(context, "the context cannot be null");
@@ -64,7 +64,7 @@ public class ZooBasedConfiguration extends AccumuloConfiguration {
   }
 
   @VisibleForTesting
-  public void zkChangeEvent(PropCacheKey propCacheKey) {
+  public void zkChangeEvent(PropCacheKey<?> propCacheKey) {
     propSnapshot.zkChangeEvent(propCacheKey);
   }
 
@@ -103,7 +103,7 @@ public class ZooBasedConfiguration extends AccumuloConfiguration {
     return parent;
   }
 
-  public PropCacheKey getPropCacheKey() {
+  public PropCacheKey<?> getPropCacheKey() {
     return propCacheKey;
   }
 

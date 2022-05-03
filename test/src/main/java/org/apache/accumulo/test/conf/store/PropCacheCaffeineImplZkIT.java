@@ -45,7 +45,6 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.PropCacheCaffeineImpl;
 import org.apache.accumulo.server.conf.store.impl.PropStoreMetrics;
@@ -55,8 +54,6 @@ import org.apache.accumulo.server.conf.store.impl.ZooPropLoader;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
@@ -154,7 +151,7 @@ public class PropCacheCaffeineImplZkIT {
     VersionedProperties vProps = new VersionedProperties(props);
 
     // directly create prop node - simulate existing properties.
-    PropCacheKey propCacheKey = TablePropKey.of(INSTANCE_ID, tIdA);
+    var propCacheKey = TablePropKey.of(INSTANCE_ID, tIdA);
     var created = zrw.putPersistentData(propCacheKey.getPath(),
         VersionedPropCodec.getDefault().toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
 
@@ -176,101 +173,8 @@ public class PropCacheCaffeineImplZkIT {
     if (readProps == null) {
       fail("Received null for versioned properties");
     } else {
-      log.info("Props read from cache: {}", readProps.print(true));
+      log.debug("Props read from cache: {}", readProps.print(true));
     }
 
-  }
-
-  // TODO - remove - this is not testing but was used for development?
-  @Test
-  public void watcherTest() throws Exception {
-    ZooKeeper zk = zrw.getZooKeeper();
-
-    PropCacheKey propCacheKey = TablePropKey.of(INSTANCE_ID, tIdA);
-
-    log.trace("add watcher");
-    Watcher watcherA = new TestWatcher(zooKeeper, "WATCHER_A");
-    zk.exists(propCacheKey.getPath(), watcherA);
-
-    log.trace("create");
-    zk.create(propCacheKey.getPath(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
-        CreateMode.PERSISTENT);
-
-    try {
-      Thread.sleep(100);
-    } catch (InterruptedException ex) {
-      // empty
-    }
-
-    log.trace("Set data to empty byte array - version 0");
-    zk.setData(propCacheKey.getPath(), new byte[0], 0);
-
-    try {
-      Thread.sleep(100);
-    } catch (InterruptedException ex) {
-      // empty
-    }
-
-    log.trace("Set data to empty byte array - version 1");
-    zk.setData(propCacheKey.getPath(), new byte[0], 1);
-    try {
-      Thread.sleep(100);
-    } catch (InterruptedException ex) {
-      // empty
-    }
-    try {
-      log.debug("Deleting watchers.");
-      zk.removeWatches(propCacheKey.getPath(), watcherA, Watcher.WatcherType.Data, false);
-    } catch (Exception ex) {
-      log.info("error on watcher delete");
-    }
-    try {
-      Thread.sleep(100);
-    } catch (InterruptedException ex) {
-      // empty
-    }
-
-    log.info("Set data to empty byte array - version 2");
-    zk.setData(propCacheKey.getPath(), new byte[0], 2);
-
-    try {
-      Thread.sleep(500);
-    } catch (InterruptedException ex) {
-      // empty
-    }
-
-  }
-
-  private static class TestWatcher implements Watcher {
-
-    private final ZooKeeper zk;
-    private final String id;
-
-    public TestWatcher(final ZooKeeper zk, final String id) {
-      this.zk = zk;
-      this.id = id;
-    }
-
-    @Override
-    public void process(WatchedEvent watchedEvent) {
-      log.info("ZooKeeper event: watcher: {}, process: {}", id, watchedEvent);
-      switch (watchedEvent.getType()) {
-        case NodeCreated:
-        case NodeDataChanged:
-          log.info("Data change on {}", watchedEvent.getPath());
-          try {
-            log.info("adding watcher - {}", this);
-            zk.exists(watchedEvent.getPath(), this);
-          } catch (KeeperException ex) {
-            throw new IllegalStateException("ZooKeeper exception thrown by watcher", ex);
-          } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("ZooKeeper watcher interrupted", ex);
-          }
-          break;
-        default:
-          log.info("ignoring watcher - {}", this);
-      }
-    }
   }
 }

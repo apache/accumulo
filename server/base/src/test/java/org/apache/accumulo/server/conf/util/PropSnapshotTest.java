@@ -36,7 +36,6 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
@@ -89,7 +88,7 @@ class PropSnapshotTest {
   @Test
   public void eventChangeTest() {
 
-    PropCacheKey sysPropKey = SystemPropKey.of(instanceId);
+    var sysPropKey = SystemPropKey.of(instanceId);
 
     expect(propStore.get(eq(sysPropKey))).andReturn(
         new VersionedProperties(99, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true")))
@@ -113,7 +112,7 @@ class PropSnapshotTest {
   @Test
   public void deleteEventTest() {
 
-    PropCacheKey sysPropKey = SystemPropKey.of(instanceId);
+    var sysPropKey = SystemPropKey.of(instanceId);
 
     expect(propStore.get(eq(sysPropKey))).andReturn(
         new VersionedProperties(123, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true")))

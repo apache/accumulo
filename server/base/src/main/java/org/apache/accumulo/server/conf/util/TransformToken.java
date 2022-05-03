@@ -55,7 +55,7 @@ public class TransformToken {
   private final ZooReaderWriter zrw;
   private boolean haveToken = false;
 
-  private TransformToken(final @NonNull PropCacheKey key, final ZooReaderWriter zrw) {
+  private TransformToken(final @NonNull PropCacheKey<?> key, final ZooReaderWriter zrw) {
     path = key.getBasePath() + TRANSFORM_TOKEN;
     this.zrw = zrw;
 
@@ -78,7 +78,7 @@ public class TransformToken {
    * @throws IllegalStateException
    *           is the lock creation fails due to an underlying ZooKeeper exception.
    */
-  public static TransformToken createToken(final @NonNull PropCacheKey key,
+  public static TransformToken createToken(final @NonNull PropCacheKey<?> key,
       final ZooReaderWriter zrw) {
     return new TransformToken(key, zrw);
   }

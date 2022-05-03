@@ -43,7 +43,6 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
@@ -74,7 +73,7 @@ public class SystemConfigurationTest {
     propStore.registerAsListener(anyObject(), anyObject());
     expectLastCall().anyTimes();
 
-    PropCacheKey sysPropKey = SystemPropKey.of(instanceId);
+    var sysPropKey = SystemPropKey.of(instanceId);
     VersionedProperties sysProps =
         new VersionedProperties(1, Instant.now(), Map.of(GC_PORT.getKey(), "1234",
             TSERV_SCAN_MAX_OPENFILES.getKey(), "19", TABLE_BLOOM_ENABLED.getKey(), "true"));

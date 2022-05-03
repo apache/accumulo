@@ -25,14 +25,14 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
-public class SystemPropKey extends PropCacheKey {
+public class SystemPropKey extends PropCacheKey<InstanceId> {
 
   private SystemPropKey(final InstanceId instanceId, final String path) {
-    super(instanceId, path, null);
+    super(instanceId, path, instanceId);
   }
 
   @Override
-  public @NonNull String getNodeName() {
+  public @NonNull String getNodePath() {
     return getNodeName(instanceId);
   }
 
@@ -53,8 +53,4 @@ public class SystemPropKey extends PropCacheKey {
     return ZooUtil.getRoot(instanceId) + ZCONFIG + "/" + PROP_NODE_NAME;
   }
 
-  @Override
-  public String toString() {
-    return "SystemPropKey{instanceId=" + instanceId + "'}";
-  }
 }

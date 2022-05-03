@@ -24,13 +24,13 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public interface PropCache {
 
   @Nullable
-  VersionedProperties get(final PropCacheKey propCacheKey);
+  VersionedProperties get(final PropCacheKey<?> propCacheKey);
 
-  void remove(final PropCacheKey propCacheKey);
+  void remove(final PropCacheKey<?> propCacheKey);
 
   void removeAll();
 
   @Nullable
-  VersionedProperties getWithoutCaching(PropCacheKey propCacheKey);
+  VersionedProperties getWithoutCaching(PropCacheKey<?> propCacheKey);
 
 }

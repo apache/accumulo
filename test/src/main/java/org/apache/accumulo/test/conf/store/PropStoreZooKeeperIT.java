@@ -142,7 +142,7 @@ public class PropStoreZooKeeperIT {
    */
   @Test
   public void createNoProps() throws InterruptedException, KeeperException {
-    PropCacheKey propKey = TablePropKey.of(instanceId, tIdA);
+    var propKey = TablePropKey.of(instanceId, tIdA);
 
     // read from ZK, after delete no node and node not created.
     assertNull(zooKeeper.exists(propKey.getPath(), false));
@@ -151,7 +151,7 @@ public class PropStoreZooKeeperIT {
 
   @Test
   public void failOnDuplicate() throws InterruptedException, KeeperException {
-    PropCacheKey propKey = TablePropKey.of(instanceId, tIdA);
+    var propKey = TablePropKey.of(instanceId, tIdA);
 
     assertNull(zooKeeper.exists(propKey.getPath(), false)); // check node does not exist in ZK
 
@@ -166,7 +166,7 @@ public class PropStoreZooKeeperIT {
 
   @Test
   public void createWithProps() throws InterruptedException, KeeperException, IOException {
-    PropCacheKey propKey = TablePropKey.of(instanceId, tIdA);
+    var propKey = TablePropKey.of(instanceId, tIdA);
     Map<String,String> initialProps = new HashMap<>();
     initialProps.put(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
     propStore.create(propKey, initialProps);
@@ -186,7 +186,7 @@ public class PropStoreZooKeeperIT {
   public void update() throws InterruptedException {
     TestChangeListener listener = new TestChangeListener();
 
-    PropCacheKey propKey = TablePropKey.of(instanceId, tIdA);
+    var propKey = TablePropKey.of(instanceId, tIdA);
     propStore.registerAsListener(propKey, listener);
 
     Map<String,String> initialProps = new HashMap<>();
@@ -256,8 +256,8 @@ public class PropStoreZooKeeperIT {
 
   @Test
   public void deleteTest() {
-    PropCacheKey tableAPropKey = TablePropKey.of(instanceId, tIdA);
-    PropCacheKey tableBPropKey = TablePropKey.of(instanceId, tIdB);
+    var tableAPropKey = TablePropKey.of(instanceId, tIdA);
+    var tableBPropKey = TablePropKey.of(instanceId, tIdB);
 
     Map<String,String> initialProps = new HashMap<>();
     initialProps.put(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
@@ -283,8 +283,8 @@ public class PropStoreZooKeeperIT {
   public void deleteThroughWatcher() throws InterruptedException {
     TestChangeListener listener = new TestChangeListener();
 
-    PropCacheKey tableAPropKey = TablePropKey.of(instanceId, tIdA);
-    PropCacheKey tableBPropKey = TablePropKey.of(instanceId, tIdB);
+    var tableAPropKey = TablePropKey.of(instanceId, tIdA);
+    var tableBPropKey = TablePropKey.of(instanceId, tIdB);
 
     propStore.registerAsListener(tableAPropKey, listener);
     propStore.registerAsListener(tableBPropKey, listener);
@@ -328,8 +328,8 @@ public class PropStoreZooKeeperIT {
 
     TestChangeListener listener = new TestChangeListener();
 
-    PropCacheKey tableAPropKey = TablePropKey.of(instanceId, tIdA);
-    PropCacheKey tableBPropKey = TablePropKey.of(instanceId, tIdB);
+    var tableAPropKey = TablePropKey.of(instanceId, tIdA);
+    var tableBPropKey = TablePropKey.of(instanceId, tIdB);
 
     propStore.registerAsListener(tableAPropKey, listener);
     propStore.registerAsListener(tableBPropKey, listener);
@@ -382,21 +382,21 @@ public class PropStoreZooKeeperIT {
 
   private static class TestChangeListener implements PropChangeListener {
 
-    private final Map<PropCacheKey,Integer> changeCounts = new ConcurrentHashMap<>();
-    private final Map<PropCacheKey,Integer> deleteCounts = new ConcurrentHashMap<>();
+    private final Map<PropCacheKey<?>,Integer> changeCounts = new ConcurrentHashMap<>();
+    private final Map<PropCacheKey<?>,Integer> deleteCounts = new ConcurrentHashMap<>();
 
     @Override
-    public void zkChangeEvent(PropCacheKey propCacheKey) {
+    public void zkChangeEvent(PropCacheKey<?> propCacheKey) {
       changeCounts.merge(propCacheKey, 1, Integer::sum);
     }
 
     @Override
-    public void cacheChangeEvent(PropCacheKey propCacheKey) {
+    public void cacheChangeEvent(PropCacheKey<?> propCacheKey) {
       changeCounts.merge(propCacheKey, 1, Integer::sum);
     }
 
     @Override
-    public void deleteEvent(PropCacheKey propCacheKey) {
+    public void deleteEvent(PropCacheKey<?> propCacheKey) {
       deleteCounts.merge(propCacheKey, 1, Integer::sum);
     }
 
@@ -405,11 +405,11 @@ public class PropStoreZooKeeperIT {
 
     }
 
-    public Map<PropCacheKey,Integer> getChangeCounts() {
+    public Map<PropCacheKey<?>,Integer> getChangeCounts() {
       return changeCounts;
     }
 
-    public Map<PropCacheKey,Integer> getDeleteCounts() {
+    public Map<PropCacheKey<?>,Integer> getDeleteCounts() {
       return deleteCounts;
     }
   }

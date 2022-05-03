@@ -50,7 +50,6 @@ import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
@@ -88,17 +87,17 @@ public class TableConfigurationTest {
     propStore.registerAsListener(anyObject(), anyObject());
     expectLastCall().anyTimes();
 
-    PropCacheKey sysPropKey = SystemPropKey.of(instanceId);
+    var sysPropKey = SystemPropKey.of(instanceId);
     VersionedProperties sysProps =
         new VersionedProperties(1, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
     expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).times(2);
 
-    PropCacheKey nsPropKey = NamespacePropKey.of(instanceId, NID);
+    var nsPropKey = NamespacePropKey.of(instanceId, NID);
     VersionedProperties nsProps = new VersionedProperties(2, Instant.now(),
         Map.of(TABLE_FILE_MAX.getKey(), "21", TABLE_BLOOM_ENABLED.getKey(), "false"));
     expect(propStore.get(eq(nsPropKey))).andReturn(nsProps).once();
 
-    PropCacheKey tablePropKey = TablePropKey.of(instanceId, TID);
+    var tablePropKey = TablePropKey.of(instanceId, TID);
     VersionedProperties tableProps =
         new VersionedProperties(3, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
     expect(propStore.get(eq(tablePropKey))).andReturn(tableProps).once();
@@ -114,7 +113,7 @@ public class TableConfigurationTest {
     if (nsid == null) {
       throw new IllegalStateException("missing test namespaceId");
     }
-    nsConfig = new NamespaceConfiguration(nsid, context, sysConfig);
+    nsConfig = new NamespaceConfiguration(context, nsid, sysConfig);
 
     TableId tid = (TableId) tablePropKey.getId();
     if (tid == null) {
@@ -135,7 +134,7 @@ public class TableConfigurationTest {
     Property p = Property.INSTANCE_SECRET;
     reset(propStore);
 
-    PropCacheKey propKey = TablePropKey.of(instanceId, TID);
+    var propKey = TablePropKey.of(instanceId, TID);
     expect(propStore.get(eq(propKey)))
         .andReturn(new VersionedProperties(37, Instant.now(), Map.of(p.getKey(), "sekrit")))
         .anyTimes();
@@ -251,7 +250,7 @@ public class TableConfigurationTest {
 
     reset(propStore);
 
-    PropCacheKey propKey = TablePropKey.of(instanceId, TID);
+    var propKey = TablePropKey.of(instanceId, TID);
 
     expect(propStore.get(eq(propKey)))
         .andReturn(new VersionedProperties(23, Instant.now(), Map.of(p.getKey(), "invalid")))

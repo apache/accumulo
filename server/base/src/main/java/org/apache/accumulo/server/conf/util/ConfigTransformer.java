@@ -104,14 +104,14 @@ public class ConfigTransformer {
    *
    * @return the encoded properties.
    */
-  public VersionedProperties transform(final PropCacheKey propCacheKey) {
+  public VersionedProperties transform(final PropCacheKey<?> propCacheKey) {
     TransformToken token = TransformToken.createToken(propCacheKey, zrw);
     return transform(propCacheKey, token);
   }
 
   // Allow external (mocked) TransformToken to be used
   @VisibleForTesting
-  VersionedProperties transform(final PropCacheKey propCacheKey, final TransformToken token) {
+  VersionedProperties transform(final PropCacheKey<?> propCacheKey, final TransformToken token) {
 
     log.info("checking for legacy property upgrade transform for {}", propCacheKey);
 
@@ -191,7 +191,7 @@ public class ConfigTransformer {
     return null;
   }
 
-  private Set<LegacyPropNode> convertDeprecatedProps(PropCacheKey propCacheKey,
+  private Set<LegacyPropNode> convertDeprecatedProps(PropCacheKey<?> propCacheKey,
       Set<LegacyPropNode> upgradeNodes) {
 
     if (!(propCacheKey instanceof SystemPropKey)) {
@@ -212,7 +212,7 @@ public class ConfigTransformer {
     return renamedNodes;
   }
 
-  private @Nullable Set<LegacyPropNode> readLegacyProps(PropCacheKey propCacheKey) {
+  private @Nullable Set<LegacyPropNode> readLegacyProps(PropCacheKey<?> propCacheKey) {
 
     Set<LegacyPropNode> legacyProps = new TreeSet<>();
 
@@ -278,10 +278,10 @@ public class ConfigTransformer {
     return errorCount;
   }
 
-  private @Nullable VersionedProperties writeConverted(final PropCacheKey propCacheKey,
+  private @Nullable VersionedProperties writeConverted(final PropCacheKey<?> propCacheKey,
       final Set<LegacyPropNode> nodes) {
     final Map<String,String> props = new HashMap<>();
-    nodes.forEach((node) -> props.put(node.getPropName(), node.getData()));
+    nodes.forEach(node -> props.put(node.getPropName(), node.getData()));
     VersionedProperties vProps = new VersionedProperties(props);
     String path = propCacheKey.getPath();
     try {
@@ -305,7 +305,8 @@ public class ConfigTransformer {
     return vProps;
   }
 
-  private boolean validateWrite(final PropCacheKey propCacheKey, final VersionedProperties vProps) {
+  private boolean validateWrite(final PropCacheKey<?> propCacheKey,
+      final VersionedProperties vProps) {
     try {
       Stat stat = zrw.getStatus(propCacheKey.getPath(), propStoreWatcher);
       if (stat == null) {

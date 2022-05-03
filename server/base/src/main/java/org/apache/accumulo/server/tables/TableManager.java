@@ -40,7 +40,6 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.zookeeper.KeeperException;
@@ -77,7 +76,7 @@ public class TableManager {
         existsPolicy);
     zoo.putPersistentData(zPath + Constants.ZNAMESPACE_CONF, new byte[0], existsPolicy);
 
-    PropCacheKey propKey = NamespacePropKey.of(instanceId, namespaceId);
+    var propKey = NamespacePropKey.of(instanceId, namespaceId);
     if (!propStore.exists(propKey)) {
       propStore.create(propKey, Map.of());
     }
@@ -111,7 +110,7 @@ public class TableManager {
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_COMPACT_CANCEL_ID, ZERO_BYTE, existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_STATE, state.name().getBytes(UTF_8),
         existsPolicy);
-    PropCacheKey propKey = TablePropKey.of(instanceId, tableId);
+    var propKey = TablePropKey.of(instanceId, tableId);
     if (!propStore.exists(propKey)) {
       propStore.create(propKey, Map.of());
     }

@@ -41,7 +41,8 @@ import org.slf4j.LoggerFactory;
  * Provides utility methods from constructing different id based on type and methods to parse a
  * ZooKeeper path and return a prop cache id.
  */
-public abstract class PropCacheKey implements Comparable<PropCacheKey> {
+public abstract class PropCacheKey<ID_TYPE extends AbstractId<ID_TYPE>>
+    implements Comparable<PropCacheKey<ID_TYPE>> {
 
   public static final String PROP_NODE_NAME = "encoded_props";
 
@@ -57,11 +58,11 @@ public abstract class PropCacheKey implements Comparable<PropCacheKey> {
   public static final String NAMESPACE_NODE_NAME = ZNAMESPACES.substring(1);
 
   protected final InstanceId instanceId;
-  protected AbstractId<?> id;
+  protected final ID_TYPE id;
 
   private final String path;
 
-  protected PropCacheKey(final InstanceId instanceId, final String path, final AbstractId<?> id) {
+  protected PropCacheKey(final InstanceId instanceId, final String path, final ID_TYPE id) {
     this.instanceId = instanceId;
     this.path = path;
     this.id = id;
@@ -73,9 +74,9 @@ public abstract class PropCacheKey implements Comparable<PropCacheKey> {
 
   public @NonNull abstract String getBasePath();
 
-  public @NonNull abstract String getNodeName();
+  public @NonNull abstract String getNodePath();
 
-  public @Nullable AbstractId<?> getId() {
+  public @NonNull ID_TYPE getId() {
     return id;
   }
 
@@ -86,7 +87,7 @@ public abstract class PropCacheKey implements Comparable<PropCacheKey> {
    *          the path
    * @return the prop cache id
    */
-  public static @Nullable PropCacheKey fromPath(final String path) {
+  public static @Nullable PropCacheKey<?> fromPath(final String path) {
     String[] tokens = path.split("/");
 
     InstanceId instanceId;
@@ -110,8 +111,8 @@ public abstract class PropCacheKey implements Comparable<PropCacheKey> {
   }
 
   @Override
-  public int compareTo(@NonNull PropCacheKey other) {
-    return Comparator.comparing(PropCacheKey::getPath).compare(this, other);
+  public int compareTo(@NonNull PropCacheKey<ID_TYPE> other) {
+    return Comparator.comparing(PropCacheKey<ID_TYPE>::getPath).compare(this, other);
   }
 
   @Override
@@ -120,7 +121,10 @@ public abstract class PropCacheKey implements Comparable<PropCacheKey> {
       return true;
     if (o == null || getClass() != o.getClass())
       return false;
-    PropCacheKey that = (PropCacheKey) o;
+    PropCacheKey<?> that = (PropCacheKey<?>) o;
+    if (getId().getClass() != that.getId().getClass()) {
+      return false;
+    }
     return path.equals(that.path);
   }
 
@@ -131,6 +135,7 @@ public abstract class PropCacheKey implements Comparable<PropCacheKey> {
 
   @Override
   public String toString() {
-    return "CacheKey{id=" + id + ", path='" + path + "'}";
+    return this.getClass().getSimpleName() + "{" + getId().getClass().getSimpleName() + "="
+        + getId().canonical() + "'}";
   }
 }

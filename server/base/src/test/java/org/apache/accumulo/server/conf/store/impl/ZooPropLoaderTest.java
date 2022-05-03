@@ -70,7 +70,7 @@ public class ZooPropLoaderTest {
   private PropCacheCaffeineImplTest.TestTicker ticker;
   private InstanceId instanceId;
   private ServerContext context;
-  private PropCacheKey propCacheKey;
+  private PropCacheKey<?> propCacheKey;
   private VersionedPropCodec propCodec;
 
   // mocks
@@ -307,8 +307,8 @@ public class ZooPropLoaderTest {
 
   @Test
   public void removeTest() throws Exception {
-    final PropCacheKey sysPropKey = SystemPropKey.of(instanceId);
-    final PropCacheKey tablePropKey = TablePropKey.of(instanceId, TableId.of("t1"));
+    final var sysPropKey = SystemPropKey.of(instanceId);
+    final var tablePropKey = TablePropKey.of(instanceId, TableId.of("t1"));
 
     VersionedProperties defaultProps = new VersionedProperties();
 
@@ -339,8 +339,8 @@ public class ZooPropLoaderTest {
 
   @Test
   public void removeAllTest() throws Exception {
-    final PropCacheKey sysPropKey = SystemPropKey.of(instanceId);
-    final PropCacheKey tablePropKey = TablePropKey.of(instanceId, TableId.of("t1"));
+    final var sysPropKey = SystemPropKey.of(instanceId);
+    final var tablePropKey = TablePropKey.of(instanceId, TableId.of("t1"));
 
     VersionedProperties defaultProps = new VersionedProperties();
 

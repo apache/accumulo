@@ -40,7 +40,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,7 +57,7 @@ public class PropCacheCaffeineImplTest {
   private ZooPropLoader zooPropLoader;
   private TestTicker ticker;
 
-  private PropCacheKey tablePropKey;
+  private TablePropKey tablePropKey;
   private VersionedProperties vProps;
 
   private PropCacheCaffeineImpl cache = null;
@@ -113,7 +112,7 @@ public class PropCacheCaffeineImplTest {
       justification = "random used for testing with variable names")
   @Test
   public void getNoCacheTest() {
-    PropCacheKey table2PropKey = TablePropKey.of(instanceId,
+    var table2PropKey = TablePropKey.of(instanceId,
         TableId.of("t2" + ThreadLocalRandom.current().nextInt(1, 1000)));
 
     expect(zooPropLoader.load(eq(table2PropKey))).andReturn(vProps).once();
@@ -139,7 +138,7 @@ public class PropCacheCaffeineImplTest {
       justification = "random used for testing with variable names")
   @Test
   public void removeAllTest() {
-    PropCacheKey table2PropKey = TablePropKey.of(instanceId,
+    var table2PropKey = TablePropKey.of(instanceId,
         TableId.of("t2" + ThreadLocalRandom.current().nextInt(1, 1000)));
 
     expect(zooPropLoader.load(eq(tablePropKey))).andReturn(vProps).once();

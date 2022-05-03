@@ -35,7 +35,7 @@ public interface PropStore {
    * @throws IllegalStateException
    *           if the check fails due to interrupt.
    */
-  boolean exists(PropCacheKey propCacheKey);
+  boolean exists(PropCacheKey<?> propCacheKey);
 
   /**
    * Create an initial entry for the PropCacheId. If properties already exist, they are not
@@ -48,7 +48,7 @@ public interface PropStore {
    * @throws IllegalStateException
    *           if the updates fails because of an underlying store exception
    */
-  void create(PropCacheKey propCacheKey, Map<String,String> props);
+  void create(PropCacheKey<?> propCacheKey, Map<String,String> props);
 
   /**
    *
@@ -60,7 +60,7 @@ public interface PropStore {
    *           not exist for the propCacheId
    */
   @NonNull
-  VersionedProperties get(PropCacheKey propCacheId);
+  VersionedProperties get(PropCacheKey<?> propCacheId);
 
   /**
    * Adds or updates current properties. If the property currently exists it is overwritten,
@@ -73,7 +73,7 @@ public interface PropStore {
    * @throws IllegalStateException
    *           if the values cannot be written or if an underlying store exception occurs.
    */
-  void putAll(PropCacheKey propCacheKey, Map<String,String> props);
+  void putAll(PropCacheKey<?> propCacheKey, Map<String,String> props);
 
   /**
    * Delete the store node from the underlying store.
@@ -83,7 +83,7 @@ public interface PropStore {
    * @throws IllegalStateException
    *           if the updates fails because of an underlying store exception
    */
-  void delete(PropCacheKey propCacheKey);
+  void delete(PropCacheKey<?> propCacheKey);
 
   /**
    * Deletes individual properties specified by the set of keys.
@@ -95,7 +95,7 @@ public interface PropStore {
    * @throws IllegalStateException
    *           if the values cannot be deleted or if an underlying store exception occurs.
    */
-  void removeProperties(PropCacheKey propCacheKey, Collection<String> keys);
+  void removeProperties(PropCacheKey<?> propCacheKey, Collection<String> keys);
 
   /**
    * External processes can register for notifications if the properties change. Normally processes
@@ -112,6 +112,6 @@ public interface PropStore {
    * @param listener
    *          a listener
    */
-  void registerAsListener(PropCacheKey propCacheKey, PropChangeListener listener);
+  void registerAsListener(PropCacheKey<?> propCacheKey, PropChangeListener listener);
 
 }

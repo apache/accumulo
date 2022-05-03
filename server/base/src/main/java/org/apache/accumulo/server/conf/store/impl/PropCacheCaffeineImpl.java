@@ -48,9 +48,9 @@ public class PropCacheCaffeineImpl implements PropCache {
 
   private final PropStoreMetrics metrics;
 
-  private final LoadingCache<PropCacheKey,VersionedProperties> cache;
+  private final LoadingCache<PropCacheKey<?>,VersionedProperties> cache;
 
-  private PropCacheCaffeineImpl(final CacheLoader<PropCacheKey,VersionedProperties> cacheLoader,
+  private PropCacheCaffeineImpl(final CacheLoader<PropCacheKey<?>,VersionedProperties> cacheLoader,
       final PropStoreMetrics metrics, final Ticker ticker) {
     this.metrics = metrics;
     var builder = Caffeine.newBuilder().refreshAfterWrite(REFRESH_MIN, BASE_TIME_UNITS)
@@ -66,13 +66,14 @@ public class PropCacheCaffeineImpl implements PropCache {
     return metrics;
   }
 
-  void evictionNotifier(PropCacheKey propCacheKey, VersionedProperties value, RemovalCause cause) {
+  void evictionNotifier(PropCacheKey<?> propCacheKey, VersionedProperties value,
+      RemovalCause cause) {
     log.trace("Evicted: ID: {} was evicted from cache. Reason: {}", propCacheKey, cause);
     metrics.incrEviction();
   }
 
   @Override
-  public @Nullable VersionedProperties get(PropCacheKey propCacheKey) {
+  public @Nullable VersionedProperties get(PropCacheKey<?> propCacheKey) {
     log.trace("Called get() for {}", propCacheKey);
     try {
       return cache.get(propCacheKey);
@@ -84,7 +85,7 @@ public class PropCacheCaffeineImpl implements PropCache {
   }
 
   @Override
-  public void remove(PropCacheKey propCacheKey) {
+  public void remove(PropCacheKey<?> propCacheKey) {
     log.trace("clear {} from cache", propCacheKey);
     cache.invalidate(propCacheKey);
   }
@@ -112,7 +113,7 @@ public class PropCacheCaffeineImpl implements PropCache {
    * @return the version properties if cached, otherwise return null.
    */
   @Override
-  public @Nullable VersionedProperties getWithoutCaching(PropCacheKey propCacheKey) {
+  public @Nullable VersionedProperties getWithoutCaching(PropCacheKey<?> propCacheKey) {
     return cache.getIfPresent(propCacheKey);
   }
 
