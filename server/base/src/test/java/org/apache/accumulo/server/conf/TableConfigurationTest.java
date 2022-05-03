@@ -49,8 +49,11 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
+import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.SystemPropKey;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -85,17 +88,17 @@ public class TableConfigurationTest {
     propStore.registerAsListener(anyObject(), anyObject());
     expectLastCall().anyTimes();
 
-    PropCacheKey sysPropKey = PropCacheKey.forSystem(instanceId);
+    PropCacheKey sysPropKey = SystemPropKey.of(instanceId);
     VersionedProperties sysProps =
         new VersionedProperties(1, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
     expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).times(2);
 
-    PropCacheKey nsPropKey = PropCacheKey.forNamespace(instanceId, NID);
+    PropCacheKey nsPropKey = NamespacePropKey.of(instanceId, NID);
     VersionedProperties nsProps = new VersionedProperties(2, Instant.now(),
         Map.of(TABLE_FILE_MAX.getKey(), "21", TABLE_BLOOM_ENABLED.getKey(), "false"));
     expect(propStore.get(eq(nsPropKey))).andReturn(nsProps).once();
 
-    PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TID);
+    PropCacheKey tablePropKey = TablePropKey.of(instanceId, TID);
     VersionedProperties tableProps =
         new VersionedProperties(3, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
     expect(propStore.get(eq(tablePropKey))).andReturn(tableProps).once();
@@ -107,13 +110,13 @@ public class TableConfigurationTest {
     replay(propStore);
 
     SystemConfiguration sysConfig = new SystemConfiguration(context, sysPropKey, defaultConfig);
-    NamespaceId nsid = nsPropKey.getNamespaceId();
+    NamespaceId nsid = (NamespaceId) nsPropKey.getId();
     if (nsid == null) {
       throw new IllegalStateException("missing test namespaceId");
     }
     nsConfig = new NamespaceConfiguration(nsid, context, sysConfig);
 
-    TableId tid = tablePropKey.getTableId();
+    TableId tid = (TableId) tablePropKey.getId();
     if (tid == null) {
       throw new IllegalStateException("missing test tableId");
     }
@@ -132,7 +135,7 @@ public class TableConfigurationTest {
     Property p = Property.INSTANCE_SECRET;
     reset(propStore);
 
-    PropCacheKey propKey = PropCacheKey.forTable(instanceId, TID);
+    PropCacheKey propKey = TablePropKey.of(instanceId, TID);
     expect(propStore.get(eq(propKey)))
         .andReturn(new VersionedProperties(37, Instant.now(), Map.of(p.getKey(), "sekrit")))
         .anyTimes();
@@ -151,15 +154,15 @@ public class TableConfigurationTest {
     String expectedPass = "aPassword1";
 
     reset(propStore);
-    expect(propStore.get(eq(PropCacheKey.forNamespace(instanceId, NID))))
+    expect(propStore.get(eq(NamespacePropKey.of(instanceId, NID))))
         .andReturn(new VersionedProperties(13, Instant.now(), Map.of(TABLE_FILE_MAX.getKey(), "123",
             Property.INSTANCE_SECRET.getKey(), expectedPass)))
         .anyTimes();
-    expect(propStore.get(eq(PropCacheKey.forTable(instanceId, TID))))
+    expect(propStore.get(eq(TablePropKey.of(instanceId, TID))))
         .andReturn(new VersionedProperties(Map.of())).anyTimes();
     replay(propStore);
 
-    nsConfig.zkChangeEvent(PropCacheKey.forNamespace(instanceId, NID));
+    nsConfig.zkChangeEvent(NamespacePropKey.of(instanceId, NID));
 
     assertEquals("123", tableConfig.get(TABLE_FILE_MAX)); // from ns
     assertEquals("aPassword1", tableConfig.get(INSTANCE_SECRET.getKey())); // from sys
@@ -173,13 +176,13 @@ public class TableConfigurationTest {
 
     reset(propStore);
 
-    expect(propStore.get(eq(PropCacheKey.forSystem(instanceId))))
+    expect(propStore.get(eq(SystemPropKey.of(instanceId))))
         .andReturn(new VersionedProperties(1, Instant.now(), Map.of()));
 
-    expect(propStore.get(eq(PropCacheKey.forNamespace(instanceId, NID))))
+    expect(propStore.get(eq(NamespacePropKey.of(instanceId, NID))))
         .andReturn(new VersionedProperties(2, Instant.now(), Map.of("dog", "bark", "cat", "meow")));
 
-    expect(propStore.get(eq(PropCacheKey.forTable(instanceId, TID))))
+    expect(propStore.get(eq(TablePropKey.of(instanceId, TID))))
         .andReturn(new VersionedProperties(4, Instant.now(), Map.of("foo", "bar", "tick", "tock")))
         .anyTimes();
 
@@ -187,8 +190,8 @@ public class TableConfigurationTest {
 
     Map<String,String> props = new java.util.HashMap<>();
 
-    tableConfig.zkChangeEvent(PropCacheKey.forTable(instanceId, TID));
-    nsConfig.zkChangeEvent(PropCacheKey.forNamespace(instanceId, NID));
+    tableConfig.zkChangeEvent(TablePropKey.of(instanceId, TID));
+    nsConfig.zkChangeEvent(NamespacePropKey.of(instanceId, NID));
 
     tableConfig.getProperties(props, all);
 
@@ -209,22 +212,21 @@ public class TableConfigurationTest {
 
     reset(propStore);
 
-    expect(propStore.get(eq(PropCacheKey.forSystem(instanceId))))
+    expect(propStore.get(eq(SystemPropKey.of(instanceId))))
         .andReturn(new VersionedProperties(1, Instant.now(), Map.of()));
 
-    expect(propStore.get(eq(PropCacheKey.forNamespace(instanceId, NID))))
+    expect(propStore.get(eq(NamespacePropKey.of(instanceId, NID))))
         .andReturn(new VersionedProperties(2, Instant.now(),
             Map.of("dog", "bark", "cat", "meow", "filter", "from_parent")));
 
-    expect(propStore.get(eq(PropCacheKey.forTable(instanceId, TID))))
-        .andReturn(new VersionedProperties(4, Instant.now(),
-            Map.of("filter", "not_returned_by_table", "foo", "bar", "tick", "tock")))
+    expect(propStore.get(eq(TablePropKey.of(instanceId, TID)))).andReturn(new VersionedProperties(4,
+        Instant.now(), Map.of("filter", "not_returned_by_table", "foo", "bar", "tick", "tock")))
         .anyTimes();
 
     replay(propStore);
 
-    tableConfig.zkChangeEvent(PropCacheKey.forTable(instanceId, TID));
-    nsConfig.zkChangeEvent(PropCacheKey.forNamespace(instanceId, NID));
+    tableConfig.zkChangeEvent(TablePropKey.of(instanceId, TID));
+    nsConfig.zkChangeEvent(NamespacePropKey.of(instanceId, NID));
 
     Map<String,String> props = new java.util.HashMap<>();
 
@@ -249,7 +251,7 @@ public class TableConfigurationTest {
 
     reset(propStore);
 
-    PropCacheKey propKey = PropCacheKey.forTable(instanceId, TID);
+    PropCacheKey propKey = TablePropKey.of(instanceId, TID);
 
     expect(propStore.get(eq(propKey)))
         .andReturn(new VersionedProperties(23, Instant.now(), Map.of(p.getKey(), "invalid")))

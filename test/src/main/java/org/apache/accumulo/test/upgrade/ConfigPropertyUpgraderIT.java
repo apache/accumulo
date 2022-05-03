@@ -35,8 +35,8 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.conf.util.ConfigPropertyUpgrader;
 import org.apache.accumulo.test.conf.store.PropStoreZooKeeperIT;
@@ -130,7 +130,7 @@ public class ConfigPropertyUpgraderIT {
 
     PropStore propStore = ZooPropStore.initialize(instanceId, zrw);
 
-    var sysKey = PropCacheKey.forSystem(instanceId);
+    var sysKey = SystemPropKey.of(instanceId);
     log.info("PropStore: {}", propStore.get(sysKey));
 
     var vProps = propStore.get(sysKey);

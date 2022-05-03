@@ -41,7 +41,7 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
+import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.conf.util.ConfigTransformer;
@@ -124,7 +124,7 @@ public class ConfigTransformerIT {
   @Test
   public void propStoreConversionTest() throws Exception {
 
-    var sysPropKey = PropCacheKey.forSystem(instanceId);
+    var sysPropKey = SystemPropKey.of(instanceId);
 
     List<String> sysLegacy = zrw.getChildren(sysPropKey.getBasePath());
     log.info("Before: {}", sysLegacy);
@@ -141,7 +141,7 @@ public class ConfigTransformerIT {
   @Test
   public void transformTest() throws Exception {
 
-    var sysPropKey = PropCacheKey.forSystem(instanceId);
+    var sysPropKey = SystemPropKey.of(instanceId);
 
     ConfigTransformer transformer = new ConfigTransformer(zrw, codec, watcher);
     List<String> sysLegacy = zrw.getChildren(sysPropKey.getBasePath());
@@ -154,7 +154,7 @@ public class ConfigTransformerIT {
 
   @Test
   public void failToGetLock() throws Exception {
-    var sysPropKey = PropCacheKey.forSystem(instanceId);
+    var sysPropKey = SystemPropKey.of(instanceId);
 
     Retry retry =
         Retry.builder().maxRetries(3).retryAfter(250, MILLISECONDS).incrementBy(500, MILLISECONDS)

@@ -25,7 +25,7 @@ import java.util.Map;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 
 public class TablePropUtil extends PropUtil<TableId> {
 
@@ -46,13 +46,13 @@ public class TablePropUtil extends PropUtil<TableId> {
     // TODO reconcile with NamespacePropUtil see https://github.com/apache/accumulo/issues/2633
     tempProps.entrySet().removeIf(e -> !Property.isTablePropertyValid(e.getKey(), e.getValue()));
 
-    context.getPropStore().putAll(PropCacheKey.forTable(context, tableId), props);
+    context.getPropStore().putAll(TablePropKey.of(context, tableId), props);
 
   }
 
   @Override
   public void removeProperties(TableId tableId, Collection<String> propertyNames) {
-    context.getPropStore().removeProperties(PropCacheKey.forTable(context, tableId), propertyNames);
+    context.getPropStore().removeProperties(TablePropKey.of(context, tableId), propertyNames);
   }
 
 }

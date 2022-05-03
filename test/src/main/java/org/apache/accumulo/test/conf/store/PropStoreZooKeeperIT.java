@@ -46,6 +46,7 @@ import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.CreateMode;
@@ -141,7 +142,7 @@ public class PropStoreZooKeeperIT {
    */
   @Test
   public void createNoProps() throws InterruptedException, KeeperException {
-    PropCacheKey propKey = PropCacheKey.forTable(instanceId, tIdA);
+    PropCacheKey propKey = TablePropKey.of(instanceId, tIdA);
 
     // read from ZK, after delete no node and node not created.
     assertNull(zooKeeper.exists(propKey.getPath(), false));
@@ -150,7 +151,7 @@ public class PropStoreZooKeeperIT {
 
   @Test
   public void failOnDuplicate() throws InterruptedException, KeeperException {
-    PropCacheKey propKey = PropCacheKey.forTable(instanceId, tIdA);
+    PropCacheKey propKey = TablePropKey.of(instanceId, tIdA);
 
     assertNull(zooKeeper.exists(propKey.getPath(), false)); // check node does not exist in ZK
 
@@ -165,7 +166,7 @@ public class PropStoreZooKeeperIT {
 
   @Test
   public void createWithProps() throws InterruptedException, KeeperException, IOException {
-    PropCacheKey propKey = PropCacheKey.forTable(instanceId, tIdA);
+    PropCacheKey propKey = TablePropKey.of(instanceId, tIdA);
     Map<String,String> initialProps = new HashMap<>();
     initialProps.put(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
     propStore.create(propKey, initialProps);
@@ -185,7 +186,7 @@ public class PropStoreZooKeeperIT {
   public void update() throws InterruptedException {
     TestChangeListener listener = new TestChangeListener();
 
-    PropCacheKey propKey = PropCacheKey.forTable(instanceId, tIdA);
+    PropCacheKey propKey = TablePropKey.of(instanceId, tIdA);
     propStore.registerAsListener(propKey, listener);
 
     Map<String,String> initialProps = new HashMap<>();
@@ -255,8 +256,8 @@ public class PropStoreZooKeeperIT {
 
   @Test
   public void deleteTest() {
-    PropCacheKey tableAPropKey = PropCacheKey.forTable(instanceId, tIdA);
-    PropCacheKey tableBPropKey = PropCacheKey.forTable(instanceId, tIdB);
+    PropCacheKey tableAPropKey = TablePropKey.of(instanceId, tIdA);
+    PropCacheKey tableBPropKey = TablePropKey.of(instanceId, tIdB);
 
     Map<String,String> initialProps = new HashMap<>();
     initialProps.put(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
@@ -282,8 +283,8 @@ public class PropStoreZooKeeperIT {
   public void deleteThroughWatcher() throws InterruptedException {
     TestChangeListener listener = new TestChangeListener();
 
-    PropCacheKey tableAPropKey = PropCacheKey.forTable(instanceId, tIdA);
-    PropCacheKey tableBPropKey = PropCacheKey.forTable(instanceId, tIdB);
+    PropCacheKey tableAPropKey = TablePropKey.of(instanceId, tIdA);
+    PropCacheKey tableBPropKey = TablePropKey.of(instanceId, tIdB);
 
     propStore.registerAsListener(tableAPropKey, listener);
     propStore.registerAsListener(tableBPropKey, listener);
@@ -327,8 +328,8 @@ public class PropStoreZooKeeperIT {
 
     TestChangeListener listener = new TestChangeListener();
 
-    PropCacheKey tableAPropKey = PropCacheKey.forTable(instanceId, tIdA);
-    PropCacheKey tableBPropKey = PropCacheKey.forTable(instanceId, tIdB);
+    PropCacheKey tableAPropKey = TablePropKey.of(instanceId, tIdA);
+    PropCacheKey tableBPropKey = TablePropKey.of(instanceId, tIdB);
 
     propStore.registerAsListener(tableAPropKey, listener);
     propStore.registerAsListener(tableBPropKey, listener);

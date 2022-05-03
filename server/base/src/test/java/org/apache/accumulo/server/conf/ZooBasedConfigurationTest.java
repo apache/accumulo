@@ -51,8 +51,11 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
+import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.SystemPropKey;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -93,7 +96,7 @@ public class ZooBasedConfigurationTest {
 
   @Test
   public void defaultSysConfigTest() {
-    PropCacheKey sysKey = PropCacheKey.forSystem(instanceId);
+    PropCacheKey sysKey = SystemPropKey.of(instanceId);
 
     var siteConfig = SiteConfiguration.empty().build();
     expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
@@ -110,7 +113,7 @@ public class ZooBasedConfigurationTest {
 
   @Test
   public void get() {
-    PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TableId.of("a"));
+    PropCacheKey tablePropKey = TablePropKey.of(instanceId, TableId.of("a"));
 
     var siteConfig = SiteConfiguration.empty().build();
     expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
@@ -132,7 +135,7 @@ public class ZooBasedConfigurationTest {
   @Test
   public void getPropertiesTest() {
     var tableId = TableId.of("t1");
-    PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, tableId);
+    PropCacheKey tablePropKey = TablePropKey.of(instanceId, tableId);
 
     VersionedProperties tProps =
         new VersionedProperties(Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
@@ -145,7 +148,7 @@ public class ZooBasedConfigurationTest {
 
     VersionedProperties nProps =
         new VersionedProperties(Map.of(TABLE_SPLIT_THRESHOLD.getKey(), "3G"));
-    expect(propStore.get(eq(PropCacheKey.forNamespace(instanceId, nsId)))).andReturn(nProps).once();
+    expect(propStore.get(eq(NamespacePropKey.of(instanceId, nsId)))).andReturn(nProps).once();
 
     replay(context, propStore);
 
@@ -171,7 +174,7 @@ public class ZooBasedConfigurationTest {
 
   @Test
   public void systemPropTest() {
-    PropCacheKey sysPropKey = PropCacheKey.forSystem(instanceId);
+    PropCacheKey sysPropKey = SystemPropKey.of(instanceId);
     VersionedProperties vProps =
         new VersionedProperties(99, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
     expect(propStore.get(eq(sysPropKey))).andReturn(vProps).once();
@@ -188,7 +191,7 @@ public class ZooBasedConfigurationTest {
 
   @Test
   public void loadFailBecauseNodeNotExistTest() {
-    PropCacheKey sysPropKey = PropCacheKey.forSystem(instanceId);
+    PropCacheKey sysPropKey = SystemPropKey.of(instanceId);
 
     expect(propStore.get(eq(sysPropKey))).andThrow(new IllegalStateException("fake no node"))
         .once();
@@ -205,17 +208,17 @@ public class ZooBasedConfigurationTest {
    */
   @Test
   public void tablePropTest() {
-    PropCacheKey sysPropKey = PropCacheKey.forSystem(instanceId);
+    PropCacheKey sysPropKey = SystemPropKey.of(instanceId);
     VersionedProperties sysProps =
         new VersionedProperties(1, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
     expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).once();
 
-    PropCacheKey nsPropKey = PropCacheKey.forNamespace(instanceId, NamespaceId.of("ns1"));
+    PropCacheKey nsPropKey = NamespacePropKey.of(instanceId, NamespaceId.of("ns1"));
     VersionedProperties nsProps =
         new VersionedProperties(2, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "false"));
     expect(propStore.get(eq(nsPropKey))).andReturn(nsProps).once();
 
-    PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TableId.of("ns1.table1"));
+    PropCacheKey tablePropKey = TablePropKey.of(instanceId, TableId.of("ns1.table1"));
     VersionedProperties tableProps =
         new VersionedProperties(3, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
     expect(propStore.get(eq(tablePropKey))).andReturn(tableProps).once();
@@ -276,18 +279,18 @@ public class ZooBasedConfigurationTest {
    */
   @Test
   public void updateCountTest() {
-    PropCacheKey sysPropKey = PropCacheKey.forSystem(instanceId);
+    PropCacheKey sysPropKey = SystemPropKey.of(instanceId);
     VersionedProperties sysProps = new VersionedProperties(100, Instant.now(), Map.of());
     expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).once();
     expect(propStore.get(eq(sysPropKey))).andThrow(new IllegalStateException("fake no node"))
         .anyTimes();
     // mock node deleted after event
 
-    PropCacheKey nsPropKey = PropCacheKey.forNamespace(instanceId, NamespaceId.of("ns1"));
+    PropCacheKey nsPropKey = NamespacePropKey.of(instanceId, NamespaceId.of("ns1"));
     VersionedProperties nsProps = new VersionedProperties(20, Instant.now(), Map.of());
     expect(propStore.get(eq(nsPropKey))).andReturn(nsProps).once();
 
-    PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TableId.of("ns1.table1"));
+    PropCacheKey tablePropKey = TablePropKey.of(instanceId, TableId.of("ns1.table1"));
     VersionedProperties tableProps = new VersionedProperties(3, Instant.now(), Map.of());
     expect(propStore.get(eq(tablePropKey))).andReturn(tableProps).once();
 
@@ -315,15 +318,15 @@ public class ZooBasedConfigurationTest {
    */
   @Test
   public void updateCountTableTest() {
-    PropCacheKey sysPropKey = PropCacheKey.forSystem(instanceId);
+    PropCacheKey sysPropKey = SystemPropKey.of(instanceId);
     VersionedProperties sysProps = new VersionedProperties(100, Instant.now(), Map.of());
     expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).once();
 
-    PropCacheKey nsPropKey = PropCacheKey.forNamespace(instanceId, NamespaceId.of("ns1"));
+    PropCacheKey nsPropKey = NamespacePropKey.of(instanceId, NamespaceId.of("ns1"));
     VersionedProperties nsProps = new VersionedProperties(20, Instant.now(), Map.of());
     expect(propStore.get(eq(nsPropKey))).andReturn(nsProps).once();
 
-    PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TableId.of("ns1.table1"));
+    PropCacheKey tablePropKey = TablePropKey.of(instanceId, TableId.of("ns1.table1"));
     VersionedProperties tableProps = new VersionedProperties(3, Instant.now(), Map.of());
     expect(propStore.get(eq(tablePropKey))).andReturn(tableProps).once();
 

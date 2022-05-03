@@ -30,7 +30,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
+import org.apache.accumulo.server.conf.store.SystemPropKey;
 
 import com.google.common.base.Suppliers;
 
@@ -51,8 +51,8 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   public ServerConfigurationFactory(ServerContext context, SiteConfiguration siteConfig) {
     this.context = context;
     this.siteConfig = siteConfig;
-    systemConfig = Suppliers.memoize(() -> new SystemConfiguration(context,
-        PropCacheKey.forSystem(context), getSiteConfiguration()));
+    systemConfig = Suppliers.memoize(
+        () -> new SystemConfiguration(context, SystemPropKey.of(context), getSiteConfiguration()));
   }
 
   public ServerContext getServerContext() {

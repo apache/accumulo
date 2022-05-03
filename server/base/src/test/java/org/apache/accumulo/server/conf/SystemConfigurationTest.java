@@ -45,6 +45,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -73,7 +74,7 @@ public class SystemConfigurationTest {
     propStore.registerAsListener(anyObject(), anyObject());
     expectLastCall().anyTimes();
 
-    PropCacheKey sysPropKey = PropCacheKey.forSystem(instanceId);
+    PropCacheKey sysPropKey = SystemPropKey.of(instanceId);
     VersionedProperties sysProps =
         new VersionedProperties(1, Instant.now(), Map.of(GC_PORT.getKey(), "1234",
             TSERV_SCAN_MAX_OPENFILES.getKey(), "19", TABLE_BLOOM_ENABLED.getKey(), "true"));
@@ -96,7 +97,7 @@ public class SystemConfigurationTest {
   @Test
   public void testFromFixed() {
 
-    var sysPropKey = PropCacheKey.forSystem(instanceId);
+    var sysPropKey = SystemPropKey.of(instanceId);
 
     assertEquals("9997", sysConfig.get(TSERV_CLIENTPORT)); // default
     assertEquals("1234", sysConfig.get(GC_PORT)); // fixed sys config

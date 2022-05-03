@@ -37,6 +37,7 @@ import org.apache.accumulo.server.conf.store.PropCache;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.util.ConfigTransformer;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
@@ -154,7 +155,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    */
   public synchronized static void initSysProps(final ServerContext context,
       final Map<String,String> initProps) {
-    PropCacheKey sysPropKey = PropCacheKey.forSystem(context.getInstanceID());
+    PropCacheKey sysPropKey = SystemPropKey.of(context.getInstanceID());
     createInitialProps(context, sysPropKey, initProps);
   }
 
@@ -226,7 +227,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
       return props;
     }
 
-    if (propCacheKey.getIdType() == PropCacheKey.IdType.SYSTEM) {
+    if (propCacheKey instanceof SystemPropKey) {
       return new ConfigTransformer(zrw, codec, propStoreWatcher).transform(propCacheKey);
     }
 

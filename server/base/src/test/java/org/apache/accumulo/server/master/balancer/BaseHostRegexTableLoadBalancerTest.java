@@ -61,8 +61,9 @@ import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
+import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
@@ -184,16 +185,16 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     propStore.registerAsListener(anyObject(), anyObject());
     expectLastCall().anyTimes();
 
-    expect(propStore.get(eq(PropCacheKey.forNamespace(instanceId, NamespaceId.of("+default")))))
+    expect(propStore.get(eq(NamespacePropKey.of(instanceId, NamespaceId.of("+default")))))
         .andReturn(new VersionedProperties()).anyTimes();
 
-    expect(propStore.get(eq(PropCacheKey.forTable(instanceId, TableId.of("1")))))
+    expect(propStore.get(eq(TablePropKey.of(instanceId, TableId.of("1")))))
         .andReturn(new VersionedProperties()).anyTimes();
 
-    expect(propStore.get(eq(PropCacheKey.forTable(instanceId, TableId.of("2")))))
+    expect(propStore.get(eq(TablePropKey.of(instanceId, TableId.of("2")))))
         .andReturn(new VersionedProperties()).anyTimes();
 
-    expect(propStore.get(eq(PropCacheKey.forTable(instanceId, TableId.of("3")))))
+    expect(propStore.get(eq(TablePropKey.of(instanceId, TableId.of("3")))))
         .andReturn(new VersionedProperties()).anyTimes();
 
     replay(propStore);

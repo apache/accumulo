@@ -36,7 +36,7 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
+import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.metadata.RootGcCandidates;
 import org.apache.accumulo.server.tables.TableManager;
@@ -70,7 +70,7 @@ class ZooKeeperInitializer {
       zoo.putPersistentData(zkInstanceRoot + Constants.ZCONFIG, EMPTY_BYTE_ARRAY,
           ZooUtil.NodeExistsPolicy.SKIP);
 
-      var sysPropPath = PropCacheKey.forSystem(instanceId).getPath();
+      var sysPropPath = SystemPropKey.of(instanceId).getPath();
       VersionedProperties vProps = new VersionedProperties();
       // skip if the encoded props node exists
       if (zoo.exists(sysPropPath)) {

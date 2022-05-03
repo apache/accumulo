@@ -65,8 +65,8 @@ import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.SystemConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.metadata.ServerAmpleImpl;
@@ -124,8 +124,8 @@ public class ServerContext extends ClientContext {
     tableManager = memoize(() -> new TableManager(this));
     nameAllocator = memoize(() -> new UniqueNameAllocator(this));
     serverConfFactory = memoize(() -> new ServerConfigurationFactory(this, getSiteConfiguration()));
-    systemConfig = memoize(() -> new SystemConfiguration(this,
-        PropCacheKey.forSystem(getInstanceID()), getSiteConfiguration()));
+    systemConfig = memoize(() -> new SystemConfiguration(this, SystemPropKey.of(getInstanceID()),
+        getSiteConfiguration()));
     secretManager = memoize(() -> new AuthenticationTokenSecretManager(getInstanceID(),
         getConfiguration().getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME)));
     cryptoService = memoize(

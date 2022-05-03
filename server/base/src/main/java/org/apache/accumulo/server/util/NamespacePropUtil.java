@@ -24,7 +24,7 @@ import java.util.Map;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
+import org.apache.accumulo.server.conf.store.NamespacePropKey;
 
 public class NamespacePropUtil extends PropUtil<NamespaceId> {
 
@@ -41,12 +41,12 @@ public class NamespacePropUtil extends PropUtil<NamespaceId> {
             + " name: " + prop.getKey() + ", value: " + prop.getValue());
       }
     }
-    context.getPropStore().putAll(PropCacheKey.forNamespace(context, namespaceId), properties);
+    context.getPropStore().putAll(NamespacePropKey.of(context, namespaceId), properties);
   }
 
   @Override
   public void removeProperties(NamespaceId namespaceId, Collection<String> propertyNames) {
-    context.getPropStore().removeProperties(PropCacheKey.forNamespace(context, namespaceId),
+    context.getPropStore().removeProperties(NamespacePropKey.of(context, namespaceId),
         propertyNames);
   }
 

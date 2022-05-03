@@ -38,7 +38,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +55,7 @@ public class TableConfiguration extends ZooBasedConfiguration {
   private final Deriver<CompactionDispatcher> compactionDispatchDeriver;
 
   public TableConfiguration(ServerContext context, TableId tableId, NamespaceConfiguration parent) {
-    super(log, context, PropCacheKey.forTable(context, tableId), parent);
+    super(log, context, TablePropKey.of(context, tableId), parent);
     this.tableId = tableId;
 
     iteratorConfig = new EnumMap<>(IteratorScope.class);

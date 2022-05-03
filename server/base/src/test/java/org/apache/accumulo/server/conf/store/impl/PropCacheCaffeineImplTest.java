@@ -41,6 +41,7 @@ import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -72,8 +73,8 @@ public class PropCacheCaffeineImplTest {
     PropStoreMetrics cacheMetrics = new PropStoreMetrics();
     MetricsUtil.initializeProducers(cacheMetrics);
 
-    tablePropKey = PropCacheKey.forTable(instanceId,
-        TableId.of("t" + ThreadLocalRandom.current().nextInt(1, 1000)));
+    tablePropKey =
+        TablePropKey.of(instanceId, TableId.of("t" + ThreadLocalRandom.current().nextInt(1, 1000)));
 
     Map<String,String> props =
         Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "1234", TABLE_FILE_BLOCK_SIZE.getKey(), "512M");
@@ -112,7 +113,7 @@ public class PropCacheCaffeineImplTest {
       justification = "random used for testing with variable names")
   @Test
   public void getNoCacheTest() {
-    PropCacheKey table2PropKey = PropCacheKey.forTable(instanceId,
+    PropCacheKey table2PropKey = TablePropKey.of(instanceId,
         TableId.of("t2" + ThreadLocalRandom.current().nextInt(1, 1000)));
 
     expect(zooPropLoader.load(eq(table2PropKey))).andReturn(vProps).once();
@@ -138,7 +139,7 @@ public class PropCacheCaffeineImplTest {
       justification = "random used for testing with variable names")
   @Test
   public void removeAllTest() {
-    PropCacheKey table2PropKey = PropCacheKey.forTable(instanceId,
+    PropCacheKey table2PropKey = TablePropKey.of(instanceId,
         TableId.of("t2" + ThreadLocalRandom.current().nextInt(1, 1000)));
 
     expect(zooPropLoader.load(eq(tablePropKey))).andReturn(vProps).once();

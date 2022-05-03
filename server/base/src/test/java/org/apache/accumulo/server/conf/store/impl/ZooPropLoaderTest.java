@@ -52,6 +52,8 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
+import org.apache.accumulo.server.conf.store.SystemPropKey;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.easymock.Capture;
@@ -83,7 +85,7 @@ public class ZooPropLoaderTest {
     ticker = new PropCacheCaffeineImplTest.TestTicker();
     instanceId = InstanceId.of(UUID.randomUUID());
 
-    propCacheKey = PropCacheKey.forSystem(instanceId);
+    propCacheKey = SystemPropKey.of(instanceId);
     propCodec = VersionedPropCodec.getDefault();
 
     // mocks
@@ -250,10 +252,10 @@ public class ZooPropLoaderTest {
     propStoreWatcher.signalZkChangeEvent(eq(propCacheKey));
     expectLastCall().anyTimes();
 
-    propStoreWatcher.signalZkChangeEvent(eq(PropCacheKey.forSystem(instanceId)));
+    propStoreWatcher.signalZkChangeEvent(eq(SystemPropKey.of(instanceId)));
     expectLastCall().anyTimes();
 
-    propStoreWatcher.signalCacheChangeEvent(eq(PropCacheKey.forSystem(instanceId)));
+    propStoreWatcher.signalCacheChangeEvent(eq(SystemPropKey.of(instanceId)));
     expectLastCall().anyTimes();
 
     cacheMetrics.addLoadTime(anyLong());
@@ -305,8 +307,8 @@ public class ZooPropLoaderTest {
 
   @Test
   public void removeTest() throws Exception {
-    final PropCacheKey sysPropKey = PropCacheKey.forSystem(instanceId);
-    final PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TableId.of("t1"));
+    final PropCacheKey sysPropKey = SystemPropKey.of(instanceId);
+    final PropCacheKey tablePropKey = TablePropKey.of(instanceId, TableId.of("t1"));
 
     VersionedProperties defaultProps = new VersionedProperties();
 
@@ -337,8 +339,8 @@ public class ZooPropLoaderTest {
 
   @Test
   public void removeAllTest() throws Exception {
-    final PropCacheKey sysPropKey = PropCacheKey.forSystem(instanceId);
-    final PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TableId.of("t1"));
+    final PropCacheKey sysPropKey = SystemPropKey.of(instanceId);
+    final PropCacheKey tablePropKey = TablePropKey.of(instanceId, TableId.of("t1"));
 
     VersionedProperties defaultProps = new VersionedProperties();
 

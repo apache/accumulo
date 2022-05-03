@@ -27,7 +27,7 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
-public class TablePropKey extends CacheKey {
+public class TablePropKey extends PropCacheKey {
 
   private TablePropKey(final InstanceId instanceId, final String path, final TableId tableId) {
     super(instanceId, path, tableId);

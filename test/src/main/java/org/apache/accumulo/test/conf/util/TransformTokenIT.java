@@ -37,7 +37,7 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
+import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.conf.util.TransformToken;
@@ -114,7 +114,7 @@ public class TransformTokenIT {
   public void tokenGoPathTest() {
     replay(context, watcher);
 
-    var sysPropKey = PropCacheKey.forSystem(instanceId);
+    var sysPropKey = SystemPropKey.of(instanceId);
 
     TransformToken token = TransformToken.createToken(sysPropKey, zrw);
 
@@ -138,7 +138,7 @@ public class TransformTokenIT {
 
     replay(context, watcher);
 
-    var sysPropKey = PropCacheKey.forSystem(instanceId);
+    var sysPropKey = SystemPropKey.of(instanceId);
     var tokenPath = sysPropKey.getBasePath() + TransformToken.TRANSFORM_TOKEN;
 
     TransformToken lock = TransformToken.createToken(sysPropKey, zrw);

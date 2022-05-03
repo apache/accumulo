@@ -46,6 +46,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.PropCacheCaffeineImpl;
 import org.apache.accumulo.server.conf.store.impl.PropStoreMetrics;
 import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
@@ -153,7 +154,7 @@ public class PropCacheCaffeineImplZkIT {
     VersionedProperties vProps = new VersionedProperties(props);
 
     // directly create prop node - simulate existing properties.
-    PropCacheKey propCacheKey = PropCacheKey.forTable(INSTANCE_ID, tIdA);
+    PropCacheKey propCacheKey = TablePropKey.of(INSTANCE_ID, tIdA);
     var created = zrw.putPersistentData(propCacheKey.getPath(),
         VersionedPropCodec.getDefault().toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
 
@@ -185,7 +186,7 @@ public class PropCacheCaffeineImplZkIT {
   public void watcherTest() throws Exception {
     ZooKeeper zk = zrw.getZooKeeper();
 
-    PropCacheKey propCacheKey = PropCacheKey.forTable(INSTANCE_ID, tIdA);
+    PropCacheKey propCacheKey = TablePropKey.of(INSTANCE_ID, tIdA);
 
     log.trace("add watcher");
     Watcher watcherA = new TestWatcher(zooKeeper, "WATCHER_A");

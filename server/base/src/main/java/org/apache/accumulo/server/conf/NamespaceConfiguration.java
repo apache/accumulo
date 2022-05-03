@@ -26,7 +26,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
+import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +37,7 @@ public class NamespaceConfiguration extends ZooBasedConfiguration {
 
   public NamespaceConfiguration(NamespaceId namespaceId, ServerContext context,
       AccumuloConfiguration parent) {
-    super(log, context, PropCacheKey.forNamespace(context, namespaceId), parent);
+    super(log, context, NamespacePropKey.of(context, namespaceId), parent);
   }
 
   @Override
@@ -45,7 +45,7 @@ public class NamespaceConfiguration extends ZooBasedConfiguration {
 
     String key = property.getKey();
 
-    var namespaceId = getPropCacheKey().getNamespaceId();
+    var namespaceId = getPropCacheKey().getId();
     if (namespaceId != null && namespaceId.equals(Namespace.ACCUMULO.id())
         && isIteratorOrConstraint(key)) {
       // ignore iterators from parent if system namespace
@@ -81,7 +81,7 @@ public class NamespaceConfiguration extends ZooBasedConfiguration {
   }
 
   protected NamespaceId getNamespaceId() {
-    NamespaceId id = getPropCacheKey().getNamespaceId();
+    NamespaceId id = (NamespaceId) getPropCacheKey().getId();
     if (id == null) {
       throw new IllegalArgumentException(
           "Invalid request for namespace id on " + getPropCacheKey());

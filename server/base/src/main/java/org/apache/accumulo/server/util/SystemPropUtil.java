@@ -25,7 +25,7 @@ import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.PropertyType;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
+import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,7 +65,7 @@ public class SystemPropUtil {
       log.debug("Attempted to set zookeeper property.  Value is either null or invalid", iae);
       throw iae;
     }
-    context.getPropStore().putAll(PropCacheKey.forSystem(context), Map.of(property, value));
+    context.getPropStore().putAll(SystemPropKey.of(context), Map.of(property, value));
   }
 
   public static void removeSystemProperty(ServerContext context, String property) {
@@ -80,6 +80,6 @@ public class SystemPropUtil {
   }
 
   public static void removePropWithoutDeprecationWarning(ServerContext context, String property) {
-    context.getPropStore().removeProperties(PropCacheKey.forSystem(context), List.of(property));
+    context.getPropStore().removeProperties(SystemPropKey.of(context), List.of(property));
   }
 }

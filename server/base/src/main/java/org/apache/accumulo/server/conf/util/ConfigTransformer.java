@@ -41,6 +41,7 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
+import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.zookeeper.KeeperException;
@@ -193,7 +194,7 @@ public class ConfigTransformer {
   private Set<LegacyPropNode> convertDeprecatedProps(PropCacheKey propCacheKey,
       Set<LegacyPropNode> upgradeNodes) {
 
-    if (propCacheKey.getIdType() != PropCacheKey.IdType.SYSTEM) {
+    if (!(propCacheKey instanceof SystemPropKey)) {
       return upgradeNodes;
     }
 

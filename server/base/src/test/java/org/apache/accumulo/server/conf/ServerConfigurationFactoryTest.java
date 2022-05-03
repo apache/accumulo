@@ -39,8 +39,10 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
+import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.SystemPropKey;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,11 +63,11 @@ public class ServerConfigurationFactoryTest {
   @BeforeEach
   public void setUp() {
     propStore = createMock(ZooPropStore.class);
-    expect(propStore.get(eq(PropCacheKey.forSystem(IID))))
+    expect(propStore.get(eq(SystemPropKey.of(IID)))).andReturn(new VersionedProperties(Map.of()))
+        .anyTimes();
+    expect(propStore.get(eq(TablePropKey.of(IID, TID))))
         .andReturn(new VersionedProperties(Map.of())).anyTimes();
-    expect(propStore.get(eq(PropCacheKey.forTable(IID, TID))))
-        .andReturn(new VersionedProperties(Map.of())).anyTimes();
-    expect(propStore.get(eq(PropCacheKey.forNamespace(IID, NSID))))
+    expect(propStore.get(eq(NamespacePropKey.of(IID, NSID))))
         .andReturn(new VersionedProperties(Map.of())).anyTimes();
 
     propStore.registerAsListener(anyObject(), anyObject());

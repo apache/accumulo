@@ -46,6 +46,7 @@ import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
@@ -85,7 +86,7 @@ public class PropStoreEventTest {
   @Test
   public void zkChangeEventTest() throws Exception {
 
-    PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TableId.of("a1"));
+    PropCacheKey tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
 
     PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
 
@@ -114,7 +115,7 @@ public class PropStoreEventTest {
   @Test
   public void deleteEventTest() throws Exception {
 
-    PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TableId.of("a1"));
+    PropCacheKey tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
 
     PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
 
@@ -144,7 +145,7 @@ public class PropStoreEventTest {
   @Test
   public void disconnectEventTest() throws Exception {
 
-    PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TableId.of("a1"));
+    PropCacheKey tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
 
     PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
 
@@ -176,7 +177,7 @@ public class PropStoreEventTest {
   @Test
   public void closedEventTest() throws Exception {
 
-    PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TableId.of("a1"));
+    PropCacheKey tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
 
     PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
 
@@ -209,7 +210,7 @@ public class PropStoreEventTest {
   @Test
   public void cacheChangeEventTest() throws Exception {
 
-    PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TableId.of("a1"));
+    PropCacheKey tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
 
     PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
     readyMonitor.setReady();
@@ -231,7 +232,7 @@ public class PropStoreEventTest {
 
   @Test
   public void validateWatcherSetTest() throws Exception {
-    PropCacheKey tablePropKey = PropCacheKey.forTable(instanceId, TableId.of("a1"));
+    PropCacheKey tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
 
     Map<String,String> props1 =
         Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "1234", TABLE_FILE_BLOCK_SIZE.getKey(), "512M");

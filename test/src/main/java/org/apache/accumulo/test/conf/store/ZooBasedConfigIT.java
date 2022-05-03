@@ -51,6 +51,8 @@ import org.apache.accumulo.server.conf.ZooBasedConfiguration;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.SystemPropKey;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.CreateMode;
@@ -178,7 +180,7 @@ public class ZooBasedConfigIT {
   @Test
   public void upgradeSysTestNoProps() {
     replay(context);
-    var propKey = PropCacheKey.forSystem(INSTANCE_ID);
+    var propKey = SystemPropKey.of(INSTANCE_ID);
     ZooBasedConfiguration zbc = new SystemConfiguration(context, propKey, parent);
     assertNotNull(zbc);
   }
@@ -190,7 +192,7 @@ public class ZooBasedConfigIT {
 
     ZooPropStore.initSysProps(context, Map.of());
 
-    PropCacheKey propKey = PropCacheKey.forTable(INSTANCE_ID, tidA);
+    PropCacheKey propKey = TablePropKey.of(INSTANCE_ID, tidA);
 
     ZooPropStore.createInitialProps(context, propKey,
         Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
@@ -211,7 +213,7 @@ public class ZooBasedConfigIT {
 
     ZooPropStore.initSysProps(context, Map.of());
 
-    PropCacheKey propKey = PropCacheKey.forTable(INSTANCE_ID, tidA);
+    PropCacheKey propKey = TablePropKey.of(INSTANCE_ID, tidA);
 
     ZooPropStore.createInitialProps(context, propKey, Map.of());
 
@@ -229,7 +231,7 @@ public class ZooBasedConfigIT {
 
     ZooPropStore.initSysProps(context, Map.of());
 
-    PropCacheKey propKey = PropCacheKey.forTable(INSTANCE_ID, tidA);
+    PropCacheKey propKey = TablePropKey.of(INSTANCE_ID, tidA);
     assertThrows(IllegalStateException.class,
         () -> new SystemConfiguration(context, propKey, parent));
   }
@@ -242,7 +244,7 @@ public class ZooBasedConfigIT {
 
     ZooPropStore.initSysProps(context, Map.of());
 
-    PropCacheKey tableAPropKey = PropCacheKey.forTable(INSTANCE_ID, tidA);
+    PropCacheKey tableAPropKey = TablePropKey.of(INSTANCE_ID, tidA);
 
     TestListener testListener = new TestListener();
     propStore.registerAsListener(tableAPropKey, testListener);
@@ -262,7 +264,7 @@ public class ZooBasedConfigIT {
 
     // force clean-up and cache activity to get async unload to occur.
     ((ZooPropStore) propStore).cleanUp();
-    PropCacheKey tableBPropKey = PropCacheKey.forTable(INSTANCE_ID, tidB);
+    PropCacheKey tableBPropKey = TablePropKey.of(INSTANCE_ID, tidB);
     ZooPropStore.createInitialProps(context, tableBPropKey, Map.of());
     Thread.sleep(150);
 

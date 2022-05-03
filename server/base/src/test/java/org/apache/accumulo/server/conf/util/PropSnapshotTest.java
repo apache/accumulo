@@ -38,6 +38,7 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -64,15 +65,15 @@ class PropSnapshotTest {
   @Test
   public void getTest() {
     // init props
-    expect(propStore.get(eq(PropCacheKey.forSystem(instanceId))))
+    expect(propStore.get(eq(SystemPropKey.of(instanceId))))
         .andReturn(new VersionedProperties(123, Instant.now(), Map.of("k1", "v1", "k2", "v2")))
         .once();
     // after update
-    expect(propStore.get(eq(PropCacheKey.forSystem(instanceId))))
+    expect(propStore.get(eq(SystemPropKey.of(instanceId))))
         .andReturn(new VersionedProperties(124, Instant.now(), Map.of("k3", "v3"))).once();
 
     replay(propStore);
-    PropSnapshot snapshot = PropSnapshot.create(PropCacheKey.forSystem(instanceId), propStore);
+    PropSnapshot snapshot = PropSnapshot.create(SystemPropKey.of(instanceId), propStore);
 
     assertEquals("v1", snapshot.getVersionedProperties().asMap().get("k1"));
     assertEquals("v2", snapshot.getVersionedProperties().asMap().get("k2"));
@@ -88,7 +89,7 @@ class PropSnapshotTest {
   @Test
   public void eventChangeTest() {
 
-    PropCacheKey sysPropKey = PropCacheKey.forSystem(instanceId);
+    PropCacheKey sysPropKey = SystemPropKey.of(instanceId);
 
     expect(propStore.get(eq(sysPropKey))).andReturn(
         new VersionedProperties(99, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true")))
@@ -112,7 +113,7 @@ class PropSnapshotTest {
   @Test
   public void deleteEventTest() {
 
-    PropCacheKey sysPropKey = PropCacheKey.forSystem(instanceId);
+    PropCacheKey sysPropKey = SystemPropKey.of(instanceId);
 
     expect(propStore.get(eq(sysPropKey))).andReturn(
         new VersionedProperties(123, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true")))

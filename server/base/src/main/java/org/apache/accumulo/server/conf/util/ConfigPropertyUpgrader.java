@@ -30,7 +30,9 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
+import org.apache.accumulo.server.conf.store.NamespacePropKey;
+import org.apache.accumulo.server.conf.store.SystemPropKey;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
 import org.apache.accumulo.server.conf.store.impl.ReadyMonitor;
 import org.apache.accumulo.start.spi.KeywordExecutable;
@@ -88,7 +90,7 @@ public class ConfigPropertyUpgrader implements KeywordExecutable {
 
   private void upgradeSysProps(final InstanceId instanceId, final ConfigTransformer transformer) {
     log.info("Upgrade system config properties for {}", instanceId);
-    transformer.transform(PropCacheKey.forSystem(instanceId));
+    transformer.transform(SystemPropKey.of(instanceId));
   }
 
   private void upgradeNamespaceProps(final InstanceId instanceId, final ZooReaderWriter zrw,
@@ -100,7 +102,7 @@ public class ConfigPropertyUpgrader implements KeywordExecutable {
       for (String namespace : namespaces) {
         String zkPropBasePath = zkPathNamespaceBase + "/" + namespace + Constants.ZNAMESPACE_CONF;
         log.info("Upgrading namespace {} base path: {}", namespace, zkPropBasePath);
-        transformer.transform(PropCacheKey.forNamespace(instanceId, NamespaceId.of(namespace)));
+        transformer.transform(NamespacePropKey.of(instanceId, NamespaceId.of(namespace)));
       }
     } catch (KeeperException ex) {
       throw new IllegalStateException(
@@ -120,7 +122,7 @@ public class ConfigPropertyUpgrader implements KeywordExecutable {
       for (String table : tables) {
         String zkPropBasePath = zkPathTableBase + "/" + table + Constants.ZNAMESPACE_CONF;
         log.info("Upgrading table {} base path: {}", table, zkPropBasePath);
-        transformer.transform(PropCacheKey.forTable(instanceId, TableId.of(table)));
+        transformer.transform(TablePropKey.of(instanceId, TableId.of(table)));
       }
     } catch (KeeperException ex) {
       throw new IllegalStateException(
