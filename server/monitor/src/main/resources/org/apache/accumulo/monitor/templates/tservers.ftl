@@ -49,6 +49,7 @@
             </thead>
             <tbody></tbody>
           </table>
+          <span id="recovery-caption" style="background-color: gold;">Highlighted rows correspond to tservers in recovery mode.</span>
           <table id="tservers" class="table table-bordered table-striped table-condensed">
             <thead>
               <tr>
