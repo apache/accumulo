@@ -18,29 +18,25 @@
  */
 "use strict";
 
-var tserversList;
+var tserversTable;
 /**
  * Creates tservers initial table
  */
 $(document).ready(function() {
-    
+
+  // hide the note about highlighted rows by default
+  $('#recovery-caption').hide();
+
   const recoveryList = []
   getRecoveryList().then(function () {
     // fill recoveryList
     JSON.parse(sessionStorage.recoveryList).recoveryList.forEach(entry => {
       recoveryList.push(entry.server);
     });
-
-    // only show the note about highlighted rows if there are rows to highlight
-    if (recoveryList.length === 0) {
-      $('#recovery-caption').hide();
-    } else {
-      $('#recovery-caption').show();
-    }
   });
     
     // Create a table for tserver list
-    tserversList = $('#tservers').DataTable({
+    tserversTable = $('#tservers').DataTable({
       "ajax": {
         "url": '/rest/tservers',
         "dataSrc": "servers"
@@ -95,6 +91,9 @@ $(document).ready(function() {
         // return if current rows tserver is not recovering
         if (!recoveryList.includes(data.hostname))
           return;
+
+        // only show the caption if we know there are rows in the tservers table
+        $('#recovery-caption').show();
 
         // highlight current row
         console.log('Highlighting row index:' + index + ' tserver:' + data.hostname);
@@ -193,5 +192,5 @@ function clearDeadTServers(server) {
  * Generates the tserver table
  */
 function refreshTServersTable() {
-  if (tserversList) tserversList.ajax.reload(null, false); // user paging is not reset on reload
+  if (tserversTable) tserversTable.ajax.reload(null, false); // user paging is not reset on reload
 }
