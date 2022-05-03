@@ -198,8 +198,8 @@ public class PropCacheKey implements Comparable<PropCacheKey> {
    *          a path split into String[] of tokens
    * @return the id type.
    */
-  public static IdType extractType(final String[] tokens) {
-    if (tokens.length == 0 || !tokens[tokens.length - 1].equals(PROP_NODE_NAME)) {
+  private static IdType extractType(final String[] tokens) {
+    if (tokens.length < 1 || !tokens[tokens.length - 1].equals(PROP_NODE_NAME)) {
       // without tokens or it does not end with PROP_NAME_NAME
       return IdType.UNKNOWN;
     }
