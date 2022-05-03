@@ -44,17 +44,17 @@ public class NamespacePropKey extends PropCacheKey<NamespaceId> {
   }
 
   public static NamespacePropKey of(final InstanceId instanceId, final NamespaceId id) {
-    return new NamespacePropKey(instanceId, makePath(instanceId, id), id);
+    return new NamespacePropKey(instanceId, getNodePath(instanceId, id), id);
   }
 
-  private static String makePath(final InstanceId instanceId, final NamespaceId id) {
+  private static String getNodePath(final InstanceId instanceId, final NamespaceId id) {
     return ZooUtil.getRoot(instanceId) + ZNAMESPACES + "/" + id.canonical() + ZNAMESPACE_CONF + "/"
         + PROP_NODE_NAME;
   }
 
   @Override
   public @NonNull String getNodePath() {
-    return getNodeName(instanceId, (NamespaceId) id);
+    return getNodeName(instanceId, id);
   }
 
   @Override

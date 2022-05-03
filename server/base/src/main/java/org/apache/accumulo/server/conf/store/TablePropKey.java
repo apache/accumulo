@@ -48,7 +48,7 @@ public class TablePropKey extends PropCacheKey<TableId> {
 
   @Override
   public @NonNull String getNodePath() {
-    return getNodePath(instanceId, (TableId) id);
+    return getNodePath(instanceId, id);
   }
 
   @Override
