@@ -308,7 +308,7 @@ Files:
      * Dual licensed under the MIT and GPL licenses.
      * http://benalman.com/about/license/
 
-## Bootstrap v3.3.7 (http://getbootstrap.com)
+## Bootstrap v3.4.1 (http://getbootstrap.com)
 
 Files:
 * server/monitor/src/main/resources/org/apache/accumulo/monitor/resources/external/bootstrap/**/*
