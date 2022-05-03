@@ -51,15 +51,13 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.ScanServerFileRef
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.gc.GCRun;
 import org.apache.accumulo.gc.GarbageCollectionEnvironment.Reference;
-import org.apache.accumulo.gc.SimpleGarbageCollector;
-import org.apache.accumulo.gc.SimpleGarbageCollector.GCEnv;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -219,13 +217,10 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testGcEnvScanServerReferences() throws Exception {
-
-    @SuppressWarnings("resource")
-    GCEnv gc = new SimpleGarbageCollector(new ServerOpts(),
-        new String[] {"-p", getCluster().getAccumuloPropertiesPath()}).new GCEnv(DataLevel.USER);
+  public void testGcRunScanServerReferences() throws Exception {
 
     ServerContext ctx = getCluster().getServerContext();
+    GCRun gc = new GCRun(DataLevel.USER, ctx);
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
