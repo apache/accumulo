@@ -21,7 +21,7 @@
 function addAccumuloAPI() {
   local srcDir="$1" api apiPath
   # Validate each source directory before populating JShell-Init file
-  if [[ ! -d "$srcDir" ]]; then
+  if [[ ! -d $srcDir ]]; then
     echo "$srcDir is not a valid directory. Please make sure it exists."
     exit 1
   fi
@@ -37,7 +37,7 @@ function addAccumuloAPI() {
 }
 
 function addClientBuild() {
-cat <<EOF
+  cat <<EOF
   URL clientPropUrl =
     AccumuloClient.class.getClassLoader().getResource("accumulo-client.properties");
   AccumuloClient client = null;
@@ -58,15 +58,15 @@ function main() {
   local SOURCE bin scriptPath mainBase corePath
   # Establish Accumulo's main base directory
   SOURCE="${BASH_SOURCE[0]}"
-  while [[ -h "${SOURCE}" ]]; do
-    bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
+  while [[ -L ${SOURCE} ]]; do
+    bin="$(cd -P "$(dirname "${SOURCE}")" && pwd)"
     SOURCE="$(readlink "${SOURCE}")"
-    [[ "${SOURCE}" != /* ]] && SOURCE="${bin}/${SOURCE}"
+    [[ ${SOURCE} != /* ]] && SOURCE="${bin}/${SOURCE}"
   done
 
   # Establish file and folder paths for JShell config
-  scriptPath="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
-  mainBase="$( cd -P "${scriptPath}"/../../../.. && pwd )"
+  scriptPath="$(cd -P "$(dirname "${SOURCE}")" && pwd)"
+  mainBase="$(cd -P "${scriptPath}"/../../../.. && pwd)"
   corePath="$mainBase/core/src/main/java/org/apache/accumulo/core"
 
   # Create new jshell-init file
@@ -87,11 +87,12 @@ function main() {
     echo 'import org.apache.hadoop.io.Text;'
     echo
     echo '// Initialization Code'
-    echo 'System.out.println("Preparing JShell for Apache Accumulo\n");'
+    echo 'System.out.println("Preparing JShell for Apache Accumulo");'
+    echo 'System.out.println();'
     echo
     echo '// Accumulo Client Build'
     addClientBuild
-  } > "$mainBase/assemble/target/jshell-init.jsh"
+  } >"$mainBase/assemble/target/jshell-init.jsh"
 }
 
 main "$@"
