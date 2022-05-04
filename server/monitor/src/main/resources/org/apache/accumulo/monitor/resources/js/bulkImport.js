@@ -39,10 +39,10 @@ function refreshBulkImportTable() {
     console.log("Populate bulkListTable with " + sessionStorage.bulkImports);
     $.each(data.bulkImport, function (key, val) {
         console.log("Append row " + key + " " + JSON.stringify(val) + " to bulkListTable");
-        $("#bulkListTable tbody")
-            .append("<tr><td class='firstcell left'>" + val.filename + "</td>")
-            .append("<td class='center'>" + new Date(val.age) + "</td>")
-            .append("<td class='right'>" + val.state + "</td></tr>");
+        var tableBodyHtml = "<tr><td class='firstcell'>" + val.filename + "</td>";
+        tableBodyHtml += "<td class='center'>" + new Date(val.age) + "</td>";
+        tableBodyHtml += "<td class='center'>" + val.state + "</td></tr>";
+        $("#bulkListTable tbody").html(tableBodyHtml);
     });
 }
 
