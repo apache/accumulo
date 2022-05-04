@@ -127,45 +127,11 @@ public class GarbageCollectionAlgorithm {
     return ret;
   }
 
+  /**
+   * Return the number of BLIP flags seen.
+   */
   private void confirmDeletes(GarbageCollectionEnvironment gce,
-      SortedMap<String,String> candidateMap) throws TableNotFoundException {
-    boolean checkForBulkProcessingFiles = false;
-    Iterator<String> relativePaths = candidateMap.keySet().iterator();
-    while (!checkForBulkProcessingFiles && relativePaths.hasNext())
-      checkForBulkProcessingFiles |=
-          relativePaths.next().toLowerCase(Locale.ENGLISH).contains(Constants.BULK_PREFIX);
-
-    if (checkForBulkProcessingFiles) {
-      try (Stream<String> blipStream = gce.getBlipPaths()) {
-        Iterator<String> blipiter = blipStream.iterator();
-
-        // WARNING: This block is IMPORTANT
-        // You MUST REMOVE candidates that are in the same folder as a bulk
-        // processing flag!
-
-        while (blipiter.hasNext()) {
-          String blipPath = blipiter.next();
-          blipPath = makeRelative(blipPath, 2);
-
-          Iterator<String> tailIter = candidateMap.tailMap(blipPath).keySet().iterator();
-
-          int count = 0;
-
-          while (tailIter.hasNext()) {
-            if (tailIter.next().startsWith(blipPath)) {
-              count++;
-              tailIter.remove();
-            } else {
-              break;
-            }
-          }
-
-          if (count > 0)
-            log.debug("Folder has bulk processing flag: {}", blipPath);
-        }
-      }
-    }
-
+      SortedMap<String,String> candidateMap) {
     Iterator<Reference> iter = gce.getReferences().iterator();
     while (iter.hasNext()) {
       Reference ref = iter.next();
@@ -200,17 +166,61 @@ public class GarbageCollectionAlgorithm {
         String dir = reference.substring(0, reference.lastIndexOf('/'));
         if (candidateMap.remove(dir) != null)
           log.debug("Candidate was still in use: {}", reference);
+      }
+    }
+  }
 
+  private long removeBlipCandidates(GarbageCollectionEnvironment gce,
+      SortedMap<String,String> candidateMap) throws TableNotFoundException {
+    boolean checkForBulkProcessingFiles = false;
+    long blipCount = 0;
+    Iterator<String> relativePaths = candidateMap.keySet().iterator();
+
+    while (!checkForBulkProcessingFiles && relativePaths.hasNext())
+      checkForBulkProcessingFiles |=
+          relativePaths.next().toLowerCase(Locale.ENGLISH).contains(Constants.BULK_PREFIX);
+
+    if (checkForBulkProcessingFiles) {
+      try (Stream<String> blipStream = gce.getBlipPaths()) {
+        Iterator<String> blipiter = blipStream.iterator();
+
+        // WARNING: This block is IMPORTANT
+        // You MUST REMOVE candidates that are in the same folder as a bulk
+        // processing flag!
+
+        while (blipiter.hasNext()) {
+          String blipPath = blipiter.next();
+          blipPath = makeRelative(blipPath, 2);
+
+          Iterator<String> tailIter = candidateMap.tailMap(blipPath).keySet().iterator();
+
+          int count = 0;
+
+          while (tailIter.hasNext()) {
+            if (tailIter.next().startsWith(blipPath)) {
+              count++;
+              tailIter.remove();
+            } else {
+              break;
+            }
+          }
+
+          if (count > 0) {
+            log.debug("Folder has bulk processing flag: {}", blipPath);
+            blipCount++;
+          }
+        }
       }
     }
 
-    confirmDeletesFromReplication(gce.getReplicationNeededIterator(),
-        candidateMap.entrySet().iterator());
+    return blipCount;
   }
 
-  protected void confirmDeletesFromReplication(
-      Iterator<Entry<String,Status>> replicationNeededIterator,
-      Iterator<Entry<String,String>> candidateMapIterator) {
+  protected void confirmDeletesFromReplication(GarbageCollectionEnvironment gce,
+      SortedMap<String,String> candidateMap) {
+    var replicationNeededIterator = gce.getReplicationNeededIterator();
+    var candidateMapIterator = candidateMap.entrySet().iterator();
+
     PeekingIterator<Entry<String,Status>> pendingReplication =
         Iterators.peekingIterator(replicationNeededIterator);
     PeekingIterator<Entry<String,String>> candidates =
@@ -269,17 +279,21 @@ public class GarbageCollectionAlgorithm {
     }
   }
 
-  private void confirmDeletesTrace(GarbageCollectionEnvironment gce,
+  private long confirmDeletesTrace(GarbageCollectionEnvironment gce,
       SortedMap<String,String> candidateMap) throws TableNotFoundException {
+    long blips = 0;
     Span confirmDeletesSpan = TraceUtil.startSpan(this.getClass(), "confirmDeletes");
     try (Scope scope = confirmDeletesSpan.makeCurrent()) {
+      blips = removeBlipCandidates(gce, candidateMap);
       confirmDeletes(gce, candidateMap);
+      confirmDeletesFromReplication(gce, candidateMap);
     } catch (Exception e) {
       TraceUtil.setException(confirmDeletesSpan, e, true);
       throw e;
     } finally {
       confirmDeletesSpan.end();
     }
+    return blips;
   }
 
   private void deleteConfirmed(GarbageCollectionEnvironment gce,
@@ -297,9 +311,10 @@ public class GarbageCollectionAlgorithm {
     cleanUpDeletedTableDirs(gce, candidateMap);
   }
 
-  public void collect(GarbageCollectionEnvironment gce) throws TableNotFoundException, IOException {
+  public long collect(GarbageCollectionEnvironment gce) throws TableNotFoundException, IOException {
 
     Iterator<String> candidatesIter = gce.getCandidates();
+    long totalBlips = 0;
 
     while (candidatesIter.hasNext()) {
       List<String> batchOfCandidates;
@@ -312,14 +327,15 @@ public class GarbageCollectionAlgorithm {
       } finally {
         candidatesSpan.end();
       }
-      deleteBatch(gce, batchOfCandidates);
+      totalBlips += deleteBatch(gce, batchOfCandidates);
     }
+    return totalBlips;
   }
 
   /**
    * Given a sub-list of possible deletion candidates, process and remove valid deletion candidates.
    */
-  private void deleteBatch(GarbageCollectionEnvironment gce, List<String> currentBatch)
+  private long deleteBatch(GarbageCollectionEnvironment gce, List<String> currentBatch)
       throws TableNotFoundException, IOException {
 
     long origSize = currentBatch.size();
@@ -327,10 +343,12 @@ public class GarbageCollectionAlgorithm {
 
     SortedMap<String,String> candidateMap = makeRelative(currentBatch);
 
-    confirmDeletesTrace(gce, candidateMap);
+    long blips = confirmDeletesTrace(gce, candidateMap);
     gce.incrementInUseStat(origSize - candidateMap.size());
 
     deleteConfirmed(gce, candidateMap);
+
+    return blips;
   }
 
 }
