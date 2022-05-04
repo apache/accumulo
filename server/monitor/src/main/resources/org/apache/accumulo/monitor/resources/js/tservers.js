@@ -88,7 +88,7 @@ $(document).ready(function() {
         // reset background of each row
         $(row).css('background-color', '');
 
-        // return if the current rows' tserver is not recovering
+        // return if the current row's tserver is not recovering
         if (!recoveryList.includes(data.hostname))
           return;
 
