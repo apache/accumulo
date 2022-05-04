@@ -39,9 +39,7 @@ jobs:
     - name: Show the first log message
       run: git log -n1
     - name: Install shfmt
-      run: |
-        sudo apt-get update -yq
-        sudo apt-get install -y --no-install-recommends shfmt
+      run: contrib/ci/install-shfmt.sh
     - name: Checking formatting of all scripts
       run: contrib/ci/run-shfmt.sh
 
@@ -54,9 +52,7 @@ jobs:
     - name: Show the first log message
       run: git log -n1
     - name: Install shfmt
-      run: |
-        sudo apt-get update -yq
-        sudo apt-get install -y --no-install-recommends shfmt
+      run: contrib/ci/install-shfmt.sh
     - name: Running shellcheck on all scripts
       run: contrib/ci/run-shellcheck.sh
 
