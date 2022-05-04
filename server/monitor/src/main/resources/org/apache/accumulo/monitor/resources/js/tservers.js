@@ -19,21 +19,14 @@
 "use strict";
 
 var tserversTable;
+var recoveryList = [];
+
 /**
  * Creates tservers initial table
  */
 $(document).ready(function() {
 
-  // hide the note about highlighted rows by default
-  $('#recovery-caption').hide();
-
-  const recoveryList = []
-  getRecoveryList().then(function () {
-    // fill recoveryList
-    JSON.parse(sessionStorage.recoveryList).recoveryList.forEach(entry => {
-      recoveryList.push(entry.server);
-    });
-  });
+  refreshRecoveryList();
     
     // Create a table for tserver list
     tserversTable = $('#tservers').DataTable({
@@ -110,6 +103,7 @@ function refreshTServers() {
   getTServers().then(function() {
     refreshBadTServersTable();
     refreshDeadTServersTable();
+    refreshRecoveryList();
     refreshTServersTable();
   });
 }
@@ -125,56 +119,62 @@ function refresh() {
  * Generates the tservers rows
  */
 function refreshBadTServersTable() {
+  $('#badtservers').hide(); // Hide table on each refresh
+
   var data = sessionStorage.tservers === undefined ?
-      [] : JSON.parse(sessionStorage.tservers);
+    [] : JSON.parse(sessionStorage.tservers);
 
   clearTableBody('badtservers');
 
-  if (data.length === 0 || data.badServers.length === 0) {
-    $('#badtservers').hide();
-  } else {
-    $('#badtservers').show();
-    $.each(data.badServers, function(key, val) {
-      var items = [];
-      items.push(createFirstCell(val.id, val.id));
-      items.push(createRightCell(val.status, val.status));
+  // return if the table is empty
+  if (data.length === 0 || data.badServers.length === 0)
+    return;
 
-      $('<tr/>', {
-        html: items.join('')
-      }).appendTo('#badtservers tbody');
-    });
-  }
+  $('#badtservers').show();
+  $.each(data.badServers, function (key, val) {
+    var items = [];
+    items.push(createFirstCell(val.id, val.id));
+    items.push(createRightCell(val.status, val.status));
+
+    $('<tr/>', {
+      html: items.join('')
+    }).appendTo('#badtservers tbody');
+  });
 }
+
 
 /**
  * Generates the deadtservers rows
  */
 function refreshDeadTServersTable() {
+  $('#deadtservers').hide(); // Hide table on each refresh
+
   var data = sessionStorage.tservers === undefined ?
-      [] : JSON.parse(sessionStorage.tservers);
+    [] : JSON.parse(sessionStorage.tservers);
 
   clearTableBody('deadtservers');
 
-  if (data.length === 0 || data.deadServers.length === 0) {
-    $('#deadtservers').hide();
-  } else {
-    $('#deadtservers').show();
-    $.each(data.deadServers, function(key, val) {
-      var items = [];
-      items.push(createFirstCell(val.server, val.server));
+  // return if the table is empty
+  if (data.length === 0 || data.deadServers.length === 0)
+    return;
 
-      var date = new Date(val.lastStatus);
-      date = date.toLocaleString().split(' ').join('&nbsp;');
-      items.push(createRightCell(val.lastStatus, date));
-      items.push(createRightCell(val.status, val.status));
-      items.push(createRightCell('', '<a href="javascript:clearDeadTServers(\'' +
-          val.server + '\');">clear</a>'));
+  $('#deadtservers').show();
+  $.each(data.deadServers, function (key, val) {
+    var items = [];
+    items.push(createFirstCell(val.server, val.server));
 
-      $('<tr/>', {
-        html: items.join('')
-      }).appendTo('#deadtservers tbody');
-    });
-  }
+    var date = new Date(val.lastStatus);
+    date = date.toLocaleString().split(' ').join('&nbsp;');
+    items.push(createRightCell(val.lastStatus, date));
+    items.push(createRightCell(val.status, val.status));
+    items.push(createRightCell('', '<a href="javascript:clearDeadTServers(\'' +
+      val.server + '\');">clear</a>'));
+
+    $('<tr/>', {
+      html: items.join('')
+    }).appendTo('#deadtservers tbody');
+  });
+
 }
 
 /**
@@ -193,4 +193,19 @@ function clearDeadTServers(server) {
  */
 function refreshTServersTable() {
   if (tserversTable) tserversTable.ajax.reload(null, false); // user paging is not reset on reload
+}
+
+/**
+ * Refreshes the list of recovering tservers used to highlight rows
+ */
+function refreshRecoveryList() {
+  $('#recovery-caption').hide(); // Hide the caption about highlighted rows on each refresh
+  getRecoveryList().then(function () {
+    recoveryList = []
+    var data = sessionStorage.recoveryList === undefined ?
+      [] : JSON.parse(sessionStorage.recoveryList);
+    data.recoveryList.forEach(entry => {
+      recoveryList.push(entry.server);
+    });
+  });
 }
