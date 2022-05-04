@@ -18,7 +18,6 @@
  */
 "use strict";
 
-var dashCell = "<td>&mdash;</td>";
 var serv;
 var tabletResults;
 /**
@@ -126,7 +125,7 @@ function refreshResultsTable() {
  * Appends a table cell containing value to the rowId, if value is not null
  */
 function appendDurationToRow(rowId, value) {
-  let v = dashCell;
+  let v = EMPTY_CELL;
   if (value != null) {
     v = "<td>" + timeDuration(value * 1000.0) + "</td>";
   }
