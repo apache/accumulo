@@ -130,11 +130,52 @@ public class GarbageCollectionAlgorithm {
   /**
    * Return the number of BLIP flags seen.
    */
-  private long confirmDeletes(GarbageCollectionEnvironment gce,
+  private void confirmDeletes(GarbageCollectionEnvironment gce,
+      SortedMap<String,String> candidateMap) {
+    Iterator<Reference> iter = gce.getReferences().iterator();
+    while (iter.hasNext()) {
+      Reference ref = iter.next();
+
+      if (ref.isDir) {
+        String tableID = ref.id.toString();
+        String dirName = ref.ref;
+        ServerColumnFamily.validateDirCol(dirName);
+
+        String dir = "/" + tableID + "/" + dirName;
+
+        dir = makeRelative(dir, 2);
+
+        if (candidateMap.remove(dir) != null)
+          log.debug("Candidate was still in use: {}", dir);
+      } else {
+
+        String reference = ref.ref;
+        if (reference.startsWith("/")) {
+          reference = "/" + ref.id + reference;
+        } else if (!reference.contains(":") && !reference.startsWith("../")) {
+          throw new RuntimeException("Bad file reference " + reference);
+        }
+
+        reference = makeRelative(reference, 3);
+
+        // WARNING: This line is EXTREMELY IMPORTANT.
+        // You MUST REMOVE candidates that are still in use
+        if (candidateMap.remove(reference) != null)
+          log.debug("Candidate was still in use: {}", reference);
+
+        String dir = reference.substring(0, reference.lastIndexOf('/'));
+        if (candidateMap.remove(dir) != null)
+          log.debug("Candidate was still in use: {}", reference);
+      }
+    }
+  }
+
+  private long removeBlipCandidates(GarbageCollectionEnvironment gce,
       SortedMap<String,String> candidateMap) throws TableNotFoundException {
     boolean checkForBulkProcessingFiles = false;
     long blipCount = 0;
     Iterator<String> relativePaths = candidateMap.keySet().iterator();
+
     while (!checkForBulkProcessingFiles && relativePaths.hasNext())
       checkForBulkProcessingFiles |=
           relativePaths.next().toLowerCase(Locale.ENGLISH).contains(Constants.BULK_PREFIX);
@@ -172,52 +213,14 @@ public class GarbageCollectionAlgorithm {
       }
     }
 
-    Iterator<Reference> iter = gce.getReferences().iterator();
-    while (iter.hasNext()) {
-      Reference ref = iter.next();
-
-      if (ref.isDir) {
-        String tableID = ref.id.toString();
-        String dirName = ref.ref;
-        ServerColumnFamily.validateDirCol(dirName);
-
-        String dir = "/" + tableID + "/" + dirName;
-
-        dir = makeRelative(dir, 2);
-
-        if (candidateMap.remove(dir) != null)
-          log.debug("Candidate was still in use: {}", dir);
-      } else {
-
-        String reference = ref.ref;
-        if (reference.startsWith("/")) {
-          reference = "/" + ref.id + reference;
-        } else if (!reference.contains(":") && !reference.startsWith("../")) {
-          throw new RuntimeException("Bad file reference " + reference);
-        }
-
-        reference = makeRelative(reference, 3);
-
-        // WARNING: This line is EXTREMELY IMPORTANT.
-        // You MUST REMOVE candidates that are still in use
-        if (candidateMap.remove(reference) != null)
-          log.debug("Candidate was still in use: {}", reference);
-
-        String dir = reference.substring(0, reference.lastIndexOf('/'));
-        if (candidateMap.remove(dir) != null)
-          log.debug("Candidate was still in use: {}", reference);
-
-      }
-    }
-
-    confirmDeletesFromReplication(gce.getReplicationNeededIterator(),
-        candidateMap.entrySet().iterator());
     return blipCount;
   }
 
-  protected void confirmDeletesFromReplication(
-      Iterator<Entry<String,Status>> replicationNeededIterator,
-      Iterator<Entry<String,String>> candidateMapIterator) {
+  protected void confirmDeletesFromReplication(GarbageCollectionEnvironment gce,
+      SortedMap<String,String> candidateMap) {
+    var replicationNeededIterator = gce.getReplicationNeededIterator();
+    var candidateMapIterator = candidateMap.entrySet().iterator();
+
     PeekingIterator<Entry<String,Status>> pendingReplication =
         Iterators.peekingIterator(replicationNeededIterator);
     PeekingIterator<Entry<String,String>> candidates =
@@ -281,7 +284,9 @@ public class GarbageCollectionAlgorithm {
     long blips = 0;
     Span confirmDeletesSpan = TraceUtil.startSpan(this.getClass(), "confirmDeletes");
     try (Scope scope = confirmDeletesSpan.makeCurrent()) {
-      blips = confirmDeletes(gce, candidateMap);
+      blips = removeBlipCandidates(gce, candidateMap);
+      confirmDeletes(gce, candidateMap);
+      confirmDeletesFromReplication(gce, candidateMap);
     } catch (Exception e) {
       TraceUtil.setException(confirmDeletesSpan, e, true);
       throw e;
