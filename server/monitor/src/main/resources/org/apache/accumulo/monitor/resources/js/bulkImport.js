@@ -54,7 +54,7 @@ function refreshServerBulkTable() {
     var data = sessionStorage.bulkImports === undefined ?
                 [] : JSON.parse(sessionStorage.bulkImports);
 
-    // if data is empty, log an error because tha means no tablet servers were found
+    // if data is empty, log an error because that means no tablet servers were found
     if (data.length === 0 || data.tabletServerBulkImport.length === 0) {
         console.error("No tablet servers.");
         return;
