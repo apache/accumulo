@@ -632,6 +632,15 @@ public class GarbageCollectionTest {
     blipCount = gca.collect(gce);
     assertRemoved(gce);
     assertEquals(1, blipCount);
+
+    gce = new TestGCE();
+    gce.blips.add("/1029/b-0001");
+    gce.blips.add("/1029/b-0002");
+    gce.blips.add("/1029/b-0003");
+    gce.candidates.add("/1029/b-0002/I0006");
+    blipCount = gca.collect(gce);
+    assertRemoved(gce);
+    assertEquals(3, blipCount);
   }
 
   @Test
