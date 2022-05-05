@@ -185,6 +185,7 @@ public class GarbageCollectionAlgorithm {
         // processing flag!
 
         while (blipiter.hasNext()) {
+          blipCount++;
           String blipPath = blipiter.next();
           blipPath = makeRelative(blipPath, 2);
 
@@ -203,7 +204,6 @@ public class GarbageCollectionAlgorithm {
 
           if (count > 0) {
             log.debug("Folder has bulk processing flag: {}", blipPath);
-            blipCount++;
           }
         }
       }

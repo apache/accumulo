@@ -586,7 +586,6 @@ public class GarbageCollectionTest {
 
   @Test
   public void test() throws Exception {
-
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
     TestGCE gce = new TestGCE();
