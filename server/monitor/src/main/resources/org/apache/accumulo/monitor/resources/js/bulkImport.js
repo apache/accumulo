@@ -52,6 +52,8 @@ function refreshBulkImportTable() {
  * Generates the bulkPerServerTable table
  */
 function refreshServerBulkTable() {
+    $("#bulkPerServerTable tbody").html(EMPTY_ROW_THREE_CELLS);
+
     // get the bulkImport data from sessionStorage
     var data = sessionStorage.bulkImports === undefined ?
                 [] : JSON.parse(sessionStorage.bulkImports);
