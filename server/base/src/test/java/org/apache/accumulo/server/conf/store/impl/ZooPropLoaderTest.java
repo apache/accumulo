@@ -85,7 +85,7 @@ public class ZooPropLoaderTest {
     ticker = new PropCacheCaffeineImplTest.TestTicker();
     instanceId = InstanceId.of(UUID.randomUUID());
 
-    propCacheKey = SystemPropKey.of(instanceId);
+    propCacheKey = TablePropKey.of(instanceId, TableId.of("1abc"));
     propCodec = VersionedPropCodec.getDefault();
 
     // mocks
@@ -249,13 +249,10 @@ public class ZooPropLoaderTest {
     expect(zrw.getData(eq(propCacheKey.getPath()), anyObject(), anyObject()))
         .andThrow(new KeeperException.NoNodeException("forced no node")).anyTimes();
 
-    propStoreWatcher.signalZkChangeEvent(eq(propCacheKey));
+    propStoreWatcher.signalZkChangeEvent(anyObject());
     expectLastCall().anyTimes();
 
-    propStoreWatcher.signalZkChangeEvent(eq(SystemPropKey.of(instanceId)));
-    expectLastCall().anyTimes();
-
-    propStoreWatcher.signalCacheChangeEvent(eq(SystemPropKey.of(instanceId)));
+    propStoreWatcher.signalCacheChangeEvent(anyObject());
     expectLastCall().anyTimes();
 
     cacheMetrics.addLoadTime(anyLong());
