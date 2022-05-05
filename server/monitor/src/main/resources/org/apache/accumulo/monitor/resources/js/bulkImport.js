@@ -37,13 +37,15 @@ function refreshBulkImportTable() {
         return;
     }
     console.log("Populate bulkListTable with " + sessionStorage.bulkImports);
+    var tableBodyHtml = "";
     $.each(data.bulkImport, function (key, val) {
         console.log("Append row " + key + " " + JSON.stringify(val) + " to bulkListTable");
-        var tableBodyHtml = "<tr><td class='firstcell'>" + val.filename + "</td>";
+        tableBodyHtml += "<tr><td class='firstcell'>" + val.filename + "</td>";
         tableBodyHtml += "<td class='center'>" + new Date(val.age) + "</td>";
         tableBodyHtml += "<td class='center'>" + val.state + "</td></tr>";
-        $("#bulkListTable tbody").html(tableBodyHtml);
     });
+
+    $("#bulkListTable tbody").html(tableBodyHtml);
 }
 
 /**
