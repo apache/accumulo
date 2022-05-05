@@ -61,17 +61,19 @@ function refreshServerBulkTable() {
         console.error("No tablet servers.");
         return;
     }
+    var tableBodyHtml = "";
     $.each(data.tabletServerBulkImport, function (key, val) {
         console.log("Append " + key + " " + JSON.stringify(val) + " to bulkPerServerTable");
         var ageCell = EMPTY_CELL;
         if (val.oldestAge > 0) {
             ageCell = "<td>" + new Date(val.oldestAge) + "</td>";
         }
-        $("#bulkPerServerTable tbody > tr")
-            .append("<td><a href='/tservers?s=" + val.server + "'>" + val.server + "</a></td>")
-            .append("<td>" + val.importSize + "</td>")
-            .append(ageCell);
+        tableBodyHtml += "<tr><td><a href='/tservers?s=" + val.server + "'>" + val.server + "</a></td>";
+        tableBodyHtml += "<td>" + val.importSize + "</td>";
+        tableBodyHtml += ageCell + "</tr>";
     });
+
+    $("#bulkPerServerTable tbody").html(tableBodyHtml);
 }
 
 /**
