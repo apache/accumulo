@@ -358,9 +358,11 @@ function getScans() {
  * REST GET call for the bulk imports, stores it on a sessionStorage variable
  */
 function getBulkImports() {
-  return $.getJSON('/rest/bulkImports', function(data) {
-    sessionStorage.bulkImports = JSON.stringify(data);
-  });
+    return $.getJSON('/rest/bulkImports', function(data) {
+        var str = JSON.stringify(data);
+        console.log("REST getBulkImports() = " + str)
+        sessionStorage.bulkImports = str;
+    });
 }
 
 /**
