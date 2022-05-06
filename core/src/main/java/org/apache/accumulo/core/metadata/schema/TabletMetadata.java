@@ -471,4 +471,9 @@ public class TabletMetadata {
     }
     return server;
   }
+
+  @Override
+  public String toString() {
+    return getExtent() + " " + getDirName() + " " + getLocation();
+  }
 }
