@@ -36,7 +36,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 public class RootGcCandidates {
-  private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+  private static final Gson GSON = new GsonBuilder().create();
 
   // This class is used to serialize and deserialize root tablet metadata using GSon. Any changes to
   // this class must consider persisted data.
