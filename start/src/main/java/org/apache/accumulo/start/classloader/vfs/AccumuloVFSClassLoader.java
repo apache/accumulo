@@ -285,6 +285,7 @@ public class AccumuloVFSClassLoader {
     vfs.addExtensionMap("tbz2", "tar");
     vfs.addExtensionMap("tgz", "tar");
     vfs.addExtensionMap("bz2", "bz2");
+    vfs.addMimeTypeMap("application/java-archive", "jar");
     vfs.addMimeTypeMap("application/x-tar", "tar");
     vfs.addMimeTypeMap("application/x-gzip", "gz");
     vfs.addMimeTypeMap("application/zip", "zip");
@@ -426,9 +427,7 @@ public class AccumuloVFSClassLoader {
   private static synchronized ContextManager getContextManager() throws IOException {
     if (contextManager == null) {
       getClassLoader();
-      contextManager = new ContextManager(generateVfs(), () -> {
-        return getClassLoader();
-      });
+      contextManager = new ContextManager(generateVfs(), AccumuloVFSClassLoader::getClassLoader);
     }
 
     return contextManager;
