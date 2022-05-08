@@ -25,7 +25,7 @@
       </div>
       <div class="row">
         <div class="col-xs-12">
-          <table id="managerBulkImportStatus" class="table table-bordered table-striped table-condensed">
+          <table id="bulkListTable" class="table table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Bulk Imports</span><br/></caption>
             <thead>
               <tr>
@@ -41,7 +41,7 @@
 
       <div class="row">
         <div class="col-xs-12">
-          <table id="bulkImportStatus" class="table table-bordered table-striped table-condensed">
+          <table id="bulkPerServerTable" class="table table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Per TabletServer</span><br/></caption>
             <thead>
               <tr>

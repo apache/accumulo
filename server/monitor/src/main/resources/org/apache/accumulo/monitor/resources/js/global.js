@@ -27,3 +27,6 @@ var NAMESPACES = '';
  * Timer object
  */
 var TIMER;
+
+const EMPTY_CELL = "<td>-</td>";
+const EMPTY_ROW_THREE_CELLS = "<tr>" + EMPTY_CELL + EMPTY_CELL + EMPTY_CELL + "</tr>";

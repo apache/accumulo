@@ -207,17 +207,17 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
             var userGC = new GCRun(DataLevel.USER, getContext());
 
             log.info("Starting Root table Garbage Collection.");
-            new GarbageCollectionAlgorithm().collect(rootGC);
+            status.current.bulks += new GarbageCollectionAlgorithm().collect(rootGC);
             incrementStatsForRun(rootGC);
             logStats();
 
             log.info("Starting Metadata table Garbage Collection.");
-            new GarbageCollectionAlgorithm().collect(mdGC);
+            status.current.bulks += new GarbageCollectionAlgorithm().collect(mdGC);
             incrementStatsForRun(mdGC);
             logStats();
 
             log.info("Starting User table Garbage Collection.");
-            new GarbageCollectionAlgorithm().collect(userGC);
+            status.current.bulks += new GarbageCollectionAlgorithm().collect(userGC);
             incrementStatsForRun(userGC);
             logStats();
 
@@ -338,6 +338,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     log.info("Number of data file candidates still in use: {}", status.current.inUse);
     log.info("Number of successfully deleted data files: {}", status.current.deleted);
     log.info("Number of data files delete failures: {}", status.current.errors);
+    log.info("Number of bulk imports in progress: {}", status.current.bulks);
   }
 
   /**

@@ -34,6 +34,7 @@ public class GcCycleStats implements org.apache.thrift.TBase<GcCycleStats, GcCyc
   private static final org.apache.thrift.protocol.TField IN_USE_FIELD_DESC = new org.apache.thrift.protocol.TField("inUse", org.apache.thrift.protocol.TType.I64, (short)4);
   private static final org.apache.thrift.protocol.TField DELETED_FIELD_DESC = new org.apache.thrift.protocol.TField("deleted", org.apache.thrift.protocol.TType.I64, (short)5);
   private static final org.apache.thrift.protocol.TField ERRORS_FIELD_DESC = new org.apache.thrift.protocol.TField("errors", org.apache.thrift.protocol.TType.I64, (short)6);
+  private static final org.apache.thrift.protocol.TField BULKS_FIELD_DESC = new org.apache.thrift.protocol.TField("bulks", org.apache.thrift.protocol.TType.I64, (short)7);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new GcCycleStatsStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new GcCycleStatsTupleSchemeFactory();
@@ -44,6 +45,7 @@ public class GcCycleStats implements org.apache.thrift.TBase<GcCycleStats, GcCyc
   public long inUse; // required
   public long deleted; // required
   public long errors; // required
+  public long bulks; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -52,7 +54,8 @@ public class GcCycleStats implements org.apache.thrift.TBase<GcCycleStats, GcCyc
     CANDIDATES((short)3, "candidates"),
     IN_USE((short)4, "inUse"),
     DELETED((short)5, "deleted"),
-    ERRORS((short)6, "errors");
+    ERRORS((short)6, "errors"),
+    BULKS((short)7, "bulks");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -80,6 +83,8 @@ public class GcCycleStats implements org.apache.thrift.TBase<GcCycleStats, GcCyc
           return DELETED;
         case 6: // ERRORS
           return ERRORS;
+        case 7: // BULKS
+          return BULKS;
         default:
           return null;
       }
@@ -127,6 +132,7 @@ public class GcCycleStats implements org.apache.thrift.TBase<GcCycleStats, GcCyc
   private static final int __INUSE_ISSET_ID = 3;
   private static final int __DELETED_ISSET_ID = 4;
   private static final int __ERRORS_ISSET_ID = 5;
+  private static final int __BULKS_ISSET_ID = 6;
   private byte __isset_bitfield = 0;
   public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
@@ -143,6 +149,8 @@ public class GcCycleStats implements org.apache.thrift.TBase<GcCycleStats, GcCyc
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     tmpMap.put(_Fields.ERRORS, new org.apache.thrift.meta_data.FieldMetaData("errors", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
+    tmpMap.put(_Fields.BULKS, new org.apache.thrift.meta_data.FieldMetaData("bulks", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(GcCycleStats.class, metaDataMap);
   }
@@ -156,7 +164,8 @@ public class GcCycleStats implements org.apache.thrift.TBase<GcCycleStats, GcCyc
     long candidates,
     long inUse,
     long deleted,
-    long errors)
+    long errors,
+    long bulks)
   {
     this();
     this.started = started;
@@ -171,6 +180,8 @@ public class GcCycleStats implements org.apache.thrift.TBase<GcCycleStats, GcCyc
     setDeletedIsSet(true);
     this.errors = errors;
     setErrorsIsSet(true);
+    this.bulks = bulks;
+    setBulksIsSet(true);
   }
 
   /**
@@ -184,6 +195,7 @@ public class GcCycleStats implements org.apache.thrift.TBase<GcCycleStats, GcCyc
     this.inUse = other.inUse;
     this.deleted = other.deleted;
     this.errors = other.errors;
+    this.bulks = other.bulks;
   }
 
   public GcCycleStats deepCopy() {
@@ -204,6 +216,8 @@ public class GcCycleStats implements org.apache.thrift.TBase<GcCycleStats, GcCyc
     this.deleted = 0;
     setErrorsIsSet(false);
     this.errors = 0;
+    setBulksIsSet(false);
+    this.bulks = 0;
   }
 
   public long getStarted() {
@@ -344,6 +358,29 @@ public class GcCycleStats implements org.apache.thrift.TBase<GcCycleStats, GcCyc
     __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __ERRORS_ISSET_ID, value);
   }
 
+  public long getBulks() {
+    return this.bulks;
+  }
+
+  public GcCycleStats setBulks(long bulks) {
+    this.bulks = bulks;
+    setBulksIsSet(true);
+    return this;
+  }
+
+  public void unsetBulks() {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __BULKS_ISSET_ID);
+  }
+
+  /** Returns true if field bulks is set (has been assigned a value) and false otherwise */
+  public boolean isSetBulks() {
+    return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __BULKS_ISSET_ID);
+  }
+
+  public void setBulksIsSet(boolean value) {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __BULKS_ISSET_ID, value);
+  }
+
   public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
     switch (field) {
     case STARTED:
@@ -394,6 +431,14 @@ public class GcCycleStats implements org.apache.thrift.TBase<GcCycleStats, GcCyc
       }
       break;
 
+    case BULKS:
+      if (value == null) {
+        unsetBulks();
+      } else {
+        setBulks((java.lang.Long)value);
+      }
+      break;
+
     }
   }
 
@@ -418,6 +463,9 @@ public class GcCycleStats implements org.apache.thrift.TBase<GcCycleStats, GcCyc
     case ERRORS:
       return getErrors();
 
+    case BULKS:
+      return getBulks();
+
     }
     throw new java.lang.IllegalStateException();
   }
@@ -441,6 +489,8 @@ public class GcCycleStats implements org.apache.thrift.TBase<GcCycleStats, GcCyc
       return isSetDeleted();
     case ERRORS:
       return isSetErrors();
+    case BULKS:
+      return isSetBulks();
     }
     throw new java.lang.IllegalStateException();
   }
@@ -512,6 +562,15 @@ public class GcCycleStats implements org.apache.thrift.TBase<GcCycleStats, GcCyc
         return false;
     }
 
+    boolean this_present_bulks = true;
+    boolean that_present_bulks = true;
+    if (this_present_bulks || that_present_bulks) {
+      if (!(this_present_bulks && that_present_bulks))
+        return false;
+      if (this.bulks != that.bulks)
+        return false;
+    }
+
     return true;
   }
 
@@ -530,6 +589,8 @@ public class GcCycleStats implements org.apache.thrift.TBase<GcCycleStats, GcCyc
     hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(deleted);
 
     hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(errors);
+
+    hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(bulks);
 
     return hashCode;
   }
@@ -602,6 +663,16 @@ public class GcCycleStats implements org.apache.thrift.TBase<GcCycleStats, GcCyc
         return lastComparison;
       }
     }
+    lastComparison = java.lang.Boolean.compare(isSetBulks(), other.isSetBulks());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetBulks()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.bulks, other.bulks);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -645,6 +716,10 @@ public class GcCycleStats implements org.apache.thrift.TBase<GcCycleStats, GcCyc
     if (!first) sb.append(", ");
     sb.append("errors:");
     sb.append(this.errors);
+    first = false;
+    if (!first) sb.append(", ");
+    sb.append("bulks:");
+    sb.append(this.bulks);
     first = false;
     sb.append(")");
     return sb.toString();
@@ -739,6 +814,14 @@ public class GcCycleStats implements org.apache.thrift.TBase<GcCycleStats, GcCyc
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
+          case 7: // BULKS
+            if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
+              struct.bulks = iprot.readI64();
+              struct.setBulksIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -771,6 +854,9 @@ public class GcCycleStats implements org.apache.thrift.TBase<GcCycleStats, GcCyc
       oprot.writeFieldEnd();
       oprot.writeFieldBegin(ERRORS_FIELD_DESC);
       oprot.writeI64(struct.errors);
+      oprot.writeFieldEnd();
+      oprot.writeFieldBegin(BULKS_FIELD_DESC);
+      oprot.writeI64(struct.bulks);
       oprot.writeFieldEnd();
       oprot.writeFieldStop();
       oprot.writeStructEnd();
@@ -808,7 +894,10 @@ public class GcCycleStats implements org.apache.thrift.TBase<GcCycleStats, GcCyc
       if (struct.isSetErrors()) {
         optionals.set(5);
       }
-      oprot.writeBitSet(optionals, 6);
+      if (struct.isSetBulks()) {
+        optionals.set(6);
+      }
+      oprot.writeBitSet(optionals, 7);
       if (struct.isSetStarted()) {
         oprot.writeI64(struct.started);
       }
@@ -827,12 +916,15 @@ public class GcCycleStats implements org.apache.thrift.TBase<GcCycleStats, GcCyc
       if (struct.isSetErrors()) {
         oprot.writeI64(struct.errors);
       }
+      if (struct.isSetBulks()) {
+        oprot.writeI64(struct.bulks);
+      }
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, GcCycleStats struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-      java.util.BitSet incoming = iprot.readBitSet(6);
+      java.util.BitSet incoming = iprot.readBitSet(7);
       if (incoming.get(0)) {
         struct.started = iprot.readI64();
         struct.setStartedIsSet(true);
@@ -856,6 +948,10 @@ public class GcCycleStats implements org.apache.thrift.TBase<GcCycleStats, GcCyc
       if (incoming.get(5)) {
         struct.errors = iprot.readI64();
         struct.setErrorsIsSet(true);
+      }
+      if (incoming.get(6)) {
+        struct.bulks = iprot.readI64();
+        struct.setBulksIsSet(true);
       }
     }
   }
