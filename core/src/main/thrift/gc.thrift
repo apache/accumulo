@@ -30,6 +30,7 @@ struct GcCycleStats {
   4:i64 inUse
   5:i64 deleted
   6:i64 errors
+  7:i64 bulks
 }
 
 struct GCStatus {
