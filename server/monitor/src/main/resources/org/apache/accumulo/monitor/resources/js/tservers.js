@@ -16,165 +16,89 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/* JSLint global definitions */
+/*global
+    $, document, sessionStorage, getTServers, clearDeadServers, refreshNavBar, getRecoveryList, bigNumberForQuantity, timeDuration
+*/
 "use strict";
 
-var tserversTable;
+var tserversTable, deadTServersTable, badTServersTable;
 var recoveryList = [];
 
 /**
- * Creates tservers initial table
+ * Refreshes the list of recovering tservers used to highlight rows
  */
-$(document).ready(function() {
-
-  refreshRecoveryList();
-    
-    // Create a table for tserver list
-    tserversTable = $('#tservers').DataTable({
-      "ajax": {
-        "url": '/rest/tservers',
-        "dataSrc": "servers"
-      },
-      "stateSave": true,
-      "columnDefs": [
-          { "targets": "big-num",
-            "render": function ( data, type, row ) {
-              if(type === 'display') data = bigNumberForQuantity(data);
-              return data;
-            }
-          },
-          { "targets": "duration",
-            "render": function ( data, type, row ) {
-              if(type === 'display') data = timeDuration(data);
-              return data;
-            }
-          },
-          { "targets": "percent",
-            "render": function ( data, type, row ) {
-              if(type === 'display') data = Math.round(data * 100) + '%';
-              return data;
-            }
-          }
-        ],
-      "columns": [
-        { "data": "hostname",
-          "type": "html",
-          "render": function ( data, type, row, meta ) {
-            if(type === 'display') data = '<a href="/tservers?s=' + row.id + '">' + row.hostname + '</a>';
-            return data;
-          }
-        },
-        { "data": "tablets" },
-        { "data": "lastContact" },
-        { "data": "responseTime" },
-        { "data": "entries" },
-        { "data": "ingest" },
-        { "data": "query" },
-        { "data": "holdtime" },
-        { "data": "scansCombo" },
-        { "data": "minorCombo" },
-        { "data": "majorCombo" },
-        { "data": "indexCacheHitRate" },
-        { "data": "dataCacheHitRate" },
-        { "data": "osload" }
-      ],
-      "rowCallback": function (row, data, index) {
-        // reset background of each row
-        $(row).css('background-color', '');
-
-        // return if the current row's tserver is not recovering
-        if (!recoveryList.includes(data.hostname))
-          return;
-
-        // only show the caption if we know there are rows in the tservers table
-        $('#recovery-caption').show();
-
-        // highlight current row
-        console.log('Highlighting row index:' + index + ' tserver:' + data.hostname);
-        $(row).css('background-color', 'gold');
-      }
+function refreshRecoveryList() {
+    $('#recovery-caption').hide(); // Hide the caption about highlighted rows on each refresh
+    getRecoveryList().then(function () {
+        recoveryList = [];
+        var data = sessionStorage.recoveryList === undefined ?
+                    [] : JSON.parse(sessionStorage.recoveryList);
+        data.recoveryList.forEach(function (entry) {
+            recoveryList.push(entry.server);
+        });
     });
-    refreshTServers();
-});
+}
+
+/**
+ * Performs an ajax reload for the given Datatable
+ */
+function ajaxReloadTable(table) {
+    if (table) {
+        table.ajax.reload(null, false); // user paging is not reset on reload
+    }
+}
+
+/**
+ * Generates the tserver table
+ */
+function refreshTServersTable() {
+    refreshRecoveryList();
+    ajaxReloadTable(tserversTable);
+}
+
+/**
+ * Generates the deadtservers table
+ */
+function refreshDeadTServersTable() {
+    ajaxReloadTable(deadTServersTable);
+
+    if ($('#deadtservers tbody .dataTables_empty').length) {
+        $('#deadtservers_wrapper').hide();
+    } else {
+        $('#deadtservers_wrapper').show();
+    }
+}
+
+/**
+ * Generates the badtservers table
+ */
+function refreshBadTServersTable() {
+    ajaxReloadTable(badTServersTable);
+
+    if ($('#badtservers tbody .dataTables_empty').length) {
+        $('#badtservers_wrapper').hide();
+    } else {
+        $('#badtservers_wrapper').show();
+    }
+}
 
 /**
  * Makes the REST calls, generates the tables with the new information
  */
 function refreshTServers() {
-  getTServers().then(function() {
-    refreshBadTServersTable();
-    refreshDeadTServersTable();
-    refreshRecoveryList();
-    refreshTServersTable();
-  });
+    getTServers().then(function () {
+        refreshBadTServersTable();
+        refreshDeadTServersTable();
+        refreshTServersTable();
+    });
 }
 
 /**
  * Used to redraw the page
  */
 function refresh() {
-  refreshTServers();
-}
-
-/**
- * Generates the tservers rows
- */
-function refreshBadTServersTable() {
-  $('#badtservers').hide(); // Hide table on each refresh
-
-  var data = sessionStorage.tservers === undefined ?
-    [] : JSON.parse(sessionStorage.tservers);
-
-  clearTableBody('badtservers');
-
-  // return if the table is empty
-  if (data.length === 0 || data.badServers.length === 0)
-    return;
-
-  $('#badtservers').show();
-  $.each(data.badServers, function (key, val) {
-    var items = [];
-    items.push(createFirstCell(val.id, val.id));
-    items.push(createRightCell(val.status, val.status));
-
-    $('<tr/>', {
-      html: items.join('')
-    }).appendTo('#badtservers tbody');
-  });
-}
-
-
-/**
- * Generates the deadtservers rows
- */
-function refreshDeadTServersTable() {
-  $('#deadtservers').hide(); // Hide table on each refresh
-
-  var data = sessionStorage.tservers === undefined ?
-    [] : JSON.parse(sessionStorage.tservers);
-
-  clearTableBody('deadtservers');
-
-  // return if the table is empty
-  if (data.length === 0 || data.deadServers.length === 0)
-    return;
-
-  $('#deadtservers').show();
-  $.each(data.deadServers, function (key, val) {
-    var items = [];
-    items.push(createFirstCell(val.server, val.server));
-
-    var date = new Date(val.lastStatus);
-    date = date.toLocaleString().split(' ').join('&nbsp;');
-    items.push(createRightCell(val.lastStatus, date));
-    items.push(createRightCell(val.status, val.status));
-    items.push(createRightCell('', '<a href="javascript:clearDeadTServers(\'' +
-      val.server + '\');">clear</a>'));
-
-    $('<tr/>', {
-      html: items.join('')
-    }).appendTo('#deadtservers tbody');
-  });
-
+    refreshTServers();
 }
 
 /**
@@ -183,29 +107,140 @@ function refreshDeadTServersTable() {
  * @param {string} server Dead TServer to clear
  */
 function clearDeadTServers(server) {
-  clearDeadServers(server);
-  refreshTServers();
-  refreshNavBar();
+    clearDeadServers(server);
+    refreshTServers();
+    refreshNavBar();
 }
 
 /**
- * Generates the tserver table
+ * Creates tservers initial table
  */
-function refreshTServersTable() {
-  if (tserversTable) tserversTable.ajax.reload(null, false); // user paging is not reset on reload
-}
+$(document).ready(function () {
 
-/**
- * Refreshes the list of recovering tservers used to highlight rows
- */
-function refreshRecoveryList() {
-  $('#recovery-caption').hide(); // Hide the caption about highlighted rows on each refresh
-  getRecoveryList().then(function () {
-    recoveryList = []
-    var data = sessionStorage.recoveryList === undefined ?
-      [] : JSON.parse(sessionStorage.recoveryList);
-    data.recoveryList.forEach(entry => {
-      recoveryList.push(entry.server);
+    refreshRecoveryList();
+
+    // Create a table for tserver list
+    tserversTable = $('#tservers').DataTable({
+        "ajax": {
+            "url": '/rest/tservers',
+            "dataSrc": "servers"
+        },
+        "stateSave": true,
+        "columnDefs": [
+            {
+                "targets": "big-num",
+                "render": function (data, type, row) {
+                    if (type === 'display') {
+                        data = bigNumberForQuantity(data);
+                    }
+                    return data;
+                }
+            },
+            {
+                "targets": "duration",
+                "render": function (data, type, row) {
+                    if (type === 'display') data = timeDuration(data);
+                    return data;
+                }
+            },
+            {
+                "targets": "percent",
+                "render": function (data, type, row) {
+                    if (type === 'display') data = Math.round(data * 100) + '%';
+                    return data;
+                }
+            }
+        ],
+        "columns": [
+            {
+                "data": "hostname",
+                "type": "html",
+                "render": function (data, type, row, meta) {
+                    if (type === 'display') data = '<a href="/tservers?s=' + row.id + '">' + row.hostname + '</a>';
+                    return data;
+                }
+            },
+            { "data": "tablets" },
+            { "data": "lastContact" },
+            { "data": "responseTime" },
+            { "data": "entries" },
+            { "data": "ingest" },
+            { "data": "query" },
+            { "data": "holdtime" },
+            { "data": "scansCombo" },
+            { "data": "minorCombo" },
+            { "data": "majorCombo" },
+            { "data": "indexCacheHitRate" },
+            { "data": "dataCacheHitRate" },
+            { "data": "osload" }
+        ],
+        "rowCallback": function (row, data, index) {
+            // reset background of each row
+            $(row).css('background-color', '');
+
+            // return if the current row's tserver is not recovering
+            if (!recoveryList.includes(data.hostname))
+                return;
+
+            // only show the caption if we know there are rows in the tservers table
+            $('#recovery-caption').show();
+
+            // highlight current row
+            console.log('Highlighting row index:' + index + ' tserver:' + data.hostname);
+            $(row).css('background-color', 'gold');
+        }
     });
-  });
-}
+
+    deadTServersTable = $('#deadtservers').DataTable({
+        "ajax": {
+            "url": '/rest/tservers',
+            "dataSrc": "deadServers"
+        },
+        "stateSave": true,
+        "columnDefs": [
+            {
+                "targets": "date",
+                "render": function (data, type, row) {
+                    if (type === 'display' && data > 0) data = dateFormat(data);
+                    return data;
+                }
+            }
+        ],
+        "columns": [
+            { "data": "server" },
+            { "data": "lastStatus" },
+            { "data": "status" },
+            {
+                "data": "server",
+                "type": "html",
+                "render": function (data, type, row, meta) {
+                    if (type === 'display') data = `<a href="javascript:clearDeadTServers('${data}');">clear</a>`;
+                    return data;
+                }
+            }
+        ]
+    });
+
+    badTServersTable = $('#badtservers').DataTable({
+        "ajax": {
+            "url": '/rest/tservers',
+            "dataSrc": "badServers"
+        },
+        "stateSave": true,
+        "columnDefs": [
+            {
+                "targets": "date",
+                "render": function (data, type, row) {
+                    if (type === 'display' && data > 0) data = dateFormat(data);
+                    return data;
+                }
+            }
+        ],
+        "columns": [
+            { "data": "id" },
+            { "data": "status" }
+        ]
+    });
+
+    refreshTServers();
+});
