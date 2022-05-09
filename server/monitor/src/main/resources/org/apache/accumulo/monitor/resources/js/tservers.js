@@ -18,7 +18,8 @@
  */
 /* JSLint global definitions */
 /*global
-    $, document, sessionStorage, getTServers, clearDeadServers, refreshNavBar, getRecoveryList, bigNumberForQuantity, timeDuration
+    $, document, sessionStorage, getTServers, clearDeadServers, refreshNavBar,
+    getRecoveryList, bigNumberForQuantity, timeDuration, dateFormat
 */
 "use strict";
 
@@ -42,6 +43,8 @@ function refreshRecoveryList() {
 
 /**
  * Performs an ajax reload for the given Datatable
+ *
+ * @param {DataTable} table DataTable to perform an ajax reload on
  */
 function ajaxReloadTable(table) {
     if (table) {
@@ -50,7 +53,7 @@ function ajaxReloadTable(table) {
 }
 
 /**
- * Generates the tserver table
+ * Refreshes data in the tserver table
  */
 function refreshTServersTable() {
     refreshRecoveryList();
@@ -58,11 +61,12 @@ function refreshTServersTable() {
 }
 
 /**
- * Generates the deadtservers table
+ * Refreshes data in the deadtservers table
  */
 function refreshDeadTServersTable() {
     ajaxReloadTable(deadTServersTable);
 
+    // Only show the table if there are non-empty rows
     if ($('#deadtservers tbody .dataTables_empty').length) {
         $('#deadtservers_wrapper').hide();
     } else {
@@ -71,11 +75,12 @@ function refreshDeadTServersTable() {
 }
 
 /**
- * Generates the badtservers table
+ * Refreshes data in the badtservers table
  */
 function refreshBadTServersTable() {
     ajaxReloadTable(badTServersTable);
 
+    // Only show the table if there are non-empty rows
     if ($('#badtservers tbody .dataTables_empty').length) {
         $('#badtservers_wrapper').hide();
     } else {
@@ -113,7 +118,7 @@ function clearDeadTServers(server) {
 }
 
 /**
- * Creates tservers initial table
+ * Creates initial tables
  */
 $(document).ready(function () {
 
@@ -129,7 +134,7 @@ $(document).ready(function () {
         "columnDefs": [
             {
                 "targets": "big-num",
-                "render": function (data, type, row) {
+                "render": function (data, type) {
                     if (type === 'display') {
                         data = bigNumberForQuantity(data);
                     }
@@ -138,15 +143,19 @@ $(document).ready(function () {
             },
             {
                 "targets": "duration",
-                "render": function (data, type, row) {
-                    if (type === 'display') data = timeDuration(data);
+                "render": function (data, type) {
+                    if (type === 'display') {
+                        data = timeDuration(data);
+                    }
                     return data;
                 }
             },
             {
                 "targets": "percent",
-                "render": function (data, type, row) {
-                    if (type === 'display') data = Math.round(data * 100) + '%';
+                "render": function (data, type) {
+                    if (type === 'display') {
+                        data = Math.round(data * 100) + '%';
+                    }
                     return data;
                 }
             }
@@ -155,8 +164,10 @@ $(document).ready(function () {
             {
                 "data": "hostname",
                 "type": "html",
-                "render": function (data, type, row, meta) {
-                    if (type === 'display') data = '<a href="/tservers?s=' + row.id + '">' + row.hostname + '</a>';
+                "render": function (data, type, row) {
+                    if (type === 'display') {
+                        data = '<a href="/tservers?s=' + row.id + '">' + row.hostname + '</a>';
+                    }
                     return data;
                 }
             },
@@ -179,8 +190,9 @@ $(document).ready(function () {
             $(row).css('background-color', '');
 
             // return if the current row's tserver is not recovering
-            if (!recoveryList.includes(data.hostname))
+            if (!recoveryList.includes(data.hostname)) {
                 return;
+            }
 
             // only show the caption if we know there are rows in the tservers table
             $('#recovery-caption').show();
@@ -191,6 +203,7 @@ $(document).ready(function () {
         }
     });
 
+    // Create a table for deadServers list
     deadTServersTable = $('#deadtservers').DataTable({
         "ajax": {
             "url": '/rest/tservers',
@@ -200,8 +213,10 @@ $(document).ready(function () {
         "columnDefs": [
             {
                 "targets": "date",
-                "render": function (data, type, row) {
-                    if (type === 'display' && data > 0) data = dateFormat(data);
+                "render": function (data, type) {
+                    if (type === 'display' && data > 0) {
+                        data = dateFormat(data);
+                    }
                     return data;
                 }
             }
@@ -213,14 +228,17 @@ $(document).ready(function () {
             {
                 "data": "server",
                 "type": "html",
-                "render": function (data, type, row, meta) {
-                    if (type === 'display') data = `<a href="javascript:clearDeadTServers('${data}');">clear</a>`;
+                "render": function (data, type) {
+                    if (type === 'display') {
+                        data = '<a href="javascript:clearDeadTServers(\'' + data + '\');">clear</a>';
+                    }
                     return data;
                 }
             }
         ]
     });
 
+    // Create a table for badServers list
     badTServersTable = $('#badtservers').DataTable({
         "ajax": {
             "url": '/rest/tservers',
@@ -230,8 +248,10 @@ $(document).ready(function () {
         "columnDefs": [
             {
                 "targets": "date",
-                "render": function (data, type, row) {
-                    if (type === 'display' && data > 0) data = dateFormat(data);
+                "render": function (data, type) {
+                    if (type === 'display' && data > 0) {
+                        data = dateFormat(data);
+                    }
                     return data;
                 }
             }
