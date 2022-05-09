@@ -172,13 +172,9 @@ public class GarbageCollectionAlgorithm {
 
   private long removeBlipCandidates(GarbageCollectionEnvironment gce,
       SortedMap<String,String> candidateMap) throws TableNotFoundException {
-    boolean checkForBulkProcessingFiles = false;
     long blipCount = 0;
-    Iterator<String> relativePaths = candidateMap.keySet().iterator();
-
-    while (!checkForBulkProcessingFiles && relativePaths.hasNext())
-      checkForBulkProcessingFiles |=
-          relativePaths.next().toLowerCase(Locale.ENGLISH).contains(Constants.BULK_PREFIX);
+    boolean checkForBulkProcessingFiles = candidateMap.keySet().stream().anyMatch(
+        relativePath -> relativePath.toLowerCase(Locale.ENGLISH).contains(Constants.BULK_PREFIX));
 
     if (checkForBulkProcessingFiles) {
       try (Stream<String> blipStream = gce.getBlipPaths()) {
@@ -189,6 +185,7 @@ public class GarbageCollectionAlgorithm {
         // processing flag!
 
         while (blipiter.hasNext()) {
+          blipCount++;
           String blipPath = blipiter.next();
           blipPath = makeRelative(blipPath, 2);
 
@@ -207,7 +204,6 @@ public class GarbageCollectionAlgorithm {
 
           if (count > 0) {
             log.debug("Folder has bulk processing flag: {}", blipPath);
-            blipCount++;
           }
         }
       }
@@ -327,7 +323,7 @@ public class GarbageCollectionAlgorithm {
       } finally {
         candidatesSpan.end();
       }
-      totalBlips += deleteBatch(gce, batchOfCandidates);
+      totalBlips = deleteBatch(gce, batchOfCandidates);
     }
     return totalBlips;
   }

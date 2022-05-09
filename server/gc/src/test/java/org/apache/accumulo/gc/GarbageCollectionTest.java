@@ -126,7 +126,7 @@ public class GarbageCollectionTest {
       assertTrue(gce.deletes.remove(ref));
     }
 
-    assertEquals(0, gce.deletes.size());
+    assertEquals(0, gce.deletes.size(), "Deletes not empty: " + gce.deletes);
   }
 
   // This test was created to help track down a ConcurrentModificationException error that was
@@ -586,7 +586,6 @@ public class GarbageCollectionTest {
 
   @Test
   public void test() throws Exception {
-
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
     TestGCE gce = new TestGCE();
@@ -632,6 +631,19 @@ public class GarbageCollectionTest {
     blipCount = gca.collect(gce);
     assertRemoved(gce);
     assertEquals(1, blipCount);
+
+    gce = new TestGCE();
+    gce.blips.add("/1029/b-0001");
+    gce.blips.add("/1029/b-0002");
+    gce.blips.add("/1029/b-0003");
+    gce.blips.add("/1000/b-1001");
+    gce.blips.add("/1000/b-1002");
+    gce.candidates.add("/1029/b-0002/I0006");
+    gce.candidates.add("/1000/b-1002/I0007");
+    gce.candidates.add("/1000/t-0003/I0008");
+    blipCount = gca.collect(gce);
+    assertRemoved(gce, "/1000/t-0003/I0008");
+    assertEquals(5, blipCount);
   }
 
   @Test
