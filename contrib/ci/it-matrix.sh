@@ -31,8 +31,7 @@ echo -n '::set-output name=matrix::{"profile":['
 for x in $(find "$gitRootDir" -name '*IT.java' -exec basename '{}' .java \; | sort -u | xargs -n "$testsPerJob" | tr ' ' ','); do
   [[ $count -gt 0 ]] && echo -n ','
   echo -n "{\"name\":\"task_$count\",\"its\":\"$x\"}"
-  ((count=count+1))
+  ((count = count + 1))
 done
 echo ']}'
 echo "Finished creating matrix ($count tasks)"
-

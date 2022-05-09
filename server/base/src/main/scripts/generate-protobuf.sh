@@ -26,8 +26,8 @@
 #   Leave the BUILD_DIR and FINAL_DIR alone for Maven builds.
 # ========================================================================================================================
 [[ -z $REQUIRED_PROTOC_VERSION ]] && REQUIRED_PROTOC_VERSION='libprotoc 3.19.2'
-[[ -z $BUILD_DIR ]]               && BUILD_DIR='target/proto'
-[[ -z $FINAL_DIR ]]               && FINAL_DIR='src/main'
+[[ -z $BUILD_DIR ]] && BUILD_DIR='target/proto'
+[[ -z $FINAL_DIR ]] && FINAL_DIR='src/main'
 # ========================================================================================================================
 
 fail() {
@@ -36,8 +36,7 @@ fail() {
 }
 
 # Test to see if we have protoc installed
-VERSION=$(protoc --version 2>/dev/null | grep -F "${REQUIRED_PROTOC_VERSION}" |  wc -l)
-if [[ $VERSION -ne 1 ]] ; then
+if ! protoc --version 2>/dev/null | grep -qF "${REQUIRED_PROTOC_VERSION}"; then
   # Nope: bail
   echo "****************************************************"
   echo "*** protoc is not available"
@@ -65,8 +64,9 @@ SUFFIX="
 FILE_SUFFIX=(.java)
 
 for file in "${FILE_SUFFIX[@]}"; do
-  for f in $(find $BUILD_DIR/ -name "*$file"); do
-    cat - "$f" > "${f}-with-license" <<EOF
+  mapfile -t ALL_FILES_TO_LICENSE < <(find "$BUILD_DIR/" -name "*$file")
+  for f in "${ALL_FILES_TO_LICENSE[@]}"; do
+    cat - "$f" >"${f}-with-license" <<EOF
 ${PREFIX}${LINE_NOTATION} Licensed to the Apache Software Foundation (ASF) under one or more
 ${LINE_NOTATION} contributor license agreements.  See the NOTICE file distributed with
 ${LINE_NOTATION} this work for additional information regarding copyright ownership.
@@ -91,9 +91,10 @@ DDIR="${FINAL_DIR}/java/org/apache/accumulo/server/replication/proto"
 FILE_SUFFIX=(.java)
 mkdir -p "$DDIR"
 for file in "${FILE_SUFFIX[@]}"; do
-  for f in $(find $SDIR -name *$file); do
+  mapfile -t ALL_LICENSE_FILES_TO_COPY < <(find "$SDIR" -name "*$file")
+  for f in "${ALL_LICENSE_FILES_TO_COPY[@]}"; do
     DEST=$DDIR/$(basename "$f")
-    if ! cmp -s "${f}-with-license" "${DEST}" ; then
+    if ! cmp -s "${f}-with-license" "${DEST}"; then
       echo cp -f "${f}-with-license" "${DEST}"
       cp -f "${f}-with-license" "${DEST}" || fail unable to copy files to java workspace
     fi
