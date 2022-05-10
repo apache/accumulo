@@ -82,7 +82,7 @@ public class GarbageCollectionTest {
     }
 
     @Override
-    public void delete(SortedMap<String,String> candidateMap) {
+    public void deleteConfirmedCandidates(SortedMap<String,String> candidateMap) {
       deletes.addAll(candidateMap.values());
       this.candidates.removeAll(candidateMap.values());
     }

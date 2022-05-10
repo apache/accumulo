@@ -23,5 +23,5 @@ INCLUDED_MODULES=(-)
 BASE_OUTPUT_PACKAGE='org.apache.accumulo'
 PACKAGES_TO_GENERATE=(test.rpc)
 
+#shellcheck source=../../../../core/src/main/scripts/generate-thrift.sh
 . ../core/src/main/scripts/generate-thrift.sh
-

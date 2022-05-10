@@ -161,7 +161,8 @@ public class GCRun implements GarbageCollectionEnvironment {
   }
 
   @Override
-  public void delete(SortedMap<String,String> confirmedDeletes) throws TableNotFoundException {
+  public void deleteConfirmedCandidates(SortedMap<String,String> confirmedDeletes)
+      throws TableNotFoundException {
     final VolumeManager fs = context.getVolumeManager();
     var metadataLocation = level == Ample.DataLevel.ROOT
         ? context.getZooKeeperRoot() + " for " + RootTable.NAME : level.metaTable();

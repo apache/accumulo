@@ -40,7 +40,8 @@ function findallnonascii() {
 }
 
 function comparecounts() {
-  local count; count=$(findallnonascii | wc -l)
+  local count
+  count=$(findallnonascii | wc -l)
   if [[ $NUM_EXPECTED -ne $count ]]; then
     echo "Expected $NUM_EXPECTED, but found $count unapproved non-ASCII characters:"
     findallnonascii 'print'
@@ -49,4 +50,3 @@ function comparecounts() {
 }
 
 comparecounts && echo "Found exactly $NUM_EXPECTED unapproved non-ASCII characters, as expected"
-
