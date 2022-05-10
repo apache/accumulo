@@ -18,16 +18,12 @@
 # under the License.
 #
 
-if [ -z "$JAVA_HOME" ]; then
-  echo "JAVA_HOME is not set. Java is required to proceed"
-  exit 1
-fi
+# Install shfmt tool to search for and optionally format bash scripts
+# This is useful for other CI tools to run ShellCheck and shfmt to format
 
-for x in A B C; do
-  mkdir -p target/generated-sources/$x/test target/test-classes/ClassLoaderTest$x
-  sed "s/testX/test$x/" <src/test/java/test/TestTemplate >target/generated-sources/$x/test/TestObject.java
-  export CLASSPATH=target/test-classes
-  "$JAVA_HOME"/bin/javac target/generated-sources/$x/test/TestObject.java -d target/generated-sources/$x
-  "$JAVA_HOME"/bin/jar -cf target/test-classes/ClassLoaderTest$x/Test.jar -C target/generated-sources/$x test/TestObject.class
-  rm -r target/generated-sources/$x
-done
+set -e
+set -x
+
+shfmt_version=3.4.3
+sudo wget "https://github.com/mvdan/sh/releases/download/v${shfmt_version}/shfmt_v${shfmt_version}_linux_amd64" -O /usr/local/bin/shfmt &&
+  sudo chmod +x /usr/local/bin/shfmt

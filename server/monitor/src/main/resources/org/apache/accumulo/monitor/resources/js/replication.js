@@ -52,7 +52,7 @@ function refreshReplicationsTable() {
 
   if (data.length === 0) {
     var items = [];
-    items.push(createEmptyRow(5, 'Replication table is offline'));
+    items.push(createEmptyRow(5, 'Replication is disabled by default. Replication table is currently offline.'));
     $('<tr/>', {
       html: items.join('')
     }).appendTo('#replicationStats tbody');
