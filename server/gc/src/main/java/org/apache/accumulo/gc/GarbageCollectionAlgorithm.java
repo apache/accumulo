@@ -110,7 +110,6 @@ public class GarbageCollectionAlgorithm {
   }
 
   private SortedMap<String,String> makeRelative(Collection<String> candidates) {
-
     SortedMap<String,String> ret = new TreeMap<>();
 
     for (String candidate : candidates) {
@@ -127,10 +126,7 @@ public class GarbageCollectionAlgorithm {
     return ret;
   }
 
-  /**
-   * Return the number of BLIP flags seen.
-   */
-  private void confirmDeletes(GarbageCollectionEnvironment gce,
+  private void removeCandidatesInUse(GarbageCollectionEnvironment gce,
       SortedMap<String,String> candidateMap) {
     Iterator<Reference> iter = gce.getReferences().iterator();
     while (iter.hasNext()) {
@@ -281,7 +277,7 @@ public class GarbageCollectionAlgorithm {
     Span confirmDeletesSpan = TraceUtil.startSpan(this.getClass(), "confirmDeletes");
     try (Scope scope = confirmDeletesSpan.makeCurrent()) {
       blips = removeBlipCandidates(gce, candidateMap);
-      confirmDeletes(gce, candidateMap);
+      removeCandidatesInUse(gce, candidateMap);
       confirmDeletesFromReplication(gce, candidateMap);
     } catch (Exception e) {
       TraceUtil.setException(confirmDeletesSpan, e, true);
@@ -292,11 +288,11 @@ public class GarbageCollectionAlgorithm {
     return blips;
   }
 
-  private void deleteConfirmed(GarbageCollectionEnvironment gce,
+  private void deleteConfirmedCandidates(GarbageCollectionEnvironment gce,
       SortedMap<String,String> candidateMap) throws IOException, TableNotFoundException {
     Span deleteSpan = TraceUtil.startSpan(this.getClass(), "deleteFiles");
     try (Scope deleteScope = deleteSpan.makeCurrent()) {
-      gce.delete(candidateMap);
+      gce.deleteConfirmedCandidates(candidateMap);
     } catch (Exception e) {
       TraceUtil.setException(deleteSpan, e, true);
       throw e;
@@ -342,7 +338,7 @@ public class GarbageCollectionAlgorithm {
     long blips = confirmDeletesTrace(gce, candidateMap);
     gce.incrementInUseStat(origSize - candidateMap.size());
 
-    deleteConfirmed(gce, candidateMap);
+    deleteConfirmedCandidates(gce, candidateMap);
 
     return blips;
   }
