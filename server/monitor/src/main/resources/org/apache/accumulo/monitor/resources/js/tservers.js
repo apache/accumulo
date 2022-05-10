@@ -189,17 +189,16 @@ $(document).ready(function () {
             // reset background of each row
             $(row).css('background-color', '');
 
-            // return if the current row's tserver is not recovering
-            if (!recoveryList.includes(data.hostname)) {
-                return;
+            // if the curent hostname is in the reovery list
+            if (recoveryList.includes(data.hostname)) {
+
+                // show the caption explaining the highlighted rows
+                $('#recovery-caption').show();
+
+                // highlight the current row
+                console.log('Highlighting row index:' + index + ' tserver:' + data.hostname);
+                $(row).css('background-color', 'gold');
             }
-
-            // only show the caption if we know there are rows in the tservers table
-            $('#recovery-caption').show();
-
-            // highlight current row
-            console.log('Highlighting row index:' + index + ' tserver:' + data.hostname);
-            $(row).css('background-color', 'gold');
         }
     });
 
