@@ -59,13 +59,15 @@ import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.conf.SystemConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.conf.ZooConfiguration;
+import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.SystemPropKey;
+import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.metadata.ServerAmpleImpl;
 import org.apache.accumulo.server.rpc.SaslServerConnectionParams;
@@ -76,6 +78,8 @@ import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
+import org.apache.accumulo.server.util.NamespacePropUtil;
+import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.zookeeper.KeeperException;
@@ -92,16 +96,19 @@ public class ServerContext extends ClientContext {
   private final ServerInfo info;
   private final ZooReaderWriter zooReaderWriter;
   private final ServerDirs serverDirs;
+  private final PropStore propStore;
 
   // lazily loaded resources, only loaded when needed
   private final Supplier<TableManager> tableManager;
   private final Supplier<UniqueNameAllocator> nameAllocator;
   private final Supplier<ServerConfigurationFactory> serverConfFactory;
-  private final Supplier<AccumuloConfiguration> systemConfig;
+  private final Supplier<SystemConfiguration> systemConfig;
   private final Supplier<AuthenticationTokenSecretManager> secretManager;
   private final Supplier<CryptoService> cryptoService;
   private final Supplier<ScheduledThreadPoolExecutor> sharedScheduledThreadPool;
   private final Supplier<AuditedSecurityOperation> securityOperation;
+  private final Supplier<TablePropUtil> tablePropUtilSupplier;
+  private final Supplier<NamespacePropUtil> namespacePropUtilSupplier;
 
   public ServerContext(SiteConfiguration siteConfig) {
     this(new ServerInfo(siteConfig));
@@ -112,13 +119,12 @@ public class ServerContext extends ClientContext {
     this.info = info;
     zooReaderWriter = new ZooReaderWriter(info.getSiteConfiguration());
     serverDirs = info.getServerDirs();
+    propStore = ZooPropStore.initialize(info.getInstanceID(), zooReaderWriter);
 
     tableManager = memoize(() -> new TableManager(this));
     nameAllocator = memoize(() -> new UniqueNameAllocator(this));
     serverConfFactory = memoize(() -> new ServerConfigurationFactory(this, getSiteConfiguration()));
-    // system configuration uses its own instance of ZooCache
-    // this could be useful to keep its update counter independent
-    systemConfig = memoize(() -> new ZooConfiguration(this, new ZooCache(getZooReader(), null),
+    systemConfig = memoize(() -> new SystemConfiguration(this, SystemPropKey.of(getInstanceID()),
         getSiteConfiguration()));
     secretManager = memoize(() -> new AuthenticationTokenSecretManager(getInstanceID(),
         getConfiguration().getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME)));
@@ -129,6 +135,8 @@ public class ServerContext extends ClientContext {
     securityOperation =
         memoize(() -> new AuditedSecurityOperation(this, SecurityOperation.getAuthorizor(this),
             SecurityOperation.getAuthenticator(this), SecurityOperation.getPermHandler(this)));
+    tablePropUtilSupplier = memoize(() -> new TablePropUtil(this));
+    namespacePropUtilSupplier = memoize(() -> new NamespacePropUtil(this));
   }
 
   /**
@@ -379,7 +387,7 @@ public class ServerContext extends ClientContext {
       String key = entry.getKey();
       log.info("{} = {}", key, (Property.isSensitive(key) ? "<hidden>" : entry.getValue()));
       Property prop = Property.getPropertyByKey(key);
-      if (prop != null && conf.isPropertySet(prop, false)) {
+      if (prop != null && conf.isPropertySet(prop)) {
         if (prop.isDeprecated()) {
           Property replacedBy = prop.replacedBy();
           if (replacedBy != null) {
@@ -434,6 +442,10 @@ public class ServerContext extends ClientContext {
     return sharedScheduledThreadPool.get();
   }
 
+  public PropStore getPropStore() {
+    return propStore;
+  }
+
   @Override
   protected long getTransportPoolMaxAgeMillis() {
     return getClientTimeoutInMillis();
@@ -441,6 +453,14 @@ public class ServerContext extends ClientContext {
 
   public AuditedSecurityOperation getSecurityOperation() {
     return securityOperation.get();
+  }
+
+  public TablePropUtil tablePropUtil() {
+    return tablePropUtilSupplier.get();
+  }
+
+  public NamespacePropUtil namespacePropUtil() {
+    return namespacePropUtilSupplier.get();
   }
 
 }
