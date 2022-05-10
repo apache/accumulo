@@ -27,17 +27,38 @@ var tserversTable, deadTServersTable, badTServersTable;
 var recoveryList = [];
 
 /**
- * Refreshes the list of recovering tservers used to highlight rows
+ * Checks if the given server is in the global recoveryList variable
+ * 
+ * @param {JSON} server json server object
+ * @returns true if the server is in the recoveryList, else false
+ */
+function checkRecovery(server) {
+    return recoveryList.includes(server.hostname);
+}
+
+/**
+ * Refreshes the list of recovering tservers and shows/hides the recovery caption
  */
 function refreshRecoveryList() {
-    $('#recovery-caption').hide(); // Hide the caption about highlighted rows on each refresh
     getRecoveryList().then(function () {
+        // get list of recovering servers
         recoveryList = [];
         var data = sessionStorage.recoveryList === undefined ?
                     [] : JSON.parse(sessionStorage.recoveryList);
         data.recoveryList.forEach(function (entry) {
             recoveryList.push(entry.server);
         });
+
+        // get list of online tservers
+        data = sessionStorage.tservers === undefined ?
+                    [] : JSON.parse(sessionStorage.tservers).servers;
+
+        // show the recovery caption if its in the list of recovering servers
+        if (data.some(checkRecovery)) {
+            $('#recovery-caption').show();
+        } else {
+            $('#recovery-caption').hide();
+        }
     });
 }
 
@@ -191,10 +212,6 @@ $(document).ready(function () {
 
             // if the curent hostname is in the reovery list
             if (recoveryList.includes(data.hostname)) {
-
-                // show the caption explaining the highlighted rows
-                $('#recovery-caption').show();
-
                 // highlight the current row
                 console.log('Highlighting row index:' + index + ' tserver:' + data.hostname);
                 $(row).css('background-color', 'gold');
