@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.server.conf.codec;
 
-import static org.apache.accumulo.server.conf.codec.VersionedProperties.tsFormatter;
+import static org.apache.accumulo.server.conf.codec.VersionedProperties.TIMESTAMP_FORMATTER;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -28,8 +28,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 /**
  * Abstract class to provide encoding / decoding of versioned properties. This class handles the
@@ -55,6 +58,10 @@ public abstract class VersionedPropCodec {
     this.encodingOpts = encodingOpts;
   }
 
+  public static VersionedPropCodec getDefault() {
+    return VersionedPropGzipCodec.codec(true);
+  }
+
   /**
    * The general encoding options that apply to all encodings.
    *
@@ -77,13 +84,11 @@ public abstract class VersionedPropCodec {
     try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(bos)) {
 
-      // write encoding metadata
+      // write encoding info
       encodingOpts.encode(dos);
 
-      // write version metadata
-      DataVersionInfo vMetadata =
-          new DataVersionInfo(vProps.getNextVersion(), vProps.getTimestamp());
-      vMetadata.write(dos);
+      // write prop metadata
+      dos.writeUTF(TIMESTAMP_FORMATTER.format(vProps.getTimestamp()));
 
       // delegate property encoding to sub-class
       encodePayload(bos, vProps, encodingOpts);
@@ -108,7 +113,19 @@ public abstract class VersionedPropCodec {
   abstract void encodePayload(final OutputStream out, final VersionedProperties vProps,
       final EncodingOptions encodingOpts) throws IOException;
 
-  public VersionedProperties fromBytes(final byte[] bytes) throws IOException {
+  /**
+   *
+   *
+   * @param version
+   *          the data version determined by the prop store
+   * @param bytes
+   *          an array of bytes created using a PropCodec.
+   * @return the versioned properties.
+   * @throws IOException
+   *           if the an error occurs reading from the byte array.
+   */
+  public @NonNull VersionedProperties fromBytes(final int version, final byte[] bytes)
+      throws IOException {
 
     try (ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
         DataInputStream dis = new DataInputStream(bis)) {
@@ -121,11 +138,13 @@ public abstract class VersionedPropCodec {
                 + encodingOpts.getEncodingVersion());
       }
 
-      DataVersionInfo vMetadata = DataVersionInfo.fromDataStream(dis);
+      var timestamp = TIMESTAMP_FORMATTER.parse(dis.readUTF(), Instant::from);
 
       Map<String,String> props = decodePayload(bis, encodingOpts);
 
-      return new VersionedProperties(vMetadata.getDataVersion(), vMetadata.getTimestamp(), props);
+      return new VersionedProperties(version, timestamp, props);
+    } catch (NullPointerException | DateTimeParseException ex) {
+      throw new IllegalArgumentException("Invalid data cannot decode byte array", ex);
     }
   }
 
@@ -152,28 +171,26 @@ public abstract class VersionedPropCodec {
   }
 
   /**
-   * Extracts the data version from the encoded byte array without fully decoding the payload.
-   * Normally the data version should be obtained from a fully decoded instance of the versioned
-   * properties.
+   * Extracts the timestamp from the encoded byte array without fully decoding the payload. Normally
+   * the timestamp should be obtained from a fully decoded instance of the versioned properties.
    * <p>
    * The cost of reading the byte array from the backing store should be considered verses the
    * additional cost of decoding - with a goal of reducing data reads from the store preferred.
    * Generally reading from the store will be followed by some sort of usage which would require the
-   * full decode operation anyway.
+   * full decode operation anyway, so uses of this method should be narrow and limited.
    *
    * @param bytes
    *          serialized encoded versioned property byte array.
-   * @return the encoding version used to serialize the properties.
+   * @return the timestamp used to serialize the properties.
    */
-  public static int getDataVersion(final byte[] bytes) {
+  public static Instant readTimestamp(final byte[] bytes) {
     try (ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
         DataInputStream dis = new DataInputStream(bis)) {
-      // skip encoding metadata
+      // read encoding metadata according to the options.
       EncodingOptions.fromDataStream(dis);
-      return DataVersionInfo.fromDataStream(dis).getDataVersion();
-    } catch (NullPointerException | IOException ex) {
-      throw new IllegalArgumentException(
-          "Failed to read data version version from byte array provided", ex);
+      return TIMESTAMP_FORMATTER.parse(dis.readUTF(), Instant::from);
+    } catch (NullPointerException | DateTimeParseException | IOException ex) {
+      throw new IllegalArgumentException("Failed to read timestamp from byte array provided", ex);
     }
   }
 
@@ -247,39 +264,4 @@ public abstract class VersionedPropCodec {
     dos.flush();
   }
 
-  /**
-   * Helper class for reading / writing versioned properties metadata.
-   */
-  static class DataVersionInfo {
-    private final int dataVersion;
-    private final Instant timestamp;
-
-    public DataVersionInfo(final int dataVersion, final Instant timestamp) {
-      this.dataVersion = dataVersion;
-      this.timestamp = timestamp;
-    }
-
-    public static DataVersionInfo fromDataStream(final DataInputStream dis) throws IOException {
-      try {
-        var dataVersion = dis.readInt();
-        var timestamp = tsFormatter.parse(dis.readUTF(), Instant::from);
-        return new DataVersionInfo(dataVersion, timestamp);
-      } catch (Exception ex) {
-        throw new IOException("Could not parse data version info", ex);
-      }
-    }
-
-    public int getDataVersion() {
-      return dataVersion;
-    }
-
-    public Instant getTimestamp() {
-      return timestamp;
-    }
-
-    public void write(final DataOutputStream dos) throws IOException {
-      dos.writeInt(dataVersion);
-      dos.writeUTF(tsFormatter.format(timestamp));
-    }
-  }
 }

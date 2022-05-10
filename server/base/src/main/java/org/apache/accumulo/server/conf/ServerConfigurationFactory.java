@@ -29,9 +29,8 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.store.SystemPropKey;
 
 import com.google.common.base.Suppliers;
 
@@ -45,31 +44,19 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   private final Map<NamespaceId,NamespaceConfiguration> namespaceConfigs =
       new ConcurrentHashMap<>();
 
-  private final Supplier<ZooConfiguration> systemConfig;
-
   private final ServerContext context;
   private final SiteConfiguration siteConfig;
-  private ZooCacheFactory zcf = new ZooCacheFactory();
+  private final Supplier<SystemConfiguration> systemConfig;
 
   public ServerConfigurationFactory(ServerContext context, SiteConfiguration siteConfig) {
     this.context = context;
     this.siteConfig = siteConfig;
-    systemConfig = Suppliers.memoize(() -> {
-      // Force the creation of a new ZooCache instead of using a shared one.
-      // This is done so that the ZooCache will update less often, causing the
-      // configuration update count to increment more slowly.
-      ZooCache propCache =
-          zcf.getNewZooCache(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
-      return new ZooConfiguration(context, propCache, siteConfig);
-    });
+    systemConfig = Suppliers.memoize(
+        () -> new SystemConfiguration(context, SystemPropKey.of(context), getSiteConfiguration()));
   }
 
   public ServerContext getServerContext() {
     return context;
-  }
-
-  void setZooCacheFactory(ZooCacheFactory zcf) {
-    this.zcf = zcf;
   }
 
   public SiteConfiguration getSiteConfiguration() {
@@ -112,8 +99,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   @Override
   public NamespaceConfiguration getNamespaceConfiguration(NamespaceId namespaceId) {
     return namespaceConfigs.computeIfAbsent(namespaceId, key -> {
-      var conf = new NamespaceConfiguration(namespaceId, context, getSystemConfiguration());
-      conf.setZooCacheFactory(zcf);
+      var conf = new NamespaceConfiguration(context, namespaceId, getSystemConfiguration());
       ConfigCheckUtil.validate(conf);
       return conf;
     });
