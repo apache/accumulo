@@ -257,25 +257,28 @@ function createTableCell(index, sortValue, showValue) {
 }
 
 /**
- * Builds console logging message for REST GET calls
+ * Performs GET call and builds console logging message from data received
  * @param {string} REST url called
- * @param {object} data returned from REST call
  * @param {string} session storage/global variable to hold REST data
  */
- function createRestGetLog(call, data, sessionDataVar){
-    var jsonDataStr = JSON.stringify(data);
+ function getJSONForTable(call, sessionDataVar){
+    console.info("Retrieving " + call);
 
-    //Handle data to be stored in global variable instead of session storage
-    if (sessionDataVar==="NAMESPACES") {
-      NAMESPACES = jsonDataStr;
-      console.debug("REST GET call to " + call +
-       " stored in " + sessionDataVar + " = " + NAMESPACES);
-    }
-    else {
-      sessionStorage[sessionDataVar] = jsonDataStr;
-      console.debug("REST GET request to " + call +
-        " stored in sessionStorage." + sessionDataVar + " = " + sessionStorage[sessionDataVar]);
-    }
+    return $.getJSON(call, function(data) {
+      var jsonDataStr = JSON.stringify(data);
+
+      //Handle data to be stored in global variable instead of session storage
+      if (sessionDataVar==="NAMESPACES") {
+        NAMESPACES = jsonDataStr;
+        console.debug("REST GET call to " + call +
+         " stored in " + sessionDataVar + " = " + NAMESPACES);
+      }
+      else {
+        sessionStorage[sessionDataVar] = jsonDataStr;
+        console.debug("REST GET request to " + call +
+          " stored in sessionStorage." + sessionDataVar + " = " + sessionStorage[sessionDataVar]);
+      }
+    });   
  }
 
 ///// REST Calls /////////////
@@ -285,22 +288,14 @@ function createTableCell(index, sortValue, showValue) {
  * stores it on a sessionStorage variable
  */
 function getManager() {
-  var call = '/rest/manager';
-  console.info("Retrieving " + call);
-  return $.getJSON(call, function(data) {
-    createRestGetLog(call, data, 'manager');
-  });
+  return getJSONForTable('/rest/manager', 'manager');
 }
 
 /**
  * REST GET call for the namespaces, stores it on a global variable
  */
 function getNamespaces() {
-  var call = '/rest/tables/namespaces';
-  console.info("Retrieving " + call);
-  return $.getJSON(call, function(data) {
-    createRestGetLog(call, data, 'NAMESPACES');
-  });
+  return getJSONForTable('/rest/tables/namespaces', 'NAMESPACES');
 }
 
 /**
@@ -325,10 +320,7 @@ function getNamespaceTables(namespaces) {
     namespaceList = namespaces.toString();
 
     var call = '/rest/tables/namespaces/' + namespaceList;
-    console.info("Retrieving " + call);
-    return $.getJSON(call, function(data) {
-      createRestGetLog(call, data, 'tables');
-    });
+    return getJSONForTable(call, 'tables');
   }
 }
 
@@ -336,11 +328,7 @@ function getNamespaceTables(namespaces) {
  * REST GET call for the tables, stores it on a sessionStorage variable
  */
 function getTables() {
-  var call = '/rest/tables';
-  console.info("Retrieving " + call);
-  return $.getJSON(call, function(data) {
-    createRestGetLog(call, data, 'tables');
-  });
+  return getJSONForTable('/rest/tables', 'tables');
 }
 
 /**
@@ -350,7 +338,6 @@ function getTables() {
  */
 function clearDeadServers(server) {
   var call = '/rest/tservers?server=' + server;
-  console.info("Call to " + call);
   $.post(call);
   console.info("REST POST call to " + call);
 }
@@ -359,11 +346,7 @@ function clearDeadServers(server) {
  * REST GET call for the tservers, stores it on a sessionStorage variable
  */
 function getTServers() {
-  var call = '/rest/tservers';
-  console.info("Retrieving " + call);
-  return $.getJSON(call, function(data) {
-    createRestGetLog(call, data, 'tservers');
-  });
+  return getJSONForTable('/rest/tservers', 'tservers');
 }
 
 /**
@@ -373,54 +356,35 @@ function getTServers() {
  */
 function getTServer(server) {
   var call = '/rest/tservers/' + server;
-  console.info("Retrieving " + call);
-  return $.getJSON(call, function(data) {
-    createRestGetLog(call, data, 'server');
-  });
+  return getJSONForTable(call, 'server');
 }
 
 /**
  * REST GET call for the scans, stores it on a sessionStorage variable
  */
 function getScans() {
-  var call = '/rest/scans';
-  console.info("Retrieving " + call);
-  return $.getJSON(call, function(data) {
-    createRestGetLog(call, data, 'scans');
-  });
+  return getJSONForTable('/rest/scans', 'scans');
 }
 
 /**
  * REST GET call for the bulk imports, stores it on a sessionStorage variable
  */
 function getBulkImports() {
-  var call = '/rest/bulkImports';
-  console.info("Retrieving " + call);
-  return $.getJSON(call, function(data) {
-    createRestGetLog(call, data, 'bulkImports');
-  });
+  return getJSONForTable('/rest/bulkImports', 'bulkImports');
 }
 
 /**
  * REST GET call for the server stats, stores it on a sessionStorage variable
  */
 function getServerStats() {
-  var call = '/rest/tservers/serverStats';
-  console.info("Retrieving " + call);
-  return $.getJSON(call, function(data) {
-    createRestGetLog(call, data, 'serverStats');
-  });
+  return getJSONForTable('/rest/tservers/serverStats', 'serverStats');
 }
 
 /**
  * REST GET call for the recovery list, stores it on a sessionStorage variable
  */
 function getRecoveryList() {
-  var call = '/rest/tservers/recovery';
-  console.info("Retrieving " + call);
-  return $.getJSON(call, function(data) {
-    createRestGetLog(call, data, 'recoveryList');;
-  });
+  return getJSONForTable('/rest/tservers/recovery', 'recoveryList');
 }
 
 /**
@@ -431,10 +395,7 @@ function getRecoveryList() {
  */
 function getTableServers(tableID) {
   var call = '/rest/tables/' + tableID;
-  console.info("Retrieving " + call);
-  return $.getJSON(call, function(data) {
-    createRestGetLog(call, data, 'tableServers');
-  });
+  return getJSONForTable(call, 'tableServers');
 }
 
 /**
@@ -444,10 +405,7 @@ function getTableServers(tableID) {
  */
 function getTraceSummary(minutes) {
   var call = '/rest/trace/summary/' + minutes;
-  console.info("Retrieving " + call);
-  return $.getJSON(call, function(data) {
-    createRestGetLog(call, data, 'traceSummary');
-  });
+  return getJSONForTable(call, 'traceSummary');
 }
 
 /**
@@ -458,10 +416,7 @@ function getTraceSummary(minutes) {
  */
 function getTraceOfType(type, minutes) {
   var call = '/rest/trace/listType/' + type + '/' + minutes;
-  console.info("Retrieving " + call);
-  return $.getJSON(call, function(data) {
-    createRestGetLog(call, data, 'traceType');
-  });
+  return getJSONForTable(call, 'traceType');
 }
 
 /**
@@ -471,21 +426,14 @@ function getTraceOfType(type, minutes) {
  */
 function getTraceShow(id) {
   var call = '/rest/trace/show/' + id;
-  console.info("Retrieving " + call);
-  return $.getJSON(call, function(data) {
-    createRestGetLog(call, data, 'traceShow');
-  });
+  return getJSONForTable(call, 'traceShow');
 }
 
 /**
  * REST GET call for the logs, stores it on a sessionStorage variable
  */
 function getLogs() {
-  var call = '/rest/logs';
-  console.info("Retrieving " + call);
-  return $.getJSON(call, function(data) {
-    createRestGetLog(call, data, 'logs');
-  });
+  return getJSONForTable('/rest/logs', 'logs');
 }
 
 /**
@@ -506,7 +454,6 @@ function clearTableProblems(tableID) {
   var call = '/rest/problems/summary?s=' + tableID;
   // Change plus sign to use ASCII value to send it as a URL query parameter
   call = sanitize(call);
-  console.info("Call to " + call);
   // make the rest call, passing success function callback
   $.post(call, function () {
     console.info("REST POST call to " + call);
@@ -526,7 +473,6 @@ function clearDetailsProblems(table, resource, type) {
    resource + '&ptype=' + type;
   // Changes plus sign to use ASCII value to send it as a URL query parameter
   call = sanitize(call);
-  console.info("Call to " + call);
   // make the rest call, passing success function callback
   $.post(call, function () {
     console.info("REST POST call to " + call);
@@ -539,11 +485,7 @@ function clearDetailsProblems(table, resource, type) {
  * stores it on a sessionStorage variable
  */
 function getProblemSummary() {
-  var call = '/rest/problems/summary';
-  console.info("Retrieving " + call);
-  return $.getJSON(call, function(data) {
-    createRestGetLog(call, data, 'problemSummary');
-  });
+  return getJSONForTable('/rest/problems/summary', 'problemSummary');
 }
 
 /**
@@ -551,11 +493,7 @@ function getProblemSummary() {
  * stores it on a sessionStorage variable
  */
 function getProblemDetails() {
-  var call = '/rest/problems/details';
-  console.info("Retrieving " + call);
-  return $.getJSON(call, function(data) {
-    createRestGetLog(call, data, 'problemDetails');
-  });
+  return getJSONForTable('/rest/problems/details', 'problemDetails');
 }
 
 /**
@@ -563,26 +501,17 @@ function getProblemDetails() {
  * stores it on a sessionStorage variable
  */
 function getReplication() {
-  var call = '/rest/replication';
-  console.info("Retrieving " + call);
-  return $.getJSON(call, function(data) {
-    createRestGetLog(call, data, 'replication');
-  });
+  return getJSONForTable('/rest/replication', 'replication');
 }
 
 //// Overview Plots Rest Calls
-//// Note: console.debug messages may not show by default in some browsers
 
 /**
  * REST GET call for the ingest rate,
  * stores it on a sessionStorage variable
  */
 function getIngestRate() {
-  var call = '/rest/statistics/time/ingestRate';
-  console.debug("Retrieving " + call);
-  return $.getJSON(call, function(data) {
-    createRestGetLog(call, data, 'ingestRate');
-  });
+  return getJSONForTable('/rest/statistics/time/ingestRate', 'ingestRate');
 }
 
 /**
@@ -590,11 +519,7 @@ function getIngestRate() {
  * stores it on a sessionStorage variable
  */
 function getScanEntries() {
-  var call = '/rest/statistics/time/scanEntries';
-  console.debug("Retrieving " + call);
-  return $.getJSON(call, function(data) {
-    createRestGetLog(call, data, 'scanEntries');
-  });
+  return getJSONForTable('/rest/statistics/time/scanEntries', 'scanEntries');
 }
 
 /**
@@ -602,44 +527,28 @@ function getScanEntries() {
  * stores it on a sessionStorage variable
  */
 function getIngestByteRate() {
-  var call = '/rest/statistics/time/ingestByteRate';
-  console.debug("Retrieving " + call);
-  return $.getJSON(call, function(data) {
-    createRestGetLog(call, data, 'ingestMB');
-  });
+  return getJSONForTable('/rest/statistics/time/ingestByteRate', 'ingestMB');
 }
 
 /**
  * REST GET call for the query byte rate, stores it on a sessionStorage variable
  */
 function getQueryByteRate() {
-  var call = '/rest/statistics/time/queryByteRate';
-  console.debug("Retrieving " + call);
-  return $.getJSON(call, function(data) {
-    createRestGetLog(call, data, 'queryMB');
-  });
+  return getJSONForTable('/rest/statistics/time/queryByteRate', 'queryMB');
 }
 
 /**
  * REST GET call for the load average, stores it on a sessionStorage variable
  */
 function getLoadAverage() {
-  var call = '/rest/statistics/time/load';
-  console.debug("Retrieving " + call);
-  return $.getJSON(call, function(data) {
-    createRestGetLog(call, data, 'loadAvg');
-  });
+  return getJSONForTable('/rest/statistics/time/load', 'loadAvg');
 }
 
 /**
  * REST GET call for the lookups, stores it on a sessionStorage variable
  */
 function getLookups() {
-  var call = '/rest/statistics/time/lookups';
-  console.debug("Retrieving " + call);
-  return $.getJSON(call, function(data) {
-    createRestGetLog(call, data, 'lookups');
-  });
+  return getJSONForTable('/rest/statistics/time/lookups', 'lookups');
 }
 
 /**
@@ -647,11 +556,7 @@ function getLookups() {
  * stores it on a sessionStorage variable
  */
 function getMinorCompactions() {
-  var call = '/rest/statistics/time/minorCompactions';
-  console.debug("Retrieving " + call);
-  return $.getJSON(call, function(data) {
-    createRestGetLog(call, data, 'minorCompactions');
-  });
+  return getJSONForTable('/rest/statistics/time/minorCompactions', 'minorCompactions');
 }
 
 /**
@@ -659,11 +564,7 @@ function getMinorCompactions() {
  * stores it on a sessionStorage variable
  */
 function getMajorCompactions() {
-  var call = '/rest/statistics/time/majorCompactions';
-  console.debug("Retrieving " + call);
-  return $.getJSON(call, function(data) {
-    createRestGetLog(call, data, 'majorCompactions');
-  });
+  return getJSONForTable('/rest/statistics/time/majorCompactions', 'majorCompactions');
 }
 
 /**
@@ -671,11 +572,7 @@ function getMajorCompactions() {
  * stores it on a sessionStorage variable
  */
 function getIndexCacheHitRate() {
-  var call = '/rest/statistics/time/indexCacheHitRate';
-  console.debug("Retrieving " + call);
-  return $.getJSON(call, function(data) {
-    createRestGetLog(call, data, 'indexCache');
-  });
+  return getJSONForTable('/rest/statistics/time/indexCacheHitRate', 'indexCache');
 }
 
 /**
@@ -683,22 +580,14 @@ function getIndexCacheHitRate() {
  * stores it on a sessionStorage variable
  */
 function getDataCacheHitRate() {
-  var call = '/rest/statistics/time/dataCacheHitRate';
-  console.debug("Retrieving " + call);
-  return $.getJSON(call, function(data) {
-    createRestGetLog(call, data, 'dataCache');
-  });
+  return getJSONForTable('/rest/statistics/time/dataCacheHitRate', 'dataCache');
 }
 
 /**
  * REST GET call for the server status, stores it on a sessionStorage variable
  */
 function getStatus() {
-  var call = '/rest/status';
-  console.debug("Retrieving " + call);
-  return $.getJSON(call, function(data) {
-    createRestGetLog(call, data, 'status');
-  });
+  return getJSONForTable('/rest/status', 'status');
 }
 
 /*
