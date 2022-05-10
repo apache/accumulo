@@ -32,7 +32,7 @@ var recoveryList = [];
  * @param {JSON} server json server object
  * @returns true if the server is in the recoveryList, else false
  */
-function checkRecovery(server) {
+function serverIsInRecoveryList(server) {
     return recoveryList.includes(server.hostname);
 }
 
@@ -54,7 +54,7 @@ function refreshRecoveryList() {
                     [] : JSON.parse(sessionStorage.tservers).servers;
 
         // show the recovery caption if its in the list of recovering servers
-        if (data.some(checkRecovery)) {
+        if (data.some(serverIsInRecoveryList)) {
             $('#recovery-caption').show();
         } else {
             $('#recovery-caption').hide();
@@ -211,7 +211,7 @@ $(document).ready(function () {
             $(row).css('background-color', '');
 
             // if the curent hostname is in the reovery list
-            if (recoveryList.includes(data.hostname)) {
+            if (serverIsInRecoveryList(data)) {
                 // highlight the current row
                 console.log('Highlighting row index:' + index + ' tserver:' + data.hostname);
                 $(row).css('background-color', 'gold');
