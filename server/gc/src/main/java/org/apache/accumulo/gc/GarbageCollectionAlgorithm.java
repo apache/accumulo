@@ -127,7 +127,7 @@ public class GarbageCollectionAlgorithm {
   }
 
   private void removeCandidatesInUse(GarbageCollectionEnvironment gce,
-                                     SortedMap<String,String> candidateMap) {
+      SortedMap<String,String> candidateMap) {
     Iterator<Reference> iter = gce.getReferences().iterator();
     while (iter.hasNext()) {
       Reference ref = iter.next();
