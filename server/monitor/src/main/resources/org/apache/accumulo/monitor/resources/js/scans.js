@@ -18,6 +18,8 @@
  */
 "use strict";
 
+var scansList;
+
 /**
  * Creates scans initial table
  */
