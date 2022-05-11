@@ -33,7 +33,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.File;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.Constants;
@@ -74,8 +73,6 @@ import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.benmanes.caffeine.cache.Ticker;
-
 @Tag(ZOOKEEPER_TESTING_SERVER)
 public class ZooBasedConfigIT {
 
@@ -91,7 +88,6 @@ public class ZooBasedConfigIT {
   private final TableId tidA = TableId.of("A");
   private final TableId tidB = TableId.of("B");
 
-  private TestTicker ticker;
   private PropStore propStore;
   private AccumuloConfiguration parent;
 
@@ -146,8 +142,6 @@ public class ZooBasedConfigIT {
       Thread.currentThread().interrupt();
       throw new IllegalStateException("Interrupted during zookeeper path initialization", ex);
     }
-
-    ticker = new TestTicker();
 
     reset(context);
 
@@ -278,11 +272,6 @@ public class ZooBasedConfigIT {
 
     long updateCount = zbc.getUpdateCount();
 
-    // advance well past unload period.
-    ticker.advance(2, TimeUnit.HOURS);
-
-    // force clean-up and cache activity to get async unload to occur.
-    ((ZooPropStore) propStore).cleanUp();
     var tableBPropKey = TablePropKey.of(INSTANCE_ID, tidB);
     propStore.create(tableBPropKey, Map.of());
     Thread.sleep(150);
@@ -368,26 +357,6 @@ public class ZooBasedConfigIT {
       return "TestListener{zkChangeCount=" + getZkChangeCount() + ", cacheChangeCount="
           + getCacheChangeCount() + ", deleteCount=" + getDeleteCount() + ", connectionEventCount="
           + getConnectionEventCount() + '}';
-    }
-  }
-
-  private static class TestTicker implements Ticker {
-
-    private final long startTime;
-    private long elapsed;
-
-    public TestTicker() {
-      startTime = System.nanoTime();
-      elapsed = 0L;
-    }
-
-    public void advance(final long value, final TimeUnit units) {
-      elapsed += TimeUnit.NANOSECONDS.convert(value, units);
-    }
-
-    @Override
-    public long read() {
-      return startTime + elapsed;
     }
   }
 

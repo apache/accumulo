@@ -35,7 +35,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.RemovalCause;
 import com.github.benmanes.caffeine.cache.Ticker;
-import com.google.common.annotations.VisibleForTesting;
 
 public class PropCacheCaffeineImpl implements PropCache {
 
@@ -99,12 +98,6 @@ public class PropCacheCaffeineImpl implements PropCache {
     cache.invalidateAll();
   }
 
-  /** for testing - force Caffeine housekeeping to run. */
-  @VisibleForTesting
-  void cleanUp() {
-    cache.cleanUp();
-  }
-
   /**
    * Retrieve the version properties if present in the cache, otherwise return null. This prevents
    * caching the properties and should be used when properties will be updated and then committed to
@@ -138,12 +131,8 @@ public class PropCacheCaffeineImpl implements PropCache {
       return new PropCacheCaffeineImpl(zooPropLoader, metrics, ticker, runTasksInline);
     }
 
-    public Builder withTicker(final Ticker ticker) {
+    public Builder forTests(final Ticker ticker) {
       this.ticker = ticker;
-      return this;
-    }
-
-    public Builder forTests() {
       this.runTasksInline = true;
       return this;
     }
