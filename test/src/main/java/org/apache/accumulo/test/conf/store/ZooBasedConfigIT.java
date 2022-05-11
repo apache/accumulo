@@ -281,8 +281,6 @@ public class ZooBasedConfigIT {
     // advance well past unload period.
     ticker.advance(2, TimeUnit.HOURS);
 
-    // force clean-up and cache activity to get async unload to occur.
-    ((ZooPropStore) propStore).cleanUp();
     var tableBPropKey = TablePropKey.of(INSTANCE_ID, tidB);
     propStore.create(tableBPropKey, Map.of());
     Thread.sleep(150);

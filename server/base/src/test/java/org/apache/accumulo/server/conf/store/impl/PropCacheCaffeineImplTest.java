@@ -87,8 +87,7 @@ public class PropCacheCaffeineImplTest {
 
     expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
 
-    cache =
-        new PropCacheCaffeineImpl.Builder(zooPropLoader, cacheMetrics).withTicker(ticker).build();
+    cache = new PropCacheCaffeineImpl.Builder(zooPropLoader, cacheMetrics).forTests(ticker).build();
 
   }
 
@@ -175,11 +174,9 @@ public class PropCacheCaffeineImplTest {
     assertNotNull(cache.get(tablePropKey)); // will call load and place into cache
 
     ticker.advance(30, TimeUnit.MINUTES);
-    cache.cleanUp();
     assertNotNull(cache.get(tablePropKey)); // will async check stat and then reload
   }
 
-  @SuppressWarnings({"rawtypes"})
   @Test
   public void expireTest() {
     expect(zooPropLoader.load(eq(tablePropKey))).andReturn(vProps).times(2);
@@ -188,7 +185,6 @@ public class PropCacheCaffeineImplTest {
     assertNotNull(cache.get(tablePropKey)); // will call load
 
     ticker.advance(90, TimeUnit.MINUTES);
-    cache.cleanUp();
     assertNotNull(cache.get(tablePropKey)); // expired - will call load.
   }
 

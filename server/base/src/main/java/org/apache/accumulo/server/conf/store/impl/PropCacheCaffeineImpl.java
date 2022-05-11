@@ -35,7 +35,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.RemovalCause;
 import com.github.benmanes.caffeine.cache.Ticker;
-import com.google.common.annotations.VisibleForTesting;
 
 public class PropCacheCaffeineImpl implements PropCache {
 
@@ -51,11 +50,15 @@ public class PropCacheCaffeineImpl implements PropCache {
   private final LoadingCache<PropCacheKey<?>,VersionedProperties> cache;
 
   private PropCacheCaffeineImpl(final CacheLoader<PropCacheKey<?>,VersionedProperties> cacheLoader,
-      final PropStoreMetrics metrics, final Ticker ticker) {
+      final PropStoreMetrics metrics, final Ticker ticker, boolean runTasksInline) {
     this.metrics = metrics;
     var builder = Caffeine.newBuilder().refreshAfterWrite(REFRESH_MIN, BASE_TIME_UNITS)
-        .expireAfterAccess(EXPIRE_MIN, BASE_TIME_UNITS).evictionListener(this::evictionNotifier)
-        .executor(executor);
+        .expireAfterAccess(EXPIRE_MIN, BASE_TIME_UNITS).evictionListener(this::evictionNotifier);
+    if (runTasksInline) {
+      builder = builder.executor(Runnable::run);
+    } else {
+      builder = builder.executor(executor);
+    }
     if (ticker != null) {
       builder = builder.ticker(ticker);
     }
@@ -95,12 +98,6 @@ public class PropCacheCaffeineImpl implements PropCache {
     cache.invalidateAll();
   }
 
-  /** for testing - force Caffeine housekeeping to run. */
-  @VisibleForTesting
-  void cleanUp() {
-    cache.cleanUp();
-  }
-
   /**
    * Retrieve the version properties if present in the cache, otherwise return null. This prevents
    * caching the properties and should be used when properties will be updated and then committed to
@@ -122,6 +119,7 @@ public class PropCacheCaffeineImpl implements PropCache {
     private final PropStoreMetrics metrics;
     private final ZooPropLoader zooPropLoader;
     private Ticker ticker = null;
+    private boolean runTasksInline = false;
 
     public Builder(final ZooPropLoader zooPropLoader, final PropStoreMetrics metrics) {
       Objects.requireNonNull(zooPropLoader, "A PropStoreChangeMonitor must be provided");
@@ -130,11 +128,12 @@ public class PropCacheCaffeineImpl implements PropCache {
     }
 
     public PropCacheCaffeineImpl build() {
-      return new PropCacheCaffeineImpl(zooPropLoader, metrics, ticker);
+      return new PropCacheCaffeineImpl(zooPropLoader, metrics, ticker, runTasksInline);
     }
 
-    public Builder withTicker(final Ticker ticker) {
+    public Builder forTests(final Ticker ticker) {
       this.ticker = ticker;
+      this.runTasksInline = true;
       return this;
     }
   }

@@ -46,7 +46,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Ticker;
-import com.google.common.annotations.VisibleForTesting;
 
 public class ZooPropStore implements PropStore, PropChangeListener {
 
@@ -103,7 +102,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
       this.cache = new PropCacheCaffeineImpl.Builder(propLoader, cacheMetrics).build();
     } else {
       this.cache =
-          new PropCacheCaffeineImpl.Builder(propLoader, cacheMetrics).withTicker(ticker).build();
+          new PropCacheCaffeineImpl.Builder(propLoader, cacheMetrics).forTests(ticker).build();
     }
 
     MetricsUtil.initializeProducers(cacheMetrics);
@@ -353,12 +352,6 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   public void connectionEvent() {
     log.trace("connectionEvent");
     cache.removeAll();
-  }
-
-  /** for testing - force Caffeine housekeeping to run. */
-  @VisibleForTesting
-  public void cleanUp() {
-    ((PropCacheCaffeineImpl) cache).cleanUp();
   }
 
   /**
