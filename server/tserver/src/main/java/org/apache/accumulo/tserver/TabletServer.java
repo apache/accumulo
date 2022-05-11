@@ -762,13 +762,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
 
     try {
-      clientAddress = startTabletClientService();
-    } catch (UnknownHostException e1) {
-      throw new RuntimeException("Failed to start the tablet client service", e1);
-    }
-    announceExistence();
-
-    try {
       MetricsUtil.initializeMetrics(context.getConfiguration(), this.applicationName,
           clientAddress);
     } catch (Exception e1) {
@@ -790,6 +783,13 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       }
     }, getContext(), ceMetrics);
     compactionManager.start();
+
+    try {
+      clientAddress = startTabletClientService();
+    } catch (UnknownHostException e1) {
+      throw new RuntimeException("Failed to start the tablet client service", e1);
+    }
+    announceExistence();
 
     try {
       walMarker.initWalMarker(getTabletSession());
