@@ -41,20 +41,21 @@ function serverIsInRecoveryList(server) {
  */
 function refreshRecoveryList() {
     getRecoveryList().then(function () {
-        // get list of recovering servers
-        recoveryList = [];
-        var data = sessionStorage.recoveryList === undefined ?
-                    [] : JSON.parse(sessionStorage.recoveryList);
-        data.recoveryList.forEach(function (entry) {
-            recoveryList.push(entry.server);
-        });
+        var sessionStorageRecoveryList, sessionStorageTserversList;
 
-        // get list of online tservers
-        data = sessionStorage.tservers === undefined ?
+        // get list of recovering servers and online servers from sessionStorage
+        sessionStorageRecoveryList = sessionStorage.recoveryList === undefined ?
+                    [] : JSON.parse(sessionStorage.recoveryList).recoveryList;
+        sessionStorageTserversList = sessionStorage.tservers === undefined ?
                     [] : JSON.parse(sessionStorage.tservers).servers;
 
-        // show the recovery caption if its in the list of recovering servers
-        if (data.some(serverIsInRecoveryList)) {
+        // update global recovery list variable
+        recoveryList = sessionStorageRecoveryList.map(function (entry) {
+            return entry.server;
+        });
+
+        // show the recovery caption if any online servers are in the recovery list
+        if (sessionStorageTserversList.some(serverIsInRecoveryList)) {
             $('#recovery-caption').show();
         } else {
             $('#recovery-caption').hide();
