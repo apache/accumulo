@@ -233,20 +233,20 @@ public class IteratorConfigUtil {
     return prev;
   }
 
-  @SuppressWarnings("unchecked")
   private static Class<SortedKeyValueIterator<Key,Value>> loadClass(boolean useAccumuloClassLoader,
       String context, IterInfo iterInfo) throws ClassNotFoundException {
-    Class<SortedKeyValueIterator<Key,Value>> clazz = null;
     if (useAccumuloClassLoader) {
-      clazz = (Class<SortedKeyValueIterator<Key,Value>>) ClassLoaderUtil.loadClass(context,
+      @SuppressWarnings("unchecked")
+      var clazz = (Class<SortedKeyValueIterator<Key,Value>>) ClassLoaderUtil.loadClass(context,
           iterInfo.className, SortedKeyValueIterator.class);
       log.trace("Iterator class {} loaded from context {}, classloader: {}", iterInfo.className,
           context, clazz.getClassLoader());
-    } else {
-      clazz = (Class<SortedKeyValueIterator<Key,Value>>) Class.forName(iterInfo.className)
-          .asSubclass(SortedKeyValueIterator.class);
-      log.trace("Iterator class {} loaded from classpath", iterInfo.className);
+      return clazz;
     }
+    @SuppressWarnings("unchecked")
+    var clazz = (Class<SortedKeyValueIterator<Key,Value>>) Class.forName(iterInfo.className)
+        .asSubclass(SortedKeyValueIterator.class);
+    log.trace("Iterator class {} loaded from classpath", iterInfo.className);
     return clazz;
   }
 }

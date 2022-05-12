@@ -86,7 +86,6 @@ public class TabletLocatorImplTest {
     return objs;
   }
 
-  @SuppressWarnings("unchecked")
   static Map<String,Map<KeyExtent,List<Range>>> createExpectedBinnings(Object... data) {
 
     Map<String,Map<KeyExtent,List<Range>>> expBinnedRanges = new HashMap<>();
@@ -101,6 +100,7 @@ public class TabletLocatorImplTest {
 
       for (int j = 0; j < binData.length; j += 2) {
         KeyExtent ke = (KeyExtent) binData[j];
+        @SuppressWarnings("unchecked")
         List<Range> ranges = (List<Range>) binData[j + 1];
 
         binnedKE.put(ke, ranges);

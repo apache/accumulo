@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 
@@ -46,9 +46,7 @@ public class ExternalDoNothingCompactor extends Compactor implements Iface {
   @Override
   protected void startCancelChecker(ScheduledThreadPoolExecutor schedExecutor,
       long timeBetweenChecks) {
-    @SuppressWarnings("unused")
-    ScheduledFuture<?> future = schedExecutor.scheduleWithFixedDelay(() -> checkIfCanceled(), 0,
-        5000, TimeUnit.MILLISECONDS);
+    schedExecutor.scheduleWithFixedDelay(this::checkIfCanceled, 0, 5000, MILLISECONDS);
   }
 
   @Override
@@ -59,40 +57,36 @@ public class ExternalDoNothingCompactor extends Compactor implements Iface {
     // Set this to true so that only 1 external compaction is run
     this.shutdown = true;
 
-    return new Runnable() {
-      @Override
-      public void run() {
-        try {
-          LOG.info("Starting up compaction runnable for job: {}", job);
-          TCompactionStatusUpdate update = new TCompactionStatusUpdate();
-          update.setState(TCompactionState.STARTED);
-          update.setMessage("Compaction started");
-          updateCompactionState(job, update);
+    return () -> {
+      try {
+        LOG.info("Starting up compaction runnable for job: {}", job);
+        TCompactionStatusUpdate update = new TCompactionStatusUpdate();
+        update.setState(TCompactionState.STARTED);
+        update.setMessage("Compaction started");
+        updateCompactionState(job, update);
 
-          LOG.info("Starting compactor");
-          started.countDown();
+        LOG.info("Starting compactor");
+        started.countDown();
 
-          while (!JOB_HOLDER.isCancelled()) {
-            LOG.info("Sleeping while job is not cancelled");
-            UtilWaitThread.sleep(1000);
-          }
-          // Compactor throws this exception when cancelled
-          throw new CompactionCanceledException();
-
-        } catch (Exception e) {
-          LOG.error("Compaction failed", e);
-          err.set(e);
-        } finally {
-          stopped.countDown();
+        while (!JOB_HOLDER.isCancelled()) {
+          LOG.info("Sleeping while job is not cancelled");
+          UtilWaitThread.sleep(1000);
         }
+        // Compactor throws this exception when cancelled
+        throw new CompactionCanceledException();
+
+      } catch (Exception e) {
+        LOG.error("Compaction failed", e);
+        err.set(e);
+      } finally {
+        stopped.countDown();
       }
     };
 
   }
 
   public static void main(String[] args) throws Exception {
-    try (ExternalDoNothingCompactor compactor =
-        new ExternalDoNothingCompactor(new CompactorServerOpts(), args)) {
+    try (var compactor = new ExternalDoNothingCompactor(new CompactorServerOpts(), args)) {
       compactor.runServer();
     }
   }

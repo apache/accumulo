@@ -80,7 +80,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
@@ -325,8 +324,6 @@ public class Gatherer {
             }
 
             pfiles.summaries.merge(new SummaryCollection(tSums), factory);
-          } catch (TApplicationException tae) {
-            throw new RuntimeException(tae);
           } catch (TTransportException e) {
             pfiles.failedFiles.addAll(files.keySet());
             continue;
