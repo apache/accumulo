@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.manager.tableOps.create;
 
-import java.util.Map.Entry;
-
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
@@ -28,7 +26,6 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TableInfo;
 import org.apache.accumulo.manager.tableOps.Utils;
-import org.apache.accumulo.server.util.TablePropUtil;
 
 class PopulateZookeeper extends ManagerRepo {
 
@@ -59,13 +56,13 @@ class PopulateZookeeper extends ManagerRepo {
       manager.getTableManager().addTable(tableInfo.getTableId(), tableInfo.getNamespaceId(),
           tableInfo.getTableName());
 
-      for (Entry<String,String> entry : tableInfo.props.entrySet()) {
-        if (!TablePropUtil.setTableProperty(manager.getContext(), tableInfo.getTableId(),
-            entry.getKey(), entry.getValue())) {
-          throw new ThriftTableOperationException(null, tableInfo.getTableName(),
-              TableOperation.CREATE, TableOperationExceptionType.OTHER,
-              "Property or value not valid " + entry.getKey() + "=" + entry.getValue());
-        }
+      try {
+        manager.getContext().tablePropUtil().setProperties(tableInfo.getTableId(), tableInfo.props);
+      } catch (IllegalStateException ex) {
+        throw new ThriftTableOperationException(null, tableInfo.getTableName(),
+            TableOperation.CREATE, TableOperationExceptionType.OTHER,
+            "Property or value not valid for create " + tableInfo.getTableName() + " in "
+                + tableInfo.props);
       }
 
       manager.getContext().clearTableListCache();

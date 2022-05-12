@@ -19,17 +19,17 @@
 #
 
 if [ -z "$JAVA_HOME" ]; then
-   echo "JAVA_HOME is not set. Java is required to proceed"
-   exit 1
+  echo "JAVA_HOME is not set. Java is required to proceed"
+  exit 1
 fi
 mkdir -p target/generated-sources/HelloWorld/test
-sed "s/%%/Hello World\!/" < src/test/java/test/HelloWorldTemplate > target/generated-sources/HelloWorld/test/HelloWorld.java
-$JAVA_HOME/bin/javac target/generated-sources/HelloWorld/test/HelloWorld.java -d target/generated-sources/HelloWorld
-$JAVA_HOME/bin/jar -cf target/test-classes/HelloWorld.jar -C target/generated-sources/HelloWorld test/HelloWorld.class
+sed "s/%%/Hello World\!/" <src/test/java/test/HelloWorldTemplate >target/generated-sources/HelloWorld/test/HelloWorld.java
+"$JAVA_HOME"/bin/javac target/generated-sources/HelloWorld/test/HelloWorld.java -d target/generated-sources/HelloWorld
+"$JAVA_HOME"/bin/jar -cf target/test-classes/HelloWorld.jar -C target/generated-sources/HelloWorld test/HelloWorld.class
 rm -r target/generated-sources/HelloWorld/test
 
 mkdir -p target/generated-sources/HalloWelt/test
-sed "s/%%/Hallo Welt/" < src/test/java/test/HelloWorldTemplate > target/generated-sources/HalloWelt/test/HelloWorld.java
-$JAVA_HOME/bin/javac target/generated-sources/HalloWelt/test/HelloWorld.java -d target/generated-sources/HalloWelt
-$JAVA_HOME/bin/jar -cf target/test-classes/HelloWorld2.jar -C target/generated-sources/HalloWelt test/HelloWorld.class
+sed "s/%%/Hallo Welt/" <src/test/java/test/HelloWorldTemplate >target/generated-sources/HalloWelt/test/HelloWorld.java
+"$JAVA_HOME"/bin/javac target/generated-sources/HalloWelt/test/HelloWorld.java -d target/generated-sources/HalloWelt
+"$JAVA_HOME"/bin/jar -cf target/test-classes/HelloWorld2.jar -C target/generated-sources/HalloWelt test/HelloWorld.class
 rm -r target/generated-sources/HalloWelt/test

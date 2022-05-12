@@ -69,8 +69,6 @@ public abstract class IteratorTestBase {
     Set<ClassInfo> classes = cp.getTopLevelClasses(searchPackage);
 
     final List<IteratorTestCase> testCases1 = new ArrayList<>();
-    // final Set<Class<? extends IteratorTestCase>> classes =
-    // reflections.getSubTypesOf(IteratorTestCase.class);
     for (ClassInfo classInfo : classes) {
       Class<?> clz;
       try {

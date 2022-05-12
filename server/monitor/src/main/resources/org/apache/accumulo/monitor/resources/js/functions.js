@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+"use strict";
 
 // Suffixes for quantity
 var QUANTITY_SUFFIX = ['', 'K', 'M', 'B', 'T', 'e15', 'e18', 'e21'];
@@ -357,9 +358,11 @@ function getScans() {
  * REST GET call for the bulk imports, stores it on a sessionStorage variable
  */
 function getBulkImports() {
-  return $.getJSON('/rest/bulkImports', function(data) {
-    sessionStorage.bulkImports = JSON.stringify(data);
-  });
+    return $.getJSON('/rest/bulkImports', function(data) {
+        var str = JSON.stringify(data);
+        console.log("REST getBulkImports() = " + str)
+        sessionStorage.bulkImports = str;
+    });
 }
 
 /**
@@ -615,4 +618,14 @@ function getStatus() {
   return $.getJSON('/rest/status', function(data) {
     sessionStorage.status = JSON.stringify(data);
   });
+}
+
+/*
+ * Jquery call to clear all data from cells of a table
+ */
+function clearAllTableCells(tableId) {
+    console.log("Clearing all table cell data for " + tableId);
+    $("#" + tableId + " > tbody > tr > td").each(function () {
+        $(this).text("");
+    });
 }

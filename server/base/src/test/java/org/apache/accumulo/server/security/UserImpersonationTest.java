@@ -64,6 +64,11 @@ public class UserImpersonationTest {
       public void getProperties(Map<String,String> props, Predicate<String> filter) {
         cc.getProperties(props, filter);
       }
+
+      @Override
+      public long getUpdateCount() {
+        return 0;
+      }
     };
   }
 

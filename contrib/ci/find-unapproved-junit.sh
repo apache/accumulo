@@ -28,7 +28,7 @@ ALLOWED=(
   start/src/test/java/org/apache/accumulo/start/classloader/vfs/AccumuloVFSClassLoaderTest.java
 )
 
-ALLOWED_PIPE_SEP=$({ for x in "${ALLOWED[@]}"; do echo "$x" ; done; } | paste -sd'|')
+ALLOWED_PIPE_SEP=$({ for x in "${ALLOWED[@]}"; do echo "$x"; done; } | paste -sd'|')
 
 function findalljunitproblems() {
   # -P for perl matching, -R for recursive, -l for matching files
@@ -44,7 +44,8 @@ function findalljunitproblems() {
 }
 
 function comparecounts() {
-  local count; count=$(findalljunitproblems | wc -l)
+  local count
+  count=$(findalljunitproblems | wc -l)
   if [[ $NUM_EXPECTED -ne $count ]]; then
     echo "Expected $NUM_EXPECTED, but found $count classes using the wrong JUnit APIs:"
     findalljunitproblems 'print'

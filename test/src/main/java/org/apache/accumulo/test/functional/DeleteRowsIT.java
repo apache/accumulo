@@ -43,8 +43,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterators;
-
 public class DeleteRowsIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(DeleteRowsIT.class);
@@ -75,7 +73,7 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
         c.tableOperations().create(tableName);
         c.tableOperations().deleteRows(tableName, null, null);
         try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
-          assertEquals(0, Iterators.size(scanner.iterator()));
+          assertTrue(scanner.stream().findAny().isEmpty());
         }
       }
     }

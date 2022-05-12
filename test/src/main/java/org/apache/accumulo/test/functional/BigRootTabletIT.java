@@ -34,8 +34,6 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Iterators;
-
 public class BigRootTabletIT extends AccumuloClusterHarness {
   // ACCUMULO-542: A large root tablet will fail to load if it does't fit in the tserver scan
   // buffers
@@ -67,7 +65,7 @@ public class BigRootTabletIT extends AccumuloClusterHarness {
       cluster.stop();
       cluster.start();
       assertTrue(
-          Iterators.size(c.createScanner(RootTable.NAME, Authorizations.EMPTY).iterator()) > 0);
+          c.createScanner(RootTable.NAME, Authorizations.EMPTY).stream().findAny().isPresent());
     }
   }
 

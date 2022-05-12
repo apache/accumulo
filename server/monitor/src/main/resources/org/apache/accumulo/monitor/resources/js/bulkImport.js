@@ -16,98 +16,88 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-/**
- * Creates bulk import initial table
- */
-$(document).ready(function() {
-  refreshBulkImport();
-});
-
-/**
- * Makes the REST calls, generates the tables with the new information
- */
-function refreshBulkImport() {
-  getBulkImports().then(function() {
-    refreshBulkImportTable();
-    refreshServerBulkTable();
-  });
-}
-
-/**
- * Used to redraw the page
- */
-function refresh() {
-  refreshBulkImport();
-}
+/* JSLint global definitions */
+/*global
+    $, document, sessionStorage, clearTableBody, EMPTY_ROW_THREE_CELLS, EMPTY_CELL, getBulkImports
+*/
+"use strict";
 
 /**
  * Generates the manager bulk import status table
  */
 function refreshBulkImportTable() {
+    $("#bulkListTable tbody").html(EMPTY_ROW_THREE_CELLS);
 
-  clearTableBody('managerBulkImportStatus');
+    // Get the bulk import data from the session
+    var data = sessionStorage.bulkImports === undefined ?
+                [] : JSON.parse(sessionStorage.bulkImports);
 
-  /*
-   * Get the bulk import value obtained earlier, if it doesn't exists,
-   * create an empty array
-   */
-  var data = sessionStorage.bulkImports === undefined ?
-      [] : JSON.parse(sessionStorage.bulkImports);
-
-  /* If the data is empty, create an empty row, otherwise,
-   * create the rows for the table
-   */
-  if (data.length === 0 || data.bulkImport.length === 0) {
-    $('<tr/>', {
-      html: createEmptyRow(3, 'Empty')
-    }).appendTo('#managerBulkImportStatus tbody');
-  } else {
-    $.each(data.bulkImport, function(key, val) {
-      var items = [];
-      items.push(createFirstCell(val.filename, val.filename));
-      items.push(createRightCell(val.age, new Date(val.age)));
-      items.push(createRightCell(val.state, val.state));
-      $('<tr/>', {
-        html: items.join('')
-      }).appendTo('#managerBulkImportStatus tbody');
+    // If the data is empty, clear table, otherwise populate
+    if (data.length === 0 || data.bulkImport.length === 0) {
+        return;
+    }
+    console.log("Populate bulkListTable with " + sessionStorage.bulkImports);
+    var tableBodyHtml = "";
+    $.each(data.bulkImport, function (key, val) {
+        console.log("Append row " + key + " " + JSON.stringify(val) + " to bulkListTable");
+        tableBodyHtml += "<tr><td class='firstcell'>" + val.filename + "</td>";
+        tableBodyHtml += "<td class='center'>" + new Date(val.age) + "</td>";
+        tableBodyHtml += "<td class='center'>" + val.state + "</td></tr>";
     });
-  }
 
+    $("#bulkListTable tbody").html(tableBodyHtml);
 }
 
 /**
- * Generates the bulk import status table
+ * Generates the bulkPerServerTable table
  */
 function refreshServerBulkTable() {
+    $("#bulkPerServerTable tbody").html(EMPTY_ROW_THREE_CELLS);
 
-  clearTableBody('bulkImportStatus');
+    // get the bulkImport data from sessionStorage
+    var data = sessionStorage.bulkImports === undefined ?
+                [] : JSON.parse(sessionStorage.bulkImports);
 
-  /* Get the bulk import value obtained earlier, if it doesn't exists,
-   * create an empty array
-   */
-  var data = sessionStorage.bulkImports === undefined ?
-   [] : JSON.parse(sessionStorage.bulkImports);
-
-  /* If the data is empty, create an empty row, otherwise
-   * create the rows for the table
-   */
-  if (data.length === 0 || data.tabletServerBulkImport.length === 0) {
-    $('<tr/>', {
-      html: createEmptyRow(3, 'Empty')
-    }).appendTo('#bulkImportStatus tbody');
-  } else {
-    $.each(data.tabletServerBulkImport, function(key, val) {
-      var items = [];
-      items.push(createFirstCell(val.server, '<a href="/tservers?s=' +
-          val.server + '">' + val.server + '</a>'));
-      items.push(createRightCell(val.importSize, val.importSize));
-      items.push(createRightCell(val.oldestAge, (val.oldestAge > 0 ?
-          new Date(val.oldestAge) : '&mdash;')));
-      $('<tr/>', {
-        html: items.join('')
-      }).appendTo('#bulkImportStatus tbody');
+    // if data is empty, log an error because that means no tablet servers were found
+    if (data.length === 0 || data.tabletServerBulkImport.length === 0) {
+        console.error("No tablet servers.");
+        return;
+    }
+    var tableBodyHtml = "";
+    $.each(data.tabletServerBulkImport, function (key, val) {
+        console.log("Append " + key + " " + JSON.stringify(val) + " to bulkPerServerTable");
+        var ageCell = EMPTY_CELL;
+        if (val.oldestAge > 0) {
+            ageCell = "<td>" + new Date(val.oldestAge) + "</td>";
+        }
+        tableBodyHtml += "<tr><td><a href='/tservers?s=" + val.server + "'>" + val.server + "</a></td>";
+        tableBodyHtml += "<td>" + val.importSize + "</td>";
+        tableBodyHtml += ageCell + "</tr>";
     });
-  }
 
+    $("#bulkPerServerTable tbody").html(tableBodyHtml);
+}
+
+/**
+* Makes the REST calls, generates the tables with the new information
+*/
+function refreshBulkImport() {
+    getBulkImports().then(function () {
+        refreshBulkImportTable();
+        refreshServerBulkTable();
+    });
+}
+
+/**
+* Creates bulk import initial table
+*/
+$(document).ready(function () {
+    refreshBulkImport();
+});
+
+/**
+* Used to redraw the page
+*/
+function refresh() {
+    refreshBulkImport();
 }

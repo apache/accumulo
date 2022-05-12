@@ -122,10 +122,8 @@ import org.apache.accumulo.server.manager.recovery.RecoveryPath;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
-import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.SecurityUtil;
-import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
 import org.apache.accumulo.server.security.delegation.ZooAuthenticationKeyWatcher;
 import org.apache.accumulo.server.util.FileSystemMonitor;
 import org.apache.accumulo.server.util.ServerBulkImportStatus;
@@ -172,7 +170,7 @@ import com.google.common.collect.Iterators;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
-public class TabletServer extends AbstractServer {
+public class TabletServer extends AbstractServer implements TabletHostingServer {
 
   private static final SecureRandom random = new SecureRandom();
   private static final Logger log = LoggerFactory.getLogger(TabletServer.class);
@@ -190,6 +188,7 @@ public class TabletServer extends AbstractServer {
   TabletServerMinCMetrics mincMetrics;
   CompactionExecutorsMetrics ceMetrics;
 
+  @Override
   public TabletServerScanMetrics getScanMetrics() {
     return scanMetrics;
   }
@@ -248,7 +247,6 @@ public class TabletServer extends AbstractServer {
   protected TabletServer(ServerOpts opts, String[] args) {
     super("tserver", opts, args);
     context = super.getContext();
-    context.setupCrypto();
     this.managerLockCache = new ZooCache(context.getZooReader(), null);
     final AccumuloConfiguration aconf = getConfiguration();
     log.info("Version " + Constants.VERSION);
@@ -358,15 +356,12 @@ public class TabletServer extends AbstractServer {
     logger = new TabletServerLogger(this, walMaxSize, syncCounter, flushCounter,
         walCreationRetryFactory, walWritingRetryFactory, walMaxAge);
     this.resourceManager = new TabletServerResourceManager(context);
-    this.security = AuditedSecurityOperation.getInstance(context);
+    this.security = context.getSecurityOperation();
 
     watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
         TabletLocator::clearLocators, jitter(), jitter(), TimeUnit.MILLISECONDS));
     walMarker = new WalStateManager(context);
 
-    // Create the secret manager
-    context.setSecretManager(new AuthenticationTokenSecretManager(context.getInstanceID(),
-        aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME)));
     if (aconf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       log.info("SASL is enabled, creating ZooKeeper watcher for AuthenticationKeys");
       // Watcher to notice new AuthenticationKeys which enable delegation tokens
@@ -428,6 +423,7 @@ public class TabletServer extends AbstractServer {
     return totalQueuedMutationSize.addAndGet(additionalMutationSize);
   }
 
+  @Override
   public Session getSession(long sessionId) {
     return sessionManager.getSession(sessionId);
   }
@@ -657,8 +653,19 @@ public class TabletServer extends AbstractServer {
     }
   }
 
+  @Override
   public ServiceLock getLock() {
     return tabletServerLock;
+  }
+
+  @Override
+  public ZooCache getManagerLockCache() {
+    return managerLockCache;
+  }
+
+  @Override
+  public GarbageCollectionLogger getGcLogger() {
+    return gcLogger;
   }
 
   private void announceExistence() {
@@ -755,13 +762,6 @@ public class TabletServer extends AbstractServer {
     }
 
     try {
-      clientAddress = startTabletClientService();
-    } catch (UnknownHostException e1) {
-      throw new RuntimeException("Failed to start the tablet client service", e1);
-    }
-    announceExistence();
-
-    try {
       MetricsUtil.initializeMetrics(context.getConfiguration(), this.applicationName,
           clientAddress);
     } catch (Exception e1) {
@@ -783,6 +783,13 @@ public class TabletServer extends AbstractServer {
       }
     }, getContext(), ceMetrics);
     compactionManager.start();
+
+    try {
+      clientAddress = startTabletClientService();
+    } catch (UnknownHostException e1) {
+      throw new RuntimeException("Failed to start the tablet client service", e1);
+    }
+    announceExistence();
 
     try {
       walMarker.initWalMarker(getTabletSession());
@@ -1210,6 +1217,7 @@ public class TabletServer extends AbstractServer {
     return logId;
   }
 
+  @Override
   public TableConfiguration getTableConfiguration(KeyExtent extent) {
     return getContext().getTableConfiguration(extent.tableId());
   }
@@ -1233,8 +1241,19 @@ public class TabletServer extends AbstractServer {
     return onlineTablets.snapshot();
   }
 
+  @Override
   public Tablet getOnlineTablet(KeyExtent extent) {
     return onlineTablets.snapshot().get(extent);
+  }
+
+  @Override
+  public SessionManager getSessionManager() {
+    return sessionManager;
+  }
+
+  @Override
+  public TabletServerResourceManager getResourceManager() {
+    return resourceManager;
   }
 
   public VolumeManager getVolumeManager() {

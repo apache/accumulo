@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+"use strict";
 
 /**
  * List of namespaces in Accumulo
@@ -26,3 +27,6 @@ var NAMESPACES = '';
  * Timer object
  */
 var TIMER;
+
+const EMPTY_CELL = "<td>-</td>";
+const EMPTY_ROW_THREE_CELLS = "<tr>" + EMPTY_CELL + EMPTY_CELL + EMPTY_CELL + "</tr>";

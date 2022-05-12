@@ -27,7 +27,7 @@
         <div class="col-xs-12">
           <table id="badtservers" class="table table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Non-Functioning Tablet Servers</span><br/>
-              <span class="table-subcaption">The following tablet servers reported a status other than Online</span></caption>
+              <span class="table-subcaption">The following tablet servers reported a status other than Online.</span><br/></caption>
             <thead>
               <tr>
                 <th>Server</th>
@@ -42,14 +42,17 @@
             <thead>
               <tr>
                 <th>Server</th>
-                <th class="duration">Last Updated</th>
+                <th class="date">Last Updated</th>
                 <th>Event</th>
                 <th>Clear</th>
               </tr>
             </thead>
             <tbody></tbody>
           </table>
+          <span id="recovery-caption" style="background-color: gold; display: none;">Highlighted rows correspond to tservers in recovery mode.</span>
           <table id="tservers" class="table table-bordered table-striped table-condensed">
+            <caption><span class="table-caption">Online Tablet Servers</span><br/>
+              <span class="table-subcaption">The following tablet servers reported a status of Online.</span><br/></caption>
             <thead>
               <tr>
                 <th class="firstcell">Server&nbsp;</th>

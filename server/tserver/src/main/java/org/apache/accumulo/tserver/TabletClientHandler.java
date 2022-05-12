@@ -110,7 +110,6 @@ import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.fs.TooManyFilesException;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.rpc.TServerUtils;
-import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.tserver.ConditionCheckerContext.ConditionChecker;
@@ -154,7 +153,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
     this.context = server.getContext();
     this.watcher = watcher;
     this.writeTracker = writeTracker;
-    this.security = AuditedSecurityOperation.getInstance(context);
+    this.security = context.getSecurityOperation();
     this.server = server;
     MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = server.getContext().getConfiguration()
         .getTimeInMillis(Property.TSERV_SCAN_RESULTS_MAX_TIMEOUT);
@@ -1041,7 +1040,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
   }
 
   static void checkPermission(SecurityOperation security, ServerContext context,
-      TabletServer server, TCredentials credentials, String lock, final String request)
+      TabletHostingServer server, TCredentials credentials, String lock, final String request)
       throws ThriftSecurityException {
     try {
       log.trace("Got {} message from user: {}", request, credentials.getPrincipal());
@@ -1070,7 +1069,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
       Halt.halt(1, () -> {
         log.info("Tablet server no longer holds lock during checkPermission() : {}, exiting",
             request);
-        server.gcLogger.logGCInfo(server.getConfiguration());
+        server.getGcLogger().logGCInfo(server.getConfiguration());
       });
     }
 
@@ -1079,11 +1078,11 @@ public class TabletClientHandler implements TabletClientService.Iface {
           new ZooUtil.LockID(context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK, lock);
 
       try {
-        if (!ServiceLock.isLockHeld(server.managerLockCache, lid)) {
+        if (!ServiceLock.isLockHeld(server.getManagerLockCache(), lid)) {
           // maybe the cache is out of date and a new manager holds the
           // lock?
-          server.managerLockCache.clear();
-          if (!ServiceLock.isLockHeld(server.managerLockCache, lid)) {
+          server.getManagerLockCache().clear();
+          if (!ServiceLock.isLockHeld(server.getManagerLockCache(), lid)) {
             log.warn("Got {} message from a manager that does not hold the current lock {}",
                 request, lock);
             throw new RuntimeException("bad manager lock");

@@ -131,7 +131,6 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
         setOptions((ScannerOptions) scanner, opts);
 
         return scanner.iterator();
-        // return new FaultyIterator(scanner.iterator());
       }
     }
 

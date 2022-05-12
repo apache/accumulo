@@ -69,7 +69,6 @@ import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.TooManyFilesException;
 import org.apache.accumulo.server.rpc.TServerUtils;
-import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.tserver.scan.LookupTask;
 import org.apache.accumulo.tserver.scan.NextBatchTask;
@@ -89,17 +88,17 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
 
   private static final Logger log = LoggerFactory.getLogger(ThriftScanClientHandler.class);
 
-  private final TabletServer server;
+  private final TabletHostingServer server;
   protected final ServerContext context;
   protected final SecurityOperation security;
   private final WriteTracker writeTracker;
   private final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS;
 
-  public ThriftScanClientHandler(TabletServer server, WriteTracker writeTracker) {
+  public ThriftScanClientHandler(TabletHostingServer server, WriteTracker writeTracker) {
     this.server = server;
     this.context = server.getContext();
     this.writeTracker = writeTracker;
-    this.security = AuditedSecurityOperation.getInstance(context);
+    this.security = context.getSecurityOperation();
     MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = server.getContext().getConfiguration()
         .getTimeInMillis(Property.TSERV_SCAN_RESULTS_MAX_TIMEOUT);
   }
@@ -186,7 +185,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
     scanSession.scanner =
         tablet.createScanner(new Range(range), scanParams, scanSession.interruptFlag);
 
-    long sid = server.sessionManager.createSession(scanSession, true);
+    long sid = server.getSessionManager().createSession(scanSession, true);
 
     ScanResult scanResult;
     try {
@@ -195,7 +194,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
       log.error("The impossible happened", e);
       throw new RuntimeException();
     } finally {
-      server.sessionManager.unreserveSession(sid);
+      server.getSessionManager().unreserveSession(sid);
     }
 
     return new InitialScan(sid, scanResult);
@@ -206,7 +205,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
       NotServingTabletException, org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException,
       TSampleNotPresentException {
     SingleScanSession scanSession =
-        (SingleScanSession) server.sessionManager.reserveSession(scanID);
+        (SingleScanSession) server.getSessionManager().reserveSession(scanID);
     if (scanSession == null) {
       throw new NoSuchScanIDException();
     }
@@ -214,7 +213,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
     try {
       return continueScan(tinfo, scanID, scanSession);
     } finally {
-      server.sessionManager.unreserveSession(scanSession);
+      server.getSessionManager().unreserveSession(scanSession);
     }
   }
 
@@ -225,7 +224,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
 
     if (scanSession.nextBatchTask == null) {
       scanSession.nextBatchTask = new NextBatchTask(server, scanID, scanSession.interruptFlag);
-      server.resourceManager.executeReadAhead(scanSession.extent,
+      server.getResourceManager().executeReadAhead(scanSession.extent,
           getScanDispatcher(scanSession.extent), scanSession, scanSession.nextBatchTask);
     }
 
@@ -235,7 +234,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
           TimeUnit.MILLISECONDS);
       scanSession.nextBatchTask = null;
     } catch (ExecutionException e) {
-      server.sessionManager.removeSession(scanID);
+      server.getSessionManager().removeSession(scanID);
       if (e.getCause() instanceof NotServingTabletException) {
         throw (NotServingTabletException) e.getCause();
       } else if (e.getCause() instanceof TooManyFilesException) {
@@ -252,7 +251,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
         throw new RuntimeException(e);
       }
     } catch (CancellationException ce) {
-      server.sessionManager.removeSession(scanID);
+      server.getSessionManager().removeSession(scanID);
       Tablet tablet = server.getOnlineTablet(scanSession.extent);
       if (tablet == null || tablet.isClosed()) {
         throw new NotServingTabletException(scanSession.extent.toThrift());
@@ -262,10 +261,10 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
     } catch (TimeoutException e) {
       List<TKeyValue> param = Collections.emptyList();
       long timeout = server.getConfiguration().getTimeInMillis(Property.TSERV_CLIENT_TIMEOUT);
-      server.sessionManager.removeIfNotAccessed(scanID, timeout);
+      server.getSessionManager().removeIfNotAccessed(scanID, timeout);
       return new ScanResult(param, true);
     } catch (Exception t) {
-      server.sessionManager.removeSession(scanID);
+      server.getSessionManager().removeSession(scanID);
       log.warn("Failed to get next batch", t);
       throw new RuntimeException(t);
     }
@@ -280,7 +279,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
       // start reading next batch while current batch is transmitted
       // to client
       scanSession.nextBatchTask = new NextBatchTask(server, scanID, scanSession.interruptFlag);
-      server.resourceManager.executeReadAhead(scanSession.extent,
+      server.getResourceManager().executeReadAhead(scanSession.extent,
           getScanDispatcher(scanSession.extent), scanSession, scanSession.nextBatchTask);
     }
 
@@ -293,7 +292,8 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
 
   @Override
   public void closeScan(TInfo tinfo, long scanID) {
-    final SingleScanSession ss = (SingleScanSession) server.sessionManager.removeSession(scanID);
+    final SingleScanSession ss =
+        (SingleScanSession) server.getSessionManager().removeSession(scanID);
     if (ss != null) {
       long t2 = System.currentTimeMillis();
 
@@ -303,8 +303,8 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
             (t2 - ss.startTime) / 1000.0, ss.runStats.toString()));
       }
 
-      server.scanMetrics.addScan(t2 - ss.startTime);
-      server.scanMetrics.addResult(ss.entriesReturned);
+      server.getScanMetrics().addScan(t2 - ss.startTime);
+      server.getScanMetrics().addResult(ss.entriesReturned);
     }
   }
 
@@ -374,13 +374,13 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
       mss.numRanges += ranges.size();
     }
 
-    long sid = server.sessionManager.createSession(mss, true);
+    long sid = server.getSessionManager().createSession(mss, true);
 
     MultiScanResult result;
     try {
       result = continueMultiScan(sid, mss);
     } finally {
-      server.sessionManager.unreserveSession(sid);
+      server.getSessionManager().unreserveSession(sid);
     }
 
     return new InitialMultiScan(sid, result);
@@ -390,7 +390,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
   public MultiScanResult continueMultiScan(TInfo tinfo, long scanID)
       throws NoSuchScanIDException, TSampleNotPresentException {
 
-    MultiScanSession session = (MultiScanSession) server.sessionManager.reserveSession(scanID);
+    MultiScanSession session = (MultiScanSession) server.getSessionManager().reserveSession(scanID);
 
     if (session == null) {
       throw new NoSuchScanIDException();
@@ -399,7 +399,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
     try {
       return continueMultiScan(scanID, session);
     } finally {
-      server.sessionManager.unreserveSession(session);
+      server.getSessionManager().unreserveSession(session);
     }
   }
 
@@ -408,7 +408,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
 
     if (session.lookupTask == null) {
       session.lookupTask = new LookupTask(server, scanID);
-      server.resourceManager.executeReadAhead(session.threadPoolExtent,
+      server.getResourceManager().executeReadAhead(session.threadPoolExtent,
           getScanDispatcher(session.threadPoolExtent), session, session.lookupTask);
     }
 
@@ -418,7 +418,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
       session.lookupTask = null;
       return scanResult;
     } catch (ExecutionException e) {
-      server.sessionManager.removeSession(scanID);
+      server.getSessionManager().removeSession(scanID);
       if (e.getCause() instanceof SampleNotPresentException) {
         throw new TSampleNotPresentException();
       } else {
@@ -427,13 +427,13 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
       }
     } catch (TimeoutException e1) {
       long timeout = server.getConfiguration().getTimeInMillis(Property.TSERV_CLIENT_TIMEOUT);
-      server.sessionManager.removeIfNotAccessed(scanID, timeout);
+      server.getSessionManager().removeIfNotAccessed(scanID, timeout);
       List<TKeyValue> results = Collections.emptyList();
       Map<TKeyExtent,List<TRange>> failures = Collections.emptyMap();
       List<TKeyExtent> fullScans = Collections.emptyList();
       return new MultiScanResult(results, failures, fullScans, null, null, false, true);
     } catch (Exception t) {
-      server.sessionManager.removeSession(scanID);
+      server.getSessionManager().removeSession(scanID);
       log.warn("Failed to get multiscan result", t);
       throw new RuntimeException(t);
     }
@@ -441,7 +441,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
 
   @Override
   public void closeMultiScan(TInfo tinfo, long scanID) throws NoSuchScanIDException {
-    MultiScanSession session = (MultiScanSession) server.sessionManager.removeSession(scanID);
+    MultiScanSession session = (MultiScanSession) server.getSessionManager().removeSession(scanID);
     if (session == null) {
       throw new NoSuchScanIDException();
     }
@@ -467,7 +467,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
       throw e;
     }
 
-    return server.sessionManager.getActiveScans();
+    return server.getSessionManager().getActiveScans();
   }
 
 }

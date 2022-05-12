@@ -104,7 +104,6 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
-import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.hadoop.fs.Path;
 import org.apache.thrift.TException;
@@ -192,8 +191,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   }
 
   protected void setupSecurity() {
-    getContext().setupCrypto();
-    security = AuditedSecurityOperation.getInstance(getContext());
+    security = getContext().getSecurityOperation();
   }
 
   protected void startGCLogger(ScheduledThreadPoolExecutor schedExecutor) {

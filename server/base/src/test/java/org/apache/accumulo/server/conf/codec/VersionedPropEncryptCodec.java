@@ -109,7 +109,7 @@ public class VersionedPropEncryptCodec extends VersionedPropCodec {
 
     }
 
-    Map<String,String> props = vProps.getProperties();
+    Map<String,String> props = vProps.asMap();
 
     // encode the property map to an internal byte array.
     byte[] bytes;
