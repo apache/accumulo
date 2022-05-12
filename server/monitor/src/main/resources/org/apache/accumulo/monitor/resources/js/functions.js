@@ -258,8 +258,8 @@ function createTableCell(index, sortValue, showValue) {
 
 /**
  * Performs GET call and builds console logging message from data received
- * @param {string} REST url called
- * @param {string} session storage/global variable to hold REST data
+ * @param {string} call REST url called
+ * @param {string} sessionDataVar Session storage/global variable to hold REST data
  */
  function getJSONForTable(call, sessionDataVar){
     console.info("Retrieving " + call);
@@ -279,6 +279,30 @@ function createTableCell(index, sortValue, showValue) {
           " stored in sessionStorage." + sessionDataVar + " = " + sessionStorage[sessionDataVar]);
       }
     });   
+ }
+
+/**
+ * Performs POST call and builds console logging message if successful
+ * @param {string} call REST url called
+ * @param {string} callback POST callback to execute, if available
+ * @param {boolean} sanitize Whether to sanitize the call 
+ */
+ function doLoggedPostCall(call, callback, sanitize) {
+
+    if (sanitize) {
+      // Change plus sign to use ASCII value to send it as a URL query parameter
+      call = sanitize(call);
+    }
+    
+    console.log("POST call to " + call);
+
+    // Make the rest call, passing success function callback
+    $.post(call, function () {
+      console.debug("REST POST call to " + call + ": success");
+      if (callback != null){
+        callback();
+      }
+    });
  }
 
 ///// REST Calls /////////////
@@ -319,8 +343,7 @@ function getNamespaceTables(namespaces) {
     // Convert the list to a string for the REST call
     namespaceList = namespaces.toString();
 
-    var call = '/rest/tables/namespaces/' + namespaceList;
-    return getJSONForTable(call, 'tables');
+    return getJSONForTable('/rest/tables/namespaces/' + namespaceList, 'tables');
   }
 }
 
@@ -337,9 +360,7 @@ function getTables() {
  * @param {string} server Dead Server ID
  */
 function clearDeadServers(server) {
-  var call = '/rest/tservers?server=' + server;
-  $.post(call);
-  console.info("REST POST call to " + call);
+  doLoggedPostCall('/rest/tservers?server=' + server, null, false);
 }
 
 /**
@@ -355,8 +376,7 @@ function getTServers() {
  * @param {string} server Server ID
  */
 function getTServer(server) {
-  var call = '/rest/tservers/' + server;
-  return getJSONForTable(call, 'server');
+  return getJSONForTable('/rest/tservers/' + server, 'server');
 }
 
 /**
@@ -394,8 +414,7 @@ function getRecoveryList() {
  * @param {string} table Table ID
  */
 function getTableServers(tableID) {
-  var call = '/rest/tables/' + tableID;
-  return getJSONForTable(call, 'tableServers');
+  return getJSONForTable('/rest/tables/' + tableID, 'tableServers');
 }
 
 /**
@@ -404,8 +423,7 @@ function getTableServers(tableID) {
  * @param {string} minutes Number of minutes to display trace summary
  */
 function getTraceSummary(minutes) {
-  var call = '/rest/trace/summary/' + minutes;
-  return getJSONForTable(call, 'traceSummary');
+  return getJSONForTable('/rest/trace/summary/' + minutes, 'traceSummary');
 }
 
 /**
@@ -415,8 +433,7 @@ function getTraceSummary(minutes) {
  * @param {string} minutes Number of minutes to display trace
  */
 function getTraceOfType(type, minutes) {
-  var call = '/rest/trace/listType/' + type + '/' + minutes;
-  return getJSONForTable(call, 'traceType');
+  return getJSONForTable('/rest/trace/listType/' + type + '/' + minutes, 'traceType');
 }
 
 /**
@@ -425,8 +442,7 @@ function getTraceOfType(type, minutes) {
  * @param {string} id Trace ID
  */
 function getTraceShow(id) {
-  var call = '/rest/trace/show/' + id;
-  return getJSONForTable(call, 'traceShow');
+  return getJSONForTable('/rest/trace/show/' + id, 'traceShow');
 }
 
 /**
@@ -440,9 +456,7 @@ function getLogs() {
  * REST POST call to clear logs
  */
 function clearLogs() {
-  var call = '/rest/logs/clear';
-  $.post(call);
-  console.info("REST POST call to " + call);
+  doLoggedPostCall('/rest/logs/clear', null, false);
 }
 
 /**
@@ -451,14 +465,7 @@ function clearLogs() {
  * @param {string} tableID Table ID
  */
 function clearTableProblems(tableID) {
-  var call = '/rest/problems/summary?s=' + tableID;
-  // Change plus sign to use ASCII value to send it as a URL query parameter
-  call = sanitize(call);
-  // make the rest call, passing success function callback
-  $.post(call, function () {
-    console.info("REST POST call to " + call);
-    refreshProblems();
-  });
+  doLoggedPostCall('/rest/problems/summary?s=' + tableID, refreshProblems, true);
 }
 
 /**
@@ -469,15 +476,8 @@ function clearTableProblems(tableID) {
  * @param {string} type Type of problem
  */
 function clearDetailsProblems(table, resource, type) {
-  var call = '/rest/problems/details?table=' + table + '&resource=' +
-   resource + '&ptype=' + type;
-  // Changes plus sign to use ASCII value to send it as a URL query parameter
-  call = sanitize(call);
-  // make the rest call, passing success function callback
-  $.post(call, function () {
-    console.info("REST POST call to " + call);
-    refreshProblems();
-  });
+  doLoggedPostCall('/rest/problems/details?table=' + table + '&resource=' +
+   resource + '&ptype=' + type, refreshProblems, true);
 }
 
 /**
