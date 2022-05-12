@@ -251,7 +251,6 @@ public class TabletServerResourceManager {
   public TabletServerResourceManager(ServerContext context, TabletHostingServer tserver) {
     this.context = context;
     final AccumuloConfiguration acuConf = context.getConfiguration();
-
     long maxMemory = acuConf.getAsBytes(Property.TSERV_MAXMEM);
     boolean usingNativeMap = acuConf.getBoolean(Property.TSERV_NATIVEMAP_ENABLED);
     if (usingNativeMap) {

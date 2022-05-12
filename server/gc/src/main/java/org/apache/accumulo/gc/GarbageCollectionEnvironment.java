@@ -101,12 +101,13 @@ public interface GarbageCollectionEnvironment {
 
   /**
    * Delete the given files from the provided {@link Map} of relative path to absolute path for each
-   * file that should be deleted
+   * file that should be deleted. The candidates should already be confirmed for deletion.
    *
    * @param candidateMap
    *          A Map from relative path to absolute path for files to be deleted.
    */
-  void delete(SortedMap<String,String> candidateMap) throws TableNotFoundException;
+  void deleteConfirmedCandidates(SortedMap<String,String> candidateMap)
+      throws TableNotFoundException;
 
   /**
    * Delete a table's directory if it is empty.
