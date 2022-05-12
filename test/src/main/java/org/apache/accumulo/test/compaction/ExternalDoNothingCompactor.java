@@ -46,7 +46,8 @@ public class ExternalDoNothingCompactor extends Compactor implements Iface {
   @Override
   protected void startCancelChecker(ScheduledThreadPoolExecutor schedExecutor,
       long timeBetweenChecks) {
-    schedExecutor.scheduleWithFixedDelay(this::checkIfCanceled, 0, 5000, MILLISECONDS);
+    @SuppressWarnings("unused")
+    var future = schedExecutor.scheduleWithFixedDelay(this::checkIfCanceled, 0, 5000, MILLISECONDS);
   }
 
   @Override
