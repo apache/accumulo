@@ -576,15 +576,19 @@ public class TServerUtils {
       ThriftServerType serverType, TProcessor processor, String serverName, String threadName,
       int numThreads, long threadTimeOut, long timeBetweenThreadChecks, long maxMessageSize,
       SslConnectionParams sslParams, SaslServerConnectionParams saslParams,
-      long serverSocketTimeout, HostAndPort... addresses) throws TTransportException {
+      long serverSocketTimeout, HostAndPort... addresses) {
 
     if (serverType == ThriftServerType.SASL) {
       processor = updateSaslProcessor(serverType, processor);
     }
 
-    return startTServer(serverType, new TimedProcessor(conf, processor, serverName, threadName),
-        serverName, threadName, numThreads, threadTimeOut, conf, timeBetweenThreadChecks,
-        maxMessageSize, sslParams, saslParams, serverSocketTimeout, addresses);
+    try {
+      return startTServer(serverType, new TimedProcessor(conf, processor, serverName, threadName),
+          serverName, threadName, numThreads, threadTimeOut, conf, timeBetweenThreadChecks,
+          maxMessageSize, sslParams, saslParams, serverSocketTimeout, addresses);
+    } catch (TTransportException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   /**

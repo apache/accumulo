@@ -81,7 +81,6 @@ import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.thrift.TException;
-import org.apache.thrift.TProcessor;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
@@ -224,13 +223,7 @@ public class CompactionCoordinator extends AbstractServer
    *           host unknown
    */
   protected ServerAddress startCoordinatorClientService() throws UnknownHostException {
-    TProcessor processor = null;
-    try {
-      processor =
-          ThriftProcessorTypes.getCoordinatorTProcessor(this, getContext(), getConfiguration());
-    } catch (Exception e) {
-      throw new RuntimeException("Error creating thrift server processor", e);
-    }
+    var processor = ThriftProcessorTypes.getCoordinatorTProcessor(this, getContext());
     Property maxMessageSizeProperty =
         (aconf.get(Property.COMPACTION_COORDINATOR_MAX_MESSAGE_SIZE) != null
             ? Property.COMPACTION_COORDINATOR_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);

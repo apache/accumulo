@@ -609,7 +609,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     scanClientHandler = newThriftScanClientHandler(writeTracker);
 
     TProcessor processor = ThriftProcessorTypes.getTabletServerTProcessor(clientHandler,
-        thriftClientHandler, scanClientHandler, getContext(), getConfiguration());
+        thriftClientHandler, scanClientHandler, getContext());
     HostAndPort address = startServer(getConfiguration(), clientAddress.getHost(), processor);
     log.info("address = {}", address);
     return address;
@@ -619,13 +619,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private void startReplicationService() throws UnknownHostException {
     final var handler =
         new org.apache.accumulo.tserver.replication.ReplicationServicerHandler(this);
-    TProcessor processor = null;
-    try {
-      processor = ThriftProcessorTypes.getReplicationClientTProcessor(handler, getContext(),
-          getConfiguration());
-    } catch (Exception e) {
-      throw new RuntimeException("Error creating thrift server processor", e);
-    }
+    var processor = ThriftProcessorTypes.getReplicationClientTProcessor(handler, getContext());
     Property maxMessageSizeProperty =
         getConfiguration().get(Property.TSERV_MAX_MESSAGE_SIZE) != null
             ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE;

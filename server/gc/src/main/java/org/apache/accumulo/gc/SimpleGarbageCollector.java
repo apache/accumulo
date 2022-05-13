@@ -393,23 +393,16 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   }
 
   private HostAndPort startStatsService() {
-
-    try {
-      var processor = ThriftProcessorTypes.getGcTProcessor(this, getContext(), getConfiguration());
-      IntStream port = getConfiguration().getPortStream(Property.GC_PORT);
-      HostAndPort[] addresses = TServerUtils.getHostAndPorts(getHostname(), port);
-      long maxMessageSize = getConfiguration().getAsBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
-      ServerAddress server = TServerUtils.startTServer(getConfiguration(),
-          getContext().getThriftServerType(), processor, this.getClass().getSimpleName(),
-          "GC Monitor Service", 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, maxMessageSize,
-          getContext().getServerSslParams(), getContext().getSaslParams(), 0, addresses);
-      log.debug("Starting garbage collector listening on " + server.address);
-      return server.address;
-    } catch (Exception ex) {
-      // ACCUMULO-3651 Level changed to error and FATAL added to message for slf4j compatibility
-      log.error("FATAL:", ex);
-      throw new RuntimeException(ex);
-    }
+    var processor = ThriftProcessorTypes.getGcTProcessor(this, getContext());
+    IntStream port = getConfiguration().getPortStream(Property.GC_PORT);
+    HostAndPort[] addresses = TServerUtils.getHostAndPorts(getHostname(), port);
+    long maxMessageSize = getConfiguration().getAsBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
+    ServerAddress server = TServerUtils.startTServer(getConfiguration(),
+        getContext().getThriftServerType(), processor, this.getClass().getSimpleName(),
+        "GC Monitor Service", 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, maxMessageSize,
+        getContext().getServerSslParams(), getContext().getSaslParams(), 0, addresses);
+    log.debug("Starting garbage collector listening on " + server.address);
+    return server.address;
   }
 
   /**

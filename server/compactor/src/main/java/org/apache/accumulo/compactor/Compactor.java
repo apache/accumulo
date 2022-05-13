@@ -106,7 +106,6 @@ import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.hadoop.fs.Path;
 import org.apache.thrift.TException;
-import org.apache.thrift.TProcessor;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -331,13 +330,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
    *           host unknown
    */
   protected ServerAddress startCompactorClientService() throws UnknownHostException {
-    TProcessor processor = null;
-    try {
-      processor =
-          ThriftProcessorTypes.getCompactorTProcessor(this, getContext(), getConfiguration());
-    } catch (Exception e) {
-      throw new RuntimeException("Error creating thrift server processor", e);
-    }
+    var processor = ThriftProcessorTypes.getCompactorTProcessor(this, getContext());
     Property maxMessageSizeProperty = (aconf.get(Property.COMPACTOR_MAX_MESSAGE_SIZE) != null
         ? Property.COMPACTOR_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(getContext(), getHostname(),

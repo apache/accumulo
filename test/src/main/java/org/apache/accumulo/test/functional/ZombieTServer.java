@@ -111,14 +111,14 @@ public class ZombieTServer {
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
     muxProcessor.registerProcessor(ThriftClientTypes.CLIENT.getServiceName(),
         ThriftProcessorTypes.CLIENT.getTProcessor(ClientService.Processor.class,
-            ClientService.Iface.class, csh, context, context.getConfiguration()));
+            ClientService.Iface.class, csh, context));
     muxProcessor.registerProcessor(ThriftClientTypes.TABLET_SERVER.getServiceName(),
         ThriftProcessorTypes.TABLET_SERVER.getTProcessor(TabletClientService.Processor.class,
-            TabletClientService.Iface.class, tch, context, context.getConfiguration()));
+            TabletClientService.Iface.class, tch, context));
     muxProcessor.registerProcessor(ThriftProcessorTypes.TABLET_SERVER_SCAN.getServiceName(),
         ThriftProcessorTypes.TABLET_SERVER_SCAN.getTProcessor(
             TabletScanClientService.Processor.class, TabletScanClientService.Iface.class, tch,
-            context, context.getConfiguration()));
+            context));
 
     ServerAddress serverPort =
         TServerUtils.startTServer(context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA,
