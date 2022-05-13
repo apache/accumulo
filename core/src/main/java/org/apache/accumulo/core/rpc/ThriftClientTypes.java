@@ -42,7 +42,6 @@ public class ThriftClientTypes {
     private final F clientFactory;
 
     public ThriftClientType(String serviceName, F clientFactory) {
-      super();
       this.serviceName = serviceName;
       this.clientFactory = clientFactory;
     }

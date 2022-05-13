@@ -227,7 +227,6 @@ public class LargestFirstMemoryManagerTest {
 
     public LargestFirstMemoryManagerWithExistenceCheck(Predicate<TableId> existenceCheck,
         Predicate<TableId> deletingCheck) {
-      super();
       this.existenceCheck = existenceCheck;
       this.deletingCheck = deletingCheck;
     }

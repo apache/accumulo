@@ -42,7 +42,6 @@ public class TestStatsDSink implements Closeable {
     private final Map<String,String> tags = new HashMap<>();
 
     public Metric(String name, String value, String type) {
-      super();
       this.name = name;
       this.value = value;
       this.type = type;

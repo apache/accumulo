@@ -312,7 +312,6 @@ public class TabletLocatorImplTest {
     public KeyExtent extent;
 
     public ServerExtent(String location, String row, KeyExtent extent) {
-      super();
       this.location = location;
       this.row = row;
       this.extent = extent;

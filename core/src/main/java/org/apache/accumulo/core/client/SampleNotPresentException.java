@@ -34,9 +34,7 @@ public class SampleNotPresentException extends RuntimeException {
     super(message);
   }
 
-  public SampleNotPresentException() {
-    super();
-  }
+  public SampleNotPresentException() {}
 
   private static final long serialVersionUID = 1L;
 

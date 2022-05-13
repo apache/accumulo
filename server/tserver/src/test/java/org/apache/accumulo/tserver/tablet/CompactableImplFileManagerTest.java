@@ -461,7 +461,6 @@ public class CompactableImplFileManagerTest {
     private final Set<StoredTabletFile> jobFiles;
 
     public TestCompactionJob(CompactionKind kind, Set<StoredTabletFile> jobFiles) {
-      super();
       this.kind = kind;
       this.jobFiles = jobFiles;
     }

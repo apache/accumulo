@@ -54,12 +54,9 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
   }
 
   // this must be public for OptionsDescriber
-  public FirstEntryInRowIterator() {
-    super();
-  }
+  public FirstEntryInRowIterator() {}
 
   public FirstEntryInRowIterator(FirstEntryInRowIterator other, IteratorEnvironment env) {
-    super();
     setSource(other.getSource().deepCopy(env));
   }
 
