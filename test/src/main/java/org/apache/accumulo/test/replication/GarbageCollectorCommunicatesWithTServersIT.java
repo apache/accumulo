@@ -38,7 +38,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ManagerClient;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -52,8 +51,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationTable;
-import org.apache.accumulo.core.rpc.ThriftClientTypes;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -384,8 +383,8 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
 
     // Get the tservers which the manager deems as active
     final ClientContext context = (ClientContext) client;
-    List<String> tservers = ManagerClient.execute(context,
-        cli -> cli.getActiveTservers(TraceUtil.traceInfo(), context.rpcCreds()));
+    List<String> tservers = ThriftClientTypes.MANAGER.execute(context,
+        mgr -> mgr.getActiveTservers(TraceUtil.traceInfo(), context.rpcCreds()));
 
     assertEquals(1, tservers.size(), "Expected only one active tservers");
 

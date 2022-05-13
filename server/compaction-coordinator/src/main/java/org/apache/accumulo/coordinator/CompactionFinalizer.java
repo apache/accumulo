@@ -45,8 +45,8 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.rpc.ThriftClientTypes;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -85,7 +85,7 @@ public class CompactionFinalizer {
     });
 
     ThreadPools.watchCriticalScheduledTask(schedExecutor.scheduleWithFixedDelay(
-        () -> notifyTservers(), 0, tserverCheckInterval, TimeUnit.MILLISECONDS));
+        this::notifyTservers, 0, tserverCheckInterval, TimeUnit.MILLISECONDS));
   }
 
   public void commitCompaction(ExternalCompactionId ecid, KeyExtent extent, long fileSize,

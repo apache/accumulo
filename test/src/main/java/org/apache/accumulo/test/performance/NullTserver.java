@@ -59,7 +59,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.rpc.ThriftClientTypes;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
@@ -329,14 +329,14 @@ public class NullTserver {
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
     muxProcessor.registerProcessor(ThriftClientTypes.CLIENT.getServiceName(),
         ThriftProcessorTypes.CLIENT.getTProcessor(ClientService.Processor.class,
-            ClientService.Iface.class, csh, context, context.getConfiguration()));
+            ClientService.Iface.class, csh, context));
     muxProcessor.registerProcessor(ThriftClientTypes.TABLET_SERVER.getServiceName(),
         ThriftProcessorTypes.TABLET_SERVER.getTProcessor(TabletClientService.Processor.class,
-            TabletClientService.Iface.class, tch, context, context.getConfiguration()));
+            TabletClientService.Iface.class, tch, context));
     muxProcessor.registerProcessor(ThriftProcessorTypes.TABLET_SERVER_SCAN.getServiceName(),
         ThriftProcessorTypes.TABLET_SERVER_SCAN.getTProcessor(
             TabletScanClientService.Processor.class, TabletScanClientService.Iface.class, tch,
-            context, context.getConfiguration()));
+            context));
 
     TServerUtils.startTServer(context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA,
         muxProcessor, "NullTServer", "null tserver", 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000,

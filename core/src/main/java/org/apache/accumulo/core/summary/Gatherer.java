@@ -51,7 +51,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ServerClient;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -64,8 +63,8 @@ import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.rpc.ThriftClientTypes;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
@@ -560,7 +559,7 @@ public class Gatherer {
 
       TSummaries tSums;
       try {
-        tSums = ServerClient.execute(ctx, ThriftClientTypes.TABLET_SERVER, client -> {
+        tSums = ThriftClientTypes.TABLET_SERVER.execute(ctx, client -> {
           TSummaries tsr =
               client.startGetSummariesForPartition(tinfo, ctx.rpcCreds(), req, modulus, remainder);
           while (!tsr.finished && !cancelFlag.get()) {
