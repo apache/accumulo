@@ -16,8 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.clientImpl;
+package org.apache.accumulo.core.rpc.clients;
 
-public interface ClientExecReturn<T,C> {
-  T execute(C client) throws Exception;
+import org.apache.accumulo.core.compaction.thrift.CompactorService.Client;
+
+public class CompactorServiceThriftClient extends ThriftClientTypes<Client> {
+
+  CompactorServiceThriftClient(String serviceName) {
+    super(serviceName, new Client.Factory());
+  }
+
 }

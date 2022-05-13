@@ -27,6 +27,7 @@ import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
@@ -44,9 +45,8 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ClientExecReturn;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
-import org.apache.accumulo.core.clientImpl.ReplicationClient;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
@@ -57,6 +57,9 @@ import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer.Client;
 import org.apache.accumulo.core.replication.thrift.WalEdits;
+import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.Exec;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -74,6 +77,7 @@ import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,6 +88,7 @@ import io.opentelemetry.context.Scope;
 
 @Deprecated
 public class AccumuloReplicaSystem implements ReplicaSystem {
+
   private static final Logger log = LoggerFactory.getLogger(AccumuloReplicaSystem.class);
   private static final String RFILE_SUFFIX = "." + RFile.EXTENSION;
 
@@ -218,7 +223,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         Span span2 = TraceUtil.startSpan(this.getClass(), "_replicate::Fetch peer tserver");
         try (Scope scope = span2.makeCurrent()) {
           // Ask the manager on the remote what TServer we should talk with to replicate the data
-          peerTserverStr = ReplicationClient.executeCoordinatorWithReturn(peerContext,
+          peerTserverStr = ThriftClientTypes.REPLICATION_COORDINATOR.execute(peerContext,
               client -> client.getServicerAddress(remoteTableId, peerContext.rpcCreds()));
         } catch (AccumuloException | AccumuloSecurityException e) {
           // No progress is made
@@ -227,7 +232,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
               target, e);
           TraceUtil.setException(span2, e, false);
           continue;
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
           TraceUtil.setException(span2, e, true);
           throw e;
         } finally {
@@ -253,7 +258,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
             Span span3 = TraceUtil.startSpan(this.getClass(), "_replicate::RFile replication");
             try (Scope scope = span3.makeCurrent()) {
               finalStatus = replicateRFiles(peerContext, peerTserver, target, p, status, timeout);
-            } catch (Exception e) {
+            } catch (RuntimeException e) {
               TraceUtil.setException(span3, e, true);
               throw e;
             } finally {
@@ -264,7 +269,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
             try (Scope scope = span4.makeCurrent()) {
               finalStatus = replicateLogs(peerContext, peerTserver, target, p, status, sizeLimit,
                   remoteTableId, peerContext.rpcCreds(), helper, accumuloUgi, timeout);
-            } catch (Exception e) {
+            } catch (RuntimeException e) {
               TraceUtil.setException(span4, e, true);
               throw e;
             } finally {
@@ -288,7 +293,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
       // We made no status, punt on it for now, and let it re-queue itself for work
       return status;
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       TraceUtil.setException(span, e, true);
       throw e;
     } finally {
@@ -303,8 +308,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     Status lastStatus = status, currentStatus = status;
     while (true) {
       // Read and send a batch of mutations
-      ReplicationStats replResult = ReplicationClient.executeServicerWithReturn(peerContext,
-          peerTserver, new RFileClientExecReturn(), timeout);
+      ReplicationStats replResult =
+          executeServicerWithReturn(peerContext, peerTserver, new RFileClientExecReturn(), timeout);
 
       // Catch the overflow
       long newBegin = currentStatus.getBegin() + replResult.entriesConsumed;
@@ -361,7 +366,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         log.warn("Unexpected error consuming file.");
         TraceUtil.setException(span, e, false);
         return status;
-      } catch (Exception e) {
+      } catch (RuntimeException e) {
         TraceUtil.setException(span, e, true);
         throw e;
       } finally {
@@ -383,11 +388,11 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
           span2.setAttribute("Remote table ID", remoteTableId);
 
           // Read and send a batch of mutations
-          replResult = ReplicationClient.executeServicerWithReturn(peerContext, peerTserver,
+          replResult = executeServicerWithReturn(peerContext, peerTserver,
               new WalClientExecReturn(this, target, input, p, currentStatus, sizeLimit,
                   remoteTableId, tcreds, tids),
               timeout);
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
           log.error("Caught exception replicating data to {} at {}", peerContext.getInstanceName(),
               peerTserver, e);
           TraceUtil.setException(span2, e, true);
@@ -425,7 +430,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
               accumuloUgi.doAs((PrivilegedAction<Void>) () -> {
                 try {
                   helper.recordNewStatus(p, copy, target);
-                } catch (Exception e) {
+                } catch (TableNotFoundException | AccumuloException | RuntimeException e) {
                   exceptionRef.set(e);
                 }
                 return null;
@@ -452,7 +457,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
                 p, ProtobufUtil.toString(currentStatus), e);
             TraceUtil.setException(span3, e, true);
             throw new RuntimeException("Replication table did not exist, will retry", e);
-          } catch (Exception e) {
+          } catch (RuntimeException e) {
             TraceUtil.setException(span3, e, true);
             throw e;
           } finally {
@@ -489,7 +494,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
             p, ProtobufUtil.toString(newStatus), e);
         TraceUtil.setException(span4, e, true);
         throw new RuntimeException("Replication table did not exist, will retry", e);
-      } catch (Exception ex) {
+      } catch (RuntimeException ex) {
         TraceUtil.setException(span4, e, true);
         throw ex;
       } finally {
@@ -505,7 +510,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
   @Deprecated
   protected static class RFileClientExecReturn
-      implements ClientExecReturn<ReplicationStats,ReplicationServicer.Client> {
+      implements Exec<ReplicationStats,ReplicationServicer.Client> {
 
     @Override
     public ReplicationStats execute(Client client) {
@@ -609,7 +614,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     try (Scope scope = span.makeCurrent()) {
       span.setAttribute("file", p.toString());
       return DfsLogger.getDecryptingStream(input, conf);
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       TraceUtil.setException(span, e, true);
       throw e;
     } finally {
@@ -618,7 +623,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   }
 
   protected WalReplication getWalEdits(ReplicationTarget target, DataInputStream wal, Path p,
-      Status status, long sizeLimit, Set<Integer> desiredTids) throws IOException {
+      Status status, long sizeLimit, Set<Integer> desiredTids) {
     WalEdits edits = new WalEdits();
     edits.edits = new ArrayList<>();
     long size = 0L;
@@ -632,13 +637,16 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         key.readFields(wal);
         value.readFields(wal);
       } catch (EOFException e) {
-        log.debug("Caught EOFException reading {}", p);
+        log.debug("Caught EOFException reading {}", p, e);
         if (status.getInfiniteEnd() && status.getClosed()) {
           log.debug("{} is closed and has unknown length, assuming entire file has been consumed",
               p);
           entriesConsumed = Long.MAX_VALUE;
         }
         break;
+      } catch (IOException e) {
+        log.debug("Unexpected IOException reading {}", p, e);
+        throw new UncheckedIOException(e);
       }
 
       entriesConsumed++;
@@ -654,17 +662,23 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         case MANY_MUTATIONS:
           // Only write out mutations for tids that are for the desired tablet
           if (desiredTids.contains(key.tabletId)) {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            DataOutputStream out = new DataOutputStream(baos);
 
-            key.write(out);
+            byte[] data;
+            try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                DataOutputStream out = new DataOutputStream(baos)) {
+              key.write(out);
 
-            // Only write out the mutations that don't have the given ReplicationTarget
-            // as a replicate source (this prevents infinite replication loops: a->b, b->a, repeat)
-            numUpdates += writeValueAvoidingReplicationCycles(out, value, target);
+              // Only write out the mutations that don't have the given ReplicationTarget
+              // as a replicate source (this prevents infinite replication loops: a->b, b->a,
+              // repeat)
+              numUpdates += writeValueAvoidingReplicationCycles(out, value, target);
 
-            out.flush();
-            byte[] data = baos.toByteArray();
+              out.flush();
+              data = baos.toByteArray();
+            } catch (IOException e) {
+              log.debug("Unexpected IOException writing to a byte array output stream", e);
+              throw new UncheckedIOException(e);
+            }
             size += data.length;
             edits.addToEdits(ByteBuffer.wrap(data));
           }
@@ -719,6 +733,24 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     }
 
     return mutationsToSend;
+  }
+
+  private static <T> T executeServicerWithReturn(ClientContext context, HostAndPort tserver,
+      Exec<T,ReplicationServicer.Client> exec, long timeout)
+      throws AccumuloException, AccumuloSecurityException {
+    ReplicationServicer.Client client = null;
+    try {
+      client =
+          ThriftUtil.getClient(ThriftClientTypes.REPLICATION_SERVICER, tserver, context, timeout);
+      return exec.execute(client);
+    } catch (ThriftSecurityException e) {
+      throw new AccumuloSecurityException(e.user, e.code, e);
+    } catch (TException e) {
+      throw new AccumuloException(e);
+    } finally {
+      if (client != null)
+        ThriftUtil.close(client, context);
+    }
   }
 
 }

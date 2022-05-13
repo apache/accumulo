@@ -21,18 +21,19 @@ package org.apache.accumulo.tserver.replication;
 import java.io.DataInputStream;
 import java.util.Set;
 
-import org.apache.accumulo.core.clientImpl.ClientExecReturn;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer.Client;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.Exec;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.hadoop.fs.Path;
+import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Deprecated
-class WalClientExecReturn implements ClientExecReturn<ReplicationStats,ReplicationServicer.Client> {
+class WalClientExecReturn implements Exec<ReplicationStats,ReplicationServicer.Client> {
 
   private static final Logger log = LoggerFactory.getLogger(WalClientExecReturn.class);
 
@@ -61,7 +62,7 @@ class WalClientExecReturn implements ClientExecReturn<ReplicationStats,Replicati
   }
 
   @Override
-  public ReplicationStats execute(Client client) throws Exception {
+  public ReplicationStats execute(Client client) throws TException {
     WalReplication edits = ars.getWalEdits(target, input, p, status, sizeLimit, tids);
 
     log.debug(
