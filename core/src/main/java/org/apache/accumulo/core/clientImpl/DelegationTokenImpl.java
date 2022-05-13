@@ -45,7 +45,6 @@ public class DelegationTokenImpl extends PasswordToken implements DelegationToke
   private final AuthenticationTokenIdentifier identifier;
 
   public DelegationTokenImpl() {
-    super();
     this.identifier = new AuthenticationTokenIdentifier(new TAuthenticationTokenIdentifier());
   }
 

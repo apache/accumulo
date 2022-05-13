@@ -23,9 +23,7 @@ public class TabletClosedException extends RuntimeException {
     super(e);
   }
 
-  public TabletClosedException() {
-    super();
-  }
+  public TabletClosedException() {}
 
   private static final long serialVersionUID = 1L;
 }

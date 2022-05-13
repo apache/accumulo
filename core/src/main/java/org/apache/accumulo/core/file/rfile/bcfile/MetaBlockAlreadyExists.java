@@ -23,8 +23,9 @@ import java.io.IOException;
 /**
  * Exception - Meta Block with the same name already exists.
  */
-@SuppressWarnings("serial")
 public class MetaBlockAlreadyExists extends IOException {
+  private static final long serialVersionUID = -6797037044124244666L;
+
   /**
    * Constructor
    *

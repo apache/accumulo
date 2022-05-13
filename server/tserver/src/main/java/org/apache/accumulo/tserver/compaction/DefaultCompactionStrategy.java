@@ -155,7 +155,6 @@ public class DefaultCompactionStrategy extends CompactionStrategy {
     public long size;
 
     public CompactionFile(StoredTabletFile file, long size) {
-      super();
       this.file = file;
       this.size = size;
     }

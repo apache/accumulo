@@ -38,9 +38,7 @@ public class CredentialProviderToken extends PasswordToken {
   private String name;
   private String credentialProviders;
 
-  public CredentialProviderToken() {
-    super();
-  }
+  public CredentialProviderToken() {}
 
   public CredentialProviderToken(String name, String credentialProviders) throws IOException {
     requireNonNull(name);

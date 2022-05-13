@@ -38,7 +38,6 @@ public class MemKey extends Key {
   }
 
   public MemKey() {
-    super();
     this.kvCount = Integer.MAX_VALUE;
   }
 

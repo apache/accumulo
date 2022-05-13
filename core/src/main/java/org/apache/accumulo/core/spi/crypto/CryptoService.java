@@ -54,9 +54,7 @@ public interface CryptoService {
 
     private static final long serialVersionUID = -7588781060677839664L;
 
-    public CryptoException() {
-      super();
-    }
+    public CryptoException() {}
 
     public CryptoException(String message) {
       super(message);

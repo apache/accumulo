@@ -90,14 +90,12 @@ public class TabletLocatorImplTest {
     Map<KeyExtent,List<Range>> extents = new HashMap<>();
 
     public RangeLocation(String location, KeyExtent extent1, List<Range> range1) {
-      super();
       this.location = location;
       this.extents.put(extent1, range1);
     }
 
     public RangeLocation(String location, KeyExtent extent1, List<Range> range1, KeyExtent extent2,
         List<Range> range2) {
-      super();
       this.location = location;
       this.extents.put(extent1, range1);
       this.extents.put(extent2, range2);
@@ -314,7 +312,6 @@ public class TabletLocatorImplTest {
     public KeyExtent extent;
 
     public ServerExtent(String location, String row, KeyExtent extent) {
-      super();
       this.location = location;
       this.row = row;
       this.extent = extent;

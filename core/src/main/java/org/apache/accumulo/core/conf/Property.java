@@ -19,9 +19,11 @@
 package org.apache.accumulo.core.conf;
 
 import java.lang.annotation.Annotation;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
@@ -39,7 +41,6 @@ import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.interpret.DefaultScanInterpreter;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
@@ -1550,21 +1551,17 @@ public enum Property {
         hasAnnotation(Sensitive.class) || hasPrefixWithAnnotation(getKey(), Sensitive.class);
     isDeprecated =
         hasAnnotation(Deprecated.class) || hasPrefixWithAnnotation(getKey(), Deprecated.class);
-    if (hasAnnotation(Deprecated.class)) {
-      Deprecated dep = getAnnotation(Deprecated.class);
-      if (dep != null) {
-        deprecatedSince = dep.since();
-      }
+    Deprecated dep = getAnnotation(Deprecated.class);
+    if (dep != null) {
+      deprecatedSince = dep.since();
     }
     isExperimental =
         hasAnnotation(Experimental.class) || hasPrefixWithAnnotation(getKey(), Experimental.class);
     isReplaced =
         hasAnnotation(ReplacedBy.class) || hasPrefixWithAnnotation(getKey(), ReplacedBy.class);
-    if (hasAnnotation(ReplacedBy.class)) {
-      ReplacedBy rb = getAnnotation(ReplacedBy.class);
-      if (rb != null) {
-        replacedBy = rb.property();
-      }
+    ReplacedBy rb = getAnnotation(ReplacedBy.class);
+    if (rb != null) {
+      replacedBy = rb.property();
     }
     annotationsComputed = true;
   }
@@ -1581,75 +1578,34 @@ public enum Property {
     Property prop = propertiesByKey.get(key);
     if (prop != null) {
       return prop.isSensitive();
-    } else {
-      for (String prefix : validPrefixes) {
-        if (key.startsWith(prefix)) {
-          if (propertiesByKey.get(prefix).isSensitive()) {
-            return true;
-          }
-        }
-      }
     }
-    return false;
+    return validPrefixes.stream().filter(key::startsWith).map(propertiesByKey::get)
+        .anyMatch(Property::isSensitive);
   }
 
   private <T extends Annotation> boolean hasAnnotation(Class<T> annotationType) {
-    Logger log = LoggerFactory.getLogger(getClass());
-    try {
-      for (Annotation a : getClass().getField(name()).getAnnotations()) {
-        if (annotationType.isInstance(a)) {
-          return true;
-        }
-      }
-    } catch (SecurityException | NoSuchFieldException e) {
-      log.error("{}", e.getMessage(), e);
-    }
-    return false;
+    return getAnnotation(annotationType) != null;
   }
 
   private <T extends Annotation> T getAnnotation(Class<T> annotationType) {
-    Logger log = LoggerFactory.getLogger(getClass());
     try {
-      for (Annotation a : getClass().getField(name()).getAnnotations()) {
-        if (annotationType.isInstance(a)) {
-          @SuppressWarnings("unchecked")
-          T uncheckedA = (T) a;
-          return uncheckedA;
-        }
-      }
+      return getClass().getField(name()).getAnnotation(annotationType);
     } catch (SecurityException | NoSuchFieldException e) {
-      log.error("{}", e.getMessage(), e);
+      LoggerFactory.getLogger(getClass()).error("{}", e.getMessage(), e);
     }
     return null;
   }
 
   private static <T extends Annotation> boolean hasPrefixWithAnnotation(String key,
       Class<T> annotationType) {
-    for (String prefix : validPrefixes) {
-      if (key.startsWith(prefix)) {
-        if (propertiesByKey.get(prefix).hasAnnotation(annotationType)) {
-          return true;
-        }
-      }
-    }
-
-    return false;
+    Predicate<Property> hasIt = prop -> prop.hasAnnotation(annotationType);
+    return validPrefixes.stream().filter(key::startsWith).map(propertiesByKey::get).anyMatch(hasIt);
   }
 
   private static final HashSet<String> validTableProperties = new HashSet<>();
   private static final HashSet<String> validProperties = new HashSet<>();
   private static final HashSet<String> validPrefixes = new HashSet<>();
   private static final HashMap<String,Property> propertiesByKey = new HashMap<>();
-
-  private static boolean isKeyValidlyPrefixed(String key) {
-    for (String prefix : validPrefixes) {
-      if (key.startsWith(prefix)) {
-        return true;
-      }
-    }
-
-    return false;
-  }
 
   /**
    * Checks if the given property and value are valid. A property is valid if the property key is
@@ -1676,7 +1632,8 @@ public enum Property {
    * @return true if key is valid (recognized, or has a recognized prefix)
    */
   public static boolean isValidPropertyKey(String key) {
-    return validProperties.contains(key) || isKeyValidlyPrefixed(key);
+    return validProperties.contains(key) || validPrefixes.stream().anyMatch(key::startsWith);
+
   }
 
   /**
@@ -1828,24 +1785,24 @@ public enum Property {
     // Precomputing information here avoids :
     // * Computing it each time a method is called
     // * Using synch to compute the first time a method is called
-    for (Property p : Property.values()) {
-      propertiesByKey.put(p.getKey(), p);
-      if (p.getType().equals(PropertyType.PREFIX)) {
-        validPrefixes.add(p.getKey());
-      } else {
-        validProperties.add(p.getKey());
-      }
-      // exclude prefix types (prevents setting a prefix type like table.custom or
-      // table.constraint, directly, since they aren't valid properties on their own)
-      if (!p.getType().equals(PropertyType.PREFIX)
-          && p.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
-        validTableProperties.add(p.getKey());
-      }
-    }
+    Predicate<Property> isPrefix = p -> p.getType() == PropertyType.PREFIX;
+    Arrays.stream(Property.values())
+        // record all properties by key
+        .peek(p -> propertiesByKey.put(p.getKey(), p))
+        // save all the prefix properties
+        .peek(p -> {
+          if (isPrefix.test(p))
+            validPrefixes.add(p.getKey());
+        })
+        // only use the keys for the non-prefix properties from here on
+        .filter(isPrefix.negate()).map(Property::getKey)
+        // everything left is a valid property
+        .peek(validProperties::add)
+        // but some are also valid table properties
+        .filter(k -> k.startsWith(Property.TABLE_PREFIX.getKey()))
+        .forEach(validTableProperties::add);
 
     // order is very important here the following code relies on the maps and sets populated above
-    for (Property p : Property.values()) {
-      p.precomputeAnnotations();
-    }
+    Arrays.stream(Property.values()).forEach(Property::precomputeAnnotations);
   }
 }

@@ -36,9 +36,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class BatchInputSplit extends org.apache.accumulo.hadoopImpl.mapreduce.BatchInputSplit
     implements InputSplit {
 
-  public BatchInputSplit() {
-    super();
-  }
+  public BatchInputSplit() {}
 
   public BatchInputSplit(BatchInputSplit split) throws IOException {
     super(split);
