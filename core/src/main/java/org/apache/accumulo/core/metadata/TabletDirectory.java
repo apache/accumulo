@@ -43,4 +43,9 @@ public class TabletDirectory extends RelativeTabletDirectory {
   public String getTabletDir() {
     return tabletDir;
   }
+
+  @Override
+  public String toString() {
+    return tabletDir;
+  }
 }
