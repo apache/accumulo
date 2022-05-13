@@ -62,51 +62,65 @@ import org.junit.jupiter.api.Test;
 
 public class TabletLocatorImplTest {
 
-  private static final KeyExtent RTE = RootTable.EXTENT;
-  private static final KeyExtent MTE = new KeyExtent(MetadataTable.ID, null, RTE.endRow());
+  private static final KeyExtent ROOT_TABLE_EXTENT = RootTable.EXTENT;
+  private static final KeyExtent METADATA_TABLE_EXTENT =
+      new KeyExtent(MetadataTable.ID, null, ROOT_TABLE_EXTENT.endRow());
 
-  static KeyExtent nke(String t, String er, String per) {
-    return new KeyExtent(TableId.of(t), er == null ? null : new Text(er),
-        per == null ? null : new Text(per));
+  static KeyExtent createNewKeyExtent(String table, String endRow, String prevEndRow) {
+    return new KeyExtent(TableId.of(table), endRow == null ? null : new Text(endRow),
+        prevEndRow == null ? null : new Text(prevEndRow));
   }
 
-  static Range nr(String k1, boolean si, String k2, boolean ei) {
-    return new Range(k1 == null ? null : new Text(k1), si, k2 == null ? null : new Text(k2), ei);
+  static Range createNewRange(String key1, boolean startInclusive, String key2,
+      boolean endInclusive) {
+    return new Range(key1 == null ? null : new Text(key1), startInclusive,
+        key2 == null ? null : new Text(key2), endInclusive);
   }
 
-  static Range nr(String k1, String k2) {
-    return new Range(k1 == null ? null : new Text(k1), k2 == null ? null : new Text(k2));
+  static Range createNewRange(String key1, String key2) {
+    return new Range(key1 == null ? null : new Text(key1), key2 == null ? null : new Text(key2));
   }
 
-  static List<Range> nrl(Range... ranges) {
+  static List<Range> createNewRangeList(Range... ranges) {
     return Arrays.asList(ranges);
   }
 
-  static Object[] nol(Object... objs) {
-    return objs;
+  static class RangeLocation {
+    String location;
+    Map<KeyExtent,List<Range>> extents = new HashMap<>();
+
+    public RangeLocation(String location, KeyExtent extent1, List<Range> range1) {
+      this.location = location;
+      this.extents.put(extent1, range1);
+    }
+
+    public RangeLocation(String location, KeyExtent extent1, List<Range> range1, KeyExtent extent2,
+        List<Range> range2) {
+      this.location = location;
+      this.extents.put(extent1, range1);
+      this.extents.put(extent2, range2);
+    }
   }
 
-  static Map<String,Map<KeyExtent,List<Range>>> createExpectedBinnings(Object... data) {
+  static RangeLocation createRangeLocation(String location, KeyExtent extent, List<Range> ranges) {
+    return new RangeLocation(location, extent, ranges);
+  }
+
+  static RangeLocation createRangeLocation(String location, KeyExtent extent1, List<Range> range1,
+      KeyExtent extent2, List<Range> range2) {
+    return new RangeLocation(location, extent1, range1, extent2, range2);
+  }
+
+  static Map<String,Map<KeyExtent,List<Range>>>
+      createExpectedBinnings(RangeLocation... rangeLocations) {
 
     Map<String,Map<KeyExtent,List<Range>>> expBinnedRanges = new HashMap<>();
 
-    for (int i = 0; i < data.length; i += 2) {
-      String loc = (String) data[i];
-      Object[] binData = (Object[]) data[i + 1];
-
+    for (RangeLocation rl : rangeLocations) {
       HashMap<KeyExtent,List<Range>> binnedKE = new HashMap<>();
-
-      expBinnedRanges.put(loc, binnedKE);
-
-      for (int j = 0; j < binData.length; j += 2) {
-        KeyExtent ke = (KeyExtent) binData[j];
-        @SuppressWarnings("unchecked")
-        List<Range> ranges = (List<Range>) binData[j + 1];
-
-        binnedKE.put(ke, ranges);
-      }
+      expBinnedRanges.put(rl.location, binnedKE);
+      binnedKE.putAll(rl.extents);
     }
-
     return expBinnedRanges;
   }
 
@@ -150,10 +164,11 @@ public class TabletLocatorImplTest {
     TabletLocatorImpl tab1TabletCache =
         new TabletLocatorImpl(TableId.of(table), rootTabletCache, ttlo, tslc);
 
-    setLocation(tservers, rootTabLoc, RTE, MTE, metaTabLoc);
+    setLocation(tservers, rootTabLoc, ROOT_TABLE_EXTENT, METADATA_TABLE_EXTENT, metaTabLoc);
 
     for (Entry<KeyExtent,TabletLocation> entry : mcke.entrySet()) {
-      setLocation(tservers, metaTabLoc, MTE, entry.getKey(), entry.getValue().tablet_location);
+      setLocation(tservers, metaTabLoc, METADATA_TABLE_EXTENT, entry.getKey(),
+          entry.getValue().tablet_location);
     }
 
     return tab1TabletCache;
@@ -201,30 +216,31 @@ public class TabletLocatorImplTest {
     assertEquals(f2, f1);
   }
 
-  static Set<KeyExtent> nkes(KeyExtent... extents) {
-    HashSet<KeyExtent> kes = new HashSet<>();
+  static Set<KeyExtent> createNewKeyExtentSet(KeyExtent... extents) {
+    HashSet<KeyExtent> keyExtentSet = new HashSet<>();
 
-    Collections.addAll(kes, extents);
+    Collections.addAll(keyExtentSet, extents);
 
-    return kes;
+    return keyExtentSet;
   }
 
-  static void runTest(TreeMap<Text,TabletLocation> mc, KeyExtent remove, Set<KeyExtent> expected) {
+  static void runTest(TreeMap<Text,TabletLocation> metaCache, KeyExtent remove,
+      Set<KeyExtent> expected) {
     // copy so same metaCache can be used for multiple test
 
-    mc = new TreeMap<>(mc);
+    metaCache = new TreeMap<>(metaCache);
 
-    TabletLocatorImpl.removeOverlapping(mc, remove);
+    TabletLocatorImpl.removeOverlapping(metaCache, remove);
 
     HashSet<KeyExtent> eic = new HashSet<>();
-    for (TabletLocation tl : mc.values()) {
+    for (TabletLocation tl : metaCache.values()) {
       eic.add(tl.tablet_extent);
     }
 
     assertEquals(expected, eic);
   }
 
-  static Mutation nm(String row, String... data) {
+  static Mutation createNewMutation(String row, String... data) {
     Mutation mut = new Mutation(new Text(row));
 
     for (String element : data) {
@@ -237,7 +253,7 @@ public class TabletLocatorImplTest {
     return mut;
   }
 
-  static List<Mutation> nml(Mutation... ma) {
+  static List<Mutation> createNewMutationList(Mutation... ma) {
     return Arrays.asList(ma);
   }
 
@@ -290,64 +306,100 @@ public class TabletLocatorImplTest {
 
   }
 
-  static Map<String,Map<KeyExtent,List<String>>> cemb(Object[]... ols) {
+  static class ServerExtent {
+    public String location;
+    public String row;
+    public KeyExtent extent;
 
-    Map<String,Map<KeyExtent,List<String>>> emb = new HashMap<>();
+    public ServerExtent(String location, String row, KeyExtent extent) {
+      super();
+      this.location = location;
+      this.row = row;
+      this.extent = extent;
+    }
+  }
 
-    for (Object[] ol : ols) {
-      String row = (String) ol[0];
-      String server = (String) ol[1];
-      KeyExtent ke = (KeyExtent) ol[2];
-      emb.computeIfAbsent(server, k -> new HashMap<>()).computeIfAbsent(ke, k -> new ArrayList<>())
-          .add(row);
+  static ServerExtent createServerExtent(String row, String location, KeyExtent extent) {
+    return new ServerExtent(location, row, extent);
+  }
+
+  static Map<String,Map<KeyExtent,List<String>>> createServerExtentMap(ServerExtent... locations) {
+
+    Map<String,Map<KeyExtent,List<String>>> serverExtents = new HashMap<>();
+
+    for (ServerExtent se : locations) {
+      serverExtents.computeIfAbsent(se.location, k -> new HashMap<>())
+          .computeIfAbsent(se.extent, k -> new ArrayList<>()).add(se.row);
     }
 
-    return emb;
+    return serverExtents;
   }
 
   @Test
   public void testRemoveOverlapping1() {
-    TreeMap<Text,TabletLocation> mc = createMetaCache(nke("0", null, null), "l1");
+    TreeMap<Text,TabletLocation> mc = createMetaCache(createNewKeyExtent("0", null, null), "l1");
 
-    runTest(mc, nke("0", "a", null), nkes());
-    runTest(mc, nke("0", null, null), nkes());
-    runTest(mc, nke("0", null, "a"), nkes());
+    runTest(mc, createNewKeyExtent("0", "a", null), createNewKeyExtentSet());
+    runTest(mc, createNewKeyExtent("0", null, null), createNewKeyExtentSet());
+    runTest(mc, createNewKeyExtent("0", null, "a"), createNewKeyExtentSet());
 
-    mc = createMetaCache(nke("0", "g", null), "l1", nke("0", "r", "g"), "l1", nke("0", null, "r"),
-        "l1");
-    runTest(mc, nke("0", null, null), nkes());
+    mc = createMetaCache(createNewKeyExtent("0", "g", null), "l1",
+        createNewKeyExtent("0", "r", "g"), "l1", createNewKeyExtent("0", null, "r"), "l1");
+    runTest(mc, createNewKeyExtent("0", null, null), createNewKeyExtentSet());
 
-    runTest(mc, nke("0", "a", null), nkes(nke("0", "r", "g"), nke("0", null, "r")));
-    runTest(mc, nke("0", "g", null), nkes(nke("0", "r", "g"), nke("0", null, "r")));
-    runTest(mc, nke("0", "h", null), nkes(nke("0", null, "r")));
-    runTest(mc, nke("0", "r", null), nkes(nke("0", null, "r")));
-    runTest(mc, nke("0", "s", null), nkes());
+    runTest(mc, createNewKeyExtent("0", "a", null), createNewKeyExtentSet(
+        createNewKeyExtent("0", "r", "g"), createNewKeyExtent("0", null, "r")));
+    runTest(mc, createNewKeyExtent("0", "g", null), createNewKeyExtentSet(
+        createNewKeyExtent("0", "r", "g"), createNewKeyExtent("0", null, "r")));
+    runTest(mc, createNewKeyExtent("0", "h", null),
+        createNewKeyExtentSet(createNewKeyExtent("0", null, "r")));
+    runTest(mc, createNewKeyExtent("0", "r", null),
+        createNewKeyExtentSet(createNewKeyExtent("0", null, "r")));
+    runTest(mc, createNewKeyExtent("0", "s", null), createNewKeyExtentSet());
 
-    runTest(mc, nke("0", "b", "a"), nkes(nke("0", "r", "g"), nke("0", null, "r")));
-    runTest(mc, nke("0", "g", "a"), nkes(nke("0", "r", "g"), nke("0", null, "r")));
-    runTest(mc, nke("0", "h", "a"), nkes(nke("0", null, "r")));
-    runTest(mc, nke("0", "r", "a"), nkes(nke("0", null, "r")));
-    runTest(mc, nke("0", "s", "a"), nkes());
+    runTest(mc, createNewKeyExtent("0", "b", "a"), createNewKeyExtentSet(
+        createNewKeyExtent("0", "r", "g"), createNewKeyExtent("0", null, "r")));
+    runTest(mc, createNewKeyExtent("0", "g", "a"), createNewKeyExtentSet(
+        createNewKeyExtent("0", "r", "g"), createNewKeyExtent("0", null, "r")));
+    runTest(mc, createNewKeyExtent("0", "h", "a"),
+        createNewKeyExtentSet(createNewKeyExtent("0", null, "r")));
+    runTest(mc, createNewKeyExtent("0", "r", "a"),
+        createNewKeyExtentSet(createNewKeyExtent("0", null, "r")));
+    runTest(mc, createNewKeyExtent("0", "s", "a"), createNewKeyExtentSet());
 
-    runTest(mc, nke("0", "h", "g"), nkes(nke("0", "g", null), nke("0", null, "r")));
-    runTest(mc, nke("0", "r", "g"), nkes(nke("0", "g", null), nke("0", null, "r")));
-    runTest(mc, nke("0", "s", "g"), nkes(nke("0", "g", null)));
+    runTest(mc, createNewKeyExtent("0", "h", "g"), createNewKeyExtentSet(
+        createNewKeyExtent("0", "g", null), createNewKeyExtent("0", null, "r")));
+    runTest(mc, createNewKeyExtent("0", "r", "g"), createNewKeyExtentSet(
+        createNewKeyExtent("0", "g", null), createNewKeyExtent("0", null, "r")));
+    runTest(mc, createNewKeyExtent("0", "s", "g"),
+        createNewKeyExtentSet(createNewKeyExtent("0", "g", null)));
 
-    runTest(mc, nke("0", "i", "h"), nkes(nke("0", "g", null), nke("0", null, "r")));
-    runTest(mc, nke("0", "r", "h"), nkes(nke("0", "g", null), nke("0", null, "r")));
-    runTest(mc, nke("0", "s", "h"), nkes(nke("0", "g", null)));
+    runTest(mc, createNewKeyExtent("0", "i", "h"), createNewKeyExtentSet(
+        createNewKeyExtent("0", "g", null), createNewKeyExtent("0", null, "r")));
+    runTest(mc, createNewKeyExtent("0", "r", "h"), createNewKeyExtentSet(
+        createNewKeyExtent("0", "g", null), createNewKeyExtent("0", null, "r")));
+    runTest(mc, createNewKeyExtent("0", "s", "h"),
+        createNewKeyExtentSet(createNewKeyExtent("0", "g", null)));
 
-    runTest(mc, nke("0", "z", "f"), nkes());
-    runTest(mc, nke("0", "z", "g"), nkes(nke("0", "g", null)));
-    runTest(mc, nke("0", "z", "q"), nkes(nke("0", "g", null)));
-    runTest(mc, nke("0", "z", "r"), nkes(nke("0", "g", null), nke("0", "r", "g")));
-    runTest(mc, nke("0", "z", "s"), nkes(nke("0", "g", null), nke("0", "r", "g")));
+    runTest(mc, createNewKeyExtent("0", "z", "f"), createNewKeyExtentSet());
+    runTest(mc, createNewKeyExtent("0", "z", "g"),
+        createNewKeyExtentSet(createNewKeyExtent("0", "g", null)));
+    runTest(mc, createNewKeyExtent("0", "z", "q"),
+        createNewKeyExtentSet(createNewKeyExtent("0", "g", null)));
+    runTest(mc, createNewKeyExtent("0", "z", "r"), createNewKeyExtentSet(
+        createNewKeyExtent("0", "g", null), createNewKeyExtent("0", "r", "g")));
+    runTest(mc, createNewKeyExtent("0", "z", "s"), createNewKeyExtentSet(
+        createNewKeyExtent("0", "g", null), createNewKeyExtent("0", "r", "g")));
 
-    runTest(mc, nke("0", null, "f"), nkes());
-    runTest(mc, nke("0", null, "g"), nkes(nke("0", "g", null)));
-    runTest(mc, nke("0", null, "q"), nkes(nke("0", "g", null)));
-    runTest(mc, nke("0", null, "r"), nkes(nke("0", "g", null), nke("0", "r", "g")));
-    runTest(mc, nke("0", null, "s"), nkes(nke("0", "g", null), nke("0", "r", "g")));
+    runTest(mc, createNewKeyExtent("0", null, "f"), createNewKeyExtentSet());
+    runTest(mc, createNewKeyExtent("0", null, "g"),
+        createNewKeyExtentSet(createNewKeyExtent("0", "g", null)));
+    runTest(mc, createNewKeyExtent("0", null, "q"),
+        createNewKeyExtentSet(createNewKeyExtent("0", "g", null)));
+    runTest(mc, createNewKeyExtent("0", null, "r"), createNewKeyExtentSet(
+        createNewKeyExtent("0", "g", null), createNewKeyExtent("0", "r", "g")));
+    runTest(mc, createNewKeyExtent("0", null, "s"), createNewKeyExtentSet(
+        createNewKeyExtent("0", "g", null), createNewKeyExtent("0", "r", "g")));
 
   }
 
@@ -355,43 +407,65 @@ public class TabletLocatorImplTest {
   public void testRemoveOverlapping2() {
 
     // test removes when cache does not contain all tablets in a table
-    TreeMap<Text,TabletLocation> mc =
-        createMetaCache(nke("0", "r", "g"), "l1", nke("0", null, "r"), "l1");
+    TreeMap<Text,TabletLocation> mc = createMetaCache(createNewKeyExtent("0", "r", "g"), "l1",
+        createNewKeyExtent("0", null, "r"), "l1");
 
-    runTest(mc, nke("0", "a", null), nkes(nke("0", "r", "g"), nke("0", null, "r")));
-    runTest(mc, nke("0", "g", null), nkes(nke("0", "r", "g"), nke("0", null, "r")));
-    runTest(mc, nke("0", "h", null), nkes(nke("0", null, "r")));
-    runTest(mc, nke("0", "r", null), nkes(nke("0", null, "r")));
-    runTest(mc, nke("0", "s", null), nkes());
+    runTest(mc, createNewKeyExtent("0", "a", null), createNewKeyExtentSet(
+        createNewKeyExtent("0", "r", "g"), createNewKeyExtent("0", null, "r")));
+    runTest(mc, createNewKeyExtent("0", "g", null), createNewKeyExtentSet(
+        createNewKeyExtent("0", "r", "g"), createNewKeyExtent("0", null, "r")));
+    runTest(mc, createNewKeyExtent("0", "h", null),
+        createNewKeyExtentSet(createNewKeyExtent("0", null, "r")));
+    runTest(mc, createNewKeyExtent("0", "r", null),
+        createNewKeyExtentSet(createNewKeyExtent("0", null, "r")));
+    runTest(mc, createNewKeyExtent("0", "s", null), createNewKeyExtentSet());
 
-    runTest(mc, nke("0", "b", "a"), nkes(nke("0", "r", "g"), nke("0", null, "r")));
-    runTest(mc, nke("0", "g", "a"), nkes(nke("0", "r", "g"), nke("0", null, "r")));
-    runTest(mc, nke("0", "h", "a"), nkes(nke("0", null, "r")));
-    runTest(mc, nke("0", "r", "a"), nkes(nke("0", null, "r")));
-    runTest(mc, nke("0", "s", "a"), nkes());
+    runTest(mc, createNewKeyExtent("0", "b", "a"), createNewKeyExtentSet(
+        createNewKeyExtent("0", "r", "g"), createNewKeyExtent("0", null, "r")));
+    runTest(mc, createNewKeyExtent("0", "g", "a"), createNewKeyExtentSet(
+        createNewKeyExtent("0", "r", "g"), createNewKeyExtent("0", null, "r")));
+    runTest(mc, createNewKeyExtent("0", "h", "a"),
+        createNewKeyExtentSet(createNewKeyExtent("0", null, "r")));
+    runTest(mc, createNewKeyExtent("0", "r", "a"),
+        createNewKeyExtentSet(createNewKeyExtent("0", null, "r")));
+    runTest(mc, createNewKeyExtent("0", "s", "a"), createNewKeyExtentSet());
 
-    runTest(mc, nke("0", "h", "g"), nkes(nke("0", null, "r")));
+    runTest(mc, createNewKeyExtent("0", "h", "g"),
+        createNewKeyExtentSet(createNewKeyExtent("0", null, "r")));
 
-    mc = createMetaCache(nke("0", "g", null), "l1", nke("0", null, "r"), "l1");
+    mc = createMetaCache(createNewKeyExtent("0", "g", null), "l1",
+        createNewKeyExtent("0", null, "r"), "l1");
 
-    runTest(mc, nke("0", "h", "g"), nkes(nke("0", "g", null), nke("0", null, "r")));
-    runTest(mc, nke("0", "h", "a"), nkes(nke("0", null, "r")));
-    runTest(mc, nke("0", "s", "g"), nkes(nke("0", "g", null)));
-    runTest(mc, nke("0", "s", "a"), nkes());
+    runTest(mc, createNewKeyExtent("0", "h", "g"), createNewKeyExtentSet(
+        createNewKeyExtent("0", "g", null), createNewKeyExtent("0", null, "r")));
+    runTest(mc, createNewKeyExtent("0", "h", "a"),
+        createNewKeyExtentSet(createNewKeyExtent("0", null, "r")));
+    runTest(mc, createNewKeyExtent("0", "s", "g"),
+        createNewKeyExtentSet(createNewKeyExtent("0", "g", null)));
+    runTest(mc, createNewKeyExtent("0", "s", "a"), createNewKeyExtentSet());
 
-    mc = createMetaCache(nke("0", "g", null), "l1", nke("0", "r", "g"), "l1");
+    mc = createMetaCache(createNewKeyExtent("0", "g", null), "l1",
+        createNewKeyExtent("0", "r", "g"), "l1");
 
-    runTest(mc, nke("0", "z", "f"), nkes());
-    runTest(mc, nke("0", "z", "g"), nkes(nke("0", "g", null)));
-    runTest(mc, nke("0", "z", "q"), nkes(nke("0", "g", null)));
-    runTest(mc, nke("0", "z", "r"), nkes(nke("0", "g", null), nke("0", "r", "g")));
-    runTest(mc, nke("0", "z", "s"), nkes(nke("0", "g", null), nke("0", "r", "g")));
+    runTest(mc, createNewKeyExtent("0", "z", "f"), createNewKeyExtentSet());
+    runTest(mc, createNewKeyExtent("0", "z", "g"),
+        createNewKeyExtentSet(createNewKeyExtent("0", "g", null)));
+    runTest(mc, createNewKeyExtent("0", "z", "q"),
+        createNewKeyExtentSet(createNewKeyExtent("0", "g", null)));
+    runTest(mc, createNewKeyExtent("0", "z", "r"), createNewKeyExtentSet(
+        createNewKeyExtent("0", "g", null), createNewKeyExtent("0", "r", "g")));
+    runTest(mc, createNewKeyExtent("0", "z", "s"), createNewKeyExtentSet(
+        createNewKeyExtent("0", "g", null), createNewKeyExtent("0", "r", "g")));
 
-    runTest(mc, nke("0", null, "f"), nkes());
-    runTest(mc, nke("0", null, "g"), nkes(nke("0", "g", null)));
-    runTest(mc, nke("0", null, "q"), nkes(nke("0", "g", null)));
-    runTest(mc, nke("0", null, "r"), nkes(nke("0", "g", null), nke("0", "r", "g")));
-    runTest(mc, nke("0", null, "s"), nkes(nke("0", "g", null), nke("0", "r", "g")));
+    runTest(mc, createNewKeyExtent("0", null, "f"), createNewKeyExtentSet());
+    runTest(mc, createNewKeyExtent("0", null, "g"),
+        createNewKeyExtentSet(createNewKeyExtent("0", "g", null)));
+    runTest(mc, createNewKeyExtent("0", null, "q"),
+        createNewKeyExtentSet(createNewKeyExtent("0", "g", null)));
+    runTest(mc, createNewKeyExtent("0", null, "r"), createNewKeyExtentSet(
+        createNewKeyExtent("0", "g", null), createNewKeyExtent("0", "r", "g")));
+    runTest(mc, createNewKeyExtent("0", null, "s"), createNewKeyExtentSet(
+        createNewKeyExtent("0", "g", null), createNewKeyExtent("0", "r", "g")));
   }
 
   static class TServers {
@@ -409,9 +483,6 @@ public class TabletLocatorImplTest {
     @Override
     public TabletLocations lookupTablet(ClientContext context, TabletLocation src, Text row,
         Text stopRow, TabletLocator parent) {
-
-      // System.out.println("lookupTablet("+src+","+row+","+stopRow+","+ parent+")");
-      // System.out.println(tservers);
 
       Map<KeyExtent,SortedMap<Key,Value>> tablets = tservers.get(src.tablet_location);
 
@@ -608,20 +679,20 @@ public class TabletLocatorImplTest {
 
     locateTabletTest(tab1TabletCache, "r1", null, null);
 
-    KeyExtent tab1e = nke("tab1", null, null);
+    KeyExtent tab1e = createNewKeyExtent("tab1", null, null);
 
-    setLocation(tservers, "tserver1", RTE, MTE, "tserver2");
-    setLocation(tservers, "tserver2", MTE, tab1e, "tserver3");
+    setLocation(tservers, "tserver1", ROOT_TABLE_EXTENT, METADATA_TABLE_EXTENT, "tserver2");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, tab1e, "tserver3");
 
     locateTabletTest(tab1TabletCache, "r1", tab1e, "tserver3");
     locateTabletTest(tab1TabletCache, "r2", tab1e, "tserver3");
 
     // simulate a split
-    KeyExtent tab1e1 = nke("tab1", "g", null);
-    KeyExtent tab1e2 = nke("tab1", null, "g");
+    KeyExtent tab1e1 = createNewKeyExtent("tab1", "g", null);
+    KeyExtent tab1e2 = createNewKeyExtent("tab1", null, "g");
 
-    setLocation(tservers, "tserver2", MTE, tab1e1, "tserver4");
-    setLocation(tservers, "tserver2", MTE, tab1e2, "tserver5");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, tab1e1, "tserver4");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, tab1e2, "tserver5");
 
     locateTabletTest(tab1TabletCache, "r1", tab1e, "tserver3");
     tab1TabletCache.invalidateCache(tab1e);
@@ -632,28 +703,28 @@ public class TabletLocatorImplTest {
     locateTabletTest(tab1TabletCache, "g", true, tab1e2, "tserver5");
 
     // simulate a partial split
-    KeyExtent tab1e22 = nke("tab1", null, "m");
-    setLocation(tservers, "tserver2", MTE, tab1e22, "tserver6");
+    KeyExtent tab1e22 = createNewKeyExtent("tab1", null, "m");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, tab1e22, "tserver6");
     locateTabletTest(tab1TabletCache, "r1", tab1e2, "tserver5");
     tab1TabletCache.invalidateCache(tab1e2);
     locateTabletTest(tab1TabletCache, "r1", tab1e22, "tserver6");
     locateTabletTest(tab1TabletCache, "h", null, null);
     locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver4");
-    KeyExtent tab1e21 = nke("tab1", "m", "g");
-    setLocation(tservers, "tserver2", MTE, tab1e21, "tserver7");
+    KeyExtent tab1e21 = createNewKeyExtent("tab1", "m", "g");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, tab1e21, "tserver7");
     locateTabletTest(tab1TabletCache, "r1", tab1e22, "tserver6");
     locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver7");
     locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver4");
 
     // simulate a migration
-    setLocation(tservers, "tserver2", MTE, tab1e21, "tserver8");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, tab1e21, "tserver8");
     tab1TabletCache.invalidateCache(tab1e21);
     locateTabletTest(tab1TabletCache, "r1", tab1e22, "tserver6");
     locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver8");
     locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver4");
 
     // simulate a server failure
-    setLocation(tservers, "tserver2", MTE, tab1e21, "tserver9");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, tab1e21, "tserver9");
     tab1TabletCache.invalidateCache(context, "tserver8");
     locateTabletTest(tab1TabletCache, "r1", tab1e22, "tserver6");
     locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver9");
@@ -677,21 +748,22 @@ public class TabletLocatorImplTest {
     EasyMock.expect(context.getRootTabletLocation()).andReturn("tserver4").anyTimes();
     replay(context);
 
-    setLocation(tservers, "tserver4", RTE, MTE, "tserver5");
-    setLocation(tservers, "tserver5", MTE, tab1e1, "tserver1");
-    setLocation(tservers, "tserver5", MTE, tab1e21, "tserver2");
-    setLocation(tservers, "tserver5", MTE, tab1e22, "tserver3");
+    setLocation(tservers, "tserver4", ROOT_TABLE_EXTENT, METADATA_TABLE_EXTENT, "tserver5");
+    setLocation(tservers, "tserver5", METADATA_TABLE_EXTENT, tab1e1, "tserver1");
+    setLocation(tservers, "tserver5", METADATA_TABLE_EXTENT, tab1e21, "tserver2");
+    setLocation(tservers, "tserver5", METADATA_TABLE_EXTENT, tab1e22, "tserver3");
 
     locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver1");
     locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver2");
     locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver3");
 
     // simulate the metadata table splitting
-    KeyExtent mte1 = new KeyExtent(MetadataTable.ID, tab1e21.toMetaRow(), RTE.endRow());
+    KeyExtent mte1 =
+        new KeyExtent(MetadataTable.ID, tab1e21.toMetaRow(), ROOT_TABLE_EXTENT.endRow());
     KeyExtent mte2 = new KeyExtent(MetadataTable.ID, null, tab1e21.toMetaRow());
 
-    setLocation(tservers, "tserver4", RTE, mte1, "tserver5");
-    setLocation(tservers, "tserver4", RTE, mte2, "tserver6");
+    setLocation(tservers, "tserver4", ROOT_TABLE_EXTENT, mte1, "tserver5");
+    setLocation(tservers, "tserver4", ROOT_TABLE_EXTENT, mte2, "tserver6");
     deleteServer(tservers, "tserver5");
     setLocation(tservers, "tserver5", mte1, tab1e1, "tserver7");
     setLocation(tservers, "tserver5", mte1, tab1e21, "tserver8");
@@ -712,7 +784,7 @@ public class TabletLocatorImplTest {
     locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver8");
     locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver9");
 
-    setLocation(tservers, "tserver4", RTE, mte1, "tserver10");
+    setLocation(tservers, "tserver4", ROOT_TABLE_EXTENT, mte1, "tserver10");
     setLocation(tservers, "tserver10", mte1, tab1e1, "tserver7");
     setLocation(tservers, "tserver10", mte1, tab1e21, "tserver8");
 
@@ -726,10 +798,11 @@ public class TabletLocatorImplTest {
     locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver9");
 
     // simulate a hole in the metadata, caused by a partial split
-    KeyExtent mte11 = new KeyExtent(MetadataTable.ID, tab1e1.toMetaRow(), RTE.endRow());
+    KeyExtent mte11 =
+        new KeyExtent(MetadataTable.ID, tab1e1.toMetaRow(), ROOT_TABLE_EXTENT.endRow());
     KeyExtent mte12 = new KeyExtent(MetadataTable.ID, tab1e21.toMetaRow(), tab1e1.toMetaRow());
     deleteServer(tservers, "tserver10");
-    setLocation(tservers, "tserver4", RTE, mte12, "tserver10");
+    setLocation(tservers, "tserver4", ROOT_TABLE_EXTENT, mte12, "tserver10");
     setLocation(tservers, "tserver10", mte12, tab1e21, "tserver12");
 
     // at this point should be no table1 metadata
@@ -739,7 +812,7 @@ public class TabletLocatorImplTest {
     locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver12");
     locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver9");
 
-    setLocation(tservers, "tserver4", RTE, mte11, "tserver5");
+    setLocation(tservers, "tserver4", ROOT_TABLE_EXTENT, mte11, "tserver5");
     setLocation(tservers, "tserver5", mte11, tab1e1, "tserver13");
 
     locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver13");
@@ -752,16 +825,16 @@ public class TabletLocatorImplTest {
     TServers tservers = new TServers();
     TabletLocatorImpl metaCache = createLocators(tservers, "tserver1", "tserver2", "foo");
 
-    KeyExtent ke1 = nke("foo", "m", null);
-    KeyExtent ke2 = nke("foo", null, "m");
+    KeyExtent ke1 = createNewKeyExtent("foo", "m", null);
+    KeyExtent ke2 = createNewKeyExtent("foo", null, "m");
 
-    setLocation(tservers, "tserver2", MTE, ke1, null);
-    setLocation(tservers, "tserver2", MTE, ke2, "L1");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke1, null);
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke2, "L1");
 
     locateTabletTest(metaCache, "a", null, null);
     locateTabletTest(metaCache, "r", ke2, "L1");
 
-    setLocation(tservers, "tserver2", MTE, ke1, "L2");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke1, "L2");
 
     locateTabletTest(metaCache, "a", ke1, "L2");
     locateTabletTest(metaCache, "r", ke2, "L1");
@@ -770,25 +843,27 @@ public class TabletLocatorImplTest {
   @Test
   public void testBinRanges1() throws Exception {
 
-    TabletLocatorImpl metaCache = createLocators("foo", nke("foo", null, null), "l1");
+    TabletLocatorImpl metaCache =
+        createLocators("foo", createNewKeyExtent("foo", null, null), "l1");
 
-    List<Range> ranges = nrl(nr(null, null));
+    List<Range> ranges = createNewRangeList(createNewRange(null, null));
     Map<String,Map<KeyExtent,List<Range>>> expected =
-        createExpectedBinnings("l1", nol(nke("foo", null, null), nrl(nr(null, null)))
-
-        );
+        createExpectedBinnings(createRangeLocation("l1", createNewKeyExtent("foo", null, null),
+            createNewRangeList(createNewRange(null, null))));
 
     runTest(ranges, metaCache, expected);
 
-    ranges = nrl(nr("a", null));
-    expected = createExpectedBinnings("l1", nol(nke("foo", null, null), nrl(nr("a", null)))
+    ranges = createNewRangeList(createNewRange("a", null));
+    expected = createExpectedBinnings(createRangeLocation("l1",
+        createNewKeyExtent("foo", null, null), createNewRangeList(createNewRange("a", null)))
 
     );
 
     runTest(ranges, metaCache, expected);
 
-    ranges = nrl(nr(null, "b"));
-    expected = createExpectedBinnings("l1", nol(nke("foo", null, null), nrl(nr(null, "b")))
+    ranges = createNewRangeList(createNewRange(null, "b"));
+    expected = createExpectedBinnings(createRangeLocation("l1",
+        createNewKeyExtent("foo", null, null), createNewRangeList(createNewRange(null, "b")))
 
     );
 
@@ -798,15 +873,16 @@ public class TabletLocatorImplTest {
   @Test
   public void testBinRanges2() throws Exception {
 
-    List<Range> ranges = nrl(nr(null, null));
-    TabletLocatorImpl metaCache =
-        createLocators("foo", nke("foo", "g", null), "l1", nke("foo", null, "g"), "l2");
+    List<Range> ranges = createNewRangeList(createNewRange(null, null));
+    TabletLocatorImpl metaCache = createLocators("foo", createNewKeyExtent("foo", "g", null), "l1",
+        createNewKeyExtent("foo", null, "g"), "l2");
 
-    Map<String,Map<KeyExtent,List<Range>>> expected =
-        createExpectedBinnings("l1", nol(nke("foo", "g", null), nrl(nr(null, null))), "l2",
-            nol(nke("foo", null, "g"), nrl(nr(null, null)))
-
-        );
+    Map<String,
+        Map<KeyExtent,List<Range>>> expected = createExpectedBinnings(
+            createRangeLocation("l1", createNewKeyExtent("foo", "g", null),
+                createNewRangeList(createNewRange(null, null))),
+            createRangeLocation("l2", createNewKeyExtent("foo", null, "g"),
+                createNewRangeList(createNewRange(null, null))));
 
     runTest(ranges, metaCache, expected);
   }
@@ -815,72 +891,72 @@ public class TabletLocatorImplTest {
   public void testBinRanges3() throws Exception {
 
     // test with three tablets and a range that covers the whole table
-    List<Range> ranges = nrl(nr(null, null));
-    TabletLocatorImpl metaCache = createLocators("foo", nke("foo", "g", null), "l1",
-        nke("foo", "m", "g"), "l2", nke("foo", null, "m"), "l2");
+    List<Range> ranges = createNewRangeList(createNewRange(null, null));
+    TabletLocatorImpl metaCache = createLocators("foo", createNewKeyExtent("foo", "g", null), "l1",
+        createNewKeyExtent("foo", "m", "g"), "l2", createNewKeyExtent("foo", null, "m"), "l2");
 
-    Map<String,Map<KeyExtent,List<Range>>> expected = createExpectedBinnings("l1",
-        nol(nke("foo", "g", null), nrl(nr(null, null))), "l2",
-        nol(nke("foo", "m", "g"), nrl(nr(null, null)), nke("foo", null, "m"), nrl(nr(null, null)))
-
-    );
+    Map<String,Map<KeyExtent,List<Range>>> expected = createExpectedBinnings(
+        createRangeLocation("l1", createNewKeyExtent("foo", "g", null),
+            createNewRangeList(createNewRange(null, null))),
+        createRangeLocation("l2", createNewKeyExtent("foo", "m", "g"),
+            createNewRangeList(createNewRange(null, null)), createNewKeyExtent("foo", null, "m"),
+            createNewRangeList(createNewRange(null, null))));
 
     runTest(ranges, metaCache, expected);
 
     // test with three tablets where one range falls within the first tablet and last two ranges
     // fall within the last tablet
-    ranges = nrl(nr(null, "c"), nr("s", "y"), nr("z", null));
-    expected = createExpectedBinnings("l1", nol(nke("foo", "g", null), nrl(nr(null, "c"))), "l2",
-        nol(nke("foo", null, "m"), nrl(nr("s", "y"), nr("z", null)))
-
-    );
+    ranges = createNewRangeList(createNewRange(null, "c"), createNewRange("s", "y"),
+        createNewRange("z", null));
+    expected = createExpectedBinnings(
+        createRangeLocation("l1", createNewKeyExtent("foo", "g", null),
+            createNewRangeList(createNewRange(null, "c"))),
+        createRangeLocation("l2", createNewKeyExtent("foo", null, "m"),
+            createNewRangeList(createNewRange("s", "y"), createNewRange("z", null))));
 
     runTest(ranges, metaCache, expected);
 
     // test is same as above, but has an additional range that spans the first two tablets
-    ranges = nrl(nr(null, "c"), nr("f", "i"), nr("s", "y"), nr("z", null));
-    expected =
-        createExpectedBinnings("l1", nol(nke("foo", "g", null), nrl(nr(null, "c"), nr("f", "i"))),
-            "l2", nol(nke("foo", "m", "g"), nrl(nr("f", "i")), nke("foo", null, "m"),
-                nrl(nr("s", "y"), nr("z", null)))
-
-        );
+    ranges = createNewRangeList(createNewRange(null, "c"), createNewRange("f", "i"),
+        createNewRange("s", "y"), createNewRange("z", null));
+    expected = createExpectedBinnings(
+        createRangeLocation("l1", createNewKeyExtent("foo", "g", null),
+            createNewRangeList(createNewRange(null, "c"), createNewRange("f", "i"))),
+        createRangeLocation("l2", createNewKeyExtent("foo", "m", "g"),
+            createNewRangeList(createNewRange("f", "i")), createNewKeyExtent("foo", null, "m"),
+            createNewRangeList(createNewRange("s", "y"), createNewRange("z", null))));
 
     runTest(ranges, metaCache, expected);
 
     // test where start of range is not inclusive and same as tablet endRow
-    ranges = nrl(nr("g", false, "m", true));
-    expected =
-        createExpectedBinnings("l2", nol(nke("foo", "m", "g"), nrl(nr("g", false, "m", true)))
-
-        );
+    ranges = createNewRangeList(createNewRange("g", false, "m", true));
+    expected = createExpectedBinnings(createRangeLocation("l2", createNewKeyExtent("foo", "m", "g"),
+        createNewRangeList(createNewRange("g", false, "m", true))));
 
     runTest(ranges, metaCache, expected);
 
     // test where start of range is inclusive and same as tablet endRow
-    ranges = nrl(nr("g", true, "m", true));
-    expected =
-        createExpectedBinnings("l1", nol(nke("foo", "g", null), nrl(nr("g", true, "m", true))),
-            "l2", nol(nke("foo", "m", "g"), nrl(nr("g", true, "m", true)))
-
-        );
-
-    runTest(ranges, metaCache, expected);
-
-    ranges = nrl(nr("g", true, "m", false));
-    expected =
-        createExpectedBinnings("l1", nol(nke("foo", "g", null), nrl(nr("g", true, "m", false))),
-            "l2", nol(nke("foo", "m", "g"), nrl(nr("g", true, "m", false)))
-
-        );
+    ranges = createNewRangeList(createNewRange("g", true, "m", true));
+    expected = createExpectedBinnings(
+        createRangeLocation("l1", createNewKeyExtent("foo", "g", null),
+            createNewRangeList(createNewRange("g", true, "m", true))),
+        createRangeLocation("l2", createNewKeyExtent("foo", "m", "g"),
+            createNewRangeList(createNewRange("g", true, "m", true))));
 
     runTest(ranges, metaCache, expected);
 
-    ranges = nrl(nr("g", false, "m", false));
-    expected =
-        createExpectedBinnings("l2", nol(nke("foo", "m", "g"), nrl(nr("g", false, "m", false)))
+    ranges = createNewRangeList(createNewRange("g", true, "m", false));
+    expected = createExpectedBinnings(
+        createRangeLocation("l1", createNewKeyExtent("foo", "g", null),
+            createNewRangeList(createNewRange("g", true, "m", false))),
+        createRangeLocation("l2", createNewKeyExtent("foo", "m", "g"),
+            createNewRangeList(createNewRange("g", true, "m", false))));
 
-        );
+    runTest(ranges, metaCache, expected);
+
+    ranges = createNewRangeList(createNewRange("g", false, "m", false));
+    expected = createExpectedBinnings(createRangeLocation("l2", createNewKeyExtent("foo", "m", "g"),
+        createNewRangeList(createNewRange("g", false, "m", false))));
 
     runTest(ranges, metaCache, expected);
   }
@@ -888,15 +964,14 @@ public class TabletLocatorImplTest {
   @Test
   public void testBinRanges4() throws Exception {
 
-    List<Range> ranges = nrl(new Range(new Text("1")));
-    TabletLocatorImpl metaCache =
-        createLocators("foo", nke("foo", "0", null), "l1", nke("foo", "1", "0"), "l2",
-            nke("foo", "2", "1"), "l3", nke("foo", "3", "2"), "l4", nke("foo", null, "3"), "l5");
+    List<Range> ranges = createNewRangeList(new Range(new Text("1")));
+    TabletLocatorImpl metaCache = createLocators("foo", createNewKeyExtent("foo", "0", null), "l1",
+        createNewKeyExtent("foo", "1", "0"), "l2", createNewKeyExtent("foo", "2", "1"), "l3",
+        createNewKeyExtent("foo", "3", "2"), "l4", createNewKeyExtent("foo", null, "3"), "l5");
 
     Map<String,Map<KeyExtent,List<Range>>> expected =
-        createExpectedBinnings("l2", nol(nke("foo", "1", "0"), nrl(new Range(new Text("1"))))
-
-        );
+        createExpectedBinnings(createRangeLocation("l2", createNewKeyExtent("foo", "1", "0"),
+            createNewRangeList(new Range(new Text("1")))));
 
     runTest(ranges, metaCache, expected);
 
@@ -904,55 +979,46 @@ public class TabletLocatorImplTest {
     Range range =
         new Range(rowColKey, true, new Key(new Text("3")).followingKey(PartialKey.ROW), false);
 
-    ranges = nrl(range);
-    Map<String,Map<KeyExtent,List<Range>>> expected4 =
-        createExpectedBinnings("l4", nol(nke("foo", "3", "2"), nrl(range))
+    ranges = createNewRangeList(range);
+    Map<String,Map<KeyExtent,List<Range>>> expected4 = createExpectedBinnings(
+        createRangeLocation("l4", createNewKeyExtent("foo", "3", "2"), createNewRangeList(range)));
 
-        );
-
-    runTest(ranges, metaCache, expected4, nrl());
+    runTest(ranges, metaCache, expected4, createNewRangeList());
 
     range = new Range(rowColKey, true, new Key(new Text("3")).followingKey(PartialKey.ROW), true);
 
-    ranges = nrl(range);
-    Map<String,Map<KeyExtent,List<Range>>> expected5 = createExpectedBinnings("l4",
-        nol(nke("foo", "3", "2"), nrl(range)), "l5", nol(nke("foo", null, "3"), nrl(range))
+    ranges = createNewRangeList(range);
+    Map<String,Map<KeyExtent,List<Range>>> expected5 = createExpectedBinnings(
+        createRangeLocation("l4", createNewKeyExtent("foo", "3", "2"), createNewRangeList(range)),
+        createRangeLocation("l5", createNewKeyExtent("foo", null, "3"), createNewRangeList(range)));
 
-    );
-
-    runTest(ranges, metaCache, expected5, nrl());
+    runTest(ranges, metaCache, expected5, createNewRangeList());
 
     range = new Range(new Text("2"), false, new Text("3"), false);
-    ranges = nrl(range);
-    Map<String,Map<KeyExtent,List<Range>>> expected6 =
-        createExpectedBinnings("l4", nol(nke("foo", "3", "2"), nrl(range))
-
-        );
-    runTest(ranges, metaCache, expected6, nrl());
+    ranges = createNewRangeList(range);
+    Map<String,Map<KeyExtent,List<Range>>> expected6 = createExpectedBinnings(
+        createRangeLocation("l4", createNewKeyExtent("foo", "3", "2"), createNewRangeList(range)));
+    runTest(ranges, metaCache, expected6, createNewRangeList());
 
     range = new Range(new Text("2"), true, new Text("3"), false);
-    ranges = nrl(range);
-    Map<String,Map<KeyExtent,List<Range>>> expected7 = createExpectedBinnings("l3",
-        nol(nke("foo", "2", "1"), nrl(range)), "l4", nol(nke("foo", "3", "2"), nrl(range))
-
-    );
-    runTest(ranges, metaCache, expected7, nrl());
+    ranges = createNewRangeList(range);
+    Map<String,Map<KeyExtent,List<Range>>> expected7 = createExpectedBinnings(
+        createRangeLocation("l3", createNewKeyExtent("foo", "2", "1"), createNewRangeList(range)),
+        createRangeLocation("l4", createNewKeyExtent("foo", "3", "2"), createNewRangeList(range)));
+    runTest(ranges, metaCache, expected7, createNewRangeList());
 
     range = new Range(new Text("2"), false, new Text("3"), true);
-    ranges = nrl(range);
-    Map<String,Map<KeyExtent,List<Range>>> expected8 =
-        createExpectedBinnings("l4", nol(nke("foo", "3", "2"), nrl(range))
-
-        );
-    runTest(ranges, metaCache, expected8, nrl());
+    ranges = createNewRangeList(range);
+    Map<String,Map<KeyExtent,List<Range>>> expected8 = createExpectedBinnings(
+        createRangeLocation("l4", createNewKeyExtent("foo", "3", "2"), createNewRangeList(range)));
+    runTest(ranges, metaCache, expected8, createNewRangeList());
 
     range = new Range(new Text("2"), true, new Text("3"), true);
-    ranges = nrl(range);
-    Map<String,Map<KeyExtent,List<Range>>> expected9 = createExpectedBinnings("l3",
-        nol(nke("foo", "2", "1"), nrl(range)), "l4", nol(nke("foo", "3", "2"), nrl(range))
-
-    );
-    runTest(ranges, metaCache, expected9, nrl());
+    ranges = createNewRangeList(range);
+    Map<String,Map<KeyExtent,List<Range>>> expected9 = createExpectedBinnings(
+        createRangeLocation("l3", createNewKeyExtent("foo", "2", "1"), createNewRangeList(range)),
+        createRangeLocation("l4", createNewKeyExtent("foo", "3", "2"), createNewRangeList(range)));
+    runTest(ranges, metaCache, expected9, createNewRangeList());
 
   }
 
@@ -960,66 +1026,74 @@ public class TabletLocatorImplTest {
   public void testBinRanges5() throws Exception {
     // Test binning when there is a hole in the metadata
 
-    List<Range> ranges = nrl(new Range(new Text("1")));
-    TabletLocatorImpl metaCache = createLocators("foo", nke("foo", "0", null), "l1",
-        nke("foo", "1", "0"), "l2", nke("foo", "3", "2"), "l4", nke("foo", null, "3"), "l5");
+    List<Range> ranges = createNewRangeList(new Range(new Text("1")));
+    TabletLocatorImpl metaCache = createLocators("foo", createNewKeyExtent("foo", "0", null), "l1",
+        createNewKeyExtent("foo", "1", "0"), "l2", createNewKeyExtent("foo", "3", "2"), "l4",
+        createNewKeyExtent("foo", null, "3"), "l5");
 
     Map<String,Map<KeyExtent,List<Range>>> expected1 =
-        createExpectedBinnings("l2", nol(nke("foo", "1", "0"), nrl(new Range(new Text("1"))))
-
-        );
+        createExpectedBinnings(createRangeLocation("l2", createNewKeyExtent("foo", "1", "0"),
+            createNewRangeList(new Range(new Text("1")))));
 
     runTest(ranges, metaCache, expected1);
 
-    ranges = nrl(new Range(new Text("2")), new Range(new Text("11")));
+    ranges = createNewRangeList(new Range(new Text("2")), new Range(new Text("11")));
     Map<String,Map<KeyExtent,List<Range>>> expected2 = createExpectedBinnings();
 
     runTest(ranges, metaCache, expected2, ranges);
 
-    ranges = nrl(new Range(new Text("1")), new Range(new Text("2")));
+    ranges = createNewRangeList(new Range(new Text("1")), new Range(new Text("2")));
 
-    runTest(ranges, metaCache, expected1, nrl(new Range(new Text("2"))));
+    runTest(ranges, metaCache, expected1, createNewRangeList(new Range(new Text("2"))));
 
-    ranges = nrl(nr("0", "2"), nr("3", "4"));
-    Map<String,Map<KeyExtent,List<Range>>> expected3 =
-        createExpectedBinnings("l4", nol(nke("foo", "3", "2"), nrl(nr("3", "4"))), "l5",
-            nol(nke("foo", null, "3"), nrl(nr("3", "4")))
+    ranges = createNewRangeList(createNewRange("0", "2"), createNewRange("3", "4"));
+    Map<String,
+        Map<KeyExtent,List<Range>>> expected3 = createExpectedBinnings(
+            createRangeLocation("l4", createNewKeyExtent("foo", "3", "2"),
+                createNewRangeList(createNewRange("3", "4"))),
+            createRangeLocation("l5", createNewKeyExtent("foo", null, "3"),
+                createNewRangeList(createNewRange("3", "4"))));
 
-        );
+    runTest(ranges, metaCache, expected3, createNewRangeList(createNewRange("0", "2")));
 
-    runTest(ranges, metaCache, expected3, nrl(nr("0", "2")));
+    ranges = createNewRangeList(createNewRange("0", "1"), createNewRange("0", "11"),
+        createNewRange("1", "2"), createNewRange("0", "4"), createNewRange("2", "4"),
+        createNewRange("21", "4"));
+    Map<String,
+        Map<KeyExtent,List<Range>>> expected4 = createExpectedBinnings(
+            createRangeLocation("l1", createNewKeyExtent("foo", "0", null),
+                createNewRangeList(createNewRange("0", "1"))),
+            createRangeLocation("l2", createNewKeyExtent("foo", "1", "0"),
+                createNewRangeList(createNewRange("0", "1"))),
+            createRangeLocation("l4", createNewKeyExtent("foo", "3", "2"),
+                createNewRangeList(createNewRange("21", "4"))),
+            createRangeLocation("l5", createNewKeyExtent("foo", null, "3"),
+                createNewRangeList(createNewRange("21", "4"))));
 
-    ranges =
-        nrl(nr("0", "1"), nr("0", "11"), nr("1", "2"), nr("0", "4"), nr("2", "4"), nr("21", "4"));
-    Map<String,Map<KeyExtent,List<Range>>> expected4 =
-        createExpectedBinnings("l1", nol(nke("foo", "0", null), nrl(nr("0", "1"))), "l2",
-            nol(nke("foo", "1", "0"), nrl(nr("0", "1"))), "l4",
-            nol(nke("foo", "3", "2"), nrl(nr("21", "4"))), "l5",
-            nol(nke("foo", null, "3"), nrl(nr("21", "4")))
-
-        );
-
-    runTest(ranges, metaCache, expected4,
-        nrl(nr("0", "11"), nr("1", "2"), nr("0", "4"), nr("2", "4")));
+    runTest(ranges, metaCache, expected4, createNewRangeList(createNewRange("0", "11"),
+        createNewRange("1", "2"), createNewRange("0", "4"), createNewRange("2", "4")));
   }
 
   @Test
   public void testBinMutations1() throws Exception {
     // one tablet table
-    KeyExtent ke1 = nke("foo", null, null);
+    KeyExtent ke1 = createNewKeyExtent("foo", null, null);
     TabletLocatorImpl metaCache = createLocators("foo", ke1, "l1");
 
-    List<Mutation> ml =
-        nml(nm("a", "cf1:cq1=v1", "cf1:cq2=v2"), nm("c", "cf1:cq1=v3", "cf1:cq2=v4"));
-    Map<String,Map<KeyExtent,List<String>>> emb = cemb(nol("a", "l1", ke1), nol("c", "l1", ke1));
+    List<Mutation> ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"),
+        createNewMutation("c", "cf1:cq1=v3", "cf1:cq2=v4"));
+    Map<String,Map<KeyExtent,List<String>>> emb = createServerExtentMap(
+        createServerExtent("a", "l1", ke1), createServerExtent("c", "l1", ke1));
     runTest(metaCache, ml, emb);
 
-    ml = nml(nm("a", "cf1:cq1=v1", "cf1:cq2=v2"));
-    emb = cemb(nol("a", "l1", ke1));
+    ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"));
+    emb = createServerExtentMap(createServerExtent("a", "l1", ke1));
     runTest(metaCache, ml, emb);
 
-    ml = nml(nm("a", "cf1:cq1=v1", "cf1:cq2=v2"), nm("a", "cf1:cq3=v3"));
-    emb = cemb(nol("a", "l1", ke1), nol("a", "l1", ke1));
+    ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"),
+        createNewMutation("a", "cf1:cq3=v3"));
+    emb = createServerExtentMap(createServerExtent("a", "l1", ke1),
+        createServerExtent("a", "l1", ke1));
     runTest(metaCache, ml, emb);
 
   }
@@ -1029,80 +1103,98 @@ public class TabletLocatorImplTest {
     // no tablets for table
     TabletLocatorImpl metaCache = createLocators("foo");
 
-    List<Mutation> ml =
-        nml(nm("a", "cf1:cq1=v1", "cf1:cq2=v2"), nm("c", "cf1:cq1=v3", "cf1:cq2=v4"));
-    Map<String,Map<KeyExtent,List<String>>> emb = cemb();
+    List<Mutation> ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"),
+        createNewMutation("c", "cf1:cq1=v3", "cf1:cq2=v4"));
+    Map<String,Map<KeyExtent,List<String>>> emb = createServerExtentMap();
     runTest(metaCache, ml, emb, "a", "c");
   }
 
   @Test
   public void testBinMutations3() throws Exception {
     // three tablet table
-    KeyExtent ke1 = nke("foo", "h", null);
-    KeyExtent ke2 = nke("foo", "t", "h");
-    KeyExtent ke3 = nke("foo", null, "t");
+    KeyExtent ke1 = createNewKeyExtent("foo", "h", null);
+    KeyExtent ke2 = createNewKeyExtent("foo", "t", "h");
+    KeyExtent ke3 = createNewKeyExtent("foo", null, "t");
 
     TabletLocatorImpl metaCache = createLocators("foo", ke1, "l1", ke2, "l2", ke3, "l3");
 
-    List<Mutation> ml =
-        nml(nm("a", "cf1:cq1=v1", "cf1:cq2=v2"), nm("i", "cf1:cq1=v3", "cf1:cq2=v4"));
-    Map<String,Map<KeyExtent,List<String>>> emb = cemb(nol("a", "l1", ke1), nol("i", "l2", ke2));
+    List<Mutation> ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"),
+        createNewMutation("i", "cf1:cq1=v3", "cf1:cq2=v4"));
+    Map<String,Map<KeyExtent,List<String>>> emb = createServerExtentMap(
+        createServerExtent("a", "l1", ke1), createServerExtent("i", "l2", ke2));
     runTest(metaCache, ml, emb);
 
-    ml = nml(nm("a", "cf1:cq1=v1", "cf1:cq2=v2"));
-    emb = cemb(nol("a", "l1", ke1));
+    ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"));
+    emb = createServerExtentMap(createServerExtent("a", "l1", ke1));
     runTest(metaCache, ml, emb);
 
-    ml = nml(nm("a", "cf1:cq1=v1", "cf1:cq2=v2"), nm("a", "cf1:cq3=v3"));
-    emb = cemb(nol("a", "l1", ke1), nol("a", "l1", ke1));
+    ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"),
+        createNewMutation("a", "cf1:cq3=v3"));
+    emb = createServerExtentMap(createServerExtent("a", "l1", ke1),
+        createServerExtent("a", "l1", ke1));
     runTest(metaCache, ml, emb);
 
-    ml = nml(nm("a", "cf1:cq1=v1", "cf1:cq2=v2"), nm("w", "cf1:cq3=v3"));
-    emb = cemb(nol("a", "l1", ke1), nol("w", "l3", ke3));
+    ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"),
+        createNewMutation("w", "cf1:cq3=v3"));
+    emb = createServerExtentMap(createServerExtent("a", "l1", ke1),
+        createServerExtent("w", "l3", ke3));
     runTest(metaCache, ml, emb);
 
-    ml = nml(nm("a", "cf1:cq1=v1", "cf1:cq2=v2"), nm("w", "cf1:cq3=v3"), nm("z", "cf1:cq4=v4"));
-    emb = cemb(nol("a", "l1", ke1), nol("w", "l3", ke3), nol("z", "l3", ke3));
+    ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"),
+        createNewMutation("w", "cf1:cq3=v3"), createNewMutation("z", "cf1:cq4=v4"));
+    emb = createServerExtentMap(createServerExtent("a", "l1", ke1),
+        createServerExtent("w", "l3", ke3), createServerExtent("z", "l3", ke3));
     runTest(metaCache, ml, emb);
 
-    ml = nml(nm("h", "cf1:cq1=v1", "cf1:cq2=v2"), nm("t", "cf1:cq1=v1", "cf1:cq2=v2"));
-    emb = cemb(nol("h", "l1", ke1), nol("t", "l2", ke2));
+    ml = createNewMutationList(createNewMutation("h", "cf1:cq1=v1", "cf1:cq2=v2"),
+        createNewMutation("t", "cf1:cq1=v1", "cf1:cq2=v2"));
+    emb = createServerExtentMap(createServerExtent("h", "l1", ke1),
+        createServerExtent("t", "l2", ke2));
     runTest(metaCache, ml, emb);
   }
 
   @Test
   public void testBinMutations4() throws Exception {
     // three table with hole
-    KeyExtent ke1 = nke("foo", "h", null);
+    KeyExtent ke1 = createNewKeyExtent("foo", "h", null);
 
-    KeyExtent ke3 = nke("foo", null, "t");
+    KeyExtent ke3 = createNewKeyExtent("foo", null, "t");
 
     TabletLocatorImpl metaCache = createLocators("foo", ke1, "l1", ke3, "l3");
 
-    List<Mutation> ml =
-        nml(nm("a", "cf1:cq1=v1", "cf1:cq2=v2"), nm("i", "cf1:cq1=v3", "cf1:cq2=v4"));
-    Map<String,Map<KeyExtent,List<String>>> emb = cemb(nol("a", "l1", ke1));
+    List<Mutation> ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"),
+        createNewMutation("i", "cf1:cq1=v3", "cf1:cq2=v4"));
+    Map<String,Map<KeyExtent,List<String>>> emb =
+        createServerExtentMap(createServerExtent("a", "l1", ke1));
     runTest(metaCache, ml, emb, "i");
 
-    ml = nml(nm("a", "cf1:cq1=v1", "cf1:cq2=v2"));
-    emb = cemb(nol("a", "l1", ke1));
+    ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"));
+    emb = createServerExtentMap(createServerExtent("a", "l1", ke1));
     runTest(metaCache, ml, emb);
 
-    ml = nml(nm("a", "cf1:cq1=v1", "cf1:cq2=v2"), nm("a", "cf1:cq3=v3"));
-    emb = cemb(nol("a", "l1", ke1), nol("a", "l1", ke1));
+    ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"),
+        createNewMutation("a", "cf1:cq3=v3"));
+    emb = createServerExtentMap(createServerExtent("a", "l1", ke1),
+        createServerExtent("a", "l1", ke1));
     runTest(metaCache, ml, emb);
 
-    ml = nml(nm("a", "cf1:cq1=v1", "cf1:cq2=v2"), nm("w", "cf1:cq3=v3"));
-    emb = cemb(nol("a", "l1", ke1), nol("w", "l3", ke3));
+    ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"),
+        createNewMutation("w", "cf1:cq3=v3"));
+    emb = createServerExtentMap(createServerExtent("a", "l1", ke1),
+        createServerExtent("w", "l3", ke3));
     runTest(metaCache, ml, emb);
 
-    ml = nml(nm("a", "cf1:cq1=v1", "cf1:cq2=v2"), nm("w", "cf1:cq3=v3"), nm("z", "cf1:cq4=v4"));
-    emb = cemb(nol("a", "l1", ke1), nol("w", "l3", ke3), nol("z", "l3", ke3));
+    ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"),
+        createNewMutation("w", "cf1:cq3=v3"), createNewMutation("z", "cf1:cq4=v4"));
+    emb = createServerExtentMap(createServerExtent("a", "l1", ke1),
+        createServerExtent("w", "l3", ke3), createServerExtent("z", "l3", ke3));
     runTest(metaCache, ml, emb);
 
-    ml = nml(nm("a", "cf1:cq1=v1", "cf1:cq2=v2"), nm("w", "cf1:cq3=v3"), nm("z", "cf1:cq4=v4"),
-        nm("t", "cf1:cq5=v5"));
-    emb = cemb(nol("a", "l1", ke1), nol("w", "l3", ke3), nol("z", "l3", ke3));
+    ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"),
+        createNewMutation("w", "cf1:cq3=v3"), createNewMutation("z", "cf1:cq4=v4"),
+        createNewMutation("t", "cf1:cq5=v5"));
+    emb = createServerExtentMap(createServerExtent("a", "l1", ke1),
+        createServerExtent("w", "l3", ke3), createServerExtent("z", "l3", ke3));
     runTest(metaCache, ml, emb, "t");
   }
 
@@ -1115,58 +1207,59 @@ public class TabletLocatorImplTest {
       // when i == 1 only test binning ranges
       // when i == 2 test both
 
-      KeyExtent ke1 = nke("foo", null, null);
+      KeyExtent ke1 = createNewKeyExtent("foo", null, null);
       TServers tservers = new TServers();
       TabletLocatorImpl metaCache =
           createLocators(tservers, "tserver1", "tserver2", "foo", ke1, "l1");
 
-      List<Mutation> ml = nml(nm("a", "cf1:cq1=v1", "cf1:cq2=v2"),
-          nm("m", "cf1:cq1=v3", "cf1:cq2=v4"), nm("z", "cf1:cq1=v5"));
+      List<Mutation> ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"),
+          createNewMutation("m", "cf1:cq1=v3", "cf1:cq2=v4"), createNewMutation("z", "cf1:cq1=v5"));
       Map<String,Map<KeyExtent,List<String>>> emb =
-          cemb(nol("a", "l1", ke1), nol("m", "l1", ke1), nol("z", "l1", ke1));
+          createServerExtentMap(createServerExtent("a", "l1", ke1),
+              createServerExtent("m", "l1", ke1), createServerExtent("z", "l1", ke1));
       if (i == 0 || i == 2)
         runTest(metaCache, ml, emb);
 
-      List<Range> ranges =
-          nrl(new Range(new Text("a")), new Range(new Text("m")), new Range(new Text("z")));
+      List<Range> ranges = createNewRangeList(new Range(new Text("a")), new Range(new Text("m")),
+          new Range(new Text("z")));
 
-      Map<String,Map<KeyExtent,List<Range>>> expected1 =
-          createExpectedBinnings("l1", nol(nke("foo", null, null), ranges)
-
-          );
+      Map<String,Map<KeyExtent,List<Range>>> expected1 = createExpectedBinnings(
+          createRangeLocation("l1", createNewKeyExtent("foo", null, null), ranges));
 
       if (i == 1 || i == 2)
         runTest(ranges, metaCache, expected1);
 
-      KeyExtent ke11 = nke("foo", "n", null);
-      KeyExtent ke12 = nke("foo", null, "n");
+      KeyExtent ke11 = createNewKeyExtent("foo", "n", null);
+      KeyExtent ke12 = createNewKeyExtent("foo", null, "n");
 
-      setLocation(tservers, "tserver2", MTE, ke12, "l2");
+      setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke12, "l2");
 
       metaCache.invalidateCache(ke1);
 
-      emb = cemb(nol("z", "l2", ke12));
+      emb = createServerExtentMap(createServerExtent("z", "l2", ke12));
       if (i == 0 || i == 2)
         runTest(metaCache, ml, emb, "a", "m");
 
       Map<String,Map<KeyExtent,List<Range>>> expected2 =
-          createExpectedBinnings("l2", nol(nke("foo", null, "n"), nrl(new Range(new Text("z"))))
-
-          );
+          createExpectedBinnings(createRangeLocation("l2", createNewKeyExtent("foo", null, "n"),
+              createNewRangeList(new Range(new Text("z")))));
 
       if (i == 1 || i == 2)
         runTest(ranges, metaCache, expected2,
-            nrl(new Range(new Text("a")), new Range(new Text("m"))));
+            createNewRangeList(new Range(new Text("a")), new Range(new Text("m"))));
 
-      setLocation(tservers, "tserver2", MTE, ke11, "l3");
-      emb = cemb(nol("a", "l3", ke11), nol("m", "l3", ke11), nol("z", "l2", ke12));
+      setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke11, "l3");
+      emb = createServerExtentMap(createServerExtent("a", "l3", ke11),
+          createServerExtent("m", "l3", ke11), createServerExtent("z", "l2", ke12));
       if (i == 0 || i == 2)
         runTest(metaCache, ml, emb);
 
       Map<String,
-          Map<KeyExtent,List<Range>>> expected3 = createExpectedBinnings("l2",
-              nol(nke("foo", null, "n"), nrl(new Range(new Text("z")))), "l3",
-              nol(nke("foo", "n", null), nrl(new Range(new Text("a")), new Range(new Text("m"))))
+          Map<KeyExtent,List<Range>>> expected3 = createExpectedBinnings(
+              createRangeLocation("l2", createNewKeyExtent("foo", null, "n"),
+                  createNewRangeList(new Range(new Text("z")))),
+              createRangeLocation("l3", createNewKeyExtent("foo", "n", null),
+                  createNewRangeList(new Range(new Text("a")), new Range(new Text("m"))))
 
       );
 
@@ -1178,7 +1271,7 @@ public class TabletLocatorImplTest {
   @Test
   public void testBug1() throws Exception {
     // a bug that occurred while running continuous ingest
-    KeyExtent mte1 = new KeyExtent(MetadataTable.ID, new Text("0;0bc"), RTE.endRow());
+    KeyExtent mte1 = new KeyExtent(MetadataTable.ID, new Text("0;0bc"), ROOT_TABLE_EXTENT.endRow());
     KeyExtent mte2 = new KeyExtent(MetadataTable.ID, null, new Text("0;0bc"));
 
     TServers tservers = new TServers();
@@ -1190,8 +1283,8 @@ public class TabletLocatorImplTest {
     TabletLocatorImpl tab0TabletCache =
         new TabletLocatorImpl(TableId.of("0"), rootTabletCache, ttlo, new YesLockChecker());
 
-    setLocation(tservers, "tserver1", RTE, mte1, "tserver2");
-    setLocation(tservers, "tserver1", RTE, mte2, "tserver3");
+    setLocation(tservers, "tserver1", ROOT_TABLE_EXTENT, mte1, "tserver2");
+    setLocation(tservers, "tserver1", ROOT_TABLE_EXTENT, mte2, "tserver3");
 
     // create two tablets that straddle a metadata split point
     KeyExtent ke1 = new KeyExtent(TableId.of("0"), new Text("0bbf20e"), null);
@@ -1207,7 +1300,7 @@ public class TabletLocatorImplTest {
   @Test
   public void testBug2() throws Exception {
     // a bug that occurred while running a functional test
-    KeyExtent mte1 = new KeyExtent(MetadataTable.ID, new Text("~"), RTE.endRow());
+    KeyExtent mte1 = new KeyExtent(MetadataTable.ID, new Text("~"), ROOT_TABLE_EXTENT.endRow());
     KeyExtent mte2 = new KeyExtent(MetadataTable.ID, null, new Text("~"));
 
     TServers tservers = new TServers();
@@ -1219,8 +1312,8 @@ public class TabletLocatorImplTest {
     TabletLocatorImpl tab0TabletCache =
         new TabletLocatorImpl(TableId.of("0"), rootTabletCache, ttlo, new YesLockChecker());
 
-    setLocation(tservers, "tserver1", RTE, mte1, "tserver2");
-    setLocation(tservers, "tserver1", RTE, mte2, "tserver3");
+    setLocation(tservers, "tserver1", ROOT_TABLE_EXTENT, mte1, "tserver2");
+    setLocation(tservers, "tserver1", ROOT_TABLE_EXTENT, mte2, "tserver3");
 
     // create the ~ tablet so it exists
     Map<KeyExtent,SortedMap<Key,Value>> ts3 = new HashMap<>();
@@ -1235,7 +1328,7 @@ public class TabletLocatorImplTest {
   // being merged away, caused locating tablets to fail
   @Test
   public void testBug3() throws Exception {
-    KeyExtent mte1 = new KeyExtent(MetadataTable.ID, new Text("1;c"), RTE.endRow());
+    KeyExtent mte1 = new KeyExtent(MetadataTable.ID, new Text("1;c"), ROOT_TABLE_EXTENT.endRow());
     KeyExtent mte2 = new KeyExtent(MetadataTable.ID, new Text("1;f"), new Text("1;c"));
     KeyExtent mte3 = new KeyExtent(MetadataTable.ID, new Text("1;j"), new Text("1;f"));
     KeyExtent mte4 = new KeyExtent(MetadataTable.ID, new Text("1;r"), new Text("1;j"));
@@ -1253,11 +1346,11 @@ public class TabletLocatorImplTest {
     TabletLocatorImpl tab0TabletCache =
         new TabletLocatorImpl(TableId.of("1"), rootTabletCache, ttlo, new YesLockChecker());
 
-    setLocation(tservers, "tserver1", RTE, mte1, "tserver2");
-    setLocation(tservers, "tserver1", RTE, mte2, "tserver3");
-    setLocation(tservers, "tserver1", RTE, mte3, "tserver4");
-    setLocation(tservers, "tserver1", RTE, mte4, "tserver5");
-    setLocation(tservers, "tserver1", RTE, mte5, "tserver6");
+    setLocation(tservers, "tserver1", ROOT_TABLE_EXTENT, mte1, "tserver2");
+    setLocation(tservers, "tserver1", ROOT_TABLE_EXTENT, mte2, "tserver3");
+    setLocation(tservers, "tserver1", ROOT_TABLE_EXTENT, mte3, "tserver4");
+    setLocation(tservers, "tserver1", ROOT_TABLE_EXTENT, mte4, "tserver5");
+    setLocation(tservers, "tserver1", ROOT_TABLE_EXTENT, mte5, "tserver6");
 
     createEmptyTablet(tservers, "tserver2", mte1);
     createEmptyTablet(tservers, "tserver3", mte2);
@@ -1274,13 +1367,13 @@ public class TabletLocatorImplTest {
     TServers tservers = new TServers();
     TabletLocatorImpl metaCache = createLocators(tservers, "tserver1", "tserver2", "foo");
 
-    KeyExtent ke1 = nke("foo", null, null);
+    KeyExtent ke1 = createNewKeyExtent("foo", null, null);
 
     // set two locations for a tablet, this is not supposed to happen. The metadata cache should
     // throw an exception if it sees this rather than caching one of
     // the locations.
-    setLocation(tservers, "tserver2", MTE, ke1, "L1", "I1");
-    setLocation(tservers, "tserver2", MTE, ke1, "L2", "I2");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke1, "L1", "I1");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke1, "L2", "I2");
 
     var e = assertThrows(IllegalStateException.class,
         () -> metaCache.locateTablet(context, new Text("a"), false, false));
@@ -1305,8 +1398,8 @@ public class TabletLocatorImplTest {
           public void invalidateCache(String server) {}
         });
 
-    KeyExtent ke1 = nke("foo", null, null);
-    setLocation(tservers, "tserver2", MTE, ke1, "L1", "5");
+    KeyExtent ke1 = createNewKeyExtent("foo", null, null);
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke1, "L1", "5");
 
     activeLocks.add("L1:5");
 
@@ -1319,19 +1412,19 @@ public class TabletLocatorImplTest {
     locateTabletTest(metaCache, "a", null, null);
     locateTabletTest(metaCache, "a", null, null);
 
-    clearLocation(tservers, "tserver2", MTE, ke1, "5");
-    setLocation(tservers, "tserver2", MTE, ke1, "L2", "6");
+    clearLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke1, "5");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke1, "L2", "6");
 
     activeLocks.add("L2:6");
 
     locateTabletTest(metaCache, "a", ke1, "L2");
     locateTabletTest(metaCache, "a", ke1, "L2");
 
-    clearLocation(tservers, "tserver2", MTE, ke1, "6");
+    clearLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke1, "6");
 
     locateTabletTest(metaCache, "a", ke1, "L2");
 
-    setLocation(tservers, "tserver2", MTE, ke1, "L3", "7");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke1, "L3", "7");
 
     locateTabletTest(metaCache, "a", ke1, "L2");
 
@@ -1345,11 +1438,13 @@ public class TabletLocatorImplTest {
     locateTabletTest(metaCache, "a", ke1, "L3");
     locateTabletTest(metaCache, "a", ke1, "L3");
 
-    List<Mutation> ml = nml(nm("a", "cf1:cq1=v1", "cf1:cq2=v2"), nm("w", "cf1:cq3=v3"));
-    Map<String,Map<KeyExtent,List<String>>> emb = cemb(nol("a", "L3", ke1), nol("w", "L3", ke1));
+    List<Mutation> ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"),
+        createNewMutation("w", "cf1:cq3=v3"));
+    Map<String,Map<KeyExtent,List<String>>> emb = createServerExtentMap(
+        createServerExtent("a", "L3", ke1), createServerExtent("w", "L3", ke1));
     runTest(metaCache, ml, emb);
 
-    clearLocation(tservers, "tserver2", MTE, ke1, "7");
+    clearLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke1, "7");
 
     runTest(metaCache, ml, emb);
 
@@ -1360,57 +1455,71 @@ public class TabletLocatorImplTest {
     runTest(metaCache, ml, emb, "a", "w");
     runTest(metaCache, ml, emb, "a", "w");
 
-    KeyExtent ke11 = nke("foo", "m", null);
-    KeyExtent ke12 = nke("foo", null, "m");
+    KeyExtent ke11 = createNewKeyExtent("foo", "m", null);
+    KeyExtent ke12 = createNewKeyExtent("foo", null, "m");
 
-    setLocation(tservers, "tserver2", MTE, ke11, "L1", "8");
-    setLocation(tservers, "tserver2", MTE, ke12, "L2", "9");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke11, "L1", "8");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke12, "L2", "9");
 
     runTest(metaCache, ml, emb, "a", "w");
 
     activeLocks.add("L1:8");
 
-    emb = cemb(nol("a", "L1", ke11));
+    emb = createServerExtentMap(createServerExtent("a", "L1", ke11));
     runTest(metaCache, ml, emb, "w");
 
     activeLocks.add("L2:9");
 
-    emb = cemb(nol("a", "L1", ke11), nol("w", "L2", ke12));
+    emb = createServerExtentMap(createServerExtent("a", "L1", ke11),
+        createServerExtent("w", "L2", ke12));
     runTest(metaCache, ml, emb);
 
-    List<Range> ranges = nrl(new Range("a"), nr("b", "o"), nr("r", "z"));
-    Map<String,Map<KeyExtent,List<Range>>> expected =
-        createExpectedBinnings("L1", nol(ke11, nrl(new Range("a"), nr("b", "o"))), "L2",
-            nol(ke12, nrl(nr("b", "o"), nr("r", "z"))));
+    List<Range> ranges =
+        createNewRangeList(new Range("a"), createNewRange("b", "o"), createNewRange("r", "z"));
+    Map<String,
+        Map<KeyExtent,List<Range>>> expected = createExpectedBinnings(
+            createRangeLocation("L1", ke11,
+                createNewRangeList(new Range("a"), createNewRange("b", "o"))),
+            createRangeLocation("L2", ke12,
+                createNewRangeList(createNewRange("b", "o"), createNewRange("r", "z"))));
 
     runTest(ranges, metaCache, expected);
 
     activeLocks.remove("L2:9");
 
-    expected = createExpectedBinnings("L1", nol(ke11, nrl(new Range("a"))));
-    runTest(ranges, metaCache, expected, nrl(nr("b", "o"), nr("r", "z")));
+    expected =
+        createExpectedBinnings(createRangeLocation("L1", ke11, createNewRangeList(new Range("a"))));
+    runTest(ranges, metaCache, expected,
+        createNewRangeList(createNewRange("b", "o"), createNewRange("r", "z")));
 
     activeLocks.clear();
 
     expected = createExpectedBinnings();
-    runTest(ranges, metaCache, expected, nrl(new Range("a"), nr("b", "o"), nr("r", "z")));
+    runTest(ranges, metaCache, expected,
+        createNewRangeList(new Range("a"), createNewRange("b", "o"), createNewRange("r", "z")));
 
-    clearLocation(tservers, "tserver2", MTE, ke11, "8");
-    clearLocation(tservers, "tserver2", MTE, ke12, "9");
-    setLocation(tservers, "tserver2", MTE, ke11, "L3", "10");
-    setLocation(tservers, "tserver2", MTE, ke12, "L4", "11");
+    clearLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke11, "8");
+    clearLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke12, "9");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke11, "L3", "10");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke12, "L4", "11");
 
-    runTest(ranges, metaCache, expected, nrl(new Range("a"), nr("b", "o"), nr("r", "z")));
+    runTest(ranges, metaCache, expected,
+        createNewRangeList(new Range("a"), createNewRange("b", "o"), createNewRange("r", "z")));
 
     activeLocks.add("L3:10");
 
-    expected = createExpectedBinnings("L3", nol(ke11, nrl(new Range("a"))));
-    runTest(ranges, metaCache, expected, nrl(nr("b", "o"), nr("r", "z")));
+    expected =
+        createExpectedBinnings(createRangeLocation("L3", ke11, createNewRangeList(new Range("a"))));
+    runTest(ranges, metaCache, expected,
+        createNewRangeList(createNewRange("b", "o"), createNewRange("r", "z")));
 
     activeLocks.add("L4:11");
 
-    expected = createExpectedBinnings("L3", nol(ke11, nrl(new Range("a"), nr("b", "o"))), "L4",
-        nol(ke12, nrl(nr("b", "o"), nr("r", "z"))));
+    expected = createExpectedBinnings(
+        createRangeLocation("L3", ke11,
+            createNewRangeList(new Range("a"), createNewRange("b", "o"))),
+        createRangeLocation("L4", ke12,
+            createNewRangeList(createNewRange("b", "o"), createNewRange("r", "z"))));
     runTest(ranges, metaCache, expected);
   }
 
