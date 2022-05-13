@@ -19,30 +19,36 @@
 /* JSLint global definitions */
 /*global
     $, document, sessionStorage, getManager, bigNumberForQuantity,
-    timeDuration, dateFormat
+    timeDuration, dateFormat, getStatus, ajaxReloadTable
 */
 "use strict";
 
 var managerStatusTable, recoveryListTable;
 
-/**
- * Performs an ajax reload for the given Datatable
- *
- * @param {DataTable} table DataTable to perform an ajax reload on
- */
-function ajaxReloadTable(table) {
-    if (table) {
-        table.ajax.reload(null, false); // user paging is not reset on reload
-    } else {
-        console.error('Given table could not be found and was not reloaded');
-    }
+function refreshManagerStatusTable() {
+    ajaxReloadTable(managerStatusTable);
+
+    getStatus().then(function () {
+        var status = JSON.parse(sessionStorage.status).managerStatus;
+
+        // If manager status is error
+        if (status === 'ERROR') {
+            // show banner and hide table
+            $('#managerBanner').show();
+            $('#managerStatus_wrapper').hide();
+        } else {
+            // otherwise, hide banner and show table
+            $('#managerBanner').hide();
+            $('#managerStatus_wrapper').show();
+        }
+    });
 }
 
 /**
  * Populates tables with the new information
  */
 function refreshTables() {
-    ajaxReloadTable(managerStatusTable);
+    refreshManagerStatusTable();
     ajaxReloadTable(recoveryListTable);
 }
 
@@ -71,6 +77,9 @@ $(document).ready(function () {
             }
         },
         "stateSave": true,
+        "searching": false,
+        "paging": false,
+        "info": false,
         "columnDefs": [
             {
                 "targets": "big-num",
