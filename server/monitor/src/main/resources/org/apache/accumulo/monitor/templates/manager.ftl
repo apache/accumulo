@@ -33,14 +33,14 @@
                 <th title="Number of tablet servers currently available">Online TServers&nbsp;</th>
                 <th title="The total number of tablet servers configured">TotalTServers&nbsp;</th>
                 <th title="The last time files were cleaned-up from HDFS.">Last&nbsp;GC</th>
-                <th title="Tables are broken down into ranges of rows called tablets.">Tablets</th>
-                <th>Unassigned Tablets&nbsp;</th>
-                <th title="The total number of key/value pairs in Accumulo">Entries</th>
-                <th title="The number of Key/Value pairs inserted. (Note that deletes are considered inserted)">Ingest</th>
-                <th title="The total number of Key/Value pairs read on the server side.  Not all may be returned because of filtering.">Entries Read</th>
-                <th title="The total number of Key/Value pairs returned as a result of scans.">Entries Returned</th>
-                <th title="The maximum amount of time that ingest has been held across all servers due to a lack of memory to store the records">Hold&nbsp;Time</th>
-                <th title="The Unix one minute load average. The average number of processes in the run queue over a one minute interval.">OS&nbsp;Load</th>
+                <th class="big-num" title="Tables are broken down into ranges of rows called tablets.">Tablets</th>
+                <th class="big-num">Unassigned Tablets&nbsp;</th>
+                <th class="big-num" title="The total number of key/value pairs in Accumulo">Entries</th>
+                <th class="big-num-rounded" title="The number of Key/Value pairs inserted. (Note that deletes are considered inserted)">Ingest</th>
+                <th class="big-num-rounded" title="The total number of Key/Value pairs read on the server side.  Not all may be returned because of filtering.">Entries Read</th>
+                <th class="big-num-rounded" title="The total number of Key/Value pairs returned as a result of scans.">Entries Returned</th>
+                <th class="duration" title="The maximum amount of time that ingest has been held across all servers due to a lack of memory to store the records">Hold&nbsp;Time</th>
+                <th class="big-num" title="The Unix one minute load average. The average number of processes in the run queue over a one minute interval.">OS&nbsp;Load</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -53,8 +53,8 @@
               <tr>
                 <th>Server</th>
                 <th>Log</th>
-                <th>Time</th>
-                <th>Progress</th>
+                <th class="duration">Time</th>
+                <th class="percent">Progress</th>
               </tr>
             </thead>
             <tbody></tbody>
