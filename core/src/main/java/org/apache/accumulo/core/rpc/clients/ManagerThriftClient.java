@@ -134,7 +134,7 @@ public class ManagerThriftClient extends ThriftClientTypes<Client>
     try {
       executeVoidTableCommand(context, exec);
     } catch (TableNotFoundException e) {
-      throw new AssertionError(e);
+      throw new AccumuloException(e);
     }
   }
 
