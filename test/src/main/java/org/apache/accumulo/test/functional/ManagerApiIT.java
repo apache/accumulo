@@ -66,7 +66,6 @@ public class ManagerApiIT extends SharedMiniClusterBase {
     return Duration.ofMinutes(1);
   }
 
-  @SuppressWarnings("deprecation")
   @BeforeAll
   public static void setup() throws Exception {
     // need to pretend to be a server, so we can bypass all of
@@ -77,7 +76,7 @@ public class ManagerApiIT extends SharedMiniClusterBase {
     regularUser = new Credentials("regularUser", new PasswordToken("regularUser"));
     privilegedUser = new Credentials("privilegedUser", new PasswordToken("privilegedUser"));
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      instanceId = InstanceId.of(client.instanceOperations().getInstanceID());
+      instanceId = client.instanceOperations().getInstanceId();
       SecurityOperations rootSecOps = client.securityOperations();
       for (Credentials user : Arrays.asList(regularUser, privilegedUser))
         rootSecOps.createLocalUser(user.getPrincipal(), (PasswordToken) user.getToken());
