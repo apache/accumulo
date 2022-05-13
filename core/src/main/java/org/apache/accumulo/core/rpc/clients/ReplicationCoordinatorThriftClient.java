@@ -24,7 +24,10 @@ import static java.util.Objects.requireNonNull;
 import java.util.List;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator.Client;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -111,6 +114,35 @@ public class ReplicationCoordinatorThriftClient extends ThriftClientTypes<Client
 
     throw new RuntimeException(
         "Timed out trying to communicate with manager from " + context.getInstanceName());
+  }
+
+  @Override
+  public <R> R execute(ClientContext context, Exec<R,Client> exec)
+      throws AccumuloException, AccumuloSecurityException {
+    Client client = null;
+    for (int i = 0; i < 10; i++) {
+      try {
+        client = getConnectionWithRetry(context);
+        return exec.execute(client);
+      } catch (TTransportException tte) {
+        LOG.debug("ReplicationClient coordinator request failed, retrying ... ", tte);
+        try {
+          Thread.sleep(100);
+        } catch (InterruptedException e) {
+          throw new AccumuloException(e);
+        }
+      } catch (ThriftSecurityException e) {
+        throw new AccumuloSecurityException(e.user, e.code, e);
+      } catch (Exception e) {
+        throw new AccumuloException(e);
+      } finally {
+        if (client != null)
+          ThriftUtil.close(client, context);
+      }
+    }
+
+    throw new AccumuloException(
+        "Could not connect to ReplicationCoordinator at " + context.getInstanceName());
   }
 
 }
