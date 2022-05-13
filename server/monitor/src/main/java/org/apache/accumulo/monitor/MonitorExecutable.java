@@ -25,9 +25,11 @@ import com.google.auto.service.AutoService;
 @AutoService(KeywordExecutable.class)
 public class MonitorExecutable implements KeywordExecutable {
 
+  public static final String EXE_NAME = "monitor";
+
   @Override
   public String keyword() {
-    return "monitor";
+    return EXE_NAME;
   }
 
   @Override

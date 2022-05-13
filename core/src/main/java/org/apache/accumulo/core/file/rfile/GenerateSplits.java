@@ -67,6 +67,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
     justification = "app is run in same security context as user providing the filename")
 public class GenerateSplits implements KeywordExecutable {
   private static final Logger log = LoggerFactory.getLogger(GenerateSplits.class);
+  public static final String EXE_NAME = "generate-splits";
 
   static class Opts extends ConfigOpts {
     @Parameter(names = {"-n", "--num"},
@@ -89,7 +90,7 @@ public class GenerateSplits implements KeywordExecutable {
 
   @Override
   public String keyword() {
-    return "generate-splits";
+    return EXE_NAME;
   }
 
   @Override

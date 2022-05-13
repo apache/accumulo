@@ -47,6 +47,8 @@ import com.google.auto.service.AutoService;
 @AutoService(KeywordExecutable.class)
 public class SplitLarge implements KeywordExecutable {
 
+  public static final String EXE_NAME = "split-large";
+
   static class Opts extends ConfigOpts {
     @Parameter(names = "-m",
         description = "the maximum size of the key/value pair to shunt to the small file")
@@ -61,7 +63,7 @@ public class SplitLarge implements KeywordExecutable {
 
   @Override
   public String keyword() {
-    return "split-large";
+    return EXE_NAME;
   }
 
   @Override

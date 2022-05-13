@@ -24,9 +24,12 @@ import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
 public class GCExecutable implements KeywordExecutable {
+
+  public static final String EXE_NAME = "gc";
+
   @Override
   public String keyword() {
-    return "gc";
+    return EXE_NAME;
   }
 
   @Override

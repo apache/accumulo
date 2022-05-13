@@ -79,6 +79,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @AutoService(KeywordExecutable.class)
 public class Admin implements KeywordExecutable {
   private static final Logger log = LoggerFactory.getLogger(Admin.class);
+  public static final String EXE_NAME = "admin";
 
   static class AdminOpts extends ServerUtilOpts {
     @Parameter(names = {"-f", "--force"},
@@ -168,7 +169,7 @@ public class Admin implements KeywordExecutable {
 
   @Override
   public String keyword() {
-    return "admin";
+    return EXE_NAME;
   }
 
   @Override

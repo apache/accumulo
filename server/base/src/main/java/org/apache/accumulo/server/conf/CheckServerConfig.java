@@ -27,6 +27,8 @@ import com.google.auto.service.AutoService;
 @AutoService(KeywordExecutable.class)
 public class CheckServerConfig implements KeywordExecutable {
 
+  public static final String EXE_NAME = "check-server-config";
+
   public static void main(String[] args) {
     try (var context = new ServerContext(SiteConfiguration.auto())) {
       context.getConfiguration();
@@ -35,7 +37,7 @@ public class CheckServerConfig implements KeywordExecutable {
 
   @Override
   public String keyword() {
-    return "check-server-config";
+    return EXE_NAME;
   }
 
   @Override

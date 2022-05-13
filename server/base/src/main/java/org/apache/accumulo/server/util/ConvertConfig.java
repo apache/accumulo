@@ -41,9 +41,11 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @AutoService(KeywordExecutable.class)
 public class ConvertConfig implements KeywordExecutable {
 
+  public static final String EXE_NAME = "convert-config";
+
   @Override
   public String keyword() {
-    return "convert-config";
+    return EXE_NAME;
   }
 
   @Override

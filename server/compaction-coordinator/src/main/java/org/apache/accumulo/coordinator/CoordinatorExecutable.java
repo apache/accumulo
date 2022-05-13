@@ -25,9 +25,11 @@ import com.google.auto.service.AutoService;
 @AutoService(KeywordExecutable.class)
 public class CoordinatorExecutable implements KeywordExecutable {
 
+  public static final String EXE_NAME = "compaction-coordinator";
+
   @Override
   public String keyword() {
-    return "compaction-coordinator";
+    return EXE_NAME;
   }
 
   @Override

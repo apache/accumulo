@@ -202,6 +202,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   public static final String HISTORY_DIR_NAME = ".accumulo";
   public static final String HISTORY_FILE_NAME = "shell_history.txt";
   private static final String SHELL_DESCRIPTION = "Shell - Apache Accumulo Interactive Shell";
+  public static final String EXE_NAME = "shell";
 
   protected int exitCode = 0;
   private String tableName;
@@ -500,7 +501,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   @Override
   public String keyword() {
-    return "shell";
+    return EXE_NAME;
   }
 
   @Override

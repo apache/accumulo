@@ -85,6 +85,7 @@ public class Initialize implements KeywordExecutable {
   private static final String DEFAULT_ROOT_USER = "root";
   @SuppressWarnings("deprecation")
   static final TableId REPL_TABLE_ID = org.apache.accumulo.core.replication.ReplicationTable.ID;
+  public static final String EXE_NAME = "init";
 
   static void checkInit(ZooReaderWriter zoo, VolumeManager fs, InitialConfiguration initConfig)
       throws IOException {
@@ -473,7 +474,7 @@ public class Initialize implements KeywordExecutable {
 
   @Override
   public String keyword() {
-    return "init";
+    return EXE_NAME;
   }
 
   @Override

@@ -25,9 +25,11 @@ import com.google.auto.service.AutoService;
 @AutoService(KeywordExecutable.class)
 public class TServerExecutable implements KeywordExecutable {
 
+  public static final String EXE_NAME = "tserver";
+
   @Override
   public String keyword() {
-    return "tserver";
+    return EXE_NAME;
   }
 
   @Override

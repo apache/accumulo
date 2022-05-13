@@ -50,6 +50,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @AutoService(KeywordExecutable.class)
 public class ECAdmin implements KeywordExecutable {
   private static final Logger log = LoggerFactory.getLogger(ECAdmin.class);
+  public static final String EXE_NAME = "ec-admin";
 
   @Parameters(commandDescription = "cancel the external compaction with given ECID")
   static class CancelCommand {
@@ -73,7 +74,7 @@ public class ECAdmin implements KeywordExecutable {
 
   @Override
   public String keyword() {
-    return "ec-admin";
+    return EXE_NAME;
   }
 
   @Override

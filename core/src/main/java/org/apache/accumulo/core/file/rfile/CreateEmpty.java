@@ -45,6 +45,7 @@ import com.google.auto.service.AutoService;
 @AutoService(KeywordExecutable.class)
 public class CreateEmpty implements KeywordExecutable {
   private static final Logger log = LoggerFactory.getLogger(CreateEmpty.class);
+  public static final String EXE_NAME = "create-empty";
 
   public static class NamedLikeRFile implements IParameterValidator {
     @Override
@@ -83,7 +84,7 @@ public class CreateEmpty implements KeywordExecutable {
 
   @Override
   public String keyword() {
-    return "create-empty";
+    return EXE_NAME;
   }
 
   @Override

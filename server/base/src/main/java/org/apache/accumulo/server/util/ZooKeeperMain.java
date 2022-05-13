@@ -29,6 +29,8 @@ import com.google.auto.service.AutoService;
 @AutoService(KeywordExecutable.class)
 public class ZooKeeperMain implements KeywordExecutable {
 
+  public static final String EXE_NAME = "zookeeper";
+
   static class Opts extends Help {
 
     @Parameter(names = {"-z", "--keepers"},
@@ -46,7 +48,7 @@ public class ZooKeeperMain implements KeywordExecutable {
 
   @Override
   public String keyword() {
-    return "zookeeper";
+    return EXE_NAME;
   }
 
   @Override

@@ -26,9 +26,11 @@ import com.google.auto.service.AutoService;
 @AutoService(KeywordExecutable.class)
 public class Version implements KeywordExecutable {
 
+  public static final String EXE_NAME = "version";
+
   @Override
   public String keyword() {
-    return "version";
+    return EXE_NAME;
   }
 
   @Override

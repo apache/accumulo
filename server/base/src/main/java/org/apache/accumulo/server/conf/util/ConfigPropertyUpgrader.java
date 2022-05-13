@@ -48,6 +48,7 @@ public class ConfigPropertyUpgrader implements KeywordExecutable {
   private static final Logger log = LoggerFactory.getLogger(ConfigPropertyUpgrader.class);
 
   private final static VersionedPropCodec codec = VersionedPropCodec.getDefault();
+  public static final String EXE_NAME = "config-upgrade";
 
   public ConfigPropertyUpgrader() {}
 
@@ -57,7 +58,7 @@ public class ConfigPropertyUpgrader implements KeywordExecutable {
 
   @Override
   public String keyword() {
-    return "config-upgrade";
+    return EXE_NAME;
   }
 
   @Override

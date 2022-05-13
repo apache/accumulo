@@ -26,9 +26,11 @@ import com.google.auto.service.AutoService;
 @AutoService(KeywordExecutable.class)
 public class MasterExecutable implements KeywordExecutable {
 
+  public static final String EXE_NAME = "master";
+
   @Override
   public String keyword() {
-    return "master";
+    return EXE_NAME;
   }
 
   @Override

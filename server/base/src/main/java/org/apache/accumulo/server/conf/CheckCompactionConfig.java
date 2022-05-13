@@ -56,6 +56,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
   final static String DEFAULT = "default";
   final static String META = "meta";
   final static String ROOT = "root";
+  public static final String EXE_NAME = "check-compaction-config";
 
   static class Opts extends Help {
     @Parameter(description = "<path> Local path to file containing compaction configuration",
@@ -65,7 +66,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
 
   @Override
   public String keyword() {
-    return "check-compaction-config";
+    return EXE_NAME;
   }
 
   @Override

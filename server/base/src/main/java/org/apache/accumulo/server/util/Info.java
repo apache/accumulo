@@ -29,9 +29,11 @@ import com.google.auto.service.AutoService;
 @AutoService(KeywordExecutable.class)
 public class Info implements KeywordExecutable {
 
+  public static final String EXE_NAME = "info";
+
   @Override
   public String keyword() {
-    return "info";
+    return EXE_NAME;
   }
 
   @Override

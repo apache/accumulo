@@ -35,6 +35,7 @@ import com.google.auto.service.AutoService;
 @AutoService(KeywordExecutable.class)
 public class CreateToken implements KeywordExecutable {
 
+  public static final String EXE_NAME = "create-token";
   private Console reader = null;
 
   private Console getConsoleReader() {
@@ -67,7 +68,7 @@ public class CreateToken implements KeywordExecutable {
 
   @Override
   public String keyword() {
-    return "create-token";
+    return EXE_NAME;
   }
 
   @Override

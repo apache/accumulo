@@ -26,9 +26,11 @@ import com.google.auto.service.AutoService;
 @AutoService(KeywordExecutable.class)
 public class MiniClusterExecutable implements KeywordExecutable {
 
+  public static final String EXE_NAME = "minicluster";
+
   @Override
   public String keyword() {
-    return "minicluster";
+    return EXE_NAME;
   }
 
   @Override

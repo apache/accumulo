@@ -57,6 +57,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class LogReader implements KeywordExecutable {
 
   private static final Logger log = LoggerFactory.getLogger(LogReader.class);
+  public static final String EXE_NAME = "wal-info";
 
   static class Opts extends Help {
     @Parameter(names = "-r", description = "print only mutations associated with the given row")
@@ -84,7 +85,7 @@ public class LogReader implements KeywordExecutable {
 
   @Override
   public String keyword() {
-    return "wal-info";
+    return EXE_NAME;
   }
 
   @Override

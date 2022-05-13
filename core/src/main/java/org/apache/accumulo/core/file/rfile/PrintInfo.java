@@ -60,6 +60,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class PrintInfo implements KeywordExecutable {
 
   private static final Logger log = LoggerFactory.getLogger(PrintInfo.class);
+  public static final String EXE_NAME = "rfile-info";
 
   static class Opts extends ConfigOpts {
     @Parameter(names = {"-d", "--dump"}, description = "dump the key/value pairs")
@@ -140,7 +141,7 @@ public class PrintInfo implements KeywordExecutable {
 
   @Override
   public String keyword() {
-    return "rfile-info";
+    return EXE_NAME;
   }
 
   @Override

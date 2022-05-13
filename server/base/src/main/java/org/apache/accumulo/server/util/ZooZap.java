@@ -47,6 +47,7 @@ import com.google.auto.service.AutoService;
 @AutoService(KeywordExecutable.class)
 public class ZooZap implements KeywordExecutable {
   private static final Logger log = LoggerFactory.getLogger(ZooZap.class);
+  public static final String EXE_NAME = "zoo-zap";
 
   private static void message(String msg, Opts opts) {
     if (opts.verbose) {
@@ -56,7 +57,7 @@ public class ZooZap implements KeywordExecutable {
 
   @Override
   public String keyword() {
-    return "zoo-zap";
+    return EXE_NAME;
   }
 
   @Override

@@ -33,9 +33,11 @@ import com.google.auto.service.AutoService;
 @AutoService(KeywordExecutable.class)
 public class LoginProperties implements KeywordExecutable {
 
+  public static final String EXE_NAME = "login-info";
+
   @Override
   public String keyword() {
-    return "login-info";
+    return EXE_NAME;
   }
 
   @Override

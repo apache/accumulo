@@ -25,9 +25,11 @@ import com.google.auto.service.AutoService;
 @AutoService(KeywordExecutable.class)
 public class CompactorExecutable implements KeywordExecutable {
 
+  public static final String EXE_NAME = "compactor";
+
   @Override
   public String keyword() {
-    return "compactor";
+    return EXE_NAME;
   }
 
   @Override
