@@ -77,6 +77,7 @@ import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -231,7 +232,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
               target, e);
           TraceUtil.setException(span2, e, false);
           continue;
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
           TraceUtil.setException(span2, e, true);
           throw e;
         } finally {
@@ -257,7 +258,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
             Span span3 = TraceUtil.startSpan(this.getClass(), "_replicate::RFile replication");
             try (Scope scope = span3.makeCurrent()) {
               finalStatus = replicateRFiles(peerContext, peerTserver, target, p, status, timeout);
-            } catch (Exception e) {
+            } catch (RuntimeException e) {
               TraceUtil.setException(span3, e, true);
               throw e;
             } finally {
@@ -268,7 +269,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
             try (Scope scope = span4.makeCurrent()) {
               finalStatus = replicateLogs(peerContext, peerTserver, target, p, status, sizeLimit,
                   remoteTableId, peerContext.rpcCreds(), helper, accumuloUgi, timeout);
-            } catch (Exception e) {
+            } catch (RuntimeException e) {
               TraceUtil.setException(span4, e, true);
               throw e;
             } finally {
@@ -292,7 +293,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
       // We made no status, punt on it for now, and let it re-queue itself for work
       return status;
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       TraceUtil.setException(span, e, true);
       throw e;
     } finally {
@@ -365,7 +366,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         log.warn("Unexpected error consuming file.");
         TraceUtil.setException(span, e, false);
         return status;
-      } catch (Exception e) {
+      } catch (RuntimeException e) {
         TraceUtil.setException(span, e, true);
         throw e;
       } finally {
@@ -391,7 +392,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
               new WalClientExecReturn(this, target, input, p, currentStatus, sizeLimit,
                   remoteTableId, tcreds, tids),
               timeout);
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
           log.error("Caught exception replicating data to {} at {}", peerContext.getInstanceName(),
               peerTserver, e);
           TraceUtil.setException(span2, e, true);
@@ -429,7 +430,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
               accumuloUgi.doAs((PrivilegedAction<Void>) () -> {
                 try {
                   helper.recordNewStatus(p, copy, target);
-                } catch (Exception e) {
+                } catch (TableNotFoundException | AccumuloException | RuntimeException e) {
                   exceptionRef.set(e);
                 }
                 return null;
@@ -456,7 +457,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
                 p, ProtobufUtil.toString(currentStatus), e);
             TraceUtil.setException(span3, e, true);
             throw new RuntimeException("Replication table did not exist, will retry", e);
-          } catch (Exception e) {
+          } catch (RuntimeException e) {
             TraceUtil.setException(span3, e, true);
             throw e;
           } finally {
@@ -493,7 +494,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
             p, ProtobufUtil.toString(newStatus), e);
         TraceUtil.setException(span4, e, true);
         throw new RuntimeException("Replication table did not exist, will retry", e);
-      } catch (Exception ex) {
+      } catch (RuntimeException ex) {
         TraceUtil.setException(span4, e, true);
         throw ex;
       } finally {
@@ -613,7 +614,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     try (Scope scope = span.makeCurrent()) {
       span.setAttribute("file", p.toString());
       return DfsLogger.getDecryptingStream(input, conf);
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       TraceUtil.setException(span, e, true);
       throw e;
     } finally {
@@ -744,7 +745,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       return exec.execute(client);
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code, e);
-    } catch (Exception e) {
+    } catch (TException e) {
       throw new AccumuloException(e);
     } finally {
       if (client != null)

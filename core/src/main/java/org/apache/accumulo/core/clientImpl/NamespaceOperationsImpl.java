@@ -188,6 +188,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     } catch (TableNotFoundException e) {
       if (e.getCause() instanceof NamespaceNotFoundException)
         throw (NamespaceNotFoundException) e.getCause();
+      else
+        throw new AccumuloException(e);
     }
 
     checkLocalityGroups(namespace, property);
@@ -204,6 +206,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     } catch (TableNotFoundException e) {
       if (e.getCause() instanceof NamespaceNotFoundException)
         throw (NamespaceNotFoundException) e.getCause();
+      else
+        throw new AccumuloException(e);
     }
     checkLocalityGroups(namespace, property);
   }

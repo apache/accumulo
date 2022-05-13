@@ -42,6 +42,7 @@ import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.thrift.TApplicationException;
+import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
@@ -112,7 +113,7 @@ public interface TServerClient<C extends TServiceClient> {
       } catch (TTransportException tte) {
         LOG.debug("ClientService request failed " + server + ", retrying ... ", tte);
         sleepUninterruptibly(100, MILLISECONDS);
-      } catch (Exception e) {
+      } catch (TException e) {
         throw new AccumuloException(e);
       } finally {
         if (client != null) {
@@ -140,7 +141,7 @@ public interface TServerClient<C extends TServiceClient> {
       } catch (TTransportException tte) {
         LOG.debug("ClientService request failed " + server + ", retrying ... ", tte);
         sleepUninterruptibly(100, MILLISECONDS);
-      } catch (Exception e) {
+      } catch (TException e) {
         throw new AccumuloException(e);
       } finally {
         if (client != null) {
