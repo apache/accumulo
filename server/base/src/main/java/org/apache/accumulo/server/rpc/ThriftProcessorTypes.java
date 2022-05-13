@@ -28,7 +28,6 @@ import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.ThriftClientType;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -38,75 +37,65 @@ import org.apache.thrift.TBaseProcessor;
 import org.apache.thrift.TMultiplexedProcessor;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.TServiceClient;
-import org.apache.thrift.TServiceClientFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 
-public class ThriftProcessorTypes {
+@VisibleForTesting
+public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClientTypes<C> {
+
+  public ThriftProcessorTypes(ThriftClientTypes<C> type) {
+    super(type.getServiceName(), type.getClientFactory());
+  }
 
   @VisibleForTesting
-  public static class ProcessorType<C extends TServiceClient,F extends TServiceClientFactory<C>>
-      extends ThriftClientType<C,F> {
-
-    public ProcessorType(ThriftClientType<C,F> type) {
-      super(type.getServiceName(), type.getClientFactory());
+  public <I,H extends I,P extends TBaseProcessor<?>> TProcessor getTProcessor(
+      Class<P> processorClass, Class<I> interfaceClass, H serviceHandler, ServerContext context,
+      AccumuloConfiguration conf) {
+    I rpcProxy = TraceUtil.wrapService(serviceHandler);
+    if (context.getThriftServerType() == ThriftServerType.SASL) {
+      @SuppressWarnings("unchecked")
+      Class<H> clazz = (Class<H>) serviceHandler.getClass();
+      rpcProxy = TCredentialsUpdatingWrapper.service(rpcProxy, clazz, conf);
     }
-
-    @VisibleForTesting
-    public <I,H extends I,P extends TBaseProcessor<?>> TProcessor getTProcessor(
-        Class<P> processorClass, Class<I> interfaceClass, H serviceHandler, ServerContext context,
-        AccumuloConfiguration conf) {
-      I rpcProxy = TraceUtil.wrapService(serviceHandler);
-      if (context.getThriftServerType() == ThriftServerType.SASL) {
-        @SuppressWarnings("unchecked")
-        Class<H> clazz = (Class<H>) serviceHandler.getClass();
-        rpcProxy = TCredentialsUpdatingWrapper.service(rpcProxy, clazz, conf);
-      }
-      try {
-        return processorClass.getConstructor(interfaceClass).newInstance(rpcProxy);
-      } catch (ReflectiveOperationException e) {
-        throw new IllegalArgumentException("Error constructing TProcessor instance", e);
-      }
+    try {
+      return processorClass.getConstructor(interfaceClass).newInstance(rpcProxy);
+    } catch (ReflectiveOperationException e) {
+      throw new IllegalArgumentException("Error constructing TProcessor instance", e);
     }
   }
 
   @VisibleForTesting
-  public static final ProcessorType<ClientService.Client,ClientService.Client.Factory> CLIENT =
-      new ProcessorType<>(ThriftClientTypes.CLIENT);
+  public static final ThriftProcessorTypes<ClientService.Client> CLIENT =
+      new ThriftProcessorTypes<>(ThriftClientTypes.CLIENT);
 
-  private static final ProcessorType<CompactorService.Client,
-      CompactorService.Client.Factory> COMPACTOR = new ProcessorType<>(ThriftClientTypes.COMPACTOR);
+  private static final ThriftProcessorTypes<CompactorService.Client> COMPACTOR =
+      new ThriftProcessorTypes<>(ThriftClientTypes.COMPACTOR);
 
-  private static final ProcessorType<CompactionCoordinatorService.Client,
-      CompactionCoordinatorService.Client.Factory> COORDINATOR =
-          new ProcessorType<>(ThriftClientTypes.COORDINATOR);
+  private static final ThriftProcessorTypes<CompactionCoordinatorService.Client> COORDINATOR =
+      new ThriftProcessorTypes<>(ThriftClientTypes.COORDINATOR);
 
-  private static final ProcessorType<FateService.Client,FateService.Client.Factory> FATE =
-      new ProcessorType<>(ThriftClientTypes.FATE);
+  private static final ThriftProcessorTypes<FateService.Client> FATE =
+      new ThriftProcessorTypes<>(ThriftClientTypes.FATE);
 
-  private static final ProcessorType<GCMonitorService.Client,GCMonitorService.Client.Factory> GC =
-      new ProcessorType<>(ThriftClientTypes.GC);
+  private static final ThriftProcessorTypes<GCMonitorService.Client> GC =
+      new ThriftProcessorTypes<>(ThriftClientTypes.GC);
 
-  private static final ProcessorType<ManagerClientService.Client,
-      ManagerClientService.Client.Factory> MANAGER = new ProcessorType<>(ThriftClientTypes.MANAGER);
+  private static final ThriftProcessorTypes<ManagerClientService.Client> MANAGER =
+      new ThriftProcessorTypes<>(ThriftClientTypes.MANAGER);
 
-  private static final ProcessorType<ReplicationCoordinator.Client,
-      ReplicationCoordinator.Client.Factory> REPLICATION_COORDINATOR =
-          new ProcessorType<>(ThriftClientTypes.REPLICATION_COORDINATOR);
+  private static final ThriftProcessorTypes<ReplicationCoordinator.Client> REPLICATION_COORDINATOR =
+      new ThriftProcessorTypes<>(ThriftClientTypes.REPLICATION_COORDINATOR);
 
-  private static final ProcessorType<ReplicationServicer.Client,
-      ReplicationServicer.Client.Factory> REPLICATION_SERVICER =
-          new ProcessorType<>(ThriftClientTypes.REPLICATION_SERVICER);
+  private static final ThriftProcessorTypes<ReplicationServicer.Client> REPLICATION_SERVICER =
+      new ThriftProcessorTypes<>(ThriftClientTypes.REPLICATION_SERVICER);
 
   @VisibleForTesting
-  public static final ProcessorType<TabletClientService.Client,
-      TabletClientService.Client.Factory> TABLET_SERVER =
-          new ProcessorType<>(ThriftClientTypes.TABLET_SERVER);
+  public static final ThriftProcessorTypes<TabletClientService.Client> TABLET_SERVER =
+      new ThriftProcessorTypes<>(ThriftClientTypes.TABLET_SERVER);
 
   @VisibleForTesting
-  public static final ProcessorType<TabletScanClientService.Client,
-      TabletScanClientService.Client.Factory> TABLET_SERVER_SCAN =
-          new ProcessorType<>(ThriftClientTypes.TABLET_SCAN);
+  public static final ThriftProcessorTypes<TabletScanClientService.Client> TABLET_SERVER_SCAN =
+      new ThriftProcessorTypes<>(ThriftClientTypes.TABLET_SCAN);
 
   public static TMultiplexedProcessor getCompactorTProcessor(CompactorService.Iface serviceHandler,
       ServerContext context, AccumuloConfiguration conf) {

@@ -24,128 +24,106 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.thrift.ClientService;
-import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
-import org.apache.accumulo.core.compaction.thrift.CompactorService;
-import org.apache.accumulo.core.gc.thrift.GCMonitorService;
-import org.apache.accumulo.core.manager.thrift.FateService;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService;
-import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
-import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
+import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.TServiceClientFactory;
 import org.apache.thrift.protocol.TMultiplexedProtocol;
 import org.apache.thrift.protocol.TProtocol;
 
-public class ThriftClientTypes {
-
-  public static class ThriftClientType<C extends TServiceClient,
-      F extends TServiceClientFactory<C>> {
-
-    /**
-     * execute method with supplied client returning object of type R
-     *
-     * @param <R>
-     *          return type
-     * @param <C>
-     *          client type
-     */
-    public interface Exec<R,C> {
-      R execute(C client) throws Exception;
-    }
-
-    /**
-     * execute method with supplied client
-     *
-     * @param <C>
-     *          client type
-     */
-    public interface ExecVoid<C> {
-      void execute(C client) throws Exception;
-    }
-
-    private final String serviceName;
-    private final F clientFactory;
-
-    public ThriftClientType(String serviceName, F clientFactory) {
-      super();
-      this.serviceName = serviceName;
-      this.clientFactory = clientFactory;
-    }
-
-    public String getServiceName() {
-      return serviceName;
-    }
-
-    public F getClientFactory() {
-      return clientFactory;
-    }
-
-    public C getClient(TProtocol prot) {
-      // All server side TProcessors are multiplexed. Wrap this protocol.
-      return clientFactory.getClient(new TMultiplexedProtocol(prot, getServiceName()));
-    }
-
-    public C getConnection(ClientContext context) {
-      throw new UnsupportedOperationException("This method has not been implemented");
-    }
-
-    public C getConnectionWithRetry(ClientContext context) {
-      while (true) {
-
-        C result = getConnection(context);
-        if (result != null)
-          return result;
-        sleepUninterruptibly(250, MILLISECONDS);
-      }
-    }
-
-    public <R> R execute(ClientContext context, Exec<R,C> exec)
-        throws AccumuloException, AccumuloSecurityException {
-      throw new UnsupportedOperationException("This method has not been implemented");
-    }
-
-    public void executeVoid(ClientContext context, ExecVoid<C> exec)
-        throws AccumuloException, AccumuloSecurityException {
-      throw new UnsupportedOperationException("This method has not been implemented");
-    }
-
-  }
+public abstract class ThriftClientTypes<C extends TServiceClient> {
 
   public static final ClientServiceThriftClient CLIENT =
-      new ClientServiceThriftClient("ClientService", new ClientService.Client.Factory());
+      new ClientServiceThriftClient("ClientService");
 
-  public static final ThriftClientType<CompactorService.Client,
-      CompactorService.Client.Factory> COMPACTOR =
-          new ThriftClientType<>("CompactorService", new CompactorService.Client.Factory());
+  public static final CompactorServiceThriftClient COMPACTOR =
+      new CompactorServiceThriftClient("CompactorService");
 
-  public static final ThriftClientType<CompactionCoordinatorService.Client,
-      CompactionCoordinatorService.Client.Factory> COORDINATOR = new ThriftClientType<>(
-          "CompactionCoordinatorService", new CompactionCoordinatorService.Client.Factory());
+  public static final CompactionCoordinatorServiceThriftClient COORDINATOR =
+      new CompactionCoordinatorServiceThriftClient("CompactionCoordinatorService");
 
-  public static final FateThriftClient FATE =
-      new FateThriftClient("FateService", new FateService.Client.Factory());
+  public static final FateThriftClient FATE = new FateThriftClient("FateService");
 
-  public static final ThriftClientType<GCMonitorService.Client,GCMonitorService.Client.Factory> GC =
-      new ThriftClientType<>("GCMonitorService", new GCMonitorService.Client.Factory());
+  public static final GCMonitorServiceThriftClient GC =
+      new GCMonitorServiceThriftClient("GCMonitorService");
 
-  public static final ManagerThriftClient MANAGER =
-      new ManagerThriftClient("ManagerClientService", new ManagerClientService.Client.Factory());
+  public static final ManagerThriftClient MANAGER = new ManagerThriftClient("ManagerClientService");
 
   public static final ReplicationCoordinatorThriftClient REPLICATION_COORDINATOR =
-      new ReplicationCoordinatorThriftClient("ReplicationCoordinator",
-          new ReplicationCoordinator.Client.Factory());
+      new ReplicationCoordinatorThriftClient("ReplicationCoordinator");
 
-  public static final ThriftClientType<ReplicationServicer.Client,
-      ReplicationServicer.Client.Factory> REPLICATION_SERVICER =
-          new ThriftClientType<>("ReplicationServicer", new ReplicationServicer.Client.Factory());
+  public static final ReplicationServicerThriftClient REPLICATION_SERVICER =
+      new ReplicationServicerThriftClient("ReplicationServicer");
 
   public static final TabletServerThriftClient TABLET_SERVER =
-      new TabletServerThriftClient("TabletClientService", new TabletClientService.Client.Factory());
+      new TabletServerThriftClient("TabletClientService");
 
-  public static final ThriftClientType<TabletScanClientService.Client,
-      TabletScanClientService.Client.Factory> TABLET_SCAN = new ThriftClientType<>(
-          "TabletScanClientService", new TabletScanClientService.Client.Factory());
+  public static final TabletScanClientServiceThriftClient TABLET_SCAN =
+      new TabletScanClientServiceThriftClient("TabletScanClientService");
+
+  /**
+   * execute method with supplied client returning object of type R
+   *
+   * @param <R>
+   *          return type
+   * @param <C>
+   *          client type
+   */
+  public interface Exec<R,C> {
+    R execute(C client) throws TException;
+  }
+
+  /**
+   * execute method with supplied client
+   *
+   * @param <C>
+   *          client type
+   */
+  public interface ExecVoid<C> {
+    void execute(C client) throws TException;
+  }
+
+  private final String serviceName;
+  private final TServiceClientFactory<C> clientFactory;
+
+  public ThriftClientTypes(String serviceName, TServiceClientFactory<C> factory) {
+    this.serviceName = serviceName;
+    this.clientFactory = factory;
+  }
+
+  public final String getServiceName() {
+    return serviceName;
+  }
+
+  public final TServiceClientFactory<C> getClientFactory() {
+    return clientFactory;
+  }
+
+  public C getClient(TProtocol prot) {
+    // All server side TProcessors are multiplexed. Wrap this protocol.
+    return getClientFactory().getClient(new TMultiplexedProtocol(prot, getServiceName()));
+  }
+
+  public C getConnection(ClientContext context) {
+    throw new UnsupportedOperationException("This method has not been implemented");
+  }
+
+  public C getConnectionWithRetry(ClientContext context) {
+    while (true) {
+      C result = getConnection(context);
+      if (result != null)
+        return result;
+      sleepUninterruptibly(250, MILLISECONDS);
+    }
+  }
+
+  public <R> R execute(ClientContext context, Exec<R,C> exec)
+      throws AccumuloException, AccumuloSecurityException {
+    throw new UnsupportedOperationException("This method has not been implemented");
+  }
+
+  public void executeVoid(ClientContext context, ExecVoid<C> exec)
+      throws AccumuloException, AccumuloSecurityException {
+    throw new UnsupportedOperationException("This method has not been implemented");
+  }
+
 }

@@ -24,10 +24,11 @@ import java.util.Set;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer.Client;
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.ThriftClientType.Exec;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.Exec;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.hadoop.fs.Path;
+import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,7 +62,7 @@ class WalClientExecReturn implements Exec<ReplicationStats,ReplicationServicer.C
   }
 
   @Override
-  public ReplicationStats execute(Client client) throws Exception {
+  public ReplicationStats execute(Client client) throws TException {
     WalReplication edits = ars.getWalEdits(target, input, p, status, sizeLimit, tids);
 
     log.debug(

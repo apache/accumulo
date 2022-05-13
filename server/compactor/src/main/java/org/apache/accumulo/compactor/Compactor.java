@@ -99,7 +99,6 @@ import org.apache.accumulo.server.compaction.CompactionWatcher;
 import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.server.compaction.RetryableThriftCall;
 import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceededException;
-import org.apache.accumulo.server.compaction.RetryableThriftFunction;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
@@ -204,7 +203,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   protected void startCancelChecker(ScheduledThreadPoolExecutor schedExecutor,
       long timeBetweenChecks) {
     ThreadPools.watchCriticalScheduledTask(schedExecutor.scheduleWithFixedDelay(
-        () -> checkIfCanceled(), 0, timeBetweenChecks, TimeUnit.MILLISECONDS));
+        this::checkIfCanceled, 0, timeBetweenChecks, TimeUnit.MILLISECONDS));
   }
 
   protected void checkIfCanceled() {
@@ -233,14 +232,12 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
             // table probably deleted
             LOG.info("Cancelling compaction {} for table that no longer exists {}", ecid, extent);
             JOB_HOLDER.cancel(job.getExternalCompactionId());
-            return;
           } else {
             var cancelId = Long.parseLong(new String(id, UTF_8));
 
             if (cancelId >= job.getUserCompactionId()) {
               LOG.info("Cancelling compaction {} because user compaction was canceled", ecid);
               JOB_HOLDER.cancel(job.getExternalCompactionId());
-              return;
             }
           }
         }
@@ -400,19 +397,15 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
    */
   protected void updateCompactionState(TExternalCompactionJob job, TCompactionStatusUpdate update)
       throws RetriesExceededException {
-    RetryableThriftCall<String> thriftCall = new RetryableThriftCall<>(1000,
-        RetryableThriftCall.MAX_WAIT_TIME, 25, new RetryableThriftFunction<String>() {
-          @Override
-          public String execute() throws TException {
-            Client coordinatorClient = getCoordinatorClient();
-            try {
-              coordinatorClient.updateCompactionStatus(TraceUtil.traceInfo(),
-                  getContext().rpcCreds(), job.getExternalCompactionId(), update,
-                  System.currentTimeMillis());
-              return "";
-            } finally {
-              ThriftUtil.returnClient(coordinatorClient, getContext());
-            }
+    RetryableThriftCall<String> thriftCall =
+        new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
+          Client coordinatorClient = getCoordinatorClient();
+          try {
+            coordinatorClient.updateCompactionStatus(TraceUtil.traceInfo(), getContext().rpcCreds(),
+                job.getExternalCompactionId(), update, System.currentTimeMillis());
+            return "";
+          } finally {
+            ThriftUtil.returnClient(coordinatorClient, getContext());
           }
         });
     thriftCall.run();
@@ -428,18 +421,15 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
    */
   protected void updateCompactionFailed(TExternalCompactionJob job)
       throws RetriesExceededException {
-    RetryableThriftCall<String> thriftCall = new RetryableThriftCall<>(1000,
-        RetryableThriftCall.MAX_WAIT_TIME, 25, new RetryableThriftFunction<String>() {
-          @Override
-          public String execute() throws TException {
-            Client coordinatorClient = getCoordinatorClient();
-            try {
-              coordinatorClient.compactionFailed(TraceUtil.traceInfo(), getContext().rpcCreds(),
-                  job.getExternalCompactionId(), job.extent);
-              return "";
-            } finally {
-              ThriftUtil.returnClient(coordinatorClient, getContext());
-            }
+    RetryableThriftCall<String> thriftCall =
+        new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
+          Client coordinatorClient = getCoordinatorClient();
+          try {
+            coordinatorClient.compactionFailed(TraceUtil.traceInfo(), getContext().rpcCreds(),
+                job.getExternalCompactionId(), job.extent);
+            return "";
+          } finally {
+            ThriftUtil.returnClient(coordinatorClient, getContext());
           }
         });
     thriftCall.run();
@@ -457,18 +447,15 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
    */
   protected void updateCompactionCompleted(TExternalCompactionJob job, TCompactionStats stats)
       throws RetriesExceededException {
-    RetryableThriftCall<String> thriftCall = new RetryableThriftCall<>(1000,
-        RetryableThriftCall.MAX_WAIT_TIME, 25, new RetryableThriftFunction<String>() {
-          @Override
-          public String execute() throws TException {
-            Client coordinatorClient = getCoordinatorClient();
-            try {
-              coordinatorClient.compactionCompleted(TraceUtil.traceInfo(), getContext().rpcCreds(),
-                  job.getExternalCompactionId(), job.extent, stats);
-              return "";
-            } finally {
-              ThriftUtil.returnClient(coordinatorClient, getContext());
-            }
+    RetryableThriftCall<String> thriftCall =
+        new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
+          Client coordinatorClient = getCoordinatorClient();
+          try {
+            coordinatorClient.compactionCompleted(TraceUtil.traceInfo(), getContext().rpcCreds(),
+                job.getExternalCompactionId(), job.extent, stats);
+            return "";
+          } finally {
+            ThriftUtil.returnClient(coordinatorClient, getContext());
           }
         });
     thriftCall.run();
@@ -485,27 +472,23 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
    */
   protected TExternalCompactionJob getNextJob(Supplier<UUID> uuid) throws RetriesExceededException {
     RetryableThriftCall<TExternalCompactionJob> nextJobThriftCall =
-        new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 0,
-            new RetryableThriftFunction<TExternalCompactionJob>() {
-              @Override
-              public TExternalCompactionJob execute() throws TException {
-                Client coordinatorClient = getCoordinatorClient();
-                try {
-                  ExternalCompactionId eci = ExternalCompactionId.generate(uuid.get());
-                  LOG.trace("Attempting to get next job, eci = {}", eci);
-                  currentCompactionId.set(eci);
-                  return coordinatorClient.getCompactionJob(TraceUtil.traceInfo(),
-                      getContext().rpcCreds(), queueName,
-                      ExternalCompactionUtil.getHostPortString(compactorAddress.getAddress()),
-                      eci.toString());
-                } catch (Exception e) {
-                  currentCompactionId.set(null);
-                  throw e;
-                } finally {
-                  ThriftUtil.returnClient(coordinatorClient, getContext());
-                }
-              }
-            });
+        new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 0, () -> {
+          Client coordinatorClient = getCoordinatorClient();
+          try {
+            ExternalCompactionId eci = ExternalCompactionId.generate(uuid.get());
+            LOG.trace("Attempting to get next job, eci = {}", eci);
+            currentCompactionId.set(eci);
+            return coordinatorClient.getCompactionJob(TraceUtil.traceInfo(),
+                getContext().rpcCreds(), queueName,
+                ExternalCompactionUtil.getHostPortString(compactorAddress.getAddress()),
+                eci.toString());
+          } catch (Exception e) {
+            currentCompactionId.set(null);
+            throw e;
+          } finally {
+            ThriftUtil.returnClient(coordinatorClient, getContext());
+          }
+        });
     return nextJobThriftCall.run();
   }
 
@@ -547,72 +530,69 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       final CountDownLatch started, final CountDownLatch stopped,
       final AtomicReference<Throwable> err) {
 
-    return new Runnable() {
-      @Override
-      public void run() {
-        // Its only expected that a single compaction runs at a time. Multiple compactions running
-        // at a time could cause odd behavior like out of order and unexpected thrift calls to the
-        // coordinator. This is a sanity check to ensure the expectation is met. Should this check
-        // ever fail, it means there is a bug elsewhere.
-        Preconditions.checkState(compactionRunning.compareAndSet(false, true));
-        try {
-          LOG.info("Starting up compaction runnable for job: {}", job);
-          TCompactionStatusUpdate update = new TCompactionStatusUpdate(TCompactionState.STARTED,
-              "Compaction started", -1, -1, -1);
-          updateCompactionState(job, update);
+    return () -> {
+      // Its only expected that a single compaction runs at a time. Multiple compactions running
+      // at a time could cause odd behavior like out of order and unexpected thrift calls to the
+      // coordinator. This is a sanity check to ensure the expectation is met. Should this check
+      // ever fail, it means there is a bug elsewhere.
+      Preconditions.checkState(compactionRunning.compareAndSet(false, true));
+      try {
+        LOG.info("Starting up compaction runnable for job: {}", job);
+        TCompactionStatusUpdate update =
+            new TCompactionStatusUpdate(TCompactionState.STARTED, "Compaction started", -1, -1, -1);
+        updateCompactionState(job, update);
 
-          final AccumuloConfiguration tConfig;
+        final AccumuloConfiguration tConfig;
 
-          var extent = KeyExtent.fromThrift(job.getExtent());
+        var extent = KeyExtent.fromThrift(job.getExtent());
 
-          if (!job.getOverrides().isEmpty()) {
-            tConfig = new ConfigurationCopy(getContext().getTableConfiguration(extent.tableId()));
-            job.getOverrides().forEach((k, v) -> ((ConfigurationCopy) tConfig).set(k, v));
-            LOG.debug("Overriding table properties with {}", job.getOverrides());
-          } else {
-            tConfig = getContext().getTableConfiguration(extent.tableId());
-          }
-
-          final TabletFile outputFile = new TabletFile(new Path(job.getOutputFile()));
-
-          final Map<StoredTabletFile,DataFileValue> files = new TreeMap<>();
-          job.getFiles().forEach(f -> {
-            files.put(new StoredTabletFile(f.getMetadataFileEntry()),
-                new DataFileValue(f.getSize(), f.getEntries(), f.getTimestamp()));
-            totalInputEntries.add(f.getEntries());
-            totalInputBytes.add(f.getSize());
-          });
-
-          final List<IteratorSetting> iters = new ArrayList<>();
-          job.getIteratorSettings().getIterators()
-              .forEach(tis -> iters.add(SystemIteratorUtil.toIteratorSetting(tis)));
-
-          ExtCEnv cenv = new ExtCEnv(JOB_HOLDER, queueName);
-          FileCompactor compactor = new FileCompactor(getContext(), extent, files, outputFile,
-              job.isPropagateDeletes(), cenv, iters, tConfig);
-
-          LOG.trace("Starting compactor");
-          started.countDown();
-
-          org.apache.accumulo.server.compaction.CompactionStats stat = compactor.call();
-          TCompactionStats cs = new TCompactionStats();
-          cs.setEntriesRead(stat.getEntriesRead());
-          cs.setEntriesWritten(stat.getEntriesWritten());
-          cs.setFileSize(stat.getFileSize());
-          JOB_HOLDER.setStats(cs);
-
-          LOG.info("Compaction completed successfully {} ", job.getExternalCompactionId());
-          // Update state when completed
-          TCompactionStatusUpdate update2 = new TCompactionStatusUpdate(TCompactionState.SUCCEEDED,
-              "Compaction completed successfully", -1, -1, -1);
-          updateCompactionState(job, update2);
-        } catch (Exception e) {
-          LOG.error("Compaction failed", e);
-          err.set(e);
-        } finally {
-          stopped.countDown();
-          Preconditions.checkState(compactionRunning.compareAndSet(true, false));
+        if (!job.getOverrides().isEmpty()) {
+          tConfig = new ConfigurationCopy(getContext().getTableConfiguration(extent.tableId()));
+          job.getOverrides().forEach((k, v) -> ((ConfigurationCopy) tConfig).set(k, v));
+          LOG.debug("Overriding table properties with {}", job.getOverrides());
+        } else {
+          tConfig = getContext().getTableConfiguration(extent.tableId());
         }
+
+        final TabletFile outputFile = new TabletFile(new Path(job.getOutputFile()));
+
+        final Map<StoredTabletFile,DataFileValue> files = new TreeMap<>();
+        job.getFiles().forEach(f -> {
+          files.put(new StoredTabletFile(f.getMetadataFileEntry()),
+              new DataFileValue(f.getSize(), f.getEntries(), f.getTimestamp()));
+          totalInputEntries.add(f.getEntries());
+          totalInputBytes.add(f.getSize());
+        });
+
+        final List<IteratorSetting> iters = new ArrayList<>();
+        job.getIteratorSettings().getIterators()
+            .forEach(tis -> iters.add(SystemIteratorUtil.toIteratorSetting(tis)));
+
+        ExtCEnv cenv = new ExtCEnv(JOB_HOLDER, queueName);
+        FileCompactor compactor = new FileCompactor(getContext(), extent, files, outputFile,
+            job.isPropagateDeletes(), cenv, iters, tConfig);
+
+        LOG.trace("Starting compactor");
+        started.countDown();
+
+        org.apache.accumulo.server.compaction.CompactionStats stat = compactor.call();
+        TCompactionStats cs = new TCompactionStats();
+        cs.setEntriesRead(stat.getEntriesRead());
+        cs.setEntriesWritten(stat.getEntriesWritten());
+        cs.setFileSize(stat.getFileSize());
+        JOB_HOLDER.setStats(cs);
+
+        LOG.info("Compaction completed successfully {} ", job.getExternalCompactionId());
+        // Update state when completed
+        TCompactionStatusUpdate update2 = new TCompactionStatusUpdate(TCompactionState.SUCCEEDED,
+            "Compaction completed successfully", -1, -1, -1);
+        updateCompactionState(job, update2);
+      } catch (Exception e) {
+        LOG.error("Compaction failed", e);
+        err.set(e);
+      } finally {
+        stopped.countDown();
+        Preconditions.checkState(compactionRunning.compareAndSet(true, false));
       }
     };
   }

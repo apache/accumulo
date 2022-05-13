@@ -816,8 +816,6 @@ public class TabletServerBatchWriter implements AutoCloseable {
             send(tsmuts);
             tsmuts = getMutationsToSend(location);
           }
-
-          return;
         } catch (Exception t) {
           updateUnknownErrors(
               "Failed to send tablet server " + location + " its batch : " + t.getMessage(), t);

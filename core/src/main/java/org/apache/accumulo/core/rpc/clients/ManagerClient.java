@@ -25,7 +25,6 @@ import java.util.List;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.rpc.ThriftUtil;
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.ThriftClientType;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
@@ -33,7 +32,7 @@ import org.slf4j.Logger;
 
 public interface ManagerClient<C extends TServiceClient> {
 
-  default C getManagerConnection(Logger log, ThriftClientType<C,?> type, ClientContext context) {
+  default C getManagerConnection(Logger log, ThriftClientTypes<C> type, ClientContext context) {
     checkArgument(context != null, "context is null");
 
     List<String> locations = context.getManagerLocations();

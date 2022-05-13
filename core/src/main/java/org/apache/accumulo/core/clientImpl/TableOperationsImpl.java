@@ -584,9 +584,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
         } catch (TApplicationException tae) {
           throw new AccumuloServerException(address.toString(), tae);
-        } catch (TTransportException e) {
-          tabLocator.invalidateCache(context, tl.tablet_location);
-          continue;
         } catch (ThriftSecurityException e) {
           context.clearTableListCache();
           context.requireTableExists(env.tableId, env.tableName);

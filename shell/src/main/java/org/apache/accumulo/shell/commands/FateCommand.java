@@ -143,7 +143,7 @@ public class FateCommand extends Command {
 
   protected ZooStore<FateCommand> getZooStore(String fateZkPath, ZooReaderWriter zrw)
       throws KeeperException, InterruptedException {
-    return new ZooStore<FateCommand>(fateZkPath, zrw);
+    return new ZooStore<>(fateZkPath, zrw);
   }
 
   @Override

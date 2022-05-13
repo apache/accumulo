@@ -169,7 +169,7 @@ public class CompactionCoordinator extends AbstractServer
 
   protected void startCompactionCleaner(ScheduledThreadPoolExecutor schedExecutor) {
     ScheduledFuture<?> future =
-        schedExecutor.scheduleWithFixedDelay(() -> cleanUpCompactors(), 0, 5, TimeUnit.MINUTES);
+        schedExecutor.scheduleWithFixedDelay(this::cleanUpCompactors, 0, 5, TimeUnit.MINUTES);
     ThreadPools.watchNonCriticalScheduledTask(future);
   }
 

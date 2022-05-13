@@ -18,25 +18,25 @@
  */
 package org.apache.accumulo.core.rpc.clients;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Client;
-import org.apache.accumulo.core.clientImpl.thrift.ClientService.Client.Factory;
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.ThriftClientType;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ClientServiceThriftClient extends ThriftClientType<Client,Factory>
+public class ClientServiceThriftClient extends ThriftClientTypes<Client>
     implements TServerClient<Client> {
 
   private static final Logger LOG = LoggerFactory.getLogger(ClientServiceThriftClient.class);
-  private volatile Boolean warnedAboutTServersBeingDown = false;
+  private final AtomicBoolean warnedAboutTServersBeingDown = new AtomicBoolean(false);
 
-  ClientServiceThriftClient(String serviceName, Factory clientFactory) {
-    super(serviceName, clientFactory);
+  ClientServiceThriftClient(String serviceName) {
+    super(serviceName, new Client.Factory());
   }
 
   @Override

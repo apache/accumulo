@@ -18,22 +18,12 @@
  */
 package org.apache.accumulo.core.rpc.clients;
 
-import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.manager.thrift.FateService.Client;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.accumulo.core.compaction.thrift.CompactorService.Client;
 
-public class FateThriftClient extends ThriftClientTypes<Client> implements ManagerClient<Client> {
+public class CompactorServiceThriftClient extends ThriftClientTypes<Client> {
 
-  private static Logger LOG = LoggerFactory.getLogger(FateThriftClient.class);
-
-  FateThriftClient(String serviceName) {
+  CompactorServiceThriftClient(String serviceName) {
     super(serviceName, new Client.Factory());
-  }
-
-  @Override
-  public Client getConnection(ClientContext context) {
-    return getManagerConnection(LOG, this, context);
   }
 
 }

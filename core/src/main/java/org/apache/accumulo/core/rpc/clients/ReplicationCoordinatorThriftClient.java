@@ -26,9 +26,7 @@ import java.util.List;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator.Client;
-import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator.Client.Factory;
 import org.apache.accumulo.core.rpc.ThriftUtil;
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.ThriftClientType;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.thrift.transport.TTransportException;
@@ -36,13 +34,13 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ReplicationCoordinatorThriftClient extends ThriftClientType<Client,Factory> {
+public class ReplicationCoordinatorThriftClient extends ThriftClientTypes<Client> {
 
   private static final Logger LOG =
       LoggerFactory.getLogger(ReplicationCoordinatorThriftClient.class);
 
-  ReplicationCoordinatorThriftClient(String serviceName, Factory clientFactory) {
-    super(serviceName, clientFactory);
+  ReplicationCoordinatorThriftClient(String serviceName) {
+    super(serviceName, new Client.Factory());
   }
 
   @Override

@@ -280,9 +280,7 @@ public class ExternalCompactionUtil {
         if (ceid != null) {
           runningIds.add(ceid);
         }
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
-      } catch (ExecutionException e) {
+      } catch (InterruptedException | ExecutionException e) {
         throw new RuntimeException(e);
       }
     });

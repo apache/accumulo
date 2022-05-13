@@ -24,6 +24,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -33,9 +34,8 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ThriftTransportKey;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.rpc.ThriftUtil;
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.ThriftClientType;
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.ThriftClientType.Exec;
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.ThriftClientType.ExecVoid;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.Exec;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.ExecVoid;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
@@ -52,8 +52,8 @@ public interface TServerClient<C extends TServiceClient> {
   Pair<String,C> getTabletServerConnection(ClientContext context, boolean preferCachedConnections)
       throws TTransportException;
 
-  default Pair<String,C> getTabletServerConnection(Logger LOG, ThriftClientType<C,?> type,
-      ClientContext context, boolean preferCachedConnections, Boolean warned)
+  default Pair<String,C> getTabletServerConnection(Logger LOG, ThriftClientTypes<C> type,
+      ClientContext context, boolean preferCachedConnections, AtomicBoolean warned)
       throws TTransportException {
     checkArgument(context != null, "context is null");
     long rpcTimeout = context.getClientTimeoutInMillis();
@@ -80,17 +80,16 @@ public interface TServerClient<C extends TServiceClient> {
           context.getTransportPool().getAnyTransport(servers, preferCachedConnections);
       C client = ThriftUtil.createClient(type, pair.getSecond());
       opened = true;
-      warned = false;
+      warned.set(false);
       return new Pair<>(pair.getFirst(), client);
     } finally {
       if (!opened) {
-        if (!warned) {
+        if (warned.compareAndSet(false, true)) {
           if (servers.isEmpty()) {
             LOG.warn("There are no tablet servers: check that zookeeper and accumulo are running.");
           } else {
             LOG.warn("Failed to find an available server in the list of servers: {}", servers);
           }
-          warned = true;
         }
       }
     }

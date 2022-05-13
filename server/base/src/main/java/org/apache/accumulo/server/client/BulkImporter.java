@@ -135,23 +135,20 @@ public class BulkImporter {
 
       for (Path path : paths) {
         final Path mapFile = path;
-        Runnable getAssignments = new Runnable() {
-          @Override
-          public void run() {
-            List<TabletLocation> tabletsToAssignMapFileTo = Collections.emptyList();
-            try {
-              tabletsToAssignMapFileTo = findOverlappingTablets(context, fs, locator, mapFile);
-            } catch (Exception ex) {
-              log.warn("Unable to find tablets that overlap file " + mapFile, ex);
-            }
-            log.debug("Map file {} found to overlap {} tablets", mapFile,
-                tabletsToAssignMapFileTo.size());
-            if (tabletsToAssignMapFileTo.isEmpty()) {
-              List<KeyExtent> empty = Collections.emptyList();
-              completeFailures.put(mapFile, empty);
-            } else
-              assignments.put(mapFile, tabletsToAssignMapFileTo);
+        Runnable getAssignments = () -> {
+          List<TabletLocation> tabletsToAssignMapFileTo = Collections.emptyList();
+          try {
+            tabletsToAssignMapFileTo = findOverlappingTablets(context, fs, locator, mapFile);
+          } catch (Exception ex) {
+            log.warn("Unable to find tablets that overlap file " + mapFile, ex);
           }
+          log.debug("Map file {} found to overlap {} tablets", mapFile,
+              tabletsToAssignMapFileTo.size());
+          if (tabletsToAssignMapFileTo.isEmpty()) {
+            List<KeyExtent> empty = Collections.emptyList();
+            completeFailures.put(mapFile, empty);
+          } else
+            assignments.put(mapFile, tabletsToAssignMapFileTo);
         };
         threadPool.execute(getAssignments);
       }
@@ -366,34 +363,31 @@ public class BulkImporter {
         continue;
       }
 
-      Runnable estimationTask = new Runnable() {
-        @Override
-        public void run() {
-          Map<KeyExtent,Long> estimatedSizes = null;
+      Runnable estimationTask = () -> {
+        Map<KeyExtent,Long> estimatedSizes = null;
 
-          try {
-            estimatedSizes = FileUtil.estimateSizes(context, entry.getKey(),
-                mapFileSizes.get(entry.getKey()), extentsOf(entry.getValue()));
-          } catch (IOException e) {
-            log.warn("Failed to estimate map file sizes {}", e.getMessage());
-          }
-
-          if (estimatedSizes == null) {
-            // estimation failed, do a simple estimation
-            estimatedSizes = new TreeMap<>();
-            long estSize =
-                (long) (mapFileSizes.get(entry.getKey()) / (double) entry.getValue().size());
-            for (TabletLocation tl : entry.getValue())
-              estimatedSizes.put(tl.tablet_extent, estSize);
-          }
-
-          List<AssignmentInfo> assignmentInfoList = new ArrayList<>(estimatedSizes.size());
-
-          for (Entry<KeyExtent,Long> entry2 : estimatedSizes.entrySet())
-            assignmentInfoList.add(new AssignmentInfo(entry2.getKey(), entry2.getValue()));
-
-          ais.put(entry.getKey(), assignmentInfoList);
+        try {
+          estimatedSizes = FileUtil.estimateSizes(context, entry.getKey(),
+              mapFileSizes.get(entry.getKey()), extentsOf(entry.getValue()));
+        } catch (IOException e) {
+          log.warn("Failed to estimate map file sizes {}", e.getMessage());
         }
+
+        if (estimatedSizes == null) {
+          // estimation failed, do a simple estimation
+          estimatedSizes = new TreeMap<>();
+          long estSize =
+              (long) (mapFileSizes.get(entry.getKey()) / (double) entry.getValue().size());
+          for (TabletLocation tl : entry.getValue())
+            estimatedSizes.put(tl.tablet_extent, estSize);
+        }
+
+        List<AssignmentInfo> assignmentInfoList = new ArrayList<>(estimatedSizes.size());
+
+        for (Entry<KeyExtent,Long> entry2 : estimatedSizes.entrySet())
+          assignmentInfoList.add(new AssignmentInfo(entry2.getKey(), entry2.getValue()));
+
+        ais.put(entry.getKey(), assignmentInfoList);
       };
 
       threadPool.execute(estimationTask);

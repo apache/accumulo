@@ -36,7 +36,7 @@ import javax.net.ssl.TrustManagerFactory;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.rpc.SaslConnectionParams.SaslMechanism;
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.ThriftClientType;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.UserGroupInformation.AuthenticationMethod;
@@ -92,7 +92,7 @@ public class ThriftUtil {
   /**
    * Create a Thrift client using the given factory and transport
    */
-  public static <T extends TServiceClient> T createClient(ThriftClientType<T,?> type,
+  public static <T extends TServiceClient> T createClient(ThriftClientTypes<T> type,
       TTransport transport) {
     return type.getClient(protocolFactory.getProtocol(transport));
   }
@@ -108,7 +108,7 @@ public class ThriftUtil {
    * @param context
    *          RPC options
    */
-  public static <T extends TServiceClient> T getClientNoTimeout(ThriftClientType<T,?> type,
+  public static <T extends TServiceClient> T getClientNoTimeout(ThriftClientTypes<T> type,
       HostAndPort address, ClientContext context) throws TTransportException {
     return getClient(type, address, context, 0);
   }
@@ -124,7 +124,7 @@ public class ThriftUtil {
    * @param context
    *          RPC options
    */
-  public static <T extends TServiceClient> T getClient(ThriftClientType<T,?> type,
+  public static <T extends TServiceClient> T getClient(ThriftClientTypes<T> type,
       HostAndPort address, ClientContext context) throws TTransportException {
     TTransport transport = context.getTransportPool().getTransport(address,
         context.getClientTimeoutInMillis(), context);
@@ -144,7 +144,7 @@ public class ThriftUtil {
    * @param timeout
    *          Socket timeout which overrides the ClientContext timeout
    */
-  public static <T extends TServiceClient> T getClient(ThriftClientType<T,?> type,
+  public static <T extends TServiceClient> T getClient(ThriftClientTypes<T> type,
       HostAndPort address, ClientContext context, long timeout) throws TTransportException {
     TTransport transport = context.getTransportPool().getTransport(address, timeout, context);
     return createClient(type, transport);

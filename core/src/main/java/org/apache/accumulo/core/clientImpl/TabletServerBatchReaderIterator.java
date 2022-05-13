@@ -405,9 +405,6 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             // there were some failures
             try {
               processFailures(failures, receiver, columns);
-            } catch (TableNotFoundException | AccumuloException e) {
-              log.debug("{}", e.getMessage(), e);
-              fatalException = e;
             } catch (AccumuloSecurityException e) {
               e.setTableInfo(getTableInfo());
               log.debug("{}", e.getMessage(), e);
@@ -537,8 +534,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     // translate returned failures, remove them from unscanned, and add them to failures
     // @formatter:off
     Map<KeyExtent, List<Range>> retFailures = scanResult.failures.entrySet().stream().collect(Collectors.toMap(
-                    (entry) -> KeyExtent.fromThrift(entry.getKey()),
-                    (entry) -> entry.getValue().stream().map(Range::new).collect(Collectors.toList())
+                    entry -> KeyExtent.fromThrift(entry.getKey()),
+                    entry -> entry.getValue().stream().map(Range::new).collect(Collectors.toList())
     ));
     // @formatter:on
     unscanned.keySet().removeAll(retFailures.keySet());
@@ -678,8 +675,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
         // @formatter:off
         Map<TKeyExtent, List<TRange>> thriftTabletRanges = requested.entrySet().stream().collect(Collectors.toMap(
-                        (entry) -> entry.getKey().toThrift(),
-                        (entry) -> entry.getValue().stream().map(Range::toThrift).collect(Collectors.toList())
+                        entry -> entry.getKey().toThrift(),
+                        entry -> entry.getValue().stream().map(Range::toThrift).collect(Collectors.toList())
         ));
         // @formatter:on
 

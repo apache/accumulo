@@ -30,20 +30,18 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceExceptio
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService.Client;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService.Client.Factory;
 import org.apache.accumulo.core.rpc.ThriftUtil;
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.ThriftClientType;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ManagerThriftClient extends ThriftClientType<Client,Factory>
+public class ManagerThriftClient extends ThriftClientTypes<Client>
     implements ManagerClient<Client> {
 
   private static final Logger LOG = LoggerFactory.getLogger(ManagerThriftClient.class);
 
-  ManagerThriftClient(String serviceName, Factory clientFactory) {
-    super(serviceName, clientFactory);
+  ManagerThriftClient(String serviceName) {
+    super(serviceName, new Client.Factory());
   }
 
   @Override
@@ -63,8 +61,6 @@ public class ManagerThriftClient extends ThriftClientType<Client,Factory>
         sleepUninterruptibly(100, MILLISECONDS);
       } catch (ThriftSecurityException e) {
         throw new AccumuloSecurityException(e.user, e.code, e);
-      } catch (AccumuloException e) {
-        throw e;
       } catch (ThriftTableOperationException e) {
         switch (e.getType()) {
           case NAMESPACE_NOTFOUND:
@@ -110,8 +106,6 @@ public class ManagerThriftClient extends ThriftClientType<Client,Factory>
         sleepUninterruptibly(100, MILLISECONDS);
       } catch (ThriftSecurityException e) {
         throw new AccumuloSecurityException(e.user, e.code, e);
-      } catch (AccumuloException e) {
-        throw e;
       } catch (ThriftTableOperationException e) {
         switch (e.getType()) {
           case NAMESPACE_NOTFOUND:

@@ -18,25 +18,25 @@
  */
 package org.apache.accumulo.core.rpc.clients;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.ThriftClientType;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client.Factory;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TabletServerThriftClient extends ThriftClientType<Client,Factory>
+public class TabletServerThriftClient extends ThriftClientTypes<Client>
     implements TServerClient<Client> {
 
   private static final Logger LOG = LoggerFactory.getLogger(TabletServerThriftClient.class);
-  private volatile Boolean warnedAboutTServersBeingDown = false;
+  private final AtomicBoolean warnedAboutTServersBeingDown = new AtomicBoolean(false);
 
-  TabletServerThriftClient(String serviceName, Factory clientFactory) {
-    super(serviceName, clientFactory);
+  TabletServerThriftClient(String serviceName) {
+    super(serviceName, new Client.Factory());
   }
 
   @Override
