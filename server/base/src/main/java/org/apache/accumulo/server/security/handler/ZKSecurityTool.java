@@ -28,7 +28,10 @@ import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
@@ -39,8 +42,11 @@ import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.commons.codec.digest.Crypt;
+import org.apache.commons.collections4.map.LRUMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.primitives.Bytes;
 
 /**
  * All the static too methods used for this class, so that we can separate out stuff that isn't
@@ -114,8 +120,15 @@ class ZKSecurityTool {
     return cryptHash.getBytes(UTF_8);
   }
 
+  private static final Map<List<Byte>,String> CHECKED_CRYPT_PASSWORDS =
+      Collections.synchronizedMap(new LRUMap<>(16));
+
   public static boolean checkCryptPass(byte[] password, byte[] zkData) {
+    List<Byte> key = Bytes.asList(password);
     String zkDataString = new String(zkData, UTF_8);
+    if (CHECKED_CRYPT_PASSWORDS.getOrDefault(key, "").equals(zkDataString)) {
+      return true;
+    }
     String cryptHash;
     try {
       cryptHash = Crypt.crypt(password, zkDataString);
@@ -123,7 +136,11 @@ class ZKSecurityTool {
       log.error("Unrecognized hash format", e);
       return false;
     }
-    return MessageDigest.isEqual(zkData, cryptHash.getBytes(UTF_8));
+    boolean matches = MessageDigest.isEqual(zkData, cryptHash.getBytes(UTF_8));
+    if (matches) {
+      CHECKED_CRYPT_PASSWORDS.putIfAbsent(key, zkDataString);
+    }
+    return matches;
   }
 
   public static Authorizations convertAuthorizations(byte[] authorizations) {
