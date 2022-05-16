@@ -32,13 +32,11 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Credentials;
-import org.apache.accumulo.core.clientImpl.ManagerClient;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
@@ -77,24 +75,13 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
       sleepUninterruptibly(45, TimeUnit.SECONDS);
       Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
 
-      ManagerMonitorInfo stats = null;
       int unassignedTablets = 1;
+      ManagerMonitorInfo stats = null;
+      ClientContext context = (ClientContext) c;
       for (int i = 0; unassignedTablets > 0 && i < 20; i++) {
-        ManagerClientService.Iface client = null;
-        while (true) {
-          try {
-            client = ManagerClient.getConnectionWithRetry((ClientContext) c);
-            stats = client.getManagerStats(TraceUtil.traceInfo(),
-                creds.toThrift(c.instanceOperations().getInstanceId()));
-            break;
-          } catch (ThriftNotActiveServiceException e) {
-            // Let it loop, fetching a new location
-            sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-          } finally {
-            if (client != null)
-              ManagerClient.close(client, (ClientContext) c);
-          }
-        }
+        stats = ThriftClientTypes.MANAGER.execute(context,
+            client -> client.getManagerStats(TraceUtil.traceInfo(),
+                creds.toThrift(c.instanceOperations().getInstanceId())));
         unassignedTablets = stats.getUnassignedTablets();
         if (unassignedTablets > 0) {
           log.info("Found {} unassigned tablets, sleeping 3 seconds for tablet assignment",

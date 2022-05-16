@@ -76,9 +76,7 @@ public class BloomFilter extends Filter {
   BitSet bits;
 
   /** Default constructor - use with readFields */
-  public BloomFilter() {
-    super();
-  }
+  public BloomFilter() {}
 
   /**
    * Constructor

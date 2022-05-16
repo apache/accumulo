@@ -75,8 +75,9 @@ public class LocalityGroupUtil {
         .collect(toUnmodifiableSet());
   }
 
-  @SuppressWarnings("serial")
   public static class LocalityGroupConfigurationError extends AccumuloException {
+    private static final long serialVersionUID = 855450342044719186L;
+
     LocalityGroupConfigurationError(String why) {
       super(why);
     }

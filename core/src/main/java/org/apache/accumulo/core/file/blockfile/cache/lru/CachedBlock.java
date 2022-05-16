@@ -40,7 +40,7 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock> {
       ClassSize.align(ClassSize.OBJECT + (3 * ClassSize.REFERENCE) + (2 * SizeConstants.SIZEOF_LONG)
           + ClassSize.STRING + ClassSize.BYTE_BUFFER + ClassSize.REFERENCE);
 
-  public static enum BlockPriority {
+  public enum BlockPriority {
     /**
      * Accessed a single time (used for scan-resistance)
      */

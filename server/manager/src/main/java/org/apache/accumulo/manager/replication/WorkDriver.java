@@ -45,7 +45,6 @@ public class WorkDriver implements Runnable {
   private String assignerImplName;
 
   public WorkDriver(Manager manager) {
-    super();
     this.manager = manager;
     this.client = manager.getContext();
     this.conf = manager.getConfiguration();

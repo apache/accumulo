@@ -35,9 +35,12 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.FateManagerClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.manager.thrift.FateService;
+import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.ReadOnlyRepo;
@@ -140,7 +143,7 @@ public class FateCommand extends Command {
 
   protected ZooStore<FateCommand> getZooStore(String fateZkPath, ZooReaderWriter zrw)
       throws KeeperException, InterruptedException {
-    return new ZooStore<FateCommand>(fateZkPath, zrw);
+    return new ZooStore<>(fateZkPath, zrw);
   }
 
   @Override
@@ -272,7 +275,7 @@ public class FateCommand extends Command {
       boolean cancelTx =
           line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
       if (cancelTx) {
-        boolean cancelled = FateManagerClient.cancelFateOperation(context, txid);
+        boolean cancelled = cancelFateOperation(context, txid, shellState);
         if (cancelled) {
           shellState.getWriter()
               .println("FaTE transaction " + txid + " was cancelled or already completed.");
@@ -285,6 +288,22 @@ public class FateCommand extends Command {
       }
     }
     return true;
+  }
+
+  private static boolean cancelFateOperation(ClientContext context, long txid,
+      final Shell shellState) throws AccumuloException, AccumuloSecurityException {
+    FateService.Client client = null;
+    try {
+      client = ThriftClientTypes.FATE.getConnectionWithRetry(context);
+      return client.cancelFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), txid);
+    } catch (Exception e) {
+      shellState.getWriter()
+          .println("ManagerClient request failed, retrying. Cause: " + e.getMessage());
+      throw new AccumuloException(e);
+    } finally {
+      if (client != null)
+        ThriftUtil.close(client, context);
+    }
   }
 
   public boolean failTx(AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs, ZooReaderWriter zk,

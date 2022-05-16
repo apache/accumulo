@@ -37,9 +37,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class RangeInputSplit extends org.apache.accumulo.core.client.mapreduce.RangeInputSplit
     implements InputSplit {
 
-  public RangeInputSplit() {
-    super();
-  }
+  public RangeInputSplit() {}
 
   public RangeInputSplit(RangeInputSplit split) throws IOException {
     super(split);

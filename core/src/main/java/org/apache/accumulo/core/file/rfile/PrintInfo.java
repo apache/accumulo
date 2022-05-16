@@ -151,9 +151,8 @@ public class PrintInfo implements KeywordExecutable {
   protected Class<? extends BiFunction<Key,Value,String>> getFormatter(String formatterClazz)
       throws ClassNotFoundException {
     @SuppressWarnings("unchecked")
-    Class<? extends BiFunction<Key,Value,String>> clazz =
-        (Class<? extends BiFunction<Key,Value,String>>) this.getClass().getClassLoader()
-            .loadClass(formatterClazz).asSubclass(BiFunction.class);
+    var clazz = (Class<? extends BiFunction<Key,Value,String>>) this.getClass().getClassLoader()
+        .loadClass(formatterClazz).asSubclass(BiFunction.class);
     return clazz;
   }
 
