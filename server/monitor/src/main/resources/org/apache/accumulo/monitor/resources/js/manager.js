@@ -23,16 +23,14 @@
 */
 "use strict";
 
-var managerStatusTable, recoveryListTable;
+var managerStatusTable, recoveryListTable, tableList;
 
-function refreshManagerStatusTable() {
-    ajaxReloadTable(managerStatusTable);
-
+function refreshManagerBanner() {
     getStatus().then(function () {
-        var status = JSON.parse(sessionStorage.status).managerStatus;
+        var managerStatus = JSON.parse(sessionStorage.status).managerStatus;
 
         // If manager status is error
-        if (status === 'ERROR') {
+        if (managerStatus === 'ERROR') {
             // show banner and hide table
             $('#managerBanner').show();
             $('#managerStatus_wrapper').hide();
@@ -48,21 +46,21 @@ function refreshManagerStatusTable() {
  * Populates tables with the new information
  */
 function refreshTables() {
-    refreshManagerStatusTable();
+    ajaxReloadTable(managerStatusTable);
+    refreshManagerBanner();
     ajaxReloadTable(recoveryListTable);
+    ajaxReloadTable(tableList);
 }
 
 /**
  * Used to redraw the page
  */
 function refresh() {
-    console.log('refreshing');
     refreshTables();
 }
 
 /**
- * Creates manager initial table
- * 
+ * Creates initial tables
  */
 $(document).ready(function () {
 
@@ -137,6 +135,7 @@ $(document).ready(function () {
         ]
     });
 
+    // Generates the recovery table
     recoveryListTable = $('#recoveryList').DataTable({
         "ajax": {
             "url": '/rest/tservers/recovery',
@@ -177,6 +176,60 @@ $(document).ready(function () {
             { "data": "log" },
             { "data": "time" },
             { "data": "progress" }
+        ]
+    });
+
+    // Generates the table list table
+    tableList = $('#tableList').DataTable({
+        "ajax": {
+            "url": "/rest/tables",
+            "dataSrc": "table"
+        },
+        "stateSave": true,
+        "columnDefs": [
+            {
+                "type": "num",
+                "targets": "big-num",
+                "render": function (data, type) {
+                    if (type === 'display') {
+                        data = bigNumberForQuantity(data);
+                    }
+                    return data;
+                }
+            },
+            {
+                "targets": "duration",
+                "render": function (data, type) {
+                    if (type === 'display') {
+                        data = timeDuration(parseInt(data, 10));
+                    }
+                    return data;
+                }
+            }
+        ],
+        "columns": [
+            {
+                "data": "tablename",
+                "type": "html",
+                "render": function (data, type, row) {
+                    if (type === 'display') {
+                        data = '<a href="/tables/' + row.tableId + '">' + row.tablename + '</a>';
+                    }
+                    return data;
+                }
+            },
+            { "data": "tableState" },
+            { "data": "tablets", "orderSequence": ["desc", "asc"] },
+            { "data": "offlineTablets", "orderSequence": ["desc", "asc"] },
+            { "data": "recs", "orderSequence": ["desc", "asc"] },
+            { "data": "recsInMemory", "orderSequence": ["desc", "asc"] },
+            { "data": "ingestRate", "orderSequence": ["desc", "asc"] },
+            { "data": "entriesRead", "orderSequence": ["desc", "asc"] },
+            { "data": "entriesReturned", "orderSequence": ["desc", "asc"] },
+            { "data": "holdTime", "orderSequence": ["desc", "asc"] },
+            { "data": "scansCombo", "orderSequence": ["desc", "asc"] },
+            { "data": "minorCombo", "orderSequence": ["desc", "asc"] },
+            { "data": "majorCombo", "orderSequence": ["desc", "asc"] }
         ]
     });
 
