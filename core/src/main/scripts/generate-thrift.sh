@@ -29,7 +29,7 @@
 #   INCLUDED_MODULES should be an array that includes other Maven modules with src/main/thrift directories
 #   Use INCLUDED_MODULES=(-) in calling scripts that require no other modules
 # ========================================================================================================================
-[[ -z $REQUIRED_THRIFT_VERSION ]] && REQUIRED_THRIFT_VERSION='0.15.0'
+[[ -z $REQUIRED_THRIFT_VERSION ]] && REQUIRED_THRIFT_VERSION='0.16.0'
 [[ -z $INCLUDED_MODULES ]] && INCLUDED_MODULES=()
 [[ -z $BASE_OUTPUT_PACKAGE ]] && BASE_OUTPUT_PACKAGE='org.apache.accumulo.core'
 [[ -z $PACKAGES_TO_GENERATE ]] && PACKAGES_TO_GENERATE=(gc master manager tabletserver securityImpl clientImpl dataImpl replication trace compaction)
@@ -171,12 +171,21 @@ for d in "${PACKAGES_TO_GENERATE[@]}"; do
     esac
     mkdir -p "$DDIR"
     for file in "${FILE_SUFFIX[@]}"; do
+      mapfile -t ALL_EXISTING_FILES < <(find "$DDIR" -name "*$file")
+      for f in "${ALL_EXISTING_FILES[@]}"; do
+        if [[ ! -f "$SDIR/$(basename "$f")-with-license" ]]; then
+          set -x
+          rm -f "$f"
+          { set +x; } 2>/dev/null
+        fi
+      done
       mapfile -t ALL_LICENSE_FILES_TO_COPY < <(find "$SDIR" -name "*$file")
       for f in "${ALL_LICENSE_FILES_TO_COPY[@]}"; do
         DEST="$DDIR/$(basename "$f")"
         if ! cmp -s "${f}-with-license" "${DEST}"; then
-          echo cp -f "${f}-with-license" "${DEST}"
+          set -x
           cp -f "${f}-with-license" "${DEST}" || fail unable to copy files to java workspace
+          { set +x; } 2>/dev/null
         fi
       done
     done
