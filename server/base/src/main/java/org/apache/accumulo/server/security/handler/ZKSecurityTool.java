@@ -28,11 +28,9 @@ import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -42,11 +40,12 @@ import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.commons.codec.digest.Crypt;
-import org.apache.commons.collections4.map.LRUMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.primitives.Bytes;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Scheduler;
 
 /**
  * All the static too methods used for this class, so that we can separate out stuff that isn't
@@ -120,25 +119,36 @@ class ZKSecurityTool {
     return cryptHash.getBytes(UTF_8);
   }
 
-  private static final Map<List<Byte>,String> CHECKED_CRYPT_PASSWORDS =
-      Collections.synchronizedMap(new LRUMap<>(16));
+  private static final Cache<String,String> CRYPT_PASSWORD_CACHE = Caffeine.newBuilder()
+      .scheduler(Scheduler.systemScheduler()).expireAfterWrite(3, TimeUnit.SECONDS).build();
 
   public static boolean checkCryptPass(byte[] password, byte[] zkData) {
-    List<Byte> key = Bytes.asList(password);
     String zkDataString = new String(zkData, UTF_8);
-    if (CHECKED_CRYPT_PASSWORDS.getOrDefault(key, "").equals(zkDataString)) {
-      return true;
+    String key = new String(password, UTF_8) + zkDataString;
+    String cryptHash = CRYPT_PASSWORD_CACHE.getIfPresent(key);
+    boolean matches = false;
+    if (cryptHash != null) {
+      matches = MessageDigest.isEqual(zkData, cryptHash.getBytes(UTF_8));
+      // If matches then zkData has not changed from when it was put into the cache
+      if (matches) {
+        return true;
+      } else {
+        // remove the non-matching entry from the cache
+        CRYPT_PASSWORD_CACHE.invalidate(key);
+      }
     }
-    String cryptHash;
-    try {
-      cryptHash = Crypt.crypt(password, zkDataString);
-    } catch (IllegalArgumentException e) {
-      log.error("Unrecognized hash format", e);
-      return false;
+    // Either !matches or was not cached
+    if (!matches) {
+      try {
+        cryptHash = Crypt.crypt(password, zkDataString);
+      } catch (IllegalArgumentException e) {
+        log.error("Unrecognized hash format", e);
+        return false;
+      }
     }
-    boolean matches = MessageDigest.isEqual(zkData, cryptHash.getBytes(UTF_8));
+    matches = MessageDigest.isEqual(zkData, cryptHash.getBytes(UTF_8));
     if (matches) {
-      CHECKED_CRYPT_PASSWORDS.putIfAbsent(key, zkDataString);
+      CRYPT_PASSWORD_CACHE.put(key, cryptHash);
     }
     return matches;
   }
