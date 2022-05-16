@@ -32,7 +32,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,22 +42,31 @@ import org.slf4j.LoggerFactory;
  * for all requested contexts. This class is used internally to Accumulo only, and should not be
  * used by users in their configuration.
  */
-@SuppressWarnings({"deprecation", "removal"})
 public class DefaultContextClassLoaderFactory implements ContextClassLoaderFactory {
 
   private static final AtomicBoolean isInstantiated = new AtomicBoolean(false);
   private static final Logger LOG = LoggerFactory.getLogger(DefaultContextClassLoaderFactory.class);
   private static final String className = DefaultContextClassLoaderFactory.class.getName();
 
+  @SuppressWarnings("removal")
+  private static final Property VFS_CONTEXT_CLASSPATH_PROPERTY =
+      Property.VFS_CONTEXT_CLASSPATH_PROPERTY;
+
   public DefaultContextClassLoaderFactory(final AccumuloConfiguration accConf) {
     if (!isInstantiated.compareAndSet(false, true)) {
       throw new IllegalStateException("Can only instantiate " + className + " once");
     }
     Supplier<Map<String,String>> contextConfigSupplier =
-        () -> accConf.getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
-    AccumuloVFSClassLoader.setContextConfig(contextConfigSupplier);
+        () -> accConf.getAllPropertiesWithPrefix(VFS_CONTEXT_CLASSPATH_PROPERTY);
+    setContextConfig(contextConfigSupplier);
     LOG.debug("ContextManager configuration set");
     startCleanupThread(accConf, contextConfigSupplier);
+  }
+
+  @SuppressWarnings("deprecation")
+  private static void setContextConfig(Supplier<Map<String,String>> contextConfigSupplier) {
+    org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader
+        .setContextConfig(contextConfigSupplier);
   }
 
   private static void startCleanupThread(final AccumuloConfiguration conf,
@@ -69,18 +77,26 @@ public class DefaultContextClassLoaderFactory implements ContextClassLoaderFacto
         .scheduleWithFixedDelay(Threads.createNamedRunnable(className + "-cleanup", () -> {
           LOG.trace("{}-cleanup thread, properties: {}", className, conf);
           Set<String> contextsInUse = contextConfigSupplier.get().keySet().stream()
-              .map(p -> p.substring(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey().length()))
+              .map(p -> p.substring(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey().length()))
               .collect(Collectors.toSet());
           LOG.trace("{}-cleanup thread, contexts in use: {}", className, contextsInUse);
-          AccumuloVFSClassLoader.removeUnusedContexts(contextsInUse);
+          removeUnusedContexts(contextsInUse);
         }), 1, 1, MINUTES);
     ThreadPools.watchNonCriticalScheduledTask(future);
     LOG.debug("Context cleanup timer started at 60s intervals");
   }
 
+  @SuppressWarnings("deprecation")
+  private static void removeUnusedContexts(Set<String> contextsInUse) {
+    org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader
+        .removeUnusedContexts(contextsInUse);
+  }
+
+  @SuppressWarnings("deprecation")
   @Override
   public ClassLoader getClassLoader(String contextName) {
-    return AccumuloVFSClassLoader.getContextClassLoader(contextName);
+    return org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader
+        .getContextClassLoader(contextName);
   }
 
 }

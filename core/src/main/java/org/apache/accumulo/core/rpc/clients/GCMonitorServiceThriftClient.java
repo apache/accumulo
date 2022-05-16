@@ -16,8 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.clientImpl;
+package org.apache.accumulo.core.rpc.clients;
 
-public interface ClientExec<T> {
-  void execute(T iface) throws Exception;
+import org.apache.accumulo.core.gc.thrift.GCMonitorService.Client;
+
+public class GCMonitorServiceThriftClient extends ThriftClientTypes<Client> {
+
+  GCMonitorServiceThriftClient(String serviceName) {
+    super(serviceName, new Client.Factory());
+  }
+
 }

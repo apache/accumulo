@@ -29,7 +29,5 @@ public class IsolationException extends RuntimeException {
     super(cause);
   }
 
-  public IsolationException() {
-    super();
-  }
+  public IsolationException() {}
 }

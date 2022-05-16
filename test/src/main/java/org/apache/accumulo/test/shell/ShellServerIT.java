@@ -36,7 +36,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.reflect.Constructor;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -174,7 +173,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     String exportUri = "file://" + exportDir;
     String localTmp = "file://" + new File(rootPath, "ShellServerIT.tmp");
     ts.exec("exporttable -t " + table + " " + exportUri, true);
-    DistCp cp = newDistCp(new Configuration(false));
+    DistCp cp = new DistCp(new Configuration(false), null);
     String import_ = "file://" + new File(rootPath, "ShellServerIT.import");
     ClientInfo info = ClientInfo.from(getCluster().getClientProperties());
     if (info.saslEnabled()) {
@@ -215,26 +214,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("online " + table, true);
     ts.exec("deletetable -f " + table, true);
     ts.exec("deletetable -f " + table2, true);
-  }
-
-  private DistCp newDistCp(Configuration conf) {
-    try {
-      @SuppressWarnings("unchecked")
-      Constructor<DistCp>[] constructors = (Constructor<DistCp>[]) DistCp.class.getConstructors();
-      for (Constructor<DistCp> constructor : constructors) {
-        Class<?>[] parameterTypes = constructor.getParameterTypes();
-        if (parameterTypes.length > 0 && parameterTypes[0].equals(Configuration.class)) {
-          if (parameterTypes.length == 1) {
-            return constructor.newInstance(conf);
-          } else if (parameterTypes.length == 2) {
-            return constructor.newInstance(conf, null);
-          }
-        }
-      }
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-    throw new RuntimeException("Unexpected constructors for DistCp");
   }
 
   @Test

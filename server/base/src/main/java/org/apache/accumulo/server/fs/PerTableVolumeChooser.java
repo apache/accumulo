@@ -28,7 +28,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class PerTableVolumeChooser extends org.apache.accumulo.core.spi.fs.PerTableVolumeChooser
     implements VolumeChooser {
   public PerTableVolumeChooser() {
-    super();
     LoggerFactory.getLogger(PerTableVolumeChooser.class).warn(
         "The class {} is deprecated.  Please configure {} instead.",
         PerTableVolumeChooser.class.getName(),

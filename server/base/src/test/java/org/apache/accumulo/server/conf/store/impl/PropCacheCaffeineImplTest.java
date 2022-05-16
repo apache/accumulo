@@ -159,13 +159,12 @@ public class PropCacheCaffeineImplTest {
     return vProps;
   }
 
-  @SuppressWarnings({"rawtypes", "unchecked"})
   @Test
   public void refreshTest() throws Exception {
 
     expect(zooPropLoader.load(eq(tablePropKey))).andReturn(vProps).once();
 
-    CompletableFuture future = CompletableFuture.supplyAsync(this::asyncProps);
+    var future = CompletableFuture.supplyAsync(this::asyncProps);
 
     expect(zooPropLoader.asyncReload(eq(tablePropKey), eq(vProps), anyObject())).andReturn(future)
         .once();

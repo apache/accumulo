@@ -25,9 +25,7 @@ public class IterationInterruptedException extends RuntimeException {
 
   private static final long serialVersionUID = 1L;
 
-  public IterationInterruptedException() {
-    super();
-  }
+  public IterationInterruptedException() {}
 
   public IterationInterruptedException(String msg) {
     super(msg);

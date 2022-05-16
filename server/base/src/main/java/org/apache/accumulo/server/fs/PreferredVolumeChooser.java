@@ -28,7 +28,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class PreferredVolumeChooser extends org.apache.accumulo.core.spi.fs.PreferredVolumeChooser
     implements VolumeChooser {
   public PreferredVolumeChooser() {
-    super();
     LoggerFactory.getLogger(PreferredVolumeChooser.class).warn(
         "The class {} is deprecated.  Please configure {} instead.",
         PreferredVolumeChooser.class.getName(),

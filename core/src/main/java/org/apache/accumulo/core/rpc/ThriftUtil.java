@@ -36,7 +36,7 @@ import javax.net.ssl.TrustManagerFactory;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.rpc.SaslConnectionParams.SaslMechanism;
-import org.apache.accumulo.core.rpc.ThriftClientTypes.ThriftClientType;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.UserGroupInformation.AuthenticationMethod;
@@ -92,7 +92,7 @@ public class ThriftUtil {
   /**
    * Create a Thrift client using the given factory and transport
    */
-  public static <T extends TServiceClient> T createClient(ThriftClientType<T,?> type,
+  public static <T extends TServiceClient> T createClient(ThriftClientTypes<T> type,
       TTransport transport) {
     return type.getClient(protocolFactory.getProtocol(transport));
   }
@@ -108,7 +108,7 @@ public class ThriftUtil {
    * @param context
    *          RPC options
    */
-  public static <T extends TServiceClient> T getClientNoTimeout(ThriftClientType<T,?> type,
+  public static <T extends TServiceClient> T getClientNoTimeout(ThriftClientTypes<T> type,
       HostAndPort address, ClientContext context) throws TTransportException {
     return getClient(type, address, context, 0);
   }
@@ -124,7 +124,7 @@ public class ThriftUtil {
    * @param context
    *          RPC options
    */
-  public static <T extends TServiceClient> T getClient(ThriftClientType<T,?> type,
+  public static <T extends TServiceClient> T getClient(ThriftClientTypes<T> type,
       HostAndPort address, ClientContext context) throws TTransportException {
     TTransport transport = context.getTransportPool().getTransport(address,
         context.getClientTimeoutInMillis(), context);
@@ -144,10 +144,19 @@ public class ThriftUtil {
    * @param timeout
    *          Socket timeout which overrides the ClientContext timeout
    */
-  public static <T extends TServiceClient> T getClient(ThriftClientType<T,?> type,
+  public static <T extends TServiceClient> T getClient(ThriftClientTypes<T> type,
       HostAndPort address, ClientContext context, long timeout) throws TTransportException {
     TTransport transport = context.getTransportPool().getTransport(address, timeout, context);
     return createClient(type, transport);
+  }
+
+  public static void close(TServiceClient client, ClientContext context) {
+    if (client != null && client.getInputProtocol() != null
+        && client.getInputProtocol().getTransport() != null) {
+      context.getTransportPool().returnTransport(client.getInputProtocol().getTransport());
+    } else {
+      log.debug("Attempt to close null connection to a server", new Exception());
+    }
   }
 
   /**
@@ -330,10 +339,7 @@ public class ThriftUtil {
           throw e;
         } catch (IOException e) {
           log.warn("Failed to open SASL transport", e);
-          if (e instanceof ClosedByInterruptException) {
-            Thread.currentThread().interrupt();
-            throw new UncheckedIOException(e);
-          }
+          ThriftUtil.checkIOExceptionCause(e);
           throw new TTransportException(e);
         }
       } else {
@@ -494,6 +500,13 @@ public class ThriftUtil {
       } catch (IOException ioe) {}
 
       throw new TTransportException("Could not connect to " + host + " on port " + port, e);
+    }
+  }
+
+  public static void checkIOExceptionCause(IOException e) {
+    if (e instanceof ClosedByInterruptException) {
+      Thread.currentThread().interrupt();
+      throw new UncheckedIOException(e);
     }
   }
 }
