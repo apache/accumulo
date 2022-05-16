@@ -269,6 +269,7 @@ function createTableCell(index, sortValue, showValue) {
   }
 }
 
+/**
  * Performs GET call and builds console logging message from data received
  * @param {string} call REST url called
  * @param {string} sessionDataVar Session storage/global variable to hold REST data
