@@ -233,7 +233,7 @@ public class ExternalCompactionTestUtils {
     cfg.setProperty(Property.COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL, "3s");
     cfg.setProperty(Property.COMPACTION_COORDINATOR_THRIFTCLIENT_PORTSEARCH, "true");
     cfg.setProperty(Property.COMPACTOR_PORTSEARCH, "true");
-    cfg.setProperty(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE, "10");
+    cfg.setProperty(Property.GENERAL_THREADPOOL_SIZE, "10");
     cfg.setProperty(Property.MANAGER_FATE_THREADPOOL_SIZE, "10");
     // use raw local file system so walogs sync and flush will work
     coreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
