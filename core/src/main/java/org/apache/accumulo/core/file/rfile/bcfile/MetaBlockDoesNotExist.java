@@ -24,8 +24,9 @@ import java.io.UncheckedIOException;
 /**
  * Exception - No such Meta Block with the given name.
  */
-@SuppressWarnings("serial")
 public class MetaBlockDoesNotExist extends IOException {
+  private static final long serialVersionUID = -1365588883639715005L;
+
   /**
    * Constructor
    *

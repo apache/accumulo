@@ -21,12 +21,10 @@ package org.apache.accumulo.server.rpc;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.UnknownHostException;
-import java.nio.channels.ClosedByInterruptException;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -529,10 +527,7 @@ public class TServerUtils {
       serverUser = UserGroupInformation.getLoginUser();
     } catch (IOException e) {
       transport.close();
-      if (e instanceof ClosedByInterruptException) {
-        Thread.currentThread().interrupt();
-        throw new UncheckedIOException(e);
-      }
+      ThriftUtil.checkIOExceptionCause(e);
       throw new TTransportException(e);
     }
 
@@ -581,15 +576,19 @@ public class TServerUtils {
       ThriftServerType serverType, TProcessor processor, String serverName, String threadName,
       int numThreads, long threadTimeOut, long timeBetweenThreadChecks, long maxMessageSize,
       SslConnectionParams sslParams, SaslServerConnectionParams saslParams,
-      long serverSocketTimeout, HostAndPort... addresses) throws TTransportException {
+      long serverSocketTimeout, HostAndPort... addresses) {
 
     if (serverType == ThriftServerType.SASL) {
       processor = updateSaslProcessor(serverType, processor);
     }
 
-    return startTServer(serverType, new TimedProcessor(conf, processor, serverName, threadName),
-        serverName, threadName, numThreads, threadTimeOut, conf, timeBetweenThreadChecks,
-        maxMessageSize, sslParams, saslParams, serverSocketTimeout, addresses);
+    try {
+      return startTServer(serverType, new TimedProcessor(conf, processor, serverName, threadName),
+          serverName, threadName, numThreads, threadTimeOut, conf, timeBetweenThreadChecks,
+          maxMessageSize, sslParams, saslParams, serverSocketTimeout, addresses);
+    } catch (TTransportException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   /**

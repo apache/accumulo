@@ -36,7 +36,6 @@ class MemKeyConversionIterator extends WrappingIterator implements Interruptible
   private Value currVal = null;
 
   public MemKeyConversionIterator(SortedKeyValueIterator<Key,Value> source) {
-    super();
     setSource(source);
   }
 

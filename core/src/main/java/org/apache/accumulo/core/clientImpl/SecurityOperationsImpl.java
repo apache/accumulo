@@ -36,8 +36,10 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.Exec;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.ExecVoid;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -51,42 +53,67 @@ public class SecurityOperationsImpl implements SecurityOperations {
 
   private final ClientContext context;
 
-  private void executeVoid(ClientExec<ClientService.Client> exec)
+  /**
+   * Execute a method on the client API that does not return a value
+   *
+   * @param exec
+   *          client operation to execute
+   * @throws AccumuloException
+   *           error executing client operation
+   * @throws AccumuloSecurityException
+   *           error executing client operation
+   */
+  private void executeVoid(ExecVoid<ClientService.Client> exec)
       throws AccumuloException, AccumuloSecurityException {
     try {
-      ServerClient.executeRawVoid(context, exec);
-    } catch (ThriftTableOperationException ttoe) {
-      // recast missing table
-      if (ttoe.getType() == TableOperationExceptionType.NOTFOUND)
-        throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST);
-      else if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND)
-        throw new AccumuloSecurityException(null, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
-      else
-        throw new AccumuloException(ttoe);
-    } catch (ThriftSecurityException e) {
-      throw new AccumuloSecurityException(e.user, e.code, e);
-    } catch (AccumuloException e) {
+      ThriftClientTypes.CLIENT.executeVoid(context, client -> exec.execute(client));
+    } catch (AccumuloSecurityException | AccumuloException e) {
+      Throwable t = e.getCause();
+      if (t instanceof ThriftTableOperationException) {
+        ThriftTableOperationException ttoe = (ThriftTableOperationException) t;
+        // recast missing table
+        if (ttoe.getType() == TableOperationExceptionType.NOTFOUND)
+          throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST);
+        else if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND)
+          throw new AccumuloSecurityException(null, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
+        else
+          throw e;
+      }
       throw e;
     } catch (Exception e) {
       throw new AccumuloException(e);
     }
   }
 
-  private <T> T execute(ClientExecReturn<T,ClientService.Client> exec)
+  /**
+   * Execute a method on the client API that returns an instance of type R
+   *
+   * @param <R>
+   *          return type
+   * @param exec
+   *          client operation to execute
+   * @return instance of type R
+   * @throws AccumuloException
+   *           error executing client operation
+   * @throws AccumuloSecurityException
+   *           error executing client operation
+   */
+  private <R> R execute(Exec<R,ClientService.Client> exec)
       throws AccumuloException, AccumuloSecurityException {
     try {
-      return ServerClient.executeRaw(context, exec);
-    } catch (ThriftTableOperationException ttoe) {
-      // recast missing table
-      if (ttoe.getType() == TableOperationExceptionType.NOTFOUND)
-        throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST);
-      else if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND)
-        throw new AccumuloSecurityException(null, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
-      else
-        throw new AccumuloException(ttoe);
-    } catch (ThriftSecurityException e) {
-      throw new AccumuloSecurityException(e.user, e.code, e);
-    } catch (AccumuloException e) {
+      return ThriftClientTypes.CLIENT.execute(context, client -> exec.execute(client));
+    } catch (AccumuloSecurityException | AccumuloException e) {
+      Throwable t = e.getCause();
+      if (t instanceof ThriftTableOperationException) {
+        ThriftTableOperationException ttoe = (ThriftTableOperationException) t;
+        // recast missing table
+        if (ttoe.getType() == TableOperationExceptionType.NOTFOUND)
+          throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST);
+        else if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND)
+          throw new AccumuloSecurityException(null, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
+        else
+          throw e;
+      }
       throw e;
     } catch (Exception e) {
       throw new AccumuloException(e);
@@ -105,7 +132,6 @@ public class SecurityOperationsImpl implements SecurityOperations {
     if (context.getSaslParams() == null) {
       checkArgument(password != null, "password is null");
     }
-
     executeVoid(client -> {
       if (context.getSaslParams() == null) {
         client.createLocalUser(TraceUtil.traceInfo(), context.rpcCreds(), principal,
@@ -305,7 +331,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
 
     TDelegationToken thriftToken;
     try {
-      thriftToken = ManagerClient.execute(context,
+      thriftToken = ThriftClientTypes.MANAGER.executeTableCommand(context,
           client -> client.getDelegationToken(TraceUtil.traceInfo(), context.rpcCreds(), tConfig));
     } catch (TableNotFoundException e) {
       // should never happen

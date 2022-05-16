@@ -139,7 +139,6 @@ import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.thrift.TException;
-import org.apache.thrift.TProcessor;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
@@ -1020,8 +1019,8 @@ public class Manager extends AbstractServer
         HighlyAvailableServiceWrapper.service(managerClientHandler, this);
 
     ServerAddress sa;
-    TProcessor processor = ThriftProcessorTypes.getManagerTProcessor(fateServiceHandler, haProxy,
-        getContext(), getConfiguration());
+    var processor =
+        ThriftProcessorTypes.getManagerTProcessor(fateServiceHandler, haProxy, getContext());
 
     try {
       sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT, processor,
@@ -1367,13 +1366,8 @@ public class Manager extends AbstractServer
     ReplicationCoordinator.Iface haReplicationProxy =
         HighlyAvailableServiceWrapper.service(impl, this);
 
-    TProcessor processor = null;
-    try {
-      processor = ThriftProcessorTypes.getReplicationCoordinatorTProcessor(haReplicationProxy,
-          getContext(), getConfiguration());
-    } catch (Exception e) {
-      throw new RuntimeException("Error creating thrift server processor", e);
-    }
+    var processor =
+        ThriftProcessorTypes.getReplicationCoordinatorTProcessor(haReplicationProxy, getContext());
 
     ServerAddress replAddress = TServerUtils.startServer(context, getHostname(),
         Property.MANAGER_REPLICATION_COORDINATOR_PORT, processor, "Manager Replication Coordinator",

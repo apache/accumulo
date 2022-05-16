@@ -34,9 +34,7 @@ public class RetryableThriftCall<T> {
 
     private static final long serialVersionUID = 1L;
 
-    public RetriesExceededException() {
-      super();
-    }
+    public RetriesExceededException() {}
 
     public RetriesExceededException(String message, Throwable cause, boolean enableSuppression,
         boolean writableStackTrace) {

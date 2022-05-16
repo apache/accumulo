@@ -28,6 +28,7 @@ import java.util.function.BiFunction;
 
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.metrics.MetricsUtil;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
@@ -196,8 +197,8 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    *          the prop cache key
    * @param watcher
    *          a prop store watcher that will receive / handle ZooKeeper events.
-   * @param zrw
-   *          a ZooReaderWriter
+   * @param zooReader
+   *          a ZooReader
    * @return the versioned properties or null if the node does not exist.
    * @throws IOException
    *           if the underlying data from the ZooKeeper node cannot be decoded.
@@ -207,11 +208,11 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    *           if the ZooKeeper read was interrupted.
    */
   public static @Nullable VersionedProperties readFromZk(final PropCacheKey<?> propCacheKey,
-      final PropStoreWatcher watcher, final ZooReaderWriter zrw)
+      final PropStoreWatcher watcher, final ZooReader zooReader)
       throws IOException, KeeperException, InterruptedException {
     try {
       Stat stat = new Stat();
-      byte[] bytes = zrw.getData(propCacheKey.getPath(), watcher, stat);
+      byte[] bytes = zooReader.getData(propCacheKey.getPath(), watcher, stat);
       return codec.fromBytes(stat.getVersion(), bytes);
     } catch (KeeperException.NoNodeException ex) {
       // ignore no node - allow other exceptions to propagate

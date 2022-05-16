@@ -23,11 +23,9 @@ import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
-import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.spi.SelectorProvider;
 
 import org.apache.accumulo.core.util.HostAndPort;
@@ -89,10 +87,7 @@ public class TTimeoutTransport {
       socket = openSocket(addr, (int) timeoutMillis);
     } catch (IOException e) {
       // openSocket handles closing the Socket on error
-      if (e instanceof ClosedByInterruptException) {
-        Thread.currentThread().interrupt();
-        throw new UncheckedIOException(e);
-      }
+      ThriftUtil.checkIOExceptionCause(e);
       throw new TTransportException(e);
     }
 
@@ -106,10 +101,7 @@ public class TTimeoutTransport {
       return new TIOStreamTransport(input, output);
     } catch (IOException e) {
       closeSocket(socket, e);
-      if (e instanceof ClosedByInterruptException) {
-        Thread.currentThread().interrupt();
-        throw new UncheckedIOException(e);
-      }
+      ThriftUtil.checkIOExceptionCause(e);
       throw new TTransportException(e);
     } catch (TTransportException e) {
       closeSocket(socket, e);

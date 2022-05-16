@@ -300,7 +300,6 @@ public class TabletClientHandler implements TabletClientService.Iface {
         us.currentTablet = null;
         us.authFailures.put(keyExtent, SecurityErrorCode.PERMISSION_DENIED);
         server.updateMetrics.addPermissionErrors(0);
-        return;
       }
     } catch (TableNotFoundException tnfe) {
       log.error("Table " + tableId + " not found ", tnfe);
@@ -746,8 +745,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
           final Durability durability =
               DurabilityImpl.resolveDurabilty(sess.durability, tablet.getDurability());
 
-          @SuppressWarnings("unchecked")
-          List<Mutation> mutations = (List<Mutation>) (List<? extends Mutation>) entry.getValue();
+          List<Mutation> mutations = Collections.unmodifiableList(entry.getValue());
           if (!mutations.isEmpty()) {
 
             PreparedMutations prepared = tablet.prepareMutationsForCommit(

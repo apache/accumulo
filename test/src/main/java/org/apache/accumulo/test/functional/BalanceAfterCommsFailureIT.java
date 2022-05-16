@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -29,18 +28,15 @@ import java.util.Collection;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ManagerClient;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.fate.util.UtilWaitThread;
@@ -111,21 +107,8 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
     ManagerMonitorInfo stats = null;
     int unassignedTablets = 1;
     for (int i = 0; unassignedTablets > 0 && i < 10; i++) {
-      ManagerClientService.Iface client = null;
-      while (true) {
-        try {
-          client = ManagerClient.getConnectionWithRetry(context);
-          stats = client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
-          break;
-        } catch (ThriftNotActiveServiceException e) {
-          // Let it loop, fetching a new location
-          log.debug("Contacted a Manager which is no longer active, retrying");
-          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-        } finally {
-          if (client != null)
-            ManagerClient.close(client, context);
-        }
-      }
+      stats = ThriftClientTypes.MANAGER.execute(context,
+          client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()));
       unassignedTablets = stats.getUnassignedTablets();
       if (unassignedTablets > 0) {
         log.info("Found {} unassigned tablets, sleeping 3 seconds for tablet assignment",

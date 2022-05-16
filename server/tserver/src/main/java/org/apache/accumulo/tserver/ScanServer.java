@@ -236,8 +236,7 @@ public class ScanServer extends AbstractServer
 
     // This class implements TabletClientService.Iface and then delegates calls. Be sure
     // to set up the ThriftProcessor using this class, not the delegate.
-    TProcessor processor =
-        ThriftProcessorTypes.getScanServerTProcessor(this, getContext(), getConfiguration());
+    TProcessor processor = ThriftProcessorTypes.getScanServerTProcessor(this, getContext());
 
     Property maxMessageSizeProperty =
         (getConfiguration().get(Property.SSERV_MAX_MESSAGE_SIZE) != null

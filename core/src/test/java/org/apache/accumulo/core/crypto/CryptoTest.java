@@ -83,6 +83,7 @@ public class CryptoTest {
   private static final int MARKER_INT = 0xCADEFEDD;
   private static final String MARKER_STRING = "1 2 3 4 5 6 7 8 a b c d e f g h ";
   private static Configuration hadoopConf = new Configuration();
+  private static final String SERVICE_NAME = "org.apache.accumulo.core.spi.crypto.AESCryptoService";
 
   public enum ConfigMode {
     CRYPTO_OFF, CRYPTO_ON, CRYPTO_ON_DISABLED
@@ -105,16 +106,16 @@ public class CryptoTest {
     }
   }
 
-  @SuppressWarnings("fallthrough")
   public static ConfigurationCopy getAccumuloConfig(ConfigMode configMode, Class<?> testClass) {
     ConfigurationCopy cfg = new ConfigurationCopy(DefaultConfiguration.getInstance());
     switch (configMode) {
       case CRYPTO_ON_DISABLED:
         cfg.set(INSTANCE_CRYPTO_PREFIX.getKey() + "enabled", "false");
-        // fall through to set remaining config
+        cfg.set(Property.INSTANCE_CRYPTO_SERVICE, SERVICE_NAME);
+        cfg.set(INSTANCE_CRYPTO_PREFIX.getKey() + "key.uri", CryptoTest.keyPath(testClass));
+        break;
       case CRYPTO_ON:
-        cfg.set(Property.INSTANCE_CRYPTO_SERVICE,
-            "org.apache.accumulo.core.spi.crypto.AESCryptoService");
+        cfg.set(Property.INSTANCE_CRYPTO_SERVICE, SERVICE_NAME);
         cfg.set(INSTANCE_CRYPTO_PREFIX.getKey() + "key.uri", CryptoTest.keyPath(testClass));
         break;
       case CRYPTO_OFF:
@@ -337,8 +338,7 @@ public class CryptoTest {
     for (Map.Entry<String,String> e : conf) {
       aconf.set(e.getKey(), e.getValue());
     }
-    aconf.set(Property.INSTANCE_CRYPTO_SERVICE,
-        "org.apache.accumulo.core.spi.crypto.AESCryptoService");
+    aconf.set(Property.INSTANCE_CRYPTO_SERVICE, SERVICE_NAME);
     String configuredClass = aconf.get(Property.INSTANCE_CRYPTO_SERVICE.getKey());
     Class<? extends CryptoService> clazz =
         ClassLoaderUtil.loadClass(configuredClass, CryptoService.class);

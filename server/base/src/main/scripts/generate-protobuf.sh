@@ -53,7 +53,7 @@ mkdir -p $BUILD_DIR
 protoc ${PROTOC_ARGS} src/main/protobuf/*.proto || fail unable to generate Java protocol buffer classes
 
 # For all generated protobuf code, suppress all warnings and add the LICENSE header
-s='@SuppressWarnings({"unused"})'
+s='@SuppressWarnings("unused")'
 find $BUILD_DIR -name '*.java' -print0 | xargs -0 sed -i.orig -e 's/\(public final class \)/'"$s"' \1/'
 
 PREFIX="/*
@@ -67,20 +67,22 @@ for file in "${FILE_SUFFIX[@]}"; do
   mapfile -t ALL_FILES_TO_LICENSE < <(find "$BUILD_DIR/" -name "*$file")
   for f in "${ALL_FILES_TO_LICENSE[@]}"; do
     cat - "$f" >"${f}-with-license" <<EOF
-${PREFIX}${LINE_NOTATION} Licensed to the Apache Software Foundation (ASF) under one or more
-${LINE_NOTATION} contributor license agreements.  See the NOTICE file distributed with
-${LINE_NOTATION} this work for additional information regarding copyright ownership.
-${LINE_NOTATION} The ASF licenses this file to You under the Apache License, Version 2.0
-${LINE_NOTATION} (the "License"); you may not use this file except in compliance with
-${LINE_NOTATION} the License.  You may obtain a copy of the License at
+${PREFIX}${LINE_NOTATION} Licensed to the Apache Software Foundation (ASF) under one
+${LINE_NOTATION} or more contributor license agreements.  See the NOTICE file
+${LINE_NOTATION} distributed with this work for additional information
+${LINE_NOTATION} regarding copyright ownership.  The ASF licenses this file
+${LINE_NOTATION} to you under the Apache License, Version 2.0 (the
+${LINE_NOTATION} "License"); you may not use this file except in compliance
+${LINE_NOTATION} with the License.  You may obtain a copy of the License at
 ${LINE_NOTATION}
-${LINE_NOTATION}     http://www.apache.org/licenses/LICENSE-2.0
+${LINE_NOTATION}   http://www.apache.org/licenses/LICENSE-2.0
 ${LINE_NOTATION}
-${LINE_NOTATION} Unless required by applicable law or agreed to in writing, software
-${LINE_NOTATION} distributed under the License is distributed on an "AS IS" BASIS,
-${LINE_NOTATION} WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-${LINE_NOTATION} See the License for the specific language governing permissions and
-${LINE_NOTATION} limitations under the License.${SUFFIX}
+${LINE_NOTATION} Unless required by applicable law or agreed to in writing,
+${LINE_NOTATION} software distributed under the License is distributed on an
+${LINE_NOTATION} "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+${LINE_NOTATION} KIND, either express or implied.  See the License for the
+${LINE_NOTATION} specific language governing permissions and limitations
+${LINE_NOTATION} under the License.${SUFFIX}
 EOF
   done
 done
