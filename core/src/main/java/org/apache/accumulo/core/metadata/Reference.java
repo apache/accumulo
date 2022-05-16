@@ -34,7 +34,6 @@ public class Reference {
 
   public Reference(TableId tableId, String metadataEntry) {
     MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(tableId.canonical());
-    MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(metadataEntry);
     this.tableId = tableId;
     this.metadataEntry = metadataEntry;
     this.tabletDir = metadataEntry;
