@@ -123,14 +123,12 @@ class ZKSecurityTool {
       .scheduler(Scheduler.systemScheduler()).expireAfterWrite(3, TimeUnit.SECONDS).build();
 
   public static boolean checkCryptPass(byte[] password, byte[] zkData) {
-    String zkDataString = new String(zkData, UTF_8);
-    String key = new String(password, UTF_8) + zkDataString;
+    final String zkDataString = new String(zkData, UTF_8);
+    final String key = new String(password, UTF_8) + zkDataString;
     String cryptHash = CRYPT_PASSWORD_CACHE.getIfPresent(key);
-    boolean matches = false;
     if (cryptHash != null) {
-      matches = MessageDigest.isEqual(zkData, cryptHash.getBytes(UTF_8));
-      // If matches then zkData has not changed from when it was put into the cache
-      if (matches) {
+      if (MessageDigest.isEqual(zkData, cryptHash.getBytes(UTF_8))) {
+        // If matches then zkData has not changed from when it was put into the cache
         return true;
       } else {
         // remove the non-matching entry from the cache
@@ -138,15 +136,13 @@ class ZKSecurityTool {
       }
     }
     // Either !matches or was not cached
-    if (!matches) {
-      try {
-        cryptHash = Crypt.crypt(password, zkDataString);
-      } catch (IllegalArgumentException e) {
-        log.error("Unrecognized hash format", e);
-        return false;
-      }
+    try {
+      cryptHash = Crypt.crypt(password, zkDataString);
+    } catch (IllegalArgumentException e) {
+      log.error("Unrecognized hash format", e);
+      return false;
     }
-    matches = MessageDigest.isEqual(zkData, cryptHash.getBytes(UTF_8));
+    boolean matches = MessageDigest.isEqual(zkData, cryptHash.getBytes(UTF_8));
     if (matches) {
       CRYPT_PASSWORD_CACHE.put(key, cryptHash);
     }
