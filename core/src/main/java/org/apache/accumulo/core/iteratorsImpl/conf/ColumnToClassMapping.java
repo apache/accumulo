@@ -58,10 +58,9 @@ public class ColumnToClassMapping<K> {
 
       Pair<Text,Text> pcic = ColumnSet.decodeColumns(column);
 
-      Class<?> clazz = ClassLoaderUtil.loadClass(context, className, c);
+      Class<? extends K> clazz = ClassLoaderUtil.loadClass(context, className, c);
 
-      @SuppressWarnings("unchecked")
-      K inst = (K) clazz.getDeclaredConstructor().newInstance();
+      K inst = clazz.getDeclaredConstructor().newInstance();
       if (pcic.getSecond() == null) {
         addObject(pcic.getFirst(), inst);
       } else {

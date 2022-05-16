@@ -304,7 +304,6 @@ public class CachableBlockFile {
       private boolean loadingMetaBlock;
 
       public BaseBlockLoader(boolean loadingMetaBlock) {
-        super();
         this.loadingMetaBlock = loadingMetaBlock;
       }
 

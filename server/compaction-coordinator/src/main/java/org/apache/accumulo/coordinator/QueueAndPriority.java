@@ -35,7 +35,6 @@ public class QueueAndPriority implements Comparable<QueueAndPriority> {
   private final short priority;
 
   private QueueAndPriority(String queue, short priority) {
-    super();
     this.queue = queue;
     this.priority = priority;
   }

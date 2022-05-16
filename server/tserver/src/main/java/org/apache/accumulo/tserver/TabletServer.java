@@ -82,8 +82,8 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsUtil;
-import org.apache.accumulo.core.rpc.ThriftClientTypes;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -132,7 +132,6 @@ import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
 import org.apache.accumulo.tserver.TabletStatsKeeper.Operation;
-import org.apache.accumulo.tserver.compactions.Compactable;
 import org.apache.accumulo.tserver.compactions.CompactionManager;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.LogSorter;
@@ -297,16 +296,13 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
 
     ScheduledFuture<?> future = context.getScheduledExecutor()
-        .scheduleWithFixedDelay(Threads.createNamedRunnable("TabletRateUpdater", new Runnable() {
-          @Override
-          public void run() {
-            long now = System.currentTimeMillis();
-            for (Tablet tablet : getOnlineTablets().values()) {
-              try {
-                tablet.updateRates(now);
-              } catch (Exception ex) {
-                log.error("Error updating rates for {}", tablet.getExtent(), ex);
-              }
+        .scheduleWithFixedDelay(Threads.createNamedRunnable("TabletRateUpdater", () -> {
+          long now = System.currentTimeMillis();
+          for (Tablet tablet : getOnlineTablets().values()) {
+            try {
+              tablet.updateRates(now);
+            } catch (Exception ex) {
+              log.error("Error updating rates for {}", tablet.getExtent(), ex);
             }
           }
         }), 5, 5, TimeUnit.SECONDS);
@@ -613,7 +609,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     scanClientHandler = newThriftScanClientHandler(writeTracker);
 
     TProcessor processor = ThriftProcessorTypes.getTabletServerTProcessor(clientHandler,
-        thriftClientHandler, scanClientHandler, getContext(), getConfiguration());
+        thriftClientHandler, scanClientHandler, getContext());
     HostAndPort address = startServer(getConfiguration(), clientAddress.getHost(), processor);
     log.info("address = {}", address);
     return address;
@@ -623,13 +619,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private void startReplicationService() throws UnknownHostException {
     final var handler =
         new org.apache.accumulo.tserver.replication.ReplicationServicerHandler(this);
-    TProcessor processor = null;
-    try {
-      processor = ThriftProcessorTypes.getReplicationClientTProcessor(handler, getContext(),
-          getConfiguration());
-    } catch (Exception e) {
-      throw new RuntimeException("Error creating thrift server processor", e);
-    }
+    var processor = ThriftProcessorTypes.getReplicationClientTProcessor(handler, getContext());
     Property maxMessageSizeProperty =
         getConfiguration().get(Property.TSERV_MAX_MESSAGE_SIZE) != null
             ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE;
@@ -775,13 +765,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     ceMetrics = new CompactionExecutorsMetrics();
     MetricsUtil.initializeProducers(metrics, updateMetrics, scanMetrics, mincMetrics, ceMetrics);
 
-    this.compactionManager = new CompactionManager(new Iterable<Compactable>() {
-      @Override
-      public Iterator<Compactable> iterator() {
-        return Iterators.transform(onlineTablets.snapshot().values().iterator(),
-            Tablet::asCompactable);
-      }
-    }, getContext(), ceMetrics);
+    this.compactionManager = new CompactionManager(() -> Iterators
+        .transform(onlineTablets.snapshot().values().iterator(), Tablet::asCompactable),
+        getContext(), ceMetrics);
     compactionManager.start();
 
     try {

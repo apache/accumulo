@@ -18,23 +18,18 @@
  */
 package org.apache.accumulo.test;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.apache.accumulo.minicluster.ServerType.TABLET_SERVER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ManagerClient;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService.Client;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.fate.util.UtilWaitThread;
@@ -89,22 +84,9 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
   }
 
   private ManagerMonitorInfo getStats(AccumuloClient c) throws Exception {
-    ClientContext context = (ClientContext) c;
-    Client client = null;
-    while (true) {
-      try {
-        client = ManagerClient.getConnectionWithRetry(context);
-        log.info("Fetching manager stats");
-        return client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
-      } catch (ThriftNotActiveServiceException e) {
-        // Let it loop, fetching a new location
-        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-      } finally {
-        if (client != null) {
-          ManagerClient.close(client, context);
-        }
-      }
-    }
+    final ClientContext context = (ClientContext) c;
+    return ThriftClientTypes.MANAGER.execute(context,
+        client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()));
   }
 
 }

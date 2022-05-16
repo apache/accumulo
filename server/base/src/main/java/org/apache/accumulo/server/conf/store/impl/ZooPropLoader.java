@@ -63,7 +63,7 @@ public class ZooPropLoader implements CacheLoader<PropCacheKey<?>,VersionedPrope
 
       Stat stat = new Stat();
       byte[] bytes = zrw.getData(propCacheKey.getPath(), propStoreWatcher, stat);
-      var vProps = propCodec.fromBytes(stat.getVersion(), bytes);
+      VersionedProperties vProps = propCodec.fromBytes(stat.getVersion(), bytes);
 
       metrics.addLoadTime(
           TimeUnit.MILLISECONDS.convert(System.nanoTime() - startNanos, TimeUnit.NANOSECONDS));
@@ -91,7 +91,7 @@ public class ZooPropLoader implements CacheLoader<PropCacheKey<?>,VersionedPrope
   }
 
   @Override
-  public CompletableFuture<? extends VersionedProperties> asyncReload(PropCacheKey<?> propCacheKey,
+  public CompletableFuture<VersionedProperties> asyncReload(PropCacheKey<?> propCacheKey,
       VersionedProperties oldValue, Executor executor) throws Exception {
     log.trace("asyncReload called for key: {}", propCacheKey);
     metrics.incrRefresh();

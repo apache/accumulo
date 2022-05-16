@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -36,13 +35,10 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Credentials;
-import org.apache.accumulo.core.clientImpl.ManagerClient;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -53,7 +49,6 @@ import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.apache.thrift.TException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -151,28 +146,9 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
       log.debug("fetch the list of tablets assigned to each tserver.");
 
-      ManagerClientService.Iface client = null;
-      ManagerMonitorInfo stats;
-      while (true) {
-        try {
-          client = ManagerClient.getConnectionWithRetry((ClientContext) accumuloClient);
-          stats = client.getManagerStats(TraceUtil.traceInfo(),
-              creds.toThrift(accumuloClient.instanceOperations().getInstanceId()));
-          break;
-        } catch (ThriftSecurityException exception) {
-          throw new AccumuloSecurityException(exception);
-        } catch (ThriftNotActiveServiceException e) {
-          // Let it loop, fetching a new location
-          log.debug("Contacted a Manager which is no longer active, retrying");
-          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-        } catch (TException exception) {
-          throw new AccumuloException(exception);
-        } finally {
-          if (client != null) {
-            ManagerClient.close(client, (ClientContext) accumuloClient);
-          }
-        }
-      }
+      ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.execute((ClientContext) accumuloClient,
+          client -> client.getManagerStats(TraceUtil.traceInfo(),
+              creds.toThrift(accumuloClient.instanceOperations().getInstanceId())));
 
       if (stats.getTServerInfoSize() < 2) {
         log.debug("we need >= 2 servers. sleeping for {}ms", currentWait);

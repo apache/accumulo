@@ -158,7 +158,7 @@
     <surefire.reuseForks>true</surefire.reuseForks>
     <surefire.version>3.0.0-M6</surefire.version>
     <!-- Thrift version -->
-    <thrift.version>0.15.0</thrift.version>
+    <thrift.version>0.16.0</thrift.version>
     <unitTestMemSize>-Xmx1G</unitTestMemSize>
     <!-- ZooKeeper version -->
     <zookeeper.version>3.7.0</zookeeper.version>

@@ -181,7 +181,6 @@ public class CertUtils {
 
   public CertUtils(String keystoreType, String issuerDirString, String encryptionAlgorithm,
       int keysize, String signingAlgorithm) {
-    super();
     this.keystoreType = keystoreType;
     this.issuerDirString = issuerDirString;
     this.encryptionAlgorithm = encryptionAlgorithm;
