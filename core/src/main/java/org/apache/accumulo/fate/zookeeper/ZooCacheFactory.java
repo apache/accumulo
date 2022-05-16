@@ -18,18 +18,17 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonService;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 /**
  * A factory for {@link ZooCache} instances.
  */
 public class ZooCacheFactory {
-  // TODO: make this better - LRU, soft references, ...
-  private static Map<String,ZooCache> instances = new HashMap<>();
+  private static Cache<String,ZooCache> instances = Caffeine.newBuilder().maximumSize(5).build();
   private static boolean enabled = true;
 
   public ZooCacheFactory() {}
@@ -49,9 +48,9 @@ public class ZooCacheFactory {
   private static void disable() {
     synchronized (instances) {
       try {
-        instances.values().forEach(ZooCache::close);
+        instances.asMap().values().forEach(ZooCache::close);
       } finally {
-        instances.clear();
+        instances.invalidateAll();
         enabled = false;
       }
     }
@@ -97,7 +96,7 @@ public class ZooCacheFactory {
         throw new IllegalStateException("The Accumulo singleton for zookeeper caching is "
             + "disabled. This is likely caused by all AccumuloClients being closed");
       }
-      return instances.computeIfAbsent(key, k -> getNewZooCache(zooKeepers, sessionTimeout));
+      return instances.get(key, k -> getNewZooCache(zooKeepers, sessionTimeout));
     }
   }
 
@@ -119,7 +118,8 @@ public class ZooCacheFactory {
    */
   void reset() {
     synchronized (instances) {
-      instances.clear();
+      instances.invalidateAll();
+      instances.cleanUp();
     }
   }
 }
