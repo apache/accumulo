@@ -171,12 +171,21 @@ for d in "${PACKAGES_TO_GENERATE[@]}"; do
     esac
     mkdir -p "$DDIR"
     for file in "${FILE_SUFFIX[@]}"; do
+      mapfile -t ALL_EXISTING_FILES < <(find "$DDIR" -name "*$file")
+      for f in "${ALL_EXISTING_FILES[@]}"; do
+        if [[ ! -f "$SDIR/$(basename "$f")-with-license" ]]; then
+          set -x
+          rm -f "$f"
+          { set +x; } 2>/dev/null
+        fi
+      done
       mapfile -t ALL_LICENSE_FILES_TO_COPY < <(find "$SDIR" -name "*$file")
       for f in "${ALL_LICENSE_FILES_TO_COPY[@]}"; do
         DEST="$DDIR/$(basename "$f")"
         if ! cmp -s "${f}-with-license" "${DEST}"; then
-          echo cp -f "${f}-with-license" "${DEST}"
+          set -x
           cp -f "${f}-with-license" "${DEST}" || fail unable to copy files to java workspace
+          { set +x; } 2>/dev/null
         fi
       done
     done
