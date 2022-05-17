@@ -155,9 +155,6 @@ public class GarbageCollectionAlgorithm {
 
         String relativePath = makeRelative(reference, 3);
 
-        // validate constructed relativePath against metadata
-        ref.validate(relativePath);
-
         // WARNING: This line is EXTREMELY IMPORTANT.
         // You MUST REMOVE candidates that are still in use
         if (candidateMap.remove(relativePath) != null)
