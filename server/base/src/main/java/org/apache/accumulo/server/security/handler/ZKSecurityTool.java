@@ -124,6 +124,7 @@ class ZKSecurityTool {
       Caffeine.newBuilder().scheduler(Scheduler.systemScheduler())
           .expireAfterAccess(Duration.ofMinutes(1)).initialCapacity(4).maximumSize(64).build();
 
+  // This uses a cache to avoid repeated expensive calls to Crypt.crypt for recent inputs
   public static boolean checkCryptPass(byte[] password, byte[] zkData) {
     final ByteBuffer key = ByteBuffer.allocate(password.length + zkData.length);
     key.put(password);
