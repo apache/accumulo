@@ -51,21 +51,70 @@ public class GarbageCollectionAlgorithm {
 
   private static final Logger log = LoggerFactory.getLogger(GarbageCollectionAlgorithm.class);
 
+  /**
+   * This method takes a file or directory path and returns a relative path in 1 of 2 forms:
+   *
+   * <pre>
+   *      1- For files: table-id/tablet-directory/filename.rf
+   *      2- For directories: table-id/tablet-directory
+   * </pre>
+   *
+   * For example, for full file path like hdfs://foo:6000/accumulo/tables/4/t0/F000.rf it will
+   * return 4/t0/F000.rf. For a directory that already is relative, like 4/t0, it will just return
+   * the original path. This method will also remove prefixed relative path.
+   */
   private String makeRelative(String path, int expectedLen) {
     String relPath = path;
 
+    // remove prefixed old relative path
     if (relPath.startsWith("../"))
       relPath = relPath.substring(3);
 
+    // remove trailing slash
     while (relPath.endsWith("/"))
       relPath = relPath.substring(0, relPath.length() - 1);
 
+    // remove beginning slash
     while (relPath.startsWith("/"))
       relPath = relPath.substring(1);
 
+    String[] tokens = removeEmptyTokensFromPath(relPath);
+
+    if (tokens.length > 3 && path.contains(":")) {
+      // full file path like hdfs://foo:6000/accumulo/tables/4/t0/F000.rf
+      if (tokens[tokens.length - 4].equals(Constants.TABLE_DIR)
+          && (expectedLen == 0 || expectedLen == 3)) {
+        // return the last 3 tokens after tables, like 4/t0/F000.rf
+        relPath = tokens[tokens.length - 3] + "/" + tokens[tokens.length - 2] + "/"
+            + tokens[tokens.length - 1];
+      } else if (tokens[tokens.length - 3].equals(Constants.TABLE_DIR)
+          && (expectedLen == 0 || expectedLen == 2)) {
+        // return the last 2 tokens after tables, like 4/t0
+        relPath = tokens[tokens.length - 2] + "/" + tokens[tokens.length - 1];
+      } else {
+        throw new IllegalArgumentException("Failed to make path relative. Bad reference: " + path);
+      }
+    } else if (tokens.length == 3 && (expectedLen == 0 || expectedLen == 3)
+        && !path.contains(":")) {
+      // we already have a relative path so return it, like 4/t0/F000.rf
+      relPath = tokens[0] + "/" + tokens[1] + "/" + tokens[2];
+    } else if (tokens.length == 2 && (expectedLen == 0 || expectedLen == 2)
+        && !path.contains(":")) {
+      // return the last 2 tokens of the relative path, like 4/t0
+      relPath = tokens[0] + "/" + tokens[1];
+    } else {
+      throw new IllegalArgumentException("Failed to make path relative. Bad reference: " + path);
+    }
+
+    return relPath;
+  }
+
+  /**
+   * Handle paths like a//b///c by dropping the empty tokens.
+   */
+  private String[] removeEmptyTokensFromPath(String relPath) {
     String[] tokens = relPath.split("/");
 
-    // handle paths like a//b///c
     boolean containsEmpty = false;
     for (String token : tokens) {
       if (token.equals("")) {
@@ -82,31 +131,9 @@ public class GarbageCollectionAlgorithm {
         }
       }
 
-      tokens = tmp.toArray(new String[tmp.size()]);
+      tokens = tmp.toArray(new String[0]);
     }
-
-    if (tokens.length > 3 && path.contains(":")) {
-      if (tokens[tokens.length - 4].equals(Constants.TABLE_DIR)
-          && (expectedLen == 0 || expectedLen == 3)) {
-        relPath = tokens[tokens.length - 3] + "/" + tokens[tokens.length - 2] + "/"
-            + tokens[tokens.length - 1];
-      } else if (tokens[tokens.length - 3].equals(Constants.TABLE_DIR)
-          && (expectedLen == 0 || expectedLen == 2)) {
-        relPath = tokens[tokens.length - 2] + "/" + tokens[tokens.length - 1];
-      } else {
-        throw new IllegalArgumentException(path);
-      }
-    } else if (tokens.length == 3 && (expectedLen == 0 || expectedLen == 3)
-        && !path.contains(":")) {
-      relPath = tokens[0] + "/" + tokens[1] + "/" + tokens[2];
-    } else if (tokens.length == 2 && (expectedLen == 0 || expectedLen == 2)
-        && !path.contains(":")) {
-      relPath = tokens[0] + "/" + tokens[1];
-    } else {
-      throw new IllegalArgumentException(path);
-    }
-
-    return relPath;
+    return tokens;
   }
 
   private SortedMap<String,String> makeRelative(Collection<String> candidates) {
