@@ -25,12 +25,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -119,12 +120,14 @@ class ZKSecurityTool {
     return cryptHash.getBytes(UTF_8);
   }
 
-  private static final Cache<String,String> CRYPT_PASSWORD_CACHE = Caffeine.newBuilder()
-      .scheduler(Scheduler.systemScheduler()).expireAfterWrite(3, TimeUnit.SECONDS).build();
+  private static final Cache<ByteBuffer,String> CRYPT_PASSWORD_CACHE =
+      Caffeine.newBuilder().scheduler(Scheduler.systemScheduler())
+          .expireAfterAccess(Duration.ofMinutes(1)).initialCapacity(4).maximumSize(64).build();
 
   public static boolean checkCryptPass(byte[] password, byte[] zkData) {
-    final String zkDataString = new String(zkData, UTF_8);
-    final String key = new String(password, UTF_8) + zkDataString;
+    final ByteBuffer key = ByteBuffer.allocate(password.length + zkData.length);
+    key.put(password);
+    key.put(zkData);
     String cryptHash = CRYPT_PASSWORD_CACHE.getIfPresent(key);
     if (cryptHash != null) {
       if (MessageDigest.isEqual(zkData, cryptHash.getBytes(UTF_8))) {
@@ -137,7 +140,7 @@ class ZKSecurityTool {
     }
     // Either !matches or was not cached
     try {
-      cryptHash = Crypt.crypt(password, zkDataString);
+      cryptHash = Crypt.crypt(password, new String(zkData, UTF_8));
     } catch (IllegalArgumentException e) {
       log.error("Unrecognized hash format", e);
       return false;
