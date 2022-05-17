@@ -516,10 +516,11 @@ public class ThreadPools {
    * If you need the server-side shared ScheduledThreadPoolExecutor, then use
    * ServerContext.getScheduledExecutor()
    */
+  @SuppressWarnings("deprecation")
   public ScheduledThreadPoolExecutor
       createGeneralScheduledExecutorService(AccumuloConfiguration conf) {
-    return (ScheduledThreadPoolExecutor) createExecutorService(conf,
-        Property.GENERAL_THREADPOOL_SIZE, true);
+    return (ScheduledThreadPoolExecutor) createExecutorService(conf, conf.resolve(
+        Property.GENERAL_THREADPOOL_SIZE, Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), true);
   }
 
   /**
