@@ -181,7 +181,6 @@
       <excludes>
         <exclude>src/**</exclude>
         <exclude>target/**</exclude>
-        <exclude>**/continuous-env.sh</exclude>
       </excludes>
     </fileSet>
     <fileSet>
@@ -198,8 +197,6 @@
         <exclude>**/*.pl</exclude>
         <exclude>**/*.pyc</exclude>
         <exclude>**/*.pyo</exclude>
-        <exclude>**/walkers.txt</exclude>
-        <exclude>**/ingesters.txt</exclude>
         <exclude>**/randomwalk/conf/logger.xml</exclude>
         <exclude>**/randomwalk/conf/randomwalk.conf</exclude>
         <exclude>**/randomwalk/conf/walkers</exclude>

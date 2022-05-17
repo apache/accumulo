@@ -13,7 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# set this to an absolute path that exist on every machine
+# modify these values to match cluster setup
+INSTANCE_NAME=instance
+ZOO_KEEPERS=localhost:2181
+USER=user
+PASS=pass
+
 # Inherit values from environment if they are already set.
 HADOOP_HOME=${HADOOP_HOME:-/opt/hadoop}
 HADOOP_PREFIX=${HADOOP_PREFIX:-$HADOOP_HOME}
@@ -22,14 +27,9 @@ ACCUMULO_CONF_DIR=${ACCUMULO_CONF_DIR:-$ACCUMULO_HOME/conf}
 JAVA_HOME=${JAVA_HOME:-/opt/java}
 ZOOKEEPER_HOME=${ZOOKEEPER_HOME:-/opt/zookeeper}
 
-CONTINUOUS_LOG_DIR=$ACCUMULO_HOME/test/system/continuous/logs
-INSTANCE_NAME=instance
-ZOO_KEEPERS=zhost1,zhost2
+# users
 ACCUMULO_USER=$(whoami)
 HDFS_USER=$(whoami)
-USER=user
-PASS=pass
-TABLE=ci
 
 #set debug to on to enable logging of accumulo client debugging
 DEBUG_INGEST=off
@@ -137,3 +137,6 @@ BULK_MAP_TASKS=10
 # number of key value pairs to generate per mapper
 BULK_MAP_NODES=10000
 
+# other static values
+TABLE=ci
+CONTINUOUS_LOG_DIR=$ACCUMULO_HOME/test/system/continuous/logs
