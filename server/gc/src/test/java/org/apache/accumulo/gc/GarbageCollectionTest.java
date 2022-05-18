@@ -289,6 +289,28 @@ public class GarbageCollectionTest {
         "hdfs://foo.com:6000/accumulo/tables/4/t0/F004.rf");
   }
 
+  /**
+   * Tests valid file paths that have empty tokens.
+   */
+  @Test
+  public void emptyPathsTest() throws Exception {
+    TestGCE gce = new TestGCE();
+
+    gce.candidates.add("hdfs://foo:6000/accumulo/tables/4//t0//F000.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/4//t0//F001.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/5//t0//F005.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo//tables//6/t0/F006.rf");
+
+    gce.addFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4//t0//F000.rf");
+    gce.addFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4//t0//F001.rf");
+    gce.addFileReference("6", null, "hdfs://foo.com:6000/accumulo//tables//6/t0/F006.rf");
+
+    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
+    gca.collect(gce);
+
+    assertRemoved(gce, "hdfs://foo.com:6000/accumulo/tables/5//t0//F005.rf");
+  }
+
   @Test
   public void testRelative() throws Exception {
     TestGCE gce = new TestGCE();

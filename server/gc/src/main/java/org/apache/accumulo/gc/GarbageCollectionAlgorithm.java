@@ -18,8 +18,10 @@
  */
 package org.apache.accumulo.gc;
 
+import static java.util.Arrays.stream;
+import static java.util.function.Predicate.not;
+
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -61,7 +63,9 @@ public class GarbageCollectionAlgorithm {
    *
    * For example, for full file path like hdfs://foo:6000/accumulo/tables/4/t0/F000.rf it will
    * return 4/t0/F000.rf. For a directory that already is relative, like 4/t0, it will just return
-   * the original path. This method will also remove prefixed relative path.
+   * the original path. This method will also remove prefixed relative paths like ../4/t0/F000.rf
+   * and return 4/t0/F000.rf. It also strips out empty tokens from paths like
+   * hdfs://foo.com:6000/accumulo/tables/4//t0//F001.rf returning 4/t0/F001.rf.
    */
   private String makeRelative(String path, int expectedLen) {
     String relPath = path;
@@ -78,6 +82,7 @@ public class GarbageCollectionAlgorithm {
     while (relPath.startsWith("/"))
       relPath = relPath.substring(1);
 
+    // Handle paths like a//b///c by dropping the empty tokens.
     String[] tokens = stream(relPath.split("/")).filter(not(""::equals)).toArray(String[]::new);
 
     if (tokens.length > 3 && path.contains(":")) {
@@ -106,34 +111,8 @@ public class GarbageCollectionAlgorithm {
       throw new IllegalArgumentException("Failed to make path relative. Bad reference: " + path);
     }
 
+    log.info("{} -> {} expectedLen = {}", path, relPath, expectedLen);
     return relPath;
-  }
-
-  /**
-   * Handle paths like a//b///c by dropping the empty tokens.
-   */
-  private String[] removeEmptyTokensFromPath(String relPath) {
-    String[] tokens = relPath.split("/");
-
-    boolean containsEmpty = false;
-    for (String token : tokens) {
-      if (token.equals("")) {
-        containsEmpty = true;
-        break;
-      }
-    }
-
-    if (containsEmpty) {
-      ArrayList<String> tmp = new ArrayList<>();
-      for (String token : tokens) {
-        if (!token.equals("")) {
-          tmp.add(token);
-        }
-      }
-
-      tokens = tmp.toArray(new String[0]);
-    }
-    return tokens;
   }
 
   private SortedMap<String,String> makeRelative(Collection<String> candidates) {
