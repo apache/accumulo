@@ -34,9 +34,10 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.Reference;
+import org.apache.accumulo.core.metadata.RelativeTabletDirectory;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.gc.GarbageCollectionEnvironment.Reference;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -106,6 +107,7 @@ public class GarbageCollectionAlgorithm {
       throw new IllegalArgumentException(path);
     }
 
+    log.trace("{} -> {} expectedLen = {}", path, relPath, expectedLen);
     return relPath;
   }
 
@@ -132,36 +134,35 @@ public class GarbageCollectionAlgorithm {
     while (iter.hasNext()) {
       Reference ref = iter.next();
 
-      if (ref.isDir) {
-        String tableID = ref.id.toString();
-        String dirName = ref.ref;
-        ServerColumnFamily.validateDirCol(dirName);
+      if (ref instanceof RelativeTabletDirectory) {
+        var dirReference = (RelativeTabletDirectory) ref;
+        ServerColumnFamily.validateDirCol(dirReference.tabletDir);
 
-        String dir = "/" + tableID + "/" + dirName;
+        String dir = "/" + dirReference.tableId + "/" + dirReference.tabletDir;
 
         dir = makeRelative(dir, 2);
 
         if (candidateMap.remove(dir) != null)
           log.debug("Candidate was still in use: {}", dir);
       } else {
-
-        String reference = ref.ref;
+        String reference = ref.metadataEntry;
         if (reference.startsWith("/")) {
-          reference = "/" + ref.id + reference;
+          log.debug("Candidate {} has a relative path, prepend tableId {}", reference, ref.tableId);
+          reference = "/" + ref.tableId + ref.metadataEntry;
         } else if (!reference.contains(":") && !reference.startsWith("../")) {
           throw new RuntimeException("Bad file reference " + reference);
         }
 
-        reference = makeRelative(reference, 3);
+        String relativePath = makeRelative(reference, 3);
 
         // WARNING: This line is EXTREMELY IMPORTANT.
         // You MUST REMOVE candidates that are still in use
-        if (candidateMap.remove(reference) != null)
-          log.debug("Candidate was still in use: {}", reference);
+        if (candidateMap.remove(relativePath) != null)
+          log.debug("Candidate was still in use: {}", relativePath);
 
-        String dir = reference.substring(0, reference.lastIndexOf('/'));
+        String dir = relativePath.substring(0, relativePath.lastIndexOf('/'));
         if (candidateMap.remove(dir) != null)
-          log.debug("Candidate was still in use: {}", reference);
+          log.debug("Candidate was still in use: {}", relativePath);
       }
     }
   }
