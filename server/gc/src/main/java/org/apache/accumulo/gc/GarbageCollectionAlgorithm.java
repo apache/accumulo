@@ -78,7 +78,7 @@ public class GarbageCollectionAlgorithm {
     while (relPath.startsWith("/"))
       relPath = relPath.substring(1);
 
-    String[] tokens = removeEmptyTokensFromPath(relPath);
+    String[] tokens = stream(relPath.split("/")).filter(not(""::equals)).toArray(String[]::new);
 
     if (tokens.length > 3 && path.contains(":")) {
       // full file path like hdfs://foo:6000/accumulo/tables/4/t0/F000.rf
