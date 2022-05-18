@@ -111,7 +111,6 @@ public class GarbageCollectionAlgorithm {
       throw new IllegalArgumentException("Failed to make path relative. Bad reference: " + path);
     }
 
-    log.info("{} -> {} expectedLen = {}", path, relPath, expectedLen);
     return relPath;
   }
 
