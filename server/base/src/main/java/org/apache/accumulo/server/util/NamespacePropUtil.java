@@ -32,12 +32,20 @@ public class NamespacePropUtil extends PropUtil<NamespaceId> {
     super(context);
   }
 
+  /**
+   * Helper method to set provided properties for the provided namespace.
+   *
+   * @throws IllegalStateException
+   *           if an underlying exception (KeeperException, InterruptException) or other failure to
+   *           read properties from the cache / backend store
+   * @throws IllegalArgumentException
+   *           if a provided property is not valid *
+   */
   @Override
   public void setProperties(NamespaceId namespaceId, Map<String,String> properties) {
     for (Map.Entry<String,String> prop : properties.entrySet()) {
-      // TODO reconcile with TablePropUtil see https://github.com/apache/accumulo/issues/2633
       if (!Property.isTablePropertyValid(prop.getKey(), prop.getValue())) {
-        throw new IllegalArgumentException("Invalid table property for namespace: " + namespaceId
+        throw new IllegalArgumentException("Invalid property for namespace: " + namespaceId
             + " name: " + prop.getKey() + ", value: " + prop.getValue());
       }
     }
