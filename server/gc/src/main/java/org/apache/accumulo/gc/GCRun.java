@@ -46,6 +46,8 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.metadata.Reference;
+import org.apache.accumulo.core.metadata.RelativeTabletDirectory;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -146,16 +148,16 @@ public class GCRun implements GarbageCollectionEnvironment {
 
     var tabletReferences = tabletStream.flatMap(tm -> {
       Stream<Reference> refs = Stream.concat(tm.getFiles().stream(), tm.getScans().stream())
-          .map(f -> new Reference(tm.getTableId(), f.getMetaUpdateDelete(), false));
+          .map(f -> new Reference(tm.getTableId(), f.getMetaUpdateDelete()));
       if (tm.getDirName() != null) {
-        refs =
-            Stream.concat(refs, Stream.of(new Reference(tm.getTableId(), tm.getDirName(), true)));
+        refs = Stream.concat(refs,
+            Stream.of(new RelativeTabletDirectory(tm.getTableId(), tm.getDirName())));
       }
       return refs;
     });
 
     var scanServerRefs = context.getAmple().getScanServerFileReferences()
-        .map(sfr -> new Reference(sfr.getTableId(), sfr.getPathStr(), false));
+        .map(sfr -> new Reference(sfr.getTableId(), sfr.getPathStr()));
 
     return Stream.concat(tabletReferences, scanServerRefs);
   }

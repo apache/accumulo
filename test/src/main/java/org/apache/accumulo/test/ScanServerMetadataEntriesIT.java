@@ -45,6 +45,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.Reference;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ScanServerFileReferenceSection;
@@ -52,7 +53,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.gc.GCRun;
-import org.apache.accumulo.gc.GarbageCollectionEnvironment.Reference;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
@@ -266,8 +266,8 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
         Set<Reference> refs = gc.getReferences().collect(Collectors.toSet());
         List<Reference> tableRefs = new ArrayList<>();
         refs.forEach(r -> {
-          if (r.id.equals(tid) && !r.isDir) {
-            assertTrue(metadataScanFileRefs.contains(r.ref));
+          if (r.tableId.equals(tid) && !r.isDirectory()) {
+            assertTrue(metadataScanFileRefs.contains(r.metadataEntry));
             tableRefs.add(r);
           }
         });
@@ -277,7 +277,7 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
         assertEquals(6, tableRefs.size());
 
         Set<String> deduplicatedReferences =
-            tableRefs.stream().map(ref -> ref.ref).collect(Collectors.toSet());
+            tableRefs.stream().map(ref -> ref.metadataEntry).collect(Collectors.toSet());
 
         assertEquals(3, deduplicatedReferences.size());
       }

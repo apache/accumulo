@@ -32,6 +32,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.Reference;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
@@ -64,24 +65,6 @@ public interface GarbageCollectionEnvironment {
    * @return The list of files for each bulk load currently in progress.
    */
   Stream<String> getBlipPaths() throws TableNotFoundException;
-
-  static class Reference {
-    public final TableId id;
-    public final String ref;
-    public final boolean isDir;
-
-    Reference(TableId id, String ref, boolean isDir) {
-      this.id = id;
-      this.ref = ref;
-      this.isDir = isDir;
-    }
-
-    @Override
-    public String toString() {
-      return "Reference [id=" + id + ", ref=" + ref + ", isDir=" + isDir + "]";
-    }
-
-  }
 
   /**
    * Fetches the references to files, {@link DataFileColumnFamily#NAME} or
