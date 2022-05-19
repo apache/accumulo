@@ -18,8 +18,10 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -46,6 +48,27 @@ public interface InstanceOperations {
    */
   void setProperty(final String property, final String value)
       throws AccumuloException, AccumuloSecurityException;
+
+  /**
+   * Modify system properties using a Consumer that accepts a mutable map containing the current
+   * system property overrides stored in ZooKeeper. If the supplied Consumer alters the map without
+   * throwing an Exception, then the resulting map will atomically replace the current system
+   * property overrides in ZooKeeper. Only properties which can be stored in ZooKeeper will be
+   * accepted.
+   *
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission
+   * @throws IllegalArgumentException
+   *           if the Consumer alters the map by adding properties that cannot be stored in
+   *           ZooKeeper
+   * @throws ConcurrentModificationException
+   *           without altering the stored properties if the server reports that the properties have
+   *           been changed by another process
+   */
+  void modifyProperties(Consumer<Map<String,String>> mapMutator) throws AccumuloException,
+      AccumuloSecurityException, IllegalArgumentException, ConcurrentModificationException;
 
   /**
    * Removes a system property from zookeeper. Changes can be seen using

@@ -77,6 +77,19 @@ public interface PropStore {
   void putAll(PropStoreKey<?> propStoreKey, Map<String,String> props);
 
   /**
+   * Replaces all current properties with map provided If a property is not included in the new map,
+   * the property will not be set.
+   *
+   * @param propStoreKey
+   *          the prop cache key
+   * @param props
+   *          a map of property k,v pairs
+   * @throws IllegalStateException
+   *           if the values cannot be written or if an underlying store exception occurs.
+   */
+  void replaceAll(PropStoreKey<?> propStoreKey, Map<String,String> props);
+
+  /**
    * Delete the store node from the underlying store.
    *
    * @param propStoreKey

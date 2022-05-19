@@ -28,11 +28,14 @@ import static org.apache.accumulo.core.rpc.ThriftUtil.returnClient;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.ConcurrentModificationException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -74,6 +77,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public void setProperty(final String property, final String value)
       throws AccumuloException, AccumuloSecurityException, IllegalArgumentException {
+    System.out.println("Property is " + property);
+    System.out.println("Value is " + value);
     checkArgument(property != null, "property is null");
     checkArgument(value != null, "value is null");
     DeprecatedPropertyUtil.getReplacementName(property, (log, replacement) -> {
@@ -84,7 +89,70 @@ public class InstanceOperationsImpl implements InstanceOperations {
     });
     ThriftClientTypes.MANAGER.executeVoid(context, client -> client
         .setSystemProperty(TraceUtil.traceInfo(), context.rpcCreds(), property, value));
+    System.out.println("Set successful");
     checkLocalityGroups(property);
+  }
+
+  // @Override
+  // public void setProperties(Map<String,String> propertiesMap)
+  // throws AccumuloException, AccumuloSecurityException, IllegalArgumentException {
+  //
+  // Map<String,String> checkedProperties = new HashMap<>();
+  //
+  // for (Map.Entry<String,String> entry : propertiesMap.entrySet()) {
+  // var property = entry.getKey();
+  // var value = entry.getValue();
+  //
+  // System.out.println("New Property is " + property);
+  // System.out.println("New Value is " + value);
+  //
+  // checkArgument(property != null, "property is null");
+  // checkArgument(value != null, "value is null");
+  // DeprecatedPropertyUtil.getReplacementName(property, (log, replacement) -> {
+  // // force a warning on the client side, but send the name the user used to the server-side
+  // // to trigger a warning in the server logs, and to handle it there
+  // log.warn("{} was deprecated and will be removed in a future release;"
+  // + " setting its replacement {} instead", property, replacement);
+  // });
+  // checkLocalityGroups(property);
+  // checkedProperties.put(property, value);
+  // }
+  // ThriftClientTypes.MANAGER.executeVoid(context, client -> client
+  // .setSystemProperties(TraceUtil.traceInfo(), context.rpcCreds(), checkedProperties));
+  //
+  // System.out.println("Set successful");
+  // }
+
+  @Override
+  public void modifyProperties(Consumer<Map<String,String>> mapMutator) throws AccumuloException,
+      AccumuloSecurityException, IllegalArgumentException, ConcurrentModificationException {
+    // Pair<Integer, Map<String,String>> currentProperties = null;
+    // var currentPropVersion = currentProperties.getFirst();
+    // var currentPropMap = currentProperties.getSecond();
+
+    Map<String,String> currentPropMap = getSystemConfiguration();
+    Map<String,String> checkedProperties = new HashMap<>();
+    mapMutator.accept(currentPropMap);
+
+    for (Map.Entry<String,String> entry : currentPropMap.entrySet()) {
+      var property = entry.getKey();
+      var value = entry.getValue();
+
+      checkArgument(property != null, "property is null");
+      checkArgument(value != null, "value is null");
+      DeprecatedPropertyUtil.getReplacementName(property, (log, replacement) -> {
+        // force a warning on the client side, but send the name the user used to the server-side
+        // to trigger a warning in the server logs, and to handle it there
+        log.warn("{} was deprecated and will be removed in a future release;"
+            + " setting its replacement {} instead", property, replacement);
+      });
+      checkLocalityGroups(property);
+      checkedProperties.put(property, value);
+    }
+
+    // Send to server
+    ThriftClientTypes.MANAGER.executeVoid(context, client -> client
+        .modifyProperties(TraceUtil.traceInfo(), context.rpcCreds(), checkedProperties));
   }
 
   @Override
