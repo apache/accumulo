@@ -20,11 +20,10 @@ package org.apache.accumulo.fate;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
-import java.util.Date;
 import java.util.EnumSet;
 import java.util.Formatter;
 import java.util.HashMap;
@@ -33,6 +32,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.admin.TransactionStatus;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.zookeeper.FateLock;
 import org.apache.accumulo.fate.zookeeper.FateLock.FateLockPath;
@@ -44,6 +44,13 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -63,88 +70,6 @@ public class AdminUtil<T> {
    */
   public AdminUtil(boolean exitOnError) {
     this.exitOnError = exitOnError;
-  }
-
-  /**
-   * FATE transaction status, including lock information.
-   */
-  public static class TransactionStatus {
-
-    private final long txid;
-    private final TStatus status;
-    private final String debug;
-    private final List<String> hlocks;
-    private final List<String> wlocks;
-    private final String top;
-    private final long timeCreated;
-
-    private TransactionStatus(Long tid, TStatus status, String debug, List<String> hlocks,
-        List<String> wlocks, String top, Long timeCreated) {
-
-      this.txid = tid;
-      this.status = status;
-      this.debug = debug;
-      this.hlocks = Collections.unmodifiableList(hlocks);
-      this.wlocks = Collections.unmodifiableList(wlocks);
-      this.top = top;
-      this.timeCreated = timeCreated;
-
-    }
-
-    /**
-     * @return This fate operations transaction id, formatted in the same way as FATE transactions
-     *         are in the Accumulo logs.
-     */
-    public String getTxid() {
-      return String.format("%016x", txid);
-    }
-
-    public TStatus getStatus() {
-      return status;
-    }
-
-    /**
-     * @return The debug info for the operation on the top of the stack for this Fate operation.
-     */
-    public String getDebug() {
-      return debug;
-    }
-
-    /**
-     * @return list of namespace and table ids locked
-     */
-    public List<String> getHeldLocks() {
-      return hlocks;
-    }
-
-    /**
-     * @return list of namespace and table ids locked
-     */
-    public List<String> getWaitingLocks() {
-      return wlocks;
-    }
-
-    /**
-     * @return The operation on the top of the stack for this Fate operation.
-     */
-    public String getTop() {
-      return top;
-    }
-
-    /**
-     * @return The timestamp of when the operation was created in ISO format with UTC timezone.
-     */
-    public String getTimeCreatedFormatted() {
-      return timeCreated > 0 ? new Date(timeCreated).toInstant().atZone(ZoneOffset.UTC)
-          .format(DateTimeFormatter.ISO_DATE_TIME) : "ERROR";
-    }
-
-    /**
-     * @return The unformatted form of the timestamp.
-     */
-    public long getTimeCreated() {
-      return timeCreated;
-    }
   }
 
   public static class FateStatus {
@@ -360,6 +285,10 @@ public class AdminUtil<T> {
 
     List<Long> transactions = zs.list();
     List<TransactionStatus> statuses = new ArrayList<>(transactions.size());
+    Gson gson = new GsonBuilder()
+        .registerTypeAdapter(ReadOnlyRepo.class, new InterfaceSerializer<>())
+        .registerTypeAdapter(Repo.class, new InterfaceSerializer<>())
+        .registerTypeAdapter(byte[].class, new ByteArraySerializer()).setPrettyPrinting().create();
 
     for (Long tid : transactions) {
 
@@ -388,13 +317,17 @@ public class AdminUtil<T> {
 
       long timeCreated = zs.timeCreated(tid);
 
+      List<ReadOnlyRepo<T>> repoStack = zs.getStack(tid);
+      FateStack fateStack = new FateStack(tid, repoStack);
+
       zs.unreserve(tid, 0);
 
       if ((filterTxid != null && !filterTxid.contains(tid))
           || (filterStatus != null && !filterStatus.contains(status)))
         continue;
 
-      statuses.add(new TransactionStatus(tid, status, debug, hlocks, wlocks, top, timeCreated));
+      statuses.add(new TransactionStatus(tid, status.toString(), debug, hlocks, wlocks, top,
+          timeCreated, gson.toJson(fateStack)));
     }
 
     return new FateStatus(statuses, heldLocks, waitingLocks);
@@ -441,7 +374,7 @@ public class AdminUtil<T> {
     try {
       txid = Long.parseLong(txidStr, 16);
     } catch (NumberFormatException nfe) {
-      System.out.printf("Invalid transaction ID format: %s%n", txidStr);
+      log.error("Invalid transaction ID format: {}", txidStr);
       return false;
     }
     boolean state = false;
@@ -449,7 +382,7 @@ public class AdminUtil<T> {
     TStatus ts = zs.getStatus(txid);
     switch (ts) {
       case UNKNOWN:
-        System.out.printf("Invalid transaction ID: %016x%n", txid);
+        log.error("Invalid transaction ID: {}", txid);
         break;
 
       case SUBMITTED:
@@ -458,7 +391,7 @@ public class AdminUtil<T> {
       case FAILED:
       case FAILED_IN_PROGRESS:
       case SUCCESSFUL:
-        System.out.printf("Deleting transaction: %016x (%s)%n", txid, ts);
+        log.info("Deleting transaction: {}, {}", txid, ts);
         zs.delete(txid);
         state = true;
         break;
@@ -478,7 +411,7 @@ public class AdminUtil<T> {
     try {
       txid = Long.parseLong(txidStr, 16);
     } catch (NumberFormatException nfe) {
-      System.out.printf("Invalid transaction ID format: %s%n", txidStr);
+      log.error("Invalid transaction ID format: {}", txidStr);
       return false;
     }
     boolean state = false;
@@ -486,24 +419,24 @@ public class AdminUtil<T> {
     TStatus ts = zs.getStatus(txid);
     switch (ts) {
       case UNKNOWN:
-        System.out.printf("Invalid transaction ID: %016x%n", txid);
+        log.error("Invalid transaction ID: {}", txid);
         break;
 
       case SUBMITTED:
       case IN_PROGRESS:
       case NEW:
-        System.out.printf("Failing transaction: %016x (%s)%n", txid, ts);
+        log.info("Failing transaction: {}, {}", txid, ts);
         zs.setStatus(txid, TStatus.FAILED_IN_PROGRESS);
         state = true;
         break;
 
       case SUCCESSFUL:
-        System.out.printf("Transaction already completed: %016x (%s)%n", txid, ts);
+        log.info("Transaction already completed: {}, {}", txid, ts);
         break;
 
       case FAILED:
       case FAILED_IN_PROGRESS:
-        System.out.printf("Transaction already failed: %016x (%s)%n", txid, ts);
+        log.info("Transaction already failed: {}, {}", txid, ts);
         state = true;
         break;
     }
@@ -536,24 +469,65 @@ public class AdminUtil<T> {
     try {
       if (ServiceLock.getLockData(zk.getZooKeeper(), zLockManagerPath) != null) {
         System.err.println("ERROR: Manager lock is held, not running");
+
         if (this.exitOnError)
           System.exit(1);
         else
           return false;
       }
     } catch (KeeperException e) {
-      System.err.println("ERROR: Could not read manager lock, not running " + e.getMessage());
+      log.error("Could not read manager lock, not running ", e);
       if (this.exitOnError)
         System.exit(1);
       else
         return false;
     } catch (InterruptedException e) {
-      System.err.println("ERROR: Could not read manager lock, not running" + e.getMessage());
+      log.error("Could not read manager lock, not running", e);
       if (this.exitOnError)
         System.exit(1);
       else
         return false;
     }
     return true;
+  }
+
+  public class FateStack {
+    String txid;
+    List<ReadOnlyRepo<T>> stack;
+
+    FateStack(Long txid, List<ReadOnlyRepo<T>> stack) {
+      this.txid = String.format("%016x", txid);
+      this.stack = stack;
+    }
+  }
+
+  // this class serializes references to interfaces with the concrete class name
+  private static class InterfaceSerializer<T> implements JsonSerializer<T> {
+    @Override
+    public JsonElement serialize(T link, Type type, JsonSerializationContext context) {
+      JsonElement je = context.serialize(link, link.getClass());
+      JsonObject jo = new JsonObject();
+      jo.add(link.getClass().getName(), je);
+      return jo;
+    }
+  }
+
+  // the purpose of this class is to be serialized as JSon for display
+  public static class ByteArrayContainer {
+    public String asUtf8;
+    public String asBase64;
+
+    ByteArrayContainer(byte[] ba) {
+      asUtf8 = new String(ba, UTF_8);
+      asBase64 = Base64.getUrlEncoder().encodeToString(ba);
+    }
+  }
+
+  // serialize byte arrays in human and machine readable ways
+  private static class ByteArraySerializer implements JsonSerializer<byte[]> {
+    @Override
+    public JsonElement serialize(byte[] link, Type type, JsonSerializationContext context) {
+      return context.serialize(new ByteArrayContainer(link));
+    }
   }
 }

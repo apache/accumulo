@@ -151,6 +151,37 @@ public interface InstanceOperations {
   void waitForBalance() throws AccumuloException;
 
   /**
+   * Fails a fate transaction based on the given txID. At least one txID must be provided.
+   *
+   * @param txids
+   *          Transaction IDs to fail.
+   * @since 2.1.0
+   */
+  void fateFail(List<String> txids) throws AccumuloException;
+
+  /**
+   * Deletes a fate transaction based on the given txID. At least one txID must be provided.
+   *
+   * @param txids
+   *          Transaction IDs to delete.
+   * @since 2.1.0
+   */
+  void fateDelete(List<String> txids) throws AccumuloException;
+
+  /**
+   * Gathers Transaction status information for either all fate transactions or requested txIDs.
+   *
+   * @param txids
+   *          Transaction IDs to use as a filter. Optional.
+   * @param tStatus
+   *          Parsed TStatus for print filter. Optional.
+   * @return A list of TransactionStatues for corresponding txids
+   * @since 2.1.0
+   */
+  List<TransactionStatus> fateStatus(List<String> txids, List<String> tStatus)
+      throws AccumuloException;
+
+  /**
    * Returns a unique string that identifies this instance of accumulo.
    *
    * @return a String

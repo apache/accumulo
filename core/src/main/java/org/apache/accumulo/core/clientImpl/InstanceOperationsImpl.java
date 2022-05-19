@@ -42,7 +42,10 @@ import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveCompaction.CompactionHost;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.admin.TransactionStatus;
+import org.apache.accumulo.core.clientImpl.thrift.AdminOperation;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
+import org.apache.accumulo.core.clientImpl.thrift.FateTransaction;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.data.InstanceId;
@@ -280,6 +283,42 @@ public class InstanceOperationsImpl implements InstanceOperations {
     } catch (AccumuloSecurityException ex) {
       // should never happen
       throw new RuntimeException("Unexpected exception thrown", ex);
+    }
+
+  }
+
+  @Override
+  public void fateFail(List<String> txids) throws AccumuloException {
+    checkArgument(txids != null, "txids is null");
+    executeAdminOperation(AdminOperation.FAIL, txids, null);
+  }
+
+  @Override
+  public void fateDelete(List<String> txids) throws AccumuloException {
+    checkArgument(txids != null, "txids is null");
+    executeAdminOperation(AdminOperation.DELETE, txids, null);
+  }
+
+  @Override
+  public List<TransactionStatus> fateStatus(List<String> txids, List<String> tStatus)
+      throws AccumuloException {
+    checkArgument(txids != null, "txids is null");
+    List<TransactionStatus> txStatus = new ArrayList<>();
+    for (var tx : executeAdminOperation(AdminOperation.PRINT, txids, tStatus)) {
+      txStatus.add(new TransactionStatus(tx.getTxid(), tx.getTstatus(), tx.getDebug(),
+          tx.getHlocks(), tx.getWlocks(), tx.getTop(), tx.getTimecreated(), tx.getStackInfo()));
+    }
+    return txStatus;
+  }
+
+  private List<FateTransaction> executeAdminOperation(AdminOperation op, List<String> txids,
+      List<String> filterStatuses) throws AccumuloException {
+    try {
+      return ThriftClientTypes.CLIENT.execute(context,
+          client -> client.executeAdminOperation(TraceUtil.traceInfo(), context.rpcCreds(), op,
+              txids, filterStatuses));
+    } catch (AccumuloSecurityException e) {
+      throw new RuntimeException("Unexpected exception thrown", e);
     }
 
   }

@@ -31,21 +31,25 @@ import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.fate.AdminUtil;
-import org.apache.accumulo.fate.ReadOnlyRepo;
-import org.apache.accumulo.fate.ReadOnlyTStore;
-import org.apache.accumulo.fate.ZooStore;
-import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.admin.TransactionStatus;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.ShellConfigTest.TestOutputStream;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.apache.zookeeper.KeeperException;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
@@ -58,7 +62,6 @@ import org.junit.jupiter.api.Test;
 public class FateCommandTest {
 
   public static class TestFateCommand extends FateCommand {
-
     private boolean dumpCalled = false;
     private boolean deleteCalled = false;
     private boolean failCalled = false;
@@ -71,53 +74,27 @@ public class FateCommandTest {
     }
 
     @Override
-    protected String getZKRoot(ClientContext context) {
-      return "";
-    }
-
-    @Override
-    synchronized ZooReaderWriter getZooReaderWriter(ClientContext context, String secret) {
-      return null;
-    }
-
-    @Override
-    protected ZooStore<FateCommand> getZooStore(String fateZkPath, ZooReaderWriter zrw)
-        throws KeeperException, InterruptedException {
-      return null;
-    }
-
-    @Override
-    String dumpTx(ZooStore<FateCommand> zs, String[] args) {
+    protected void dumpTx(Shell shellState, String[] args) {
       dumpCalled = true;
-      return "";
     }
 
     @Override
-    protected boolean deleteTx(AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
-        ZooReaderWriter zk, ServiceLockPath zLockManagerPath, String[] args)
-        throws InterruptedException, KeeperException {
+    protected void deleteTx(Shell shellState, String[] args) {
       deleteCalled = true;
-      return true;
     }
 
     @Override
-    protected boolean cancelSubmittedTxs(Shell shellState, String[] args)
-        throws AccumuloException, AccumuloSecurityException {
+    protected void cancelSubmittedTxs(Shell shellState, String[] args) {
       cancelCalled = true;
-      return true;
     }
 
     @Override
-    public boolean failTx(AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
-        ZooReaderWriter zk, ServiceLockPath managerLockPath, String[] args) {
+    public void failTx(Shell shellState, String[] args) {
       failCalled = true;
-      return true;
     }
 
     @Override
-    protected void printTx(Shell shellState, AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
-        ZooReaderWriter zk, ServiceLockPath tableLocksPath, String[] args, CommandLine cl,
-        boolean printStatus) throws InterruptedException, KeeperException, IOException {
+    protected void printTx(Shell shellState, String[] args, CommandLine cl, boolean printStatus) {
       printCalled = true;
     }
 
@@ -128,64 +105,61 @@ public class FateCommandTest {
       cancelCalled = false;
       printCalled = false;
     }
-
   }
-
-  private static ZooReaderWriter zk;
-  private static ServiceLockPath managerLockPath;
 
   @BeforeAll
-  public static void setup() {
-    zk = createMock(ZooReaderWriter.class);
-    managerLockPath = createMock(ServiceLockPath.class);
-  }
+  public static void setup() {}
 
   @Test
   public void testFailTx() throws Exception {
-    ZooStore<FateCommand> zs = createMock(ZooStore.class);
-    String tidStr = "12345";
-    long tid = Long.parseLong(tidStr, 16);
-    expect(zs.getStatus(tid)).andReturn(ReadOnlyTStore.TStatus.NEW).anyTimes();
-    zs.reserve(tid);
-    expectLastCall().once();
-    zs.setStatus(tid, ReadOnlyTStore.TStatus.FAILED_IN_PROGRESS);
-    expectLastCall().once();
-    zs.unreserve(tid, 0);
-    expectLastCall().once();
-
-    TestHelper helper = new TestHelper(true);
-
-    replay(zs);
+    AccumuloClient client = createMock(AccumuloClient.class);
+    Shell shellState = createMock(Shell.class);
+    InstanceOperations intOps = createMock(InstanceOperations.class);
+    var args = new String[] {"--fail", "12345"};
 
     FateCommand cmd = new FateCommand();
-    // require number for Tx
-    assertFalse(cmd.failTx(helper, zs, zk, managerLockPath, new String[] {"fail", "tx1"}));
-    // fail the long configured above
-    assertTrue(cmd.failTx(helper, zs, zk, managerLockPath, new String[] {"fail", "12345"}));
+    Options opts = cmd.getOptions();
+    CommandLineParser parser = new DefaultParser();
+    CommandLine cli = parser.parse(opts, args);
 
-    verify(zs);
+    expect(shellState.getAccumuloClient()).andReturn(client);
+    expect(client.instanceOperations()).andReturn(intOps);
+    intOps.fateFail(Arrays.asList(cli.getOptionValues("fail")));
+    expectLastCall().once();
+
+    replay(client, shellState, intOps);
+    cmd.execute("fate --fail 1234", cli, shellState);
+    verify(client, shellState, intOps);
   }
 
   @Test
-  public void testDump() {
-    ZooStore<FateCommand> zs = createMock(ZooStore.class);
-    ReadOnlyRepo<FateCommand> ser = createMock(ReadOnlyRepo.class);
-    long tid1 = Long.parseLong("12345", 16);
-    long tid2 = Long.parseLong("23456", 16);
-    expect(zs.getStack(tid1)).andReturn(List.of(ser)).once();
-    expect(zs.getStack(tid2)).andReturn(List.of(ser)).once();
-
-    replay(zs);
+  public void testDump() throws AccumuloException, AccumuloSecurityException, ParseException,
+      IOException, InterruptedException, KeeperException {
+    AccumuloClient client = createMock(AccumuloClient.class);
+    Shell shellState = createMock(Shell.class);
+    InstanceOperations intOps = createMock(InstanceOperations.class);
+    PrintWriter pw = createMock(PrintWriter.class);
+    List<TransactionStatus> txstatus = new ArrayList<>();
+    var args = new String[] {"--dump", "12345"};
 
     FateCommand cmd = new FateCommand();
+    Options opts = cmd.getOptions();
+    CommandLineParser parser = new DefaultParser();
+    CommandLine cli = parser.parse(opts, args);
 
-    var args = new String[] {"dump", "12345", "23456"};
-    var output = cmd.dumpTx(zs, args);
-    System.out.println(output);
-    assertTrue(output.contains("0000000000012345"));
-    assertTrue(output.contains("0000000000023456"));
+    expect(shellState.getAccumuloClient()).andReturn(client).anyTimes();
+    expect(shellState.getWriter()).andReturn(pw);
+    expect(client.instanceOperations()).andReturn(intOps).anyTimes();
 
-    verify(zs);
+    txstatus.add(new TransactionStatus(Long.parseLong("1234"), null, null, Collections.emptyList(),
+        Collections.emptyList(), null, System.currentTimeMillis(), null));
+    expect(intOps.fateStatus(Arrays.asList(cli.getOptionValues("dump")), null)).andReturn(txstatus);
+    pw.println(txstatus.get(0).getStackInfo());
+    expectLastCall().once();
+
+    replay(shellState, pw, client, intOps);
+    cmd.execute("fate --dump 1234", cli, shellState);
+    verify(shellState, pw, client, intOps);
   }
 
   @Test
@@ -287,18 +261,6 @@ public class FateCommandTest {
       if (config.exists()) {
         assertTrue(config.delete());
       }
-    }
-  }
-
-  static class TestHelper extends AdminUtil<FateCommand> {
-
-    public TestHelper(boolean exitOnError) {
-      super(exitOnError);
-    }
-
-    @Override
-    public boolean checkGlobalLock(ZooReaderWriter zk, ServiceLockPath zLockManagerPath) {
-      return true;
     }
   }
 }
