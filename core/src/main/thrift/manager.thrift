@@ -254,7 +254,7 @@ service ManagerClientService {
     3:string tabletServer
     4:bool force
   ) throws (
-    1: client.ThriftSecurityException sec
+    1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
   )
 
@@ -263,6 +263,15 @@ service ManagerClientService {
     2:security.TCredentials credentials
     3:string property
     4:string value
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
+  )
+
+  void setSystemProperties(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+    3:map<string, string> propertiesMap
   ) throws (
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase

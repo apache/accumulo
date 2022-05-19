@@ -372,6 +372,26 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   }
 
   @Override
+  public void setSystemProperties(TInfo info, TCredentials c, Map<String,String> propertiesMap)
+      throws TException {
+    if (!manager.security.canPerformSystemActions(c))
+      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+
+    try {
+      SystemPropUtil.setSystemProperties(manager.getContext(), propertiesMap);
+      for (Map.Entry<String,String> entry : propertiesMap.entrySet()) {
+        updatePlugins(entry.getKey());
+      }
+    } catch (IllegalArgumentException iae) {
+      // throw the exception here so it is not caught and converted to a generic TException
+      throw iae;
+    } catch (Exception e) {
+      Manager.log.error("Problem setting config property in zookeeper", e);
+      throw new TException(e.getMessage());
+    }
+  }
+
+  @Override
   public void setNamespaceProperty(TInfo tinfo, TCredentials credentials, String ns,
       String property, String value) throws ThriftSecurityException, ThriftTableOperationException {
     alterNamespaceProperty(credentials, ns, property, value, TableOperation.SET_PROPERTY);

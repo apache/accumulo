@@ -48,6 +48,24 @@ public interface InstanceOperations {
       throws AccumuloException, AccumuloSecurityException;
 
   /**
+   * Sets multiple system properties in zookeeper. Tablet servers will pull this setting and
+   * override the equivalent setting in accumulo.properties. Changes can be seen using
+   * {@link #getSystemConfiguration()}.
+   * <p>
+   * Only some properties can be changed by this method, an IllegalArgumentException will be thrown
+   * if there is an attempt to set a read-only property.
+   *
+   * @param propertiesMap
+   *          map containing key-value pairs of properties and corresponding values
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission
+   */
+  void setProperties(Map<String,String> propertiesMap)
+      throws AccumuloException, AccumuloSecurityException;
+
+  /**
    * Removes a system property from zookeeper. Changes can be seen using
    * {@link #getSystemConfiguration()}
    *

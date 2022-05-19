@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.util;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -66,6 +67,52 @@ public class SystemPropUtil {
       throw iae;
     }
     context.getPropStore().putAll(SystemPropKey.of(context), Map.of(property, value));
+  }
+
+  public static void setSystemProperties(ServerContext context, Map<String,String> propertiesMap) {
+    Map<String,String> checkedProperties = new HashMap<>();
+
+    for (Map.Entry<String,String> entry : propertiesMap.entrySet()) {
+      final var original = entry.getKey();
+      var property = entry.getKey();
+      var value = entry.getValue();
+
+      // Retrieve the replacement name for this property, if there is one.
+      // Do this before we check if the name is a valid zookeeper name.
+      property = DeprecatedPropertyUtil.getReplacementName(property,
+          (log, replacement) -> log
+              .warn("{} was deprecated and will be removed in a future release;"
+                  + " setting its replacement {} instead", original, replacement));
+
+      if (!Property.isValidZooPropertyKey(property)) {
+        IllegalArgumentException iae =
+            new IllegalArgumentException("Zookeeper property is not mutable: " + property);
+        log.debug("Attempted to set zookeeper property.  It is not mutable", iae);
+        throw iae;
+      }
+
+      // Find the property taking prefix into account
+      Property foundProp = null;
+      for (Property prop : Property.values()) {
+        if (prop.getType() == PropertyType.PREFIX && property.startsWith(prop.getKey())
+            || prop.getKey().equals(property)) {
+          foundProp = prop;
+          break;
+        }
+      }
+
+      if ((foundProp == null || (foundProp.getType() != PropertyType.PREFIX
+          && !foundProp.getType().isValidFormat(value)))) {
+        IllegalArgumentException iae = new IllegalArgumentException(
+            "Ignoring property " + property + " it is either null or in an invalid format");
+        log.debug("Attempted to set zookeeper property.  Value is either null or invalid", iae);
+        throw iae;
+      }
+
+      checkedProperties.put(property, value);
+    }
+
+    context.getPropStore().putAll(SystemPropKey.of(context), checkedProperties);
   }
 
   public static void removeSystemProperty(ServerContext context, String property) {

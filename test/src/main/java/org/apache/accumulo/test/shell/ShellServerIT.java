@@ -1507,7 +1507,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     File fooFilterJar = initJar("/org/apache/accumulo/test/FooFilter.jar", "FooFilter", rootPath);
 
     ts.exec("config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1=" + fooFilterJar.toURI()
-        + "," + fooConstraintJar.toURI(), true);
+        + "," + fooConstraintJar.toURI() + ";" + "master.bulk.timeout" + "=" + "6m", true);
 
     ts.exec("createtable " + table, true);
     ts.exec("config -t " + table + " -s " + Property.TABLE_CLASSLOADER_CONTEXT.getKey() + "=cx1",
