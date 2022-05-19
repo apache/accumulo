@@ -20,7 +20,6 @@ package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -29,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.io.UncheckedIOException;
 import java.time.Duration;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
@@ -187,7 +185,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       cluster.start();
       // did it recover?
       try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-        Iterators.size(scanner.iterator());
+        scanner.forEach((k, v) -> {});
       }
     }
   }
@@ -242,14 +240,11 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       }
 
       try (Scanner scanner = c.createScanner(table, Authorizations.EMPTY)) {
-        Iterator<Entry<Key,Value>> iter = scanner.iterator();
-        assertTrue(iter.hasNext());
-        Entry<Key,Value> entry = iter.next();
+        Entry<Key,Value> entry = getOnlyElement(scanner);
         assertEquals("r1", entry.getKey().getRow().toString());
         assertEquals("cf1", entry.getKey().getColumnFamily().toString());
         assertEquals("cq1", entry.getKey().getColumnQualifier().toString());
         assertEquals("v1", entry.getValue().toString());
-        assertFalse(iter.hasNext());
       }
     }
   }

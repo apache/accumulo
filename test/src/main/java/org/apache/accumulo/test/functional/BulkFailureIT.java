@@ -57,6 +57,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -308,7 +309,8 @@ public class BulkFailureIT extends AccumuloClusterHarness {
         .fromString(locator.locateTablet(context, new Text(""), false, true).tablet_location);
 
     long timeInMillis = context.getConfiguration().getTimeInMillis(Property.TSERV_BULK_TIMEOUT);
-    TabletClientService.Iface client = ThriftUtil.getTServerClient(location, context, timeInMillis);
+    TabletClientService.Iface client =
+        ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, location, context, timeInMillis);
     return client;
   }
 }

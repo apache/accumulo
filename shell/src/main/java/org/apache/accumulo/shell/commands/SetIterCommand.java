@@ -201,13 +201,14 @@ public class SetIterCommand extends Command {
       final PrintWriter writer, final String className, final Map<String,String> options)
       throws IOException, ShellCommandException {
     String input;
-    @SuppressWarnings("rawtypes")
-    SortedKeyValueIterator untypedInstance;
-    @SuppressWarnings("rawtypes")
-    Class<? extends SortedKeyValueIterator> clazz;
+    SortedKeyValueIterator<Key,Value> skvi;
+    String clazzName;
     try {
-      clazz = classloader.loadClass(className).asSubclass(SortedKeyValueIterator.class);
-      untypedInstance = clazz.getDeclaredConstructor().newInstance();
+      @SuppressWarnings("unchecked")
+      var clazz = (Class<? extends SortedKeyValueIterator<Key,Value>>) classloader
+          .loadClass(className).asSubclass(SortedKeyValueIterator.class);
+      clazzName = clazz.getName();
+      skvi = clazz.getDeclaredConstructor().newInstance();
     } catch (ReflectiveOperationException e) {
       StringBuilder msg = new StringBuilder("Unable to load ").append(className);
       if (className.indexOf('.') < 0) {
@@ -222,8 +223,6 @@ public class SetIterCommand extends Command {
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, msg);
     }
 
-    @SuppressWarnings("unchecked")
-    SortedKeyValueIterator<Key,Value> skvi = untypedInstance;
     OptionDescriber iterOptions = null;
     if (OptionDescriber.class.isAssignableFrom(skvi.getClass())) {
       iterOptions = (OptionDescriber) skvi;
@@ -299,7 +298,7 @@ public class SetIterCommand extends Command {
 
         options.putAll(localOptions);
         if (!iterOptions.validateOptions(options))
-          writer.println("invalid options for " + clazz.getName());
+          writer.println("invalid options for " + clazzName);
 
       } while (!iterOptions.validateOptions(options));
     } else {

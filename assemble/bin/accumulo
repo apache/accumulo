@@ -21,14 +21,16 @@
 function main() {
 
   SOURCE="${BASH_SOURCE[0]}"
-  while [[ -h "${SOURCE}" ]]; do
-     bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
-     SOURCE="$(readlink "${SOURCE}")"
-     [[ "${SOURCE}" != /* ]] && SOURCE="${bin}/${SOURCE}"
+  while [[ -L ${SOURCE} ]]; do
+    bin="$(cd -P "$(dirname "${SOURCE}")" && pwd)"
+    SOURCE="$(readlink "${SOURCE}")"
+    [[ ${SOURCE} != /* ]] && SOURCE="${bin}/${SOURCE}"
   done
   # Set up variables needed by accumulo-env.sh
-  bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"; export bin
-  basedir=$( cd -P "${bin}"/.. && pwd ); export basedir
+  bin="$(cd -P "$(dirname "${SOURCE}")" && pwd)"
+  export bin
+  basedir=$(cd -P "${bin}"/.. && pwd)
+  export basedir
   export conf="${ACCUMULO_CONF_DIR:-${basedir}/conf}"
   export lib="${basedir}/lib"
   export cmd="$1"
@@ -41,6 +43,7 @@ function main() {
     echo "accumulo-env.sh must exist in $conf"
     exit 1
   fi
+  #shellcheck source=../conf/accumulo-env.sh
   source "$conf/accumulo-env.sh"
 
   # Accumulo is moving away from these variables but they still might be needed
@@ -63,7 +66,7 @@ function main() {
   local jShellPath="$conf/jshell-init.jsh"
   if [[ $cmd == "jshell" ]]; then
     shift
-    if [[ -f "$jShellPath" ]]; then
+    if [[ -f $jShellPath ]]; then
       exec "$cmd" --startup DEFAULT --startup "$jShellPath" "$@"
     else
       exec "$cmd" "$@"
@@ -75,11 +78,11 @@ function main() {
   else
     JAVA=$(type -P java)
   fi
-  if [[ ! -x "$JAVA" ]]; then
+  if [[ ! -x $JAVA ]]; then
     echo "Could not find any executable java binary. Please set java on your PATH or set JAVA_HOME"
     exit 1
   fi
-  if [[ -n "$ACCUMULO_JAVA_PREFIX" ]]; then
+  if [[ -n $ACCUMULO_JAVA_PREFIX ]]; then
     JAVA=("${ACCUMULO_JAVA_PREFIX[*]}" "$JAVA")
   fi
 

@@ -762,8 +762,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         ServerColumnFamily.TIME_COLUMN.put(m, new Value(maxLogicalTime.encode()));
 
       // delete any entries for external compactions
-      extCompIds.stream()
-          .forEach(ecid -> m.putDelete(ExternalCompactionColumnFamily.STR_NAME, ecid));
+      extCompIds.forEach(ecid -> m.putDelete(ExternalCompactionColumnFamily.STR_NAME, ecid));
 
       if (!m.getUpdates().isEmpty()) {
         bw.addMutation(m);

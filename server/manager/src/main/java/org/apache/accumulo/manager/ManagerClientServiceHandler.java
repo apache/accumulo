@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -83,28 +84,25 @@ import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
-import org.apache.accumulo.server.util.NamespacePropUtil;
 import org.apache.accumulo.server.util.SystemPropUtil;
-import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.token.Token;
 import org.apache.thrift.TException;
-import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 
-public class ManagerClientServiceHandler extends FateServiceHandler
-    implements ManagerClientService.Iface {
+public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
   private static final Logger log = Manager.log;
   private static final Logger drainLog =
       LoggerFactory.getLogger("org.apache.accumulo.manager.ManagerDrainImpl");
+  private final Manager manager;
 
   protected ManagerClientServiceHandler(Manager manager) {
-    super(manager);
+    this.manager = manager;
   }
 
   @Override
@@ -397,19 +395,16 @@ public class ManagerClientServiceHandler extends FateServiceHandler
 
     try {
       if (value == null) {
-        NamespacePropUtil.removeNamespaceProperty(manager.getContext(), namespaceId, property);
+        manager.getContext().namespacePropUtil().removeProperties(namespaceId, List.of(property));
       } else {
-        NamespacePropUtil.setNamespaceProperty(manager.getContext(), namespaceId, property, value);
+        manager.getContext().namespacePropUtil().setProperties(namespaceId,
+            Map.of(property, value));
       }
-    } catch (KeeperException.NoNodeException e) {
-      // race condition... namespace no longer exists? This call will throw an exception if the
-      // namespace was deleted:
+    } catch (IllegalStateException ex) {
+      // race condition on delete... namespace no longer exists? An undelying ZooKeeper.NoNode
+      // exception will be thrown an exception if the namespace was deleted:
       ClientServiceHandler.checkNamespaceId(manager.getContext(), namespace, op);
-      log.info("Error altering namespace property", e);
-      throw new ThriftTableOperationException(namespaceId.canonical(), namespace, op,
-          TableOperationExceptionType.OTHER, "Problem altering namespaceproperty");
-    } catch (Exception e) {
-      log.error("Problem altering namespace property", e);
+      log.info("Error altering namespace property", ex);
       throw new ThriftTableOperationException(namespaceId.canonical(), namespace, op,
           TableOperationExceptionType.OTHER, "Problem altering namespace property");
     }
@@ -424,21 +419,19 @@ public class ManagerClientServiceHandler extends FateServiceHandler
 
     try {
       if (value == null || value.isEmpty()) {
-        TablePropUtil.removeTableProperty(manager.getContext(), tableId, property);
-      } else if (!TablePropUtil.setTableProperty(manager.getContext(), tableId, property, value)) {
-        throw new Exception("Invalid table property.");
+        manager.getContext().tablePropUtil().removeProperties(tableId, List.of(property));
+      } else {
+        manager.getContext().tablePropUtil().setProperties(tableId, Map.of(property, value));
       }
-    } catch (KeeperException.NoNodeException e) {
+    } catch (IllegalStateException ex) {
+      log.warn("Invalid table property, tried to set: tableId: " + tableId.canonical() + " to: "
+          + property + "=" + value);
       // race condition... table no longer exists? This call will throw an exception if the table
       // was deleted:
       ClientServiceHandler.checkTableId(manager.getContext(), tableName, op);
-      log.info("Error altering table property", e);
       throw new ThriftTableOperationException(tableId.canonical(), tableName, op,
-          TableOperationExceptionType.OTHER, "Problem altering table property");
-    } catch (Exception e) {
-      log.error("Problem altering table property", e);
-      throw new ThriftTableOperationException(tableId.canonical(), tableName, op,
-          TableOperationExceptionType.OTHER, "Problem altering table property");
+          TableOperationExceptionType.OTHER, "Invalid table property, tried to set: tableId: "
+              + tableId.canonical() + " to: " + property + "=" + value);
     }
   }
 

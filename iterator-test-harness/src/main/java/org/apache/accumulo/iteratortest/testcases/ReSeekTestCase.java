@@ -28,16 +28,16 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.iteratortest.IteratorTestCase;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
-import org.apache.accumulo.iteratortest.IteratorTestUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Test case that verifies that an iterator can use the generated instance from {@code deepCopy}.
  */
-public class ReSeekTestCase extends OutputVerifyingTestCase {
+public class ReSeekTestCase implements IteratorTestCase {
   private static final SecureRandom random = new SecureRandom();
   private static final Logger log = LoggerFactory.getLogger(ReSeekTestCase.class);
 

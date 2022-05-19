@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.tserver.constraints;
 
+import static com.google.common.collect.MoreCollectors.onlyElement;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.createMockBuilder;
@@ -39,8 +40,6 @@ import org.apache.accumulo.core.data.constraints.Constraint.Environment;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import com.google.common.collect.Iterables;
 
 public class ConstraintCheckerTest {
 
@@ -113,7 +112,7 @@ public class ConstraintCheckerTest {
   public void testCheckMutationOutsideTablet() {
     replayAll();
     replay(m2);
-    ConstraintViolationSummary cvs = Iterables.getOnlyElement(cc.check(env, m2).asList());
+    ConstraintViolationSummary cvs = cc.check(env, m2).asList().stream().collect(onlyElement());
     assertEquals(SystemConstraint.class.getName(), cvs.getConstrainClass());
   }
 
@@ -134,7 +133,7 @@ public class ConstraintCheckerTest {
   public void testCheckException() {
     replayAll();
     constraints.add(makeExceptionConstraint());
-    ConstraintViolationSummary cvs = Iterables.getOnlyElement(cc.check(env, m).asList());
+    ConstraintViolationSummary cvs = cc.check(env, m).asList().stream().collect(onlyElement());
     assertEquals("CONSTRAINT FAILED : threw some Exception", cvs.getViolationDescription());
   }
 }

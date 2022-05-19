@@ -35,6 +35,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -162,7 +163,7 @@ public class ExternalCompactionUtil {
       ClientContext context) throws ThriftSecurityException {
     CompactorService.Client client = null;
     try {
-      client = ThriftUtil.getClient(new CompactorService.Client.Factory(), compactor, context);
+      client = ThriftUtil.getClient(ThriftClientTypes.COMPACTOR, compactor, context);
       return client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds());
     } catch (ThriftSecurityException e) {
       throw e;
@@ -188,7 +189,7 @@ public class ExternalCompactionUtil {
 
     CompactorService.Client client = null;
     try {
-      client = ThriftUtil.getClient(new CompactorService.Client.Factory(), compactorAddr, context);
+      client = ThriftUtil.getClient(ThriftClientTypes.COMPACTOR, compactorAddr, context);
       TExternalCompactionJob job =
           client.getRunningCompaction(TraceUtil.traceInfo(), context.rpcCreds());
       if (job.getExternalCompactionId() != null) {
@@ -207,7 +208,7 @@ public class ExternalCompactionUtil {
       ClientContext context) {
     CompactorService.Client client = null;
     try {
-      client = ThriftUtil.getClient(new CompactorService.Client.Factory(), compactorAddr, context);
+      client = ThriftUtil.getClient(ThriftClientTypes.COMPACTOR, compactorAddr, context);
       String secid = client.getRunningCompactionId(TraceUtil.traceInfo(), context.rpcCreds());
       if (!secid.isEmpty()) {
         return ExternalCompactionId.of(secid);
@@ -279,9 +280,7 @@ public class ExternalCompactionUtil {
         if (ceid != null) {
           runningIds.add(ceid);
         }
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
-      } catch (ExecutionException e) {
+      } catch (InterruptedException | ExecutionException e) {
         throw new RuntimeException(e);
       }
     });
@@ -311,7 +310,7 @@ public class ExternalCompactionUtil {
       String ecid) {
     CompactorService.Client client = null;
     try {
-      client = ThriftUtil.getClient(new CompactorService.Client.Factory(), compactorAddr, context);
+      client = ThriftUtil.getClient(ThriftClientTypes.COMPACTOR, compactorAddr, context);
       client.cancel(TraceUtil.traceInfo(), context.rpcCreds(), ecid);
     } catch (TException e) {
       LOG.debug("Failed to cancel compactor {} for {}", compactorAddr, ecid, e);

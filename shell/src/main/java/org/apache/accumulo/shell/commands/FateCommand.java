@@ -29,7 +29,17 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.TransactionStatus;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ManagerClient;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.manager.thrift.FateService;
+import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.fate.AdminUtil;
+import org.apache.accumulo.fate.FateTxId;
+import org.apache.accumulo.fate.ZooStore;
+import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -52,6 +62,30 @@ public class FateCommand extends Command {
   private Option print;
   private Option statusOption;
   private Option disablePaginationOpt;
+
+  private long parseTxid(String s) {
+    if (FateTxId.isFormatedTid(s)) {
+      return FateTxId.fromString(s);
+    } else {
+      return Long.parseLong(s, 16);
+    }
+  }
+
+  protected String getZKRoot(ClientContext context) {
+    return context.getZooKeeperRoot();
+  }
+
+  synchronized ZooReaderWriter getZooReaderWriter(ClientContext context, String secret) {
+    if (secret == null) {
+      secret = SiteConfiguration.auto().get(Property.INSTANCE_SECRET);
+    }
+    return context.getZooReader().asWriter(secret);
+  }
+
+  protected ZooStore<FateCommand> getZooStore(String fateZkPath, ZooReaderWriter zrw)
+      throws KeeperException, InterruptedException {
+    return new ZooStore<>(fateZkPath, zrw);
+  }
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
@@ -150,7 +184,7 @@ public class FateCommand extends Command {
       boolean cancelTx =
           line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
       if (cancelTx) {
-        boolean cancelled = ManagerClient.cancelFateOperation(context, txid);
+        boolean cancelled = cancelFateOperation(context, txid, shellState);
         if (cancelled) {
           shellState.getWriter()
               .println("FaTE transaction " + txid + " was cancelled or already completed.");
@@ -162,6 +196,34 @@ public class FateCommand extends Command {
         shellState.getWriter().println("Not cancelling FaTE transaction " + txid);
       }
     }
+  }
+
+  private static boolean cancelFateOperation(ClientContext context, long txid,
+      final Shell shellState) throws AccumuloException, AccumuloSecurityException {
+    FateService.Client client = null;
+    try {
+      client = ThriftClientTypes.FATE.getConnectionWithRetry(context);
+      return client.cancelFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), txid);
+    } catch (Exception e) {
+      shellState.getWriter()
+          .println("ManagerClient request failed, retrying. Cause: " + e.getMessage());
+      throw new AccumuloException(e);
+    } finally {
+      if (client != null)
+        ThriftUtil.close(client, context);
+    }
+  }
+
+  public boolean failTx(AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs, ZooReaderWriter zk,
+      ServiceLockPath managerLockPath, String[] args) {
+    boolean success = true;
+    for (int i = 1; i < args.length; i++) {
+      if (!admin.prepFail(zs, zk, managerLockPath, args[i])) {
+        System.out.printf("Could not fail transaction: %s%n", args[i]);
+        return !success;
+      }
+    }
+    return success;
   }
 
   private void validateArgs(String[] args) throws ParseException {

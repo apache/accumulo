@@ -32,6 +32,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.Reference;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
@@ -65,18 +66,6 @@ public interface GarbageCollectionEnvironment {
    */
   Stream<String> getBlipPaths() throws TableNotFoundException;
 
-  static class Reference {
-    public final TableId id;
-    public final String ref;
-    public final boolean isDir;
-
-    Reference(TableId id, String ref, boolean isDir) {
-      this.id = id;
-      this.ref = ref;
-      this.isDir = isDir;
-    }
-  }
-
   /**
    * Fetches the references to files, {@link DataFileColumnFamily#NAME} or
    * {@link ScanFileColumnFamily#NAME}, from tablets
@@ -95,12 +84,13 @@ public interface GarbageCollectionEnvironment {
 
   /**
    * Delete the given files from the provided {@link Map} of relative path to absolute path for each
-   * file that should be deleted
+   * file that should be deleted. The candidates should already be confirmed for deletion.
    *
    * @param candidateMap
    *          A Map from relative path to absolute path for files to be deleted.
    */
-  void delete(SortedMap<String,String> candidateMap) throws TableNotFoundException;
+  void deleteConfirmedCandidates(SortedMap<String,String> candidateMap)
+      throws TableNotFoundException;
 
   /**
    * Delete a table's directory if it is empty.

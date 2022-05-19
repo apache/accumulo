@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>24</version>
+    <version>26</version>
   </parent>
   <groupId>org.apache.accumulo</groupId>
   <artifactId>accumulo-project</artifactId>
@@ -140,6 +140,7 @@
     <maven.compiler.release>11</maven.compiler.release>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
+    <maven.site.deploy.skip>true</maven.site.deploy.skip>
     <!-- surefire/failsafe plugin option -->
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <minimalJavaBuildVersion>11</minimalJavaBuildVersion>
@@ -155,10 +156,9 @@
     <surefire.forkCount>1C</surefire.forkCount>
     <surefire.groups />
     <surefire.reuseForks>true</surefire.reuseForks>
-    <!-- 3.0.0-M5 causes RowHashIT.test and ShellServerIT.scansWithClassLoaderContext to fail -->
-    <surefire.version>3.0.0-M4</surefire.version>
+    <surefire.version>3.0.0-M6</surefire.version>
     <!-- Thrift version -->
-    <thrift.version>0.15.0</thrift.version>
+    <thrift.version>0.16.0</thrift.version>
     <unitTestMemSize>-Xmx1G</unitTestMemSize>
     <!-- ZooKeeper version -->
     <zookeeper.version>3.7.0</zookeeper.version>
@@ -255,7 +255,7 @@
       <dependency>
         <groupId>com.github.ben-manes.caffeine</groupId>
         <artifactId>caffeine</artifactId>
-        <version>3.0.5</version>
+        <version>3.1.0</version>
       </dependency>
       <dependency>
         <groupId>com.github.spotbugs</groupId>
@@ -470,7 +470,7 @@
       <dependency>
         <groupId>org.apache.datasketches</groupId>
         <artifactId>datasketches-java</artifactId>
-        <version>3.0.0</version>
+        <version>3.1.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.hadoop</groupId>
@@ -685,7 +685,7 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>versions-maven-plugin</artifactId>
-          <version>2.8.1</version>
+          <version>2.10.0</version>
         </plugin>
         <plugin>
           <groupId>com.mycila</groupId>
@@ -716,7 +716,7 @@
         <plugin>
           <groupId>org.gaul</groupId>
           <artifactId>modernizer-maven-plugin</artifactId>
-          <version>2.2.0</version>
+          <version>2.4.0</version>
           <configuration>
             <javaVersion>${maven.compiler.target}</javaVersion>
           </configuration>
@@ -755,7 +755,7 @@
         <plugin>
           <groupId>com.github.ekryd.sortpom</groupId>
           <artifactId>sortpom-maven-plugin</artifactId>
-          <version>3.0.0</version>
+          <version>3.0.1</version>
           <configuration>
             <createBackupFile>false</createBackupFile>
             <expandEmptyElements>false</expandEmptyElements>
@@ -822,8 +822,10 @@
           <configuration>
             <archive>
               <manifestEntries>
-                <Sealed>true</Sealed>
+                <!-- Automatic modules do not work with the javadoc plugin - see MJAVADOC-707 -->
+                <!-- Automatic-Module-Name>${accumulo.module.name}</Automatic-Module-Name -->
                 <Implementation-Build>${mvngit.commit.id}</Implementation-Build>
+                <Sealed>true</Sealed>
               </manifestEntries>
             </archive>
             <excludes>
@@ -853,13 +855,6 @@
             <useReleaseProfile>false</useReleaseProfile>
             <pushChanges>false</pushChanges>
             <localCheckout>true</localCheckout>
-          </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-site-plugin</artifactId>
-          <configuration>
-            <skipDeploy>true</skipDeploy>
           </configuration>
         </plugin>
         <plugin>
@@ -960,6 +955,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-enforcer-plugin</artifactId>
+          <!-- Can't use 3.0.0 due to https://issues.apache.org/jira/browse/MENFORCER-394 -->
           <version>3.0.0-M3</version>
         </plugin>
       </plugins>
@@ -978,42 +974,42 @@
               <failOnWarning>true</failOnWarning>
               <ignoredUsedUndeclaredDependencies>
                 <!-- auto-service-annotations is transitive via auto-service -->
-                <usedUndeclaredDependency>com.google.auto.service:auto-service-annotations:jar:*</usedUndeclaredDependency>
+                <undeclared>com.google.auto.service:auto-service-annotations:jar:*</undeclared>
                 <!-- used/undeclared child jars brought in by parents below -->
-                <usedUndeclaredDependency>org.apache.curator:curator-client:jar:*</usedUndeclaredDependency>
-                <usedUndeclaredDependency>org.apache.hadoop:hadoop-common:jar:*</usedUndeclaredDependency>
-                <usedUndeclaredDependency>org.apache.hadoop:hadoop-hdfs:*:*</usedUndeclaredDependency>
-                <usedUndeclaredDependency>org.apache.hadoop:hadoop-mapreduce-client-core:jar:*</usedUndeclaredDependency>
-                <usedUndeclaredDependency>org.apache.hadoop:hadoop-auth:jar:*</usedUndeclaredDependency>
-                <usedUndeclaredDependency>org.apache.httpcomponents:httpcore:jar:*</usedUndeclaredDependency>
-                <usedUndeclaredDependency>org.powermock:powermock-core:jar:*</usedUndeclaredDependency>
-                <usedUndeclaredDependency>org.powermock:powermock-reflect:jar:*</usedUndeclaredDependency>
+                <undeclared>org.apache.curator:curator-client:jar:*</undeclared>
+                <undeclared>org.apache.hadoop:hadoop-common:jar:*</undeclared>
+                <undeclared>org.apache.hadoop:hadoop-hdfs:*:*</undeclared>
+                <undeclared>org.apache.hadoop:hadoop-mapreduce-client-core:jar:*</undeclared>
+                <undeclared>org.apache.hadoop:hadoop-auth:jar:*</undeclared>
+                <undeclared>org.apache.httpcomponents:httpcore:jar:*</undeclared>
+                <undeclared>org.powermock:powermock-core:jar:*</undeclared>
+                <undeclared>org.powermock:powermock-reflect:jar:*</undeclared>
                 <!-- This should be removed upon completion of migrating junit 4 to 5 -->
-                <usedUndeclaredDependency>junit:junit:jar:*</usedUndeclaredDependency>
+                <undeclared>junit:junit:jar:*</undeclared>
               </ignoredUsedUndeclaredDependencies>
               <ignoredUnusedDeclaredDependencies>
                 <!-- auto-service isn't used in every module -->
-                <unusedDeclaredDependency>com.google.auto.service:auto-service:jar:*</unusedDeclaredDependency>
+                <unused>com.google.auto.service:auto-service:jar:*</unused>
                 <!-- unused/declared implementation jars or parent jars that bring in children -->
-                <unusedDeclaredDependency>org.apache.hadoop:hadoop-client:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>org.apache.hadoop:hadoop-client-runtime:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>org.apache.hadoop:hadoop-minicluster:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>org.glassfish.jersey.ext:jersey-bean-validation:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>org.glassfish.jersey.inject:jersey-hk2:jar:*</unusedDeclaredDependency>
-                -
-                <unusedDeclaredDependency>org.glassfish.jersey.test-framework.providers:jersey-test-framework-provider-grizzly2:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>org.powermock:powermock-api-easymock:jar:*</unusedDeclaredDependency>
+                <unused>org.apache.hadoop:hadoop-client:jar:*</unused>
+                <unused>org.apache.hadoop:hadoop-client-runtime:jar:*</unused>
+                <unused>org.apache.hadoop:hadoop-minicluster:jar:*</unused>
+                <unused>org.glassfish.jaxb:txw2:jar:*</unused>
+                <unused>org.glassfish.jersey.ext:jersey-bean-validation:jar:*</unused>
+                <unused>org.glassfish.jersey.inject:jersey-hk2:jar:*</unused>
+                <unused>org.glassfish.jersey.test-framework.providers:jersey-test-framework-provider-grizzly2:jar:*</unused>
+                <unused>org.powermock:powermock-api-easymock:jar:*</unused>
                 <!-- spotbugs annotations may or may not be used in each module -->
-                <unusedDeclaredDependency>com.github.spotbugs:spotbugs-annotations:jar:*</unusedDeclaredDependency>
+                <unused>com.github.spotbugs:spotbugs-annotations:jar:*</unused>
                 <!-- ignore unused native; analysis isn't possible with tar.gz dependency -->
-                <unusedDeclaredDependency>org.apache.accumulo:accumulo-native:tar.gz:*</unusedDeclaredDependency>
+                <unused>org.apache.accumulo:accumulo-native:tar.gz:*</unused>
                 <!-- ignore runtime log4j dependencies at test scope -->
-                <unusedDeclaredDependency>org.apache.logging.log4j:log4j-1.2-api:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>org.apache.logging.log4j:log4j-slf4j-impl:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>org.apache.logging.log4j:log4j-web:jar:*</unusedDeclaredDependency>
+                <unused>org.apache.logging.log4j:log4j-1.2-api:jar:*</unused>
+                <unused>org.apache.logging.log4j:log4j-slf4j-impl:jar:*</unused>
+                <unused>org.apache.logging.log4j:log4j-web:jar:*</unused>
                 <!-- This should be removed upon completion of migrating junit 4 to 5 -->
-                <unusedDeclaredDependency>org.junit.vintage:junit-vintage-engine:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>org.junit.jupiter:junit-jupiter-engine:jar:*</unusedDeclaredDependency>
+                <unused>org.junit.vintage:junit-vintage-engine:jar:*</unused>
+                <unused>org.junit.jupiter:junit-jupiter-engine:jar:*</unused>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>
@@ -1024,10 +1020,16 @@
         <artifactId>build-helper-maven-plugin</artifactId>
         <executions>
           <execution>
-            <id>parse-project-version</id>
+            <id>create-automatic-module-name</id>
             <goals>
-              <goal>parse-version</goal>
+              <goal>regex-property</goal>
             </goals>
+            <configuration>
+              <name>accumulo.module.name</name>
+              <regex>-</regex>
+              <replacement>.</replacement>
+              <value>org-apache-${project.artifactId}</value>
+            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -1043,6 +1045,8 @@
             <phase>validate</phase>
             <configuration>
               <rules>
+                <reactorModuleConvergence />
+                <banDuplicatePomDependencyVersions />
                 <dependencyConvergence />
                 <bannedDependencies>
                   <excludes>
@@ -1305,32 +1309,6 @@
                   <pluginExecutions>
                     <pluginExecution>
                       <pluginExecutionFilter>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-remote-resources-plugin</artifactId>
-                        <versionRange>[0,)</versionRange>
-                        <goals>
-                          <goal>process</goal>
-                        </goals>
-                      </pluginExecutionFilter>
-                      <action>
-                        <ignore />
-                      </action>
-                    </pluginExecution>
-                    <pluginExecution>
-                      <pluginExecutionFilter>
-                        <groupId>org.apache.rat</groupId>
-                        <artifactId>apache-rat-plugin</artifactId>
-                        <versionRange>[0,)</versionRange>
-                        <goals>
-                          <goal>check</goal>
-                        </goals>
-                      </pluginExecutionFilter>
-                      <action>
-                        <ignore />
-                      </action>
-                    </pluginExecution>
-                    <pluginExecution>
-                      <pluginExecutionFilter>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
                         <versionRange>[0,)</versionRange>
@@ -1349,20 +1327,6 @@
                         <versionRange>[0,)</versionRange>
                         <goals>
                           <goal>modernizer</goal>
-                        </goals>
-                      </pluginExecutionFilter>
-                      <action>
-                        <ignore />
-                      </action>
-                    </pluginExecution>
-                    <pluginExecution>
-                      <pluginExecutionFilter>
-                        <groupId>com.github.ekryd.sortpom</groupId>
-                        <artifactId>sortpom-maven-plugin</artifactId>
-                        <versionRange>[0,)</versionRange>
-                        <goals>
-                          <goal>sort</goal>
-                          <goal>verify</goal>
                         </goals>
                       </pluginExecutionFilter>
                       <action>
@@ -1681,16 +1645,15 @@
                   -XepExcludedPaths:.*/(proto|thrift|generated-sources|src/test)/.* \
                   -XepDisableWarningsInGeneratedCode \
                   -XepDisableAllWarnings \
-                  <!-- error patterns to ignore -->
-                  -Xep:CheckReturnValue:OFF \
+                  <!-- ERROR patterns to specifically ignore -->
                   -Xep:MustBeClosedChecker:OFF \
-                  -Xep:ReturnValueIgnored:OFF \
-                  -Xep:FutureReturnValueIgnored:ERROR \
                   -Xep:UnicodeInCode:OFF \
-                  <!-- warning patterns to specifically check -->
+                  <!-- WARNING patterns to specifically check -->
                   -Xep:ExpectedExceptionChecker \
+                  <!-- treat following warning as an error -->
+                  -Xep:FutureReturnValueIgnored:ERROR \
                   -Xep:MissingOverride \
-                  <!-- Items containing 'OFF' are currently flagged by ErrorProne. The 'OFF'
+                  <!-- Items containing 'OFF' are currently Errors flagged by ErrorProne. The 'OFF'
                   can be removed and the project recompiled to discover location of errors for
                   further analysis. @SuppressWarnings can be used to ignore errors if desired. -->
                 </arg>

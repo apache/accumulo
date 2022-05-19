@@ -51,8 +51,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
-
 /**
  * Verify that we have resolved blocking issue by ensuring that we have not lost scan sessions which
  * we know to currently be running
@@ -146,7 +144,7 @@ public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
 
         int sessionsFound = 0;
         // we have configured 1 tserver, so we can grab the one and only
-        String tserver = Iterables.getOnlyElement(c.instanceOperations().getTabletServers());
+        String tserver = getOnlyElement(c.instanceOperations().getTabletServers());
 
         final List<ActiveScan> scans = c.instanceOperations().getActiveScans(tserver);
 

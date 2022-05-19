@@ -29,11 +29,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.data.TableId;
@@ -451,7 +451,8 @@ public class CompactableImplFileManagerTest {
   }
 
   static Set<StoredTabletFile> newFiles(String... strings) {
-    return Arrays.asList(strings).stream().map(s -> newFile(s)).collect(Collectors.toSet());
+    return Stream.of(strings).map(CompactableImplFileManagerTest::newFile)
+        .collect(Collectors.toSet());
   }
 
   private static class TestCompactionJob implements CompactionJob {
@@ -460,7 +461,6 @@ public class CompactableImplFileManagerTest {
     private final Set<StoredTabletFile> jobFiles;
 
     public TestCompactionJob(CompactionKind kind, Set<StoredTabletFile> jobFiles) {
-      super();
       this.kind = kind;
       this.jobFiles = jobFiles;
     }

@@ -32,8 +32,6 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Iterators;
-
 public class CloseScannerIT extends AccumuloClusterHarness {
 
   static final int ROWS = 1000;
@@ -47,7 +45,7 @@ public class CloseScannerIT extends AccumuloClusterHarness {
 
       client.tableOperations().create(tableName);
 
-      ReadWriteIT.ingest(client, getClientInfo(), ROWS, COLS, 50, 0, tableName);
+      ReadWriteIT.ingest(client, ROWS, COLS, 50, 0, tableName);
 
       client.tableOperations().flush(tableName, null, null, true);
 
@@ -58,7 +56,7 @@ public class CloseScannerIT extends AccumuloClusterHarness {
 
           for (int j = 0; j < i % 7 + 1; j++) {
             // only read a little data and quit, this should leave a session open on the tserver
-            Iterators.get(scanner.iterator(), 10);
+            scanner.stream().limit(10).forEach(e -> {});
           }
         } // when the scanner is closed, all open sessions should be closed
       }

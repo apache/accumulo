@@ -46,8 +46,6 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Iterables;
-
 public class AccumuloClientIT extends AccumuloClusterHarness {
 
   @AfterEach
@@ -186,7 +184,7 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     assertEquals(0, SingletonManager.getReservationCount());
     assertEquals(Mode.CLIENT, SingletonManager.getMode());
 
-    try (AccumuloClient c = Accumulo.newClient().from(getClientInfo().getProperties()).build()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       assertEquals(1, SingletonManager.getReservationCount());
 
       c.tableOperations().create(tableName);
@@ -205,12 +203,12 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
 
     assertEquals(0, SingletonManager.getReservationCount());
 
-    AccumuloClient c = Accumulo.newClient().from(getClientInfo().getProperties()).build();
+    AccumuloClient c = Accumulo.newClient().from(getClientProps()).build();
     assertEquals(1, SingletonManager.getReservationCount());
 
     // ensure client created after everything was closed works
     Scanner scanner2 = c.createScanner(tableName, Authorizations.EMPTY);
-    Entry<Key,Value> e = Iterables.getOnlyElement(scanner2);
+    Entry<Key,Value> e = getOnlyElement(scanner2);
     assertEquals("0001", e.getKey().getRowData().toString());
     assertEquals("f007", e.getKey().getColumnFamilyData().toString());
     assertEquals("q4", e.getKey().getColumnQualifierData().toString());

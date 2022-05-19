@@ -18,6 +18,11 @@
  */
 package org.apache.accumulo.miniclusterImpl;
 
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
@@ -27,7 +32,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import org.apache.accumulo.minicluster.WithTestNames;
-import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -39,28 +43,28 @@ public class CleanShutdownMacTest extends WithTestNames {
   @TempDir
   private static File tmpDir;
 
-  @SuppressWarnings("unchecked")
   @Test
   public void testExecutorServiceShutdown() throws Exception {
     File tmp = new File(tmpDir, testName());
     assertTrue(tmp.isDirectory() || tmp.mkdir(), "Failed to make a new sub-directory");
     MiniAccumuloClusterImpl cluster = new MiniAccumuloClusterImpl(tmp, "foo");
 
-    ExecutorService mockService = EasyMock.createMock(ExecutorService.class);
-    Future<Integer> future = EasyMock.createMock(Future.class);
+    ExecutorService mockService = createMock(ExecutorService.class);
+    Future<Integer> future = createMock(Future.class);
 
     cluster.setShutdownExecutor(mockService);
 
-    EasyMock.expect(future.get()).andReturn(0).anyTimes();
-    EasyMock.expect(mockService.<Integer>submit(EasyMock.anyObject(Callable.class)))
-        .andReturn(future).anyTimes();
-    EasyMock.expect(mockService.shutdownNow()).andReturn(Collections.emptyList()).once();
+    expect(future.get()).andReturn(0).anyTimes();
+    @SuppressWarnings("unchecked")
+    Callable<Integer> callable = anyObject(Callable.class);
+    expect(mockService.submit(callable)).andReturn(future).anyTimes();
+    expect(mockService.shutdownNow()).andReturn(Collections.emptyList()).once();
 
-    EasyMock.replay(mockService, future);
+    replay(mockService, future);
 
     cluster.stop();
 
-    EasyMock.verify(mockService, future);
+    verify(mockService, future);
   }
 
 }

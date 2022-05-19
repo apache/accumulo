@@ -51,7 +51,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ServerClient;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -65,9 +64,9 @@ import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
@@ -80,7 +79,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
@@ -88,7 +86,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
-import com.google.common.collect.Lists;
 import com.google.common.hash.Hashing;
 
 /**
@@ -220,8 +217,8 @@ public class Gatherer {
       }
 
       // merge contiguous ranges
-      List<Range> merged = Range
-          .mergeOverlapping(Lists.transform(entry.getValue(), tm -> tm.getExtent().toDataRange()));
+      List<Range> merged = Range.mergeOverlapping(entry.getValue().stream()
+          .map(tm -> tm.getExtent().toDataRange()).collect(Collectors.toList()));
       List<TRowRange> ranges =
           merged.stream().map(r -> toClippedExtent(r).toThrift()).collect(Collectors.toList()); // clip
                                                                                                 // ranges
@@ -308,7 +305,7 @@ public class Gatherer {
 
       Client client = null;
       try {
-        client = ThriftUtil.getTServerClient(location, ctx);
+        client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, location, ctx);
         // partition files into smaller chunks so that not too many are sent to a tserver at once
         for (Map<TabletFile,List<TRowRange>> files : partition(allFiles, 500)) {
           if (!pfiles.failedFiles.isEmpty()) {
@@ -326,8 +323,6 @@ public class Gatherer {
             }
 
             pfiles.summaries.merge(new SummaryCollection(tSums), factory);
-          } catch (TApplicationException tae) {
-            throw new RuntimeException(tae);
           } catch (TTransportException e) {
             pfiles.failedFiles.addAll(files.keySet());
             continue;
@@ -528,7 +523,8 @@ public class Gatherer {
     List<CompletableFuture<SummaryCollection>> futures = new ArrayList<>();
     for (Entry<String,List<TRowRange>> entry : files.entrySet()) {
       futures.add(CompletableFuture.supplyAsync(() -> {
-        List<RowRange> rrl = Lists.transform(entry.getValue(), RowRange::new);
+        List<RowRange> rrl =
+            entry.getValue().stream().map(RowRange::new).collect(Collectors.toList());
         return getSummaries(volMgr, entry.getKey(), rrl, summaryCache, indexCache, fileLenCache);
       }, srp));
     }
@@ -563,7 +559,7 @@ public class Gatherer {
 
       TSummaries tSums;
       try {
-        tSums = ServerClient.execute(ctx, new TabletClientService.Client.Factory(), client -> {
+        tSums = ThriftClientTypes.TABLET_SERVER.execute(ctx, client -> {
           TSummaries tsr =
               client.startGetSummariesForPartition(tinfo, ctx.rpcCreds(), req, modulus, remainder);
           while (!tsr.finished && !cancelFlag.get()) {

@@ -21,8 +21,6 @@ package org.apache.accumulo.test.functional;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.IOException;
@@ -30,8 +28,6 @@ import java.io.InputStream;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.Iterator;
-import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -39,9 +35,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
@@ -119,11 +113,8 @@ public class ClassLoaderIT extends AccumuloClusterHarness {
 
   private void scanCheck(AccumuloClient c, String tableName, String expected) throws Exception {
     try (Scanner bs = c.createScanner(tableName, Authorizations.EMPTY)) {
-      Iterator<Entry<Key,Value>> iterator = bs.iterator();
-      assertTrue(iterator.hasNext());
-      Entry<Key,Value> next = iterator.next();
-      assertFalse(iterator.hasNext());
-      assertEquals(expected, next.getValue().toString());
+      String actual = getOnlyElement(bs).getValue().toString();
+      assertEquals(expected, actual);
     }
   }
 

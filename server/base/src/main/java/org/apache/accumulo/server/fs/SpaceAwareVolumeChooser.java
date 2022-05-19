@@ -28,7 +28,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class SpaceAwareVolumeChooser extends org.apache.accumulo.core.spi.fs.SpaceAwareVolumeChooser
     implements VolumeChooser {
   public SpaceAwareVolumeChooser() {
-    super();
     LoggerFactory.getLogger(SpaceAwareVolumeChooser.class).warn(
         "The class {} is deprecated.  Please configure {} instead.",
         SpaceAwareVolumeChooser.class.getName(),

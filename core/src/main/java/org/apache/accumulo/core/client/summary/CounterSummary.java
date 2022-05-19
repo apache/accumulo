@@ -22,6 +22,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.annotations.VisibleForTesting;
 
 /**
@@ -32,6 +35,8 @@ import com.google.common.annotations.VisibleForTesting;
  */
 public class CounterSummary {
   private Map<String,Long> stats;
+
+  private static final Logger log = LoggerFactory.getLogger(CounterSummary.class);
 
   /**
    * This method will call {@link #CounterSummary(Summary, boolean)} with true.
@@ -54,7 +59,9 @@ public class CounterSummary {
     if (checkType) {
       String className = summary.getSummarizerConfiguration().getClassName();
       try {
-        getClass().getClassLoader().loadClass(className).asSubclass(CountingSummarizer.class);
+        final var aClass =
+            getClass().getClassLoader().loadClass(className).asSubclass(CountingSummarizer.class);
+        log.trace("{} loaded in constructor", aClass.getName());
       } catch (ClassCastException e) {
         throw new IllegalArgumentException(
             className + " is not an instance of " + CountingSummarizer.class.getSimpleName(), e);

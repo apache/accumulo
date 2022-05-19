@@ -36,7 +36,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.reflect.Constructor;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -95,7 +94,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -175,7 +173,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     String exportUri = "file://" + exportDir;
     String localTmp = "file://" + new File(rootPath, "ShellServerIT.tmp");
     ts.exec("exporttable -t " + table + " " + exportUri, true);
-    DistCp cp = newDistCp(new Configuration(false));
+    DistCp cp = new DistCp(new Configuration(false), null);
     String import_ = "file://" + new File(rootPath, "ShellServerIT.import");
     ClientInfo info = ClientInfo.from(getCluster().getClientProperties());
     if (info.saslEnabled()) {
@@ -216,26 +214,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("online " + table, true);
     ts.exec("deletetable -f " + table, true);
     ts.exec("deletetable -f " + table2, true);
-  }
-
-  private DistCp newDistCp(Configuration conf) {
-    try {
-      @SuppressWarnings("unchecked")
-      Constructor<DistCp>[] constructors = (Constructor<DistCp>[]) DistCp.class.getConstructors();
-      for (Constructor<DistCp> constructor : constructors) {
-        Class<?>[] parameterTypes = constructor.getParameterTypes();
-        if (parameterTypes.length > 0 && parameterTypes[0].equals(Configuration.class)) {
-          if (parameterTypes.length == 1) {
-            return constructor.newInstance(conf);
-          } else if (parameterTypes.length == 2) {
-            return constructor.newInstance(conf, null);
-          }
-        }
-      }
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-    throw new RuntimeException("Unexpected constructors for DistCp");
   }
 
   @Test
@@ -1457,7 +1435,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
       SlowIterator.setSleepTime(cfg, 500);
       s.addScanIterator(cfg);
 
-      Thread thread = new Thread(() -> Iterators.size(s.iterator()));
+      Thread thread = new Thread(() -> {
+        s.forEach((k, v) -> {});
+      });
       thread.start();
 
       List<String> scans = new ArrayList<>();
@@ -1507,20 +1487,22 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void testPerTableClasspathLegacyJar() throws Exception {
+    final String table = getUniqueNames(1)[0];
     File fooConstraintJar =
         initJar("/org/apache/accumulo/test/FooConstraint.jar", "FooContraint", rootPath);
-    verifyPerTableClasspath(fooConstraintJar);
+    verifyPerTableClasspath(table, fooConstraintJar);
   }
 
   @Test
   public void testPerTableClasspath_2_1_Jar() throws Exception {
+    final String table = getUniqueNames(1)[0];
     File fooConstraintJar =
         initJar("/org/apache/accumulo/test/FooConstraint_2_1.jar", "FooConstraint_2_1", rootPath);
-    verifyPerTableClasspath(fooConstraintJar);
+    verifyPerTableClasspath(table, fooConstraintJar);
   }
 
-  public void verifyPerTableClasspath(final File fooConstraintJar) throws IOException {
-    final String table = getUniqueNames(1)[0];
+  public void verifyPerTableClasspath(final String table, final File fooConstraintJar)
+      throws IOException {
 
     File fooFilterJar = initJar("/org/apache/accumulo/test/FooFilter.jar", "FooFilter", rootPath);
 
@@ -1531,7 +1513,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("config -t " + table + " -s " + Property.TABLE_CLASSLOADER_CONTEXT.getKey() + "=cx1",
         true);
 
-    sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
+    sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
 
     // We can't use the setiter command as Filter implements OptionDescriber which
     // forces us to enter more input that I don't know how to input
@@ -1539,9 +1521,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("config -t " + table + " -s " + Property.TABLE_ITERATOR_PREFIX.getKey()
         + "scan.foo=10,org.apache.accumulo.test.FooFilter");
 
+    sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
+
     ts.exec("insert foo f q v", true);
 
-    sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+    sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
 
     ts.exec("scan -np", true, "foo", false);
 
@@ -1636,6 +1620,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("namespaces", true, ns_2, false);
     ts.exec("tables", true, ns_2 + "." + tableName, false);
 
+    Thread.sleep(250);
+
     // put constraints on a namespace
     ts.exec("constraint -ns " + ns_4
         + " -a org.apache.accumulo.test.constraints.NumericValueConstraint", true);
@@ -1646,7 +1632,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("constraint -l", true, "NumericValueConstraint", true);
     ts.exec("insert r cf cq abc", false);
     ts.exec("constraint -ns " + ns_4 + " -d 1");
-    ts.exec("sleep 1");
+    ts.exec("sleep 3");
     ts.exec("insert r cf cq abc", true);
   }
 

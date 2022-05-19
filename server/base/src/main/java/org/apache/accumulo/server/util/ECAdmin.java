@@ -23,6 +23,7 @@ import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -201,8 +202,7 @@ public class ECAdmin implements KeywordExecutable {
     HostAndPort address = coordinatorHost.get();
     CompactionCoordinatorService.Client coordinatorClient;
     try {
-      coordinatorClient =
-          ThriftUtil.getClient(new CompactionCoordinatorService.Client.Factory(), address, context);
+      coordinatorClient = ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, address, context);
     } catch (Exception e) {
       throw new IllegalStateException("Unable to get Compaction coordinator at " + address, e);
     }

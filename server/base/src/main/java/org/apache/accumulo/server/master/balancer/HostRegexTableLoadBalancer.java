@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -59,7 +60,6 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
 /**
@@ -475,14 +475,14 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
       if (migrations.size() >= myConf.maxOutstandingMigrations) {
         LOG.warn("Not balancing tables due to {} outstanding migrations", migrations.size());
         if (LOG.isTraceEnabled()) {
-          LOG.trace("Sample up to 10 outstanding migrations: {}", Iterables.limit(migrations, 10));
+          LOG.trace("Sample up to 10 outstanding migrations: {}", limitTen(migrations));
         }
         return minBalanceTime;
       }
 
       LOG.debug("Current outstanding migrations of {} being applied", migrations.size());
       if (LOG.isTraceEnabled()) {
-        LOG.trace("Sample up to 10 outstanding migrations: {}", Iterables.limit(migrations, 10));
+        LOG.trace("Sample up to 10 outstanding migrations: {}", limitTen(migrations));
       }
       migrationsFromLastPass.keySet().retainAll(migrations);
       SortedMap<TServerInstance,TabletServerStatus> currentCopy = new TreeMap<>(current);
@@ -522,7 +522,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
       } else if (tableToTimeSinceNoMigrations.containsKey(s)) {
         if ((now - tableToTimeSinceNoMigrations.get(s)) > HOURS.toMillis(1)) {
           LOG.warn("We have been consistently producing migrations for {}: {}", tableName,
-              Iterables.limit(newMigrations, 10));
+              limitTen(newMigrations));
         }
       } else {
         tableToTimeSinceNoMigrations.put(s, now);
@@ -569,4 +569,11 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     }
     return newInfo;
   }
+
+  // helper to prepare log messages
+  private static String limitTen(Collection<?> iterable) {
+    return iterable.stream().limit(10).map(String::valueOf)
+        .collect(Collectors.joining(", ", "[", "]"));
+  }
+
 }

@@ -87,6 +87,7 @@ public class TTimeoutTransport {
       socket = openSocket(addr, (int) timeoutMillis);
     } catch (IOException e) {
       // openSocket handles closing the Socket on error
+      ThriftUtil.checkIOExceptionCause(e);
       throw new TTransportException(e);
     }
 
@@ -100,6 +101,7 @@ public class TTimeoutTransport {
       return new TIOStreamTransport(input, output);
     } catch (IOException e) {
       closeSocket(socket, e);
+      ThriftUtil.checkIOExceptionCause(e);
       throw new TTransportException(e);
     } catch (TTransportException e) {
       closeSocket(socket, e);

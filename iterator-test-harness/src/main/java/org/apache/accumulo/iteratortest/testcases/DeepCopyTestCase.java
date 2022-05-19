@@ -24,14 +24,14 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.iteratortest.IteratorTestCase;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
-import org.apache.accumulo.iteratortest.IteratorTestUtil;
 
 /**
  * Test case that verifies that an iterator can use the generated instance from {@code deepCopy}.
  */
-public class DeepCopyTestCase extends OutputVerifyingTestCase {
+public class DeepCopyTestCase implements IteratorTestCase {
 
   @Override
   public IteratorTestOutput test(IteratorTestInput testInput) {

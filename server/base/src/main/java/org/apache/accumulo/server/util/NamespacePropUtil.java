@@ -18,45 +18,36 @@
  */
 package org.apache.accumulo.server.util;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import java.util.Collection;
+import java.util.Map;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.zookeeper.KeeperException;
+import org.apache.accumulo.server.conf.store.NamespacePropKey;
 
-public class NamespacePropUtil {
-  public static boolean setNamespaceProperty(ServerContext context, NamespaceId namespaceId,
-      String property, String value) throws KeeperException, InterruptedException {
-    if (!Property.isTablePropertyValid(property, value))
-      return false;
+public class NamespacePropUtil extends PropUtil<NamespaceId> {
 
-    ZooReaderWriter zoo = context.getZooReaderWriter();
-
-    // create the zk node for per-namespace properties for this namespace if it doesn't already
-    // exist
-    String zkNamespacePath = getPath(context, namespaceId);
-    zoo.putPersistentData(zkNamespacePath, new byte[0], NodeExistsPolicy.SKIP);
-
-    // create the zk node for this property and set it's data to the specified value
-    String zPath = zkNamespacePath + "/" + property;
-    zoo.putPersistentData(zPath, value.getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
-
-    return true;
+  public NamespacePropUtil(ServerContext context) {
+    super(context);
   }
 
-  public static void removeNamespaceProperty(ServerContext context, NamespaceId namespaceId,
-      String property) throws InterruptedException, KeeperException {
-    String zPath = getPath(context, namespaceId) + "/" + property;
-    context.getZooReaderWriter().recursiveDelete(zPath, NodeMissingPolicy.SKIP);
+  @Override
+  public void setProperties(NamespaceId namespaceId, Map<String,String> properties) {
+    for (Map.Entry<String,String> prop : properties.entrySet()) {
+      // TODO reconcile with TablePropUtil see https://github.com/apache/accumulo/issues/2633
+      if (!Property.isTablePropertyValid(prop.getKey(), prop.getValue())) {
+        throw new IllegalArgumentException("Invalid table property for namespace: " + namespaceId
+            + " name: " + prop.getKey() + ", value: " + prop.getValue());
+      }
+    }
+    context.getPropStore().putAll(NamespacePropKey.of(context, namespaceId), properties);
   }
 
-  private static String getPath(ServerContext context, NamespaceId namespaceId) {
-    return context.getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId
-        + Constants.ZNAMESPACE_CONF;
+  @Override
+  public void removeProperties(NamespaceId namespaceId, Collection<String> propertyNames) {
+    context.getPropStore().removeProperties(NamespacePropKey.of(context, namespaceId),
+        propertyNames);
   }
+
 }

@@ -23,7 +23,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toList;
 import static org.apache.accumulo.core.rpc.ThriftUtil.createClient;
 import static org.apache.accumulo.core.rpc.ThriftUtil.createTransport;
-import static org.apache.accumulo.core.rpc.ThriftUtil.getTServerClient;
+import static org.apache.accumulo.core.rpc.ThriftUtil.getClient;
 import static org.apache.accumulo.core.rpc.ThriftUtil.returnClient;
 
 import java.util.ArrayList;
@@ -49,7 +49,9 @@ import org.apache.accumulo.core.clientImpl.thrift.FateTransaction;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
+import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -83,8 +85,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
       log.warn("{} was deprecated and will be removed in a future release;"
           + " setting its replacement {} instead", property, replacement);
     });
-    ManagerClient.executeVoid(context, client -> client.setSystemProperty(TraceUtil.traceInfo(),
-        context.rpcCreds(), property, value));
+    ThriftClientTypes.MANAGER.executeVoid(context, client -> client
+        .setSystemProperty(TraceUtil.traceInfo(), context.rpcCreds(), property, value));
     checkLocalityGroups(property);
   }
 
@@ -98,7 +100,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       log.warn("{} was deprecated and will be removed in a future release; assuming user meant"
           + " its replacement {} and will remove that instead", property, replacement);
     });
-    ManagerClient.executeVoid(context,
+    ThriftClientTypes.MANAGER.executeVoid(context,
         client -> client.removeSystemProperty(TraceUtil.traceInfo(), context.rpcCreds(), property));
     checkLocalityGroups(property);
   }
@@ -121,15 +123,15 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public Map<String,String> getSystemConfiguration()
       throws AccumuloException, AccumuloSecurityException {
-    return ServerClient.execute(context, client -> client.getConfiguration(TraceUtil.traceInfo(),
-        context.rpcCreds(), ConfigurationType.CURRENT));
+    return ThriftClientTypes.CLIENT.execute(context, client -> client
+        .getConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), ConfigurationType.CURRENT));
   }
 
   @Override
   public Map<String,String> getSiteConfiguration()
       throws AccumuloException, AccumuloSecurityException {
-    return ServerClient.execute(context, client -> client.getConfiguration(TraceUtil.traceInfo(),
-        context.rpcCreds(), ConfigurationType.SITE));
+    return ThriftClientTypes.CLIENT.execute(context, client -> client
+        .getConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), ConfigurationType.SITE));
   }
 
   @Override
@@ -160,9 +162,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public List<ActiveScan> getActiveScans(String tserver)
       throws AccumuloException, AccumuloSecurityException {
     final var parsedTserver = HostAndPort.fromString(tserver);
-    Client client = null;
+    TabletScanClientService.Client client = null;
     try {
-      client = getTServerClient(parsedTserver, context);
+      client = getClient(ThriftClientTypes.TABLET_SCAN, parsedTserver, context);
 
       List<ActiveScan> as = new ArrayList<>();
       for (var activeScan : client.getActiveScans(TraceUtil.traceInfo(), context.rpcCreds())) {
@@ -186,8 +188,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public boolean testClassLoad(final String className, final String asTypeName)
       throws AccumuloException, AccumuloSecurityException {
-    return ServerClient.execute(context, client -> client.checkClass(TraceUtil.traceInfo(),
-        context.rpcCreds(), className, asTypeName));
+    return ThriftClientTypes.CLIENT.execute(context, client -> client
+        .checkClass(TraceUtil.traceInfo(), context.rpcCreds(), className, asTypeName));
   }
 
   @Override
@@ -196,7 +198,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     final var parsedTserver = HostAndPort.fromString(tserver);
     Client client = null;
     try {
-      client = getTServerClient(parsedTserver, context);
+      client = getClient(ThriftClientTypes.TABLET_SERVER, parsedTserver, context);
 
       List<ActiveCompaction> as = new ArrayList<>();
       for (var tac : client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds())) {
@@ -266,7 +268,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public void ping(String tserver) throws AccumuloException {
     try (
         TTransport transport = createTransport(AddressUtil.parseAddress(tserver, false), context)) {
-      var client = createClient(new Client.Factory(), transport);
+      Client client = createClient(ThriftClientTypes.TABLET_SERVER, transport);
       client.getTabletServerStatus(TraceUtil.traceInfo(), context.rpcCreds());
     } catch (TException e) {
       throw new AccumuloException(e);
@@ -276,7 +278,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public void waitForBalance() throws AccumuloException {
     try {
-      ManagerClient.executeVoid(context, client -> client.waitForBalance(TraceUtil.traceInfo()));
+      ThriftClientTypes.MANAGER.executeVoid(context,
+          client -> client.waitForBalance(TraceUtil.traceInfo()));
     } catch (AccumuloSecurityException ex) {
       // should never happen
       throw new RuntimeException("Unexpected exception thrown", ex);
@@ -311,7 +314,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   private List<FateTransaction> executeAdminOperation(AdminOperation op, List<String> txids,
       List<String> filterStatuses) throws AccumuloException {
     try {
-      return ServerClient.execute(context,
+      return ThriftClientTypes.CLIENT.execute(context,
           client -> client.executeAdminOperation(TraceUtil.traceInfo(), context.rpcCreds(), op,
               txids, filterStatuses));
     } catch (AccumuloSecurityException e) {

@@ -67,8 +67,7 @@ import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService.Iface;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService.Processor;
+import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
@@ -127,13 +126,10 @@ import org.apache.accumulo.server.manager.state.TabletServerState;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.rpc.HighlyAvailableServiceWrapper;
 import org.apache.accumulo.server.rpc.ServerAddress;
-import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
 import org.apache.accumulo.server.rpc.TServerUtils;
-import org.apache.accumulo.server.rpc.ThriftServerType;
-import org.apache.accumulo.server.security.AuditedSecurityOperation;
+import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenKeyManager;
-import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
 import org.apache.accumulo.server.security.delegation.ZooAuthenticationKeyDistributor;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tables.TableObserver;
@@ -279,7 +275,8 @@ public class Manager extends AbstractServer
 
   private Future<Void> upgradeMetadataFuture;
 
-  private ManagerClientServiceHandler clientHandler;
+  private FateServiceHandler fateServiceHandler;
+  private ManagerClientServiceHandler managerClientHandler;
 
   private int assignedOrHosted(TableId tableId) {
     int result = 0;
@@ -382,15 +379,12 @@ public class Manager extends AbstractServer
     log.info("Version {}", Constants.VERSION);
     log.info("Instance {}", getInstanceID());
     timeKeeper = new ManagerTime(this, aconf);
-    context.getTransportPool().setIdleTime(aconf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
     tserverSet = new LiveTServerSet(context, this);
     initializeBalancer();
 
-    this.security = AuditedSecurityOperation.getInstance(context);
+    this.security = context.getSecurityOperation();
 
-    // Create the secret manager (can generate and verify delegation tokens)
     final long tokenLifetime = aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME);
-    context.setSecretManager(new AuthenticationTokenSecretManager(getInstanceID(), tokenLifetime));
 
     authenticationTokenKeyManager = null;
     keyDistributor = null;
@@ -1015,20 +1009,18 @@ public class Manager extends AbstractServer
     // ACCUMULO-4424 Put up the Thrift servers before getting the lock as a sign of process health
     // when a hot-standby
     //
+    // Start the Manager's Fate Service
+    fateServiceHandler = new FateServiceHandler(this);
+    managerClientHandler = new ManagerClientServiceHandler(this);
     // Start the Manager's Client service
-    clientHandler = new ManagerClientServiceHandler(this);
     // Ensure that calls before the manager gets the lock fail
-    Iface haProxy = HighlyAvailableServiceWrapper.service(clientHandler, this);
-    Iface rpcProxy = TraceUtil.wrapService(haProxy);
-    final Processor<Iface> processor;
-    if (context.getThriftServerType() == ThriftServerType.SASL) {
-      Iface tcredsProxy = TCredentialsUpdatingWrapper.service(rpcProxy, clientHandler.getClass(),
-          getConfiguration());
-      processor = new Processor<>(tcredsProxy);
-    } else {
-      processor = new Processor<>(rpcProxy);
-    }
+    ManagerClientService.Iface haProxy =
+        HighlyAvailableServiceWrapper.service(managerClientHandler, this);
+
     ServerAddress sa;
+    var processor =
+        ThriftProcessorTypes.getManagerTProcessor(fateServiceHandler, haProxy, getContext());
+
     try {
       sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT, processor,
           "Manager", "Manager Client Service Handler", null, Property.MANAGER_MINTHREADS,
@@ -1369,12 +1361,13 @@ public class Manager extends AbstractServer
     var impl = new org.apache.accumulo.manager.replication.ManagerReplicationCoordinator(this);
     ReplicationCoordinator.Iface haReplicationProxy =
         HighlyAvailableServiceWrapper.service(impl, this);
-    ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor =
-        new ReplicationCoordinator.Processor<>(TraceUtil.wrapService(haReplicationProxy));
+
+    var processor =
+        ThriftProcessorTypes.getReplicationCoordinatorTProcessor(haReplicationProxy, getContext());
+
     ServerAddress replAddress = TServerUtils.startServer(context, getHostname(),
-        Property.MANAGER_REPLICATION_COORDINATOR_PORT, replicationCoordinatorProcessor,
-        "Manager Replication Coordinator", "Replication Coordinator", null,
-        Property.MANAGER_REPLICATION_COORDINATOR_MINTHREADS, null,
+        Property.MANAGER_REPLICATION_COORDINATOR_PORT, processor, "Manager Replication Coordinator",
+        "Replication Coordinator", null, Property.MANAGER_REPLICATION_COORDINATOR_MINTHREADS, null,
         Property.MANAGER_REPLICATION_COORDINATOR_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
 
     log.info("Started replication coordinator service at " + replAddress.address);

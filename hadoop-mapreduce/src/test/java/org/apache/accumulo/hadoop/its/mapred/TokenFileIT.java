@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.hadoop.its.mapred;
 
+import static com.google.common.collect.MoreCollectors.onlyElement;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -27,8 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Paths;
-import java.util.Iterator;
-import java.util.Map.Entry;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -152,29 +151,27 @@ public class TokenFileIT extends AccumuloClusterHarness {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.tableOperations().create(table1);
       c.tableOperations().create(table2);
-      BatchWriter bw = c.createBatchWriter(table1);
-      for (int i = 0; i < 100; i++) {
-        Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-        m.put("", "", String.format("%09x", i));
-        bw.addMutation(m);
+      try (BatchWriter bw = c.createBatchWriter(table1)) {
+        for (int i = 0; i < 100; i++) {
+          Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
+          m.put("", "", String.format("%09x", i));
+          bw.addMutation(m);
+        }
       }
-      bw.close();
 
       File tf = new File(tempDir, "client.properties");
       assertTrue(tf.createNewFile(), "Failed to create file: " + tf);
       try (PrintStream out = new PrintStream(tf)) {
-        getClientInfo().getProperties().store(out, "Credentials for " + getClass().getName());
+        getClientProps().store(out, "Credentials for " + getClass().getName());
       }
 
       MRTokenFileTester.main(new String[] {tf.getAbsolutePath(), table1, table2});
       assertNull(e1);
 
       try (Scanner scanner = c.createScanner(table2, new Authorizations())) {
-        Iterator<Entry<Key,Value>> iter = scanner.iterator();
-        assertTrue(iter.hasNext());
-        Entry<Key,Value> entry = iter.next();
-        assertEquals(Integer.parseInt(new String(entry.getValue().get())), 100);
-        assertFalse(iter.hasNext());
+        int i = scanner.stream().map(Map.Entry::getValue).map(Value::get).map(String::new)
+            .map(Integer::parseInt).collect(onlyElement());
+        assertEquals(100, i);
       }
     }
   }

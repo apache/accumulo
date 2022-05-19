@@ -46,8 +46,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Iterators;
-
 public class MultiTableRecoveryIT extends ConfigurableMacBase {
 
   @Override
@@ -132,7 +130,9 @@ public class MultiTableRecoveryIT extends ConfigurableMacBase {
           getCluster().getClusterControl().stop(ServerType.TABLET_SERVER);
           getCluster().start();
           // read the metadata table to know everything is back up
-          Iterators.size(client.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
+          try (Scanner scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+            scanner.forEach((k, v) -> {});
+          }
           i++;
         }
         System.out.println("Restarted " + i + " times");

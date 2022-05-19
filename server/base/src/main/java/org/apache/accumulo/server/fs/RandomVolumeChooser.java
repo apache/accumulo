@@ -28,7 +28,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class RandomVolumeChooser extends org.apache.accumulo.core.spi.fs.RandomVolumeChooser
     implements VolumeChooser {
   public RandomVolumeChooser() {
-    super();
     LoggerFactory.getLogger(RandomVolumeChooser.class).warn(
         "The class {} is deprecated.  Please configure {} instead.",
         RandomVolumeChooser.class.getName(),

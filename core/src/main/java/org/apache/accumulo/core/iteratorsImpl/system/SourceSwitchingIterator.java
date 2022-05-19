@@ -54,6 +54,8 @@ public class SourceSwitchingIterator implements InterruptibleIterator {
     SortedKeyValueIterator<Key,Value> iterator() throws IOException;
 
     void setInterruptFlag(AtomicBoolean flag);
+
+    default void close(boolean sawErrors) {}
   }
 
   private DataSource source;

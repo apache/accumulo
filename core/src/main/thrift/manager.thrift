@@ -156,7 +156,7 @@ service FateService {
   
 }
 
-service ManagerClientService extends FateService {
+service ManagerClientService {
 
   // table management methods
   i64 initiateFlush(

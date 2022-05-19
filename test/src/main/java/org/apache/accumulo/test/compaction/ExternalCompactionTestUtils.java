@@ -59,6 +59,7 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -245,8 +246,8 @@ public class ExternalCompactionTestUtils {
     if (coordinatorHost.isEmpty()) {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }
-    CompactionCoordinatorService.Client client = ThriftUtil.getClient(
-        new CompactionCoordinatorService.Client.Factory(), coordinatorHost.get(), context);
+    CompactionCoordinatorService.Client client =
+        ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.get(), context);
     try {
       TExternalCompactionList running =
           client.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
@@ -263,8 +264,8 @@ public class ExternalCompactionTestUtils {
     if (coordinatorHost.isEmpty()) {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }
-    CompactionCoordinatorService.Client client = ThriftUtil.getClient(
-        new CompactionCoordinatorService.Client.Factory(), coordinatorHost.get(), context);
+    CompactionCoordinatorService.Client client =
+        ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.get(), context);
     try {
       TExternalCompactionList completed =
           client.getCompletedCompactions(TraceUtil.traceInfo(), context.rpcCreds());

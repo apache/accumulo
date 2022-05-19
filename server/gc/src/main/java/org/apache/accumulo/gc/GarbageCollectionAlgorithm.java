@@ -18,8 +18,10 @@
  */
 package org.apache.accumulo.gc;
 
+import static java.util.Arrays.stream;
+import static java.util.function.Predicate.not;
+
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -34,9 +36,10 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.Reference;
+import org.apache.accumulo.core.metadata.RelativeTabletDirectory;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.gc.GarbageCollectionEnvironment.Reference;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,66 +54,69 @@ public class GarbageCollectionAlgorithm {
 
   private static final Logger log = LoggerFactory.getLogger(GarbageCollectionAlgorithm.class);
 
+  /**
+   * This method takes a file or directory path and returns a relative path in 1 of 2 forms:
+   *
+   * <pre>
+   *      1- For files: table-id/tablet-directory/filename.rf
+   *      2- For directories: table-id/tablet-directory
+   * </pre>
+   *
+   * For example, for full file path like hdfs://foo:6000/accumulo/tables/4/t0/F000.rf it will
+   * return 4/t0/F000.rf. For a directory that already is relative, like 4/t0, it will just return
+   * the original path. This method will also remove prefixed relative paths like ../4/t0/F000.rf
+   * and return 4/t0/F000.rf. It also strips out empty tokens from paths like
+   * hdfs://foo.com:6000/accumulo/tables/4//t0//F001.rf returning 4/t0/F001.rf.
+   */
   private String makeRelative(String path, int expectedLen) {
     String relPath = path;
 
+    // remove prefixed old relative path
     if (relPath.startsWith("../"))
       relPath = relPath.substring(3);
 
+    // remove trailing slash
     while (relPath.endsWith("/"))
       relPath = relPath.substring(0, relPath.length() - 1);
 
+    // remove beginning slash
     while (relPath.startsWith("/"))
       relPath = relPath.substring(1);
 
-    String[] tokens = relPath.split("/");
-
-    // handle paths like a//b///c
-    boolean containsEmpty = false;
-    for (String token : tokens) {
-      if (token.equals("")) {
-        containsEmpty = true;
-        break;
-      }
-    }
-
-    if (containsEmpty) {
-      ArrayList<String> tmp = new ArrayList<>();
-      for (String token : tokens) {
-        if (!token.equals("")) {
-          tmp.add(token);
-        }
-      }
-
-      tokens = tmp.toArray(new String[tmp.size()]);
-    }
+    // Handle paths like a//b///c by dropping the empty tokens.
+    String[] tokens = stream(relPath.split("/")).filter(not(""::equals)).toArray(String[]::new);
 
     if (tokens.length > 3 && path.contains(":")) {
+      // full file path like hdfs://foo:6000/accumulo/tables/4/t0/F000.rf
       if (tokens[tokens.length - 4].equals(Constants.TABLE_DIR)
           && (expectedLen == 0 || expectedLen == 3)) {
+        // return the last 3 tokens after tables, like 4/t0/F000.rf
         relPath = tokens[tokens.length - 3] + "/" + tokens[tokens.length - 2] + "/"
             + tokens[tokens.length - 1];
       } else if (tokens[tokens.length - 3].equals(Constants.TABLE_DIR)
           && (expectedLen == 0 || expectedLen == 2)) {
+        // return the last 2 tokens after tables, like 4/t0
         relPath = tokens[tokens.length - 2] + "/" + tokens[tokens.length - 1];
       } else {
-        throw new IllegalArgumentException(path);
+        throw new IllegalArgumentException("Failed to make path relative. Bad reference: " + path);
       }
     } else if (tokens.length == 3 && (expectedLen == 0 || expectedLen == 3)
         && !path.contains(":")) {
+      // we already have a relative path so return it, like 4/t0/F000.rf
       relPath = tokens[0] + "/" + tokens[1] + "/" + tokens[2];
     } else if (tokens.length == 2 && (expectedLen == 0 || expectedLen == 2)
         && !path.contains(":")) {
+      // return the last 2 tokens of the relative path, like 4/t0
       relPath = tokens[0] + "/" + tokens[1];
     } else {
-      throw new IllegalArgumentException(path);
+      throw new IllegalArgumentException("Failed to make path relative. Bad reference: " + path);
     }
 
+    log.trace("{} -> {} expectedLen = {}", path, relPath, expectedLen);
     return relPath;
   }
 
   private SortedMap<String,String> makeRelative(Collection<String> candidates) {
-
     SortedMap<String,String> ret = new TreeMap<>();
 
     for (String candidate : candidates) {
@@ -127,13 +133,50 @@ public class GarbageCollectionAlgorithm {
     return ret;
   }
 
-  private void confirmDeletes(GarbageCollectionEnvironment gce,
+  private void removeCandidatesInUse(GarbageCollectionEnvironment gce,
+      SortedMap<String,String> candidateMap) {
+    Iterator<Reference> iter = gce.getReferences().iterator();
+    while (iter.hasNext()) {
+      Reference ref = iter.next();
+
+      if (ref instanceof RelativeTabletDirectory) {
+        var dirReference = (RelativeTabletDirectory) ref;
+        ServerColumnFamily.validateDirCol(dirReference.tabletDir);
+
+        String dir = "/" + dirReference.tableId + "/" + dirReference.tabletDir;
+
+        dir = makeRelative(dir, 2);
+
+        if (candidateMap.remove(dir) != null)
+          log.debug("Candidate was still in use: {}", dir);
+      } else {
+        String reference = ref.metadataEntry;
+        if (reference.startsWith("/")) {
+          log.debug("Candidate {} has a relative path, prepend tableId {}", reference, ref.tableId);
+          reference = "/" + ref.tableId + ref.metadataEntry;
+        } else if (!reference.contains(":") && !reference.startsWith("../")) {
+          throw new RuntimeException("Bad file reference " + reference);
+        }
+
+        String relativePath = makeRelative(reference, 3);
+
+        // WARNING: This line is EXTREMELY IMPORTANT.
+        // You MUST REMOVE candidates that are still in use
+        if (candidateMap.remove(relativePath) != null)
+          log.debug("Candidate was still in use: {}", relativePath);
+
+        String dir = relativePath.substring(0, relativePath.lastIndexOf('/'));
+        if (candidateMap.remove(dir) != null)
+          log.debug("Candidate was still in use: {}", relativePath);
+      }
+    }
+  }
+
+  private long removeBlipCandidates(GarbageCollectionEnvironment gce,
       SortedMap<String,String> candidateMap) throws TableNotFoundException {
-    boolean checkForBulkProcessingFiles = false;
-    Iterator<String> relativePaths = candidateMap.keySet().iterator();
-    while (!checkForBulkProcessingFiles && relativePaths.hasNext())
-      checkForBulkProcessingFiles |=
-          relativePaths.next().toLowerCase(Locale.ENGLISH).contains(Constants.BULK_PREFIX);
+    long blipCount = 0;
+    boolean checkForBulkProcessingFiles = candidateMap.keySet().stream().anyMatch(
+        relativePath -> relativePath.toLowerCase(Locale.ENGLISH).contains(Constants.BULK_PREFIX));
 
     if (checkForBulkProcessingFiles) {
       try (Stream<String> blipStream = gce.getBlipPaths()) {
@@ -144,6 +187,7 @@ public class GarbageCollectionAlgorithm {
         // processing flag!
 
         while (blipiter.hasNext()) {
+          blipCount++;
           String blipPath = blipiter.next();
           blipPath = makeRelative(blipPath, 2);
 
@@ -160,57 +204,21 @@ public class GarbageCollectionAlgorithm {
             }
           }
 
-          if (count > 0)
+          if (count > 0) {
             log.debug("Folder has bulk processing flag: {}", blipPath);
+          }
         }
       }
     }
 
-    Iterator<Reference> iter = gce.getReferences().iterator();
-    while (iter.hasNext()) {
-      Reference ref = iter.next();
-
-      if (ref.isDir) {
-        String tableID = ref.id.toString();
-        String dirName = ref.ref;
-        ServerColumnFamily.validateDirCol(dirName);
-
-        String dir = "/" + tableID + "/" + dirName;
-
-        dir = makeRelative(dir, 2);
-
-        if (candidateMap.remove(dir) != null)
-          log.debug("Candidate was still in use: {}", dir);
-      } else {
-
-        String reference = ref.ref;
-        if (reference.startsWith("/")) {
-          reference = "/" + ref.id + reference;
-        } else if (!reference.contains(":") && !reference.startsWith("../")) {
-          throw new RuntimeException("Bad file reference " + reference);
-        }
-
-        reference = makeRelative(reference, 3);
-
-        // WARNING: This line is EXTREMELY IMPORTANT.
-        // You MUST REMOVE candidates that are still in use
-        if (candidateMap.remove(reference) != null)
-          log.debug("Candidate was still in use: {}", reference);
-
-        String dir = reference.substring(0, reference.lastIndexOf('/'));
-        if (candidateMap.remove(dir) != null)
-          log.debug("Candidate was still in use: {}", reference);
-
-      }
-    }
-
-    confirmDeletesFromReplication(gce.getReplicationNeededIterator(),
-        candidateMap.entrySet().iterator());
+    return blipCount;
   }
 
-  protected void confirmDeletesFromReplication(
-      Iterator<Entry<String,Status>> replicationNeededIterator,
-      Iterator<Entry<String,String>> candidateMapIterator) {
+  protected void confirmDeletesFromReplication(GarbageCollectionEnvironment gce,
+      SortedMap<String,String> candidateMap) {
+    var replicationNeededIterator = gce.getReplicationNeededIterator();
+    var candidateMapIterator = candidateMap.entrySet().iterator();
+
     PeekingIterator<Entry<String,Status>> pendingReplication =
         Iterators.peekingIterator(replicationNeededIterator);
     PeekingIterator<Entry<String,String>> candidates =
@@ -269,24 +277,28 @@ public class GarbageCollectionAlgorithm {
     }
   }
 
-  private void confirmDeletesTrace(GarbageCollectionEnvironment gce,
+  private long confirmDeletesTrace(GarbageCollectionEnvironment gce,
       SortedMap<String,String> candidateMap) throws TableNotFoundException {
+    long blips = 0;
     Span confirmDeletesSpan = TraceUtil.startSpan(this.getClass(), "confirmDeletes");
     try (Scope scope = confirmDeletesSpan.makeCurrent()) {
-      confirmDeletes(gce, candidateMap);
+      blips = removeBlipCandidates(gce, candidateMap);
+      removeCandidatesInUse(gce, candidateMap);
+      confirmDeletesFromReplication(gce, candidateMap);
     } catch (Exception e) {
       TraceUtil.setException(confirmDeletesSpan, e, true);
       throw e;
     } finally {
       confirmDeletesSpan.end();
     }
+    return blips;
   }
 
-  private void deleteConfirmed(GarbageCollectionEnvironment gce,
+  private void deleteConfirmedCandidates(GarbageCollectionEnvironment gce,
       SortedMap<String,String> candidateMap) throws IOException, TableNotFoundException {
     Span deleteSpan = TraceUtil.startSpan(this.getClass(), "deleteFiles");
     try (Scope deleteScope = deleteSpan.makeCurrent()) {
-      gce.delete(candidateMap);
+      gce.deleteConfirmedCandidates(candidateMap);
     } catch (Exception e) {
       TraceUtil.setException(deleteSpan, e, true);
       throw e;
@@ -297,9 +309,10 @@ public class GarbageCollectionAlgorithm {
     cleanUpDeletedTableDirs(gce, candidateMap);
   }
 
-  public void collect(GarbageCollectionEnvironment gce) throws TableNotFoundException, IOException {
+  public long collect(GarbageCollectionEnvironment gce) throws TableNotFoundException, IOException {
 
     Iterator<String> candidatesIter = gce.getCandidates();
+    long totalBlips = 0;
 
     while (candidatesIter.hasNext()) {
       List<String> batchOfCandidates;
@@ -312,14 +325,15 @@ public class GarbageCollectionAlgorithm {
       } finally {
         candidatesSpan.end();
       }
-      deleteBatch(gce, batchOfCandidates);
+      totalBlips = deleteBatch(gce, batchOfCandidates);
     }
+    return totalBlips;
   }
 
   /**
    * Given a sub-list of possible deletion candidates, process and remove valid deletion candidates.
    */
-  private void deleteBatch(GarbageCollectionEnvironment gce, List<String> currentBatch)
+  private long deleteBatch(GarbageCollectionEnvironment gce, List<String> currentBatch)
       throws TableNotFoundException, IOException {
 
     long origSize = currentBatch.size();
@@ -327,10 +341,12 @@ public class GarbageCollectionAlgorithm {
 
     SortedMap<String,String> candidateMap = makeRelative(currentBatch);
 
-    confirmDeletesTrace(gce, candidateMap);
+    long blips = confirmDeletesTrace(gce, candidateMap);
     gce.incrementInUseStat(origSize - candidateMap.size());
 
-    deleteConfirmed(gce, candidateMap);
+    deleteConfirmedCandidates(gce, candidateMap);
+
+    return blips;
   }
 
 }

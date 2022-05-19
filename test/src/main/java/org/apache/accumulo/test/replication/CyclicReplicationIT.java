@@ -47,8 +47,8 @@ import org.apache.accumulo.core.iterators.LongCombiner.Type;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.Timeout;
-import org.apache.accumulo.harness.WithTestNames;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -68,14 +68,12 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Disabled("Replication ITs are not stable and not currently maintained")
 @Tag(MINI_CLUSTER_ONLY)
 @Deprecated
-public class CyclicReplicationIT extends WithTestNames {
+public class CyclicReplicationIT extends AccumuloITBase {
   private static final Logger log = LoggerFactory.getLogger(CyclicReplicationIT.class);
 
   @RegisterExtension
@@ -94,7 +92,7 @@ public class CyclicReplicationIT extends WithTestNames {
   });
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
-  private File createTestDir(String name) {
+  private File createTheTestDir(String name) {
     File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
     assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
     File testDir = new File(baseDir, this.getClass().getName() + "_" + testName() + "_" + name);
@@ -162,7 +160,7 @@ public class CyclicReplicationIT extends WithTestNames {
 
   @Test
   public void dataIsNotOverReplicated() throws Exception {
-    File manager1Dir = createTestDir("manager1"), manager2Dir = createTestDir("manager2");
+    File manager1Dir = createTheTestDir("manager1"), manager2Dir = createTheTestDir("manager2");
     String password = "password";
 
     MiniAccumuloConfigImpl manager1Cfg;
@@ -327,7 +325,7 @@ public class CyclicReplicationIT extends WithTestNames {
       // Sanity check that the element is there on manager1
       Entry<Key,Value> entry;
       try (Scanner s = clientManager1.createScanner(manager1Table, Authorizations.EMPTY)) {
-        entry = Iterables.getOnlyElement(s);
+        entry = getOnlyElement(s);
         assertEquals("1", entry.getValue().toString());
 
         // Wait for this table to replicate
@@ -338,7 +336,7 @@ public class CyclicReplicationIT extends WithTestNames {
 
       // Check that the element made it to manager2 only once
       try (Scanner s = clientManager2.createScanner(manager2Table, Authorizations.EMPTY)) {
-        entry = Iterables.getOnlyElement(s);
+        entry = getOnlyElement(s);
         assertEquals("1", entry.getValue().toString());
 
         // Wait for manager2 to finish replicating it back
@@ -357,7 +355,7 @@ public class CyclicReplicationIT extends WithTestNames {
 
       // Check that the element made it to manager2 only once
       try (Scanner s = clientManager2.createScanner(manager2Table, Authorizations.EMPTY)) {
-        entry = Iterables.getOnlyElement(s);
+        entry = getOnlyElement(s);
         assertEquals("1", entry.getValue().toString());
 
         clientManager2.replicationOperations().drain(manager2Table, files);
@@ -367,7 +365,7 @@ public class CyclicReplicationIT extends WithTestNames {
 
       // Verify that the entry wasn't sent back to manager1
       try (Scanner s = clientManager1.createScanner(manager1Table, Authorizations.EMPTY)) {
-        entry = Iterables.getOnlyElement(s);
+        entry = getOnlyElement(s);
         assertEquals("1", entry.getValue().toString());
       }
     } finally {

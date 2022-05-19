@@ -24,7 +24,6 @@ import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
-import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,8 +57,8 @@ class NamespaceCleanUp extends ManagerRepo {
 
     // remove any permissions associated with this namespace
     try {
-      AuditedSecurityOperation.getInstance(manager.getContext())
-          .deleteNamespace(manager.getContext().rpcCreds(), namespaceId);
+      manager.getContext().getSecurityOperation().deleteNamespace(manager.getContext().rpcCreds(),
+          namespaceId);
     } catch (ThriftSecurityException e) {
       log.error("{}", e.getMessage(), e);
     }

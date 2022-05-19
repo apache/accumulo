@@ -24,6 +24,9 @@
        * show the table(t), length selector(l) aligned to the left and pagination(p).
        */
       $(document).ready(function() {
+        // Global constant for the page
+        serv = '${server}';
+
         // Create a table for tserver list
         tabletResults = $('#perTabletResults').DataTable({
           "ajax": {
@@ -72,9 +75,9 @@
             { "data": "majorAvgES" }
           ]
         });
-        serv = '${server}';
         refreshServer();
       });
+
       </script>
       <div class="row">
         <div class="col-xs-12">
@@ -94,7 +97,15 @@
                 <th>Splitting&nbsp;</th>
               </tr>
             </thead>
-            <tbody></tbody>
+            <tbody>
+                <tr>
+                    <td id="hostedTablets"></td>
+                    <td id="entries"></td>
+                    <td id="minors"></td>
+                    <td id="majors"></td>
+                    <td id="splits"></td>
+                </tr>
+            </tbody>
           </table>
         </div>
       </div>
@@ -114,7 +125,11 @@
                 <th>Percentage&nbsp;Time&nbsp;Spent&nbsp;</th>
               </tr>
             </thead>
-            <tbody></tbody>
+            <tbody>
+              <tr id="MinorRow"></tr>
+              <tr id="MajorRow"></tr>
+              <tr id="SplitRow"></tr>
+            </tbody>
           </table>
         </div>
       </div>
@@ -130,7 +145,14 @@
                 <th>Major&nbsp;Std&nbsp;Dev&nbsp;</th>
               </tr>
             </thead>
-            <tbody></tbody>
+            <tbody>
+                <tr>
+                  <td id="currentMinorAvg"></td>
+                  <td id="currentMinorStdDev"></td>
+                  <td id="currentMajorAvg"></td>
+                  <td id="currentMajorStdDev"></td>
+                </tr>
+            </tbody>
           </table>
         </div>
       </div>

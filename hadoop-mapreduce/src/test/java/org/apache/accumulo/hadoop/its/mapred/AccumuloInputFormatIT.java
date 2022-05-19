@@ -124,9 +124,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
       job.setInputFormat(AccumuloInputFormat.class);
 
-      InputFormatBuilder.InputFormatOptions<JobConf> opts =
-          AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties())
-              .table(table).auths(Authorizations.EMPTY);
+      InputFormatBuilder.InputFormatOptions<JobConf> opts = AccumuloInputFormat.configure()
+          .clientProperties(getClientProps()).table(table).auths(Authorizations.EMPTY);
 
       if (sample) {
         opts.samplerConfiguration(SAMPLER_CONFIG);
@@ -221,9 +220,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       accumuloClient.tableOperations().create(table);
 
-      AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties()).table(table)
-          .auths(auths).fetchColumns(fetchColumns).scanIsolation(true).localIterators(true)
-          .store(job);
+      AccumuloInputFormat.configure().clientProperties(getClientProps()).table(table).auths(auths)
+          .fetchColumns(fetchColumns).scanIsolation(true).localIterators(true).store(job);
 
       AccumuloInputFormat aif = new AccumuloInputFormat();
 

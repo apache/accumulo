@@ -52,7 +52,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
 public class SessionManager {
@@ -301,11 +300,10 @@ public class SessionManager {
       }
     }
 
-    for (Entry<Long,Session> entry : Iterables.concat(sessions.entrySet(), copiedIdleSessions)) {
+    List.of(sessions.entrySet(), copiedIdleSessions).forEach(set -> set.forEach(entry -> {
 
       Session session = entry.getValue();
-      @SuppressWarnings("rawtypes")
-      ScanTask nbt = null;
+      ScanTask<?> nbt = null;
       TableId tableID = null;
 
       if (session instanceof SingleScanSession) {
@@ -318,22 +316,13 @@ public class SessionManager {
         tableID = mss.threadPoolExtent.tableId();
       }
 
-      if (nbt == null)
-        continue;
-
-      ScanRunState srs = nbt.getScanRunState();
-
-      if (srs == ScanRunState.FINISHED)
-        continue;
-
-      MapCounter<ScanRunState> stateCounts = counts.get(tableID);
-      if (stateCounts == null) {
-        stateCounts = new MapCounter<>();
-        counts.put(tableID, stateCounts);
+      if (nbt != null) {
+        ScanRunState srs = nbt.getScanRunState();
+        if (srs != ScanRunState.FINISHED) {
+          counts.computeIfAbsent(tableID, unusedKey -> new MapCounter<>()).increment(srs, 1);
+        }
       }
-
-      stateCounts.increment(srs, 1);
-    }
+    }));
 
     return counts;
   }
@@ -353,7 +342,7 @@ public class SessionManager {
       }
     }
 
-    for (Entry<Long,Session> entry : Iterables.concat(sessions.entrySet(), copiedIdleSessions)) {
+    List.of(sessions.entrySet(), copiedIdleSessions).forEach(s -> s.forEach(entry -> {
       Session session = entry.getValue();
       if (session instanceof SingleScanSession) {
         SingleScanSession ss = (SingleScanSession) session;
@@ -422,7 +411,7 @@ public class SessionManager {
             params.getSsiList(), params.getSsio(), params.getAuthorizations().getAuthorizationsBB(),
             params.getClassLoaderContext()));
       }
-    }
+    }));
 
     return activeScans;
   }

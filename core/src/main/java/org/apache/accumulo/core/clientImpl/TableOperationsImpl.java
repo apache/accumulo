@@ -89,7 +89,6 @@ import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.Summary;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
-import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Client;
 import org.apache.accumulo.core.clientImpl.thrift.TDiskUsage;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
@@ -113,6 +112,7 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.FateOperation;
+import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.metadata.MetadataServicer;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -122,6 +122,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.summary.SummarizerConfigurationUtil;
@@ -254,9 +255,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   private long beginFateOperation() throws ThriftSecurityException, TException {
     while (true) {
-      ManagerClientService.Iface client = null;
+      FateService.Client client = null;
       try {
-        client = ManagerClient.getConnectionWithRetry(context);
+        client = ThriftClientTypes.FATE.getConnectionWithRetry(context);
         return client.beginFateOperation(TraceUtil.traceInfo(), context.rpcCreds());
       } catch (TTransportException tte) {
         log.debug("Failed to call beginFateOperation(), retrying ... ", tte);
@@ -266,7 +267,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         log.debug("Contacted a Manager which is no longer active, retrying");
         sleepUninterruptibly(100, MILLISECONDS);
       } finally {
-        ManagerClient.close(client, context);
+        ThriftUtil.close(client, context);
       }
     }
   }
@@ -277,9 +278,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
       Map<String,String> opts, boolean autoCleanUp)
       throws ThriftSecurityException, TException, ThriftTableOperationException {
     while (true) {
-      ManagerClientService.Iface client = null;
+      FateService.Client client = null;
       try {
-        client = ManagerClient.getConnectionWithRetry(context);
+        client = ThriftClientTypes.FATE.getConnectionWithRetry(context);
         client.executeFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), opid, op, args, opts,
             autoCleanUp);
         return;
@@ -291,7 +292,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         log.debug("Contacted a Manager which is no longer active, retrying");
         sleepUninterruptibly(100, MILLISECONDS);
       } finally {
-        ManagerClient.close(client, context);
+        ThriftUtil.close(client, context);
       }
     }
   }
@@ -299,9 +300,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
   private String waitForFateOperation(long opid)
       throws ThriftSecurityException, TException, ThriftTableOperationException {
     while (true) {
-      ManagerClientService.Iface client = null;
+      FateService.Client client = null;
       try {
-        client = ManagerClient.getConnectionWithRetry(context);
+        client = ThriftClientTypes.FATE.getConnectionWithRetry(context);
         return client.waitForFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), opid);
       } catch (TTransportException tte) {
         log.debug("Failed to call waitForFateOperation(), retrying ... ", tte);
@@ -311,16 +312,16 @@ public class TableOperationsImpl extends TableOperationsHelper {
         log.debug("Contacted a Manager which is no longer active, retrying");
         sleepUninterruptibly(100, MILLISECONDS);
       } finally {
-        ManagerClient.close(client, context);
+        ThriftUtil.close(client, context);
       }
     }
   }
 
   private void finishFateOperation(long opid) throws ThriftSecurityException, TException {
     while (true) {
-      ManagerClientService.Iface client = null;
+      FateService.Client client = null;
       try {
-        client = ManagerClient.getConnectionWithRetry(context);
+        client = ThriftClientTypes.FATE.getConnectionWithRetry(context);
         client.finishFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), opid);
         break;
       } catch (TTransportException tte) {
@@ -331,7 +332,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         log.debug("Contacted a Manager which is no longer active, retrying");
         sleepUninterruptibly(100, MILLISECONDS);
       } finally {
-        ManagerClient.close(client, context);
+        ThriftUtil.close(client, context);
       }
     }
   }
@@ -554,7 +555,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
         HostAndPort address = HostAndPort.fromString(tl.tablet_location);
 
         try {
-          TabletClientService.Client client = ThriftUtil.getTServerClient(address, context);
+          TabletClientService.Client client =
+              ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, address, context);
           try {
 
             OpTimer timer = null;
@@ -582,9 +584,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
         } catch (TApplicationException tae) {
           throw new AccumuloServerException(address.toString(), tae);
-        } catch (TTransportException e) {
-          tabLocator.invalidateCache(context, tl.tablet_location);
-          continue;
         } catch (ThriftSecurityException e) {
           context.clearTableListCache();
           context.requireTableExists(env.tableId, env.tableName);
@@ -945,9 +944,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
       // so pass the tableid to both calls
 
       while (true) {
-        ManagerClientService.Iface client = null;
+        ManagerClientService.Client client = null;
         try {
-          client = ManagerClient.getConnectionWithRetry(context);
+          client = ThriftClientTypes.MANAGER.getConnectionWithRetry(context);
           flushID =
               client.initiateFlush(TraceUtil.traceInfo(), context.rpcCreds(), tableId.canonical());
           break;
@@ -959,14 +958,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
           log.debug("Contacted a Manager which is no longer active, retrying");
           sleepUninterruptibly(100, MILLISECONDS);
         } finally {
-          ManagerClient.close(client, context);
+          ThriftUtil.close(client, context);
         }
       }
 
       while (true) {
-        ManagerClientService.Iface client = null;
+        ManagerClientService.Client client = null;
         try {
-          client = ManagerClient.getConnectionWithRetry(context);
+          client = ThriftClientTypes.MANAGER.getConnectionWithRetry(context);
           client.waitForFlush(TraceUtil.traceInfo(), context.rpcCreds(), tableId.canonical(),
               TextUtil.getByteBuffer(start), TextUtil.getByteBuffer(end), flushID,
               wait ? Long.MAX_VALUE : 1);
@@ -979,7 +978,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           log.debug("Contacted a Manager which is no longer active, retrying");
           sleepUninterruptibly(100, MILLISECONDS);
         } finally {
-          ManagerClient.close(client, context);
+          ThriftUtil.close(client, context);
         }
       }
     } catch (ThriftSecurityException e) {
@@ -1021,8 +1020,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
   private void setPropertyNoChecks(final String tableName, final String property,
       final String value)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    ManagerClient.executeTable(context, client -> client.setTableProperty(TraceUtil.traceInfo(),
-        context.rpcCreds(), tableName, property, value));
+    ThriftClientTypes.MANAGER.executeVoid(context, client -> client
+        .setTableProperty(TraceUtil.traceInfo(), context.rpcCreds(), tableName, property, value));
   }
 
   @Override
@@ -1042,8 +1041,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   private void removePropertyNoChecks(final String tableName, final String property)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    ManagerClient.executeTable(context, client -> client.removeTableProperty(TraceUtil.traceInfo(),
-        context.rpcCreds(), tableName, property));
+    ThriftClientTypes.MANAGER.executeVoid(context, client -> client
+        .removeTableProperty(TraceUtil.traceInfo(), context.rpcCreds(), tableName, property));
   }
 
   void checkLocalityGroups(String tableName, String propChanged)
@@ -1069,18 +1068,21 @@ public class TableOperationsImpl extends TableOperationsHelper {
     EXISTING_TABLE_NAME.validate(tableName);
 
     try {
-      return ServerClient.executeRaw(context, client -> client
+      return ThriftClientTypes.CLIENT.execute(context, client -> client
           .getTableConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), tableName));
-    } catch (ThriftTableOperationException e) {
-      switch (e.getType()) {
-        case NOTFOUND:
-          throw new TableNotFoundException(e);
-        case NAMESPACE_NOTFOUND:
-          throw new TableNotFoundException(tableName, new NamespaceNotFoundException(e));
-        default:
-          throw new AccumuloException(e.description, e);
-      }
     } catch (AccumuloException e) {
+      Throwable t = e.getCause();
+      if (t instanceof ThriftTableOperationException) {
+        ThriftTableOperationException ttoe = (ThriftTableOperationException) t;
+        switch (ttoe.getType()) {
+          case NOTFOUND:
+            throw new TableNotFoundException(ttoe);
+          case NAMESPACE_NOTFOUND:
+            throw new TableNotFoundException(tableName, new NamespaceNotFoundException(ttoe));
+          default:
+            throw e;
+        }
+      }
       throw e;
     } catch (Exception e) {
       throw new AccumuloException(e);
@@ -1463,7 +1465,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         // this operation may us a lot of memory... its likely that connections to tabletservers
         // hosting metadata tablets will be cached, so do not use cached
         // connections
-        pair = ServerClient.getConnection(context, new ClientService.Client.Factory(), false);
+        pair = ThriftClientTypes.CLIENT.getTabletServerConnection(context, false);
         diskUsages = pair.getSecond().getDiskUsage(tableNames, context.rpcCreds());
       } catch (ThriftTableOperationException e) {
         switch (e.getType()) {
@@ -1490,7 +1492,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       } finally {
         // must always return thrift connection
         if (pair != null)
-          ServerClient.close(pair.getSecond(), context);
+          ThriftUtil.close(pair.getSecond(), context);
       }
     }
 
@@ -1653,21 +1655,22 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(asTypeName != null, "asTypeName is null");
 
     try {
-      return ServerClient.executeRaw(context,
+      return ThriftClientTypes.CLIENT.execute(context,
           client -> client.checkTableClass(TraceUtil.traceInfo(), context.rpcCreds(), tableName,
               className, asTypeName));
-    } catch (ThriftTableOperationException e) {
-      switch (e.getType()) {
-        case NOTFOUND:
-          throw new TableNotFoundException(e);
-        case NAMESPACE_NOTFOUND:
-          throw new TableNotFoundException(tableName, new NamespaceNotFoundException(e));
-        default:
-          throw new AccumuloException(e.description, e);
+    } catch (AccumuloSecurityException | AccumuloException e) {
+      Throwable t = e.getCause();
+      if (t instanceof ThriftTableOperationException) {
+        ThriftTableOperationException ttoe = (ThriftTableOperationException) t;
+        switch (ttoe.getType()) {
+          case NOTFOUND:
+            throw new TableNotFoundException(ttoe);
+          case NAMESPACE_NOTFOUND:
+            throw new TableNotFoundException(tableName, new NamespaceNotFoundException(ttoe));
+          default:
+            throw e;
+        }
       }
-    } catch (ThriftSecurityException e) {
-      throw new AccumuloSecurityException(e.user, e.code, e);
-    } catch (AccumuloException e) {
       throw e;
     } catch (Exception e) {
       throw new AccumuloException(e);
@@ -1900,15 +1903,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
           _flush(tableId, startRow, endRow, true);
         }
 
-        TSummaries ret =
-            ServerClient.execute(context, new TabletClientService.Client.Factory(), client -> {
-              TSummaries tsr =
-                  client.startGetSummaries(TraceUtil.traceInfo(), context.rpcCreds(), request);
-              while (!tsr.finished) {
-                tsr = client.contiuneGetSummaries(TraceUtil.traceInfo(), tsr.sessionId);
-              }
-              return tsr;
-            });
+        TSummaries ret = ThriftClientTypes.TABLET_SERVER.execute(context, client -> {
+          TSummaries tsr =
+              client.startGetSummaries(TraceUtil.traceInfo(), context.rpcCreds(), request);
+          while (!tsr.finished) {
+            tsr = client.contiuneGetSummaries(TraceUtil.traceInfo(), tsr.sessionId);
+          }
+          return tsr;
+        });
         return new SummaryCollection(ret).getSummaries();
       }
 

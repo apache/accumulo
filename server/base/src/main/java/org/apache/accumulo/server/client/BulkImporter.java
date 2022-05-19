@@ -40,7 +40,6 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ServerClient;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
@@ -55,6 +54,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -135,23 +135,20 @@ public class BulkImporter {
 
       for (Path path : paths) {
         final Path mapFile = path;
-        Runnable getAssignments = new Runnable() {
-          @Override
-          public void run() {
-            List<TabletLocation> tabletsToAssignMapFileTo = Collections.emptyList();
-            try {
-              tabletsToAssignMapFileTo = findOverlappingTablets(context, fs, locator, mapFile);
-            } catch (Exception ex) {
-              log.warn("Unable to find tablets that overlap file " + mapFile, ex);
-            }
-            log.debug("Map file {} found to overlap {} tablets", mapFile,
-                tabletsToAssignMapFileTo.size());
-            if (tabletsToAssignMapFileTo.isEmpty()) {
-              List<KeyExtent> empty = Collections.emptyList();
-              completeFailures.put(mapFile, empty);
-            } else
-              assignments.put(mapFile, tabletsToAssignMapFileTo);
+        Runnable getAssignments = () -> {
+          List<TabletLocation> tabletsToAssignMapFileTo = Collections.emptyList();
+          try {
+            tabletsToAssignMapFileTo = findOverlappingTablets(context, fs, locator, mapFile);
+          } catch (Exception ex) {
+            log.warn("Unable to find tablets that overlap file " + mapFile, ex);
           }
+          log.debug("Map file {} found to overlap {} tablets", mapFile,
+              tabletsToAssignMapFileTo.size());
+          if (tabletsToAssignMapFileTo.isEmpty()) {
+            List<KeyExtent> empty = Collections.emptyList();
+            completeFailures.put(mapFile, empty);
+          } else
+            assignments.put(mapFile, tabletsToAssignMapFileTo);
         };
         threadPool.execute(getAssignments);
       }
@@ -256,7 +253,7 @@ public class BulkImporter {
       return assignmentStats;
     } finally {
       if (client != null) {
-        ServerClient.close(client, context);
+        ThriftUtil.close(client, context);
       }
     }
   }
@@ -366,34 +363,31 @@ public class BulkImporter {
         continue;
       }
 
-      Runnable estimationTask = new Runnable() {
-        @Override
-        public void run() {
-          Map<KeyExtent,Long> estimatedSizes = null;
+      Runnable estimationTask = () -> {
+        Map<KeyExtent,Long> estimatedSizes = null;
 
-          try {
-            estimatedSizes = FileUtil.estimateSizes(context, entry.getKey(),
-                mapFileSizes.get(entry.getKey()), extentsOf(entry.getValue()));
-          } catch (IOException e) {
-            log.warn("Failed to estimate map file sizes {}", e.getMessage());
-          }
-
-          if (estimatedSizes == null) {
-            // estimation failed, do a simple estimation
-            estimatedSizes = new TreeMap<>();
-            long estSize =
-                (long) (mapFileSizes.get(entry.getKey()) / (double) entry.getValue().size());
-            for (TabletLocation tl : entry.getValue())
-              estimatedSizes.put(tl.tablet_extent, estSize);
-          }
-
-          List<AssignmentInfo> assignmentInfoList = new ArrayList<>(estimatedSizes.size());
-
-          for (Entry<KeyExtent,Long> entry2 : estimatedSizes.entrySet())
-            assignmentInfoList.add(new AssignmentInfo(entry2.getKey(), entry2.getValue()));
-
-          ais.put(entry.getKey(), assignmentInfoList);
+        try {
+          estimatedSizes = FileUtil.estimateSizes(context, entry.getKey(),
+              mapFileSizes.get(entry.getKey()), extentsOf(entry.getValue()));
+        } catch (IOException e) {
+          log.warn("Failed to estimate map file sizes {}", e.getMessage());
         }
+
+        if (estimatedSizes == null) {
+          // estimation failed, do a simple estimation
+          estimatedSizes = new TreeMap<>();
+          long estSize =
+              (long) (mapFileSizes.get(entry.getKey()) / (double) entry.getValue().size());
+          for (TabletLocation tl : entry.getValue())
+            estimatedSizes.put(tl.tablet_extent, estSize);
+        }
+
+        List<AssignmentInfo> assignmentInfoList = new ArrayList<>(estimatedSizes.size());
+
+        for (Entry<KeyExtent,Long> entry2 : estimatedSizes.entrySet())
+          assignmentInfoList.add(new AssignmentInfo(entry2.getKey(), entry2.getValue()));
+
+        ais.put(entry.getKey(), assignmentInfoList);
       };
 
       threadPool.execute(estimationTask);
@@ -566,7 +560,7 @@ public class BulkImporter {
     try {
       long timeInMillis = context.getConfiguration().getTimeInMillis(Property.TSERV_BULK_TIMEOUT);
       TabletClientService.Iface client =
-          ThriftUtil.getTServerClient(location, context, timeInMillis);
+          ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, location, context, timeInMillis);
       try {
         HashMap<KeyExtent,Map<String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files =
             new HashMap<>();

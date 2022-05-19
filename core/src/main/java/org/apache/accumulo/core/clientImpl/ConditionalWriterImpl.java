@@ -64,6 +64,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TConditionalSession;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TMutation;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.VisibilityEvaluator;
@@ -533,9 +534,9 @@ class ConditionalWriterImpl implements ConditionalWriter {
   private TabletClientService.Iface getClient(HostAndPort location) throws TTransportException {
     TabletClientService.Iface client;
     if (timeout < context.getClientTimeoutInMillis())
-      client = ThriftUtil.getTServerClient(location, context, timeout);
+      client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, location, context, timeout);
     else
-      client = ThriftUtil.getTServerClient(location, context);
+      client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, location, context);
     return client;
   }
 

@@ -488,9 +488,7 @@ public class SampleIT extends AccumuloClusterHarness {
       assertThrows(SampleNotPresentException.class, () -> scanner.iterator().next(), message);
 
       scanner.clearSamplerConfiguration();
-      for (Entry<Key,Value> entry : scanner) {
-        entry.getKey();
-      }
+      scanner.forEach((k, v) -> {});
 
       if (csc == null) {
         scanner.clearSamplerConfiguration();

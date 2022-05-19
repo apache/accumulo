@@ -65,7 +65,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -94,8 +93,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Iterators;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -137,8 +134,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     cluster.getClusterControl().startAllServers(ServerType.MONITOR);
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
-      ingest(accumuloClient, getClientInfo(), ROWS, COLS, 50, 0, tableName);
-      verify(accumuloClient, getClientInfo(), ROWS, COLS, 50, 0, tableName);
+      ingest(accumuloClient, ROWS, COLS, 50, 0, tableName);
+      verify(accumuloClient, ROWS, COLS, 50, 0, tableName);
       String monitorLocation = null;
       while (monitorLocation == null) {
         monitorLocation = MonitorUtil.getLocation((ClientContext) accumuloClient);
@@ -190,14 +187,14 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     }
   }
 
-  public static void ingest(AccumuloClient accumuloClient, ClientInfo info, int rows, int cols,
-      int width, int offset, String tableName) throws Exception {
-    ingest(accumuloClient, info, rows, cols, width, offset, COLF, tableName);
+  public static void ingest(AccumuloClient accumuloClient, int rows, int cols, int width,
+      int offset, String tableName) throws Exception {
+    ingest(accumuloClient, rows, cols, width, offset, COLF, tableName);
   }
 
-  public static void ingest(AccumuloClient accumuloClient, ClientInfo info, int rows, int cols,
-      int width, int offset, String colf, String tableName) throws Exception {
-    IngestParams params = new IngestParams(info.getProperties(), tableName, rows);
+  public static void ingest(AccumuloClient accumuloClient, int rows, int cols, int width,
+      int offset, String colf, String tableName) throws Exception {
+    IngestParams params = new IngestParams(accumuloClient.properties(), tableName, rows);
     params.cols = cols;
     params.dataSize = width;
     params.startRow = offset;
@@ -206,14 +203,14 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     TestIngest.ingest(accumuloClient, params);
   }
 
-  public static void verify(AccumuloClient accumuloClient, ClientInfo info, int rows, int cols,
-      int width, int offset, String tableName) throws Exception {
-    verify(accumuloClient, info, rows, cols, width, offset, COLF, tableName);
+  public static void verify(AccumuloClient accumuloClient, int rows, int cols, int width,
+      int offset, String tableName) throws Exception {
+    verify(accumuloClient, rows, cols, width, offset, COLF, tableName);
   }
 
-  private static void verify(AccumuloClient accumuloClient, ClientInfo info, int rows, int cols,
-      int width, int offset, String colf, String tableName) throws Exception {
-    VerifyParams params = new VerifyParams(info.getProperties(), tableName, rows);
+  private static void verify(AccumuloClient accumuloClient, int rows, int cols, int width,
+      int offset, String colf, String tableName) throws Exception {
+    VerifyParams params = new VerifyParams(accumuloClient.properties(), tableName, rows);
     params.rows = rows;
     params.dataSize = width;
     params.startRow = offset;
@@ -263,8 +260,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     // write a few large values
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       String table = getUniqueNames(1)[0];
-      ingest(accumuloClient, getClientInfo(), 2, 1, 500000, 0, table);
-      verify(accumuloClient, getClientInfo(), 2, 1, 500000, 0, table);
+      ingest(accumuloClient, 2, 1, 500000, 0, table);
+      verify(accumuloClient, 2, 1, 500000, 0, table);
     }
   }
 
@@ -281,23 +278,23 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       throws Exception {
     final AtomicBoolean fail = new AtomicBoolean(false);
     final int CHUNKSIZE = ROWS / 10;
-    ingest(accumuloClient, getClientInfo(), CHUNKSIZE, 1, 50, 0, tableName);
+    ingest(accumuloClient, CHUNKSIZE, 1, 50, 0, tableName);
     int i;
     for (i = 0; i < ROWS; i += CHUNKSIZE) {
       final int start = i;
       Thread verify = new Thread(() -> {
         try {
-          verify(accumuloClient, getClientInfo(), CHUNKSIZE, 1, 50, start, tableName);
+          verify(accumuloClient, CHUNKSIZE, 1, 50, start, tableName);
         } catch (Exception ex) {
           fail.set(true);
         }
       });
       verify.start();
-      ingest(accumuloClient, getClientInfo(), CHUNKSIZE, 1, 50, i + CHUNKSIZE, tableName);
+      ingest(accumuloClient, CHUNKSIZE, 1, 50, i + CHUNKSIZE, tableName);
       verify.join();
       assertFalse(fail.get());
     }
-    verify(accumuloClient, getClientInfo(), CHUNKSIZE, 1, 50, i, tableName);
+    verify(accumuloClient, CHUNKSIZE, 1, 50, i, tableName);
   }
 
   public static Text t(String s) {
@@ -318,7 +315,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       accumuloClient.tableOperations().create(tableName);
       accumuloClient.tableOperations().setProperty(tableName, "table.group.g1", "colf");
       accumuloClient.tableOperations().setProperty(tableName, "table.groups.enabled", "g1");
-      ingest(accumuloClient, getClientInfo(), 2000, 1, 50, 0, tableName);
+      ingest(accumuloClient, 2000, 1, 50, 0, tableName);
       accumuloClient.tableOperations().compact(tableName, null, null, true, true);
       try (BatchWriter bw = accumuloClient.createBatchWriter(tableName)) {
         bw.addMutation(m("zzzzzzzzzzz", "colf2", "cq", "value"));
@@ -326,14 +323,14 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       long now = System.currentTimeMillis();
       try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.fetchColumnFamily(new Text("colf"));
-        Iterators.size(scanner.iterator());
+        scanner.forEach((k, v) -> {});
       }
       long diff = System.currentTimeMillis() - now;
       now = System.currentTimeMillis();
 
       try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.fetchColumnFamily(new Text("colf2"));
-        Iterators.size(scanner.iterator());
+        scanner.forEach((k, v) -> {});
       }
       long diff2 = System.currentTimeMillis() - now;
       assertTrue(diff2 < diff);
@@ -375,8 +372,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
 
   private void verifyLocalityGroupsInRFile(final AccumuloClient accumuloClient,
       final String tableName) throws Exception {
-    ingest(accumuloClient, getClientInfo(), 2000, 1, 50, 0, tableName);
-    verify(accumuloClient, getClientInfo(), 2000, 1, 50, 0, tableName);
+    ingest(accumuloClient, 2000, 1, 50, 0, tableName);
+    verify(accumuloClient, 2000, 1, 50, 0, tableName);
     accumuloClient.tableOperations().flush(tableName, null, null, true);
     try (BatchScanner bscanner =
         accumuloClient.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1)) {
@@ -427,9 +424,9 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       int i = 0;
       for (String cfg : config) {
         to.setLocalityGroups(table, getGroups(cfg));
-        ingest(accumuloClient, getClientInfo(), ROWS * (i + 1), 1, 50, ROWS * i, table);
+        ingest(accumuloClient, ROWS * (i + 1), 1, 50, ROWS * i, table);
         to.flush(table, null, null, true);
-        verify(accumuloClient, getClientInfo(), 0, 1, 50, ROWS * (i + 1), table);
+        verify(accumuloClient, 0, 1, 50, ROWS * (i + 1), table);
         i++;
       }
       to.delete(table);
@@ -437,12 +434,12 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       config = new String[] {"lg1:colf", null, "lg1:colf,xyz", "lg1:colf;lg2:colf",};
       i = 1;
       for (String cfg : config) {
-        ingest(accumuloClient, getClientInfo(), ROWS * i, 1, 50, 0, table);
-        ingest(accumuloClient, getClientInfo(), ROWS * i, 1, 50, 0, "xyz", table);
+        ingest(accumuloClient, ROWS * i, 1, 50, 0, table);
+        ingest(accumuloClient, ROWS * i, 1, 50, 0, "xyz", table);
         to.setLocalityGroups(table, getGroups(cfg));
         to.flush(table, null, null, true);
-        verify(accumuloClient, getClientInfo(), ROWS * i, 1, 50, 0, table);
-        verify(accumuloClient, getClientInfo(), ROWS * i, 1, 50, 0, "xyz", table);
+        verify(accumuloClient, ROWS * i, 1, 50, 0, table);
+        verify(accumuloClient, ROWS * i, 1, 50, 0, "xyz", table);
         i++;
       }
     }

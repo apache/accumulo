@@ -72,7 +72,6 @@ import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.TableDiskUsage;
@@ -92,7 +91,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   public ClientServiceHandler(ServerContext context, TransactionWatcher transactionWatcher) {
     this.context = context;
     this.transactionWatcher = transactionWatcher;
-    this.security = AuditedSecurityOperation.getInstance(context);
+    this.security = context.getSecurityOperation();
   }
 
   public static TableId checkTableId(ClientContext context, String tableName,

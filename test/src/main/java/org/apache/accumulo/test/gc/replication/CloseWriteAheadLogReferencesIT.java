@@ -63,8 +63,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Iterables;
-
 @Disabled("Replication ITs are not stable and not currently maintained")
 @Deprecated
 public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
@@ -143,7 +141,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
 
     try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.fetchColumnFamily(ReplicationSection.COLF);
-      Entry<Key,Value> entry = Iterables.getOnlyElement(s);
+      Entry<Key,Value> entry = getOnlyElement(s);
       Status status = Status.parseFrom(entry.getValue().get());
       assertFalse(status.getClosed());
     }
@@ -164,7 +162,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
 
     try (Scanner s = client.createScanner(MetadataTable.NAME)) {
       s.fetchColumnFamily(ReplicationSection.COLF);
-      Entry<Key,Value> entry = Iterables.getOnlyElement(s);
+      Entry<Key,Value> entry = getOnlyElement(s);
       Status status = Status.parseFrom(entry.getValue().get());
       assertTrue(status.getClosed());
     }
@@ -183,7 +181,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
     refs.updateReplicationEntries(client, wals);
 
     try (Scanner s = ReplicationTable.getScanner(client)) {
-      Entry<Key,Value> entry = Iterables.getOnlyElement(s);
+      Entry<Key,Value> entry = getOnlyElement(s);
       Status status = Status.parseFrom(entry.getValue().get());
       assertFalse(status.getClosed());
     }

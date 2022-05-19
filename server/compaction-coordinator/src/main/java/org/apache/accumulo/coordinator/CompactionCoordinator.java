@@ -42,7 +42,6 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
-import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService.Iface;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
@@ -56,6 +55,7 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
@@ -77,10 +77,8 @@ import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.rpc.ServerAddress;
-import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
 import org.apache.accumulo.server.rpc.TServerUtils;
-import org.apache.accumulo.server.rpc.ThriftServerType;
-import org.apache.accumulo.server.security.AuditedSecurityOperation;
+import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
@@ -158,8 +156,7 @@ public class CompactionCoordinator extends AbstractServer
   }
 
   protected void setupSecurity() {
-    getContext().setupCrypto();
-    security = AuditedSecurityOperation.getInstance(getContext());
+    security = getContext().getSecurityOperation();
   }
 
   protected void startGCLogger(ScheduledThreadPoolExecutor schedExecutor) {
@@ -171,7 +168,7 @@ public class CompactionCoordinator extends AbstractServer
 
   protected void startCompactionCleaner(ScheduledThreadPoolExecutor schedExecutor) {
     ScheduledFuture<?> future =
-        schedExecutor.scheduleWithFixedDelay(() -> cleanUpCompactors(), 0, 5, TimeUnit.MINUTES);
+        schedExecutor.scheduleWithFixedDelay(this::cleanUpCompactors, 0, 5, TimeUnit.MINUTES);
     ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
@@ -226,13 +223,7 @@ public class CompactionCoordinator extends AbstractServer
    *           host unknown
    */
   protected ServerAddress startCoordinatorClientService() throws UnknownHostException {
-    Iface rpcProxy = TraceUtil.wrapService(this);
-    if (getContext().getThriftServerType() == ThriftServerType.SASL) {
-      rpcProxy = TCredentialsUpdatingWrapper.service(rpcProxy, CompactionCoordinator.class,
-          getConfiguration());
-    }
-    final CompactionCoordinatorService.Processor<Iface> processor =
-        new CompactionCoordinatorService.Processor<>(rpcProxy);
+    var processor = ThriftProcessorTypes.getCoordinatorTProcessor(this, getContext());
     Property maxMessageSizeProperty =
         (aconf.get(Property.COMPACTION_COORDINATOR_MAX_MESSAGE_SIZE) != null
             ? Property.COMPACTION_COORDINATOR_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
@@ -449,7 +440,7 @@ public class CompactionCoordinator extends AbstractServer
                 prioTserver.prio, compactorAddress, externalCompactionId);
         if (null == job.getExternalCompactionId()) {
           LOG.trace("No compactions found for queue {} on tserver {}, trying next tserver", queue,
-              tserver.getHostAndPort(), compactorAddress);
+              tserver.getHostAndPort());
 
           QUEUE_SUMMARIES.removeSummary(tserver, queue, prioTserver.prio);
           prioTserver = QUEUE_SUMMARIES.getNextTserver(queue);
@@ -495,7 +486,7 @@ public class CompactionCoordinator extends AbstractServer
     ServerContext serverContext = getContext();
     TTransport transport =
         serverContext.getTransportPool().getTransport(connection.getAddress(), 0, serverContext);
-    return ThriftUtil.createClient(new TabletClientService.Client.Factory(), transport);
+    return ThriftUtil.createClient(ThriftClientTypes.TABLET_SERVER, transport);
   }
 
   /**

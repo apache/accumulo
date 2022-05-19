@@ -293,7 +293,6 @@ public class ZooStore<T> implements TStore<T> {
 
   private static final int RETRIES = 10;
 
-  @SuppressWarnings("unchecked")
   @Override
   public Repo<T> top(long tid) {
     verifyReserved(tid);
@@ -312,7 +311,9 @@ public class ZooStore<T> implements TStore<T> {
         }
 
         byte[] ser = zk.getData(txpath + "/" + top);
-        return (Repo<T>) deserialize(ser);
+        @SuppressWarnings("unchecked")
+        var deserialized = (Repo<T>) deserialize(ser);
+        return deserialized;
       } catch (KeeperException.NoNodeException ex) {
         log.debug("zookeeper error reading " + txpath + ": " + ex, ex);
         sleepUninterruptibly(100, MILLISECONDS);
@@ -539,7 +540,7 @@ public class ZooStore<T> implements TStore<T> {
           try {
             ser = zk.getData(txpath + "/" + child);
             @SuppressWarnings("unchecked")
-            ReadOnlyRepo<T> repo = (ReadOnlyRepo<T>) deserialize(ser);
+            var repo = (ReadOnlyRepo<T>) deserialize(ser);
             dops.add(repo);
           } catch (KeeperException.NoNodeException e) {
             // children changed so start over
