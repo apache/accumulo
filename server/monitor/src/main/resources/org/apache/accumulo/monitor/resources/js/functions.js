@@ -273,11 +273,11 @@ function createEmptyRow(col, msg) {
  *
  * @param {DataTable} table DataTable to perform an ajax reload on
  */
- function ajaxReloadTable(table) {
+function ajaxReloadTable(table) {
   if (table) {
-      table.ajax.reload(null, false); // user paging is not reset on reload
+    table.ajax.reload(null, false); // user paging is not reset on reload
   } else {
-      console.error('There was an error reloading the given table');
+    console.error('There was an error reloading the given table');
   }
 }
 
