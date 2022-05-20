@@ -269,6 +269,19 @@ function createEmptyRow(col, msg) {
 }
 
 /**
+ * Performs an ajax reload for the given DataTable
+ *
+ * @param {DataTable} table DataTable to perform an ajax reload on
+ */
+function ajaxReloadTable(table) {
+  if (table) {
+    table.ajax.reload(null, false); // user paging is not reset on reload
+  } else {
+    console.error('There was an error reloading the given table');
+  }
+}
+
+/**
  * Performs GET call and builds console logging message from data received
  * @param {string} call REST url called
  * @param {string} sessionDataVar Session storage/global variable to hold REST data
