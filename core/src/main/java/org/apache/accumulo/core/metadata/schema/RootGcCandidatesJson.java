@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.metadata;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
+package org.apache.accumulo.core.metadata.schema;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -35,17 +33,15 @@ import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-public class RootGcCandidates {
-  private static final Gson GSON = new GsonBuilder().create();
+/**
+ * This class is used to serialize and deserialize root tablet metadata using GSon. Any changes to
+ * this class must consider persisted data.
+ */
+public class RootGcCandidatesJson {
+  private final Gson GSON = new GsonBuilder().create();
 
-  // This class is used to serialize and deserialize root tablet metadata using GSon. Any changes to
-  // this class must consider persisted data.
-  private static class GSonData {
-    int version = 1;
-
-    // SortedMap<dir path, SortedSet<file name>>
-    SortedMap<String,SortedSet<String>> candidates;
-  }
+  // Version 1. Released with Accumulo version 2.1.0
+  static final int version = 1;
 
   /*
    * The root tablet will only have a single dir on each volume. Therefore root file paths will have
@@ -54,14 +50,16 @@ public class RootGcCandidates {
    *
    * SortedMap<dir path, SortedSet<file name>>
    */
-  private SortedMap<String,SortedSet<String>> candidates;
+  private final SortedMap<String,SortedSet<String>> candidates;
 
-  public RootGcCandidates() {
+  public RootGcCandidatesJson() {
     this.candidates = new TreeMap<>();
   }
 
-  private RootGcCandidates(SortedMap<String,SortedSet<String>> candidates) {
-    this.candidates = candidates;
+  public RootGcCandidatesJson(String jsonString) {
+    var rootGcCandidatesJson = GSON.fromJson(jsonString, RootGcCandidatesJson.class);
+    Preconditions.checkArgument(rootGcCandidatesJson.getVersion() == 1);
+    this.candidates = rootGcCandidatesJson.candidates;
   }
 
   public void add(Iterator<StoredTabletFile> refs) {
@@ -69,6 +67,10 @@ public class RootGcCandidates {
       String parent = ref.getPath().getParent().toString();
       candidates.computeIfAbsent(parent, k -> new TreeSet<>()).add(ref.getFileName());
     });
+  }
+
+  public int getVersion() {
+    return version;
   }
 
   public void remove(Collection<String> refs) {
@@ -96,20 +98,6 @@ public class RootGcCandidates {
   }
 
   public String toJson() {
-    GSonData gd = new GSonData();
-    gd.candidates = candidates;
-    return GSON.toJson(gd);
-  }
-
-  public static RootGcCandidates fromJson(String json) {
-    GSonData gd = GSON.fromJson(json, GSonData.class);
-
-    Preconditions.checkArgument(gd.version == 1);
-
-    return new RootGcCandidates(gd.candidates);
-  }
-
-  public static RootGcCandidates fromJson(byte[] json) {
-    return fromJson(new String(json, UTF_8));
+    return GSON.toJson(this);
   }
 }
