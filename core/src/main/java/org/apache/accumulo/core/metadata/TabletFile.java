@@ -18,9 +18,10 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import static org.apache.accumulo.core.Constants.HDFS_TABLES_DIR;
+
 import java.util.Objects;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.hadoop.fs.Path;
@@ -40,9 +41,7 @@ import com.google.common.base.Preconditions;
  */
 public class TabletFile implements Comparable<TabletFile> {
   // parts of an absolute URI, like "hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf"
-  private final String volume; // hdfs://1.2.3.4/accumulo
-  private final TableId tableId; // 2a
-  private final String tabletDir; // t-0003
+  private final TabletDirectory tabletDir; // hdfs://1.2.3.4/accumulo/tables/2a/t-0003
   private final String fileName; // C0004.rf
   protected final Path metaPath;
   private final String normalizedPath;
@@ -60,35 +59,32 @@ public class TabletFile implements Comparable<TabletFile> {
     ServerColumnFamily.validateDirCol(fileName);
 
     Path tabletDirPath = Objects.requireNonNull(metaPath.getParent(), errorMsg);
-    this.tabletDir = tabletDirPath.getName();
-    ServerColumnFamily.validateDirCol(tabletDir);
 
     Path tableIdPath = Objects.requireNonNull(tabletDirPath.getParent(), errorMsg);
-    this.tableId = TableId.of(tableIdPath.getName());
-    ServerColumnFamily.validateDirCol(tableId.canonical());
+    var id = tableIdPath.getName();
 
     Path tablePath = Objects.requireNonNull(tableIdPath.getParent(), errorMsg);
     String tpString = "/" + tablePath.getName();
-    Preconditions.checkArgument(tpString.equals(Constants.HDFS_TABLES_DIR), errorMsg);
+    Preconditions.checkArgument(tpString.equals(HDFS_TABLES_DIR), errorMsg);
 
     Path volumePath = Objects.requireNonNull(tablePath.getParent(), errorMsg);
     Preconditions.checkArgument(volumePath.toUri().getScheme() != null, errorMsg);
-    this.volume = volumePath.toString();
+    var volume = volumePath.toString();
 
-    this.normalizedPath = volume + Constants.HDFS_TABLES_DIR + "/" + tableId.canonical() + "/"
-        + tabletDir + "/" + fileName;
+    this.tabletDir = new TabletDirectory(volume, TableId.of(id), tabletDirPath.getName());
+    this.normalizedPath = volume + HDFS_TABLES_DIR + "/" + id + "/" + tabletDir + "/" + fileName;
   }
 
   public String getVolume() {
-    return volume;
+    return tabletDir.getVolume();
   }
 
   public TableId getTableId() {
-    return tableId;
+    return tabletDir.getTableId();
   }
 
   public String getTabletDir() {
-    return tabletDir;
+    return tabletDir.getTabletDir();
   }
 
   public String getFileName() {
