@@ -153,7 +153,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     try {
       VersionedProperties vProps = new VersionedProperties(props);
       String path = propCacheKey.getPath();
-      zrw.putPersistentData(path, codec.toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
+      zrw.putPrivatePersistentData(path, codec.toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
     } catch (IOException | KeeperException | InterruptedException ex) {
       throw new IllegalStateException("Failed to serialize properties for " + propCacheKey, ex);
     }
