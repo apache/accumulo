@@ -114,6 +114,7 @@ public class TTimeoutTransport {
       if (socket != null)
         socket.close();
     } catch (IOException ioe) {
+      e.addSuppressed(ioe);
       log.error("Failed to close socket after unsuccessful I/O stream setup", e);
     }
   }
