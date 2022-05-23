@@ -25,8 +25,12 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.TablePropKey;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TablePropUtil extends PropUtil<TableId> {
+
+  public static final Logger log = LoggerFactory.getLogger(TablePropUtil.class);
 
   public TablePropUtil(ServerContext context) {
     super(context);
@@ -43,6 +47,8 @@ public class TablePropUtil extends PropUtil<TableId> {
    */
   @Override
   public void setProperties(TableId tableId, Map<String,String> properties) {
+    log.info(">>>> setting...");
+    properties.forEach((k, v) -> log.info(">>>> {}:{}", k, v));
     for (Map.Entry<String,String> prop : properties.entrySet()) {
       if (!Property.isTablePropertyValid(prop.getKey(), prop.getValue())) {
         throw new IllegalArgumentException("Invalid property for table: " + tableId + " name: "

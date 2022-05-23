@@ -18,11 +18,12 @@
  */
 package org.apache.accumulo.test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Map;
+import java.util.SortedSet;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -60,44 +61,49 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
       TableNotFoundException, NamespaceExistsException, NamespaceNotFoundException {
     ServerContext context = getServerContext();
 
-    log.info(">>>> ");
-    log.info(">>>> TABLE TESTING...");
-    log.info(">>>> ");
-
-    String TABLENAME = "propUtilTable";
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      log.info(">>>> ");
+      log.info(">>>> TABLE TESTING...");
+      log.info(">>>> ");
+
+      String TABLENAME = "propUtilTable";
+
       client.tableOperations().create(TABLENAME);
       client.tableOperations().tableIdMap().forEach((k, v) -> log.info(">>>> {} -> {}", k, v));
       Map<String,String> idMap = client.tableOperations().tableIdMap();
       String TID = idMap.get(TABLENAME);
 
+      log.info(">>>> Retrieve existing property value...");
       Iterable<Map.Entry<String,String>> prop1 = client.tableOperations().getProperties(TABLENAME);
       prop1.forEach(k -> {
         if (k.getKey().equals(Property.TABLE_BLOOM_ENABLED.getKey())) {
           log.info(">>>> {} --- {}", k.getKey(), k.getValue());
-          assertTrue(k.getValue().equals("false"));
+          assertEquals("false", k.getValue());
         }
       });
 
-      log.info(">>>> -----------------");
+      log.info(">>>> Set property to true...");
       context.tablePropUtil().setProperties(TableId.of(TID),
           Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
 
+      log.info(">>>> verify property set...");
       Iterable<Map.Entry<String,String>> prop2 = client.tableOperations().getProperties(TABLENAME);
       prop2.forEach(k -> {
         if (k.getKey().equals(Property.TABLE_BLOOM_ENABLED.getKey())) {
           log.info(">>>> {} --- {}", k.getKey(), k.getValue());
-          assertTrue(k.getValue().equals("true"));
+          assertEquals("true", k.getValue());
         }
       });
 
+      log.info(">>>> remove property...");
       context.tablePropUtil().removeProperties(TableId.of(TID),
           List.of(Property.TABLE_BLOOM_ENABLED.getKey()));
+
       Iterable<Map.Entry<String,String>> prop3 = client.tableOperations().getProperties(TABLENAME);
       prop3.forEach(k -> {
         if (k.getKey().equals(Property.TABLE_BLOOM_ENABLED.getKey())) {
           log.info(">>>> {} --- {}", k.getKey(), k.getValue());
-          assertTrue(k.getValue().equals("false"));
+          assertEquals("false", k.getValue());
         }
       });
 
@@ -106,10 +112,15 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
         context.tablePropUtil().setProperties(TableId.of(TID),
             Map.of("NOT_A_PROPERTY", "not_a_value"));
       }, "Expected IllegalArgumentException to be thrown.");
+    } // try-w/resources end
+  }
 
-      //////////////////////////////////////////////////////////
-      // Namespace tests
-      //////////////////////////////////////////////////////////
+  @Test
+  public void testNamespacePropUtils() throws AccumuloException, AccumuloSecurityException,
+      NamespaceExistsException, NamespaceNotFoundException {
+    ServerContext context = getServerContext();
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
       log.info(">>>> ");
       log.info(">>>> NAMESPACE TESTING...");
@@ -117,6 +128,10 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
 
       String NAMESPACE = "testNamespace";
       client.namespaceOperations().create(NAMESPACE);
+
+      SortedSet<String> list = client.namespaceOperations().list();
+      list.forEach(p -> log.info(">>>> list: {}", p));
+
       client.namespaceOperations().namespaceIdMap()
           .forEach((k, v) -> log.info(">>>> {} -> {}", k, v));
       Map<String,String> nsMap = client.namespaceOperations().namespaceIdMap();
@@ -126,35 +141,37 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
 
       Iterable<Map.Entry<String,String>> prop4 =
           client.namespaceOperations().getProperties(NAMESPACE);
+      log.info(">>>> Retrieve existing property value...");
       // prop4.forEach(entry -> log.info(">>>> \t{} - {}", entry.getKey(), entry.getValue()));
-      // prop4.forEach(k -> {
-      // if (k.getKey().equals(Property.TABLE_FILE_MAX.getKey())) {
-      // log.info(">>>> {} --- {}", k.getKey(), k.getValue());
-      // assertTrue(k.getValue().equals("15"));
-      // }
-      // });
-
-      log.info(">>>> -----------------");
-      String myProp = Property.TABLE_ARBITRARY_PROP_PREFIX + "special";
-      log.info(">>>> myProp: {}", myProp);
-      context.namespacePropUtil().setProperties(NamespaceId.of(NID), Map.of(myProp, "im_special"));
-
-      Iterable<Map.Entry<String,String>> prop5 =
-          client.namespaceOperations().getProperties(NAMESPACE);
-      prop5.forEach(k -> {
-        if (k.getKey().equals(myProp)) {
+      prop4.forEach(k -> {
+        if (k.getKey().equals(Property.TABLE_FILE_MAX.getKey())) {
           log.info(">>>> {} --- {}", k.getKey(), k.getValue());
-          assertTrue(k.getValue().equals("im_special"));
+          assertEquals("15", k.getValue());
         }
       });
 
-      context.namespacePropUtil().removeProperties(NamespaceId.of(TID), List.of(myProp));
+      log.info(">>>> Set property to 31...");
+      context.namespacePropUtil().setProperties(NamespaceId.of(NID),
+          Map.of(Property.TABLE_FILE_MAX.getKey(), "31"));
+
+      log.info(">>>> verify property set...");
+      Iterable<Map.Entry<String,String>> prop5 =
+          client.namespaceOperations().getProperties(NAMESPACE);
+      prop5.forEach(k -> {
+        if (k.getKey().equals(Property.TABLE_FILE_MAX.getKey())) {
+          log.info(">>>> {} --- {}", k.getKey(), k.getValue());
+          assertEquals("31", k.getValue());
+        }
+      });
+
+      log.info(">>>> remove property...");
+      context.namespacePropUtil().removeProperties(NamespaceId.of(NID),
+          List.of(Property.TABLE_FILE_MAX.getKey()));
       Iterable<Map.Entry<String,String>> prop6 =
           client.namespaceOperations().getProperties(NAMESPACE);
       prop6.forEach(k -> {
-        if (k.getKey().equals(myProp)) {
+        if (k.getKey().equals(Property.TABLE_FILE_MAX.getKey())) {
           log.info(">>>> {} --- {}", k.getKey(), k.getValue());
-          log.info(">>>> Should not have found me!");
         }
       });
 
@@ -163,9 +180,7 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
         context.namespacePropUtil().setProperties(NamespaceId.of(NID),
             Map.of("NOT_A_PROPERTY", "not_a_value"));
       }, "Expected IllegalArgumentException to be thrown.");
-
-    } // try-w/resources end
-
+    }
   }
 
 }

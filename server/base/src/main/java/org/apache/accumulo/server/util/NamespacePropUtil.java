@@ -25,8 +25,12 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class NamespacePropUtil extends PropUtil<NamespaceId> {
+
+  public static final Logger log = LoggerFactory.getLogger(NamespacePropUtil.class);
 
   public NamespacePropUtil(ServerContext context) {
     super(context);
@@ -43,6 +47,8 @@ public class NamespacePropUtil extends PropUtil<NamespaceId> {
    */
   @Override
   public void setProperties(NamespaceId namespaceId, Map<String,String> properties) {
+    log.info(">>>> setting...");
+    properties.forEach((k, v) -> log.info(">>>> {}:{}", k, v));
     for (Map.Entry<String,String> prop : properties.entrySet()) {
       if (!Property.isTablePropertyValid(prop.getKey(), prop.getValue())) {
         throw new IllegalArgumentException("Invalid property for namespace: " + namespaceId
