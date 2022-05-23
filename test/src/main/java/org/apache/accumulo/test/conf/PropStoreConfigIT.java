@@ -31,13 +31,13 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
-import org.apache.zookeeper.ZooKeeper;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -97,32 +97,31 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
       Thread.sleep(SECONDS.toMillis(3L));
 
       ServerContext serverContext = cluster.getServerContext();
-      ZooKeeper zk = serverContext.getZooReaderWriter().getZooKeeper();
+      ZooReaderWriter zrw = serverContext.getZooReaderWriter();
 
       // validate that a world-readable node has expected perms to validate test method
-      var noAcl = zk.getACL(ZooUtil.getRoot(serverContext.getInstanceID()), null);
+      var noAcl = zrw.getACL(ZooUtil.getRoot(serverContext.getInstanceID()));
       assertTrue(noAcl.size() > 1);
       assertTrue(
           noAcl.get(0).toString().contains("world") || noAcl.get(1).toString().contains("world"));
 
-      var sysAcl = zk.getACL(SystemPropKey.of(serverContext).getNodePath(), null);
+      var sysAcl = zrw.getACL(SystemPropKey.of(serverContext).getNodePath());
       assertEquals(1, sysAcl.size());
       assertFalse(sysAcl.get(0).toString().contains("world"));
 
       for (Map.Entry<String,String> nsEntry : client.namespaceOperations().namespaceIdMap()
           .entrySet()) {
         log.debug("Check acl on namespace name: {}, id: {}", nsEntry.getKey(), nsEntry.getValue());
-        var namespaceAcl = zk.getACL(
-            NamespacePropKey.of(serverContext, NamespaceId.of(nsEntry.getValue())).getNodePath(),
-            null);
+        var namespaceAcl = zrw.getACL(
+            NamespacePropKey.of(serverContext, NamespaceId.of(nsEntry.getValue())).getNodePath());
         assertEquals(1, namespaceAcl.size());
         assertFalse(namespaceAcl.get(0).toString().contains("world"));
       }
 
       for (Map.Entry<String,String> tEntry : client.tableOperations().tableIdMap().entrySet()) {
         log.debug("Check acl on table name: {}, id: {}", tEntry.getKey(), tEntry.getValue());
-        var tableAcl = zk.getACL(
-            TablePropKey.of(serverContext, TableId.of(tEntry.getValue())).getNodePath(), null);
+        var tableAcl =
+            zrw.getACL(TablePropKey.of(serverContext, TableId.of(tEntry.getValue())).getNodePath());
         assertEquals(1, tableAcl.size());
         assertFalse(tableAcl.get(0).toString().contains("world"));
       }
