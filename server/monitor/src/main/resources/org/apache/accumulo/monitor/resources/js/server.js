@@ -130,7 +130,7 @@ $(document).ready(function () {
         "render": function (data, type) {
           if (type === 'display') {
             if (data === null) {
-              data = '—';
+              data = '-';
             } else {
               data = timeDuration(data * 1000.0);
             }
