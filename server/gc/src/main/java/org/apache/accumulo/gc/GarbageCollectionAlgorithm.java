@@ -18,8 +18,10 @@
  */
 package org.apache.accumulo.gc;
 
+import static java.util.Arrays.stream;
+import static java.util.function.Predicate.not;
+
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -34,9 +36,10 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.Reference;
+import org.apache.accumulo.core.metadata.RelativeTabletDirectory;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.gc.GarbageCollectionEnvironment.Reference;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,61 +54,65 @@ public class GarbageCollectionAlgorithm {
 
   private static final Logger log = LoggerFactory.getLogger(GarbageCollectionAlgorithm.class);
 
+  /**
+   * This method takes a file or directory path and returns a relative path in 1 of 2 forms:
+   *
+   * <pre>
+   *      1- For files: table-id/tablet-directory/filename.rf
+   *      2- For directories: table-id/tablet-directory
+   * </pre>
+   *
+   * For example, for full file path like hdfs://foo:6000/accumulo/tables/4/t0/F000.rf it will
+   * return 4/t0/F000.rf. For a directory that already is relative, like 4/t0, it will just return
+   * the original path. This method will also remove prefixed relative paths like ../4/t0/F000.rf
+   * and return 4/t0/F000.rf. It also strips out empty tokens from paths like
+   * hdfs://foo.com:6000/accumulo/tables/4//t0//F001.rf returning 4/t0/F001.rf.
+   */
   private String makeRelative(String path, int expectedLen) {
     String relPath = path;
 
+    // remove prefixed old relative path
     if (relPath.startsWith("../"))
       relPath = relPath.substring(3);
 
+    // remove trailing slash
     while (relPath.endsWith("/"))
       relPath = relPath.substring(0, relPath.length() - 1);
 
+    // remove beginning slash
     while (relPath.startsWith("/"))
       relPath = relPath.substring(1);
 
-    String[] tokens = relPath.split("/");
-
-    // handle paths like a//b///c
-    boolean containsEmpty = false;
-    for (String token : tokens) {
-      if (token.equals("")) {
-        containsEmpty = true;
-        break;
-      }
-    }
-
-    if (containsEmpty) {
-      ArrayList<String> tmp = new ArrayList<>();
-      for (String token : tokens) {
-        if (!token.equals("")) {
-          tmp.add(token);
-        }
-      }
-
-      tokens = tmp.toArray(new String[tmp.size()]);
-    }
+    // Handle paths like a//b///c by dropping the empty tokens.
+    String[] tokens = stream(relPath.split("/")).filter(not(""::equals)).toArray(String[]::new);
 
     if (tokens.length > 3 && path.contains(":")) {
+      // full file path like hdfs://foo:6000/accumulo/tables/4/t0/F000.rf
       if (tokens[tokens.length - 4].equals(Constants.TABLE_DIR)
           && (expectedLen == 0 || expectedLen == 3)) {
+        // return the last 3 tokens after tables, like 4/t0/F000.rf
         relPath = tokens[tokens.length - 3] + "/" + tokens[tokens.length - 2] + "/"
             + tokens[tokens.length - 1];
       } else if (tokens[tokens.length - 3].equals(Constants.TABLE_DIR)
           && (expectedLen == 0 || expectedLen == 2)) {
+        // return the last 2 tokens after tables, like 4/t0
         relPath = tokens[tokens.length - 2] + "/" + tokens[tokens.length - 1];
       } else {
-        throw new IllegalArgumentException(path);
+        throw new IllegalArgumentException("Failed to make path relative. Bad reference: " + path);
       }
     } else if (tokens.length == 3 && (expectedLen == 0 || expectedLen == 3)
         && !path.contains(":")) {
+      // we already have a relative path so return it, like 4/t0/F000.rf
       relPath = tokens[0] + "/" + tokens[1] + "/" + tokens[2];
     } else if (tokens.length == 2 && (expectedLen == 0 || expectedLen == 2)
         && !path.contains(":")) {
+      // return the last 2 tokens of the relative path, like 4/t0
       relPath = tokens[0] + "/" + tokens[1];
     } else {
-      throw new IllegalArgumentException(path);
+      throw new IllegalArgumentException("Failed to make path relative. Bad reference: " + path);
     }
 
+    log.trace("{} -> {} expectedLen = {}", path, relPath, expectedLen);
     return relPath;
   }
 
@@ -132,36 +139,35 @@ public class GarbageCollectionAlgorithm {
     while (iter.hasNext()) {
       Reference ref = iter.next();
 
-      if (ref.isDir) {
-        String tableID = ref.id.toString();
-        String dirName = ref.ref;
-        ServerColumnFamily.validateDirCol(dirName);
+      if (ref instanceof RelativeTabletDirectory) {
+        var dirReference = (RelativeTabletDirectory) ref;
+        ServerColumnFamily.validateDirCol(dirReference.tabletDir);
 
-        String dir = "/" + tableID + "/" + dirName;
+        String dir = "/" + dirReference.tableId + "/" + dirReference.tabletDir;
 
         dir = makeRelative(dir, 2);
 
         if (candidateMap.remove(dir) != null)
           log.debug("Candidate was still in use: {}", dir);
       } else {
-
-        String reference = ref.ref;
+        String reference = ref.metadataEntry;
         if (reference.startsWith("/")) {
-          reference = "/" + ref.id + reference;
+          log.debug("Candidate {} has a relative path, prepend tableId {}", reference, ref.tableId);
+          reference = "/" + ref.tableId + ref.metadataEntry;
         } else if (!reference.contains(":") && !reference.startsWith("../")) {
           throw new RuntimeException("Bad file reference " + reference);
         }
 
-        reference = makeRelative(reference, 3);
+        String relativePath = makeRelative(reference, 3);
 
         // WARNING: This line is EXTREMELY IMPORTANT.
         // You MUST REMOVE candidates that are still in use
-        if (candidateMap.remove(reference) != null)
-          log.debug("Candidate was still in use: {}", reference);
+        if (candidateMap.remove(relativePath) != null)
+          log.debug("Candidate was still in use: {}", relativePath);
 
-        String dir = reference.substring(0, reference.lastIndexOf('/'));
+        String dir = relativePath.substring(0, relativePath.lastIndexOf('/'));
         if (candidateMap.remove(dir) != null)
-          log.debug("Candidate was still in use: {}", reference);
+          log.debug("Candidate was still in use: {}", relativePath);
       }
     }
   }
