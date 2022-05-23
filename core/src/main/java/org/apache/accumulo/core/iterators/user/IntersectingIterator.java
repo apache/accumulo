@@ -59,7 +59,7 @@ import org.apache.hadoop.io.Text;
  * {@link #init(SortedKeyValueIterator, Map, IteratorEnvironment)} method.
  *
  * An example of using the IntersectingIterator is available at
- * https://github.com/apache/accumulo-examples/blob/main/docs/shard.md
+ * <a href="https://github.com/apache/accumulo-examples/blob/main/docs/shard.md">examples</a>
  */
 public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
 
