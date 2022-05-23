@@ -198,7 +198,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    * @param watcher
    *          a prop store watcher that will receive / handle ZooKeeper events.
    * @param zooReader
-   *          a ZooReader
+   *          a ZooReader with an authenticated session.
    * @return the versioned properties or null if the node does not exist.
    * @throws IOException
    *           if the underlying data from the ZooKeeper node cannot be decoded.
