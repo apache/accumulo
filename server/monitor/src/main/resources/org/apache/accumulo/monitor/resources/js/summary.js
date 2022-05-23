@@ -23,7 +23,7 @@ var minutes;
  * Makes the REST calls, generates the tables with the new information
  */
 function refreshSummary() {
-  getTraceSummary(minutes).then(function() {
+  getTraceSummary(minutes).then(function () {
     refreshTraceSummaryTable(minutes);
   });
 }
@@ -43,23 +43,22 @@ function refresh() {
 function refreshTraceSummaryTable(minutes) {
   clearTableBody('traceSummary');
 
-  var data = sessionStorage.traceSummary === undefined ?
-      [] : JSON.parse(sessionStorage.traceSummary);
+  var data = sessionStorage.traceSummary === undefined ? [] : JSON.parse(sessionStorage.traceSummary);
 
   if (data.length === 0 || data.recentTraces.length === 0) {
     var items = [];
     items.push(createEmptyRow(6, 'No traces available for the last ' +
-        minutes + ' minute(s)'));
+      minutes + ' minute(s)'));
     $('<tr/>', {
       html: items.join('')
     }).appendTo('#traceSummary tbody');
   } else {
-    $.each(data.recentTraces, function(key, val) {
+    $.each(data.recentTraces, function (key, val) {
 
       var items = [];
 
       items.push(createFirstCell('', '<a href="/trace/listType?type=' +
-          val.type + '&minutes=' + minutes + '">' + val.type + '</a>'));
+        val.type + '&minutes=' + minutes + '">' + val.type + '</a>'));
       items.push(createRightCell('', bigNumberForQuantity(val.total)));
       items.push(createRightCell('', timeDuration(val.min)));
       items.push(createRightCell('', timeDuration(val.max)));
@@ -68,9 +67,9 @@ function refreshTraceSummaryTable(minutes) {
       items.push('<table style="width: 100%;">');
       items.push('<tr>');
 
-      $.each(val.histogram, function(key2, val2) {
+      $.each(val.histogram, function (key2, val2) {
         items.push('<td style="width:5em">' + (val2 == 0 ? '-' : val2) +
-            '</td>');
+          '</td>');
       });
       items.push('</tr>');
       items.push('</table>');
