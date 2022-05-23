@@ -37,6 +37,8 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.Reference;
+import org.apache.accumulo.core.metadata.RelativeTabletDirectory;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.junit.jupiter.api.Test;
 
@@ -93,8 +95,7 @@ public class GarbageCollectionTest {
     }
 
     public void addFileReference(String tableId, String endRow, String file) {
-      references.put(tableId + ":" + endRow + ":" + file,
-          new Reference(TableId.of(tableId), file, false));
+      references.put(tableId + ":" + endRow + ":" + file, new Reference(TableId.of(tableId), file));
     }
 
     public void removeFileReference(String tableId, String endRow, String file) {
@@ -102,7 +103,7 @@ public class GarbageCollectionTest {
     }
 
     public void addDirReference(String tableId, String endRow, String dir) {
-      references.put(tableId + ":" + endRow, new Reference(TableId.of(tableId), dir, true));
+      references.put(tableId + ":" + endRow, new RelativeTabletDirectory(TableId.of(tableId), dir));
     }
 
     public void removeDirReference(String tableId, String endRow) {
@@ -287,6 +288,28 @@ public class GarbageCollectionTest {
     gca.collect(gce);
     assertRemoved(gce, "hdfs://foo.com:6000/accumulo/tables/4/t0/F003.rf",
         "hdfs://foo.com:6000/accumulo/tables/4/t0/F004.rf");
+  }
+
+  /**
+   * Tests valid file paths that have empty tokens.
+   */
+  @Test
+  public void emptyPathsTest() throws Exception {
+    TestGCE gce = new TestGCE();
+
+    gce.candidates.add("hdfs://foo:6000/accumulo/tables/4//t0//F000.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/4//t0//F001.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/5//t0//F005.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo//tables//6/t0/F006.rf");
+
+    gce.addFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4//t0//F000.rf");
+    gce.addFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4//t0//F001.rf");
+    gce.addFileReference("6", null, "hdfs://foo.com:6000/accumulo//tables//6/t0/F006.rf");
+
+    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
+    gca.collect(gce);
+
+    assertRemoved(gce, "hdfs://foo.com:6000/accumulo/tables/5//t0//F005.rf");
   }
 
   @Test

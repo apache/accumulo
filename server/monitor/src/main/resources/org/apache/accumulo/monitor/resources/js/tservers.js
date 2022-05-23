@@ -19,7 +19,7 @@
 /* JSLint global definitions */
 /*global
     $, document, sessionStorage, getTServers, clearDeadServers, refreshNavBar,
-    getRecoveryList, bigNumberForQuantity, timeDuration, dateFormat
+    getRecoveryList, bigNumberForQuantity, timeDuration, dateFormat, ajaxReloadTable
 */
 "use strict";
 
@@ -61,17 +61,6 @@ function refreshRecoveryList() {
             $('#recovery-caption').hide();
         }
     });
-}
-
-/**
- * Performs an ajax reload for the given Datatable
- *
- * @param {DataTable} table DataTable to perform an ajax reload on
- */
-function ajaxReloadTable(table) {
-    if (table) {
-        table.ajax.reload(null, false); // user paging is not reset on reload
-    }
 }
 
 /**
