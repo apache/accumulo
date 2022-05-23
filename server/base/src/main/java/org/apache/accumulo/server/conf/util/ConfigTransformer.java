@@ -286,7 +286,7 @@ public class ConfigTransformer {
     String path = propCacheKey.getPath();
     try {
       try {
-        zrw.putPersistentData(path, codec.toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
+        zrw.putPrivatePersistentData(path, codec.toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
       } catch (KeeperException.NodeExistsException ex) {
         vProps = ZooPropStore.readFromZk(propCacheKey, propStoreWatcher, zrw);
       }

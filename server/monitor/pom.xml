@@ -244,4 +244,35 @@
       </plugin>
     </plugins>
   </build>
+  <profiles>
+    <profile>
+      <!-- on by default, but disable with '-P !autoformat' or '-DskipFormat' -->
+      <id>autoformat</id>
+      <activation>
+        <property>
+          <name>!skipFormat</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>format-javascript</id>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+                <phase>generate-sources</phase>
+                <configuration>
+                  <executable>${basedir}/src/main/scripts/format-js.sh</executable>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>

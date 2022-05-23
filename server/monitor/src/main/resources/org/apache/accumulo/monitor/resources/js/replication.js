@@ -21,7 +21,7 @@
 /**
  * Creates replication initial table
  */
-$(document).ready(function() {
+$(document).ready(function () {
   refreshReplication();
 });
 
@@ -29,7 +29,7 @@ $(document).ready(function() {
  * Makes the REST calls, generates the tables with the new information
  */
 function refreshReplication() {
-  getReplication().then(function() {
+  getReplication().then(function () {
     refreshReplicationsTable();
   });
 }
@@ -47,8 +47,7 @@ function refresh() {
 function refreshReplicationsTable() {
   clearTableBody('replicationStats');
 
-  var data = sessionStorage.replication === undefined ?
-      [] : JSON.parse(sessionStorage.replication);
+  var data = sessionStorage.replication === undefined ? [] : JSON.parse(sessionStorage.replication);
 
   if (data.length === 0) {
     var items = [];
@@ -57,7 +56,7 @@ function refreshReplicationsTable() {
       html: items.join('')
     }).appendTo('#replicationStats tbody');
   } else {
-    $.each(data, function(key, val) {
+    $.each(data, function (key, val) {
       var items = [];
       items.push(createFirstCell(val.tableName, val.tableName));
 
@@ -68,7 +67,7 @@ function refreshReplicationsTable() {
       items.push(createRightCell(val.replicaSystemType, val.replicaSystemType));
 
       items.push(createRightCell(val.filesNeedingReplication,
-          bigNumberForQuantity(val.filesNeedingReplication)));
+        bigNumberForQuantity(val.filesNeedingReplication)));
 
       $('<tr/>', {
         html: items.join('')

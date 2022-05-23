@@ -18,11 +18,25 @@
 # under the License.
 #
 
-# Run ShellCheck on all bash scripts
+# This script will attempt to format JavaScript files
 
-set -e
+jsDir='src/main/resources/org/apache/accumulo/monitor/resources/js'
 
-mapfile -t filestocheck < <(shfmt -f .)
+function beautify() {
+  set -x
+  npx js-beautify@^1.14 -r -q -n -j -s 2 -f "$@"
+  { set +x; } 2>/dev/null
+}
 
-set -x
-shellcheck -P SCRIPTDIR -x "${filestocheck[@]}"
+if hash npx 2>/dev/null; then
+  echo "Found 'npx'; formatting JavaScript files (if needed) in place"
+  if ! beautify "$jsDir"/*.js; then
+    echo "Error formatting files; you may be using an older version of npm/npx"
+    echo "Attempting to format files one at a time..."
+    for js in "$jsDir"/*.js; do
+      beautify "$js" || echo "Error formatting $js"
+    done
+  fi
+else
+  echo "Skipping formatting of JavaScript files, since 'npx' is not present"
+fi
