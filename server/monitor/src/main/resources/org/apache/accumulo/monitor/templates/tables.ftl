@@ -81,15 +81,15 @@
          */
         function refresh() {
           <#if js??>
-            refreshManager();
+            refreshManagerTables();
           </#if>
 
           tableList.ajax.reload(null, false ); // user paging is not reset on reload
         }
       </script>
-      <div><h3>${tablesTitle}</h3></div>
       <div>
         <table id="tableList" class="table table-bordered table-striped table-condensed">
+          <caption><span class="table-caption">${tablesTitle}</span><br />
           <thead>
             <tr>
               <th>Table&nbsp;Name</th>
