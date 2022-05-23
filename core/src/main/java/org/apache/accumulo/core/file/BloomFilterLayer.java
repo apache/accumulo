@@ -280,7 +280,7 @@ public class BloomFilterLayer {
     }
 
     /**
-     * Prevent potential CRLF injection into logs from read in user data See
+     * Prevent potential CRLF injection into logs from read in user data. See
      * <a href="https://find-sec-bugs.github.io/bugs.htm#CRLF_INJECTION_LOGS">bug description</a>
      */
     private String sanitize(String msg) {
