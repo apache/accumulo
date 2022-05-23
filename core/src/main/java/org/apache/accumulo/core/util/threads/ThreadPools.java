@@ -268,7 +268,7 @@ public class ThreadPools {
             emitThreadPoolMetrics);
       case GENERAL_THREADPOOL_SIZE:
         return createScheduledExecutorService(conf.getCount(p), "General", // TODO ask if name
-                                                                           // should be changed
+            // should be changed
             emitThreadPoolMetrics);
       case MANAGER_BULK_THREADPOOL_SIZE:
         return createFixedThreadPool(conf.getCount(p),
@@ -522,7 +522,7 @@ public class ThreadPools {
     try {
       return (ScheduledThreadPoolExecutor) createExecutorService(conf, conf.resolve(
           Property.GENERAL_THREADPOOL_SIZE, Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), true);
-    } catch (NullPointerException e) {
+    } catch (Exception e) {
       return (ScheduledThreadPoolExecutor) createExecutorService(conf,
           Property.GENERAL_THREADPOOL_SIZE, true);
     }
