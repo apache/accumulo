@@ -70,7 +70,7 @@ public final class Accumulo {
    * </code>
    * </pre>
    *
-   * For a list of all client properties see the documentation on the
+   * For a list of all client properties, see the documentation on the
    * <a href="https://accumulo.apache.org/docs/2.x/configuration/client-properties">Accumulo
    * website</a>
    *
