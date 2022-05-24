@@ -57,6 +57,13 @@ public class ShutdownTServer extends ManagerRepo {
       return 0;
     }
 
+    // if one tserver is remaining throw an error and return before attempting shutdown
+    if (manager.onlineTabletServers().size() == 1) {
+      log.error("Only 1 tserver running and it contains the Root table. Not shutting down {}. ",
+          server);
+      return 0;
+    }
+
     // Inform the manager that we want this server to shutdown
     manager.shutdownTServer(server);
 

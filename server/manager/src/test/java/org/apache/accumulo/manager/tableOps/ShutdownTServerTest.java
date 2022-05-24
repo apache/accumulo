@@ -22,8 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.Set;
 
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
@@ -39,12 +39,33 @@ import org.junit.jupiter.api.Test;
 public class ShutdownTServerTest {
 
   @Test
-  public void testSingleShutdown() throws Exception {
-    HostAndPort hap = HostAndPort.fromParts("localhost", 1234);
-    final TServerInstance tserver = new TServerInstance(hap, "fake");
+  public void testSingleShutdown() {
+    HostAndPort hap = HostAndPort.fromParts("host1", 1234);
+    final TServerInstance tserver1 = new TServerInstance(hap, "fake");
+    final ShutdownTServer op = new ShutdownTServer(tserver1, false);
+    final Manager manager = EasyMock.createMock(Manager.class);
+    final TServerConnection tserverCnxn = EasyMock.createMock(TServerConnection.class);
+
+    EasyMock.expect(manager.onlineTabletServers()).andReturn(Set.of(tserver1)).once();
+
+    EasyMock.replay(tserverCnxn, manager);
+
+    // FATE op should log error
+    long wait = op.isReady(1L, manager);
+    assertEquals(0, wait, "Expected wait to be greater than 0");
+
+    EasyMock.verify(tserverCnxn, manager);
+  }
+
+  @Test
+  public void testShutdownWithTwoServers() throws Exception {
+    HostAndPort hap1 = HostAndPort.fromParts("host1", 1234);
+    HostAndPort hap2 = HostAndPort.fromParts("host2", 1234);
+    final TServerInstance tserver1 = new TServerInstance(hap1, "fake");
+    final TServerInstance tserver2 = new TServerInstance(hap2, "fake");
     final boolean force = false;
 
-    final ShutdownTServer op = new ShutdownTServer(tserver, force);
+    final ShutdownTServer op = new ShutdownTServer(tserver1, force);
 
     final Manager manager = EasyMock.createMock(Manager.class);
     final long tid = 1L;
@@ -55,10 +76,10 @@ public class ShutdownTServerTest {
     // Put in a table info record, don't care what
     status.tableMap.put("a_table", new TableInfo());
 
-    manager.shutdownTServer(tserver);
+    manager.shutdownTServer(tserver1);
     EasyMock.expectLastCall().once();
-    EasyMock.expect(manager.onlineTabletServers()).andReturn(Collections.singleton(tserver));
-    EasyMock.expect(manager.getConnection(tserver)).andReturn(tserverCnxn);
+    EasyMock.expect(manager.onlineTabletServers()).andReturn(Set.of(tserver1, tserver2)).anyTimes();
+    EasyMock.expect(manager.getConnection(tserver1)).andReturn(tserverCnxn).anyTimes();
     EasyMock.expect(tserverCnxn.getTableMap(false)).andReturn(status);
 
     EasyMock.replay(tserverCnxn, manager);
@@ -74,10 +95,10 @@ public class ShutdownTServerTest {
 
     // reset the table map to the empty set to simulate all tablets unloaded
     status.tableMap = new HashMap<>();
-    manager.shutdownTServer(tserver);
+    manager.shutdownTServer(tserver1);
     EasyMock.expectLastCall().once();
-    EasyMock.expect(manager.onlineTabletServers()).andReturn(Collections.singleton(tserver));
-    EasyMock.expect(manager.getConnection(tserver)).andReturn(tserverCnxn);
+    EasyMock.expect(manager.onlineTabletServers()).andReturn(Set.of(tserver1, tserver2)).anyTimes();
+    EasyMock.expect(manager.getConnection(tserver1)).andReturn(tserverCnxn).anyTimes();
     EasyMock.expect(tserverCnxn.getTableMap(false)).andReturn(status);
     EasyMock.expect(manager.getManagerLock()).andReturn(null);
     tserverCnxn.halt(null);
