@@ -104,6 +104,7 @@ public class ZooBasedConfigIT {
     // using default zookeeper port - we don't have a full configuration
     testZk = new ZooKeeperTestingServer(tempDir);
     zooKeeper = testZk.getZooKeeper();
+    ZooUtil.digestAuth(zooKeeper, ZooKeeperTestingServer.SECRET);
     zrw = testZk.getZooReaderWriter();
   }
 
