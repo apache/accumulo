@@ -194,7 +194,7 @@
                   <configuration>
                     <reuseForks>false</reuseForks>
                     <excludes combine.self="override" />
-                    <includes>
+                    <includes combine.self="override">
                       <include>**/AssignmentWatcherTest.java</include>
                     </includes>
                   </configuration>
