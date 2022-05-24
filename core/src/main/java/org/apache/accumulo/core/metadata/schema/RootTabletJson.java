@@ -45,11 +45,7 @@ import com.google.gson.GsonBuilder;
  * this class must consider persisted data. The only data stored about the Root Table is the
  * COLUMN_FAMILY, COLUMN_QUALIFIER and VALUE. The data is mapped using Strings as follows:
  *
- * <pre>
- * <code>
- *     Map column_family, Map column_qualifier, value  columnValues = new TreeMap<>();
- * </code>
- * </pre>
+ * {@code Map<column_family, Map<column_qualifier, value>> columnValues = new TreeMap<>();}
  *
  * @since 2.1.0
  */
