@@ -87,6 +87,7 @@ public class PropStoreZooKeeperIT {
     // using default zookeeper port - we don't have a full configuration
     testZk = new ZooKeeperTestingServer(tempDir);
     zooKeeper = testZk.getZooKeeper();
+    ZooUtil.digestAuth(zooKeeper, ZooKeeperTestingServer.SECRET);
   }
 
   @AfterAll
