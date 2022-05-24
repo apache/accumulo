@@ -58,7 +58,7 @@ import org.apache.hadoop.io.Text;
  * classes should override the {@link TermSource#seekColfams} in their implementation's
  * {@link #init(SortedKeyValueIterator, Map, IteratorEnvironment)} method.
  *
- * An example of using the IntersectingIterator is available at
+ * An example of using the IntersectingIterator is available in
  * <a href="https://github.com/apache/accumulo-examples/blob/main/docs/shard.md">the examples
  * repo</a>
  */
