@@ -138,7 +138,7 @@ struct LocalField : public Field {
   }
 
   ~LocalField(){
-    delete(field);
+    delete[] field;
   }
 };
 #endif

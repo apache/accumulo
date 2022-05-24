@@ -183,7 +183,7 @@ struct LocalSubKey : public SubKey {
   LocalSubKey(JNIEnv *env, jbyteArray cf, jbyteArray cq, jbyteArray cv, jlong ts, jboolean del):SubKey(NULL, env, cf, cq, cv, ts, del, INT_MAX){}
 
   ~LocalSubKey(){
-    delete(keyData);
+    delete[] keyData;
   }
 };
 
