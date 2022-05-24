@@ -22,8 +22,10 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
+import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -82,6 +84,7 @@ public class ConfigTransformerIT {
     // using default zookeeper port - we don't have a full configuration
     testZk = new ZooKeeperTestingServer(tempDir);
     zooKeeper = testZk.getZooKeeper();
+    ZooUtil.digestAuth(zooKeeper, ZooKeeperTestingServer.SECRET);
     zrw = testZk.getZooReaderWriter();
   }
 
@@ -106,6 +109,8 @@ public class ConfigTransformerIT {
     expect(context.getPropStore()).andReturn(propStore).anyTimes();
 
     watcher = createMock(PropStoreWatcher.class);
+    watcher.process(anyObject());
+    expectLastCall().anyTimes();
 
     replay(context, watcher);
 
