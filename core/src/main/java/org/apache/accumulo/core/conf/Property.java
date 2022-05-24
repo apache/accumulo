@@ -683,10 +683,10 @@ public enum Property {
       "After a tablet has been idle (no mutations) for this time period it may have its "
           + "in-memory map flushed to disk in a minor compaction. There is no guarantee an idle "
           + "tablet will be compacted."),
-  TABLE_MINC_MAX_MERGE_FILE_SIZE("table.compaction.minor.merge.file.size.max", "0",
+  TABLE_MINC_MAX_MERGE_FILE_SIZE("table.compaction.minor.merge.file.size.max", "1",
       PropertyType.MEMORY,
-      "The max file size used for a merging minor compaction. The default value"
-          + " of 0 disables a max file size."),
+      "The max file size used for a merging minor compaction. The value of 0 is no max "
+          + "file size. The default value is 1 byte, which should disable merging minor compactions."),
   TABLE_SCAN_MAXMEM("table.scan.max.memory", "512K", PropertyType.MEMORY,
       "The maximum amount of memory that will be used to cache results of a client query/scan. "
           + "Once this limit is reached, the buffered data is sent to the client."),
