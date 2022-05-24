@@ -23,7 +23,7 @@ var tableID;
  * Makes the REST calls, generates the tables with the new information
  */
 function refreshTable() {
-  getTableServers(tableID).then(function() {
+  getTableServers(tableID).then(function () {
     refreshTableServersTable();
   });
 }
@@ -41,8 +41,7 @@ function refresh() {
 function refreshTableServersTable() {
   clearTableBody('participatingTServers');
 
-  var data = sessionStorage.tableServers === undefined ?
-      [] : JSON.parse(sessionStorage.tableServers);
+  var data = sessionStorage.tableServers === undefined ? [] : JSON.parse(sessionStorage.tableServers);
 
   if (data.length === 0 || data.servers.length === 0) {
     var items = [];
@@ -52,55 +51,55 @@ function refreshTableServersTable() {
     }).appendTo('#participatingTServers tbody');
   } else {
 
-    $.each(data.servers, function(key, val) {
+    $.each(data.servers, function (key, val) {
       var items = [];
       items.push(createFirstCell(val.hostname, '<a href="/tservers?s=' +
-          val.id + '">' + val.hostname + '</a>'));
+        val.id + '">' + val.hostname + '</a>'));
 
       items.push(createRightCell(val.tablets,
-          bigNumberForQuantity(val.tablets)));
+        bigNumberForQuantity(val.tablets)));
 
       items.push(createRightCell(val.lastContact,
-          timeDuration(val.lastContact)));
+        timeDuration(val.lastContact)));
 
       items.push(createRightCell(val.entries,
-          bigNumberForQuantity(val.entries)));
+        bigNumberForQuantity(val.entries)));
 
       items.push(createRightCell(val.ingest,
-          bigNumberForQuantity(Math.floor(val.ingest))));
+        bigNumberForQuantity(Math.floor(val.ingest))));
 
       items.push(createRightCell(val.query,
-          bigNumberForQuantity(Math.floor(val.query))));
+        bigNumberForQuantity(Math.floor(val.query))));
 
       items.push(createRightCell(val.holdtime,
-          timeDuration(val.holdtime)));
+        timeDuration(val.holdtime)));
 
       items.push(createRightCell((val.compactions.scans.running +
           val.compactions.scans.queued),
-          bigNumberForQuantity(val.compactions.scans.running) +
-          '&nbsp;(' + bigNumberForQuantity(val.compactions.scans.queued) +
-          ')'));
+        bigNumberForQuantity(val.compactions.scans.running) +
+        '&nbsp;(' + bigNumberForQuantity(val.compactions.scans.queued) +
+        ')'));
 
       items.push(createRightCell((val.compactions.minor.running +
           val.compactions.minor.queued),
-          bigNumberForQuantity(val.compactions.minor.running) +
-          '&nbsp;(' + bigNumberForQuantity(val.compactions.minor.queued) +
-          ')'));
+        bigNumberForQuantity(val.compactions.minor.running) +
+        '&nbsp;(' + bigNumberForQuantity(val.compactions.minor.queued) +
+        ')'));
 
       items.push(createRightCell((val.compactions.major.running +
           val.compactions.major.queued),
-          bigNumberForQuantity(val.compactions.major.running) +
-          '&nbsp;(' + bigNumberForQuantity(val.compactions.major.queued) +
-          ')'));
+        bigNumberForQuantity(val.compactions.major.running) +
+        '&nbsp;(' + bigNumberForQuantity(val.compactions.major.queued) +
+        ')'));
 
       items.push(createRightCell(val.indexCacheHitRate * 100,
-          Math.round(val.indexCacheHitRate * 100) + '%'));
+        Math.round(val.indexCacheHitRate * 100) + '%'));
 
       items.push(createRightCell(val.dataCacheHitRate * 100,
-          Math.round(val.dataCacheHitRate * 100) + '%'));
+        Math.round(val.dataCacheHitRate * 100) + '%'));
 
       items.push(createRightCell(val.osload,
-          bigNumberForQuantity(val.osload)));
+        bigNumberForQuantity(val.osload)));
 
       $('<tr/>', {
         html: items.join('')

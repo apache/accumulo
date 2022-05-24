@@ -21,7 +21,7 @@
 var tableID;
 var problemSummaryTable;
 var problemDetailTable;
-$(document).ready(function() {
+$(document).ready(function () {
   // Create a table for summary. See datatables doc for more info on the dom property
   problemSummaryTable = $('#problemSummary').DataTable({
     "ajax": {
@@ -30,30 +30,36 @@ $(document).ready(function() {
     },
     "stateSave": true,
     "dom": 't<"align-left"l>p',
-    "columnDefs": [
-      { "targets": "big-num",
-        "render": function ( data, type, row ) {
-          if(type === 'display') data = bigNumberForQuantity(data);
-          return data;
-        }
+    "columnDefs": [{
+      "targets": "big-num",
+      "render": function (data, type, row) {
+        if (type === 'display') data = bigNumberForQuantity(data);
+        return data;
       }
-    ],
-    "columns": [
-      { "data": "tableName",
+    }],
+    "columns": [{
+        "data": "tableName",
         "type": "html",
-        "render": function ( data, type, row, meta ) {
-          if(type === 'display') data = '<a href="/tables/' + row.tableID + '">' + row.tableName + '</a>';
+        "render": function (data, type, row, meta) {
+          if (type === 'display') data = '<a href="/tables/' + row.tableID + '">' + row.tableName + '</a>';
           return data;
         }
       },
-      { "data": "fileRead" },
-      { "data": "fileWrite" },
-      { "data": "tableLoad" },
-      { "data": "tableID",
+      {
+        "data": "fileRead"
+      },
+      {
+        "data": "fileWrite"
+      },
+      {
+        "data": "tableLoad"
+      },
+      {
+        "data": "tableID",
         "type": "html",
         "render": function (data, type, row, meta) {
           if (type === 'display') data = '<a href="javascript:clearTableProblemsTable(\'' +
-              row.tableID + '\');">clear ALL ' + row.tableName + ' problems</a>';
+            row.tableID + '\');">clear ALL ' + row.tableName + ' problems</a>';
           return data;
         }
       }
@@ -67,32 +73,42 @@ $(document).ready(function() {
     },
     "stateSave": true,
     "dom": 't<"align-left"l>p',
-    "columnDefs": [
-      { "targets": "date",
-        "render": function ( data, type, row ) {
-          if(type === 'display') data = dateFormat(data);
-          return data;
-        }
+    "columnDefs": [{
+      "targets": "date",
+      "render": function (data, type, row) {
+        if (type === 'display') data = dateFormat(data);
+        return data;
       }
-    ],
-    "columns": [
-      { "data": "tableName",
+    }],
+    "columns": [{
+        "data": "tableName",
         "type": "html",
-        "render": function ( data, type, row, meta ) {
-          if(type === 'display') data = '<a href="/tables/' + row.tableID + '">' + row.tableName + '</a>';
+        "render": function (data, type, row, meta) {
+          if (type === 'display') data = '<a href="/tables/' + row.tableID + '">' + row.tableName + '</a>';
           return data;
         }
       },
-      { "data": "type" },
-      { "data": "server" },
-      { "data": "time" },
-      { "data": "resource" },
-      { "data": "exception" },
-      { "data": "tableID",
+      {
+        "data": "type"
+      },
+      {
+        "data": "server"
+      },
+      {
+        "data": "time"
+      },
+      {
+        "data": "resource"
+      },
+      {
+        "data": "exception"
+      },
+      {
+        "data": "tableID",
         "type": "html",
         "render": function (data, type, row, meta) {
           if (type === 'display') data = '<a href="javascript:clearDetailsProblemsTable(\'' +
-              row.tableID + '\',\'' + row.resource + '\',\'' + row.type + '\')">clear this problem</a>';
+            row.tableID + '\',\'' + row.resource + '\',\'' + row.type + '\')">clear this problem</a>';
           return data;
         }
       }
@@ -140,12 +156,12 @@ function clearDetailsProblemsTable(table, resource, type) {
  * Generates the problem summary table
  */
 function refreshProblemSummaryTable() {
-  if(problemSummaryTable) problemSummaryTable.ajax.reload(null, false ); // user paging is not reset on reload
+  if (problemSummaryTable) problemSummaryTable.ajax.reload(null, false); // user paging is not reset on reload
 }
 
 /**
  * Generates the problem details table
  */
 function refreshProblemDetailsTable() {
-  if(problemDetailTable) problemDetailTable.ajax.reload(null, false ); // user paging is not reset on reload
+  if (problemDetailTable) problemDetailTable.ajax.reload(null, false); // user paging is not reset on reload
 }

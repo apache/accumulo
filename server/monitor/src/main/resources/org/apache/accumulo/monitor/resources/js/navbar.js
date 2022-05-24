@@ -21,7 +21,7 @@
 /**
  * Creates the initial sidebar
  */
-$(document).ready(function() {
+$(document).ready(function () {
   refreshSidebar();
 });
 
@@ -29,7 +29,7 @@ $(document).ready(function() {
  * Makes the REST calls, generates the sidebar with the new information
  */
 function refreshSidebar() {
-  getStatus().then(function() {
+  getStatus().then(function () {
     refreshSideBarNotifications();
   });
 }
@@ -47,7 +47,7 @@ function refreshNavBar() {
 function refreshSideBarNotifications() {
 
   var data = sessionStorage.status === undefined ?
-      undefined : JSON.parse(sessionStorage.status);
+    undefined : JSON.parse(sessionStorage.status);
 
   // Setting individual status notification
   if (data.managerStatus === 'OK') {
@@ -57,13 +57,13 @@ function refreshSideBarNotifications() {
   }
   if (data.tServerStatus === 'OK') {
     $('#serverStatusNotification').removeClass('error').removeClass('warning').
-        addClass('normal');
+    addClass('normal');
   } else if (data.tServerStatus === 'WARN') {
     $('#serverStatusNotification').removeClass('error').removeClass('normal').
-        addClass('warning');
+    addClass('warning');
   } else {
     $('#serverStatusNotification').removeClass('normal').removeClass('warning').
-        addClass('error');
+    addClass('error');
   }
   if (data.gcStatus === 'OK') {
     $('#gcStatusNotification').removeClass('error').addClass('normal');
@@ -73,18 +73,18 @@ function refreshSideBarNotifications() {
 
   // Setting overall status notification
   if (data.managerStatus === 'OK' &&
-      data.tServerStatus === 'OK' &&
-      data.gcStatus === 'OK') {
+    data.tServerStatus === 'OK' &&
+    data.gcStatus === 'OK') {
     $('#statusNotification').removeClass('error').removeClass('warning').
-        addClass('normal');
+    addClass('normal');
   } else if (data.managerStatus === 'ERROR' ||
-      data.tServerStatus === 'ERROR' ||
-      data.gcStatus === 'ERROR') {
+    data.tServerStatus === 'ERROR' ||
+    data.gcStatus === 'ERROR') {
     $('#statusNotification').removeClass('normal').removeClass('warning').
-        addClass('error');
+    addClass('error');
   } else if (data.tServerStatus === 'WARN') {
     $('#statusNotification').removeClass('normal').removeClass('error').
-        addClass('warning');
+    addClass('warning');
   }
 
   // Setting individual logs notifications
@@ -124,6 +124,6 @@ function refreshSideBarNotifications() {
 
   // Number
   var totalNumber = data.logNumber + data.problemNumber > 99 ?
-      '99+' : data.logNumber + data.problemNumber;
+    '99+' : data.logNumber + data.problemNumber;
   $('#errorsNotification').html(totalNumber);
 }

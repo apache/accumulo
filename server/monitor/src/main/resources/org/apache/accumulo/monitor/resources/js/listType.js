@@ -24,7 +24,7 @@ var type, minutes;
  * Makes the REST calls, generates the tables with the new information
  */
 function refreshListType() {
-  getTraceOfType(type, minutes).then(function() {
+  getTraceOfType(type, minutes).then(function () {
     refreshTypeTraceTable(minutes);
   });
 }
@@ -48,8 +48,7 @@ function refreshTypeTraceTable(minutes) {
    * Get the trace type value obtained earlier,
    * if it doesn't exists, create an empty array
    */
-  var data = sessionStorage.traceType === undefined ?
-      [] : JSON.parse(sessionStorage.traceType);
+  var data = sessionStorage.traceType === undefined ? [] : JSON.parse(sessionStorage.traceType);
   /*
    * If the data is empty, create an empty row, otherwise,
    * create the rows for the table
@@ -57,18 +56,18 @@ function refreshTypeTraceTable(minutes) {
   if (data.length === 0 || data.traces.length === 0) {
     var items = [];
     items.push(createEmptyRow(3, 'No traces for the last ' +
-        minutes + ' minute(s)'));
+      minutes + ' minute(s)'));
     $('<tr/>', {
       html: items.join('')
     }).appendTo('#trace tbody');
   } else {
-    $.each(data.traces, function(key, val) {
+    $.each(data.traces, function (key, val) {
       var items = [];
 
       // Convert start value to a date
       var date = new Date(val.start);
       items.push(createFirstCell('', '<a href="/trace/show?id=' +
-          val.id + '">' + date.toLocaleString() + '</a>'));
+        val.id + '">' + date.toLocaleString() + '</a>'));
       items.push(createRightCell('', timeDuration(val.ms)));
       items.push(createLeftCell('', val.source));
 
