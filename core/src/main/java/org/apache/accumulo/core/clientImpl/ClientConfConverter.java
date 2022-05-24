@@ -160,6 +160,11 @@ public class ClientConfConverter {
     return new AccumuloConfiguration() {
 
       @Override
+      public boolean isPropertySet(Property prop) {
+        return config.containsKey(prop.getKey());
+      }
+
+      @Override
       public String get(Property property) {
         final String key = property.getKey();
 
