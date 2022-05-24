@@ -1621,7 +1621,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   /**
    * Prevent potential CRLF injection into logs from read in user data. See
-   * <a href="https://find-sec-bugs.github.io/bugs.htm#CRLF_INJECTION_LOGS">bug description</a>
+   * the <a href="https://find-sec-bugs.github.io/bugs.htm#CRLF_INJECTION_LOGS">bug description</a>
    */
   private String sanitize(String msg) {
     return msg.replaceAll("[\r\n]", "");
