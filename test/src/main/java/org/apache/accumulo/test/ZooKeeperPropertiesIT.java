@@ -46,7 +46,7 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(ZooKeeperPropertiesIT.class);
 
-  // @Test
+  @Test
   public void testNoFiles() {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       // Should throw an error as this property can't be changed in ZooKeeper
@@ -58,7 +58,7 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
   @Test
   public void testTablePropUtils()
       throws AccumuloException, TableExistsException, AccumuloSecurityException,
-      TableNotFoundException, NamespaceExistsException, NamespaceNotFoundException {
+      TableNotFoundException {
     ServerContext context = getServerContext();
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
