@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -48,12 +49,15 @@ public final class ZKAuthenticator implements Authenticator {
   private ServerContext context;
   private String ZKUserPath;
   private ZooCache zooCache;
+  private boolean cacheEnabled = false;
 
   @Override
   public void initialize(ServerContext context) {
     this.context = context;
     zooCache = new ZooCache(context.getZooReader(), null);
     ZKUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
+    cacheEnabled = this.context.getConfiguration()
+        .getBoolean(Property.INSTANCE_SECURITY_ZK_AUTH_CACHE_ENABLED);
   }
 
   /**
@@ -228,7 +232,7 @@ public final class ZKAuthenticator implements Authenticator {
 
     // if the hash does not match the outdated format use Crypt to verify it
     if (!ZKSecurityTool.isOutdatedPass(zkData)) {
-      return ZKSecurityTool.checkCryptPass(pt.getPassword(), zkData);
+      return ZKSecurityTool.checkCryptPass(pt.getPassword(), zkData, cacheEnabled);
     }
 
     @SuppressWarnings("deprecation")
