@@ -58,7 +58,7 @@ public class RootGcCandidatesJson {
 
   public RootGcCandidatesJson(String jsonString) {
     var rootGcCandidatesJson = GSON.fromJson(jsonString, RootGcCandidatesJson.class);
-    Preconditions.checkArgument(rootGcCandidatesJson.getVersion() == 1);
+    Preconditions.checkArgument(rootGcCandidatesJson.getVersion() == version);
     this.candidates = rootGcCandidatesJson.candidates;
   }
 
