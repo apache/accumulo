@@ -42,8 +42,7 @@ public class ScanAttemptsImpl {
 
   private static final Logger LOG = LoggerFactory.getLogger(ScanAttemptsImpl.class);
 
-  static class ScanAttemptImpl
-      implements org.apache.accumulo.core.spi.scan.ScanServerDispatcher.ScanAttempt {
+  static class ScanAttemptImpl implements ScanAttempt {
 
     private final String server;
     private final long time;

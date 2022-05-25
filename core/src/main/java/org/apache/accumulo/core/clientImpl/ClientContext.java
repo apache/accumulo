@@ -124,7 +124,6 @@ public class ClientContext implements AccumuloClient {
 
   private Credentials creds;
   private BatchWriterConfig batchWriterConfig;
-  private ScanServerDispatcher scanServerDispatcher;
   private ConditionalWriterConfig conditionalWriterConfig;
   private final AccumuloConfiguration serverConf;
   private final Configuration hadoopConf;
@@ -134,6 +133,7 @@ public class ClientContext implements AccumuloClient {
   private final Supplier<Long> timeoutSupplier;
   private final Supplier<SaslConnectionParams> saslSupplier;
   private final Supplier<SslConnectionParams> sslSupplier;
+  private final Supplier<ScanServerDispatcher> scanServerDispatcherSupplier;
   private TCredentials rpcCreds;
   private ThriftTransportPool thriftTransportPool;
 
@@ -161,6 +161,44 @@ public class ClientContext implements AccumuloClient {
     return () -> Suppliers.memoizeWithExpiration(s::get, 100, MILLISECONDS).get();
   }
 
+  private ScanServerDispatcher createScanServerDispatcher() {
+    String clazz = ClientProperty.SCAN_SERVER_DISPATCHER.getValue(info.getProperties());
+    try {
+      Class<? extends ScanServerDispatcher> impl =
+          Class.forName(clazz).asSubclass(ScanServerDispatcher.class);
+      ScanServerDispatcher scanServerDispatcher = impl.getDeclaredConstructor().newInstance();
+
+      Map<String,String> sserverProps = new HashMap<>();
+      ClientProperty.getPrefix(info.getProperties(),
+          ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey()).forEach((k, v) -> {
+            sserverProps.put(
+                k.toString()
+                    .substring(ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey().length()),
+                v.toString());
+          });
+
+      scanServerDispatcher.init(new ScanServerDispatcher.InitParameters() {
+        @Override
+        public Map<String,String> getOptions() {
+          return Collections.unmodifiableMap(sserverProps);
+        }
+
+        @Override
+        public ServiceEnvironment getServiceEnv() {
+          return new ClientServiceEnvironmentImpl(ClientContext.this);
+        }
+
+        @Override
+        public Supplier<Set<String>> getScanServers() {
+          return () -> new HashSet<>(ClientContext.this.getScanServers().keySet());
+        }
+      });
+      return scanServerDispatcher;
+    } catch (Exception e) {
+      throw new RuntimeException("Error creating ScanServerDispatcher implementation: " + clazz, e);
+    }
+  }
+
   /**
    * Create a client context with the provided configuration. Legacy client code must provide a
    * no-op SingletonReservation to preserve behavior prior to 2.x. Clients since 2.x should call
@@ -180,6 +218,7 @@ public class ClientContext implements AccumuloClient {
     sslSupplier = memoizeWithExpiration(() -> SslConnectionParams.forClient(getConfiguration()));
     saslSupplier = memoizeWithExpiration(
         () -> SaslConnectionParams.from(getConfiguration(), getCredentials().getToken()));
+    scanServerDispatcherSupplier = memoizeWithExpiration(() -> createScanServerDispatcher());
     this.singletonReservation = Objects.requireNonNull(reservation);
     this.tableops = new TableOperationsImpl(this);
     this.namespaceops = new NamespaceOperationsImpl(this, tableops);
@@ -367,46 +406,9 @@ public class ClientContext implements AccumuloClient {
    * @return the scan server dispatcher implementation used for determining which scan servers will
    *         be used when performing an eventually consistent scan
    */
-  public synchronized ScanServerDispatcher getScanServerDispatcher() {
+  public ScanServerDispatcher getScanServerDispatcher() {
     ensureOpen();
-    if (scanServerDispatcher == null) {
-      String clazz = ClientProperty.SCAN_SERVER_DISPATCHER.getValue(info.getProperties());
-      try {
-        Class<? extends ScanServerDispatcher> impl =
-            Class.forName(clazz).asSubclass(ScanServerDispatcher.class);
-        scanServerDispatcher = impl.getDeclaredConstructor().newInstance();
-
-        Map<String,String> sserverProps = new HashMap<>();
-        ClientProperty.getPrefix(info.getProperties(),
-            ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey()).forEach((k, v) -> {
-              sserverProps.put(
-                  k.toString().substring(
-                      ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey().length()),
-                  v.toString());
-            });
-
-        scanServerDispatcher.init(new ScanServerDispatcher.InitParameters() {
-          @Override
-          public Map<String,String> getOptions() {
-            return Collections.unmodifiableMap(sserverProps);
-          }
-
-          @Override
-          public ServiceEnvironment getServiceEnv() {
-            return new ClientServiceEnvironmentImpl(ClientContext.this);
-          }
-
-          @Override
-          public Supplier<Set<String>> getScanServers() {
-            return () -> new HashSet<>(ClientContext.this.getScanServers().keySet());
-          }
-        });
-      } catch (Exception e) {
-        throw new RuntimeException("Error creating ScanServerDispatcher implementation: " + clazz,
-            e);
-      }
-    }
-    return scanServerDispatcher;
+    return scanServerDispatcherSupplier.get();
   }
 
   static ConditionalWriterConfig getConditionalWriterConfig(Properties props) {

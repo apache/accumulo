@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -51,7 +52,9 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -93,6 +96,18 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
     SharedMiniClusterBase.stopMiniCluster();
   }
 
+  @BeforeEach
+  public void before() throws Exception {
+    executor = Executors.newCachedThreadPool();
+  }
+
+  @AfterEach
+  public void after() throws Exception {
+    executor.shutdown();
+  }
+
+  private ExecutorService executor;
+
   @Test
   public void testMutipleScansSameTablet() throws Exception {
 
@@ -106,8 +121,6 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
       client.tableOperations().flush(tableName, null, null, true);
 
       final CountDownLatch latch = new CountDownLatch(1);
-
-      var executor = Executors.newCachedThreadPool();
 
       List<Future<?>> futures = new ArrayList<>(NUM_SCANS);
       for (int i = 0; i < NUM_SCANS; i++) {
@@ -133,7 +146,6 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
         future.get();
       }
 
-      executor.shutdown();
     }
   }
 
@@ -190,8 +202,6 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
 
       final AtomicInteger counter = new AtomicInteger(0);
 
-      var executor = Executors.newCachedThreadPool();
-
       List<Future<?>> futures = new ArrayList<>(NUM_SCANS);
 
       for (int i = 0; i < NUM_SCANS; i++) {
@@ -235,8 +245,6 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
         future.get();
       }
 
-      executor.shutdown();
-
       assertEquals(100, counter.get());
     }
   }
@@ -253,8 +261,6 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
       client.tableOperations().flush(tableName, null, null, true);
 
       final CountDownLatch latch = new CountDownLatch(1);
-
-      var executor = Executors.newCachedThreadPool();
 
       List<Future<?>> futures = new ArrayList<>(NUM_SCANS);
 
@@ -279,8 +285,6 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
       for (Future<?> future : futures) {
         future.get();
       }
-
-      executor.shutdown();
     }
 
   }
@@ -339,8 +343,6 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
 
       final AtomicInteger counter = new AtomicInteger(0);
 
-      var executor = Executors.newCachedThreadPool();
-
       List<Future<?>> futures = new ArrayList<>(NUM_SCANS);
       for (int i = 0; i < NUM_SCANS; i++) {
         final int threadNum = i;
@@ -383,8 +385,6 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
       for (Future<?> future : futures) {
         future.get();
       }
-
-      executor.shutdown();
 
       assertEquals(100, counter.get());
     }

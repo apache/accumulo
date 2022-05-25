@@ -740,9 +740,6 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       }
     }
 
-    /**
-     *
-     */
     public long getTimeOut() {
       return timeOut;
     }

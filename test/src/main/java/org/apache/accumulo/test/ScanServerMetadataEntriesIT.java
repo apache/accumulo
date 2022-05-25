@@ -32,6 +32,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.Constants;
@@ -108,14 +109,10 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
       HostAndPort server = HostAndPort.fromParts("127.0.0.1", 1234);
       UUID serverLockUUID = UUID.randomUUID();
 
-      String[] files =
-          new String[] {"hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf",
-              "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000071.rf"};
-
-      Set<ScanServerRefTabletFile> scanRefs = new HashSet<>();
-      for (String file : files) {
-        scanRefs.add(new ScanServerRefTabletFile(file, server.toString(), serverLockUUID));
-      }
+      Set<ScanServerRefTabletFile> scanRefs = Stream.of("F0000070.rf", "F0000071.rf")
+          .map(f -> "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/" + f)
+          .map(f -> new ScanServerRefTabletFile(f, server.toString(), serverLockUUID))
+          .collect(Collectors.toSet());
 
       ServerContext ctx = getCluster().getServerContext();
 
