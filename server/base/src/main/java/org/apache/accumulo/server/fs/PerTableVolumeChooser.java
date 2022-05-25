@@ -25,12 +25,12 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @Deprecated(since = "2.1.0")
 @SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_SUPERCLASS",
     justification = "Same name used for compatibility during deprecation cycle")
-public class PerTableVolumeChooser extends org.apache.accumulo.core.spi.fs.PerTableVolumeChooser
+public class PerTableVolumeChooser extends org.apache.accumulo.core.spi.fs.DelegatingChooser
     implements VolumeChooser {
   public PerTableVolumeChooser() {
     LoggerFactory.getLogger(PerTableVolumeChooser.class).warn(
         "The class {} is deprecated.  Please configure {} instead.",
         PerTableVolumeChooser.class.getName(),
-        org.apache.accumulo.core.spi.fs.PerTableVolumeChooser.class.getName());
+        org.apache.accumulo.core.spi.fs.DelegatingChooser.class.getName());
   }
 }
