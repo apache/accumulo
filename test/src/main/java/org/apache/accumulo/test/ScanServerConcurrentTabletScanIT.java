@@ -139,22 +139,29 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
 
       // iter2 should read 1000 k/v because the tablet metadata is cached.
       Iterator<Entry<Key,Value>> iter2 = scanner1.iterator();
-
-      while (iter1.hasNext()) {
-        iter1.next();
-        count1++;
-      }
-      assertEquals(1000, count1);
-
       int count2 = 0;
-      while (iter2.hasNext()) {
-        iter2.next();
-        count2++;
-      }
+      boolean useIter1 = true;
+
+      do {
+        if (useIter1) {
+          if (iter1.hasNext()) {
+            iter1.next();
+            count1++;
+          }
+        } else {
+          if (iter2.hasNext()) {
+            iter2.next();
+            count2++;
+          }
+        }
+        useIter1 = !useIter1;
+      } while (iter1.hasNext() || iter2.hasNext());
+      assertEquals(1000, count1);
       assertEquals(1000, count2);
 
       scanner1.close();
 
+      // A new scan should read all 1100 entries
       try (Scanner scanner2 = client.createScanner(tableName, Authorizations.EMPTY)) {
         assertEquals(1100, Iterables.size(scanner2));
       }
@@ -200,18 +207,24 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
 
       // iter2 should read 1100 k/v because the tablet metadata is not cached.
       Iterator<Entry<Key,Value>> iter2 = scanner1.iterator();
-
-      while (iter1.hasNext()) {
-        iter1.next();
-        count1++;
-      }
-      assertEquals(1000, count1);
-
       int count2 = 0;
-      while (iter2.hasNext()) {
-        iter2.next();
-        count2++;
-      }
+      boolean useIter1 = true;
+
+      do {
+        if (useIter1) {
+          if (iter1.hasNext()) {
+            iter1.next();
+            count1++;
+          }
+        } else {
+          if (iter2.hasNext()) {
+            iter2.next();
+            count2++;
+          }
+        }
+        useIter1 = !useIter1;
+      } while (iter1.hasNext() || iter2.hasNext());
+      assertEquals(1000, count1);
       assertEquals(1100, count2);
 
       scanner1.close();
