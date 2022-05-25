@@ -518,9 +518,9 @@ public class ThreadPools {
   public ScheduledThreadPoolExecutor
       createGeneralScheduledExecutorService(AccumuloConfiguration conf) {
     @SuppressWarnings("deprecation")
-    var oldProp = Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE;
-    return (ScheduledThreadPoolExecutor) createExecutorService(conf,
-        conf.resolve(Property.GENERAL_THREADPOOL_SIZE, oldProp), true);
+    Property prop = conf.resolve(Property.GENERAL_THREADPOOL_SIZE,
+        Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE);
+    return (ScheduledThreadPoolExecutor) createExecutorService(conf, prop, true);
   }
 
   /**
