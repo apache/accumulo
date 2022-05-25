@@ -19,6 +19,7 @@
 package org.apache.accumulo.server.manager.state;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.server.init.ZooKeeperInitializer.getInitialRootTabletJson;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -36,7 +37,6 @@ import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.RootTabletJson;
-import org.apache.accumulo.core.metadata.schema.RootTabletSerializer;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -50,8 +50,8 @@ public class RootTabletStateStoreTest {
 
   private static class TestAmple implements Ample {
 
-    private String json = new String(
-        RootTabletSerializer.getInitialJson("dir", "hdfs://nn/acc/tables/some/dir/0000.rf"), UTF_8);
+    private String json =
+        new String(getInitialRootTabletJson("dir", "hdfs://nn/acc/tables/some/dir/0000.rf"), UTF_8);
 
     @Override
     public TabletMetadata readTablet(KeyExtent extent, ReadConsistency rc,

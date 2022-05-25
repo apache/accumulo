@@ -513,7 +513,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         ZooReader zooReader = ctx.getZooReader();
         try {
           byte[] bytes = zooReader.getData(zkRoot + RootTable.ZROOT_TABLET);
-          return RootTabletSerializer.fromJson(bytes).toTabletMetadata();
+          return RootTabletJson.fromJson(bytes).toTabletMetadata();
         } catch (InterruptedException | KeeperException e) {
           throw new RuntimeException(e);
         }
@@ -524,7 +524,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
   public static TabletMetadata getRootMetadata(String zkRoot, ZooCache zc) {
     byte[] jsonBytes = zc.get(zkRoot + RootTable.ZROOT_TABLET);
-    return RootTabletSerializer.fromJson(jsonBytes).toTabletMetadata();
+    return RootTabletJson.fromJson(jsonBytes).toTabletMetadata();
   }
 
   private final AutoCloseable closeable;

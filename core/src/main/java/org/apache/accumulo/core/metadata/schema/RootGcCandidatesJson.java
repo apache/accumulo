@@ -38,15 +38,24 @@ import com.google.gson.GsonBuilder;
  * this class must consider persisted data.
  */
 public class RootGcCandidatesJson {
+  // Version 1. Released with Accumulo version 2.1.0
+  static final int VERSION = 1;
+
+  // This class is used to serialize and deserialize root tablet metadata using GSon. Any changes to
+  // this class must consider persisted data.
+  private static class RootGcCandidatesData {
+    int version = 1;
+
+    // SortedMap<dir path, SortedSet<file name>>
+    SortedMap<String,SortedSet<String>> candidates;
+  }
+
   private final Gson GSON = new GsonBuilder().create();
 
-  // Version 1. Released with Accumulo version 2.1.0
-  static final int version = 1;
-
   /*
-   * The root tablet will only have a single dir on each volume. Therefore root file paths will have
-   * a small set of unique prefixes. The following map is structured to avoid storing the same dir
-   * prefix over and over in JSon and java.
+   * The root tablet will only have a single dir on each volume. Therefore, root file paths will
+   * have a small set of unique prefixes. The following map is structured to avoid storing the same
+   * dir prefix over and over in JSon and java.
    *
    * SortedMap<dir path, SortedSet<file name>>
    */
@@ -57,9 +66,9 @@ public class RootGcCandidatesJson {
   }
 
   public RootGcCandidatesJson(String jsonString) {
-    var rootGcCandidatesJson = GSON.fromJson(jsonString, RootGcCandidatesJson.class);
-    Preconditions.checkArgument(rootGcCandidatesJson.getVersion() == version);
-    this.candidates = rootGcCandidatesJson.candidates;
+    var rootGcCandidatesData = GSON.fromJson(jsonString, RootGcCandidatesData.class);
+    Preconditions.checkArgument(rootGcCandidatesData.version == VERSION);
+    this.candidates = rootGcCandidatesData.candidates;
   }
 
   public void add(Iterator<StoredTabletFile> refs) {
@@ -70,7 +79,7 @@ public class RootGcCandidatesJson {
   }
 
   public int getVersion() {
-    return version;
+    return VERSION;
   }
 
   public void remove(Collection<String> refs) {

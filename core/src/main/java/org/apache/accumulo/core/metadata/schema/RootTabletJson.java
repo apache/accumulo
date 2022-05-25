@@ -51,9 +51,17 @@ import com.google.gson.GsonBuilder;
  */
 public class RootTabletJson {
   // JSON Mapping Version 1. Released with Accumulo version 2.1.0
-  public final int version = 1;
-  // The Root Tablet data to be serialized. Map<column_family, Map<column_qualifier, value>>
-  private final Map<String,Map<String,String>> columnValues = new TreeMap<>();
+  public final int VERSION = 1;
+
+  // Internal class used to serialize and deserialize root tablet metadata using GSon. Any changes
+  // to
+  // this class must consider persisted data.
+  private static class RootTabletData {
+    int version = 1;
+
+    // Map<column_family, Map<column_qualifier, value>>
+    Map<String,Map<String,String>> columnValues;
+  }
 
   private static final ByteSequence CURR_LOC_FAM =
       new ArrayByteSequence(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.STR_NAME);
@@ -63,20 +71,20 @@ public class RootTabletJson {
   static final Gson GSON = new GsonBuilder().create();
 
   // In memory representation of the Json data
-  private transient final TreeMap<Key,Value> entries;
+  private final TreeMap<Key,Value> entries;
 
   public RootTabletJson(String json) {
-    log.info("Creating object from json: {}", json);
-    var rootTabletJson = GSON.fromJson(json, RootTabletJson.class);
+    log.debug("Creating object from json: {}", json);
+    var rootTabletData = GSON.fromJson(json, RootTabletData.class);
 
-    checkArgument(rootTabletJson.getVersion() == 1, "Invalid Root Tablet JSON version");
+    checkArgument(rootTabletData.version == VERSION, "Invalid Root Tablet JSON version");
 
     String row = RootTable.EXTENT.toMetaRow().toString();
 
     this.entries = new TreeMap<>();
 
     // convert each of the JSON values into Key Values in memory
-    rootTabletJson.columnValues.forEach((fam, qualVals) -> {
+    rootTabletData.columnValues.forEach((fam, qualVals) -> {
       qualVals.forEach((qual, val) -> {
         Key k = new Key(row, fam, qual, 1);
         Value v = new Value(val);
@@ -91,7 +99,7 @@ public class RootTabletJson {
   }
 
   public int getVersion() {
-    return version;
+    return VERSION;
   }
 
   /**
@@ -103,19 +111,22 @@ public class RootTabletJson {
   }
 
   /**
-   * @return a json representation of this object.
+   * @return a json representation of the rootTabletData.
    */
   public String toJson() {
+    RootTabletData rootTabletData = new RootTabletData();
+    rootTabletData.columnValues = new TreeMap<>();
+
     var entrySet = entries.entrySet();
     for (var entry : entrySet) {
       String fam = bytesToUtf8(entry.getKey().getColumnFamilyData().toArray());
       String qual = bytesToUtf8(entry.getKey().getColumnQualifierData().toArray());
       String val = bytesToUtf8(entry.getValue().get());
 
-      columnValues.computeIfAbsent(fam, k -> new TreeMap<>()).put(qual, val);
+      rootTabletData.columnValues.computeIfAbsent(fam, k -> new TreeMap<>()).put(qual, val);
     }
 
-    return GSON.toJson(this);
+    return GSON.toJson(rootTabletData);
   }
 
   /**
@@ -161,5 +172,12 @@ public class RootTabletJson {
       throw new IllegalStateException(
           "After mutation, root tablet has multiple locations : " + m + " " + entries);
     }
+  }
+
+  /**
+   * Assumes the byte Array is UTF8 encoded.
+   */
+  public static RootTabletJson fromJson(byte[] bs) {
+    return new RootTabletJson(new String(bs, UTF_8));
   }
 }
