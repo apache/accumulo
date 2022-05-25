@@ -267,8 +267,7 @@ public class ThreadPools {
         return createScheduledExecutorService(conf.getCount(p), "SimpleTimer",
             emitThreadPoolMetrics);
       case GENERAL_THREADPOOL_SIZE:
-        return createScheduledExecutorService(conf.getCount(p), "General", // TODO ask if name
-            // should be changed
+        return createScheduledExecutorService(conf.getCount(p), "GeneralExecutor",
             emitThreadPoolMetrics);
       case MANAGER_BULK_THREADPOOL_SIZE:
         return createFixedThreadPool(conf.getCount(p),
@@ -516,16 +515,12 @@ public class ThreadPools {
    * If you need the server-side shared ScheduledThreadPoolExecutor, then use
    * ServerContext.getScheduledExecutor()
    */
-  @SuppressWarnings("deprecation")
   public ScheduledThreadPoolExecutor
       createGeneralScheduledExecutorService(AccumuloConfiguration conf) {
-    try {
-      return (ScheduledThreadPoolExecutor) createExecutorService(conf, conf.resolve(
-          Property.GENERAL_THREADPOOL_SIZE, Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), true);
-    } catch (Exception e) {
-      return (ScheduledThreadPoolExecutor) createExecutorService(conf,
-          Property.GENERAL_THREADPOOL_SIZE, true);
-    }
+    @SuppressWarnings("deprecation")
+    var oldProp = Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE;
+    return (ScheduledThreadPoolExecutor) createExecutorService(conf,
+        conf.resolve(Property.GENERAL_THREADPOOL_SIZE, oldProp), true);
   }
 
   /**
