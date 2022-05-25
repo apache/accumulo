@@ -16,31 +16,44 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/* JSLint global definitions */
+/*global
+    $, document, sessionStorage, getManager, bigNumberForQuantity,
+    timeDuration, dateFormat, getStatus, ajaxReloadTable
+*/
 "use strict";
 
-/**
- * Creates manager initial table
- */
-$(document).ready(function() {
-  refreshManager();
-});
+var managerStatusTable, recoveryListTable;
 
-/**
- * Makes the REST calls, generates the tables with the new information
- */
-function refreshManager() {
-  getManager().then(function() {
-    refreshManagerTable();
-  });
-  getRecoveryList().then(function() {
-    recoveryList();
+function refreshManagerBanner() {
+  getStatus().then(function () {
+    var managerStatus = JSON.parse(sessionStorage.status).managerStatus;
+
+    // If manager status is error
+    if (managerStatus === 'ERROR') {
+      // show banner and hide table
+      $('#managerBanner').show();
+      $('#managerStatus_wrapper').hide();
+    } else {
+      // otherwise, hide banner and show table
+      $('#managerBanner').hide();
+      $('#managerStatus_wrapper').show();
+    }
   });
 }
 
+/**
+ * Populates tables with the new information
+ */
+function refreshManagerTables() {
+  ajaxReloadTable(managerStatusTable);
+  refreshManagerBanner();
+  ajaxReloadTable(recoveryListTable);
+}
 
 /*
- * The tables refresh function will do this functionality
- * If tables are removed from Manager, uncomment this function
+ * The tables.ftl refresh function will do this functionality.
+ * If tables are removed from Manager, uncomment this function.
  */
 /**
  * Used to redraw the page
@@ -50,98 +63,150 @@ function refreshManager() {
 }*/
 
 /**
- * Creates recovery list table
+ * Creates initial tables
  */
-function recoveryList() {
-  /*
-   * Get the recovery value obtained earlier,
-   * if it doesn't exists, create an empty array
-   */
-  var data = sessionStorage.recoveryList === undefined ?
-      [] : JSON.parse(sessionStorage.recoveryList);
+$(document).ready(function () {
 
-  clearTableBody('recoveryList');
+  // Generates the manager table
+  managerStatusTable = $('#managerStatus').DataTable({
+    "ajax": {
+      "url": '/rest/manager',
+      "dataSrc": function (json) {
+        // the data needs to be in an array to work with DataTables
+        var arr = [json];
+        return arr;
+      }
+    },
+    "stateSave": true,
+    "searching": false,
+    "paging": false,
+    "info": false,
+    "columnDefs": [{
+        "targets": "big-num",
+        "render": function (data, type) {
+          if (type === 'display') {
+            data = bigNumberForQuantity(data);
+          }
+          return data;
+        }
+      },
+      {
+        "targets": "big-num-rounded",
+        "render": function (data, type) {
+          if (type === 'display') {
+            data = bigNumberForQuantity(Math.round(data));
+          }
+          return data;
+        }
+      },
+      {
+        "targets": "duration",
+        "render": function (data, type) {
+          if (type === 'display') {
+            data = timeDuration(parseInt(data, 10));
+          }
+          return data;
+        }
+      }
+    ],
+    "columns": [{
+        "data": "manager"
+      },
+      {
+        "data": "onlineTabletServers"
+      },
+      {
+        "data": "totalTabletServers"
+      },
+      {
+        "data": "lastGC",
+        "type": "html",
+        "render": function (data, type) {
+          if (type === 'display') {
+            if (data !== 'Waiting') {
+              data = dateFormat(parseInt(data, 10));
+            }
+            data = '<a href="/gc">' + data + '</a>';
+          }
+          return data;
+        }
+      },
+      {
+        "data": "tablets"
+      },
+      {
+        "data": "unassignedTablets"
+      },
+      {
+        "data": "numentries"
+      },
+      {
+        "data": "ingestrate"
+      },
+      {
+        "data": "entriesRead"
+      },
+      {
+        "data": "queryrate"
+      },
+      {
+        "data": "holdTime"
+      },
+      {
+        "data": "osload"
+      },
+    ]
+  });
 
-  // If there is no recovery list data, hide the table
-  if (data.length === 0 || data.recoveryList.length === 0) {
-    $('#recoveryList').hide();
-  } else {
-    $('#recoveryList').show();
+  // Generates the recovery table
+  recoveryListTable = $('#recoveryList').DataTable({
+    "ajax": {
+      "url": '/rest/tservers/recovery',
+      "dataSrc": function (data) {
+        data = data.recoveryList;
+        if (data.length === 0) {
+          console.info('Recovery list is empty, hiding recovery table');
+          $('#recoveryList_wrapper').hide();
+        } else {
+          $('#recoveryList_wrapper').show();
+        }
+        return data;
+      }
+    },
+    "columnDefs": [{
+        "targets": "duration",
+        "render": function (data, type) {
+          if (type === 'display') {
+            data = timeDuration(parseInt(data, 10));
+          }
+          return data;
+        }
+      },
+      {
+        "targets": "percent",
+        "render": function (data, type) {
+          if (type === 'display') {
+            data = (data * 100).toFixed(2) + '%';
+          }
+          return data;
+        }
+      }
+    ],
+    "stateSave": true,
+    "columns": [{
+        "data": "server"
+      },
+      {
+        "data": "log"
+      },
+      {
+        "data": "time"
+      },
+      {
+        "data": "progress"
+      }
+    ]
+  });
 
-    // Creates the table for the recovery list
-    $.each(data.recoveryList, function(key, val) {
-      var items = [];
-      items.push(createFirstCell(val.server, val.server));
-      items.push(createRightCell(val.log, val.log));
-      var duration = timeDuration(parseInt(val.time));
-      items.push(createRightCell(val.time, duration));
-      var percentProgress = (val.progress * 100).toFixed(2) + '%';
-      items.push(createRightCell(val.progress, percentProgress));
-
-      $('<tr/>', {
-        html: items.join('')
-      }).appendTo('#recoveryList tbody');
-    });
-  }
-}
-
-/**
- * Generates the manager table
- */
-function refreshManagerTable() {
-  // Gets the manager status
-  var status = JSON.parse(sessionStorage.status).managerStatus;
-
-  // Hide the banner and the manager table
-  $('#managerBanner').hide();
-  clearTableBody('managerStatus');
-  $('#managerStatus').hide();
-
-  // If manager status is error, show banner, otherwise, create manager table
-  if (status === 'ERROR') {
-    $('#managerBanner').show();
-  } else {
-    $('#managerStatus').show();
-    var data = JSON.parse(sessionStorage.manager);
-    var items = [];
-    items.push(createFirstCell(data.manager, data.manager));
-
-    items.push(createRightCell(data.onlineTabletServers,
-        data.onlineTabletServers));
-
-    items.push(createRightCell(data.totalTabletServers,
-        data.totalTabletServers));
-    var date = data.lastGC;
-    //this will be a finish time or a status of Running, Waiting, or down
-    if (!isNaN(date))
-        date = new Date(parseInt(data.lastGC)).toLocaleString().split(' ').join('&nbsp;');
-
-    items.push(createLeftCell(data.lastGC, '<a href="/gc">' + date + '</a>'));
-
-    items.push(createRightCell(data.tablets,
-        bigNumberForQuantity(data.tablets)));
-
-    items.push(createRightCell(data.unassignedTablets,
-        bigNumberForQuantity(data.unassignedTablets)));
-
-    items.push(createRightCell(data.numentries,
-        bigNumberForQuantity(data.numentries)));
-
-    items.push(createRightCell(data.ingestrate,
-        bigNumberForQuantity(Math.round(data.ingestrate))));
-
-    items.push(createRightCell(data.entriesRead,
-        bigNumberForQuantity(Math.round(data.entriesRead))));
-
-    items.push(createRightCell(data.queryrate,
-        bigNumberForQuantity(Math.round(data.queryrate))));
-
-    items.push(createRightCell(data.holdTime, timeDuration(data.holdTime)));
-
-    items.push(createRightCell(data.osload, bigNumberForQuantity(data.osload)));
-
-    $('<tr/>', {
-     html: items.join('')
-    }).appendTo('#managerStatus tbody');
-  }
-}
+  refreshManagerTables();
+});

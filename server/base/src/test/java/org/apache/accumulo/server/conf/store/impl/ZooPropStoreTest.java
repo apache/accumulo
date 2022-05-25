@@ -88,7 +88,7 @@ public class ZooPropStoreTest {
     var propCacheKey = TablePropKey.of(instanceId, TableId.of("propCacheKey"));
 
     Capture<byte[]> bytes = newCapture();
-    expect(zrw.putPersistentData(eq(propCacheKey.getPath()), capture(bytes), anyObject()))
+    expect(zrw.putPrivatePersistentData(eq(propCacheKey.getPath()), capture(bytes), anyObject()))
         .andReturn(true).once();
 
     replay(context, zrw);

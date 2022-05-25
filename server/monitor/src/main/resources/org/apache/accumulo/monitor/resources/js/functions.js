@@ -16,6 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/* JSLint global definitions */
+/*global
+    $, sessionStorage, TIMER:true, NAMESPACES:true, refreshNavBar,
+    refreshProblems
+*/
 "use strict";
 
 // Suffixes for quantity
@@ -33,14 +38,14 @@ function setupAutoRefresh() {
     sessionStorage.autoRefresh = 'false';
   }
   // Need this to set the initial value for the autorefresh on page load
-  if (sessionStorage.autoRefresh == 'false') {
+  if (sessionStorage.autoRefresh === 'false') {
     $('.auto-refresh').parent().removeClass('active');
   } else {
     $('.auto-refresh').parent().addClass('active');
   }
   // Initializes the auto refresh on click listener
-  $('.auto-refresh').on("click", function(e) {
-    if ($(this).parent().attr('class') == 'active') {
+  $('.auto-refresh').on("click", function () {
+    if ($(this).parent().attr('class') === 'active') {
       $(this).parent().removeClass('active');
       sessionStorage.autoRefresh = 'false';
     } else {
@@ -51,10 +56,17 @@ function setupAutoRefresh() {
 }
 
 /**
+ * Empty function in case there is no refresh implementation
+ */
+function refresh() {
+  console.info('Using default refresh()');
+}
+
+/**
  * Global timer that checks for auto refresh status every 5 seconds
  */
-TIMER = setInterval(function() {
-  if (sessionStorage.autoRefresh == 'true') {
+TIMER = setInterval(function () {
+  if (sessionStorage.autoRefresh === 'true') {
     $('.auto-refresh').parent().addClass('active');
     refresh();
     refreshNavBar();
@@ -62,36 +74,6 @@ TIMER = setInterval(function() {
     $('.auto-refresh').parent().removeClass('active');
   }
 }, 5000);
-
-/**
- * Empty function in case there is no refresh implementation
- */
-function refresh() {
-}
-
-/**
- * Converts a number to a size with suffix
- *
- * @param {number} size Number to convert
- * @return {string} Number with suffix added
- */
-function bigNumberForSize(size) {
-  if (size === null)
-    size = 0;
-  return bigNumber(size, SIZE_SUFFIX, 1024);
-}
-
-/**
- * Converts a number to a quantity with suffix
- *
- * @param {number} quantity Number to convert
- * @return {string} Number with suffix added
- */
-function bigNumberForQuantity(quantity) {
-  if (quantity === null)
-    quantity = 0;
-  return bigNumber(quantity, QUANTITY_SUFFIX, 1000);
-}
 
 /**
  * Adds the suffix to the number, converts the number to one close to the base
@@ -103,27 +85,57 @@ function bigNumberForQuantity(quantity) {
  */
 function bigNumber(big, suffixes, base) {
   // if the number is a fraction keep to 2 decimal places
-  if ((big - Math.floor(big)) !== 0)
+  if ((big - Math.floor(big)) !== 0) {
     big = big.toFixed(2);
+  }
+
   // If the number is smaller than the base, return the number with no suffix
   if (big < base) {
     return big;
   }
+
+  var exp, val;
   // Finds which suffix to use
-  var exp = Math.floor(Math.log(big) / Math.log(base));
+  exp = Math.floor(Math.log(big) / Math.log(base));
   // Divides the number by the equivalent suffix number
-  var val = big / Math.pow(base, exp);
+  val = big / Math.pow(base, exp);
   // Keeps the number to 2 decimal places and adds the suffix
   return val.toFixed(2) + suffixes[exp];
+}
+
+/**
+ * Converts a number to a size with suffix
+ *
+ * @param {number} size Number to convert
+ * @return {string} Number with suffix added
+ */
+function bigNumberForSize(size) {
+  if (size === null) {
+    size = 0;
+  }
+  return bigNumber(size, SIZE_SUFFIX, 1024);
+}
+
+/**
+ * Converts a number to a quantity with suffix
+ *
+ * @param {number} quantity Number to convert
+ * @return {string} Number with suffix added
+ */
+function bigNumberForQuantity(quantity) {
+  if (quantity === null) {
+    quantity = 0;
+  }
+  return bigNumber(quantity, QUANTITY_SUFFIX, 1000);
 }
 
 /**
  * Formats the timestamp nicely
  */
 function dateFormat(timestamp) {
-   var date = new Date(timestamp);
-   date.toLocaleString().split(' ').join('&nbsp;');
-   return date;
+  var date = new Date(timestamp);
+  date.toLocaleString().split(' ').join('&nbsp;');
+  return date;
 }
 
 /**
@@ -132,11 +144,11 @@ function dateFormat(timestamp) {
 function levelFormat(level) {
   if (level === 'WARN') {
     return '<span class="label label-warning">' + level + '</span>';
-  } else if (level === 'ERROR' || level === 'FATAL') {
-    return '<span class="label label-danger">' + level + '</span>';
-  } else {
-    return level;
   }
+  if (level === 'ERROR' || level === 'FATAL') {
+    return '<span class="label label-danger">' + level + '</span>';
+  }
+  return level;
 }
 
 /**
@@ -152,42 +164,42 @@ function timeDuration(time) {
   time = Math.floor(time);
 
   // If time is 0 return a dash
-  if (time == 0) {
+  if (time === 0) {
     return '&mdash;';
   }
 
   // Obtains the milliseconds, if time is 0, return milliseconds, and units
   ms = time % 1000;
   time = Math.floor(time / 1000);
-  if (time == 0) {
+  if (time === 0) {
     return ms + 'ms';
   }
 
   // Obtains the seconds, if time is 0, return seconds, milliseconds, and units
   sec = time % 60;
   time = Math.floor(time / 60);
-  if (time == 0) {
+  if (time === 0) {
     return sec + 's' + '&nbsp;' + ms + 'ms';
   }
 
   // Obtains the minutes, if time is 0, return minutes, seconds, and units
   min = time % 60;
   time = Math.floor(time / 60);
-  if (time == 0) {
+  if (time === 0) {
     return min + 'm' + '&nbsp;' + sec + 's';
   }
 
   // Obtains the hours, if time is 0, return hours, minutes, and units
   hr = time % 24;
   time = Math.floor(time / 24);
-  if (time == 0) {
+  if (time === 0) {
     return hr + 'h' + '&nbsp;' + min + 'm';
   }
 
   // Obtains the days, if time is 0, return days, hours, and units
   day = time % 365;
   time = Math.floor(time / 365);
-  if (time == 0) {
+  if (time === 0) {
     return day + 'd' + '&nbsp;' + hr + 'h';
   }
 
@@ -203,6 +215,21 @@ function timeDuration(time) {
  */
 function sanitize(url) {
   return url.split('+').join('%2B');
+}
+
+/**
+ * Creates a string with the value to sort and the value to display
+ * Options are 0 = firstcell left, 1 = right, 2 = center, 3 = left
+ *
+ * @param {string} index Index for class to use for cell
+ * @param {string} sortValue Value used for sorting
+ * @param {string} showValue Value to display
+ */
+function createTableCell(index, sortValue, showValue) {
+  var valueClass = ['firstcell left', 'right', 'center', 'left', ''];
+
+  return '<td class="' + valueClass[index] + '" data-value="' + sortValue +
+    '">' + showValue + '</td>';
 }
 
 /**
@@ -242,18 +269,16 @@ function createEmptyRow(col, msg) {
 }
 
 /**
- * Creates a string with the value to sort and the value to display
- * Options are 0 = firstcell left, 1 = right, 2 = center, 3 = left
+ * Performs an ajax reload for the given DataTable
  *
- * @param {string} index Index for class to use for cell
- * @param {string} sortValue Value used for sorting
- * @param {string} showValue Value to display
+ * @param {DataTable} table DataTable to perform an ajax reload on
  */
-function createTableCell(index, sortValue, showValue) {
-  var valueClass = ['firstcell left', 'right', 'center', 'left', ''];
-
-  return '<td class="'+ valueClass[index] + '" data-value="' + sortValue +
-      '">' + showValue + '</td>';
+function ajaxReloadTable(table) {
+  if (table) {
+    table.ajax.reload(null, false); // user paging is not reset on reload
+  } else {
+    console.error('There was an error reloading the given table');
+  }
 }
 
 /**
@@ -261,25 +286,24 @@ function createTableCell(index, sortValue, showValue) {
  * @param {string} call REST url called
  * @param {string} sessionDataVar Session storage/global variable to hold REST data
  */
- function getJSONForTable(call, sessionDataVar){
-    console.info("Retrieving " + call);
+function getJSONForTable(call, sessionDataVar) {
+  console.info("Retrieving " + call);
 
-    return $.getJSON(call, function(data) {
-      var jsonDataStr = JSON.stringify(data);
+  return $.getJSON(call, function (data) {
+    var jsonDataStr = JSON.stringify(data);
 
-      //Handle data to be stored in global variable instead of session storage
-      if (sessionDataVar==="NAMESPACES") {
-        NAMESPACES = jsonDataStr;
-        console.debug("REST GET call to " + call +
-         " stored in " + sessionDataVar + " = " + NAMESPACES);
-      }
-      else {
-        sessionStorage[sessionDataVar] = jsonDataStr;
-        console.debug("REST GET request to " + call +
-          " stored in sessionStorage." + sessionDataVar + " = " + sessionStorage[sessionDataVar]);
-      }
-    });   
- }
+    //Handle data to be stored in global variable instead of session storage
+    if (sessionDataVar === "NAMESPACES") {
+      NAMESPACES = jsonDataStr;
+      console.debug("REST GET call to " + call +
+        " stored in " + sessionDataVar + " = " + NAMESPACES);
+    } else {
+      sessionStorage[sessionDataVar] = jsonDataStr;
+      console.debug("REST GET request to " + call +
+        " stored in sessionStorage." + sessionDataVar + " = " + sessionStorage[sessionDataVar]);
+    }
+  });
+}
 
 /**
  * Performs POST call and builds console logging message if successful
@@ -287,23 +311,23 @@ function createTableCell(index, sortValue, showValue) {
  * @param {string} callback POST callback to execute, if available
  * @param {boolean} sanitize Whether to sanitize the call 
  */
- function doLoggedPostCall(call, callback, sanitize) {
+function doLoggedPostCall(call, callback, sanitize) {
 
-    if (sanitize) {
-      // Change plus sign to use ASCII value to send it as a URL query parameter
-      call = sanitize(call);
+  if (sanitize) {
+    // Change plus sign to use ASCII value to send it as a URL query parameter
+    call = sanitize(call);
+  }
+
+  console.log("POST call to " + call);
+
+  // Make the rest call, passing success function callback
+  $.post(call, function () {
+    console.debug("REST POST call to " + call + ": success");
+    if (callback !== null) {
+      callback();
     }
-    
-    console.log("POST call to " + call);
-
-    // Make the rest call, passing success function callback
-    $.post(call, function () {
-      console.debug("REST POST call to " + call + ": success");
-      if (callback != null){
-        callback();
-      }
-    });
- }
+  });
+}
 
 ///// REST Calls /////////////
 
@@ -323,6 +347,13 @@ function getNamespaces() {
 }
 
 /**
+ * REST GET call for the tables, stores it on a sessionStorage variable
+ */
+function getTables() {
+  return getJSONForTable('/rest/tables', 'tables');
+}
+
+/**
  * REST GET call for the tables on each namespace,
  * stores it on a sessionStorage variable
  *
@@ -337,21 +368,13 @@ function getNamespaceTables(namespaces) {
    * If the namespace array include *, get all tables, otherwise,
    * get tables from specific namespaces
    */
-  if (namespaces.indexOf('*') != -1) {
+  if (namespaces.indexOf('*') !== -1) {
     return getTables();
-  } else {
-    // Convert the list to a string for the REST call
-    namespaceList = namespaces.toString();
-
-    return getJSONForTable('/rest/tables/namespaces/' + namespaceList, 'tables');
   }
-}
+  // Convert the list to a string for the REST call
+  namespaceList = namespaces.toString();
 
-/**
- * REST GET call for the tables, stores it on a sessionStorage variable
- */
-function getTables() {
-  return getJSONForTable('/rest/tables', 'tables');
+  return getJSONForTable('/rest/tables/namespaces/' + namespaceList, 'tables');
 }
 
 /**
@@ -477,7 +500,7 @@ function clearTableProblems(tableID) {
  */
 function clearDetailsProblems(table, resource, type) {
   doLoggedPostCall('/rest/problems/details?table=' + table + '&resource=' +
-   resource + '&ptype=' + type, refreshProblems, true);
+    resource + '&ptype=' + type, refreshProblems, true);
 }
 
 /**
@@ -594,8 +617,8 @@ function getStatus() {
  * Jquery call to clear all data from cells of a table
  */
 function clearAllTableCells(tableId) {
-    console.log("Clearing all table cell data for " + tableId);
-    $("#" + tableId + " > tbody > tr > td").each(function () {
-        $(this).text("");
-    });
+  console.log("Clearing all table cell data for " + tableId);
+  $("#" + tableId + " > tbody > tr > td").each(function () {
+    $(this).text("");
+  });
 }

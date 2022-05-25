@@ -59,6 +59,8 @@ public class ChangeSecret {
     var hadoopConf = new Configuration();
 
     ServerUtilOpts opts = new ServerUtilOpts();
+    opts.parseArgs(ChangeSecret.class.getName(), args);
+
     ServerContext context = opts.getServerContext();
     try (var fs = context.getVolumeManager()) {
       ServerDirs serverDirs = new ServerDirs(siteConfig, hadoopConf);
@@ -66,6 +68,7 @@ public class ChangeSecret {
 
       String oldPass = String.valueOf(System.console().readPassword("Old secret: "));
       String newPass = String.valueOf(System.console().readPassword("New secret: "));
+
       Span span = TraceUtil.startSpan(ChangeSecret.class, "main");
       try (Scope scope = span.makeCurrent()) {
 
