@@ -480,7 +480,6 @@ function getLogs() {
  * REST POST call to clear logs
  */
 function clearLogs(callback) {
-  console.debug('clearLogs callback: ' + callback);
   doLoggedPostCall('/rest/logs/clear', callback, false);
 }
 
