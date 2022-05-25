@@ -104,7 +104,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * properties on the right, so if a newer property is set, it will be selected over any older
    * property that may also be set.
    */
-  public final Property resolve(Property property, Property... deprecated) {
+  public Property resolve(Property property, Property... deprecated) {
     if (property.isDeprecated()) {
       throw new IllegalArgumentException("Unexpected deprecated " + property.name());
     }
