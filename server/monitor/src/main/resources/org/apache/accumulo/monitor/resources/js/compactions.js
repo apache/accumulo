@@ -18,60 +18,67 @@
  */
 "use strict";
 
- var compactionsList;
- /**
-  * Creates active compactions table
-  */
- $(document).ready(function() {
-     // Create a table for compactions list
-     compactionsList = $('#compactionsList').DataTable({
-       "ajax": {
-         "url": '/rest/compactions',
-         "dataSrc": "compactions"
-       },
-       "stateSave": true,
-       "dom": 't<"align-left"l>p',
-       "columnDefs": [
-           { "targets": "duration",
-             "render": function ( data, type, row ) {
-               if(type === 'display') data = timeDuration(data);
-               return data;
-             }
-           },
-           { "targets": "date",
-               "render": function ( data, type, row ) {
-                 if(type === 'display') data = dateFormat(data);
-                 return data;
-               }
-             }
-         ],
-       "columns": [
-         { "data": "server",
-           "type": "html",
-           "render": function ( data, type, row, meta ) {
-             if(type === 'display') {
-                data = '<a href="/tservers?s=' + row.server + '">' + row.server + '</a>';
-             }
-             return data;
-           }
-         },
-         { "data": "count" },
-         { "data": "oldest" },
-         { "data": "fetched" },
-       ]
-     });
- });
+var compactionsList;
+/**
+ * Creates active compactions table
+ */
+$(document).ready(function () {
+  // Create a table for compactions list
+  compactionsList = $('#compactionsList').DataTable({
+    "ajax": {
+      "url": '/rest/compactions',
+      "dataSrc": "compactions"
+    },
+    "stateSave": true,
+    "dom": 't<"align-left"l>p',
+    "columnDefs": [{
+        "targets": "duration",
+        "render": function (data, type, row) {
+          if (type === 'display') data = timeDuration(data);
+          return data;
+        }
+      },
+      {
+        "targets": "date",
+        "render": function (data, type, row) {
+          if (type === 'display') data = dateFormat(data);
+          return data;
+        }
+      }
+    ],
+    "columns": [{
+        "data": "server",
+        "type": "html",
+        "render": function (data, type, row, meta) {
+          if (type === 'display') {
+            data = '<a href="/tservers?s=' + row.server + '">' + row.server + '</a>';
+          }
+          return data;
+        }
+      },
+      {
+        "data": "count"
+      },
+      {
+        "data": "oldest"
+      },
+      {
+        "data": "fetched"
+      },
+    ]
+  });
+});
 
- /**
-  * Generates the compactions table
-  */
- function refreshCompactionsTable() {
-   if(compactionsList) compactionsList.ajax.reload(null, false ); // user paging is not reset on reload
- }
+/**
+ * Generates the compactions table
+ */
+function refreshCompactionsTable() {
+  if (compactionsList) compactionsList.ajax.reload(null, false); // user paging is not reset on reload
+}
 
- /**
-  * Used to redraw the page
-  */
- function refresh() {
-   refreshCompactionsTable();
- }
+/**
+ * Used to redraw the page
+ */
+function refresh() {
+  refreshCompactionsTable();
+}

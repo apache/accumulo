@@ -160,7 +160,7 @@ public class FateIT {
     Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString);
     try {
       ConfigurationCopy config = new ConfigurationCopy();
-      config.set(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE, "2");
+      config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
       config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
       fate.startTransactionRunners(config);
 
@@ -221,7 +221,7 @@ public class FateIT {
     Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString);
     try {
       ConfigurationCopy config = new ConfigurationCopy();
-      config.set(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE, "2");
+      config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
       config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
       fate.startTransactionRunners(config);
 
@@ -260,7 +260,7 @@ public class FateIT {
 
     Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString);
     ConfigurationCopy config = new ConfigurationCopy();
-    config.set(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE, "2");
+    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
 
     // Notice that we did not start the transaction runners
 
@@ -294,7 +294,7 @@ public class FateIT {
     Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString);
     try {
       ConfigurationCopy config = new ConfigurationCopy();
-      config.set(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE, "2");
+      config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
       config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
       fate.startTransactionRunners(config);
 
@@ -336,7 +336,7 @@ public class FateIT {
     Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString);
     try {
       ConfigurationCopy config = new ConfigurationCopy();
-      config.set(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE, "2");
+      config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
       config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
       fate.startTransactionRunners(config);
 

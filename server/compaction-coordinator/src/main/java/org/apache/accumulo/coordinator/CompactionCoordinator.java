@@ -123,8 +123,12 @@ public class CompactionCoordinator extends AbstractServer
   private ScheduledThreadPoolExecutor schedExecutor;
 
   protected CompactionCoordinator(ServerOpts opts, String[] args) {
+    this(opts, args, null);
+  }
+
+  protected CompactionCoordinator(ServerOpts opts, String[] args, AccumuloConfiguration conf) {
     super("compaction-coordinator", opts, args);
-    aconf = getConfiguration();
+    aconf = conf == null ? super.getConfiguration() : conf;
     schedExecutor = ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(aconf);
     compactionFinalizer = createCompactionFinalizer(schedExecutor);
     tserverSet = createLiveTServerSet();
@@ -134,16 +138,9 @@ public class CompactionCoordinator extends AbstractServer
     startCompactionCleaner(schedExecutor);
   }
 
-  protected CompactionCoordinator(ServerOpts opts, String[] args, AccumuloConfiguration conf) {
-    super("compaction-coordinator", opts, args);
-    aconf = conf;
-    schedExecutor = ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(aconf);
-    compactionFinalizer = createCompactionFinalizer(schedExecutor);
-    tserverSet = createLiveTServerSet();
-    setupSecurity();
-    startGCLogger(schedExecutor);
-    printStartupMsg();
-    startCompactionCleaner(schedExecutor);
+  @Override
+  public AccumuloConfiguration getConfiguration() {
+    return aconf;
   }
 
   protected CompactionFinalizer
@@ -225,7 +222,7 @@ public class CompactionCoordinator extends AbstractServer
   protected ServerAddress startCoordinatorClientService() throws UnknownHostException {
     var processor = ThriftProcessorTypes.getCoordinatorTProcessor(this, getContext());
     Property maxMessageSizeProperty =
-        (aconf.get(Property.COMPACTION_COORDINATOR_MAX_MESSAGE_SIZE) != null
+        (getConfiguration().get(Property.COMPACTION_COORDINATOR_MAX_MESSAGE_SIZE) != null
             ? Property.COMPACTION_COORDINATOR_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(getContext(), getHostname(),
         Property.COMPACTION_COORDINATOR_CLIENTPORT, processor, this.getClass().getSimpleName(),
@@ -373,7 +370,7 @@ public class CompactionCoordinator extends AbstractServer
   }
 
   protected long getTServerCheckInterval() {
-    return this.aconf
+    return getConfiguration()
         .getTimeInMillis(Property.COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL);
   }
 

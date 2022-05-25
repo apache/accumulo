@@ -42,6 +42,7 @@ import com.google.common.base.Preconditions;
 public class ZooKeeperTestingServer implements AutoCloseable {
 
   private static final Logger log = LoggerFactory.getLogger(ZooKeeperTestingServer.class);
+  public static final String SECRET = "secret";
 
   private TestingServer zkServer;
   private final ZooKeeper zoo;
@@ -101,7 +102,7 @@ public class ZooKeeperTestingServer implements AutoCloseable {
   }
 
   public ZooReaderWriter getZooReaderWriter() {
-    return new ZooReader(getConn(), 30000).asWriter("secret");
+    return new ZooReader(getConn(), 30000).asWriter(SECRET);
   }
 
   public String getConn() {

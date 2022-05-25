@@ -23,44 +23,51 @@ var scansList;
 /**
  * Creates scans initial table
  */
-$(document).ready(function() {
-// Create a table for scans list
-     scansList = $('#scansList').DataTable({
-       "ajax": {
-         "url": '/rest/scans',
-         "dataSrc": "scans"
-       },
-       "stateSave": true,
-       "dom": 't<"align-left"l>p',
-       "columnDefs": [
-           { "targets": "duration",
-             "render": function ( data, type, row ) {
-               if(type === 'display') data = timeDuration(data);
-               return data;
-             }
-           },
-           { "targets": "date",
-               "render": function ( data, type, row ) {
-                 if(type === 'display') data = dateFormat(data);
-                 return data;
-               }
-             }
-         ],
-       "columns": [
-         { "data": "server",
-           "type": "html",
-           "render": function ( data, type, row, meta ) {
-             if(type === 'display') {
-                data = '<a href="/tservers?s=' + row.server + '">' + row.server + '</a>';
-             }
-             return data;
-           }
-         },
-         { "data": "scanCount" },
-         { "data": "oldestScan" },
-         { "data": "fetched" },
-       ]
-     });
+$(document).ready(function () {
+  // Create a table for scans list
+  scansList = $('#scansList').DataTable({
+    "ajax": {
+      "url": '/rest/scans',
+      "dataSrc": "scans"
+    },
+    "stateSave": true,
+    "dom": 't<"align-left"l>p',
+    "columnDefs": [{
+        "targets": "duration",
+        "render": function (data, type, row) {
+          if (type === 'display') data = timeDuration(data);
+          return data;
+        }
+      },
+      {
+        "targets": "date",
+        "render": function (data, type, row) {
+          if (type === 'display') data = dateFormat(data);
+          return data;
+        }
+      }
+    ],
+    "columns": [{
+        "data": "server",
+        "type": "html",
+        "render": function (data, type, row, meta) {
+          if (type === 'display') {
+            data = '<a href="/tservers?s=' + row.server + '">' + row.server + '</a>';
+          }
+          return data;
+        }
+      },
+      {
+        "data": "scanCount"
+      },
+      {
+        "data": "oldestScan"
+      },
+      {
+        "data": "fetched"
+      },
+    ]
+  });
 });
 
 
@@ -75,5 +82,5 @@ function refresh() {
  * Generates the scans table
  */
 function refreshScansTable() {
-   if(scansList) scansList.ajax.reload(null, false ); // user paging is not reset on reload
+  if (scansList) scansList.ajax.reload(null, false); // user paging is not reset on reload
 }
