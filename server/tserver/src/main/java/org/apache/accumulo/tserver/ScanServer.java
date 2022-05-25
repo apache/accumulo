@@ -39,8 +39,9 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
@@ -115,6 +116,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
 public class ScanServer extends AbstractServer
@@ -158,9 +160,20 @@ public class ScanServer extends AbstractServer
   private UUID serverLockUUID;
   private final TabletMetadataLoader tabletMetadataLoader;
   private final LoadingCache<KeyExtent,TabletMetadata> tabletMetadataCache;
-  protected Set<StoredTabletFile> lockedFiles = new HashSet<>();
-  protected Map<StoredTabletFile,ReservedFile> reservedFiles = new ConcurrentHashMap<>();
-  protected AtomicLong nextScanReservationId = new AtomicLong();
+  // tracks file reservations that are in the process of being added or removed from the metadata
+  // table
+  private final Set<StoredTabletFile> influxFiles = new HashSet<>();
+  // a read lock that ensures files are not removed from reservedFiles while its held
+  private final ReentrantReadWriteLock.ReadLock reservationsReadLock;
+  // a write lock that must be held when mutating influxFiles or when removing entries from
+  // reservedFiles
+  private final ReentrantReadWriteLock.WriteLock reservationsWriteLock;
+  // this condition is used to signal changes to influxFiles
+  private final Condition reservationCondition;
+  // the key is the set of files that have reservations in the metadata table, the value contains
+  // information about which scans are currently using the file
+  private final Map<StoredTabletFile,ReservedFile> reservedFiles = new ConcurrentHashMap<>();
+  private final AtomicLong nextScanReservationId = new AtomicLong();
 
   private final ServerContext context;
   private final SessionManager sessionManager;
@@ -185,6 +198,11 @@ public class ScanServer extends AbstractServer
     this.resourceManager = new TabletServerResourceManager(context, this);
 
     this.managerLockCache = new ZooCache(context.getZooReader(), null);
+
+    var readWriteLock = new ReentrantReadWriteLock();
+    reservationsReadLock = readWriteLock.readLock();
+    reservationsWriteLock = readWriteLock.writeLock();
+    reservationCondition = readWriteLock.writeLock().newCondition();
 
     // Note: The way to control the number of concurrent scans that a ScanServer will
     // perform is by using Property.SSERV_SCAN_EXECUTORS_DEFAULT_THREADS or the number
@@ -392,70 +410,13 @@ public class ScanServer extends AbstractServer
   }
 
   static class ReservedFile {
-    Set<Long> activeReservations = new ConcurrentSkipListSet<>();
-    volatile long lastUseTime;
+    final Set<Long> activeReservations = new ConcurrentSkipListSet<>();
+    final AtomicLong lastUseTime = new AtomicLong(0);
 
     boolean shouldDelete(long expireTimeMs) {
       return activeReservations.isEmpty()
-          && System.currentTimeMillis() - lastUseTime > expireTimeMs;
+          && System.currentTimeMillis() - lastUseTime.get() > expireTimeMs;
     }
-  }
-
-  private class FilesLock implements AutoCloseable {
-
-    private final Collection<StoredTabletFile> files;
-    private final AtomicBoolean closed = new AtomicBoolean(false);
-
-    public FilesLock(Collection<StoredTabletFile> files) {
-      this.files = files;
-    }
-
-    Collection<StoredTabletFile> getLockedFiles() {
-      return files;
-    }
-
-    @Override
-    public void close() {
-      // only allow close to be called once
-      if (!closed.compareAndSet(false, true)) {
-        return;
-      }
-
-      synchronized (lockedFiles) {
-        for (StoredTabletFile file : files) {
-          if (!lockedFiles.remove(file)) {
-            throw new IllegalStateException("tried to unlock file that was not locked");
-          }
-        }
-
-        lockedFiles.notifyAll();
-      }
-    }
-  }
-
-  private FilesLock lockFiles(Collection<StoredTabletFile> files) {
-
-    // lets ensure we lock and unlock that same set of files even if the passed in files changes
-    var filesCopy = Set.copyOf(files);
-
-    synchronized (lockedFiles) {
-
-      while (!Collections.disjoint(filesCopy, lockedFiles)) {
-        try {
-          lockedFiles.wait();
-        } catch (InterruptedException e) {
-          throw new RuntimeException(e);
-        }
-      }
-
-      for (StoredTabletFile file : filesCopy) {
-        if (!lockedFiles.add(file)) {
-          throw new IllegalStateException("file unexpectedly not added");
-        }
-      }
-    }
-
-    return new FilesLock(filesCopy);
   }
 
   class ScanReservation implements AutoCloseable {
@@ -491,18 +452,18 @@ public class ScanServer extends AbstractServer
 
     @Override
     public void close() {
-      try (FilesLock flock = lockFiles(files)) {
-        for (StoredTabletFile file : flock.getLockedFiles()) {
-          var reservedFile = reservedFiles.get(file);
+      // There is no need to get a lock for removing our reservations. The reservation was added
+      // with a lock held and once its added that prevents file from being removed.
+      for (StoredTabletFile file : files) {
+        var reservedFile = reservedFiles.get(file);
 
-          if (!reservedFile.activeReservations.remove(myReservationId)) {
-            throw new IllegalStateException("reservation id was not in set as expected");
-          }
-
-          LOG.trace("RFFS {} unreserved reference for file {}", myReservationId, file);
-
-          reservedFile.lastUseTime = System.currentTimeMillis();
+        if (!reservedFile.activeReservations.remove(myReservationId)) {
+          throw new IllegalStateException("reservation id was not in set as expected");
         }
+
+        LOG.trace("RFFS {} unreserved reference for file {}", myReservationId, file);
+
+        reservedFile.lastUseTime.set(System.currentTimeMillis());
       }
     }
   }
@@ -535,14 +496,53 @@ public class ScanServer extends AbstractServer
       tm.getFiles().forEach(file -> allFiles.put(file, extent));
     });
 
-    try (FilesLock flock = lockFiles(allFiles.keySet())) {
+    // The read lock prevents anything from being removed from reservedFiles while adding
+    // reservations to the values of reservedFiles. Using a read lock avoids scans from having to
+    // wait on each other their files are already reserved.
+    reservationsReadLock.lock();
+    try {
+      if (reservedFiles.keySet().containsAll(allFiles.keySet())) {
+        // all files already have reservations in the metadata table, so we can add ourself
+        for (StoredTabletFile file : allFiles.keySet()) {
+          if (!reservedFiles.get(file).activeReservations.add(myReservationId)) {
+            throw new IllegalStateException("reservation id unexpectedly already in set");
+          }
+        }
+
+        return tabletsMetadata;
+      }
+    } finally {
+      reservationsReadLock.unlock();
+    }
+
+    // reservations do not exist in the metadata table, so we will attempt to add them
+    reservationsWriteLock.lock();
+    try {
+      // wait if another thread is working on the files we are interested in
+      while (!Collections.disjoint(influxFiles, allFiles.keySet())) {
+        reservationCondition.await();
+      }
+
+      // add files to reserve to influxFiles so that no other thread tries to add or remove these
+      // file from the metadata table or the reservedFiles map
+      influxFiles.addAll(allFiles.keySet());
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    } finally {
+      reservationsWriteLock.unlock();
+    }
+
+    // do not add any code here that could cause an exception which could lead to files not being
+    // removed from influxFiles
+
+    try {
       Set<StoredTabletFile> filesToReserve = new HashSet<>();
       List<ScanServerRefTabletFile> refs = new ArrayList<>();
       Set<KeyExtent> tabletsToCheck = new HashSet<>();
 
       String serverAddress = clientAddress.toString();
 
-      for (StoredTabletFile file : flock.getLockedFiles()) {
+      for (StoredTabletFile file : allFiles.keySet()) {
         if (!reservedFiles.containsKey(file)) {
           refs.add(new ScanServerRefTabletFile(file.getPathStr(), serverAddress, serverLockUUID));
           filesToReserve.add(file);
@@ -590,7 +590,9 @@ public class ScanServer extends AbstractServer
         }
       }
 
-      for (StoredTabletFile file : flock.getLockedFiles()) {
+      // we do not hold a lock but the files we are adding are in influxFiles so its ok to add to
+      // reservedFiles
+      for (StoredTabletFile file : allFiles.keySet()) {
         if (!reservedFiles.computeIfAbsent(file, k -> new ReservedFile()).activeReservations
             .add(myReservationId)) {
           throw new IllegalStateException("reservation id unexpectedly already in set");
@@ -599,9 +601,16 @@ public class ScanServer extends AbstractServer
         LOG.trace("RFFS {} reserved reference for startScan {}", myReservationId, file);
       }
 
+      return tabletsMetadata;
+    } finally {
+      reservationsWriteLock.lock();
+      try {
+        allFiles.keySet().forEach(file -> Preconditions.checkState(influxFiles.remove(file)));
+        reservationCondition.signal();
+      } finally {
+        reservationsWriteLock.unlock();
+      }
     }
-
-    return tabletsMetadata;
   }
 
   protected ScanReservation reserveFiles(Collection<KeyExtent> extents)
@@ -639,8 +648,10 @@ public class ScanServer extends AbstractServer
     }
 
     long myReservationId = nextScanReservationId.incrementAndGet();
-
-    try (FilesLock flock = lockFiles(scanSessionFiles)) {
+    // we are only reserving if the files already exists in reservedFiles, so only need the read
+    // lock which prevents deletions from reservedFiles while we mutate the values of reservedFiles
+    reservationsReadLock.lock();
+    try {
       if (!reservedFiles.keySet().containsAll(scanSessionFiles)) {
         // the files are no longer reserved in the metadata table, so lets pretend there is no scan
         // session
@@ -651,7 +662,7 @@ public class ScanServer extends AbstractServer
         throw new NoSuchScanIDException();
       }
 
-      for (StoredTabletFile file : flock.getLockedFiles()) {
+      for (StoredTabletFile file : scanSessionFiles) {
         if (!reservedFiles.get(file).activeReservations.add(myReservationId)) {
           throw new IllegalStateException("reservation id unexpectedly already in set");
         }
@@ -659,12 +670,70 @@ public class ScanServer extends AbstractServer
         LOG.trace("RFFS {} reserved reference for continue scan {} {}", myReservationId, scanId,
             file);
       }
+    } finally {
+      reservationsReadLock.unlock();
     }
 
     return new ScanReservation(scanSessionFiles, myReservationId);
   }
 
   private void cleanUpReservedFiles(long expireTimeMs) {
+
+    // Do a quick check to see if there is any potential work. This check is done to avoid acquiring
+    // the write lock unless its needed since the write lock can be disruptive for the read lock.
+    if (reservedFiles.values().stream().anyMatch(rf -> rf.shouldDelete(expireTimeMs))) {
+
+      List<ScanServerRefTabletFile> refsToDelete = new ArrayList<>();
+      List<StoredTabletFile> confirmed = new ArrayList<>();
+      String serverAddress = clientAddress.toString();
+
+      reservationsWriteLock.lock();
+      try {
+        var reservedIter = reservedFiles.entrySet().iterator();
+
+        while (reservedIter.hasNext()) {
+          var entry = reservedIter.next();
+          var file = entry.getKey();
+          if (entry.getValue().shouldDelete(expireTimeMs) && !influxFiles.contains(file)) {
+            // if some other thread decides to add the file back again while we try to delete it
+            // then adding the file to influxFiles will make it wait until we finish
+            influxFiles.add(file);
+            confirmed.add(file);
+            refsToDelete
+                .add(new ScanServerRefTabletFile(file.getPathStr(), serverAddress, serverLockUUID));
+
+            // remove the entry from the map while holding the write lock ensuring no new
+            // reservations are added to the map values while the metadata operation to delete is
+            // running
+            reservedIter.remove();
+          }
+        }
+      } finally {
+        reservationsWriteLock.unlock();
+      }
+
+      if (!confirmed.isEmpty()) {
+        try {
+          // Do this metadata operation is done w/o holding the lock
+          getContext().getAmple().deleteScanServerFileReferences(refsToDelete);
+          if (LOG.isTraceEnabled()) {
+            confirmed.forEach(refToDelete -> LOG.trace(
+                "RFFS referenced files has not been used recently, removing reference {}",
+                refToDelete));
+          }
+        } finally {
+          reservationsWriteLock.lock();
+          try {
+            confirmed.forEach(file -> Preconditions.checkState(influxFiles.remove(file)));
+            reservationCondition.signal();
+          } finally {
+            reservationsWriteLock.unlock();
+          }
+        }
+      }
+
+    }
+
     List<StoredTabletFile> candidates = new ArrayList<>();
 
     reservedFiles.forEach((file, reservationInfo) -> {
@@ -672,36 +741,6 @@ public class ScanServer extends AbstractServer
         candidates.add(file);
       }
     });
-
-    if (!candidates.isEmpty()) {
-      // gain exclusive access to files to avoid multiple threads adding/deleting file reservations
-      // at same time
-      try (FilesLock flock = lockFiles(candidates)) {
-        List<ScanServerRefTabletFile> refsToDelete = new ArrayList<>();
-        List<StoredTabletFile> confirmed = new ArrayList<>();
-
-        String serverAddress = clientAddress.toString();
-
-        // check that is still a candidate now that files are locked and no other thread should be
-        // modifying them
-        for (StoredTabletFile candidate : flock.getLockedFiles()) {
-          var reservation = reservedFiles.get(candidate);
-          if (reservation != null && reservation.shouldDelete(expireTimeMs)) {
-            refsToDelete.add(
-                new ScanServerRefTabletFile(candidate.getPathStr(), serverAddress, serverLockUUID));
-            confirmed.add(candidate);
-            LOG.trace("RFFS referenced files has not been used recently, removing reference {}",
-                candidate);
-          }
-        }
-
-        getContext().getAmple().deleteScanServerFileReferences(refsToDelete);
-
-        // those refs were successfully removed from metadata table, so remove them from the map
-        reservedFiles.keySet().removeAll(confirmed);
-
-      }
-    }
   }
 
   /*

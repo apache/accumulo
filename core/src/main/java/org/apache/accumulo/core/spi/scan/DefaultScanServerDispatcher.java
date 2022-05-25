@@ -154,9 +154,8 @@ public class DefaultScanServerDispatcher implements ScanServerDispatcher {
 
     for (TabletId tablet : params.getTablets()) {
 
-      // TODO handle io errors
-      long busyAttempts = params.getAttempts(tablet).stream()
-          .filter(sa -> sa.getResult() == ScanAttempt.Result.BUSY).count();
+      // this a count of errors and busy attempts, will treat errors as busy
+      long busyAttempts = params.getAttempts(tablet).size();
 
       maxBusyAttempts = Math.max(maxBusyAttempts, busyAttempts);
 
@@ -177,7 +176,6 @@ public class DefaultScanServerDispatcher implements ScanServerDispatcher {
       int serverIndex =
           (Math.abs(hashCode.asInt()) + RANDOM.nextInt(numServers)) % orderedScanServers.size();
 
-      // TODO could check if errors were seen on this server in past attempts
       serverToUse = orderedScanServers.get(serverIndex);
 
       serversToUse.put(tablet, serverToUse);

@@ -190,6 +190,10 @@ public class ThriftScanner {
 
     Duration busyTimeout;
 
+    TabletLocation getErrorLocation() {
+      return prevLoc;
+    }
+
     public ScanState(ClientContext context, TableId tableId, Authorizations authorizations,
         Range range, SortedSet<Column> fetchedColumns, int size,
         List<IterInfo> serverSideIteratorList,
@@ -354,14 +358,14 @@ public class ThriftScanner {
           throw e;
         } catch (TApplicationException tae) {
           TraceUtil.setException(child2, tae, true);
-          throw new AccumuloServerException(loc.tablet_location, tae);
+          throw new AccumuloServerException(scanState.getErrorLocation().tablet_location, tae);
         } catch (TSampleNotPresentException tsnpe) {
           String message = "Table " + context.getPrintableTableInfoFromId(scanState.tableId)
               + " does not have sampling configured or built";
           TraceUtil.setException(child2, tsnpe, true);
           throw new SampleNotPresentException(message, tsnpe);
         } catch (NotServingTabletException e) {
-          error = "Scan failed, not serving tablet " + loc;
+          error = "Scan failed, not serving tablet " + scanState.getErrorLocation();
           if (!error.equals(lastError))
             log.debug("{}", error);
           else if (log.isTraceEnabled())
@@ -382,7 +386,7 @@ public class ThriftScanner {
           TraceUtil.setException(child2, e, false);
           sleepMillis = pause(sleepMillis, maxSleepTime, scanState.runOnScanServer);
         } catch (ScanServerBusyException e) {
-          error = "Scan failed, scan server was busy " + loc;
+          error = "Scan failed, scan server was busy " + scanState.getErrorLocation();
           if (!error.equals(lastError))
             log.debug("{}", error);
           else if (log.isTraceEnabled())
@@ -397,7 +401,8 @@ public class ThriftScanner {
           TraceUtil.setException(child2, e, false);
           scanState.scanID = null;
         } catch (NoSuchScanIDException e) {
-          error = "Scan failed, no such scan id " + scanState.scanID + " " + loc;
+          error = "Scan failed, no such scan id " + scanState.scanID + " "
+              + scanState.getErrorLocation();
           if (!error.equals(lastError))
             log.debug("{}", error);
           else if (log.isTraceEnabled())
@@ -412,7 +417,7 @@ public class ThriftScanner {
           TraceUtil.setException(child2, e, false);
           scanState.scanID = null;
         } catch (TooManyFilesException e) {
-          error = "Tablet has too many files " + loc + " retrying...";
+          error = "Tablet has too many files " + scanState.getErrorLocation() + " retrying...";
           if (error.equals(lastError)) {
             tooManyFilesCount++;
             if (tooManyFilesCount == 300)
@@ -441,7 +446,7 @@ public class ThriftScanner {
           TabletLocator.getLocator(context, scanState.tableId).invalidateCache(context,
               loc.tablet_location);
           error = "Scan failed, thrift error " + e.getClass().getName() + "  " + e.getMessage()
-              + " " + loc;
+              + " " + scanState.getErrorLocation();
           if (!error.equals(lastError))
             log.debug("{}", error);
           else if (log.isTraceEnabled())

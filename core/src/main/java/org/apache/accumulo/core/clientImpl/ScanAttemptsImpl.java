@@ -31,6 +31,13 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Maps;
 
+/**
+ * This class is used to track scan attempts for the ScanServerDispatcher. Its designed to accept
+ * updates concurrently (useful for the batch scanner) and offers a snapshot. When a snapshot is
+ * obtained it will not change, this class will still accept updates after generating a snapshot.
+ * Snapshots are useful for ensuring that authors of ScanServerDispatcher plugins do not have to
+ * consider strange concurrency issues when writing a plugin.
+ */
 public class ScanAttemptsImpl {
 
   private static final Logger LOG = LoggerFactory.getLogger(ScanAttemptsImpl.class);

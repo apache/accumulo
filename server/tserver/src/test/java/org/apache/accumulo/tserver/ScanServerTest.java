@@ -30,11 +30,8 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -148,9 +145,6 @@ public class ScanServerTest {
     ss.extent = sextent;
     ss.resolver = resolver;
     ss.reservation = reservation;
-    ss.lockedFiles = new HashSet<>();
-    ss.reservedFiles = new ConcurrentHashMap<>();
-    ss.nextScanReservationId = new AtomicLong();
     ss.clientAddress = HostAndPort.fromParts("127.0.0.1", 1234);
 
     TKeyExtent textent = createMock(TKeyExtent.class);
@@ -241,9 +235,6 @@ public class ScanServerTest {
     ss.extent = extent;
     ss.resolver = resolver;
     ss.reservation = reservation;
-    ss.lockedFiles = new HashSet<>();
-    ss.reservedFiles = new ConcurrentHashMap<>();
-    ss.nextScanReservationId = new AtomicLong();
     ss.clientAddress = HostAndPort.fromParts("127.0.0.1", 1234);
 
     Map<TKeyExtent,List<TRange>> extents = new HashMap<>();
@@ -287,9 +278,6 @@ public class ScanServerTest {
     TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
     ss.delegate = handler;
     ss.resolver = resolver;
-    ss.lockedFiles = new HashSet<>();
-    ss.reservedFiles = new ConcurrentHashMap<>();
-    ss.nextScanReservationId = new AtomicLong();
     ss.clientAddress = HostAndPort.fromParts("127.0.0.1", 1234);
 
     assertThrows(TException.class, () -> {
