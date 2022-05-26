@@ -219,9 +219,8 @@ public class FateCommand extends Command {
       ZooReaderWriter zk, ServiceLock.ServiceLockPath tableLocksPath, String[] args, CommandLine cl,
       boolean printStatus) throws InterruptedException, KeeperException, IOException {
     // Parse transaction ID filters for print display
-    Set<Long> filterTxid = null;
-    if (args.length >= 2) {
-      filterTxid = new HashSet<>(args.length);
+    Set<Long> filterTxid = new HashSet<>();
+    if (args != null && args.length >= 2) {
       for (int i = 1; i < args.length; i++) {
         Long val = parseTxid(args[i]);
         filterTxid.add(val);
