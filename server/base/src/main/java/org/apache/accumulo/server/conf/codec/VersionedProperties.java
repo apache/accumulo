@@ -111,9 +111,11 @@ public class VersionedProperties {
    * Implementation note: The data version is stored and returned is an unsigned 32-bit integer
    * value. Internally, ZooKeeper stores the value as a 32-bit signed value that can roll-over and
    * become negative. The can break applications that rely on the value to always increase. This
-   * class ensures that the long returned will increase and will not be negative.
+   * class avoids a negative roll-over after 2^31 (it is still possible that the value could
+   * roll-over to 0).
    *
-   * @return 0 for initial version, otherwise the data version when the properties were serialized.
+   * @return 0 for initial version, otherwise the data version when the properties were read from
+   *         ZooKeeper.
    */
   public long getDataVersion() {
     return dataVersion;
