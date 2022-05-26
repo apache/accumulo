@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.metadata;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -27,20 +29,18 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.hadoop.fs.Path;
 
-import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 public class RootGcCandidates {
   // Version 1. Released with Accumulo version 2.1.0
   private static final int VERSION = 1;
 
-  private final Gson gson;
-  private final RootGcCandidatesData data;
+  private final Gson gson = new Gson();
+  private final Data data;
 
   // This class is used to serialize and deserialize root tablet metadata using GSon. Any changes to
   // this class must consider persisted data.
-  private static class RootGcCandidatesData {
+  private static class Data {
     private final int version;
 
     /*
@@ -52,24 +52,23 @@ public class RootGcCandidates {
      */
     private final SortedMap<String,SortedSet<String>> candidates;
 
-    public RootGcCandidatesData(int version, SortedMap<String,SortedSet<String>> candidates) {
+    public Data(int version, SortedMap<String,SortedSet<String>> candidates) {
       this.version = version;
       this.candidates = candidates;
     }
   }
 
   public RootGcCandidates() {
-    this.gson = new GsonBuilder().create();
-    this.data = new RootGcCandidatesData(VERSION, new TreeMap<>());
+    this.data = new Data(VERSION, new TreeMap<>());
   }
 
-  public RootGcCandidates(Gson gson, String jsonString) {
-    this.gson = gson;
-    this.data = gson.fromJson(jsonString, RootGcCandidatesData.class);
-    Preconditions.checkArgument(data.version == VERSION, "Unrecognized version %s", data.version);
+  public RootGcCandidates(String jsonString) {
+    this.data = gson.fromJson(jsonString, Data.class);
+    checkArgument(data.version == VERSION, "Invalid Root Table GC Candidates JSON version %s",
+        data.version);
     data.candidates.forEach((parent, files) -> {
-      Preconditions.checkArgument(!parent.isBlank(), "Blank parent dir in %s", data.candidates);
-      Preconditions.checkArgument(!files.isEmpty(), "Empty files for dir %s", parent);
+      checkArgument(!parent.isBlank(), "Blank parent dir in %s", data.candidates);
+      checkArgument(!files.isEmpty(), "Empty files for dir %s", parent);
     });
   }
 

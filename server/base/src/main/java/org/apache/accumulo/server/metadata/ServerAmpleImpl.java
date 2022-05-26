@@ -84,7 +84,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     try {
       context.getZooReaderWriter().mutateOrCreate(zpath, new byte[0], currVal -> {
         String currJson = new String(currVal, UTF_8);
-        RootGcCandidates rgcc = new RootGcCandidates(context.getGson(), currJson);
+        RootGcCandidates rgcc = new RootGcCandidates(currJson);
         log.debug("Root GC candidates before change : {}", currJson);
         mutator.accept(rgcc);
         String newJson = rgcc.toJson();
@@ -168,8 +168,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       } catch (KeeperException | InterruptedException e) {
         throw new RuntimeException(e);
       }
-      return new RootGcCandidates(context.getGson(), new String(jsonBytes, UTF_8)).sortedStream()
-          .iterator();
+      return new RootGcCandidates(new String(jsonBytes, UTF_8)).sortedStream().iterator();
     } else if (level == DataLevel.METADATA || level == DataLevel.USER) {
       Range range = DeletesSection.getRange();
 

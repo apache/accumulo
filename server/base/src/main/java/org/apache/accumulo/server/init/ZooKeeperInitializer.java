@@ -36,7 +36,7 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
-import org.apache.accumulo.core.metadata.schema.RootTabletJson;
+import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
@@ -198,7 +198,7 @@ public class ZooKeeperInitializer {
     MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mutation,
         new Value(new MetadataTime(0, TimeType.LOGICAL).encode()));
 
-    RootTabletJson rootTabletJson = new RootTabletJson();
+    RootTabletMetadata rootTabletJson = new RootTabletMetadata();
     rootTabletJson.update(mutation);
 
     return rootTabletJson.toJson().getBytes(UTF_8);

@@ -62,7 +62,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
-import org.apache.accumulo.core.metadata.schema.RootTabletJson;
+import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
@@ -270,7 +270,7 @@ public class Upgrader9to10 implements Upgrader {
               // concurrently running upgrade could cause this to fail.
               Preconditions.checkState(currVal.length == 0,
                   "Expected root tablet metadata to be empty!");
-              var rtm = new RootTabletJson();
+              var rtm = new RootTabletMetadata();
               rtm.update(mutation);
               String json = rtm.toJson();
               log.info("Upgrading root tablet metadata, writing following to ZK : \n {}", json);
