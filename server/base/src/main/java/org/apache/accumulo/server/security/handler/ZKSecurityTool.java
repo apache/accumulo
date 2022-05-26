@@ -25,9 +25,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -41,6 +43,10 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.commons.codec.digest.Crypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Scheduler;
 
 /**
  * All the static too methods used for this class, so that we can separate out stuff that isn't
@@ -114,16 +120,37 @@ class ZKSecurityTool {
     return cryptHash.getBytes(UTF_8);
   }
 
+  private static final Cache<ByteBuffer,String> CRYPT_PASSWORD_CACHE =
+      Caffeine.newBuilder().scheduler(Scheduler.systemScheduler())
+          .expireAfterAccess(Duration.ofMinutes(1)).initialCapacity(4).maximumSize(64).build();
+
+  // This uses a cache to avoid repeated expensive calls to Crypt.crypt for recent inputs
   public static boolean checkCryptPass(byte[] password, byte[] zkData) {
-    String zkDataString = new String(zkData, UTF_8);
-    String cryptHash;
+    final ByteBuffer key = ByteBuffer.allocate(password.length + zkData.length);
+    key.put(password);
+    key.put(zkData);
+    String cryptHash = CRYPT_PASSWORD_CACHE.getIfPresent(key);
+    if (cryptHash != null) {
+      if (MessageDigest.isEqual(zkData, cryptHash.getBytes(UTF_8))) {
+        // If matches then zkData has not changed from when it was put into the cache
+        return true;
+      } else {
+        // remove the non-matching entry from the cache
+        CRYPT_PASSWORD_CACHE.invalidate(key);
+      }
+    }
+    // Either !matches or was not cached
     try {
-      cryptHash = Crypt.crypt(password, zkDataString);
+      cryptHash = Crypt.crypt(password, new String(zkData, UTF_8));
     } catch (IllegalArgumentException e) {
       log.error("Unrecognized hash format", e);
       return false;
     }
-    return MessageDigest.isEqual(zkData, cryptHash.getBytes(UTF_8));
+    boolean matches = MessageDigest.isEqual(zkData, cryptHash.getBytes(UTF_8));
+    if (matches) {
+      CRYPT_PASSWORD_CACHE.put(key, cryptHash);
+    }
+    return matches;
   }
 
   public static Authorizations convertAuthorizations(byte[] authorizations) {

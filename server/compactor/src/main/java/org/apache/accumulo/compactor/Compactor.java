@@ -156,9 +156,13 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   private final AtomicBoolean compactionRunning = new AtomicBoolean(false);
 
   protected Compactor(CompactorServerOpts opts, String[] args) {
+    this(opts, args, null);
+  }
+
+  protected Compactor(CompactorServerOpts opts, String[] args, AccumuloConfiguration conf) {
     super("compactor", opts, args);
     queueName = opts.getQueueName();
-    aconf = getConfiguration();
+    aconf = conf == null ? super.getConfiguration() : conf;
     setupSecurity();
     watcher = new CompactionWatcher(aconf);
     var schedExecutor =
@@ -168,17 +172,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     printStartupMsg();
   }
 
-  protected Compactor(CompactorServerOpts opts, String[] args, AccumuloConfiguration conf) {
-    super("compactor", opts, args);
-    queueName = opts.getQueueName();
-    aconf = conf;
-    setupSecurity();
-    watcher = new CompactionWatcher(aconf);
-    var schedExecutor =
-        ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(aconf);
-    startGCLogger(schedExecutor);
-    startCancelChecker(schedExecutor, TIME_BETWEEN_CANCEL_CHECKS);
-    printStartupMsg();
+  @Override
+  public AccumuloConfiguration getConfiguration() {
+    return aconf;
   }
 
   @Override
@@ -331,8 +327,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
    */
   protected ServerAddress startCompactorClientService() throws UnknownHostException {
     var processor = ThriftProcessorTypes.getCompactorTProcessor(this, getContext());
-    Property maxMessageSizeProperty = (aconf.get(Property.COMPACTOR_MAX_MESSAGE_SIZE) != null
-        ? Property.COMPACTOR_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
+    Property maxMessageSizeProperty =
+        (getConfiguration().get(Property.COMPACTOR_MAX_MESSAGE_SIZE) != null
+            ? Property.COMPACTOR_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(getContext(), getHostname(),
         Property.COMPACTOR_CLIENTPORT, processor, this.getClass().getSimpleName(),
         "Thrift Client Server", Property.COMPACTOR_PORTSEARCH, Property.COMPACTOR_MINTHREADS,

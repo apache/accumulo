@@ -418,9 +418,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     }
   }
 
-  public boolean isPropertySet(Property prop) {
-    throw new UnsupportedOperationException();
-  }
+  public abstract boolean isPropertySet(Property prop);
 
   // deprecation property warning could get spammy in tserver so only warn once
   boolean depPropWarned = false;
