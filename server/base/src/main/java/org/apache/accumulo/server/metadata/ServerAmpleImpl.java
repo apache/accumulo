@@ -46,7 +46,6 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ExternalCompactionSection;
-import org.apache.accumulo.core.metadata.schema.RootGcCandidatesJson;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
@@ -80,12 +79,12 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     return new TabletsMutatorImpl(context);
   }
 
-  private void mutateRootGcCandidates(Consumer<RootGcCandidatesJson> mutator) {
+  private void mutateRootGcCandidates(Consumer<RootGcCandidates> mutator) {
     String zpath = context.getZooKeeperRoot() + ZROOT_TABLET_GC_CANDIDATES;
     try {
       context.getZooReaderWriter().mutateOrCreate(zpath, new byte[0], currVal -> {
         String currJson = new String(currVal, UTF_8);
-        RootGcCandidatesJson rgcc = new RootGcCandidatesJson(currJson);
+        RootGcCandidates rgcc = new RootGcCandidates(context.getGson(), currJson);
         log.debug("Root GC candidates before change : {}", currJson);
         mutator.accept(rgcc);
         String newJson = rgcc.toJson();
@@ -107,7 +106,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   public void putGcCandidates(TableId tableId, Collection<StoredTabletFile> candidates) {
 
     if (RootTable.ID.equals(tableId)) {
-      mutateRootGcCandidates(rgcc -> rgcc.add(candidates.iterator()));
+      mutateRootGcCandidates(rgcc -> rgcc.add(candidates.stream()));
       return;
     }
 
@@ -126,8 +125,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     if (RootTable.ID.equals(tableId)) {
 
       // Directories are unexpected for the root tablet, so convert to stored tablet file
-      mutateRootGcCandidates(
-          rgcc -> rgcc.add(candidates.stream().map(StoredTabletFile::new).iterator()));
+      mutateRootGcCandidates(rgcc -> rgcc.add(candidates.stream().map(StoredTabletFile::new)));
       return;
     }
 
@@ -144,7 +142,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   public void deleteGcCandidates(DataLevel level, Collection<String> paths) {
 
     if (level == DataLevel.ROOT) {
-      mutateRootGcCandidates(rgcc -> rgcc.remove(paths));
+      mutateRootGcCandidates(rgcc -> rgcc.remove(paths.stream()));
       return;
     }
 
@@ -170,9 +168,8 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       } catch (KeeperException | InterruptedException e) {
         throw new RuntimeException(e);
       }
-      Stream<String> candidates =
-          new RootGcCandidatesJson(new String(jsonBytes, UTF_8)).stream().sorted();
-      return candidates.iterator();
+      return new RootGcCandidates(context.getGson(), new String(jsonBytes, UTF_8)).sortedStream()
+          .iterator();
     } else if (level == DataLevel.METADATA || level == DataLevel.USER) {
       Range range = DeletesSection.getRange();
 

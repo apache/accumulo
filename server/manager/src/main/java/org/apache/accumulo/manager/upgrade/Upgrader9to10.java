@@ -62,7 +62,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
-import org.apache.accumulo.core.metadata.schema.RootGcCandidatesJson;
 import org.apache.accumulo.core.metadata.schema.RootTabletJson;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.security.Authorizations;
@@ -76,6 +75,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.util.ConfigPropertyUpgrader;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
+import org.apache.accumulo.server.metadata.RootGcCandidates;
 import org.apache.accumulo.server.metadata.TabletMutatorBase;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -232,7 +232,7 @@ public class Upgrader9to10 implements Upgrader {
     try {
       context.getZooReaderWriter().putPersistentData(
           context.getZooKeeperRoot() + ZROOT_TABLET_GC_CANDIDATES,
-          new RootGcCandidatesJson().toJson().getBytes(UTF_8), NodeExistsPolicy.SKIP);
+          new RootGcCandidates().toJson().getBytes(UTF_8), NodeExistsPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
     }

@@ -86,6 +86,9 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 /**
  * Provides a server context for Accumulo server components that operate with the system credentials
  * and have access to the system files and configuration.
@@ -97,6 +100,7 @@ public class ServerContext extends ClientContext {
   private final ZooReaderWriter zooReaderWriter;
   private final ServerDirs serverDirs;
   private final PropStore propStore;
+  private final Gson gson = new GsonBuilder().create();
 
   // lazily loaded resources, only loaded when needed
   private final Supplier<TableManager> tableManager;
@@ -154,6 +158,10 @@ public class ServerContext extends ClientContext {
       String zooKeepers, int zkSessionTimeOut) {
     return new ServerContext(
         new ServerInfo(siteConfig, instanceName, zooKeepers, zkSessionTimeOut));
+  }
+
+  public Gson getGson() {
+    return gson;
   }
 
   @Override
