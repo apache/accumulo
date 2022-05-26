@@ -125,25 +125,21 @@ class ZKSecurityTool {
           .expireAfterAccess(Duration.ofMinutes(1)).initialCapacity(4).maximumSize(64).build();
 
   // This uses a cache to avoid repeated expensive calls to Crypt.crypt for recent inputs
-  public static boolean checkCryptPass(byte[] password, byte[] zkData, boolean cacheEnabled) {
-    String cryptHash = null;
-    ByteBuffer key = null;
-    if (cacheEnabled) {
-      key = ByteBuffer.allocate(password.length + zkData.length);
-      key.put(password);
-      key.put(zkData);
-      cryptHash = CRYPT_PASSWORD_CACHE.getIfPresent(key);
-      if (cryptHash != null) {
-        if (MessageDigest.isEqual(zkData, cryptHash.getBytes(UTF_8))) {
-          // If matches then zkData has not changed from when it was put into the cache
-          return true;
-        } else {
-          // remove the non-matching entry from the cache
-          CRYPT_PASSWORD_CACHE.invalidate(key);
-        }
+  public static boolean checkCryptPass(byte[] password, byte[] zkData) {
+    final ByteBuffer key = ByteBuffer.allocate(password.length + zkData.length);
+    key.put(password);
+    key.put(zkData);
+    String cryptHash = CRYPT_PASSWORD_CACHE.getIfPresent(key);
+    if (cryptHash != null) {
+      if (MessageDigest.isEqual(zkData, cryptHash.getBytes(UTF_8))) {
+        // If matches then zkData has not changed from when it was put into the cache
+        return true;
+      } else {
+        // remove the non-matching entry from the cache
+        CRYPT_PASSWORD_CACHE.invalidate(key);
       }
     }
-    // Not cached or not matching cached value
+    // Either !matches or was not cached
     try {
       cryptHash = Crypt.crypt(password, new String(zkData, UTF_8));
     } catch (IllegalArgumentException e) {
@@ -151,7 +147,7 @@ class ZKSecurityTool {
       return false;
     }
     boolean matches = MessageDigest.isEqual(zkData, cryptHash.getBytes(UTF_8));
-    if (cacheEnabled && matches) {
+    if (matches) {
       CRYPT_PASSWORD_CACHE.put(key, cryptHash);
     }
     return matches;

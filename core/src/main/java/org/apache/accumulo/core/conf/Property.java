@@ -157,13 +157,6 @@ public enum Property {
       "The permission handler class that accumulo will use to determine if a "
           + "user has privilege to perform an action",
       "1.5.0"),
-  INSTANCE_SECURITY_ZK_AUTH_CACHE_ENABLED("instance.security.authenticator.zk.cache.enabled",
-      "true", PropertyType.BOOLEAN,
-      "Enables the temporary caching of successfully authenticated"
-          + " user passwords in org.apache.accumulo.server.security.handler.ZKAuthenticator to"
-          + " mitigate the performance penalties of having to compute the password hash"
-          + " on every API call",
-      "2.1.0"),
   INSTANCE_RPC_SSL_ENABLED("instance.rpc.ssl.enabled", "false", PropertyType.BOOLEAN,
       "Use SSL for socket connections from clients and among accumulo services. "
           + "Mutually exclusive with SASL RPC configuration.",

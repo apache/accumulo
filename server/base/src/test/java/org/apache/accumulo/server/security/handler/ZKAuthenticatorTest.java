@@ -105,16 +105,7 @@ public class ZKAuthenticatorTest {
     byte[] storedBytes;
 
     storedBytes = ZKSecurityTool.createPass(rawPass.clone());
-    assertTrue(ZKSecurityTool.checkCryptPass(rawPass.clone(), storedBytes, true));
-  }
-
-  @Test
-  public void testEncryptionNoCache() throws AccumuloException {
-    byte[] rawPass = "myPassword".getBytes(UTF_8);
-    byte[] storedBytes;
-
-    storedBytes = ZKSecurityTool.createPass(rawPass.clone());
-    assertTrue(ZKSecurityTool.checkCryptPass(rawPass.clone(), storedBytes, false));
+    assertTrue(ZKSecurityTool.checkCryptPass(rawPass.clone(), storedBytes));
   }
 
   @Deprecated
@@ -132,15 +123,7 @@ public class ZKAuthenticatorTest {
     byte[] rawPass = "myPassword".getBytes();
     @SuppressWarnings("deprecation")
     byte[] storedBytes = ZKSecurityTool.createOutdatedPass(rawPass);
-    assertFalse(ZKSecurityTool.checkCryptPass(rawPass, storedBytes, true));
-  }
-
-  @Test
-  public void testEncryptionDifferenceNoCache() throws AccumuloException {
-    byte[] rawPass = "myPassword".getBytes();
-    @SuppressWarnings("deprecation")
-    byte[] storedBytes = ZKSecurityTool.createOutdatedPass(rawPass);
-    assertFalse(ZKSecurityTool.checkCryptPass(rawPass, storedBytes, false));
+    assertFalse(ZKSecurityTool.checkCryptPass(rawPass, storedBytes));
   }
 
   @Test
