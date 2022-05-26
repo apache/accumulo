@@ -286,7 +286,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
         VersionedProperties updates = action.apply(vProps, changes);
 
         if (zrw.overwritePersistentData(propCacheKey.getPath(), codec.toBytes(updates),
-            updates.getDataVersion())) {
+            (int) updates.getDataVersion())) {
           return;
         }
         Thread.sleep(20); // small pause to get thread to yield.
