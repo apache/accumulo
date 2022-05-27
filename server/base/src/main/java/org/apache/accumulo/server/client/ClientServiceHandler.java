@@ -60,6 +60,10 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.store.NamespacePropKey;
+import org.apache.accumulo.server.conf.store.SystemPropKey;
+import org.apache.accumulo.server.conf.store.TablePropKey;
+import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.TableDiskUsage;
@@ -305,6 +309,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       ConfigurationType type) throws TException {
     switch (type) {
       case CURRENT:
+        ((ZooPropStore) context.getPropStore()).zkChangeEvent(SystemPropKey.of(context));
         return conf(credentials, context.getConfiguration());
       case SITE:
         return conf(credentials, context.getSiteConfiguration());
@@ -318,6 +323,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   public Map<String,String> getTableConfiguration(TInfo tinfo, TCredentials credentials,
       String tableName) throws TException, ThriftTableOperationException {
     TableId tableId = checkTableId(context, tableName, null);
+    ((ZooPropStore) context.getPropStore()).zkChangeEvent(TablePropKey.of(context, tableId));
     AccumuloConfiguration config = context.getTableConfiguration(tableId);
     return conf(credentials, config);
   }
@@ -458,6 +464,8 @@ public class ClientServiceHandler implements ClientService.Iface {
       throw new ThriftTableOperationException(null, ns, null,
           TableOperationExceptionType.NAMESPACE_NOTFOUND, why);
     }
+    ((ZooPropStore) context.getPropStore())
+        .zkChangeEvent(NamespacePropKey.of(context, namespaceId));
     AccumuloConfiguration config = context.getNamespaceConfiguration(namespaceId);
     return conf(credentials, config);
   }
