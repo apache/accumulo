@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import static org.apache.accumulo.core.Constants.ZTABLE_LOCKS;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
@@ -32,10 +33,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
-import java.util.EnumSet;
-import java.util.Formatter;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -44,8 +42,8 @@ import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.ReadOnlyRepo;
 import org.apache.accumulo.fate.ReadOnlyTStore;
 import org.apache.accumulo.fate.ZooStore;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.ShellConfigTest.TestOutputStream;
@@ -199,10 +197,13 @@ public class FateCommandTest {
     TestOutputStream output = new TestOutputStream();
     Shell shell = createShell(output);
 
-    ServiceLockPath tableLocksPath = createMock(ServiceLockPath.class);
+    ServiceLockPath tableLocksPath = ServiceLock.path("/accumulo" + ZTABLE_LOCKS);
     ZooStore<FateCommand> zs = createMock(ZooStore.class);
+    expect(zk.getChildren(tableLocksPath.toString())).andReturn(List.of("5")).anyTimes();
+    expect(zk.getChildren("/accumulo/table_locks/5")).andReturn(List.of()).anyTimes();
+    expect(zs.list()).andReturn(List.of()).anyTimes();
 
-    replay(tableLocksPath, zs);
+    replay(zs, zk);
 
     TestHelper helper = new TestHelper(true);
     FateCommand cmd = new FateCommand();
@@ -228,7 +229,7 @@ public class FateCommandTest {
       }
     }
 
-    verify(tableLocksPath, zs);
+    verify(zs, zk);
   }
 
   @Test
@@ -349,13 +350,6 @@ public class FateCommandTest {
     @Override
     public boolean checkGlobalLock(ZooReaderWriter zk, ServiceLockPath zLockManagerPath) {
       return true;
-    }
-
-    @Override
-    public void print(ReadOnlyTStore<FateCommand> zs, ZooReader zk, ServiceLockPath lockPath,
-        Formatter fmt, Set<Long> filterTxid, EnumSet<ReadOnlyTStore.TStatus> filterStatus)
-        throws KeeperException, InterruptedException {
-
     }
   }
 }
