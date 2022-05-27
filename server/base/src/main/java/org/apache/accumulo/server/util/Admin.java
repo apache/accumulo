@@ -379,9 +379,17 @@ public class Admin implements KeywordExecutable {
       log.info("No managers running. Not attempting safe unload of tserver.");
       return;
     }
+
     final String zTServerRoot = getTServersZkPath(context);
     final ZooCache zc = context.getZooCache();
+    List<String> runningServers;
+
     for (String server : servers) {
+      runningServers = context.instanceOperations().getTabletServers();
+      if (runningServers.size() == 1 && !force) {
+        log.info("Only 1 tablet server running. Not attempting shutdown of {}", server);
+        return;
+      }
       for (int port : context.getConfiguration().getPort(Property.TSERV_CLIENTPORT)) {
         HostAndPort address = AddressUtil.parseAddress(server, port);
         final String finalServer =
