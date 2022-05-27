@@ -114,4 +114,12 @@ public interface PropStore {
    */
   void registerAsListener(PropCacheKey<?> propCacheKey, PropChangeListener listener);
 
+  /**
+   * Force a change event. This will signal the store to refresh the local cache on the next read.
+   * This does not generate a global event to other processes / caches.
+   *
+   * @param propCacheKey
+   *          the prop cache key
+   */
+  void clearLocal(PropCacheKey<?> propCacheKey);
 }

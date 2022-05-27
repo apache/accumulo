@@ -312,6 +312,11 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     propStoreWatcher.registerListener(propCacheKey, listener);
   }
 
+  @Override
+  public void clearLocal(PropCacheKey<?> propCacheKey) {
+    zkChangeEvent(propCacheKey);
+  }
+
   private void checkZkConnection() {
     if (zkReadyMon.test()) {
       return;
