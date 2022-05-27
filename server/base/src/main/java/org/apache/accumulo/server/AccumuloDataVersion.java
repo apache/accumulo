@@ -38,7 +38,7 @@ public class AccumuloDataVersion {
 
   /**
    * version (10) reflects changes to how root tablet metadata is serialized in zookeeper starting
-   * with 2.1
+   * with 2.1. See {@link org.apache.accumulo.core.metadata.schema.RootTabletMetadata}.
    */
   public static final int ROOT_TABLET_META_CHANGES = 10;
 

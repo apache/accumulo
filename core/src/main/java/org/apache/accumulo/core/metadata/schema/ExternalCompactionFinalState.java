@@ -27,11 +27,10 @@ import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 public class ExternalCompactionFinalState {
 
-  private static final Gson GSON = new GsonBuilder().create();
+  private static final Gson GSON = new Gson();
 
   public enum FinalState {
     FINISHED, FAILED

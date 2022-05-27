@@ -296,7 +296,7 @@ public class TabletMetadata {
   }
 
   @VisibleForTesting
-  public static TabletMetadata convertRow(Iterator<Entry<Key,Value>> rowIter,
+  public static <E extends Entry<Key,Value>> TabletMetadata convertRow(Iterator<E> rowIter,
       EnumSet<ColumnType> fetchedColumns, boolean buildKeyValueMap) {
     Objects.requireNonNull(rowIter);
 

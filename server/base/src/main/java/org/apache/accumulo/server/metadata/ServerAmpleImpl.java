@@ -84,7 +84,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     try {
       context.getZooReaderWriter().mutateOrCreate(zpath, new byte[0], currVal -> {
         String currJson = new String(currVal, UTF_8);
-        RootGcCandidates rgcc = RootGcCandidates.fromJson(currJson);
+        RootGcCandidates rgcc = new RootGcCandidates(currJson);
         log.debug("Root GC candidates before change : {}", currJson);
         mutator.accept(rgcc);
         String newJson = rgcc.toJson();
@@ -106,7 +106,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   public void putGcCandidates(TableId tableId, Collection<StoredTabletFile> candidates) {
 
     if (RootTable.ID.equals(tableId)) {
-      mutateRootGcCandidates(rgcc -> rgcc.add(candidates.iterator()));
+      mutateRootGcCandidates(rgcc -> rgcc.add(candidates.stream()));
       return;
     }
 
@@ -125,8 +125,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     if (RootTable.ID.equals(tableId)) {
 
       // Directories are unexpected for the root tablet, so convert to stored tablet file
-      mutateRootGcCandidates(
-          rgcc -> rgcc.add(candidates.stream().map(StoredTabletFile::new).iterator()));
+      mutateRootGcCandidates(rgcc -> rgcc.add(candidates.stream().map(StoredTabletFile::new)));
       return;
     }
 
@@ -143,7 +142,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   public void deleteGcCandidates(DataLevel level, Collection<String> paths) {
 
     if (level == DataLevel.ROOT) {
-      mutateRootGcCandidates(rgcc -> rgcc.remove(paths));
+      mutateRootGcCandidates(rgcc -> rgcc.remove(paths.stream()));
       return;
     }
 
@@ -162,14 +161,14 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   public Iterator<String> getGcCandidates(DataLevel level) {
     if (level == DataLevel.ROOT) {
       var zooReader = context.getZooReader();
-      byte[] json;
+      byte[] jsonBytes;
       try {
-        json = zooReader.getData(context.getZooKeeperRoot() + RootTable.ZROOT_TABLET_GC_CANDIDATES);
+        jsonBytes =
+            zooReader.getData(context.getZooKeeperRoot() + RootTable.ZROOT_TABLET_GC_CANDIDATES);
       } catch (KeeperException | InterruptedException e) {
         throw new RuntimeException(e);
       }
-      Stream<String> candidates = RootGcCandidates.fromJson(json).stream().sorted();
-      return candidates.iterator();
+      return new RootGcCandidates(new String(jsonBytes, UTF_8)).sortedStream().iterator();
     } else if (level == DataLevel.METADATA || level == DataLevel.USER) {
       Range range = DeletesSection.getRange();
 
