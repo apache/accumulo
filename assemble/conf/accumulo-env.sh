@@ -73,11 +73,13 @@ export CLASSPATH
 
 ## JVM options set for all processes. Extra options can be passed in by setting ACCUMULO_JAVA_OPTS to an array of options.
 read -r -a accumulo_initial_opts < <(echo "$ACCUMULO_JAVA_OPTS")
-JAVA_OPTS=("${accumulo_initial_opts[@]}"
+JAVA_OPTS=(
   '-XX:OnOutOfMemoryError=kill -9 %p'
   '-XX:-OmitStackTraceInFastThrow'
   '-Djava.net.preferIPv4Stack=true'
-  "-Daccumulo.native.lib.path=${lib}/native")
+  "-Daccumulo.native.lib.path=${lib}/native"
+  "${accumulo_initial_opts[@]}"
+)
 
 ## Make sure Accumulo native libraries are built since they are enabled by default
 # bin is set by calling script that sources this env file
@@ -88,36 +90,36 @@ JAVA_OPTS=("${accumulo_initial_opts[@]}"
 # cmd is set by calling script that sources this env file
 #shellcheck disable=SC2154
 case "$cmd" in
-  manager | master) JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx512m' '-Xms512m') ;;
-  monitor) JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx256m' '-Xms256m') ;;
-  gc) JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx256m' '-Xms256m') ;;
-  tserver) JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx768m' '-Xms768m') ;;
-  compaction-coordinator) JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx512m' '-Xms512m') ;;
-  compactor) JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx256m' '-Xms256m') ;;
-  sserver) JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx512m' '-Xms512m') ;;
-  *) JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx256m' '-Xms64m') ;;
+  manager | master) JAVA_OPTS=('-Xmx512m' '-Xms512m' "${JAVA_OPTS[@]}") ;;
+  monitor) JAVA_OPTS=('-Xmx256m' '-Xms256m' "${JAVA_OPTS[@]}") ;;
+  gc) JAVA_OPTS=('-Xmx256m' '-Xms256m' "${JAVA_OPTS[@]}") ;;
+  tserver) JAVA_OPTS=('-Xmx768m' '-Xms768m' "${JAVA_OPTS[@]}") ;;
+  compaction-coordinator) JAVA_OPTS=('-Xmx512m' '-Xms512m' "${JAVA_OPTS[@]}") ;;
+  compactor) JAVA_OPTS=('-Xmx256m' '-Xms256m' "${JAVA_OPTS[@]}") ;;
+  sserver) JAVA_OPTS=('-Xmx512m' '-Xms512m' "${JAVA_OPTS[@]}") ;;
+  *) JAVA_OPTS=('-Xmx256m' '-Xms64m' "${JAVA_OPTS[@]}") ;;
 esac
 
 ## JVM options set for logging. Review log4j2.properties file to see how they are used.
-JAVA_OPTS=("${JAVA_OPTS[@]}"
-  "-Daccumulo.log.dir=${ACCUMULO_LOG_DIR}"
+JAVA_OPTS=("-Daccumulo.log.dir=${ACCUMULO_LOG_DIR}"
   "-Daccumulo.application=${cmd}${ACCUMULO_SERVICE_INSTANCE}_$(hostname)"
   "-Daccumulo.metrics.service.instance=${ACCUMULO_SERVICE_INSTANCE}"
   "-Dlog4j2.contextSelector=org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
   "-Dotel.service.name=${cmd}${ACCUMULO_SERVICE_INSTANCE}"
+  "${JAVA_OPTS[@]}"
 )
 
 ## Optionally setup OpenTelemetry SDK AutoConfigure
 ## See https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure
-#JAVA_OPTS=("${JAVA_OPTS[@]}"  "-Dotel.traces.exporter=jaeger")
+#JAVA_OPTS=('-Dotel.traces.exporter=jaeger' "${JAVA_OPTS[@]}")
 
 ## Optionally setup OpenTelemetry Java Agent
 ## See https://github.com/open-telemetry/opentelemetry-java-instrumentation for more options
-#JAVA_OPTS=("${JAVA_OPTS[@]}"  "-javaagent:path/to/opentelemetry-javaagent-all.jar")
+#JAVA_OPTS=('-javaagent:path/to/opentelemetry-javaagent-all.jar' "${JAVA_OPTS[@]}")
 
 case "$cmd" in
   monitor | gc | manager | master | tserver | compaction-coordinator | compactor | sserver)
-    JAVA_OPTS=("${JAVA_OPTS[@]}" "-Dlog4j.configurationFile=log4j2-service.properties")
+    JAVA_OPTS=('-Dlog4j.configurationFile=log4j2-service.properties' "${JAVA_OPTS[@]}")
     ;;
   *)
     # let log4j use its default behavior (log4j2.properties, etc.)

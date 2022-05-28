@@ -170,6 +170,21 @@ public class VersionedPropertiesTest {
     assertTrue(vProps.print(true).contains("\n"));
   }
 
+  /**
+   * validate that the VersionProperty data version increases past MAX_INT (does not go negative on
+   * integer overflow)
+   */
+  @Test
+  void dataVersionOverflowTest() {
+    long ver = Integer.MAX_VALUE;
+    VersionedProperties intmax = new VersionedProperties(ver, Instant.now(), Map.of());
+    VersionedProperties intmax_plus_1 = new VersionedProperties(ver + 1, Instant.now(), Map.of());
+    VersionedProperties intmax_plus_10 = new VersionedProperties(ver + 10, Instant.now(), Map.of());
+
+    assertTrue(intmax.getDataVersion() < intmax_plus_1.getDataVersion());
+    assertTrue(intmax_plus_1.getDataVersion() < intmax_plus_10.getDataVersion());
+  }
+
   @Test
   public void isoTimestamp() {
     VersionedProperties vProps = new VersionedProperties();
