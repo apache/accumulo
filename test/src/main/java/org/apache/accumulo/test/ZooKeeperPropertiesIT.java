@@ -87,7 +87,7 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
       while (!properties.get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true")) {
         Thread.sleep(250);
         log.info(">>>> 250");
-        // properties = client.tableOperations().getConfiguration(TABLENAME);
+        properties = client.tableOperations().getConfiguration(TABLENAME);
       }
       assertEquals("true", properties.get(Property.TABLE_BLOOM_ENABLED.getKey()));
 
@@ -99,7 +99,7 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
       while (!properties.get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false")) {
         Thread.sleep(250);
         log.info(">>>> 250");
-        // properties = client.tableOperations().getConfiguration(TABLENAME);
+        properties = client.tableOperations().getConfiguration(TABLENAME);
       }
       assertEquals("false", properties.get(Property.TABLE_BLOOM_ENABLED.getKey()));
 
@@ -148,7 +148,7 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
       while (!properties.get(Property.TABLE_FILE_MAX.getKey()).equals("31")) {
         Thread.sleep(250);
         log.info(">>>> 250");
-        // properties = client.namespaceOperations().getConfiguration(NAMESPACE);
+        properties = client.namespaceOperations().getConfiguration(NAMESPACE);
       }
       assertEquals("31", properties.get(Property.TABLE_FILE_MAX.getKey()));
 
@@ -160,7 +160,7 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
       while (!properties.get(Property.TABLE_FILE_MAX.getKey()).equals("15")) {
         Thread.sleep(250);
         log.info(">>>> 250");
-        // properties = client.namespaceOperations().getConfiguration(NAMESPACE);
+        properties = client.namespaceOperations().getConfiguration(NAMESPACE);
       }
       assertEquals("15", properties.get(Property.TABLE_FILE_MAX.getKey()));
 
