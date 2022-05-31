@@ -428,7 +428,7 @@ public enum Property {
   SSERV_MINTHREADS("sserver.server.threads.minimum", "2", PropertyType.COUNT,
       "The minimum number of threads to use to handle incoming requests.", "2.1.0"),
   @Experimental
-  SSERV_MINTHREADS_TIMEOUT("sserver.server.threads.timeout", "10s", PropertyType.TIMEDURATION,
+  SSERV_MINTHREADS_TIMEOUT("sserver.server.threads.timeout", "0s", PropertyType.TIMEDURATION,
       "The time after which incoming request threads terminate with no work available.  Zero (0) will keep the threads alive indefinitely.",
       "2.1.0"),
   @Experimental
