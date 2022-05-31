@@ -115,7 +115,7 @@ public class Admin implements KeywordExecutable {
   @Parameters(commandDescription = "stop the master (DEPRECATED -- use stopManager instead)")
   static class StopMasterCommand {}
 
-  @Parameters(commandDescription = "stop all the servers")
+  @Parameters(commandDescription = "stop all of the tablets servers and manager")
   static class StopAllCommand {}
 
   @Parameters(commandDescription = "list Accumulo instances in zookeeper")
@@ -377,6 +377,10 @@ public class Admin implements KeywordExecutable {
       final boolean force) throws AccumuloException, AccumuloSecurityException {
     if (context.getManagerLocations().isEmpty()) {
       log.info("No managers running. Not attempting safe unload of tserver.");
+      return;
+    }
+    if (servers.isEmpty()) {
+      log.error("No tablet servers provided.");
       return;
     }
 
