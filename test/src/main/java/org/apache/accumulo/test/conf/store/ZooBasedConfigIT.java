@@ -51,9 +51,9 @@ import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.SystemConfiguration;
 import org.apache.accumulo.server.conf.ZooBasedConfiguration;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.PropStoreKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
@@ -339,20 +339,20 @@ public class ZooBasedConfigIT {
     }
 
     @Override
-    public void zkChangeEvent(PropCacheKey<?> propCacheKey) {
-      log.debug("Received zkChangeEvent for {}", propCacheKey);
+    public void zkChangeEvent(PropStoreKey<?> propStoreKey) {
+      log.debug("Received zkChangeEvent for {}", propStoreKey);
       zkChangeCount.incrementAndGet();
     }
 
     @Override
-    public void cacheChangeEvent(PropCacheKey<?> propCacheKey) {
-      log.debug("Received cacheChangeEvent for {}", propCacheKey);
+    public void cacheChangeEvent(PropStoreKey<?> propStoreKey) {
+      log.debug("Received cacheChangeEvent for {}", propStoreKey);
       cacheChangeCount.incrementAndGet();
     }
 
     @Override
-    public void deleteEvent(PropCacheKey<?> propCacheKey) {
-      log.debug("Received deleteEvent for: {}", propCacheKey);
+    public void deleteEvent(PropStoreKey<?> propStoreKey) {
+      log.debug("Received deleteEvent for: {}", propStoreKey);
       deleteCount.incrementAndGet();
     }
 

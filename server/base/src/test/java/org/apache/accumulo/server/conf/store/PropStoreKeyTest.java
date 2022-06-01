@@ -21,7 +21,7 @@ package org.apache.accumulo.server.conf.store;
 import static org.apache.accumulo.core.Constants.ZCONFIG;
 import static org.apache.accumulo.core.Constants.ZNAMESPACES;
 import static org.apache.accumulo.core.Constants.ZTABLES;
-import static org.apache.accumulo.server.conf.store.PropCacheKey.PROP_NODE_NAME;
+import static org.apache.accumulo.server.conf.store.PropStoreKey.PROP_NODE_NAME;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
@@ -40,8 +40,8 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PropCacheKeyTest {
-  private static final Logger log = LoggerFactory.getLogger(PropCacheKeyTest.class);
+public class PropStoreKeyTest {
+  private static final Logger log = LoggerFactory.getLogger(PropStoreKeyTest.class);
 
   private final InstanceId instanceId = InstanceId.of(UUID.randomUUID());
 
@@ -98,18 +98,18 @@ public class PropCacheKeyTest {
 
     var iid = "3f9976c6-3bf1-41ab-9751-1b0a9be3551d";
 
-    PropCacheKey<?> t1 =
-        PropCacheKey.fromPath("/accumulo/" + iid + "/tables/t1/conf/encoded_props");
+    PropStoreKey<?> t1 =
+        PropStoreKey.fromPath("/accumulo/" + iid + "/tables/t1/conf/encoded_props");
     assertNotNull(t1);
     assertEquals(TableId.of("t1"), t1.getId());
 
-    PropCacheKey<?> n1 =
-        PropCacheKey.fromPath("/accumulo/" + iid + "/namespaces/n1/conf/encoded_props");
+    PropStoreKey<?> n1 =
+        PropStoreKey.fromPath("/accumulo/" + iid + "/namespaces/n1/conf/encoded_props");
     assertNotNull(n1);
     assertEquals(NamespaceId.of("n1"), n1.getId());
     assertNotNull(n1.getId());
 
-    PropCacheKey<?> s1 = PropCacheKey.fromPath("/accumulo/" + iid + "/config/encoded_props");
+    PropStoreKey<?> s1 = PropStoreKey.fromPath("/accumulo/" + iid + "/config/encoded_props");
     assertNotNull(s1);
     // system config returns instance id as id placeholder
     assertEquals(iid, s1.getId().canonical());

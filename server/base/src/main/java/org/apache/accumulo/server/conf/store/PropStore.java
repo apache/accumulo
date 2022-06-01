@@ -23,32 +23,33 @@ import java.util.Map;
 
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public interface PropStore {
 
   /**
    * Test that a node for properties exists without throwing a KeeperException.
    *
-   * @param propCacheKey
+   * @param propStoreKey
    *          the prop cache key
    * @return true if the property node exists, false otherwise.
    * @throws IllegalStateException
    *           if the check fails due to interrupt.
    */
-  boolean exists(PropCacheKey<?> propCacheKey);
+  boolean exists(PropStoreKey<?> propStoreKey);
 
   /**
    * Create an initial entry for the PropCacheId. If properties already exist, they are not
    * modified.
    *
-   * @param propCacheKey
+   * @param propStoreKey
    *          the prop cache key
    * @param props
    *          a map of property k,v pairs
    * @throws IllegalStateException
    *           if the updates fails because of an underlying store exception
    */
-  void create(PropCacheKey<?> propCacheKey, Map<String,String> props);
+  void create(PropStoreKey<?> propStoreKey, Map<String,String> props);
 
   /**
    *
@@ -60,42 +61,42 @@ public interface PropStore {
    *           not exist for the propCacheId
    */
   @NonNull
-  VersionedProperties get(PropCacheKey<?> propCacheId);
+  VersionedProperties get(PropStoreKey<?> propCacheId);
 
   /**
    * Adds or updates current properties. If the property currently exists it is overwritten,
    * otherwise it is added.
    *
-   * @param propCacheKey
+   * @param propStoreKey
    *          the prop cache key
    * @param props
    *          a map of property k,v pairs
    * @throws IllegalStateException
    *           if the values cannot be written or if an underlying store exception occurs.
    */
-  void putAll(PropCacheKey<?> propCacheKey, Map<String,String> props);
+  void putAll(PropStoreKey<?> propStoreKey, Map<String,String> props);
 
   /**
    * Delete the store node from the underlying store.
    *
-   * @param propCacheKey
+   * @param propStoreKey
    *          the prop cache key
    * @throws IllegalStateException
    *           if the updates fails because of an underlying store exception
    */
-  void delete(PropCacheKey<?> propCacheKey);
+  void delete(PropStoreKey<?> propStoreKey);
 
   /**
    * Deletes individual properties specified by the set of keys.
    *
-   * @param propCacheKey
+   * @param propStoreKey
    *          the prop cache key
    * @param keys
    *          a set of keys.
    * @throws IllegalStateException
    *           if the values cannot be deleted or if an underlying store exception occurs.
    */
-  void removeProperties(PropCacheKey<?> propCacheKey, Collection<String> keys);
+  void removeProperties(PropStoreKey<?> propStoreKey, Collection<String> keys);
 
   /**
    * External processes can register for notifications if the properties change. Normally processes
@@ -107,11 +108,16 @@ public interface PropStore {
    * but listeners should not perform lengthy operations on the notification to prevent delaying
    * other listeners from receive timely notification of the changes detected.
    *
-   * @param propCacheKey
+   * @param propStoreKey
    *          the prop cache key
    * @param listener
    *          a listener
    */
-  void registerAsListener(PropCacheKey<?> propCacheKey, PropChangeListener listener);
+  void registerAsListener(PropStoreKey<?> propStoreKey, PropChangeListener listener);
+
+  PropCache getCache();
+
+  @Nullable
+  VersionedProperties getWithoutCaching(PropStoreKey<?> propStoreKey);
 
 }

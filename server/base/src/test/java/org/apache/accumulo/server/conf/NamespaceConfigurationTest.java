@@ -75,10 +75,10 @@ public class NamespaceConfigurationTest {
     parent = createMock(AccumuloConfiguration.class);
     reset(propStore);
 
-    var nsCacheKey = NamespacePropKey.of(iid, NSID);
-    expect(propStore.get(eq(nsCacheKey))).andReturn(new VersionedProperties(123, Instant.now(),
+    var nsPropStoreKey = NamespacePropKey.of(iid, NSID);
+    expect(propStore.get(eq(nsPropStoreKey))).andReturn(new VersionedProperties(123, Instant.now(),
         Map.of(Property.INSTANCE_SECRET.getKey(), "sekrit"))).anyTimes();
-    propStore.registerAsListener(eq(nsCacheKey), anyObject());
+    propStore.registerAsListener(eq(nsPropStoreKey), anyObject());
     expectLastCall().anyTimes();
 
     replay(propStore, context);

@@ -151,8 +151,8 @@ public class PropCacheCaffeineImplZkIT {
     VersionedProperties vProps = new VersionedProperties(props);
 
     // directly create prop node - simulate existing properties.
-    var propCacheKey = TablePropKey.of(INSTANCE_ID, tIdA);
-    var created = zrw.putPersistentData(propCacheKey.getPath(),
+    var propStoreKey = TablePropKey.of(INSTANCE_ID, tIdA);
+    var created = zrw.putPersistentData(propStoreKey.getPath(),
         VersionedPropCodec.getDefault().toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
 
     assertTrue(created, "expected properties to be created");
@@ -168,7 +168,7 @@ public class PropCacheCaffeineImplZkIT {
     PropCacheCaffeineImpl cache =
         new PropCacheCaffeineImpl.Builder(propLoader, cacheMetrics).build();
 
-    VersionedProperties readProps = cache.get(propCacheKey);
+    VersionedProperties readProps = cache.get(propStoreKey);
 
     if (readProps == null) {
       fail("Received null for versioned properties");
