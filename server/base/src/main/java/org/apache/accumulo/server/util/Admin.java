@@ -115,7 +115,7 @@ public class Admin implements KeywordExecutable {
   @Parameters(commandDescription = "stop the master (DEPRECATED -- use stopManager instead)")
   static class StopMasterCommand {}
 
-  @Parameters(commandDescription = "stop all of the tablets servers and manager")
+  @Parameters(commandDescription = "stop all tablet servers and the manager")
   static class StopAllCommand {}
 
   @Parameters(commandDescription = "list Accumulo instances in zookeeper")
