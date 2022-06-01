@@ -86,14 +86,14 @@ public class LegacyPropData {
     names.add(new PropNode(zkRoot + "/namespaces/2", null));
     names.add(new PropNode(zkRoot + "/namespaces/3", null));
     names.add(new PropNode(zkRoot + "/namespaces/+accumulo/conf", null));
-    names.add(new PropNode(zkRoot + "/namespaces/+accumulo/name", null));
+    names.add(new PropNode(zkRoot + "/namespaces/+accumulo/name", "accumulo"));
     names.add(new PropNode(zkRoot + "/namespaces/+default/conf", null));
     names.add(new PropNode(zkRoot + "/namespaces/+default/name", null));
     names.add(new PropNode(zkRoot + "/namespaces/2/conf", null));
-    names.add(new PropNode(zkRoot + "/namespaces/2/name", null));
+    names.add(new PropNode(zkRoot + "/namespaces/2/name", "ns1"));
     names.add(new PropNode(zkRoot + "/namespaces/2/conf/table.bloom.enabled", "false"));
     names.add(new PropNode(zkRoot + "/namespaces/3/conf", null));
-    names.add(new PropNode(zkRoot + "/namespaces/3/name", null));
+    names.add(new PropNode(zkRoot + "/namespaces/3/name", "ns2"));
     names.add(new PropNode(zkRoot + "/recovery/locks", null));
     names.add(new PropNode(zkRoot + "/replication/tservers", null));
     names.add(new PropNode(zkRoot + "/replication/workqueue", null));
@@ -116,8 +116,8 @@ public class LegacyPropData {
     names.add(new PropNode(zkRoot + "/tables/!0/compact-id", null));
     names.add(new PropNode(zkRoot + "/tables/!0/conf", null));
     names.add(new PropNode(zkRoot + "/tables/!0/flush-id", null));
-    names.add(new PropNode(zkRoot + "/tables/!0/name", null));
-    names.add(new PropNode(zkRoot + "/tables/!0/namespace", null));
+    names.add(new PropNode(zkRoot + "/tables/!0/name", "metadata"));
+    names.add(new PropNode(zkRoot + "/tables/!0/namespace", "+accumulo"));
     names.add(new PropNode(zkRoot + "/tables/!0/state", null));
     names.add(new PropNode(zkRoot + "/tables/!0/conf/table.failures.ignore", "false"));
     names.add(new PropNode(zkRoot + "/tables/!0/conf/table.cache.index.enable", "true"));
@@ -164,8 +164,8 @@ public class LegacyPropData {
     names.add(new PropNode(zkRoot + "/tables/+r/compact-id", null));
     names.add(new PropNode(zkRoot + "/tables/+r/conf", null));
     names.add(new PropNode(zkRoot + "/tables/+r/flush-id", null));
-    names.add(new PropNode(zkRoot + "/tables/+r/name", null));
-    names.add(new PropNode(zkRoot + "/tables/+r/namespace", null));
+    names.add(new PropNode(zkRoot + "/tables/+r/name", "root"));
+    names.add(new PropNode(zkRoot + "/tables/+r/namespace", "+accumulo"));
     names.add(new PropNode(zkRoot + "/tables/+r/state", null));
     names.add(new PropNode(zkRoot + "/tables/+r/conf/table.group.tablet", "~tab,loc"));
     names.add(new PropNode(zkRoot + "/tables/+r/conf/table.groups.enabled", "tablet,server"));
@@ -224,8 +224,8 @@ public class LegacyPropData {
     names.add(new PropNode(zkRoot + "/tables/1/compact-id", null));
     names.add(new PropNode(zkRoot + "/tables/1/conf", null));
     names.add(new PropNode(zkRoot + "/tables/1/flush-id", null));
-    names.add(new PropNode(zkRoot + "/tables/1/name", null));
-    names.add(new PropNode(zkRoot + "/tables/1/namespace", null));
+    names.add(new PropNode(zkRoot + "/tables/1/name", "trace"));
+    names.add(new PropNode(zkRoot + "/tables/1/namespace", "+default"));
     names.add(new PropNode(zkRoot + "/tables/1/state", null));
     names.add(new PropNode(zkRoot + "/tables/1/conf/table.constraint.1",
         "org.apache.accumulo.core.constraints.DefaultKeySizeConstraint"));
@@ -259,8 +259,8 @@ public class LegacyPropData {
     names.add(new PropNode(zkRoot + "/tables/4/compact-id", null));
     names.add(new PropNode(zkRoot + "/tables/4/conf", null));
     names.add(new PropNode(zkRoot + "/tables/4/flush-id", null));
-    names.add(new PropNode(zkRoot + "/tables/4/name", null));
-    names.add(new PropNode(zkRoot + "/tables/4/namespace", null));
+    names.add(new PropNode(zkRoot + "/tables/4/name", "tbl1"));
+    names.add(new PropNode(zkRoot + "/tables/4/namespace", "2"));
     names.add(new PropNode(zkRoot + "/tables/4/state", null));
     names.add(new PropNode(zkRoot + "/tables/4/conf/table.iterator.majc.vers",
         "20,org.apache.accumulo.core.iterators.user.VersioningIterator"));
@@ -281,8 +281,8 @@ public class LegacyPropData {
     names.add(new PropNode(zkRoot + "/tables/5/compact-id", null));
     names.add(new PropNode(zkRoot + "/tables/5/conf", null));
     names.add(new PropNode(zkRoot + "/tables/5/flush-id", null));
-    names.add(new PropNode(zkRoot + "/tables/5/name", null));
-    names.add(new PropNode(zkRoot + "/tables/5/namespace", null));
+    names.add(new PropNode(zkRoot + "/tables/5/name", "tbl2"));
+    names.add(new PropNode(zkRoot + "/tables/5/namespace", "2"));
     names.add(new PropNode(zkRoot + "/tables/5/state", null));
     names.add(new PropNode(zkRoot + "/tables/5/conf/table.constraint.1",
         "org.apache.accumulo.core.constraints.DefaultKeySizeConstraint"));
@@ -302,8 +302,8 @@ public class LegacyPropData {
     names.add(new PropNode(zkRoot + "/tables/6/compact-id", null));
     names.add(new PropNode(zkRoot + "/tables/6/conf", null));
     names.add(new PropNode(zkRoot + "/tables/6/flush-id", null));
-    names.add(new PropNode(zkRoot + "/tables/6/name", null));
-    names.add(new PropNode(zkRoot + "/tables/6/namespace", null));
+    names.add(new PropNode(zkRoot + "/tables/6/name", "tbl3"));
+    names.add(new PropNode(zkRoot + "/tables/6/namespace", "+default"));
     names.add(new PropNode(zkRoot + "/tables/6/state", null));
     names.add(new PropNode(zkRoot + "/tables/6/conf/table.bloom.enabled", "true"));
     names.add(new PropNode(zkRoot + "/tables/6/conf/table.constraint.1",
@@ -324,8 +324,8 @@ public class LegacyPropData {
     names.add(new PropNode(zkRoot + "/tables/7/compact-id", null));
     names.add(new PropNode(zkRoot + "/tables/7/conf", null));
     names.add(new PropNode(zkRoot + "/tables/7/flush-id", null));
-    names.add(new PropNode(zkRoot + "/tables/7/name", null));
-    names.add(new PropNode(zkRoot + "/tables/7/namespace", null));
+    names.add(new PropNode(zkRoot + "/tables/7/name", "tbl4"));
+    names.add(new PropNode(zkRoot + "/tables/7/namespace", "2"));
     names.add(new PropNode(zkRoot + "/tables/7/state", null));
     names.add(new PropNode(zkRoot + "/tables/7/conf/table.bloom.enabled", null));
     names.add(new PropNode(zkRoot + "/tables/7/conf/table.constraint.1", null));
