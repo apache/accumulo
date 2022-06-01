@@ -466,6 +466,10 @@ public class ClientServiceHandler implements ClientService.Iface {
       throws ThriftSecurityException, TException {
     try {
       authenticate(tInfo, credentials);
+      if (!security.canPerformSystemActions(credentials)) {
+        throw new AccumuloSecurityException(credentials.getPrincipal(),
+            SecurityErrorCode.PERMISSION_DENIED);
+      }
       AdminUtil<ClientServiceHandler> admin = new AdminUtil<>(false);
       String path = context.getZooKeeperRoot() + Constants.ZFATE;
       var managerLockPath = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK);

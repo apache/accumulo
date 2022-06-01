@@ -286,6 +286,7 @@ public class AdminUtil<T> {
     List<Long> transactions = zs.list();
     List<TransactionStatus> statuses = new ArrayList<>(transactions.size());
     Gson gson = new GsonBuilder()
+        // These adapters help to pretty-print the json
         .registerTypeAdapter(ReadOnlyRepo.class, new InterfaceSerializer<>())
         .registerTypeAdapter(Repo.class, new InterfaceSerializer<>())
         .registerTypeAdapter(byte[].class, new ByteArraySerializer()).setPrettyPrinting().create();
