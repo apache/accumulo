@@ -105,9 +105,11 @@ public class FateCommand extends Command {
       validateArgs(txids);
       deleteTx(shellState, txids);
     } else if (cl.hasOption(list.getOpt())) {
-      printTx(shellState, cl.getOptionValues(list.getOpt()), cl);
+      printTx(shellState, cl.getOptionValues(list.getOpt()), cl,
+          cl.hasOption(statusOption.getOpt()));
     } else if (cl.hasOption(print.getOpt())) {
-      printTx(shellState, cl.getOptionValues(print.getOpt()), cl);
+      printTx(shellState, cl.getOptionValues(print.getOpt()), cl,
+          cl.hasOption(statusOption.getOpt()));
     } else if (cl.hasOption(dump.getOpt())) {
       dumpTx(shellState, cl.getOptionValues(dump.getOpt()));
     } else {

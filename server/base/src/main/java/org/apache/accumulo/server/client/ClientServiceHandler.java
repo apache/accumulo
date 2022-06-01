@@ -535,7 +535,7 @@ public class ClientServiceHandler implements ClientService.Iface {
           throw new UnsupportedOperationException();
       }
 
-    } catch (InterruptedException | KeeperException e) {
+    } catch (InterruptedException | KeeperException | AccumuloSecurityException e) {
       throw new TException(e);
     }
 
