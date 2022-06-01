@@ -19,50 +19,65 @@
 "use strict";
 
 var gcTable;
- /**
-  * Creates active compactions table
-  */
- $(document).ready(function() {
-     // Create a table for compactions list
-     gcTable = $('#gcActivity').DataTable({
-       "ajax": {
-         "url": '/rest/gc',
-         "dataSrc": "stats"
-       },
-       "stateSave": true,
-       "dom": 't<"align-left"l>p',
-       "columnDefs": [
-           { "targets": "date",
-               "render": function ( data, type, row ) {
-                 if(type === 'display' && data > 0) data = dateFormat(data);
-                 return data;
-               }
-           },
-           { "targets": "duration",
-             "render": function ( data, type, row ) {
-               if(type === 'display') data = timeDuration(data);
-               return data;
-             }
-           },
-           { "targets": "big-num",
-               "render": function ( data, type, row ) {
-                 if(type === 'display') data = bigNumberForQuantity(data);
-                 return data;
-               }
-           }
-         ],
-       "columns": [
-         { "data": "type" },
-         { "data": "finished" },
-         { "data": "candidates" },
-         { "data": "deleted" },
-         { "data": "inUse" },
-         { "data": "errors" },
-         { "data": "duration" },
-       ]
-     });
-     refreshGCTable();
- });
+/**
+ * Creates active compactions table
+ */
+$(document).ready(function () {
+  // Create a table for compactions list
+  gcTable = $('#gcActivity').DataTable({
+    "ajax": {
+      "url": '/rest/gc',
+      "dataSrc": "stats"
+    },
+    "stateSave": true,
+    "dom": 't<"align-left"l>p',
+    "columnDefs": [{
+        "targets": "date",
+        "render": function (data, type, row) {
+          if (type === 'display' && data > 0) data = dateFormat(data);
+          return data;
+        }
+      },
+      {
+        "targets": "duration",
+        "render": function (data, type, row) {
+          if (type === 'display') data = timeDuration(data);
+          return data;
+        }
+      },
+      {
+        "targets": "big-num",
+        "render": function (data, type, row) {
+          if (type === 'display') data = bigNumberForQuantity(data);
+          return data;
+        }
+      }
+    ],
+    "columns": [{
+        "data": "type"
+      },
+      {
+        "data": "finished"
+      },
+      {
+        "data": "candidates"
+      },
+      {
+        "data": "deleted"
+      },
+      {
+        "data": "inUse"
+      },
+      {
+        "data": "errors"
+      },
+      {
+        "data": "duration"
+      },
+    ]
+  });
+  refreshGCTable();
+});
 
 /**
  * Used to redraw the page
@@ -77,14 +92,14 @@ function refresh() {
 function refreshGCTable() {
   var status = JSON.parse(sessionStorage.status).gcStatus;
 
-    if (status === 'ERROR') {
-      $('#gcBanner').show();
-      $('#gcActivity').hide();
-    } else {
-      $('#gcBanner').hide();
-      $('#gcActivity').show();
-      if(gcTable) gcTable.ajax.reload(null, false ); // user paging is not reset on reload
-    }
+  if (status === 'ERROR') {
+    $('#gcBanner').show();
+    $('#gcActivity').hide();
+  } else {
+    $('#gcBanner').hide();
+    $('#gcActivity').show();
+    if (gcTable) gcTable.ajax.reload(null, false); // user paging is not reset on reload
+  }
 
 }
 

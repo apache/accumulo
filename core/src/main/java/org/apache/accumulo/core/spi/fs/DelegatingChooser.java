@@ -30,16 +30,14 @@ import org.slf4j.LoggerFactory;
 /**
  * A {@link VolumeChooser} that delegates to another volume chooser based on other properties:
  * table.custom.volume.chooser for tables, and general.custom.volume.chooser.scoped for scopes.
- * general.custom.volume.chooser.{scope} can override the system wide setting for
- * general.custom.volume.chooser.scoped. At the this this was written, the only known scope was
+ * general.custom.volume.chooser.{scope} can override the system-wide setting for
+ * general.custom.volume.chooser.scoped. At the time this was written, the only known scope was
  * "logger".
  *
  * @since 2.1.0
  */
-public class PerTableVolumeChooser implements VolumeChooser {
-  // TODO rename this class to DelegatingChooser? It delegates for more than just per-table scope
-  private static final Logger log = LoggerFactory.getLogger(PerTableVolumeChooser.class);
-  // TODO Add hint of expected size to construction, see ACCUMULO-3410
+public class DelegatingChooser implements VolumeChooser {
+  private static final Logger log = LoggerFactory.getLogger(DelegatingChooser.class);
   /* Track VolumeChooser instances so they can keep state. */
   private final ConcurrentHashMap<TableId,VolumeChooser> tableSpecificChooserCache =
       new ConcurrentHashMap<>();

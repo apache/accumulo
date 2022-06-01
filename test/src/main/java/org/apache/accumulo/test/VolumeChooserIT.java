@@ -50,7 +50,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.spi.fs.PerTableVolumeChooser;
+import org.apache.accumulo.core.spi.fs.DelegatingChooser;
 import org.apache.accumulo.core.spi.fs.PreferredVolumeChooser;
 import org.apache.accumulo.core.spi.fs.RandomVolumeChooser;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope;
@@ -100,10 +100,10 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     namespace1 = "ns_" + getUniqueNames(2)[0];
     namespace2 = "ns_" + getUniqueNames(2)[1];
 
-    // Set the general volume chooser to the PerTableVolumeChooser so that different choosers can be
+    // Set the general volume chooser to the DelegatingChooser so that different choosers can be
     // specified
     Map<String,String> siteConfig = new HashMap<>();
-    siteConfig.put(Property.GENERAL_VOLUME_CHOOSER.getKey(), PerTableVolumeChooser.class.getName());
+    siteConfig.put(Property.GENERAL_VOLUME_CHOOSER.getKey(), DelegatingChooser.class.getName());
     // if a table doesn't have a volume chooser, use the preferred volume chooser
     siteConfig.put(PERTABLE_CHOOSER_PROP, PreferredVolumeChooser.class.getName());
 

@@ -78,8 +78,7 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
     URL url = new URL(uri + "/jmx");
     log.debug("Fetching web page " + url);
     String jsonString = FunctionalTestUtils.readWebPage(url).body();
-    Gson gson = new Gson();
-    Map<?,?> jsonObject = gson.fromJson(jsonString, Map.class);
+    Map<?,?> jsonObject = new Gson().fromJson(jsonString, Map.class);
     List<?> beans = (List<?>) jsonObject.get("beans");
     for (Object bean : beans) {
       Map<?,?> map = (Map<?,?>) bean;

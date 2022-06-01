@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import static org.apache.accumulo.core.Constants.ZTABLE_LOCKS;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
@@ -43,6 +44,14 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.TransactionStatus;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.fate.AdminUtil;
+import org.apache.accumulo.fate.ReadOnlyRepo;
+import org.apache.accumulo.fate.ReadOnlyTStore;
+import org.apache.accumulo.fate.ZooStore;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.ShellConfigTest.TestOutputStream;
 import org.apache.commons.cli.CommandLine;
@@ -106,9 +115,6 @@ public class FateCommandTest {
       printCalled = false;
     }
   }
-
-  @BeforeAll
-  public static void setup() {}
 
   @Test
   public void testFailTx() throws Exception {

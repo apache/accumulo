@@ -153,7 +153,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     try {
       VersionedProperties vProps = new VersionedProperties(props);
       String path = propCacheKey.getPath();
-      zrw.putPersistentData(path, codec.toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
+      zrw.putPrivatePersistentData(path, codec.toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
     } catch (IOException | KeeperException | InterruptedException ex) {
       throw new IllegalStateException("Failed to serialize properties for " + propCacheKey, ex);
     }
@@ -198,7 +198,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    * @param watcher
    *          a prop store watcher that will receive / handle ZooKeeper events.
    * @param zooReader
-   *          a ZooReader
+   *          a ZooReader with an authenticated session.
    * @return the versioned properties or null if the node does not exist.
    * @throws IOException
    *           if the underlying data from the ZooKeeper node cannot be decoded.
@@ -286,7 +286,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
         VersionedProperties updates = action.apply(vProps, changes);
 
         if (zrw.overwritePersistentData(propCacheKey.getPath(), codec.toBytes(updates),
-            updates.getDataVersion())) {
+            (int) updates.getDataVersion())) {
           return;
         }
         Thread.sleep(20); // small pause to get thread to yield.

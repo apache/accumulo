@@ -52,7 +52,7 @@ public class VersionedProperties {
       DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneId.from(ZoneOffset.UTC));
   // flag value for initialization - on store both the version and next version should be 0.
   private static final int INIT_VERSION = 0;
-  private final int dataVersion;
+  private final long dataVersion;
   private final Instant timestamp;
   private final Map<String,String> props;
 
@@ -77,17 +77,18 @@ public class VersionedProperties {
   /**
    * Instantiate an instance and set the initial properties to the provided values.
    *
-   * @param dataVersion
-   *          version info with data version and timestamp.
+   * @param zkDataVersion
+   *          the ZooKeeper node data version.
    * @param timestamp
    *          timestamp of this version.
    * @param props
    *          optional map of initial property key, value pairs. The properties are assumed to have
    *          been previously validated (if required)
    */
-  public VersionedProperties(final int dataVersion, final Instant timestamp,
+  public VersionedProperties(final long zkDataVersion, final Instant timestamp,
       final Map<String,String> props) {
-    this.dataVersion = dataVersion;
+    // convert the signed integer ZK version to an unsigned value stored in a long.
+    this.dataVersion = zkDataVersion & 0xffffffffL;
     this.timestamp = requireNonNull(timestamp, "A timestamp must be supplied");
     this.props = props == null ? Map.of() : Map.copyOf(props);
   }
@@ -106,10 +107,17 @@ public class VersionedProperties {
    * value should be used on data writes as the expected version. If the data write fails do to an
    * unexpected version, it signals that the node version has changed since the instance was
    * instantiated and encoded.
+   * <p>
+   * Implementation note: The data version is stored and returned is an unsigned 32-bit integer
+   * value. Internally, ZooKeeper stores the value as a 32-bit signed value that can roll-over and
+   * become negative. The can break applications that rely on the value to always increase. This
+   * class avoids a negative roll-over after 2^31 (it is still possible that the value could
+   * roll-over to 0).
    *
-   * @return 0 for initial version, otherwise the data version when the properties were serialized.
+   * @return 0 for initial version, otherwise the data version when the properties were read from
+   *         ZooKeeper.
    */
-  public int getDataVersion() {
+  public long getDataVersion() {
     return dataVersion;
   }
 

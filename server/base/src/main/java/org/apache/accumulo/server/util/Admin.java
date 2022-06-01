@@ -115,7 +115,7 @@ public class Admin implements KeywordExecutable {
   @Parameters(commandDescription = "stop the master (DEPRECATED -- use stopManager instead)")
   static class StopMasterCommand {}
 
-  @Parameters(commandDescription = "stop all the servers")
+  @Parameters(commandDescription = "stop all of the tablets servers and manager")
   static class StopAllCommand {}
 
   @Parameters(commandDescription = "list Accumulo instances in zookeeper")
@@ -379,9 +379,21 @@ public class Admin implements KeywordExecutable {
       log.info("No managers running. Not attempting safe unload of tserver.");
       return;
     }
+    if (servers.isEmpty()) {
+      log.error("No tablet servers provided.");
+      return;
+    }
+
     final String zTServerRoot = getTServersZkPath(context);
     final ZooCache zc = context.getZooCache();
+    List<String> runningServers;
+
     for (String server : servers) {
+      runningServers = context.instanceOperations().getTabletServers();
+      if (runningServers.size() == 1 && !force) {
+        log.info("Only 1 tablet server running. Not attempting shutdown of {}", server);
+        return;
+      }
       for (int port : context.getConfiguration().getPort(Property.TSERV_CLIENTPORT)) {
         HostAndPort address = AddressUtil.parseAddress(server, port);
         final String finalServer =
