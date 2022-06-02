@@ -241,7 +241,8 @@ public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
         Mutation delFlag = createOldDelMutation(longpath, "", "", "");
         bw.addMutation(delFlag);
         expected.put(
-            DeletesSection.encodeRow(GcVolumeUtil.getDeleteTabletOnAllVolumesUri(tableId, dirName)),
+            DeletesSection.encodeRow(
+                GcVolumeUtil.getDeleteTabletOnAllVolumesUri(tableId, dirName).metadataEntry),
             Upgrader9to10.UPGRADED.toString());
       }
 

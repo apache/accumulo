@@ -171,13 +171,13 @@ public class SimpleGarbageCollectorTest {
     confirmed.put("5a/t-0001/F0001.rf", "hdfs://nn1/accumulo/tables/5a/t-0001/F0001.rf");
     confirmed.put("5a/t-0001/F0002.rf", "hdfs://nn1/accumulo/tables/5a/t-0001/F0002.rf");
     confirmed.put("5a/t-0002/F0001.rf", "hdfs://nn1/accumulo/tables/5a/t-0002/F0001.rf");
-    confirmed.put("5b/t-0003",
-        GcVolumeUtil.getDeleteTabletOnAllVolumesUri(TableId.of("5b"), "t-0003"));
+    var uri = GcVolumeUtil.getDeleteTabletOnAllVolumesUri(TableId.of("5b"), "t-0003");
+    confirmed.put("5b/t-0003", uri.metadataEntry);
     confirmed.put("5b/t-0003/F0001.rf", "hdfs://nn1/accumulo/tables/5b/t-0003/F0001.rf");
     confirmed.put("5b/t-0003/F0002.rf", "hdfs://nn2/accumulo/tables/5b/t-0003/F0002.rf");
     confirmed.put("5b/t-0003/F0003.rf", "hdfs://nn3/accumulo/tables/5b/t-0003/F0003.rf");
-    confirmed.put("5b/t-0004",
-        GcVolumeUtil.getDeleteTabletOnAllVolumesUri(TableId.of("5b"), "t-0004"));
+    uri = GcVolumeUtil.getDeleteTabletOnAllVolumesUri(TableId.of("5b"), "t-0004");
+    confirmed.put("5b/t-0004", uri.metadataEntry);
     confirmed.put("5b/t-0004/F0001.rf", "hdfs://nn1/accumulo/tables/5b/t-0004/F0001.rf");
 
     List<String> processedDeletes = new ArrayList<>();
@@ -187,11 +187,11 @@ public class SimpleGarbageCollectorTest {
     TreeMap<String,String> expected = new TreeMap<>();
     expected.put("5a/t-0001", "hdfs://nn1/accumulo/tables/5a/t-0001");
     expected.put("5a/t-0002/F0001.rf", "hdfs://nn1/accumulo/tables/5a/t-0002/F0001.rf");
-    expected.put("5b/t-0003",
-        GcVolumeUtil.getDeleteTabletOnAllVolumesUri(TableId.of("5b"), "t-0003"));
+    uri = GcVolumeUtil.getDeleteTabletOnAllVolumesUri(TableId.of("5b"), "t-0003");
+    expected.put("5b/t-0003", uri.metadataEntry);
     expected.put("5b/t-0003/F0003.rf", "hdfs://nn3/accumulo/tables/5b/t-0003/F0003.rf");
-    expected.put("5b/t-0004",
-        GcVolumeUtil.getDeleteTabletOnAllVolumesUri(TableId.of("5b"), "t-0004"));
+    uri = GcVolumeUtil.getDeleteTabletOnAllVolumesUri(TableId.of("5b"), "t-0004");
+    expected.put("5b/t-0004", uri.metadataEntry);
 
     assertEquals(expected, confirmed);
     assertEquals(Arrays.asList("hdfs://nn1/accumulo/tables/5a/t-0001/F0001.rf",

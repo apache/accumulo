@@ -36,6 +36,14 @@ public class TabletFileUtil {
     return validate(p).toString();
   }
 
+  public static Reference validate(Reference reference) {
+    Path p = new Path(reference.metadataEntry);
+    if (p.toUri().getScheme() == null) {
+      throw new IllegalArgumentException("Invalid path provided, no scheme in " + reference);
+    }
+    return reference;
+  }
+
   public static Path validate(Path path) {
     if (path.toUri().getScheme() == null) {
       throw new IllegalArgumentException("Invalid path provided, no scheme in " + path);

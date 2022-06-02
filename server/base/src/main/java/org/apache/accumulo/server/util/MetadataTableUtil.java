@@ -63,10 +63,10 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.Reference;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
-import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -372,12 +372,13 @@ public class MetadataTableUtil {
           Key key = cell.getKey();
 
           if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-            String ref = TabletFileUtil.validate(key.getColumnQualifierData().toString());
-            bw.addMutation(ample.createDeleteMutation(ref));
+            StoredTabletFile stf = new StoredTabletFile(key.getColumnQualifierData().toString());
+            bw.addMutation(
+                ample.createDeleteMutation(new Reference(tableId, stf.getMetaUpdateDelete())));
           }
 
           if (ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-            String uri =
+            var uri =
                 GcVolumeUtil.getDeleteTabletOnAllVolumesUri(tableId, cell.getValue().toString());
             bw.addMutation(ample.createDeleteMutation(uri));
           }
@@ -690,8 +691,7 @@ public class MetadataTableUtil {
     m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
 
     // new KeyExtent is only added to force update to write to the metadata table, not the root
-    // table
-    // because bulk loads aren't supported to the metadata table
+    // table because bulk loads aren't supported to the metadata table
     update(context, m, new KeyExtent(TableId.of("anythingNotMetadata"), null, null));
   }
 
