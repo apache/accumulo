@@ -69,7 +69,7 @@ public class SystemPropUtil {
     context.getPropStore().putAll(SystemPropKey.of(context), Map.of(property, value));
   }
 
-  public static void setSystemProperties(ServerContext context, Map<String,String> propertiesMap) {
+  public static void modifyProperties(ServerContext context, Map<String,String> propertiesMap) {
     Map<String,String> checkedProperties = new HashMap<>();
 
     for (Map.Entry<String,String> entry : propertiesMap.entrySet()) {
@@ -112,7 +112,7 @@ public class SystemPropUtil {
       checkedProperties.put(property, value);
     }
 
-    context.getPropStore().putAll(SystemPropKey.of(context), checkedProperties);
+    context.getPropStore().replaceAll(SystemPropKey.of(context), checkedProperties);
   }
 
   public static void removeSystemProperty(ServerContext context, String property) {

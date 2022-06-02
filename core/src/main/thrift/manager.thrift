@@ -267,8 +267,8 @@ service ManagerClientService {
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
   )
-
-  void setSystemProperties(
+ 
+    void modifyProperties(
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
     3:map<string, string> propertiesMap

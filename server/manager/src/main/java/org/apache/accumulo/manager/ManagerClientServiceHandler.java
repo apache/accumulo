@@ -372,13 +372,13 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   }
 
   @Override
-  public void setSystemProperties(TInfo info, TCredentials c, Map<String,String> propertiesMap)
+  public void modifyProperties(TInfo info, TCredentials c, Map<String,String> propertiesMap)
       throws TException {
     if (!manager.security.canPerformSystemActions(c))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
     try {
-      SystemPropUtil.setSystemProperties(manager.getContext(), propertiesMap);
+      SystemPropUtil.modifyProperties(manager.getContext(), propertiesMap);
       for (Map.Entry<String,String> entry : propertiesMap.entrySet()) {
         updatePlugins(entry.getKey());
       }

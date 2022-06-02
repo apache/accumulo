@@ -181,6 +181,19 @@ public class VersionedProperties {
   }
 
   /**
+   * Replaces all current properties. If a property already exists it is overwritten. If a property
+   * is not included in the updates map, the property will not be set.
+   *
+   * @param updates
+   *          A map of key, values pairs.
+   * @return A new instance of this class with the replaced properties.
+   */
+  public VersionedProperties replaceAll(final Map<String,String> updates) {
+    var updated = new HashMap<>(updates);
+    return new VersionedProperties(dataVersion, Instant.now(), updated);
+  }
+
+  /**
    * Delete multiple properties provided as a collection of keys.
    * <p>
    * Because instances of this class are immutable, this method creates a new copy of the

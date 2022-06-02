@@ -163,8 +163,7 @@ public class ConfigCommand extends Command {
           throw new BadArgumentException("Property cannot be modified in zookeeper", fullCommand,
               fullCommand.indexOf(property));
         }
-        // shellState.getAccumuloClient().instanceOperations().setProperty(property, value);
-        shellState.getAccumuloClient().instanceOperations().setProperties(propertiesMap);
+        shellState.getAccumuloClient().instanceOperations().setProperty(property, value);
         Shell.log.debug("New config: "
             + shellState.getAccumuloClient().instanceOperations().getSystemConfiguration());
         Shell.log.debug("Successfully set system configuration option.");
