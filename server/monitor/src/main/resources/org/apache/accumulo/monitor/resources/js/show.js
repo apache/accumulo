@@ -23,7 +23,7 @@ var id;
  * Makes the REST calls, generates the tables with the new information
  */
 function refreshTraceShow() {
-  getTraceShow(id).then(function() {
+  getTraceShow(id).then(function () {
     refreshTraceShowTable();
   });
 }
@@ -41,14 +41,13 @@ function refresh() {
 function refreshTraceShowTable() {
   clearTableBody('trace');
   $('#trace caption span span').remove();
-  var data = sessionStorage.traceShow === undefined ?
-      [] : JSON.parse(sessionStorage.traceShow);
+  var data = sessionStorage.traceShow === undefined ? [] : JSON.parse(sessionStorage.traceShow);
 
   if (data.traces.length !== 0) {
     var date = new Date(data.start);
     $('#caption').append('<span>' + date.toLocaleString() + '</span>');
 
-    $.each(data.traces, function(key, val) {
+    $.each(data.traces, function (key, val) {
       var id = val.spanID.toString(16);
       var items = [];
 
@@ -56,35 +55,35 @@ function refreshTraceShowTable() {
       items.push(createRightCell('', val.time + '+'));
       items.push(createLeftCell('', val.start));
       items.push('<td style="text-indent: ' + val.level + '0px">' +
-          val.location + '</td>');
+        val.location + '</td>');
       items.push(createLeftCell('', val.name));
 
       if (val.addlData.data.length !== 0 ||
-          val.addlData.annotations.length !== 0) {
+        val.addlData.annotations.length !== 0) {
 
         items.push('<td><input type="checkbox" id="' + id +
-            '_checkbox" onclick="toggle(\'' + id + '\')"></td>');
+          '_checkbox" onclick="toggle(\'' + id + '\')"></td>');
         items.push('</tr>');
         items.push('<tr id="' + id + '" style="display:none">');
         items.push('<td colspan="5">');
         items.push('<table class="table table-bordered table-striped' +
-            ' table-condensed">');
+          ' table-condensed">');
 
         if (val.addlData.data.length !== 0) {
           items.push('<tr><th>Key</th><th>Value</th></tr>');
 
-          $.each(val.addlData.data, function(key2, val2) {
+          $.each(val.addlData.data, function (key2, val2) {
             items.push('<tr><td>' + val2.key + '</td><td>' + val2.value +
-                '</td></tr>');
+              '</td></tr>');
           });
         }
 
         if (val.addlData.annotations.length !== 0) {
           items.push('<tr><th>Annotation</th><th>Time Offset</th></tr>');
 
-          $.each(val.addlData.annotations, function(key2, val2) {
+          $.each(val.addlData.annotations, function (key2, val2) {
             items.push('<tr><td>' + val2.annotation + '</td><td>' + val2.time +
-                '</td></tr>');
+              '</td></tr>');
           });
         }
 
@@ -99,11 +98,11 @@ function refreshTraceShowTable() {
       $('#trace tbody').append(items.join(''));
     });
   } else {
-      var items = [];
-      items.push('<tr>');
-      items.push(createEmptyRow(5, 'No trace information for ID ' + id));
-      items.push('</tr>');
-      $('#trace tbody').append(items.join(''));
+    var items = [];
+    items.push('<tr>');
+    items.push(createEmptyRow(5, 'No trace information for ID ' + id));
+    items.push('</tr>');
+    $('#trace tbody').append(items.join(''));
   }
 
 }

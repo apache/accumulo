@@ -323,7 +323,8 @@ function doLoggedPostCall(call, callback, sanitize) {
   // Make the rest call, passing success function callback
   $.post(call, function () {
     console.debug("REST POST call to " + call + ": success");
-    if (callback !== null) {
+    if (callback != null) {
+      console.debug("Now calling the provided callback function");
       callback();
     }
   });
@@ -479,7 +480,7 @@ function getLogs() {
  * REST POST call to clear logs
  */
 function clearLogs() {
-  doLoggedPostCall('/rest/logs/clear', null, false);
+  doLoggedPostCall('/rest/logs/clear', refresh, false);
 }
 
 /**

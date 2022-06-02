@@ -18,10 +18,8 @@
  */
 package org.apache.accumulo.server.metadata;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static com.google.common.base.Preconditions.checkArgument;
 
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -31,85 +29,73 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.hadoop.fs.Path;
 
-import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 public class RootGcCandidates {
-  private static final Gson GSON = new GsonBuilder().create();
+  // Version 1. Released with Accumulo version 2.1.0
+  private static final int VERSION = 1;
+
+  private final Gson gson = new Gson();
+  private final Data data;
 
   // This class is used to serialize and deserialize root tablet metadata using GSon. Any changes to
   // this class must consider persisted data.
-  private static class GSonData {
-    int version = 1;
+  private static class Data {
+    private final int version;
 
-    // SortedMap<dir path, SortedSet<file name>>
-    SortedMap<String,SortedSet<String>> candidates;
+    /*
+     * The root tablet will only have a single dir on each volume. Therefore, root file paths will
+     * have a small set of unique prefixes. The following map is structured to avoid storing the
+     * same dir prefix over and over in JSon and java.
+     *
+     * SortedMap<dir path, SortedSet<file name>>
+     */
+    private final SortedMap<String,SortedSet<String>> candidates;
+
+    public Data(int version, SortedMap<String,SortedSet<String>> candidates) {
+      this.version = version;
+      this.candidates = candidates;
+    }
   }
-
-  /*
-   * The root tablet will only have a single dir on each volume. Therefore root file paths will have
-   * a small set of unique prefixes. The following map is structured to avoid storing the same dir
-   * prefix over and over in JSon and java.
-   *
-   * SortedMap<dir path, SortedSet<file name>>
-   */
-  private SortedMap<String,SortedSet<String>> candidates;
 
   public RootGcCandidates() {
-    this.candidates = new TreeMap<>();
+    this.data = new Data(VERSION, new TreeMap<>());
   }
 
-  private RootGcCandidates(SortedMap<String,SortedSet<String>> candidates) {
-    this.candidates = candidates;
-  }
-
-  public void add(Iterator<StoredTabletFile> refs) {
-    refs.forEachRemaining(ref -> {
-      String parent = ref.getPath().getParent().toString();
-      candidates.computeIfAbsent(parent, k -> new TreeSet<>()).add(ref.getFileName());
+  public RootGcCandidates(String jsonString) {
+    this.data = gson.fromJson(jsonString, Data.class);
+    checkArgument(data.version == VERSION, "Invalid Root Table GC Candidates JSON version %s",
+        data.version);
+    data.candidates.forEach((parent, files) -> {
+      checkArgument(!parent.isBlank(), "Blank parent dir in %s", data.candidates);
+      checkArgument(!files.isEmpty(), "Empty files for dir %s", parent);
     });
   }
 
-  public void remove(Collection<String> refs) {
-    refs.forEach(ref -> {
-      Path path = new Path(ref);
-      String parent = path.getParent().toString();
-      String name = path.getName();
-
-      SortedSet<String> names = candidates.get(parent);
-      if (names != null) {
-        names.remove(name);
-        if (names.isEmpty()) {
-          candidates.remove(parent);
-        }
-      }
-    });
+  public void add(Stream<StoredTabletFile> refs) {
+    refs.forEach(ref -> data.candidates
+        .computeIfAbsent(ref.getPath().getParent().toString(), k -> new TreeSet<>())
+        .add(ref.getFileName()));
   }
 
-  public Stream<String> stream() {
-    return candidates.entrySet().stream().flatMap(entry -> {
+  public void remove(Stream<String> refs) {
+    refs.map(Path::new).forEach(
+        path -> data.candidates.computeIfPresent(path.getParent().toString(), (key, values) -> {
+          values.remove(path.getName());
+          return values.isEmpty() ? null : values;
+        }));
+  }
+
+  public Stream<String> sortedStream() {
+    return data.candidates.entrySet().stream().flatMap(entry -> {
       String parent = entry.getKey();
       SortedSet<String> names = entry.getValue();
-      return names.stream().map(name -> new Path(parent, name).toString());
-    });
+      return names.stream().map(name -> new Path(parent, name));
+    }).map(Path::toString).sorted();
   }
 
   public String toJson() {
-    GSonData gd = new GSonData();
-    gd.candidates = candidates;
-    return GSON.toJson(gd);
+    return gson.toJson(data);
   }
 
-  public static RootGcCandidates fromJson(String json) {
-    GSonData gd = GSON.fromJson(json, GSonData.class);
-
-    Preconditions.checkArgument(gd.version == 1);
-
-    return new RootGcCandidates(gd.candidates);
-  }
-
-  public static RootGcCandidates fromJson(byte[] json) {
-    return fromJson(new String(json, UTF_8));
-  }
 }

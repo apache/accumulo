@@ -24,7 +24,7 @@ var tabletResults;
  * Makes the REST calls, generates the tables with the new information
  */
 function refreshServer() {
-  getTServer(serv).then(function() {
+  getTServer(serv).then(function () {
     refreshDetailTable();
     refreshHistoryTable();
     refreshCurrentTable();
@@ -43,35 +43,33 @@ function refresh() {
  * Populates the server details table
  */
 function refreshDetailTable() {
-    var data = sessionStorage.server === undefined ?
-        [] : JSON.parse(sessionStorage.server);
-    if (data.length === 0 || data.details === undefined) {
-        clearAllTableCells("tServerDetail");
-    } else {
-        $("#hostedTablets").text(bigNumberForQuantity(data.details.hostedTablets));
-        $("#entries").text(bigNumberForQuantity(data.details.entries));
-        $("#minors").text(bigNumberForQuantity(data.details.minors));
-        $("#majors").text(bigNumberForQuantity(data.details.majors));
-        $("#splits").text(bigNumberForQuantity(data.details.splits));
-    }
+  var data = sessionStorage.server === undefined ? [] : JSON.parse(sessionStorage.server);
+  if (data.length === 0 || data.details === undefined) {
+    clearAllTableCells("tServerDetail");
+  } else {
+    $("#hostedTablets").text(bigNumberForQuantity(data.details.hostedTablets));
+    $("#entries").text(bigNumberForQuantity(data.details.entries));
+    $("#minors").text(bigNumberForQuantity(data.details.minors));
+    $("#majors").text(bigNumberForQuantity(data.details.majors));
+    $("#splits").text(bigNumberForQuantity(data.details.splits));
+  }
 }
 
 /**
  * Populates the All Time Tablet Operations table
  */
 function refreshHistoryTable() {
-  var data = sessionStorage.server === undefined ?
-      [] : JSON.parse(sessionStorage.server);
+  var data = sessionStorage.server === undefined ? [] : JSON.parse(sessionStorage.server);
 
   if (data.length === 0 || data.allTimeTabletResults === undefined) {
     clearAllTableCells("opHistoryDetails");
   } else {
     var totalTimeSpent = 0;
-    $.each(data.allTimeTabletResults, function(key, val) {
+    $.each(data.allTimeTabletResults, function (key, val) {
       totalTimeSpent += val.timeSpent;
     });
 
-    $.each(data.allTimeTabletResults, function(key, val) {
+    $.each(data.allTimeTabletResults, function (key, val) {
       // use the first 5 characters of the operation for the jquery selector
       var rowId = "#" + val.operation.slice(0, 5) + "Row";
       console.log("Populating rowId " + rowId + " with " + val.operation + " data");
@@ -87,8 +85,8 @@ function refreshHistoryTable() {
 
       var percent = Math.floor((val.timeSpent / totalTimeSpent) * 100);
       var progressBarCell = '<td><div class="progress"><div class="progress-bar"' +
-         ' role="progressbar" style="min-width: 2em; width:' + percent + '%;">' +
-         percent + '%</div></div></td>';
+        ' role="progressbar" style="min-width: 2em; width:' + percent + '%;">' +
+        percent + '%</div></div></td>';
       console.log("Time spent percent = " + val.timeSpent + "/" + totalTimeSpent + " " + percent);
 
       $(rowId).append(progressBarCell);
@@ -100,11 +98,10 @@ function refreshHistoryTable() {
  * Populates the current tablet operations results table
  */
 function refreshCurrentTable() {
-  var data = sessionStorage.server === undefined ?
-      [] : JSON.parse(sessionStorage.server);
+  var data = sessionStorage.server === undefined ? [] : JSON.parse(sessionStorage.server);
 
   if (data.length === 0 || data.currentTabletOperationResults === undefined) {
-      clearAllTableCells("currentTabletOps");
+    clearAllTableCells("currentTabletOps");
   } else {
     var current = data.currentTabletOperationResults;
     $("#currentMinorAvg").html(timeDuration(current.currentMinorAvg * 1000.0));
@@ -118,7 +115,7 @@ function refreshCurrentTable() {
  * Generates the server results table
  */
 function refreshResultsTable() {
-  tabletResults.ajax.reload(null, false ); // user paging is not reset on reload
+  tabletResults.ajax.reload(null, false); // user paging is not reset on reload
 }
 
 /*

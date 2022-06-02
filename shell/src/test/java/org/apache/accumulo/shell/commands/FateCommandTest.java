@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import static org.apache.accumulo.core.Constants.ZTABLE_LOCKS;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
@@ -41,6 +42,7 @@ import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.ReadOnlyRepo;
 import org.apache.accumulo.fate.ReadOnlyTStore;
 import org.apache.accumulo.fate.ZooStore;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.shell.Shell;
@@ -116,8 +118,8 @@ public class FateCommandTest {
 
     @Override
     protected void printTx(Shell shellState, AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
-        ZooReaderWriter zk, ServiceLockPath tableLocksPath, String[] args, CommandLine cl,
-        boolean printStatus) throws InterruptedException, KeeperException, IOException {
+        ZooReaderWriter zk, ServiceLockPath tableLocksPath, String[] args, CommandLine cl)
+        throws InterruptedException, KeeperException, IOException {
       printCalled = true;
     }
 
@@ -189,15 +191,54 @@ public class FateCommandTest {
   }
 
   @Test
+  public void testPrintAndList() throws IOException, InterruptedException, KeeperException {
+    PrintStream out = System.out;
+    File config = Files.createTempFile(null, null).toFile();
+    TestOutputStream output = new TestOutputStream();
+    Shell shell = createShell(output);
+
+    ServiceLockPath tableLocksPath = ServiceLock.path("/accumulo" + ZTABLE_LOCKS);
+    ZooStore<FateCommand> zs = createMock(ZooStore.class);
+    expect(zk.getChildren(tableLocksPath.toString())).andReturn(List.of("5")).anyTimes();
+    expect(zk.getChildren("/accumulo/table_locks/5")).andReturn(List.of()).anyTimes();
+    expect(zs.list()).andReturn(List.of()).anyTimes();
+
+    replay(zs, zk);
+
+    TestHelper helper = new TestHelper(true);
+    FateCommand cmd = new FateCommand();
+    var options = cmd.getOptions();
+    CommandLine cli = new CommandLine.Builder().addOption(options.getOption("list"))
+        .addOption(options.getOption("print")).addOption(options.getOption("np")).build();
+
+    try {
+      cmd.printTx(shell, helper, zs, zk, tableLocksPath, cli.getOptionValues("list"), cli);
+      cmd.printTx(shell, helper, zs, zk, tableLocksPath, cli.getOptionValues("print"), cli);
+      cmd.printTx(shell, helper, zs, zk, tableLocksPath, new String[] {""}, cli);
+      cmd.printTx(shell, helper, zs, zk, tableLocksPath, new String[] {}, cli);
+      cmd.printTx(shell, helper, zs, zk, tableLocksPath, null, cli);
+      cmd.printTx(shell, helper, zs, zk, tableLocksPath, new String[] {"list"}, cli);
+      cmd.printTx(shell, helper, zs, zk, tableLocksPath, new String[] {"list", "1234"}, cli);
+      cmd.printTx(shell, helper, zs, zk, tableLocksPath, new String[] {"print"}, cli);
+      cmd.printTx(shell, helper, zs, zk, tableLocksPath, new String[] {"print", "1234"}, cli);
+    } finally {
+      output.clear();
+      System.setOut(out);
+      if (config.exists()) {
+        assertTrue(config.delete());
+      }
+    }
+
+    verify(zs, zk);
+  }
+
+  @Test
   public void testCommandLineOptions() throws Exception {
     PrintStream out = System.out;
-    TestOutputStream output = new TestOutputStream();
-    System.setOut(new PrintStream(output));
     File config = Files.createTempFile(null, null).toFile();
-    Terminal terminal = new DumbTerminal(new FileInputStream(FileDescriptor.in), output);
-    terminal.setSize(new Size(80, 24));
-    LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
-    Shell shell = new Shell(reader);
+    TestOutputStream output = new TestOutputStream();
+
+    Shell shell = createShell(output);
     shell.setLogErrorsToConsole();
     try {
       assertTrue(shell.config("--config-file", config.toString(), "-zh", "127.0.0.1:2181", "-zi",
@@ -288,6 +329,16 @@ public class FateCommandTest {
         assertTrue(config.delete());
       }
     }
+  }
+
+  private Shell createShell(TestOutputStream output) throws IOException {
+    System.setOut(new PrintStream(output));
+    Terminal terminal = new DumbTerminal(new FileInputStream(FileDescriptor.in), output);
+    terminal.setSize(new Size(80, 24));
+    LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
+    Shell shell = new Shell(reader);
+    shell.setLogErrorsToConsole();
+    return shell;
   }
 
   static class TestHelper extends AdminUtil<FateCommand> {

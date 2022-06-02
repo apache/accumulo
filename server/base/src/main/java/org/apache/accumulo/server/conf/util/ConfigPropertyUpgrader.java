@@ -67,7 +67,7 @@ public class ConfigPropertyUpgrader implements KeywordExecutable {
 
   @Override
   public void execute(final String[] args) throws Exception {
-    ConfigPropertyUpgrader.Opts opts = new ConfigPropertyUpgrader.Opts();
+    ServerUtilOpts opts = new ServerUtilOpts();
     opts.parseArgs(ConfigPropertyUpgrader.class.getName(), args);
 
     ServerContext context = opts.getServerContext();
@@ -132,7 +132,5 @@ public class ConfigPropertyUpgrader implements KeywordExecutable {
           "Interrupted reading tables from ZooKeeper for path: " + zkPathTableBase, ex);
     }
   }
-
-  static class Opts extends ServerUtilOpts {}
 
 }

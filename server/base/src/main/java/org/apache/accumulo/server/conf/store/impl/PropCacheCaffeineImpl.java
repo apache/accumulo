@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCache;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
+import org.apache.accumulo.server.conf.store.PropStoreKey;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,9 +47,9 @@ public class PropCacheCaffeineImpl implements PropCache {
 
   private final PropStoreMetrics metrics;
 
-  private final LoadingCache<PropCacheKey<?>,VersionedProperties> cache;
+  private final LoadingCache<PropStoreKey<?>,VersionedProperties> cache;
 
-  private PropCacheCaffeineImpl(final CacheLoader<PropCacheKey<?>,VersionedProperties> cacheLoader,
+  private PropCacheCaffeineImpl(final CacheLoader<PropStoreKey<?>,VersionedProperties> cacheLoader,
       final PropStoreMetrics metrics, final Ticker ticker, boolean runTasksInline) {
     this.metrics = metrics;
     var builder = Caffeine.newBuilder().refreshAfterWrite(REFRESH_MIN, BASE_TIME_UNITS)
@@ -69,28 +69,28 @@ public class PropCacheCaffeineImpl implements PropCache {
     return metrics;
   }
 
-  void evictionNotifier(PropCacheKey<?> propCacheKey, VersionedProperties value,
+  void evictionNotifier(PropStoreKey<?> propStoreKey, VersionedProperties value,
       RemovalCause cause) {
-    log.trace("Evicted: ID: {} was evicted from cache. Reason: {}", propCacheKey, cause);
+    log.trace("Evicted: ID: {} was evicted from cache. Reason: {}", propStoreKey, cause);
     metrics.incrEviction();
   }
 
   @Override
-  public @Nullable VersionedProperties get(PropCacheKey<?> propCacheKey) {
-    log.trace("Called get() for {}", propCacheKey);
+  public @Nullable VersionedProperties get(PropStoreKey<?> propStoreKey) {
+    log.trace("Called get() for {}", propStoreKey);
     try {
-      return cache.get(propCacheKey);
+      return cache.get(propStoreKey);
     } catch (Exception ex) {
-      log.info("Cache failed to retrieve properties for: " + propCacheKey, ex);
+      log.info("Cache failed to retrieve properties for: " + propStoreKey, ex);
       metrics.incrZkError();
       return null;
     }
   }
 
   @Override
-  public void remove(PropCacheKey<?> propCacheKey) {
-    log.trace("clear {} from cache", propCacheKey);
-    cache.invalidate(propCacheKey);
+  public void remove(PropStoreKey<?> propStoreKey) {
+    log.trace("clear {} from cache", propStoreKey);
+    cache.invalidate(propStoreKey);
   }
 
   @Override
@@ -105,13 +105,12 @@ public class PropCacheCaffeineImpl implements PropCache {
    * processing so there is no reason to store them in the cache at this time. If they are used, a
    * normal cache get will load the property into the cache.
    *
-   * @param propCacheKey
+   * @param propStoreKey
    *          the property id
    * @return the version properties if cached, otherwise return null.
    */
-  @Override
-  public @Nullable VersionedProperties getWithoutCaching(PropCacheKey<?> propCacheKey) {
-    return cache.getIfPresent(propCacheKey);
+  public @Nullable VersionedProperties getWithoutCaching(PropStoreKey<?> propStoreKey) {
+    return cache.getIfPresent(propStoreKey);
   }
 
   public static class Builder {

@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import static com.google.common.base.Preconditions.checkState;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_COLUMN;
@@ -512,8 +513,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
       case IMMEDIATE:
         ZooReader zooReader = ctx.getZooReader();
         try {
-          return RootTabletMetadata.fromJson(zooReader.getData(zkRoot + RootTable.ZROOT_TABLET))
-              .convertToTabletMetadata();
+          byte[] bytes = zooReader.getData(zkRoot + RootTable.ZROOT_TABLET);
+          return new RootTabletMetadata(new String(bytes, UTF_8)).toTabletMetadata();
         } catch (InterruptedException | KeeperException e) {
           throw new RuntimeException(e);
         }
@@ -523,8 +524,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
   }
 
   public static TabletMetadata getRootMetadata(String zkRoot, ZooCache zc) {
-    return RootTabletMetadata.fromJson(zc.get(zkRoot + RootTable.ZROOT_TABLET))
-        .convertToTabletMetadata();
+    byte[] jsonBytes = zc.get(zkRoot + RootTable.ZROOT_TABLET);
+    return new RootTabletMetadata(new String(jsonBytes, UTF_8)).toTabletMetadata();
   }
 
   private final AutoCloseable closeable;

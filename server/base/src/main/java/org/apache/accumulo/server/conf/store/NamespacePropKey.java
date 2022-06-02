@@ -28,7 +28,7 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
-public class NamespacePropKey extends PropCacheKey<NamespaceId> {
+public class NamespacePropKey extends PropStoreKey<NamespaceId> {
 
   private NamespacePropKey(final InstanceId instanceId, final String path, final NamespaceId id) {
     super(instanceId, path, id);
