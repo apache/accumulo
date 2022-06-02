@@ -25,7 +25,7 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
-public class SystemPropKey extends PropCacheKey<InstanceId> {
+public class SystemPropKey extends PropStoreKey<InstanceId> {
 
   private SystemPropKey(final InstanceId instanceId, final String path) {
     super(instanceId, path, instanceId);

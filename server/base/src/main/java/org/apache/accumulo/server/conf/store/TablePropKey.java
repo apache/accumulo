@@ -27,7 +27,7 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
-public class TablePropKey extends PropCacheKey<TableId> {
+public class TablePropKey extends PropStoreKey<TableId> {
 
   public static TablePropKey of(final ServerContext context, final TableId tableId) {
     return of(context.getInstanceID(), tableId);

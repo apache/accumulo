@@ -273,9 +273,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     }
 
     @Override
-    public void await() {
-      return;
-    }
+    public void await() {}
   }
 
   static final LoggerOperation NO_WAIT_LOGGER_OP = new NoWaitLoggerOperation();
@@ -469,12 +467,13 @@ public class DfsLogger implements Comparable<DfsLogger> {
     log.debug("Got new write-ahead log: {}", this);
   }
 
-  @SuppressWarnings("deprecation")
   static long getWalBlockSize(AccumuloConfiguration conf) {
     long blockSize = conf.getAsBytes(Property.TSERV_WAL_BLOCKSIZE);
-    if (blockSize == 0)
-      blockSize = (long) (conf.getAsBytes(
-          conf.resolve(Property.TSERV_WAL_MAX_SIZE, Property.TSERV_WALOG_MAX_SIZE)) * 1.1);
+    if (blockSize == 0) {
+      @SuppressWarnings("deprecation")
+      Property prop = conf.resolve(Property.TSERV_WAL_MAX_SIZE, Property.TSERV_WALOG_MAX_SIZE);
+      blockSize = (long) (conf.getAsBytes(prop) * 1.1);
+    }
     return blockSize;
   }
 

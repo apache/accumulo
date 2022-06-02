@@ -24,9 +24,9 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.PropStoreKey;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,17 +46,17 @@ public class PropSnapshot implements PropChangeListener {
   private final Lock updateLock = new ReentrantLock();
   private final AtomicBoolean needsUpdate = new AtomicBoolean(true);
   private final AtomicReference<VersionedProperties> vPropRef = new AtomicReference<>();
-  private final PropCacheKey<?> propCacheKey;
+  private final PropStoreKey<?> propStoreKey;
   private final PropStore propStore;
 
-  public static PropSnapshot create(final PropCacheKey<?> propCacheKey, final PropStore propStore) {
-    var ps = new PropSnapshot(propCacheKey, propStore);
-    propStore.registerAsListener(propCacheKey, ps);
+  public static PropSnapshot create(final PropStoreKey<?> propStoreKey, final PropStore propStore) {
+    var ps = new PropSnapshot(propStoreKey, propStore);
+    propStore.registerAsListener(propStoreKey, ps);
     return ps;
   }
 
-  private PropSnapshot(final PropCacheKey<?> propCacheKey, final PropStore propStore) {
-    this.propCacheKey = propCacheKey;
+  private PropSnapshot(final PropStoreKey<?> propStoreKey, final PropStore propStore) {
+    this.propStoreKey = propStoreKey;
     this.propStore = propStore;
   }
 
@@ -102,7 +102,7 @@ public class PropSnapshot implements PropChangeListener {
       if (!needsUpdate.get()) {
         return;
       }
-      var vProps = propStore.get(propCacheKey);
+      var vProps = propStore.get(propStoreKey);
       vPropRef.set(vProps);
       needsUpdate.set(false);
     } finally {
@@ -111,24 +111,24 @@ public class PropSnapshot implements PropChangeListener {
   }
 
   @Override
-  public void zkChangeEvent(final PropCacheKey<?> eventPropKey) {
-    if (propCacheKey.equals(eventPropKey)) {
+  public void zkChangeEvent(final PropStoreKey<?> eventPropKey) {
+    if (propStoreKey.equals(eventPropKey)) {
       requireUpdate();
     }
   }
 
   @Override
-  public void cacheChangeEvent(final PropCacheKey<?> eventPropKey) {
-    if (propCacheKey.equals(eventPropKey)) {
+  public void cacheChangeEvent(final PropStoreKey<?> eventPropKey) {
+    if (propStoreKey.equals(eventPropKey)) {
       requireUpdate();
     }
   }
 
   @Override
-  public void deleteEvent(final PropCacheKey<?> eventPropKey) {
-    if (propCacheKey.equals(eventPropKey)) {
+  public void deleteEvent(final PropStoreKey<?> eventPropKey) {
+    if (propStoreKey.equals(eventPropKey)) {
       requireUpdate();
-      log.debug("Received property delete event for {}", propCacheKey);
+      log.debug("Received property delete event for {}", propStoreKey);
     }
   }
 

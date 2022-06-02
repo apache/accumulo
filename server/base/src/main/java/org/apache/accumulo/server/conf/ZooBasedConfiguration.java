@@ -26,7 +26,7 @@ import java.util.function.Predicate;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
+import org.apache.accumulo.server.conf.store.PropStoreKey;
 import org.apache.accumulo.server.conf.util.PropSnapshot;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -49,23 +49,23 @@ public class ZooBasedConfiguration extends AccumuloConfiguration {
 
   protected final Logger log;
   private final AccumuloConfiguration parent;
-  private final PropCacheKey<?> propCacheKey;
+  private final PropStoreKey<?> propStoreKey;
 
   private final PropSnapshot propSnapshot;
 
-  public ZooBasedConfiguration(Logger log, ServerContext context, PropCacheKey<?> propCacheKey,
+  public ZooBasedConfiguration(Logger log, ServerContext context, PropStoreKey<?> propStoreKey,
       AccumuloConfiguration parent) {
     this.log = requireNonNull(log, "a Logger must be supplied");
     requireNonNull(context, "the context cannot be null");
-    this.propCacheKey = requireNonNull(propCacheKey, "a PropCacheId must be supplied");
+    this.propStoreKey = requireNonNull(propStoreKey, "a PropCacheId must be supplied");
     this.parent = requireNonNull(parent, "An AccumuloConfiguration parent must be supplied");
 
-    propSnapshot = PropSnapshot.create(propCacheKey, context.getPropStore());
+    propSnapshot = PropSnapshot.create(propStoreKey, context.getPropStore());
   }
 
   @VisibleForTesting
-  public void zkChangeEvent(PropCacheKey<?> propCacheKey) {
-    propSnapshot.zkChangeEvent(propCacheKey);
+  public void zkChangeEvent(PropStoreKey<?> propStoreKey) {
+    propSnapshot.zkChangeEvent(propStoreKey);
   }
 
   public long getDataVersion() {
@@ -93,7 +93,7 @@ public class ZooBasedConfiguration extends AccumuloConfiguration {
       count += dataVersion;
     }
 
-    log.trace("update count result for: {} - data version: {} update: {}", propCacheKey,
+    log.trace("update count result for: {} - data version: {} update: {}", propStoreKey,
         dataVersion, count);
     return count;
   }
@@ -103,8 +103,8 @@ public class ZooBasedConfiguration extends AccumuloConfiguration {
     return parent;
   }
 
-  public PropCacheKey<?> getPropCacheKey() {
-    return propCacheKey;
+  public PropStoreKey<?> getPropStoreKey() {
+    return propStoreKey;
   }
 
   @Override
@@ -128,7 +128,7 @@ public class ZooBasedConfiguration extends AccumuloConfiguration {
 
     Map<String,String> theseProps = getSnapshot();
 
-    log.trace("getProperties() for: {} filter: {}, have: {}, passed: {}", getPropCacheKey(), filter,
+    log.trace("getProperties() for: {} filter: {}, have: {}, passed: {}", getPropStoreKey(), filter,
         theseProps, props);
 
     for (Map.Entry<String,String> p : theseProps.entrySet()) {

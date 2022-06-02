@@ -43,9 +43,9 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.PropStoreKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
@@ -383,22 +383,22 @@ public class PropStoreZooKeeperIT {
 
   private static class TestChangeListener implements PropChangeListener {
 
-    private final Map<PropCacheKey<?>,Integer> changeCounts = new ConcurrentHashMap<>();
-    private final Map<PropCacheKey<?>,Integer> deleteCounts = new ConcurrentHashMap<>();
+    private final Map<PropStoreKey<?>,Integer> changeCounts = new ConcurrentHashMap<>();
+    private final Map<PropStoreKey<?>,Integer> deleteCounts = new ConcurrentHashMap<>();
 
     @Override
-    public void zkChangeEvent(PropCacheKey<?> propCacheKey) {
-      changeCounts.merge(propCacheKey, 1, Integer::sum);
+    public void zkChangeEvent(PropStoreKey<?> propStoreKey) {
+      changeCounts.merge(propStoreKey, 1, Integer::sum);
     }
 
     @Override
-    public void cacheChangeEvent(PropCacheKey<?> propCacheKey) {
-      changeCounts.merge(propCacheKey, 1, Integer::sum);
+    public void cacheChangeEvent(PropStoreKey<?> propStoreKey) {
+      changeCounts.merge(propStoreKey, 1, Integer::sum);
     }
 
     @Override
-    public void deleteEvent(PropCacheKey<?> propCacheKey) {
-      deleteCounts.merge(propCacheKey, 1, Integer::sum);
+    public void deleteEvent(PropStoreKey<?> propStoreKey) {
+      deleteCounts.merge(propStoreKey, 1, Integer::sum);
     }
 
     @Override
@@ -406,11 +406,11 @@ public class PropStoreZooKeeperIT {
 
     }
 
-    public Map<PropCacheKey<?>,Integer> getChangeCounts() {
+    public Map<PropStoreKey<?>,Integer> getChangeCounts() {
       return changeCounts;
     }
 
-    public Map<PropCacheKey<?>,Integer> getDeleteCounts() {
+    public Map<PropStoreKey<?>,Integer> getDeleteCounts() {
       return deleteCounts;
     }
   }

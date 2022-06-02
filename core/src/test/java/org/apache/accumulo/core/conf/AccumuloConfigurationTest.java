@@ -391,4 +391,45 @@ public class AccumuloConfigurationTest {
         tc.getScanExecutors(true).stream().filter(c -> c.name.equals(defName)).findFirst().get();
     assertEquals(17, sec10.maxThreads);
   }
+
+  // note: this is hard to test if there aren't any deprecated properties
+  // if that's the case, just comment this test out or create a dummy deprecated property
+  @SuppressWarnings("deprecation")
+  @Test
+  public void testResolveDeprecated() {
+    var conf = new ConfigurationCopy();
+
+    // deprecated first argument
+    var e1 = assertThrows(IllegalArgumentException.class, () -> conf
+        .resolve(Property.INSTANCE_DFS_DIR, Property.INSTANCE_DFS_URI, Property.INSTANCE_DFS_URI));
+    assertEquals("Unexpected deprecated INSTANCE_DFS_DIR", e1.getMessage());
+
+    // non-deprecated second argument
+    var e2 = assertThrows(IllegalArgumentException.class,
+        () -> conf.resolve(Property.INSTANCE_VOLUMES, Property.INSTANCE_DFS_DIR,
+            Property.INSTANCE_SECRET, Property.INSTANCE_DFS_DIR, Property.INSTANCE_VOLUMES));
+    assertEquals("Unexpected non-deprecated [INSTANCE_SECRET, INSTANCE_VOLUMES]", e2.getMessage());
+
+    // empty second argument always resolves to non-deprecated first argument
+    assertSame(Property.INSTANCE_VOLUMES, conf.resolve(Property.INSTANCE_VOLUMES));
+
+    // none are set, resolve to non-deprecated
+    assertSame(Property.INSTANCE_VOLUMES, conf.resolve(Property.INSTANCE_VOLUMES,
+        Property.INSTANCE_DFS_DIR, Property.INSTANCE_DFS_URI));
+
+    // resolve to first deprecated argument that's set; here, it's the final one
+    conf.set(Property.INSTANCE_DFS_URI, "");
+    assertSame(Property.INSTANCE_DFS_URI, conf.resolve(Property.INSTANCE_VOLUMES,
+        Property.INSTANCE_DFS_DIR, Property.INSTANCE_DFS_URI));
+
+    // resolve to first deprecated argument that's set; now, it's the first one because both are set
+    conf.set(Property.INSTANCE_DFS_DIR, "");
+    assertSame(Property.INSTANCE_DFS_DIR, conf.resolve(Property.INSTANCE_VOLUMES,
+        Property.INSTANCE_DFS_DIR, Property.INSTANCE_DFS_URI));
+
+    // every property is set, so resolve to the non-deprecated one
+    conf.set(Property.INSTANCE_VOLUMES, "");
+    assertSame(Property.INSTANCE_VOLUMES, conf.resolve(Property.INSTANCE_VOLUMES,
+        Property.INSTANCE_DFS_DIR, Property.INSTANCE_DFS_URI));
+  }
 }

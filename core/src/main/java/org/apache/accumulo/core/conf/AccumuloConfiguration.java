@@ -35,6 +35,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -94,14 +95,28 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   public abstract String get(Property property);
 
   /**
-   * Given a property and a deprecated property determine which one to use base on which one is set.
+   * Given a property that is not deprecated and an ordered list of deprecated properties, determine
+   * which one to use based on which is set by the user in the configuration. If the non-deprecated
+   * property is set, use that. Otherwise, use the first deprecated property that is set. If no
+   * deprecated properties are set, use the non-deprecated property by default, even though it is
+   * not set (since it is not set, it will resolve to its default value). Since the deprecated
+   * properties are checked in order, newer properties should be on the left, replacing older
+   * properties on the right, so if a newer property is set, it will be selected over any older
+   * property that may also be set.
    */
-  public Property resolve(Property property, Property deprecatedProperty) {
-    if (isPropertySet(property) || !isPropertySet(deprecatedProperty)) {
-      return property;
-    } else {
-      return deprecatedProperty;
+  public Property resolve(Property property, Property... deprecated) {
+    if (property.isDeprecated()) {
+      throw new IllegalArgumentException("Unexpected deprecated " + property.name());
     }
+    for (Property p : deprecated) {
+      if (!p.isDeprecated()) {
+        var notDeprecated = Stream.of(deprecated).filter(Predicate.not(Property::isDeprecated))
+            .map(Property::name).collect(Collectors.toList());
+        throw new IllegalArgumentException("Unexpected non-deprecated " + notDeprecated);
+      }
+    }
+    return isPropertySet(property) ? property
+        : Stream.of(deprecated).filter(this::isPropertySet).findFirst().orElse(property);
   }
 
   /**
