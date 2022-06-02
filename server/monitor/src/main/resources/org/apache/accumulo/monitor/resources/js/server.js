@@ -18,11 +18,10 @@
  */
 "use strict";
 
-var serv, tabletResults, detailTable, historyTable, currentTable, resultsTable;
+var detailTable, historyTable, currentTable, resultsTable;
 
-var currentServer = window.location.search.split('=')[1];
-var url = '/rest/tservers/' + currentServer;
-console.debug('REST url for fetching data: ' + url);
+const url = '/rest/tservers/' + window.location.search.split('=')[1];
+console.debug('REST url used to data for server.js DataTables: ' + url);
 
 /**
  * Makes the REST calls, generates the tables with the new information
@@ -144,8 +143,34 @@ $(document).ready(function () {
       },
       {
         "data": "stdDev"
+      },
+      {
+        "data": "timeSpent" // placeholder for percent column, replaced below
       }
-    ]
+    ],
+    // calculate and fill percent column each time table is drawn
+    "drawCallback": function () {
+      var totalTime = 0;
+      var api = this.api();
+
+      // calculate total duration of all tablet operations
+      api.rows().every(function () {
+        totalTime += this.data().timeSpent;
+      });
+
+      const percentColumnIndex = 7;
+      api.rows().every(function (rowIdx) {
+        // calculate the percentage of time taken for each row (each tablet op)
+        var currentPercent = (this.data().timeSpent / totalTime) * 100;
+        currentPercent = Math.round(currentPercent);
+        if (isNaN(currentPercent)) {
+          currentPercent = 0;
+        }
+        // insert the percentage bar into the current row and percent column
+        var newData = `<div class="progress"><div class="progress-bar" role="progressbar" style="min-width: 2em; width:${currentPercent}%;">${currentPercent}%</div></div>`
+        api.cell(rowIdx, percentColumnIndex).data(newData);
+      });
+    }
   });
 
   // Create a table for tablet operations on the current server
