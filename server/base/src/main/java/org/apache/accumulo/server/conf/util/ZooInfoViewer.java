@@ -28,7 +28,6 @@ import static org.apache.accumulo.core.Constants.ZTABLE_NAME;
 import static org.apache.accumulo.core.Constants.ZTABLE_NAMESPACE;
 
 import java.io.BufferedWriter;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -79,7 +78,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_OUT",
     justification = "app is run in same security context as user providing the filename")
 public class ZooInfoViewer implements KeywordExecutable {
-  public static final DateTimeFormatter tsFormat =
+  private static final DateTimeFormatter tsFormat =
       DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneId.from(ZoneOffset.UTC));
   private static final Logger log = LoggerFactory.getLogger(ZooInfoViewer.class);
   private final NullWatcher nullWatcher =
@@ -107,7 +106,7 @@ public class ZooInfoViewer implements KeywordExecutable {
   }
 
   @Override
-  public void execute(String[] args) {
+  public void execute(String[] args) throws Exception {
 
     ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
     opts.parseArgs(ZooInfoViewer.class.getName(), args);
@@ -119,15 +118,11 @@ public class ZooInfoViewer implements KeywordExecutable {
     ZooReader zooReader = new ZooReaderWriter(opts.getSiteConfiguration());
 
     InstanceId iid = getInstanceId(zooReader, opts);
-    try {
-      generateReport(iid, opts, zooReader);
-    } catch (FileNotFoundException ex) {
-      throw new IllegalStateException("Failed to generate ZooKeeper info report", ex);
-    }
+    generateReport(iid, opts, zooReader);
   }
 
   void generateReport(final InstanceId iid, final ZooInfoViewer.Opts opts,
-      final ZooReader zooReader) throws FileNotFoundException {
+      final ZooReader zooReader) throws Exception {
 
     OutputStream outStream;
 
@@ -223,7 +218,7 @@ public class ZooInfoViewer implements KeywordExecutable {
   }
 
   private void printProps(final InstanceId iid, final ZooReader zooReader, final Opts opts,
-      final PrintWriter writer) {
+      final PrintWriter writer) throws Exception {
 
     if (opts.printAllProps()) {
       log.info("all: {}", opts.printAllProps());
@@ -442,14 +437,10 @@ public class ZooInfoViewer implements KeywordExecutable {
     });
   }
 
-  private VersionedProperties fetchSystemProp(final InstanceId iid, final ZooReader zooReader) {
-
-    try {
-      SystemPropKey propKey = SystemPropKey.of(iid);
-      return ZooPropStore.readFromZk(propKey, nullWatcher, zooReader);
-    } catch (IOException | KeeperException | InterruptedException ex) {
-      throw new IllegalStateException("Failed to read system properties from ZooKeeper", ex);
-    }
+  private VersionedProperties fetchSystemProp(final InstanceId iid, final ZooReader zooReader)
+      throws Exception {
+    SystemPropKey propKey = SystemPropKey.of(iid);
+    return ZooPropStore.readFromZk(propKey, nullWatcher, zooReader);
   }
 
   static class Opts extends ConfigOpts {
@@ -462,7 +453,7 @@ public class ZooInfoViewer implements KeywordExecutable {
     public boolean printIdMap = false;
 
     @Parameter(names = {"--print-props"},
-        description = "print the property values stored in ZooKeeper, can be filtered with --namespaces and --tables options")
+        description = "print the property values stored in ZooKeeper, can be filtered with --system, --namespaces and --tables options")
     public boolean printProps = false;
 
     @Parameter(names = {"--print-instances"},

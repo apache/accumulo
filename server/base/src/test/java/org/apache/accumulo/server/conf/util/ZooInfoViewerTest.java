@@ -36,12 +36,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
+import java.io.File;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.UUID;
 
 import org.apache.accumulo.core.data.InstanceId;
@@ -67,11 +67,6 @@ public class ZooInfoViewerTest {
   private final Logger log = LoggerFactory.getLogger(ZooInfoViewerTest.class);
 
   private final VersionedPropCodec propCodec = VersionedPropCodec.getDefault();
-
-  @Test
-  public void simpleOutput() {
-    // StringWriter writer = new StringWriter();
-  }
 
   @Test
   public void optionsAllDefault() {
@@ -157,8 +152,7 @@ public class ZooInfoViewerTest {
     Map<String,InstanceId> instanceMap = viewer.readInstancesFromZk(zooReader);
 
     log.trace("id map returned: {}", instanceMap);
-    assertEquals(instA, instanceMap.get(instAName));
-    assertEquals(instB, instanceMap.get(instBName));
+    assertEquals(Map.of(instAName, instA, instBName, instB), instanceMap);
     verify(zooReader);
   }
 
@@ -213,6 +207,7 @@ public class ZooInfoViewerTest {
     verify(zooReader);
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "test generated output")
   @Test
   public void instanceIdOutputTest() throws Exception {
     String uuid = UUID.randomUUID().toString();
@@ -231,27 +226,25 @@ public class ZooInfoViewerTest {
         new String[] {"--instanceId", uuid, "--print-instances", "--outfile", testFileName});
 
     ZooInfoViewer viewer = new ZooInfoViewer();
-    // InstanceId found = viewer.getInstanceId(zooReader, opts);
     viewer.generateReport(InstanceId.of(uuid), opts, zooReader);
-    // assertEquals(InstanceId.of(uuid), found);
 
     verify(zooReader);
 
     String line;
-    try (BufferedReader in = new BufferedReader(new FileReader(testFileName, UTF_8))) {
+    try (Scanner scanner = new Scanner(new File(testFileName))) {
       boolean found = false;
-      while ((line = in.readLine()) != null) {
+      while (scanner.hasNext()) {
+        line = scanner.nextLine().trim();
         if (line.contains("=")) {
-          String trimmed = line.trim();
-          found = trimmed.startsWith(instanceName) && trimmed.endsWith(uuid);
+          found = line.startsWith(instanceName) && line.endsWith(uuid);
           break;
         }
       }
       assertTrue(found, "expected instance name, instance id not found");
-
     }
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "test generated output")
   @Test
   public void instanceNameOutputTest() throws Exception {
     String uuid = UUID.randomUUID().toString();
@@ -270,16 +263,15 @@ public class ZooInfoViewerTest {
         "--print-instances", "--outfile", testFileName});
 
     ZooInfoViewer viewer = new ZooInfoViewer();
-    // InstanceId found = viewer.getInstanceId(zooReader, opts);
     viewer.generateReport(InstanceId.of(uuid), opts, zooReader);
-    // assertEquals(InstanceId.of(uuid), found);
 
     verify(zooReader);
 
     String line;
-    try (BufferedReader in = new BufferedReader(new FileReader(testFileName, UTF_8))) {
+    try (Scanner scanner = new Scanner(new File(testFileName))) {
       boolean found = false;
-      while ((line = in.readLine()) != null) {
+      while (scanner.hasNext()) {
+        line = scanner.nextLine();
         if (line.contains("=")) {
           String trimmed = line.trim();
           found = trimmed.startsWith(instanceName) && trimmed.endsWith(uuid);
@@ -290,8 +282,8 @@ public class ZooInfoViewerTest {
     }
   }
 
-  @SuppressFBWarnings(value = "CRLF_INJECTION_LOGS",
-      justification = "test output of generated output")
+  @SuppressFBWarnings(value = {"CRLF_INJECTION_LOGS", "PATH_TRAVERSAL_IN"},
+      justification = "test generated output")
   @Test
   public void propTest() throws Exception {
     String uuid = UUID.randomUUID().toString();
@@ -343,16 +335,14 @@ public class ZooInfoViewerTest {
         new String[] {"--instanceId", uuid, "--print-props", "--outfile", testFileName});
 
     ZooInfoViewer viewer = new ZooInfoViewer();
-    // InstanceId found = viewer.getInstanceId(zooReader, opts);
     viewer.generateReport(InstanceId.of(uuid), opts, zooReader);
-    // assertEquals(InstanceId.of(uuid), found);
 
     verify(zooReader);
 
-    String line;
-    try (BufferedReader in = new BufferedReader(new FileReader(testFileName, UTF_8))) {
-      Map<String,String> props = new HashMap<>();
-      while ((line = in.readLine()) != null) {
+    Map<String,String> props = new HashMap<>();
+    try (Scanner scanner = new Scanner(new File(testFileName))) {
+      while (scanner.hasNext()) {
+        String line = scanner.nextLine();
         if (line.contains("=")) {
           log.trace("matched line: {}", line);
           String trimmed = line.trim();
@@ -360,16 +350,12 @@ public class ZooInfoViewerTest {
           props.put(kv[0], kv[1]);
         }
       }
-      assertEquals(4, props.size());
-      assertEquals("sv1", props.get("s1"));
-      assertEquals("sv2", props.get("s2"));
-      assertEquals("nv1", props.get("n1"));
-      assertEquals("tv1", props.get("t1"));
     }
+    assertEquals(Map.of("s1", "sv1", "s2", "sv2", "n1", "nv1", "t1", "tv1"), props);
   }
 
-  @SuppressFBWarnings(value = "CRLF_INJECTION_LOGS",
-      justification = "test output of generated output")
+  @SuppressFBWarnings(value = {"CRLF_INJECTION_LOGS", "PATH_TRAVERSAL_IN"},
+      justification = "test generated output")
   @Test
   public void idMapTest() throws Exception {
     String uuid = UUID.randomUUID().toString();
@@ -416,22 +402,20 @@ public class ZooInfoViewerTest {
     verify(zooReader);
 
     String line;
-    try (BufferedReader in = new BufferedReader(new FileReader(testFileName, UTF_8))) {
-      Map<String,String> ids = new HashMap<>();
-      while ((line = in.readLine()) != null) {
-        if (line.contains("=>")) {
+    Map<String,String> ids = new HashMap<>();
+    try (Scanner in = new Scanner(new File(testFileName))) {
+      while (in.hasNext()) {
+        line = in.nextLine().trim();
+        if (line.contains("=>") && !line.contains("ID Mapping")) {
           log.trace("matched line: {}", line);
-          String trimmed = line.trim();
-          String[] kv = trimmed.split("=>");
+          String[] kv = line.split("=>");
           ids.put(kv[0].trim(), kv[1].trim());
         }
       }
 
       log.debug("ids found in output: {}", ids);
-      assertEquals("\"\"", ids.get("+default"));
-      assertEquals("accumulo", ids.get("+accumulo"));
-      assertEquals("a_namespace_name", ids.get(aNamespaceId));
-      assertEquals("t_tablename", ids.get(aTableId));
+      assertEquals(Map.of("+default", "\"\"", "+accumulo", "accumulo", aNamespaceId,
+          "a_namespace_name", aTableId, "t_tablename"), ids);
     }
   }
 }
