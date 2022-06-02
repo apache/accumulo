@@ -19,7 +19,6 @@
 package org.apache.accumulo.core.summary;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
@@ -84,6 +83,7 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.hash.Hashing;
@@ -346,23 +346,11 @@ public class Gatherer {
   }
 
   private class PartitionFuture implements Future<SummaryCollection> {
-
-    private CompletableFuture<ProcessedFiles> future;
-    private int modulus;
-    private int remainder;
-    private ExecutorService execSrv;
-    private TInfo tinfo;
-    private AtomicBoolean cancelFlag = new AtomicBoolean(false);
+    private final CompletableFuture<SummaryCollection> future;
+    private final AtomicBoolean cancelFlag = new AtomicBoolean(false);
 
     PartitionFuture(TInfo tinfo, ExecutorService execSrv, int modulus, int remainder) {
-      this.tinfo = tinfo;
-      this.execSrv = execSrv;
-      this.modulus = modulus;
-      this.remainder = remainder;
-    }
-
-    private synchronized void initiateProcessing(ProcessedFiles previousWork) {
-      try {
+      Function<ProcessedFiles,CompletableFuture<ProcessedFiles>> go = (previousWork) -> {
         Predicate<TabletFile> fileSelector = file -> Math
             .abs(Hashing.murmur3_32_fixed().hashString(file.getPathStr(), UTF_8).asInt()) % modulus
             == remainder;
@@ -386,53 +374,17 @@ public class Gatherer {
               .supplyAsync(new FilesProcessor(tinfo, location, allFiles, cancelFlag), execSrv));
         }
 
-        future = CompletableFutureUtil.merge(futures,
+        return CompletableFutureUtil.merge(futures,
             (pf1, pf2) -> ProcessedFiles.merge(pf1, pf2, factory), ProcessedFiles::new);
-
-        // when all processing is done, check for failed files... and if found starting processing
-        // again
-        @SuppressWarnings("unused")
-        CompletableFuture<Void> unused = future.thenRun(() -> {
-          CompletableFuture<ProcessedFiles> unused2 = this.updateFuture();
-        });
-      } catch (Exception e) {
-        future = CompletableFuture.completedFuture(new ProcessedFiles());
-        // force future to have this exception
-        future.obtrudeException(e);
-      }
-    }
-
-    private ProcessedFiles _get() {
-      try {
-        return future.get();
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new RuntimeException(e);
-      } catch (ExecutionException e) {
-        throw new RuntimeException(e);
-      }
-    }
-
-    private synchronized CompletableFuture<ProcessedFiles> updateFuture() {
-      if (future.isDone()) {
-        if (!future.isCancelled() && !future.isCompletedExceptionally()) {
-          ProcessedFiles pf = _get();
-          if (!pf.failedFiles.isEmpty()) {
-            initiateProcessing(pf);
-          }
-        }
-      }
-
-      return future;
-    }
-
-    synchronized void initiateProcessing() {
-      Preconditions.checkState(future == null);
-      initiateProcessing(null);
+      };
+      future = CompletableFutureUtil
+          .iterateWhileAsync(go,
+              (previousWork) -> previousWork != null && previousWork.failedFiles.isEmpty(), null)
+          .thenApply((pf) -> pf.summaries);
     }
 
     @Override
-    public synchronized boolean cancel(boolean mayInterruptIfRunning) {
+    public boolean cancel(boolean mayInterruptIfRunning) {
       boolean canceled = future.cancel(mayInterruptIfRunning);
       if (canceled) {
         cancelFlag.set(true);
@@ -441,61 +393,25 @@ public class Gatherer {
     }
 
     @Override
-    public synchronized boolean isCancelled() {
-      return future.isCancelled();
-    }
-
-    @Override
-    public synchronized boolean isDone() {
-      @SuppressWarnings("unused")
-      CompletableFuture<ProcessedFiles> unused = updateFuture();
-      if (future.isDone()) {
-        if (future.isCancelled() || future.isCompletedExceptionally()) {
-          return true;
-        }
-
-        ProcessedFiles pf = _get();
-        if (pf.failedFiles.isEmpty()) {
-          return true;
-        } else {
-          unused = updateFuture();
-        }
-      }
-
-      return false;
-    }
-
-    @Override
     public SummaryCollection get() throws InterruptedException, ExecutionException {
-      CompletableFuture<ProcessedFiles> futureRef = updateFuture();
-      ProcessedFiles processedFiles = futureRef.get();
-      while (!processedFiles.failedFiles.isEmpty()) {
-        futureRef = updateFuture();
-        processedFiles = futureRef.get();
-      }
-      return processedFiles.summaries;
+      return future.get();
     }
 
     @Override
     public SummaryCollection get(long timeout, TimeUnit unit)
         throws InterruptedException, ExecutionException, TimeoutException {
-      long nanosLeft = unit.toNanos(timeout);
-      long t1, t2;
-      CompletableFuture<ProcessedFiles> futureRef = updateFuture();
-      t1 = System.nanoTime();
-      ProcessedFiles processedFiles = futureRef.get(Long.max(1, nanosLeft), NANOSECONDS);
-      t2 = System.nanoTime();
-      nanosLeft -= (t2 - t1);
-      while (!processedFiles.failedFiles.isEmpty()) {
-        futureRef = updateFuture();
-        t1 = System.nanoTime();
-        processedFiles = futureRef.get(Long.max(1, nanosLeft), NANOSECONDS);
-        t2 = System.nanoTime();
-        nanosLeft -= (t2 - t1);
-      }
-      return processedFiles.summaries;
+      return future.get(timeout, unit);
     }
 
+    @Override
+    public boolean isCancelled() {
+      return future.isCancelled();
+    }
+
+    @Override
+    public boolean isDone() {
+      return future.isDone();
+    }
   }
 
   /**
@@ -504,10 +420,7 @@ public class Gatherer {
    */
   public Future<SummaryCollection> processPartition(ExecutorService execSrv, int modulus,
       int remainder) {
-    PartitionFuture future =
-        new PartitionFuture(TraceUtil.traceInfo(), execSrv, modulus, remainder);
-    future.initiateProcessing();
-    return future;
+    return new PartitionFuture(TraceUtil.traceInfo(), execSrv, modulus, remainder);
   }
 
   public interface FileSystemResolver {

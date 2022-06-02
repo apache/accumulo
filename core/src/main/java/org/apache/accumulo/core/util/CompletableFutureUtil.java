@@ -22,6 +22,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public class CompletableFutureUtil {
@@ -49,4 +51,28 @@ public class CompletableFutureUtil {
     return futures.get(0);
   }
 
+  /**
+   * Asynchronously, iterate some function until a given condition is met.
+   */
+  public static <T> CompletableFuture<T> iterateWhileAsync(Function<T,CompletableFuture<T>> step,
+      Predicate<T> isDone, T init) {
+    // We'd like to use a lambda here, but lambdas don't have
+    // `this`, so we would have to use some clumsy indirection to
+    // achieve self-reference.
+    Function<T,CompletableFuture<T>> go = new Function<>() {
+      @Override
+      public CompletableFuture<T> apply(T x) {
+        if (isDone.test(x)) {
+          return CompletableFuture.completedFuture(x);
+        }
+        // Making the recursive call with thenComposeAsync prevents
+        // stack overflows (but risks deadlock if we run out of
+        // threads).
+        //
+        // TODO should this method take an ExecutorService argument?
+        return step.apply(x).thenComposeAsync(this);
+      }
+    };
+    return CompletableFuture.completedFuture(init).thenComposeAsync(go);
+  }
 }
