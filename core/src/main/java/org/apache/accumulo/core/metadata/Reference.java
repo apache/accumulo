@@ -24,7 +24,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 /**
  * A reference to a tablet file or directory.
  */
-public class Reference {
+public class Reference implements Comparable<Reference> {
   // parts of an absolute URI, like "hdfs://1.2.3.4/accumulo/tables/2a/t-0003"
   public final TableId tableId; // 2a
   public final String tabletDir; // t-0003
@@ -37,5 +37,29 @@ public class Reference {
     this.tableId = tableId;
     this.metadataEntry = metadataEntry;
     this.tabletDir = metadataEntry;
+  }
+
+  @Override
+  public int compareTo(Reference that) {
+    if (equals(that)) {
+      return 0;
+    } else {
+      return this.metadataEntry.compareTo(that.metadataEntry);
+    }
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof Reference) {
+      Reference that = (Reference) obj;
+      return this.metadataEntry.equals(that.metadataEntry);
+    } else {
+      return false;
+    }
+  }
+
+  @Override
+  public int hashCode() {
+    return this.metadataEntry.hashCode();
   }
 }
