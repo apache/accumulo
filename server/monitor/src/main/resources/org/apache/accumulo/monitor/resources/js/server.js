@@ -95,22 +95,7 @@ $(document).ready(function () {
   historyTable = $('#opHistoryDetails').DataTable({
     "ajax": {
       "url": url,
-      "dataSrc": function (data, type) {
-        if (type === 'display' && data.allTimeTabletResults !== undefined) {
-          var totalTimeSpent = 0;
-          for (var i = 0; i < data.allTimeTabletResults.length; i++) {
-            totalTimeSpent += parseInt(data.allTimeTabletResults[i].timeSpent, 10);
-            console.debug('new total:' + totalTimeSpent);
-          }
-          for (var i = 0; i < data.allTimeTabletResults.length; i++) {
-            var percent = Math.floor((data.allTimeTabletResults[i].timeSpent / totalTimeSpent) * 100);
-            console.debug('new percent:' + percent);
-            data.allTimeTabletResults[i].percentTime = percent;
-            console.debug('new percent1:' + data.allTimeTabletResults[i].percentTime);
-          }
-        }
-        return data;
-      }
+      "dataSrc": "allTimeTabletResults"
     },
     "stateSave": true,
     "searching": false,
@@ -159,21 +144,6 @@ $(document).ready(function () {
       },
       {
         "data": "stdDev"
-      },
-      {
-        "data": "queueStdDev"
-      },
-      {
-        "data": "percentTime",
-        "type": "html",
-        "render": function (data, type) {
-          if (type === 'display') {
-            console.debug('data: ' + data);
-            data = `<div class="progress"><div class="progress-bar" role="progressbar" style="min-width: 2em; width:${data}%;">${data}%</div>`
-          }
-          console.debug('data before return: ' + data);
-          return data;
-        }
       }
     ]
   });

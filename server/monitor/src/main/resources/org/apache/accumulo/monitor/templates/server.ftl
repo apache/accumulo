@@ -53,7 +53,7 @@
                 <th class="duration">Std.&nbsp;Dev.<br/>Queue&nbsp;Time&nbsp;</th>
                 <th class="duration">Average<br/>Time&nbsp;</th>
                 <th class="duration">Std.&nbsp;Dev.<br/>Time&nbsp;</th>
-                <th class="percent">Percentage&nbsp;Time&nbsp;Spent&nbsp;</th>
+                <#--<th>Percentage&nbsp;Time&nbsp;Spent&nbsp;</th> -->
               </tr>
             </thead>
             <tbody></tbody>
