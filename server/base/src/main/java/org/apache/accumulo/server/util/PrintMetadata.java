@@ -18,10 +18,12 @@
  */
 package org.apache.accumulo.server.util;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
@@ -30,6 +32,18 @@ import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
 public class PrintMetadata implements KeywordExecutable {
+  ServerContext context;
+
+  /**
+   * For unit testing
+   */
+  public PrintMetadata(ServerContext context) {
+    this.context = context;
+  }
+  public PrintMetadata() {
+    this.context = null;
+  }
+
   static class Opts extends ServerUtilOpts {
     @Parameter(description = " <table> { <table> ... } ")
     List<String> tables = new ArrayList<>();
@@ -53,15 +67,20 @@ public class PrintMetadata implements KeywordExecutable {
   public void execute(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(keyword(), args);
-    var serverContext = opts.getServerContext();
-    var ample = serverContext.getAmple();
-    var tableNameToIdMap = serverContext.tableOperations().tableIdMap();
+    if (this.context == null) {
+      this.context = opts.getServerContext();
+    }
+    var ample = context.getAmple();
+    var tableNameToIdMap = context.tableOperations().tableIdMap();
 
     opts.tables.forEach(tableName -> {
       String tableId = tableNameToIdMap.get(tableName);
-      var tm = ample.readTablets().forTable(TableId.of(tableId)).build();
-      for (var tablet : tm) {
-        System.out.println(tablet);
+      try (var tm = ample.readTablets().forTable(TableId.of(tableId)).build()) {
+        System.out.println("Table " + tableName + "(" + tableId + "): ");
+        System.out.println("Files:");
+        for (var tablet : tm) {
+          tablet.getFiles().forEach(stf -> System.out.println(stf.getPathStr()));
+        }
       }
     });
   }

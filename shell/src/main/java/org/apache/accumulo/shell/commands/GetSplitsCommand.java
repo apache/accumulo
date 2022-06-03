@@ -58,7 +58,7 @@ public class GetSplitsCommand extends Command {
     final String outputFile = cl.getOptionValue(outputFileOpt.getOpt());
     final String m = cl.getOptionValue(maxSplitsOpt.getOpt());
     final int maxSplits = m == null ? 0 : Integer.parseInt(m);
-    final boolean encode = cl.hasOption(base64Opt.getOpt());
+    final boolean base64EncodeSplits = cl.hasOption(base64Opt.getOpt());
     final boolean verbose = cl.hasOption(verboseOpt.getOpt());
 
     try (PrintLine p =
@@ -79,8 +79,8 @@ public class GetSplitsCommand extends Command {
         for (final Entry<Key,Value> next : scanner) {
           if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(next.getKey())) {
             KeyExtent extent = KeyExtent.fromMetaPrevRow(next);
-            final String pr = encode(encode, extent.prevEndRow());
-            final String er = encode(encode, extent.endRow());
+            final String pr = encodeSplit(base64EncodeSplits, extent.prevEndRow());
+            final String er = encodeSplit(base64EncodeSplits, extent.endRow());
             final String line =
                 String.format("%-26s (%s, %s%s", extent.obscured(), pr == null ? "-inf" : pr,
                     er == null ? "+inf" : er, er == null ? ") Default Tablet " : "]");
@@ -91,7 +91,7 @@ public class GetSplitsCommand extends Command {
         for (Text row : maxSplits > 0
             ? shellState.getAccumuloClient().tableOperations().listSplits(tableName, maxSplits)
             : shellState.getAccumuloClient().tableOperations().listSplits(tableName)) {
-          p.print(encode(encode, row));
+          p.print(encodeSplit(base64EncodeSplits, row));
         }
       }
 
@@ -100,13 +100,18 @@ public class GetSplitsCommand extends Command {
     return 0;
   }
 
-  private static String encode(final boolean encode, final Text text) {
+  /**
+   * Encode the provided split. Either base64 encoded or using {@link DefaultFormatter}
+   */
+  public static String encodeSplit(final boolean base64EncodeSplits, final Text text) {
     if (text == null) {
       return null;
     }
     final int length = text.getLength();
-    return encode ? Base64.getEncoder().encodeToString(TextUtil.getBytes(text))
-        : DefaultFormatter.appendText(new StringBuilder(), text, length).toString();
+    if (base64EncodeSplits)
+      return Base64.getEncoder().encodeToString(TextUtil.getBytes(text));
+    else
+      return DefaultFormatter.appendText(new StringBuilder(), text, length).toString();
   }
 
   @Override

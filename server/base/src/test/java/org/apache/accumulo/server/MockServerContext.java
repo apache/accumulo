@@ -28,9 +28,9 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.conf.store.PropStore;
-import org.easymock.EasyMock;
 
 /**
  * Get a generic mocked ServerContext with junk for testing.
@@ -38,7 +38,7 @@ import org.easymock.EasyMock;
 public class MockServerContext {
 
   public static ServerContext get() {
-    ServerContext context = EasyMock.createMock(ServerContext.class);
+    ServerContext context = createMock(ServerContext.class);
     ConfigurationCopy conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
     conf.set(Property.INSTANCE_VOLUMES, "file:///");
     expect(context.getConfiguration()).andReturn(conf).anyTimes();
@@ -65,6 +65,13 @@ public class MockServerContext {
     expect(sc.getZooReaderWriter()).andReturn(zrw).anyTimes();
     expect(sc.getZooKeeperRoot()).andReturn("/accumulo/" + instanceID).anyTimes();
     expect(sc.getPropStore()).andReturn(propStore).anyTimes();
+    return sc;
+  }
+
+  public static ServerContext getWithAmple() {
+    ServerContext sc = get();
+    Ample ample = MockAmple.get();
+    expect(sc.getAmple()).andReturn(ample).anyTimes();
     return sc;
   }
 }
