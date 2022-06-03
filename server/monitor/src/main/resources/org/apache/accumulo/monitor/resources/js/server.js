@@ -20,7 +20,9 @@
 
 var detailTable, historyTable, currentTable, resultsTable;
 
-const url = '/rest/tservers/' + window.location.search.split('=')[1];
+// get the hostname of the current server from the url
+const urlParams = new URLSearchParams(window.location.search);
+const url = '/rest/tservers/' + urlParams.get('s');
 console.debug('REST url used to data for server.js DataTables: ' + url);
 
 /**
