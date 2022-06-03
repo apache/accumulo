@@ -20,6 +20,7 @@ package org.apache.accumulo.core.client.admin;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -157,7 +158,7 @@ public interface InstanceOperations {
    *          Transaction IDs to fail.
    * @since 2.1.0
    */
-  void fateFail(List<String> txids) throws AccumuloException;
+  void fateFail(Set<String> txids) throws AccumuloException;
 
   /**
    * Deletes a fate transaction based on the given txID. At least one txID must be provided.
@@ -166,7 +167,7 @@ public interface InstanceOperations {
    *          Transaction IDs to delete.
    * @since 2.1.0
    */
-  void fateDelete(List<String> txids) throws AccumuloException;
+  void fateDelete(Set<String> txids) throws AccumuloException;
 
   /**
    * Gathers Transaction status information for either all fate transactions or requested txIDs.
@@ -178,7 +179,7 @@ public interface InstanceOperations {
    * @return A list of TransactionStatues for corresponding txids
    * @since 2.1.0
    */
-  List<TransactionStatus> fateStatus(List<String> txids, List<String> tStatus)
+  List<TransactionStatus> fateStatus(Set<String> txids, List<String> tStatus)
       throws AccumuloException;
 
   /**

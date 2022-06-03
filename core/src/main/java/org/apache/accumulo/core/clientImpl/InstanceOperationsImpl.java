@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -288,19 +289,19 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public void fateFail(List<String> txids) throws AccumuloException {
+  public void fateFail(Set<String> txids) throws AccumuloException {
     checkArgument(txids != null, "txids is null");
     executeAdminOperation(AdminOperation.FAIL, txids, null);
   }
 
   @Override
-  public void fateDelete(List<String> txids) throws AccumuloException {
+  public void fateDelete(Set<String> txids) throws AccumuloException {
     checkArgument(txids != null, "txids is null");
     executeAdminOperation(AdminOperation.DELETE, txids, null);
   }
 
   @Override
-  public List<TransactionStatus> fateStatus(List<String> txids, List<String> tStatus)
+  public List<TransactionStatus> fateStatus(Set<String> txids, List<String> tStatus)
       throws AccumuloException {
     checkArgument(txids != null, "txids is null");
     List<TransactionStatus> txStatus = new ArrayList<>();
@@ -311,7 +312,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     return txStatus;
   }
 
-  private List<FateTransaction> executeAdminOperation(AdminOperation op, List<String> txids,
+  private List<FateTransaction> executeAdminOperation(AdminOperation op, Set<String> txids,
       List<String> filterStatuses) throws AccumuloException {
     try {
       return ThriftClientTypes.CLIENT.execute(context,

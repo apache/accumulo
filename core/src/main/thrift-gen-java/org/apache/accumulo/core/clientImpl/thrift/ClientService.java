@@ -83,7 +83,7 @@ public class ClientService {
 
     public java.util.Map<java.lang.String,java.lang.String> getNamespaceConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns) throws ThriftTableOperationException, org.apache.thrift.TException;
 
-    public java.util.List<FateTransaction> executeAdminOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, AdminOperation op, java.util.List<java.lang.String> txids, java.util.List<java.lang.String> filterStatues) throws ThriftSecurityException, org.apache.thrift.TException;
+    public java.util.List<FateTransaction> executeAdminOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, AdminOperation op, java.util.Set<java.lang.String> txids, java.util.List<java.lang.String> filterStatues) throws ThriftSecurityException, org.apache.thrift.TException;
 
     public boolean checkClass(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String className, java.lang.String interfaceMatch) throws org.apache.thrift.TException;
 
@@ -149,7 +149,7 @@ public class ClientService {
 
     public void getNamespaceConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns, org.apache.thrift.async.AsyncMethodCallback<java.util.Map<java.lang.String,java.lang.String>> resultHandler) throws org.apache.thrift.TException;
 
-    public void executeAdminOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, AdminOperation op, java.util.List<java.lang.String> txids, java.util.List<java.lang.String> filterStatues, org.apache.thrift.async.AsyncMethodCallback<java.util.List<FateTransaction>> resultHandler) throws org.apache.thrift.TException;
+    public void executeAdminOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, AdminOperation op, java.util.Set<java.lang.String> txids, java.util.List<java.lang.String> filterStatues, org.apache.thrift.async.AsyncMethodCallback<java.util.List<FateTransaction>> resultHandler) throws org.apache.thrift.TException;
 
     public void checkClass(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String className, java.lang.String interfaceMatch, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler) throws org.apache.thrift.TException;
 
@@ -918,13 +918,13 @@ public class ClientService {
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getNamespaceConfiguration failed: unknown result");
     }
 
-    public java.util.List<FateTransaction> executeAdminOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, AdminOperation op, java.util.List<java.lang.String> txids, java.util.List<java.lang.String> filterStatues) throws ThriftSecurityException, org.apache.thrift.TException
+    public java.util.List<FateTransaction> executeAdminOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, AdminOperation op, java.util.Set<java.lang.String> txids, java.util.List<java.lang.String> filterStatues) throws ThriftSecurityException, org.apache.thrift.TException
     {
       send_executeAdminOperation(tinfo, credentials, op, txids, filterStatues);
       return recv_executeAdminOperation();
     }
 
-    public void send_executeAdminOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, AdminOperation op, java.util.List<java.lang.String> txids, java.util.List<java.lang.String> filterStatues) throws org.apache.thrift.TException
+    public void send_executeAdminOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, AdminOperation op, java.util.Set<java.lang.String> txids, java.util.List<java.lang.String> filterStatues) throws org.apache.thrift.TException
     {
       executeAdminOperation_args args = new executeAdminOperation_args();
       args.setTinfo(tinfo);
@@ -2105,7 +2105,7 @@ public class ClientService {
       }
     }
 
-    public void executeAdminOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, AdminOperation op, java.util.List<java.lang.String> txids, java.util.List<java.lang.String> filterStatues, org.apache.thrift.async.AsyncMethodCallback<java.util.List<FateTransaction>> resultHandler) throws org.apache.thrift.TException {
+    public void executeAdminOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, AdminOperation op, java.util.Set<java.lang.String> txids, java.util.List<java.lang.String> filterStatues, org.apache.thrift.async.AsyncMethodCallback<java.util.List<FateTransaction>> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       executeAdminOperation_call method_call = new executeAdminOperation_call(tinfo, credentials, op, txids, filterStatues, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -2116,9 +2116,9 @@ public class ClientService {
       private org.apache.accumulo.core.trace.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
       private AdminOperation op;
-      private java.util.List<java.lang.String> txids;
+      private java.util.Set<java.lang.String> txids;
       private java.util.List<java.lang.String> filterStatues;
-      public executeAdminOperation_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, AdminOperation op, java.util.List<java.lang.String> txids, java.util.List<java.lang.String> filterStatues, org.apache.thrift.async.AsyncMethodCallback<java.util.List<FateTransaction>> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public executeAdminOperation_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, AdminOperation op, java.util.Set<java.lang.String> txids, java.util.List<java.lang.String> filterStatues, org.apache.thrift.async.AsyncMethodCallback<java.util.List<FateTransaction>> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -34160,7 +34160,7 @@ public class ClientService {
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
     private static final org.apache.thrift.protocol.TField OP_FIELD_DESC = new org.apache.thrift.protocol.TField("op", org.apache.thrift.protocol.TType.I32, (short)3);
-    private static final org.apache.thrift.protocol.TField TXIDS_FIELD_DESC = new org.apache.thrift.protocol.TField("txids", org.apache.thrift.protocol.TType.LIST, (short)4);
+    private static final org.apache.thrift.protocol.TField TXIDS_FIELD_DESC = new org.apache.thrift.protocol.TField("txids", org.apache.thrift.protocol.TType.SET, (short)4);
     private static final org.apache.thrift.protocol.TField FILTER_STATUES_FIELD_DESC = new org.apache.thrift.protocol.TField("filterStatues", org.apache.thrift.protocol.TType.LIST, (short)5);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new executeAdminOperation_argsStandardSchemeFactory();
@@ -34173,7 +34173,7 @@ public class ClientService {
      * @see AdminOperation
      */
     public @org.apache.thrift.annotation.Nullable AdminOperation op; // required
-    public @org.apache.thrift.annotation.Nullable java.util.List<java.lang.String> txids; // required
+    public @org.apache.thrift.annotation.Nullable java.util.Set<java.lang.String> txids; // required
     public @org.apache.thrift.annotation.Nullable java.util.List<java.lang.String> filterStatues; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -34263,7 +34263,7 @@ public class ClientService {
       tmpMap.put(_Fields.OP, new org.apache.thrift.meta_data.FieldMetaData("op", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, AdminOperation.class)));
       tmpMap.put(_Fields.TXIDS, new org.apache.thrift.meta_data.FieldMetaData("txids", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
+          new org.apache.thrift.meta_data.SetMetaData(org.apache.thrift.protocol.TType.SET, 
               new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
       tmpMap.put(_Fields.FILTER_STATUES, new org.apache.thrift.meta_data.FieldMetaData("filterStatues", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
@@ -34279,7 +34279,7 @@ public class ClientService {
       org.apache.accumulo.core.trace.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
       AdminOperation op,
-      java.util.List<java.lang.String> txids,
+      java.util.Set<java.lang.String> txids,
       java.util.List<java.lang.String> filterStatues)
     {
       this();
@@ -34304,7 +34304,7 @@ public class ClientService {
         this.op = other.op;
       }
       if (other.isSetTxids()) {
-        java.util.List<java.lang.String> __this__txids = new java.util.ArrayList<java.lang.String>(other.txids);
+        java.util.Set<java.lang.String> __this__txids = new java.util.HashSet<java.lang.String>(other.txids);
         this.txids = __this__txids;
       }
       if (other.isSetFilterStatues()) {
@@ -34420,17 +34420,17 @@ public class ClientService {
 
     public void addToTxids(java.lang.String elem) {
       if (this.txids == null) {
-        this.txids = new java.util.ArrayList<java.lang.String>();
+        this.txids = new java.util.HashSet<java.lang.String>();
       }
       this.txids.add(elem);
     }
 
     @org.apache.thrift.annotation.Nullable
-    public java.util.List<java.lang.String> getTxids() {
+    public java.util.Set<java.lang.String> getTxids() {
       return this.txids;
     }
 
-    public executeAdminOperation_args setTxids(@org.apache.thrift.annotation.Nullable java.util.List<java.lang.String> txids) {
+    public executeAdminOperation_args setTxids(@org.apache.thrift.annotation.Nullable java.util.Set<java.lang.String> txids) {
       this.txids = txids;
       return this;
     }
@@ -34521,7 +34521,7 @@ public class ClientService {
         if (value == null) {
           unsetTxids();
         } else {
-          setTxids((java.util.List<java.lang.String>)value);
+          setTxids((java.util.Set<java.lang.String>)value);
         }
         break;
 
@@ -34861,17 +34861,17 @@ public class ClientService {
               }
               break;
             case 4: // TXIDS
-              if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
+              if (schemeField.type == org.apache.thrift.protocol.TType.SET) {
                 {
-                  org.apache.thrift.protocol.TList _list110 = iprot.readListBegin();
-                  struct.txids = new java.util.ArrayList<java.lang.String>(_list110.size);
+                  org.apache.thrift.protocol.TSet _set110 = iprot.readSetBegin();
+                  struct.txids = new java.util.HashSet<java.lang.String>(2*_set110.size);
                   @org.apache.thrift.annotation.Nullable java.lang.String _elem111;
-                  for (int _i112 = 0; _i112 < _list110.size; ++_i112)
+                  for (int _i112 = 0; _i112 < _set110.size; ++_i112)
                   {
                     _elem111 = iprot.readString();
                     struct.txids.add(_elem111);
                   }
-                  iprot.readListEnd();
+                  iprot.readSetEnd();
                 }
                 struct.setTxidsIsSet(true);
               } else { 
@@ -34929,12 +34929,12 @@ public class ClientService {
         if (struct.txids != null) {
           oprot.writeFieldBegin(TXIDS_FIELD_DESC);
           {
-            oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.txids.size()));
+            oprot.writeSetBegin(new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, struct.txids.size()));
             for (java.lang.String _iter116 : struct.txids)
             {
               oprot.writeString(_iter116);
             }
-            oprot.writeListEnd();
+            oprot.writeSetEnd();
           }
           oprot.writeFieldEnd();
         }
@@ -35033,10 +35033,10 @@ public class ClientService {
         }
         if (incoming.get(3)) {
           {
-            org.apache.thrift.protocol.TList _list120 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRING);
-            struct.txids = new java.util.ArrayList<java.lang.String>(_list120.size);
+            org.apache.thrift.protocol.TSet _set120 = iprot.readSetBegin(org.apache.thrift.protocol.TType.STRING);
+            struct.txids = new java.util.HashSet<java.lang.String>(2*_set120.size);
             @org.apache.thrift.annotation.Nullable java.lang.String _elem121;
-            for (int _i122 = 0; _i122 < _list120.size; ++_i122)
+            for (int _i122 = 0; _i122 < _set120.size; ++_i122)
             {
               _elem121 = iprot.readString();
               struct.txids.add(_elem121);

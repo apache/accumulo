@@ -36,6 +36,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -120,7 +121,7 @@ public class FateCommandTest {
 
     expect(shellState.getAccumuloClient()).andReturn(client);
     expect(client.instanceOperations()).andReturn(intOps);
-    intOps.fateFail(Arrays.asList(cli.getOptionValues("fail")));
+    intOps.fateFail(new HashSet<>(Arrays.asList(cli.getOptionValues("fail"))));
     expectLastCall().once();
 
     replay(client, shellState, intOps);
@@ -149,7 +150,8 @@ public class FateCommandTest {
 
     txstatus.add(new TransactionStatus(Long.parseLong("1234"), null, null, Collections.emptyList(),
         Collections.emptyList(), null, System.currentTimeMillis(), null));
-    expect(intOps.fateStatus(Arrays.asList(cli.getOptionValues("dump")), null)).andReturn(txstatus);
+    expect(intOps.fateStatus(new HashSet<>(Arrays.asList(cli.getOptionValues("dump"))), null))
+        .andReturn(txstatus);
     pw.println(txstatus.get(0).getStackInfo());
     expectLastCall().once();
 

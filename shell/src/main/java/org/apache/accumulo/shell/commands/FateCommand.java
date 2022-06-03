@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Formatter;
+import java.util.HashSet;
 import java.util.List;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -119,11 +120,13 @@ public class FateCommand extends Command {
   }
 
   public void failTx(Shell shellState, String[] args) throws AccumuloException {
-    shellState.getAccumuloClient().instanceOperations().fateFail(Arrays.asList(args));
+    shellState.getAccumuloClient().instanceOperations()
+        .fateFail(new HashSet<>(Arrays.asList(args)));
   }
 
   protected void deleteTx(Shell shellState, String[] args) throws AccumuloException {
-    shellState.getAccumuloClient().instanceOperations().fateDelete(Arrays.asList(args));
+    shellState.getAccumuloClient().instanceOperations()
+        .fateDelete(new HashSet<>(Arrays.asList(args)));
   }
 
   protected void dumpTx(Shell shellState, String[] args) throws AccumuloException {
@@ -132,8 +135,8 @@ public class FateCommand extends Command {
       args = new String[] {};
     }
 
-    List<TransactionStatus> txStatuses =
-        shellState.getAccumuloClient().instanceOperations().fateStatus(Arrays.asList(args), null);
+    List<TransactionStatus> txStatuses = shellState.getAccumuloClient().instanceOperations()
+        .fateStatus(new HashSet<>(Arrays.asList(args)), null);
 
     if (txStatuses.isEmpty())
       shellState.getWriter().println(" No transactions to dump");
@@ -159,7 +162,7 @@ public class FateCommand extends Command {
     }
 
     List<TransactionStatus> txStatuses = shellState.getAccumuloClient().instanceOperations()
-        .fateStatus(Arrays.asList(args), filterStatus);
+        .fateStatus(new HashSet<>(Arrays.asList(args)), filterStatus);
 
     for (TransactionStatus txStatus : txStatuses) {
       fmt.format(

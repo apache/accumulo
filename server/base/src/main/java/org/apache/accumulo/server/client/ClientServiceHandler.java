@@ -462,7 +462,7 @@ public class ClientServiceHandler implements ClientService.Iface {
 
   @Override
   public List<FateTransaction> executeAdminOperation(TInfo tInfo, TCredentials credentials,
-      AdminOperation op, List<String> txids, List<String> filterStatuses)
+      AdminOperation op, Set<String> txids, List<String> filterStatuses)
       throws ThriftSecurityException, TException {
     try {
       authenticate(tInfo, credentials);

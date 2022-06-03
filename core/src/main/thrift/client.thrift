@@ -355,7 +355,7 @@ service ClientService {
       1:trace.TInfo tinfo
       2:security.TCredentials credentials
       3:AdminOperation op
-      4:list<string> txids
+      4:set<string> txids
       5:list<string> filterStatues
     ) throws (
       1:ThriftSecurityException sec
