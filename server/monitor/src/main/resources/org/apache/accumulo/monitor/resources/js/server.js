@@ -20,11 +20,6 @@
 
 var detailTable, historyTable, currentTable, resultsTable;
 
-// get the hostname of the current server from the url
-const urlParams = new URLSearchParams(window.location.search);
-const url = '/rest/tservers/' + urlParams.get('s');
-console.debug('REST url used to data for server.js DataTables: ' + url);
-
 /**
  * Makes the REST calls, generates the tables with the new information
  */
@@ -42,8 +37,15 @@ function refresh() {
   refreshServer();
 }
 
+/**
+ * Initializes all of the DataTables for the given hostname
+ * 
+ * @param {String} serv the tserver hostname
+ */
+function initServerTables(serv) {
 
-$(document).ready(function () {
+  const url = '/rest/tservers/' + serv;
+  console.debug('REST url used to fetch data for server.js DataTables: ' + url);
 
   // Create a table for details on the current server
   detailTable = $('#tServerDetail').DataTable({
@@ -297,4 +299,4 @@ $(document).ready(function () {
   });
 
   refreshServer();
-});
+}

@@ -18,6 +18,12 @@
     under the License.
 
 -->
+      <script>
+        $(document).ready(function() {
+          // initialize DataTables
+          initServerTables('${server}');
+        });
+      </script>
       <div class="row">
         <div class="col-xs-12">
           <h3>${title}</h3>
