@@ -619,7 +619,7 @@ public class InputConfigurator extends ConfiguratorBase {
   }
 
   /**
-   * Set the ConsistencyLevel for the Accumulo scans that create the input data
+   * Get the ConsistencyLevel for the Accumulo scans that create the input data
    *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key

@@ -41,6 +41,7 @@ import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -135,6 +136,7 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
     Authorizations authorizations = InputConfigurator.getScanAuthorizations(CLASS, job);
     String classLoaderContext = InputConfigurator.getClassLoaderContext(CLASS, job);
     String table = baseSplit.getTableName();
+    ConsistencyLevel cl = InputConfigurator.getConsistencyLevel(CLASS, job);
 
     // in case the table name changed, we can still use the previous name for terms of
     // configuration, but the scanner will use the table id resolved at job setup time
@@ -161,7 +163,8 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
       } catch (TableNotFoundException e) {
         throw new IOException(e);
       }
-      scanner.setConsistencyLevel(tableConfig.getConsistencyLevel());
+      ConsistencyLevel tcl = tableConfig.getConsistencyLevel();
+      scanner.setConsistencyLevel((tcl != null && tcl != cl) ? tcl : cl);
       scanner.setRanges(multiRangeSplit.getRanges());
       scannerBase = scanner;
 
@@ -189,7 +192,8 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
           scanner = new OfflineScanner(context, TableId.of(baseSplit.getTableId()), authorizations);
         } else {
           scanner = new ScannerImpl(context, TableId.of(baseSplit.getTableId()), authorizations);
-          scanner.setConsistencyLevel(tableConfig.getConsistencyLevel());
+          ConsistencyLevel tcl = tableConfig.getConsistencyLevel();
+          scanner.setConsistencyLevel((tcl != null && tcl != cl) ? tcl : cl);
         }
         if (isIsolated) {
           log.info("Creating isolated scanner");
