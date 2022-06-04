@@ -2082,4 +2082,42 @@ public class ShellServerIT extends SharedMiniClusterBase {
     // check that there are two files, with none having extra summary info
     assertMatches(output, "(?sm).*^.*total[:]2[,]\\s+missing[:]0[,]\\s+extra[:]0.*$.*");
   }
+
+  @Test
+  public void testFateCommandWithSlowCompaction() throws Exception {
+    final String table = getUniqueNames(1)[0];
+
+    System.setProperty("accumulo.properties",
+        "file://" + getCluster().getConfig().getAccumuloPropsFile().getCanonicalPath());
+    // compact
+    ts.exec("createtable " + table);
+
+    // setup SlowIterator to sleep for 10 seconds
+    ts.exec("config -t " + table
+        + " -s table.iterator.majc.slow=1,org.apache.accumulo.test.functional.SlowIterator");
+    ts.exec("config -t " + table + " -s table.iterator.majc.slow.opt.sleepTime=10000");
+
+    String tableId = getTableId(table);
+
+    // make two files
+    ts.exec("insert a1 b c v_a1");
+    ts.exec("insert a2 b c v_a2");
+    ts.exec("flush -w");
+    ts.exec("insert x1 b c v_x1");
+    ts.exec("insert x2 b c v_x2");
+    ts.exec("flush -w");
+    int oldCount = countFiles(tableId);
+
+    // merge two files into one
+    ts.exec("compact -t " + table);
+
+    Thread.sleep(3_000);
+    // compaction should still be running
+    // assertFalse(countFiles(tableId) < oldCount);
+
+    log.info("Calling fate print for table = {}", table);
+    ts.exec("fate -print", true, "txid:", true);
+
+    ts.exec("deletetable -f " + table);
+  }
 }
