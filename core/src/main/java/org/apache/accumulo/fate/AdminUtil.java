@@ -390,12 +390,9 @@ public class AdminUtil<T> {
 
       zs.unreserve(tid, 0);
 
-      TransactionStatus txStatus =
-          new TransactionStatus(tid, status, debug, hlocks, wlocks, top, timeCreated);
-
-      if (((filterTxid == null) || filterTxid.contains(tid))
-          || ((filterStatus == null) || filterStatus.contains(status))) {
-        statuses.add(txStatus);
+      if ((filterTxid == null) || filterTxid.contains(tid) || (filterStatus == null)
+          || filterStatus.contains(status)) {
+        statuses.add(new TransactionStatus(tid, status, debug, hlocks, wlocks, top, timeCreated));
       }
     }
 
