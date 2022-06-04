@@ -389,12 +389,13 @@ public class AdminUtil<T> {
       long timeCreated = zs.timeCreated(tid);
 
       zs.unreserve(tid, 0);
-      TransactionStatus txStatus = new TransactionStatus(tid, status, debug, hlocks, wlocks, top, timeCreated);
+      TransactionStatus txStatus =
+          new TransactionStatus(tid, status, debug, hlocks, wlocks, top, timeCreated);
 
-      if((filterTxid == null) || filterTxid.contains(tid)){
+      if ((filterTxid == null) || filterTxid.contains(tid)) {
         statuses.add(txStatus);
       } else {
-        if((filterStatus == null) || filterStatus.contains(status)){
+        if ((filterStatus == null) || filterStatus.contains(status)) {
           statuses.add(txStatus);
         }
       }
