@@ -25,7 +25,8 @@ import org.junit.jupiter.api.Test;
 public class PrintMetadataTest {
   @Test
   public void test() throws Exception {
-    ServerContext serverContext = MockServerContext.getWithAmple();
+    ServerContext serverContext = new MockServerContext().withTables("table1").withAmple().done();
+
     PrintMetadata printMetadata = new PrintMetadata(serverContext);
     printMetadata.execute(new String[] {});
   }

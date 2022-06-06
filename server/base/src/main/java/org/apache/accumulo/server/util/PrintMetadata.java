@@ -70,8 +70,9 @@ public class PrintMetadata implements KeywordExecutable {
     if (this.context == null) {
       this.context = opts.getServerContext();
     }
-    var ample = context.getAmple();
     var tableNameToIdMap = context.tableOperations().tableIdMap();
+
+    var ample = context.getAmple();
 
     opts.tables.forEach(tableName -> {
       String tableId = tableNameToIdMap.get(tableName);
