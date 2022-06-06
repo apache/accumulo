@@ -37,6 +37,7 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -105,17 +106,16 @@ public class NamespaceConfigurationTest {
 
   @Test
   public void testGet_InParent() {
-    Property p = Property.INSTANCE_SECRET;
-
-    expect(parent.get(p.getKey())).andReturn("sekrit");
-    replay(parent);
+    String randomKey = UUID.randomUUID().toString();
+    String customTablePropKey = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + randomKey;
+    String expectedValue = "thisIsTheExpectedValue";
+    ConfigurationCopy parent = new ConfigurationCopy(Map.of(customTablePropKey, expectedValue));
 
     nsConfig = new NamespaceConfiguration(context, NSID, parent);
 
-    assertEquals("sekrit", nsConfig.get(Property.INSTANCE_SECRET));
+    assertEquals(expectedValue, nsConfig.get(customTablePropKey));
 
-    // TODO Need to check parent and accessor usage
-    verify(parent, propStore, context);
+    verify(propStore, context);
   }
 
   @Test
