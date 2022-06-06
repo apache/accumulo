@@ -213,14 +213,18 @@ public class FateCommandTest {
 
     try {
       cmd.printTx(shell, helper, zs, zk, tableLocksPath, cli.getOptionValues("list"), cli);
+      cmd.printTx(shell, helper, zs, zk, tableLocksPath, cli.getOptionValues("list FATE[1]"), cli);
+      cmd.printTx(shell, helper, zs, zk, tableLocksPath, cli.getOptionValues("list 1234"), cli);
+      cmd.printTx(shell, helper, zs, zk, tableLocksPath, cli.getOptionValues("list 1234 2345"),
+          cli);
       cmd.printTx(shell, helper, zs, zk, tableLocksPath, cli.getOptionValues("print"), cli);
+      cmd.printTx(shell, helper, zs, zk, tableLocksPath, cli.getOptionValues("print FATE[1]"), cli);
+      cmd.printTx(shell, helper, zs, zk, tableLocksPath, cli.getOptionValues("print 1234"), cli);
+      cmd.printTx(shell, helper, zs, zk, tableLocksPath, cli.getOptionValues("print 1234 2345"),
+          cli);
       cmd.printTx(shell, helper, zs, zk, tableLocksPath, new String[] {""}, cli);
       cmd.printTx(shell, helper, zs, zk, tableLocksPath, new String[] {}, cli);
       cmd.printTx(shell, helper, zs, zk, tableLocksPath, null, cli);
-      cmd.printTx(shell, helper, zs, zk, tableLocksPath, new String[] {"list"}, cli);
-      cmd.printTx(shell, helper, zs, zk, tableLocksPath, new String[] {"list", "1234"}, cli);
-      cmd.printTx(shell, helper, zs, zk, tableLocksPath, new String[] {"print"}, cli);
-      cmd.printTx(shell, helper, zs, zk, tableLocksPath, new String[] {"print", "1234"}, cli);
     } finally {
       output.clear();
       System.setOut(out);

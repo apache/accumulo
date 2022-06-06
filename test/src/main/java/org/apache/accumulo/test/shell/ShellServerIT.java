@@ -2087,6 +2087,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
   public void testFateCommandWithSlowCompaction() throws Exception {
     final String table = getUniqueNames(1)[0];
 
+    String orgProps = System.getProperty("accumulo.properties");
+
     System.setProperty("accumulo.properties",
         "file://" + getCluster().getConfig().getAccumuloPropsFile().getCanonicalPath());
     // compact
@@ -2118,6 +2120,17 @@ public class ShellServerIT extends SharedMiniClusterBase {
     log.info("Calling fate print for table = {}", table);
     ts.exec("fate -print", true, "txid:", true);
 
+    // test filters
+    ts.exec("fate -print -t IN_PROGRESS", true, "txid:", true);
+    ts.exec("fate -print -t NEW", true, "0 transactions", true);
+    ts.exec("fate -print 1234", true, "0 transactions", true);
+    ts.exec("fate -print FATE[aaa] 1 2 3", true, "0 transactions", true);
+
     ts.exec("deletetable -f " + table);
+
+    if (orgProps != null) {
+      System.setProperty("accumulo.properties", orgProps);
+    }
+
   }
 }

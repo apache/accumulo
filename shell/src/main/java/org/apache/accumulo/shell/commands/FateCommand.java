@@ -218,10 +218,12 @@ public class FateCommand extends Command {
       throws InterruptedException, KeeperException, IOException {
     // Parse transaction ID filters for print display
     Set<Long> filterTxid = new HashSet<>();
-    if (args != null && args.length >= 2) {
-      for (int i = 1; i < args.length; i++) {
-        Long val = parseTxid(args[i]);
-        filterTxid.add(val);
+    if (args != null && args.length >= 1) {
+      for (int i = 0; i < args.length; i++) {
+        if (!args[i].isEmpty()) {
+          Long val = parseTxid(args[i]);
+          filterTxid.add(val);
+        }
       }
     }
 
@@ -343,12 +345,14 @@ public class FateCommand extends Command {
     delete.setArgs(Option.UNLIMITED_VALUES);
     delete.setOptionalArg(false);
 
-    list = new Option("list", "list", true, "print FaTE transaction information");
+    list = new Option("list", "list", true,
+        "print FaTE transaction information. Filter on id(s) with FATE[id] or id list ");
     list.setArgName("txid");
     list.setArgs(Option.UNLIMITED_VALUES);
     list.setOptionalArg(true);
 
-    print = new Option("print", "print", true, "print FaTE transaction information");
+    print = new Option("print", "print", true,
+        "print FaTE transaction information. Filter on id(s) with FATE[id] or id list ");
     print.setArgName("txid");
     print.setArgs(Option.UNLIMITED_VALUES);
     print.setOptionalArg(true);

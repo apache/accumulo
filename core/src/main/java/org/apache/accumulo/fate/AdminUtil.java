@@ -252,14 +252,12 @@ public class AdminUtil<T> {
   public FateStatus getStatus(ReadOnlyTStore<T> zs, ZooReader zk,
       ServiceLock.ServiceLockPath lockPath, Set<Long> filterTxid, EnumSet<TStatus> filterStatus)
       throws KeeperException, InterruptedException {
-
     Map<Long,List<String>> heldLocks = new HashMap<>();
     Map<Long,List<String>> waitingLocks = new HashMap<>();
 
     findLocks(zk, lockPath, heldLocks, waitingLocks);
 
     return getTransactionStatus(zs, filterTxid, filterStatus, heldLocks, waitingLocks);
-
   }
 
   /**
@@ -390,14 +388,21 @@ public class AdminUtil<T> {
 
       zs.unreserve(tid, 0);
 
-      if ((filterTxid == null) || filterTxid.contains(tid) || (filterStatus == null)
-          || filterStatus.contains(status)) {
+      if (includeByStatus(status, filterStatus) && includeByTxid(tid, filterTxid)) {
         statuses.add(new TransactionStatus(tid, status, debug, hlocks, wlocks, top, timeCreated));
       }
     }
 
     return new FateStatus(statuses, heldLocks, waitingLocks);
 
+  }
+
+  private boolean includeByStatus(TStatus status, EnumSet<TStatus> filterStatus) {
+    return (filterStatus == null) || filterStatus.contains(status);
+  }
+
+  private boolean includeByTxid(Long tid, Set<Long> filterTxid) {
+    return (filterTxid == null) || filterTxid.isEmpty() || filterTxid.contains(tid);
   }
 
   public void print(ReadOnlyTStore<T> zs, ZooReader zk, ServiceLock.ServiceLockPath lockPath)
@@ -408,7 +413,6 @@ public class AdminUtil<T> {
   public void print(ReadOnlyTStore<T> zs, ZooReader zk, ServiceLock.ServiceLockPath lockPath,
       Formatter fmt, Set<Long> filterTxid, EnumSet<TStatus> filterStatus)
       throws KeeperException, InterruptedException {
-
     FateStatus fateStatus = getStatus(zs, zk, lockPath, filterTxid, filterStatus);
 
     for (TransactionStatus txStatus : fateStatus.getTransactions()) {
