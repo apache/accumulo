@@ -242,7 +242,9 @@ public class InputFormatBuilderImpl<T>
       InputConfigurator.setLocalIterators(callingClass, conf, config.shouldUseLocalIterators());
       InputConfigurator.setOfflineTableScan(callingClass, conf, config.isOfflineScan());
       InputConfigurator.setBatchScan(callingClass, conf, config.shouldBatchScan());
-      InputConfigurator.setConsistencyLevel(callingClass, conf, config.getConsistencyLevel());
+      if (config.getConsistencyLevel() != null) {
+        InputConfigurator.setConsistencyLevel(callingClass, conf, config.getConsistencyLevel());
+      }
     } else {
       InputConfigurator.setInputTableConfigs(callingClass, conf, tableConfigMap);
     }

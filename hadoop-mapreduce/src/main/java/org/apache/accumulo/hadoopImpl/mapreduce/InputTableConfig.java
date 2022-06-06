@@ -66,7 +66,7 @@ public class InputTableConfig implements Writable {
   private boolean batchScan = false;
   private SamplerConfiguration samplerConfig = null;
   private Map<String,String> executionHints = Collections.emptyMap();
-  private ConsistencyLevel consistencyLevel = ConsistencyLevel.IMMEDIATE;
+  private ConsistencyLevel consistencyLevel = null;
 
   public InputTableConfig() {}
 
@@ -371,7 +371,12 @@ public class InputTableConfig implements Writable {
         dataOutput.writeUTF(entry.getValue());
       }
     }
-    dataOutput.writeUTF(this.consistencyLevel.name());
+    if (this.consistencyLevel == null) {
+      dataOutput.writeBoolean(false);
+    } else {
+      dataOutput.writeBoolean(true);
+      dataOutput.writeUTF(this.consistencyLevel.name());
+    }
   }
 
   @Override
@@ -425,7 +430,9 @@ public class InputTableConfig implements Writable {
       String v = dataInput.readUTF();
       executionHints.put(k, v);
     }
-    this.consistencyLevel = ConsistencyLevel.valueOf(dataInput.readUTF());
+    if (dataInput.readBoolean()) {
+      this.consistencyLevel = ConsistencyLevel.valueOf(dataInput.readUTF());
+    }
   }
 
   @Override

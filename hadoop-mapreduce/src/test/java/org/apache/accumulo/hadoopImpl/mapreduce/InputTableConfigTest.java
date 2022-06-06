@@ -19,6 +19,7 @@
 package org.apache.accumulo.hadoopImpl.mapreduce;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -60,6 +61,12 @@ public class InputTableConfigTest {
   public void testSerialization_consistencyLevel() throws IOException {
     byte[] serialized = serialize(tableQueryConfig);
     InputTableConfig actualConfig = deserialize(serialized);
+    assertNull(actualConfig.getConsistencyLevel());
+    assertEquals(tableQueryConfig, actualConfig);
+
+    tableQueryConfig.setConsistencyLevel(ConsistencyLevel.IMMEDIATE);
+    serialized = serialize(tableQueryConfig);
+    actualConfig = deserialize(serialized);
     assertEquals(ConsistencyLevel.IMMEDIATE, actualConfig.getConsistencyLevel());
     assertEquals(tableQueryConfig, actualConfig);
 
