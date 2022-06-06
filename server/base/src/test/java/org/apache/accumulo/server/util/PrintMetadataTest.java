@@ -22,15 +22,11 @@ import org.apache.accumulo.server.MockServerContext;
 import org.apache.accumulo.server.ServerContext;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
-
 public class PrintMetadataTest {
   @Test
   public void test() throws Exception {
     ServerContext serverContext = MockServerContext.getWithAmple();
     PrintMetadata printMetadata = new PrintMetadata(serverContext);
-    printMetadata.execute(new String[]{});
+    printMetadata.execute(new String[] {});
   }
 }

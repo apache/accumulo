@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.server.util;
 
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,6 +39,7 @@ public class PrintMetadata implements KeywordExecutable {
   public PrintMetadata(ServerContext context) {
     this.context = context;
   }
+
   public PrintMetadata() {
     this.context = null;
   }
