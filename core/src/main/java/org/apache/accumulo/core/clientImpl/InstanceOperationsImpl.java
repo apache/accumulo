@@ -43,7 +43,6 @@ import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveCompaction.CompactionHost;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
-import org.apache.accumulo.core.client.admin.TransactionStatus;
 import org.apache.accumulo.core.clientImpl.thrift.AdminOperation;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.FateTransaction;
@@ -301,12 +300,12 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public List<TransactionStatus> fateStatus(Set<String> txids, List<String> tStatus)
+  public List<TransactionStatusImpl> fateStatus(Set<String> txids, List<String> tStatus)
       throws AccumuloException {
     checkArgument(txids != null, "txids is null");
-    List<TransactionStatus> txStatus = new ArrayList<>();
+    List<TransactionStatusImpl> txStatus = new ArrayList<>();
     for (var tx : executeAdminOperation(AdminOperation.PRINT, txids, tStatus)) {
-      txStatus.add(new TransactionStatus(tx.getTxid(), tx.getTstatus(), tx.getDebug(),
+      txStatus.add(new TransactionStatusImpl(tx.getTxid(), tx.getTstatus(), tx.getDebug(),
           tx.getHlocks(), tx.getWlocks(), tx.getTop(), tx.getTimecreated(), tx.getStackInfo()));
     }
     return txStatus;

@@ -43,7 +43,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
-import org.apache.accumulo.core.client.admin.TransactionStatus;
+import org.apache.accumulo.core.clientImpl.TransactionStatusImpl;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.ShellConfigTest.TestOutputStream;
 import org.apache.commons.cli.CommandLine;
@@ -136,7 +136,7 @@ public class FateCommandTest {
     Shell shellState = createMock(Shell.class);
     InstanceOperations intOps = createMock(InstanceOperations.class);
     PrintWriter pw = createMock(PrintWriter.class);
-    List<TransactionStatus> txstatus = new ArrayList<>();
+    List<TransactionStatusImpl> txstatus = new ArrayList<>();
     var args = new String[] {"--dump", "12345"};
 
     FateCommand cmd = new FateCommand();
@@ -148,8 +148,8 @@ public class FateCommandTest {
     expect(shellState.getWriter()).andReturn(pw);
     expect(client.instanceOperations()).andReturn(intOps).anyTimes();
 
-    txstatus.add(new TransactionStatus(Long.parseLong("1234"), null, null, Collections.emptyList(),
-        Collections.emptyList(), null, System.currentTimeMillis(), null));
+    txstatus.add(new TransactionStatusImpl(Long.parseLong("1234"), null, null,
+        Collections.emptyList(), Collections.emptyList(), null, System.currentTimeMillis(), null));
     expect(intOps.fateStatus(new HashSet<>(Arrays.asList(cli.getOptionValues("dump"))), null))
         .andReturn(txstatus);
     pw.println(txstatus.get(0).getStackInfo());

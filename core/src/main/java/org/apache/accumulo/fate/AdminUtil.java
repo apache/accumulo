@@ -32,7 +32,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.admin.TransactionStatus;
+import org.apache.accumulo.core.clientImpl.TransactionStatusImpl;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.zookeeper.FateLock;
 import org.apache.accumulo.fate.zookeeper.FateLock.FateLockPath;
@@ -74,7 +74,7 @@ public class AdminUtil<T> {
 
   public static class FateStatus {
 
-    private final List<TransactionStatus> transactions;
+    private final List<TransactionStatusImpl> transactions;
     private final Map<String,List<String>> danglingHeldLocks;
     private final Map<String,List<String>> danglingWaitingLocks;
 
@@ -96,14 +96,14 @@ public class AdminUtil<T> {
       return Collections.unmodifiableMap(ret);
     }
 
-    private FateStatus(List<TransactionStatus> transactions,
+    private FateStatus(List<TransactionStatusImpl> transactions,
         Map<Long,List<String>> danglingHeldLocks, Map<Long,List<String>> danglingWaitingLocks) {
       this.transactions = Collections.unmodifiableList(transactions);
       this.danglingHeldLocks = convert(danglingHeldLocks);
       this.danglingWaitingLocks = convert(danglingWaitingLocks);
     }
 
-    public List<TransactionStatus> getTransactions() {
+    public List<TransactionStatusImpl> getTransactions() {
       return transactions;
     }
 
@@ -145,8 +145,8 @@ public class AdminUtil<T> {
    *          filter results to include only provided status types
    * @return list of FATE transactions that match filter criteria
    */
-  public List<TransactionStatus> getTransactionStatus(ReadOnlyTStore<T> zs, Set<Long> filterTxid,
-      EnumSet<TStatus> filterStatus) {
+  public List<TransactionStatusImpl> getTransactionStatus(ReadOnlyTStore<T> zs,
+      Set<Long> filterTxid, EnumSet<TStatus> filterStatus) {
 
     FateStatus status = getTransactionStatus(zs, filterTxid, filterStatus,
         Collections.<Long,List<String>>emptyMap(), Collections.<Long,List<String>>emptyMap());
@@ -284,7 +284,7 @@ public class AdminUtil<T> {
       Map<Long,List<String>> waitingLocks) {
 
     List<Long> transactions = zs.list();
-    List<TransactionStatus> statuses = new ArrayList<>(transactions.size());
+    List<TransactionStatusImpl> statuses = new ArrayList<>(transactions.size());
     Gson gson = new GsonBuilder()
         // These adapters help to pretty-print the json
         .registerTypeAdapter(ReadOnlyRepo.class, new InterfaceSerializer<>())
@@ -327,7 +327,7 @@ public class AdminUtil<T> {
           || (filterStatus != null && !filterStatus.contains(status)))
         continue;
 
-      statuses.add(new TransactionStatus(tid, status.toString(), debug, hlocks, wlocks, top,
+      statuses.add(new TransactionStatusImpl(tid, status.toString(), debug, hlocks, wlocks, top,
           timeCreated, gson.toJson(fateStack)));
     }
 
@@ -346,7 +346,7 @@ public class AdminUtil<T> {
 
     FateStatus fateStatus = getStatus(zs, zk, lockPath, filterTxid, filterStatus);
 
-    for (TransactionStatus txStatus : fateStatus.getTransactions()) {
+    for (TransactionStatusImpl txStatus : fateStatus.getTransactions()) {
       fmt.format(
           "txid: %s  status: %-18s  op: %-15s  locked: %-15s locking: %-15s top: %-15s created: %s%n",
           txStatus.getTxid(), txStatus.getStatus(), txStatus.getDebug(), txStatus.getHeldLocks(),

@@ -41,8 +41,8 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.admin.TransactionStatus;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.TransactionStatusImpl;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
@@ -242,7 +242,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     slowOps.startCompactTask();
 
     AdminUtil.FateStatus withLocks = null;
-    List<TransactionStatus> noLocks = null;
+    List<TransactionStatusImpl> noLocks = null;
 
     int maxRetries = 3;
 
@@ -289,13 +289,13 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     int matchCount = 0;
 
-    for (TransactionStatus tx : withLocks.getTransactions()) {
+    for (TransactionStatusImpl tx : withLocks.getTransactions()) {
 
       if (isCompaction(tx)) {
 
         log.trace("Fate id: {}, status: {}", tx.getTxid(), tx.getStatus());
 
-        for (TransactionStatus tx2 : noLocks) {
+        for (TransactionStatusImpl tx2 : noLocks) {
           if (tx2.getTxid().equals(tx.getTxid())) {
             matchCount++;
           }
@@ -353,7 +353,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
       log.trace("current fates: {}", fateStatus.getTransactions().size());
 
-      for (TransactionStatus tx : fateStatus.getTransactions()) {
+      for (TransactionStatusImpl tx : fateStatus.getTransactions()) {
 
         if (isCompaction(tx))
           return true;
@@ -375,7 +375,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
    *          transaction status
    * @return true if tx top and debug have compaction messages.
    */
-  private boolean isCompaction(TransactionStatus tx) {
+  private boolean isCompaction(TransactionStatusImpl tx) {
 
     if (tx == null) {
       log.trace("Fate tx is null");

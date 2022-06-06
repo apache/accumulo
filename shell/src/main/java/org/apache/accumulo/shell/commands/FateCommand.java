@@ -28,8 +28,8 @@ import java.util.List;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.admin.TransactionStatus;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.TransactionStatusImpl;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.manager.thrift.FateService;
@@ -135,7 +135,7 @@ public class FateCommand extends Command {
       args = new String[] {};
     }
 
-    List<TransactionStatus> txStatuses = shellState.getAccumuloClient().instanceOperations()
+    List<TransactionStatusImpl> txStatuses = shellState.getAccumuloClient().instanceOperations()
         .fateStatus(new HashSet<>(Arrays.asList(args)), null);
 
     if (txStatuses.isEmpty())
@@ -161,10 +161,10 @@ public class FateCommand extends Command {
       args = new String[] {};
     }
 
-    List<TransactionStatus> txStatuses = shellState.getAccumuloClient().instanceOperations()
+    List<TransactionStatusImpl> txStatuses = shellState.getAccumuloClient().instanceOperations()
         .fateStatus(new HashSet<>(Arrays.asList(args)), filterStatus);
 
-    for (TransactionStatus txStatus : txStatuses) {
+    for (TransactionStatusImpl txStatus : txStatuses) {
       fmt.format(
           "txid: %s  status: %-18s  op: %-15s  locked: %-15s locking: %-15s top: %-15s created: %s%n",
           txStatus.getTxid(), txStatus.getStatus(), txStatus.getDebug(), txStatus.getHeldLocks(),

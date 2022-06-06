@@ -18,109 +18,62 @@
  */
 package org.apache.accumulo.core.client.admin;
 
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
-import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 
 /**
  * FATE transaction status, including lock information.
  */
-public class TransactionStatus {
-
-  private final long txid;
-  private final String status;
-  private final String debug;
-  private final List<String> hlocks;
-  private final List<String> wlocks;
-  private final String top;
-  private final long timeCreated;
-  private final String stackInfo;
-
-  public TransactionStatus(Long tid, String status, String debug, List<String> hlocks,
-      List<String> wlocks, String top, Long timeCreated, String stackInfo) {
-
-    this.txid = tid;
-    this.status = status;
-    this.debug = debug;
-    this.hlocks = Collections.unmodifiableList(hlocks);
-    this.wlocks = Collections.unmodifiableList(wlocks);
-    this.top = top;
-    this.timeCreated = timeCreated;
-    this.stackInfo = stackInfo;
-
-  }
+public interface TransactionStatus {
 
   /**
    * @return This fate operations transaction id, formatted in the same way as FATE transactions are
    *         in the Accumulo logs.
    */
-  public String getTxid() {
-    return String.format("%016x", txid);
-  }
+  String getTxid();
 
   /**
    * @return This fate operations transaction id, in its original long form.
    */
-  public long getTxidLong() {
-    return txid;
-  }
+  long getTxidLong();
 
   /**
    * @return The transaction's operation status code.
    */
-  public String getStatus() {
-    return status;
-  }
+  String getStatus();
 
   /**
    * @return The debug info for the operation on the top of the stack for this Fate operation.
    */
-  public String getDebug() {
-    return debug;
-  }
+  String getDebug();
 
   /**
    * @return list of namespace and table ids locked
    */
-  public List<String> getHeldLocks() {
-    return hlocks;
-  }
+  List<String> getHeldLocks();
 
   /**
    * @return list of namespace and table ids locked
    */
-  public List<String> getWaitingLocks() {
-    return wlocks;
-  }
+  List<String> getWaitingLocks();
 
   /**
    * @return The operation on the top of the stack for this Fate operation.
    */
-  public String getTop() {
-    return top;
-  }
+  String getTop();
 
   /**
-   * @return The timestamp of when the operation was created in ISO format wiht UTC timezone.
+   * @return The timestamp of when the operation was created in ISO format with UTC timezone.
    */
-  public String getTimeCreatedFormatted() {
-    return timeCreated > 0 ? new Date(timeCreated).toInstant().atZone(ZoneOffset.UTC)
-        .format(DateTimeFormatter.ISO_DATE_TIME) : "ERROR";
-  }
+  String getTimeCreatedFormatted();
 
   /**
    * @return The unformatted form of the timestamp.
    */
-  public long getTimeCreated() {
-    return timeCreated;
-  }
+  long getTimeCreated();
 
   /**
    * @return The stackInfo for a transaction
    */
-  public String getStackInfo() {
-    return stackInfo;
-  }
+  String getStackInfo();
+
 }

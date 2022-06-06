@@ -24,6 +24,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.clientImpl.TransactionStatusImpl;
 import org.apache.accumulo.core.data.InstanceId;
 
 public interface InstanceOperations {
@@ -176,10 +177,10 @@ public interface InstanceOperations {
    *          Transaction IDs to use as a filter. Optional.
    * @param tStatus
    *          Parsed TStatus for print filter. Optional.
-   * @return A list of TransactionStatues for corresponding txids
+   * @return A set of TransactionStatues for corresponding txids
    * @since 2.1.0
    */
-  List<TransactionStatus> fateStatus(Set<String> txids, List<String> tStatus)
+  List<TransactionStatusImpl> fateStatus(Set<String> txids, List<String> tStatus)
       throws AccumuloException;
 
   /**

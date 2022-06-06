@@ -36,13 +36,13 @@ import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.admin.TransactionStatus;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.clientImpl.Namespaces;
+import org.apache.accumulo.core.clientImpl.TransactionStatusImpl;
 import org.apache.accumulo.core.clientImpl.thrift.AdminOperation;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
@@ -523,7 +523,7 @@ public class ClientServiceHandler implements ClientService.Iface {
           FateStatus fateStatus = admin.getStatus(zs, zk, lockPath, filterTxid, fs);
 
           List<FateTransaction> fateTxs = new ArrayList<>();
-          for (TransactionStatus txStatus : fateStatus.getTransactions()) {
+          for (TransactionStatusImpl txStatus : fateStatus.getTransactions()) {
             fateTxs.add(new FateTransaction(txStatus.getTxidLong(), txStatus.getStatus(),
                 txStatus.getDebug(), txStatus.getHeldLocks(), txStatus.getWaitingLocks(),
                 txStatus.getTop(), txStatus.getTimeCreated(), txStatus.getStackInfo()));

@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.client.admin.TransactionStatus;
+import org.apache.accumulo.core.clientImpl.TransactionStatusImpl;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.ReadOnlyTStore;
 import org.apache.accumulo.server.ServerContext;
@@ -113,7 +113,7 @@ class FateMetricValues {
 
     try {
 
-      List<TransactionStatus> currFates = admin.getTransactionStatus(zooStore, null, null);
+      List<TransactionStatusImpl> currFates = admin.getTransactionStatus(zooStore, null, null);
 
       builder.withCurrentFateOps(currFates.size());
 
@@ -127,7 +127,7 @@ class FateMetricValues {
       // need to be handled by the caller - this is just the counts for current op types.
       Map<String,Long> opTypeCounters = new TreeMap<>();
 
-      for (TransactionStatus tx : currFates) {
+      for (TransactionStatusImpl tx : currFates) {
 
         String stateName = ReadOnlyTStore.TStatus.valueOf(tx.getStatus()).name();
         ReadOnlyTStore.TStatus tStatus = ReadOnlyTStore.TStatus.valueOf(tx.getStatus());
