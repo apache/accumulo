@@ -230,7 +230,8 @@
       <dependency>
         <groupId>org.glassfish.jersey</groupId>
         <artifactId>jersey-bom</artifactId>
-        <version>3.1.0-M2</version>
+        <!-- 3.1.0 would require jakarta.ws.rs-api 3.1.0, jakartaee 9 uses 3.0.0 -->
+        <version>3.0.4</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -520,7 +521,7 @@
         <exclusions>
           <exclusion>
             <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-reload4j</artifactId>
+            <artifactId>*</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
