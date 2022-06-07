@@ -155,7 +155,7 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
         try {
           Thread.sleep(10);
         } catch (InterruptedException ex) {
-          throw new RuntimeException(ex);
+          throw new IllegalStateException(ex);
         }
       }
     } else {

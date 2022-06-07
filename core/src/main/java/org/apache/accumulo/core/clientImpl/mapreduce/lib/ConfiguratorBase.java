@@ -26,6 +26,7 @@ import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.util.Base64;
 import java.util.Scanner;
 
@@ -67,7 +68,7 @@ public class ConfiguratorBase {
 
     private String prefix;
 
-    private TokenSource() {
+    TokenSource() {
       prefix = name().toLowerCase() + ":";
     }
 
@@ -469,8 +470,8 @@ public class ConfiguratorBase {
             .readFields(new DataInputStream(new ByteArrayInputStream(hadoopToken.getIdentifier())));
         return new DelegationTokenImpl(hadoopToken.getPassword(), identifier);
       } catch (IOException e) {
-        throw new RuntimeException("Could not construct DelegationToken from JobConf Credentials",
-            e);
+        throw new UncheckedIOException(
+            "Could not construct DelegationToken from JobConf Credentials", e);
       }
     }
     return token;
@@ -500,8 +501,8 @@ public class ConfiguratorBase {
             .readFields(new DataInputStream(new ByteArrayInputStream(hadoopToken.getIdentifier())));
         return new DelegationTokenImpl(hadoopToken.getPassword(), identifier);
       } catch (IOException e) {
-        throw new RuntimeException("Could not construct DelegationToken from JobConf Credentials",
-            e);
+        throw new UncheckedIOException(
+            "Could not construct DelegationToken from JobConf Credentials", e);
       }
     }
     return token;

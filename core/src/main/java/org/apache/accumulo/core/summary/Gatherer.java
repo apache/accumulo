@@ -327,7 +327,7 @@ public class Gatherer {
             pfiles.failedFiles.addAll(files.keySet());
             continue;
           } catch (TException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
           }
 
         }
@@ -338,7 +338,7 @@ public class Gatherer {
       }
 
       if (cancelFlag.get()) {
-        throw new RuntimeException("Operation canceled");
+        throw new IllegalStateException("Operation canceled");
       }
 
       return pfiles;
@@ -407,9 +407,9 @@ public class Gatherer {
         return future.get();
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       } catch (ExecutionException e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
     }
 
@@ -568,11 +568,11 @@ public class Gatherer {
           return tsr;
         });
       } catch (AccumuloException | AccumuloSecurityException e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
 
       if (cancelFlag.get()) {
-        throw new RuntimeException("Operation canceled");
+        throw new IllegalStateException("Operation canceled");
       }
 
       return new SummaryCollection(tSums);

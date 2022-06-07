@@ -146,7 +146,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
         count--;
         return result;
       } catch (InterruptedException e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
     }
 

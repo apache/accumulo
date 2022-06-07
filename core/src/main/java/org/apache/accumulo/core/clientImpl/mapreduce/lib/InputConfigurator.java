@@ -27,6 +27,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
@@ -803,7 +804,7 @@ public class InputConfigurator extends ConfiguratorBase {
       try {
         ranges = getRanges(implementingClass, conf);
       } catch (IOException e) {
-        throw new RuntimeException(e);
+        throw new UncheckedIOException(e);
       }
       if (ranges != null)
         queryConfig.setRanges(ranges);
@@ -912,7 +913,7 @@ public class InputConfigurator extends ConfiguratorBase {
       writable.write(dos);
       dos.close();
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new UncheckedIOException(e);
     }
 
     return Base64.getEncoder().encodeToString(baos.toByteArray());
@@ -924,7 +925,7 @@ public class InputConfigurator extends ConfiguratorBase {
     try {
       writable.readFields(dis);
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new UncheckedIOException(e);
     }
     return writable;
   }

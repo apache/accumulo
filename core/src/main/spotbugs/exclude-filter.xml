@@ -47,4 +47,14 @@
     <!-- More convenient to ignore these everywhere, because it's very common and unimportant -->
     <Bug pattern="JUA_DONT_ASSERT_INSTANCEOF_IN_TESTS" />
   </Match>
+  <Match>
+    <Class name="~.*Test" />
+    <!-- Seems to be a false positive with assertThrows -->
+    <Bug pattern="THROWS_METHOD_THROWS_CLAUSE_THROWABLE" />
+  </Match>
+  <Match>
+    <!-- Ignore throws Exception; too many false positives with lambdas cast to Callable -->
+    <Bug pattern="THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION" />
+  </Match>
 </FindBugsFilter>
+

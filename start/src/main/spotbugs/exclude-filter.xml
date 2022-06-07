@@ -27,4 +27,9 @@
     <!-- More convenient to ignore these everywhere, because it's very common and unimportant -->
     <Bug pattern="JUA_DONT_ASSERT_INSTANCEOF_IN_TESTS" />
   </Match>
+  <Match>
+    <Class name="~.*Test" />
+    <!-- Ignore throws Exception in test method signatures -->
+    <Bug pattern="THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION" />
+  </Match>
 </FindBugsFilter>

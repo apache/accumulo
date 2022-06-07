@@ -38,7 +38,7 @@ public class BlockedInputStream extends InputStream {
 
   public BlockedInputStream(InputStream in, int blockSize, int maxSize) {
     if (blockSize == 0)
-      throw new RuntimeException("Invalid block size");
+      throw new IllegalArgumentException("Invalid block size");
     if (in instanceof DataInputStream)
       this.in = (DataInputStream) in;
     else
@@ -64,7 +64,7 @@ public class BlockedInputStream extends InputStream {
     if (readPos == array.length)
       readPos = 0;
     else if (readPos > array.length)
-      throw new RuntimeException(
+      throw new IllegalStateException(
           "Unexpected state, this should only ever increase or cycle on the boundary!");
     return toRet;
   }
@@ -113,7 +113,7 @@ public class BlockedInputStream extends InputStream {
       finished = true;
       return false;
     } else if (size == 0)
-      throw new RuntimeException(
+      throw new IllegalStateException(
           "Empty block written, this shouldn't happen with this BlockedOutputStream.");
 
     // We have already checked, not concerned with looping the buffer here

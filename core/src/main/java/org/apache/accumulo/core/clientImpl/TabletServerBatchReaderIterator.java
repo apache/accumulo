@@ -75,6 +75,8 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value>> {
 
   private static final Logger log = LoggerFactory.getLogger(TabletServerBatchReaderIterator.class);
@@ -144,17 +146,15 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         else
           log.warn("Failed to add Batch Scan result", e);
         fatalException = e;
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
 
       }
     };
 
     try {
       lookup(ranges, rr);
-    } catch (RuntimeException re) {
-      throw re;
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to create iterator", e);
+    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
+      throw new IllegalStateException("Failed to create iterator", e);
     }
   }
 
@@ -175,9 +175,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
         if (fatalException != null)
           if (fatalException instanceof RuntimeException)
-            throw (RuntimeException) fatalException;
+            rethrow((RuntimeException) fatalException);
           else
-            throw new RuntimeException(fatalException);
+            throw new IllegalStateException(fatalException);
 
         if (queryThreadPool.isShutdown()) {
           String shortMsg =
@@ -186,15 +186,22 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
               + " so that it can be closed when this Iterator is exhausted. Not"
               + " retaining a reference to the BatchScanner guarantees that you are"
               + " leaking threads in your client JVM.", shortMsg);
-          throw new RuntimeException(shortMsg + " Ensure proper handling of the BatchScanner.");
+          throw new IllegalStateException(
+              shortMsg + " Ensure proper handling of the BatchScanner.");
         }
 
         batchIterator = batch.iterator();
         return batch != LAST_BATCH;
       } catch (InterruptedException e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
     }
+  }
+
+  @SuppressFBWarnings(value = "THROWS_METHOD_THROWS_RUNTIMEEXCEPTION",
+      justification = "method created for purpose of suppress warnings due to rethrowing RTEs")
+  private static void rethrow(RuntimeException e) {
+    throw e;
   }
 
   @Override
@@ -259,7 +266,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         try {
           Thread.sleep(100);
         } catch (InterruptedException e) {
-          throw new RuntimeException(e);
+          throw new IllegalStateException(e);
         }
       }
 

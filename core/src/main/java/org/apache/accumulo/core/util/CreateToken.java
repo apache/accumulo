@@ -61,7 +61,7 @@ public class CreateToken implements KeywordExecutable {
     public String tokenClassName = PasswordToken.class.getName();
   }
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws ReflectiveOperationException {
     new CreateToken().execute(args);
   }
 
@@ -76,7 +76,7 @@ public class CreateToken implements KeywordExecutable {
   }
 
   @Override
-  public void execute(String[] args) {
+  public void execute(String[] args) throws ReflectiveOperationException {
     Opts opts = new Opts();
     opts.parseArgs("accumulo create-token", args);
 
@@ -85,34 +85,30 @@ public class CreateToken implements KeywordExecutable {
       pass = opts.securePassword;
     }
 
-    try {
-      String principal = opts.principal;
-      if (principal == null) {
-        principal = getConsoleReader().readLine("Username (aka principal): ");
-      }
-
-      AuthenticationToken token = Class.forName(opts.tokenClassName)
-          .asSubclass(AuthenticationToken.class).getDeclaredConstructor().newInstance();
-      Properties props = new Properties();
-      for (TokenProperty tp : token.getProperties()) {
-        String input;
-        if (pass != null && tp.getKey().equals("password")) {
-          input = pass;
-        } else {
-          if (tp.getMask()) {
-            input = getConsoleReader().readLine(tp.getDescription() + ": ", '*');
-          } else {
-            input = getConsoleReader().readLine(tp.getDescription() + ": ");
-          }
-        }
-        props.put(tp.getKey(), input);
-        token.init(props);
-      }
-      System.out.println("auth.type = " + opts.tokenClassName);
-      System.out.println("auth.principal = " + principal);
-      System.out.println("auth.token = " + ClientProperty.encodeToken(token));
-    } catch (ReflectiveOperationException e) {
-      throw new RuntimeException(e);
+    String principal = opts.principal;
+    if (principal == null) {
+      principal = getConsoleReader().readLine("Username (aka principal): ");
     }
+
+    AuthenticationToken token = Class.forName(opts.tokenClassName)
+        .asSubclass(AuthenticationToken.class).getDeclaredConstructor().newInstance();
+    Properties props = new Properties();
+    for (TokenProperty tp : token.getProperties()) {
+      String input;
+      if (pass != null && tp.getKey().equals("password")) {
+        input = pass;
+      } else {
+        if (tp.getMask()) {
+          input = getConsoleReader().readLine(tp.getDescription() + ": ", '*');
+        } else {
+          input = getConsoleReader().readLine(tp.getDescription() + ": ");
+        }
+      }
+      props.put(tp.getKey(), input);
+      token.init(props);
+    }
+    System.out.println("auth.type = " + opts.tokenClassName);
+    System.out.println("auth.principal = " + principal);
+    System.out.println("auth.token = " + ClientProperty.encodeToken(token));
   }
 }

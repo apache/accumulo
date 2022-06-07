@@ -83,6 +83,8 @@ import org.apache.zookeeper.KeeperException;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * An abstraction layer for reading tablet metadata from the accumulo.metadata and accumulo.root
  * tables.
@@ -174,7 +176,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
             closables.add(scanner);
 
           } catch (TableNotFoundException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
           }
 
         }
@@ -238,7 +240,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
           return new TabletsMetadata(scanner, tmi);
         }
       } catch (TableNotFoundException e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
     }
 
@@ -516,7 +518,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
           byte[] bytes = zooReader.getData(zkRoot + RootTable.ZROOT_TABLET);
           return new RootTabletMetadata(new String(bytes, UTF_8)).toTabletMetadata();
         } catch (InterruptedException | KeeperException e) {
-          throw new RuntimeException(e);
+          throw new IllegalStateException(e);
         }
       default:
         throw new IllegalArgumentException("Unknown consistency level " + readConsistency);
@@ -549,11 +551,17 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         closeable.close();
       } catch (RuntimeException e) {
         // avoid wrapping runtime w/ runtime
-        throw e;
+        rethrow(e);
       } catch (Exception e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
     }
+  }
+
+  @SuppressFBWarnings(value = "THROWS_METHOD_THROWS_RUNTIMEEXCEPTION",
+      justification = "method created for purpose of suppress warnings due to rethrowing RTEs")
+  private static void rethrow(RuntimeException e) {
+    throw e;
   }
 
   @Override

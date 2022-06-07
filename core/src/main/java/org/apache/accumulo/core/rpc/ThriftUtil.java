@@ -206,7 +206,8 @@ public class ThriftUtil {
    */
   public static synchronized TTransportFactory transportFactory(long maxFrameSize) {
     if (maxFrameSize > Integer.MAX_VALUE || maxFrameSize < 1)
-      throw new RuntimeException("Thrift transport frames are limited to " + Integer.MAX_VALUE);
+      throw new IllegalArgumentException(
+          "Thrift transport frames are limited to " + Integer.MAX_VALUE);
     return transportFactory((int) maxFrameSize);
   }
 
@@ -387,7 +388,7 @@ public class ThriftUtil {
       if (loginUser == null || !loginUser.hasKerberosCredentials()) {
         // We should have already checked that we're logged in and have credentials. A
         // precondition-like check.
-        throw new RuntimeException("Expected to find Kerberos UGI credentials, but did not");
+        throw new IllegalStateException("Expected to find Kerberos UGI credentials, but did not");
       }
       UserGroupInformation currentUser = UserGroupInformation.getCurrentUser();
       // A Proxy user is the "effective user" (in name only), riding on top of the "real user"'s Krb
@@ -419,7 +420,7 @@ public class ThriftUtil {
       // The inability to check is worrisome and deserves a RuntimeException instead of a propagated
       // IO-like Exception.
       log.warn("Failed to check (and/or perform) Kerberos client re-login", e);
-      throw new RuntimeException(e);
+      throw new UncheckedIOException(e);
     }
   }
 

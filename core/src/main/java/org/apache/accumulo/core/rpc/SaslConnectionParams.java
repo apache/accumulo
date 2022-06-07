@@ -21,9 +21,11 @@ package org.apache.accumulo.core.rpc;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 
 import javax.security.auth.callback.CallbackHandler;
@@ -56,7 +58,7 @@ public class SaslConnectionParams {
 
     private final String quality;
 
-    private QualityOfProtection(String quality) {
+    QualityOfProtection(String quality) {
       this.quality = quality;
     }
 
@@ -91,7 +93,7 @@ public class SaslConnectionParams {
 
     private final String mechanismName;
 
-    private SaslMechanism(String mechanismName) {
+    SaslMechanism(String mechanismName) {
       this.mechanismName = mechanismName;
     }
 
@@ -166,7 +168,7 @@ public class SaslConnectionParams {
   protected void updatePrincipalFromUgi() {
     // Ensure we're using Kerberos auth for Hadoop UGI
     if (!UserGroupInformation.isSecurityEnabled()) {
-      throw new RuntimeException("Cannot use SASL if Hadoop security is not enabled");
+      throw new IllegalStateException("Cannot use SASL if Hadoop security is not enabled");
     }
 
     // Get the current user
@@ -174,13 +176,13 @@ public class SaslConnectionParams {
     try {
       currentUser = UserGroupInformation.getCurrentUser();
     } catch (IOException e) {
-      throw new RuntimeException("Failed to get current user", e);
+      throw new UncheckedIOException("Failed to get current user", e);
     }
 
     // The full name is our principal
     this.principal = currentUser.getUserName();
     if (this.principal == null) {
-      throw new RuntimeException("Got null username from " + currentUser);
+      throw new IllegalStateException("Got null username from " + currentUser);
     }
 
   }
@@ -260,11 +262,7 @@ public class SaslConnectionParams {
       if (!mechanism.equals(other.mechanism)) {
         return false;
       }
-      if (callbackHandler == null) {
-        if (other.callbackHandler != null) {
-          return false;
-        }
-      } else if (!callbackHandler.equals(other.callbackHandler)) {
+      if (!Objects.equals(callbackHandler, other.callbackHandler)) {
         return false;
       }
 

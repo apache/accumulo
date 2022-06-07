@@ -21,6 +21,7 @@ package org.apache.accumulo.start.classloader.vfs;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -40,6 +41,8 @@ import org.apache.commons.vfs2.impl.DefaultFileMonitor;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Classloader that delegates operations to a VFSClassLoader object. This class also listens for
@@ -103,7 +106,7 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
 
               } catch (InterruptedException e) {
                 log.error("VFS Retry Interrupted", e);
-                throw new RuntimeException(e);
+                throw new IllegalStateException(e);
               }
 
             }
@@ -213,7 +216,7 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
     monitor.start();
   }
 
-  private void addFileToMonitor(FileObject file) throws RuntimeException {
+  private void addFileToMonitor(FileObject file) {
     try {
       if (monitor != null)
         monitor.addFile(file);
@@ -224,17 +227,17 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
       else
         log.error("Runtime error adding {} to VFS monitor", file, re);
 
-      throw re;
+      rethrow(re);
     }
   }
 
-  private void removeFile(FileObject file) throws RuntimeException {
+  private void removeFile(FileObject file) {
     try {
       if (monitor != null)
         monitor.removeFile(file);
     } catch (RuntimeException re) {
       log.error("Error removing file from VFS cache {}", file, re);
-      throw re;
+      rethrow(re);
     }
   }
 
@@ -249,9 +252,13 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
     }).reduce((e1, e2) -> {
       e1.addSuppressed(e2);
       return e1;
-    }).ifPresent(e -> {
-      throw e;
-    });
+    }).ifPresent(AccumuloReloadingVFSClassLoader::rethrow);
+  }
+
+  @SuppressFBWarnings(value = "THROWS_METHOD_THROWS_RUNTIMEEXCEPTION",
+      justification = "rethrowing existing RuntimeException")
+  private static void rethrow(RuntimeException e) {
+    throw e;
   }
 
   public AccumuloReloadingVFSClassLoader(String uris, FileSystemManager vfs,
@@ -275,21 +282,21 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
   }
 
   @Override
-  public void fileCreated(FileChangeEvent event) throws Exception {
+  public void fileCreated(FileChangeEvent event) throws IOException {
     if (log.isDebugEnabled())
       log.debug("{} created, recreating classloader", event.getFileObject().getURL());
     scheduleRefresh();
   }
 
   @Override
-  public void fileDeleted(FileChangeEvent event) throws Exception {
+  public void fileDeleted(FileChangeEvent event) throws IOException {
     if (log.isDebugEnabled())
       log.debug("{} deleted, recreating classloader", event.getFileObject().getURL());
     scheduleRefresh();
   }
 
   @Override
-  public void fileChanged(FileChangeEvent event) throws Exception {
+  public void fileChanged(FileChangeEvent event) throws IOException {
     if (log.isDebugEnabled())
       log.debug("{} changed, recreating classloader", event.getFileObject().getURL());
     scheduleRefresh();

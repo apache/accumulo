@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.client.rfile;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -202,20 +203,19 @@ class RFileScanner extends ScannerOptions implements Scanner {
           : new ConfigurationCopy(tableConf);
       try {
         blockCacheManager = BlockCacheManagerFactory.getClientInstance(cc);
-        if (opts.indexCacheSize > 0) {
-          cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(opts.indexCacheSize));
-        }
-        if (opts.dataCacheSize > 0) {
-          cc.set(Property.TSERV_DATACACHE_SIZE, Long.toString(opts.dataCacheSize));
-        }
-        blockCacheManager.start(new BlockCacheConfiguration(cc));
-        this.indexCache = blockCacheManager.getBlockCache(CacheType.INDEX);
-        this.dataCache = blockCacheManager.getBlockCache(CacheType.DATA);
-      } catch (RuntimeException e) {
-        throw e;
-      } catch (Exception e) {
-        throw new RuntimeException(e);
+      } catch (ReflectiveOperationException e) {
+        throw new IllegalArgumentException(
+            "Configuration does not contain loadable class for block cache manager factory", e);
       }
+      if (opts.indexCacheSize > 0) {
+        cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(opts.indexCacheSize));
+      }
+      if (opts.dataCacheSize > 0) {
+        cc.set(Property.TSERV_DATACACHE_SIZE, Long.toString(opts.dataCacheSize));
+      }
+      blockCacheManager.start(new BlockCacheConfiguration(cc));
+      this.indexCache = blockCacheManager.getBlockCache(CacheType.INDEX);
+      this.dataCache = blockCacheManager.getBlockCache(CacheType.DATA);
     }
     if (indexCache == null) {
       this.indexCache = new NoopCache();
@@ -388,14 +388,14 @@ class RFileScanner extends ScannerOptions implements Scanner {
           iterator = IteratorConfigUtil.loadIterators(iterator, iteratorBuilder);
         }
       } catch (IOException e) {
-        throw new RuntimeException(e);
+        throw new UncheckedIOException(e);
       }
 
       iterator.seek(getRange() == null ? EMPTY_RANGE : getRange(), families, !families.isEmpty());
       return new IteratorAdapter(iterator);
 
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new UncheckedIOException(e);
     }
   }
 
@@ -406,14 +406,10 @@ class RFileScanner extends ScannerOptions implements Scanner {
         source.getInputStream().close();
       }
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new UncheckedIOException(e);
     }
-    try {
-      if (this.blockCacheManager != null) {
-        this.blockCacheManager.stop();
-      }
-    } catch (Exception e1) {
-      throw new RuntimeException(e1);
+    if (this.blockCacheManager != null) {
+      this.blockCacheManager.stop();
     }
   }
 }

@@ -33,7 +33,7 @@ public class TestMain {
       if (args[0].equals("success"))
         System.exit(0);
       if (args[0].equals("throw"))
-        throw new RuntimeException("This is an exception");
+        throw new IllegalStateException("This is an exception");
     }
     System.exit(-1);
   }

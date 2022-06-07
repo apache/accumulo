@@ -49,7 +49,7 @@ public class CryptoServiceFactory {
           newCryptoService = CryptoServiceFactory.class.getClassLoader().loadClass(clazzName)
               .asSubclass(CryptoService.class).getDeclaredConstructor().newInstance();
         } catch (ReflectiveOperationException e) {
-          throw new RuntimeException(e);
+          throw new IllegalArgumentException(e);
         }
       }
     } else {

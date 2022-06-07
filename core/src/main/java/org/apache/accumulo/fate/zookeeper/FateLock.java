@@ -83,8 +83,8 @@ public class FateLock implements QueueLock {
           zoo.putPersistentData(path.toString(), new byte[] {}, NodeExistsPolicy.SKIP);
         }
       }
-    } catch (Exception ex) {
-      throw new RuntimeException(ex);
+    } catch (KeeperException | InterruptedException ex) {
+      throw new IllegalStateException(ex);
     }
   }
 
@@ -111,8 +111,8 @@ public class FateLock implements QueueLock {
           // ignored
         }
       }
-    } catch (Exception ex) {
-      throw new RuntimeException(ex);
+    } catch (KeeperException | InterruptedException ex) {
+      throw new IllegalStateException(ex);
     }
     return result;
   }
@@ -127,8 +127,8 @@ public class FateLock implements QueueLock {
       } catch (NotEmptyException nee) {
         // the path had other lock nodes, no big deal
       }
-    } catch (Exception ex) {
-      throw new RuntimeException(ex);
+    } catch (KeeperException | InterruptedException ex) {
+      throw new IllegalStateException(ex);
     }
   }
 

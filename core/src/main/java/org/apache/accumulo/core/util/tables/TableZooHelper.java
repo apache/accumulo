@@ -114,7 +114,7 @@ public class TableZooHelper implements AutoCloseable {
     try {
       return instanceToMapCache.get(this, () -> new TableMap(context));
     } catch (ExecutionException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 

@@ -20,6 +20,7 @@ package org.apache.accumulo.core.iteratorsImpl.system;
 
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -128,7 +129,7 @@ public class MapFileIterator implements FileSKVIterator {
       return other;
     } catch (IOException e) {
       log.error("failed to clone map file reader", e);
-      throw new RuntimeException(e);
+      throw new UncheckedIOException(e);
     }
   }
 

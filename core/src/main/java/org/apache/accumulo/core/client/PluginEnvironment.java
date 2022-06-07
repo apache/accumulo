@@ -166,7 +166,7 @@ public interface PluginEnvironment {
    * @param base
    *          The expected super type of the class.
    */
-  <T> T instantiate(String className, Class<T> base) throws Exception;
+  <T> T instantiate(String className, Class<T> base) throws ReflectiveOperationException;
 
   /**
    * Instantiate a class using Accumulo's per table classloader. The class must have a no argument
@@ -177,5 +177,6 @@ public interface PluginEnvironment {
    * @param base
    *          The expected super type of the class.
    */
-  <T> T instantiate(TableId tableId, String className, Class<T> base) throws Exception;
+  <T> T instantiate(TableId tableId, String className, Class<T> base)
+      throws ReflectiveOperationException;
 }

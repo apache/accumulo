@@ -51,7 +51,7 @@ public class SyncingTabletLocator extends TabletLocator {
       this.locator = getLocatorFunction.call();
     } catch (Exception e) {
       log.error("Problem obtaining TabletLocator", e);
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -68,7 +68,7 @@ public class SyncingTabletLocator extends TabletLocator {
             loc = locator = getLocatorFunction.call();
           } catch (Exception e) {
             log.error("Problem obtaining TabletLocator", e);
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
           }
         }
       }

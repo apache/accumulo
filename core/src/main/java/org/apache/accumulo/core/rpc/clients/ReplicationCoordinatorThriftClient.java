@@ -108,11 +108,11 @@ public class ReplicationCoordinatorThriftClient extends ThriftClientTypes<Client
       try {
         Thread.sleep(attempts * 250L);
       } catch (InterruptedException e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
     }
 
-    throw new RuntimeException(
+    throw new IllegalStateException(
         "Timed out trying to communicate with manager from " + context.getInstanceName());
   }
 

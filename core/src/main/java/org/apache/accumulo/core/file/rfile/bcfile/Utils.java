@@ -146,7 +146,7 @@ public final class Utils {
         out.writeLong(n);
         return;
       default:
-        throw new RuntimeException("Internal error");
+        throw new IllegalStateException("Internal error");
     }
   }
 
@@ -162,7 +162,7 @@ public final class Utils {
   public static int readVInt(DataInput in) throws IOException {
     long ret = readVLong(in);
     if ((ret > Integer.MAX_VALUE) || (ret < Integer.MIN_VALUE)) {
-      throw new RuntimeException("Number too large to be represented as Integer");
+      throw new IllegalStateException("Number too large to be represented as Integer");
     }
     return (int) ret;
   }
@@ -224,7 +224,7 @@ public final class Utils {
             throw new IOException("Corrupted VLong encoding");
         }
       default:
-        throw new RuntimeException("Internal error");
+        throw new IllegalStateException("Internal error");
     }
   }
 

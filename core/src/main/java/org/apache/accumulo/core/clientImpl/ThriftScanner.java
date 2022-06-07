@@ -296,7 +296,7 @@ public class ThriftScanner {
               } else if (scanState.range.getEndKey() != null
                   && dataRange.beforeStartKey(scanState.range.getEndKey())) {
                 // should not happen
-                throw new RuntimeException("Unexpected tablet, extent : " + loc.tablet_extent
+                throw new IllegalStateException("Unexpected tablet, extent : " + loc.tablet_extent
                     + "  range : " + scanState.range + " startRow : " + scanState.startRow);
               }
             }

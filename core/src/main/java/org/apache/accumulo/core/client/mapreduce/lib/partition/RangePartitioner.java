@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Scanner;
@@ -54,7 +55,7 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
     try {
       return findPartition(key, getCutPoints(), getNumSubBins());
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new UncheckedIOException(e);
     }
   }
 

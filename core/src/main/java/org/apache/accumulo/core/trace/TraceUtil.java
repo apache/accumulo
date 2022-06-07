@@ -20,6 +20,7 @@ package org.apache.accumulo.core.trace;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -31,6 +32,7 @@ import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.common.Attributes;
@@ -193,7 +195,20 @@ public class TraceUtil {
   }
 
   public static <T> T wrapService(final T instance) {
-    InvocationHandler handler = (obj, method, args) -> {
+    return wrapRpc(new TraceInvocationHandler<>(instance), instance);
+  }
+
+  private static class TraceInvocationHandler<T> implements InvocationHandler {
+    private final T instance;
+
+    TraceInvocationHandler(T instance) {
+      this.instance = instance;
+    }
+
+    @SuppressFBWarnings(value = "THROWS_METHOD_THROWS_CLAUSE_THROWABLE",
+        justification = "invoked method could throw anything")
+    @Override
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
       if (args == null || args.length < 1 || args[0] == null || !(args[0] instanceof TInfo)) {
         try {
           return method.invoke(instance, args);
@@ -211,8 +226,8 @@ public class TraceUtil {
       } finally {
         span.end();
       }
-    };
-    return wrapRpc(handler, instance);
+    }
+
   }
 
   private static <T> T wrapRpc(final InvocationHandler handler, final T instance) {

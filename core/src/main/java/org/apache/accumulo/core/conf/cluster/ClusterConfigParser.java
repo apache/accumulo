@@ -59,14 +59,12 @@ public class ClusterConfigParser {
         (parentKey == null || parentKey.equals("")) ? "" : parentKey + addTheDot(parentKey);
     if (value instanceof String) {
       results.put(parent + key, (String) value);
-      return;
     } else if (value instanceof List) {
       ((List<?>) value).forEach(l -> {
         if (l instanceof String) {
           // remove the [] at the ends of toString()
           String val = value.toString();
           results.put(parent + key, val.substring(1, val.length() - 1).replace(", ", " "));
-          return;
         } else {
           flatten(parent, key, l, results);
         }
@@ -76,7 +74,7 @@ public class ClusterConfigParser {
       Map<String,Object> map = (Map<String,Object>) value;
       map.forEach((k, v) -> flatten(parent + key, k, v, results));
     } else {
-      throw new RuntimeException("Unhandled object type: " + value.getClass());
+      throw new IllegalStateException("Unhandled object type: " + value.getClass());
     }
   }
 
@@ -86,7 +84,7 @@ public class ClusterConfigParser {
         out.printf(PROPERTY_FORMAT, section.toUpperCase() + "_HOSTS", config.get(section));
       } else {
         if (section.equals("manager") || section.equals("tserver")) {
-          throw new RuntimeException("Required configuration section is missing: " + section);
+          throw new IllegalStateException("Required configuration section is missing: " + section);
         }
         System.err.println("WARN: " + section + " is missing");
       }
@@ -101,10 +99,10 @@ public class ClusterConfigParser {
     String queues = config.get("compaction.compactor.queue");
     if (StringUtils.isNotEmpty(queues)) {
       String[] q = queues.split(" ");
-      for (int i = 0; i < q.length; i++) {
-        if (config.containsKey("compaction.compactor." + q[i])) {
-          out.printf(PROPERTY_FORMAT, "COMPACTOR_HOSTS_" + q[i],
-              config.get("compaction.compactor." + q[i]));
+      for (String element : q) {
+        if (config.containsKey("compaction.compactor." + element)) {
+          out.printf(PROPERTY_FORMAT, "COMPACTOR_HOSTS_" + element,
+              config.get("compaction.compactor." + element));
         }
       }
     }

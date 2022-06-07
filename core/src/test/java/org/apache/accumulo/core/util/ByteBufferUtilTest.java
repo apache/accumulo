@@ -25,6 +25,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
@@ -52,7 +53,7 @@ public class ByteBufferUtilTest {
       ByteBufferUtil.write(dos, bb);
       dos.close();
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new UncheckedIOException(e);
     }
 
     assertEquals(expected, new String(baos.toByteArray(), UTF_8));
@@ -63,7 +64,7 @@ public class ByteBufferUtilTest {
       bais.read(buffer);
       assertEquals(expected, new String(buffer, UTF_8));
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new UncheckedIOException(e);
     }
   }
 

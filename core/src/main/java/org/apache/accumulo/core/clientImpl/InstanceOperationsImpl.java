@@ -279,7 +279,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
           client -> client.waitForBalance(TraceUtil.traceInfo()));
     } catch (AccumuloSecurityException ex) {
       // should never happen
-      throw new RuntimeException("Unexpected exception thrown", ex);
+      throw new IllegalStateException("Unexpected exception thrown", ex);
     }
 
   }

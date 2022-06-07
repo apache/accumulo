@@ -180,7 +180,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
         try {
           retry.waitForNextAttempt();
         } catch (InterruptedException e) {
-          throw new RuntimeException(e);
+          throw new IllegalStateException(e);
         }
         log.info(ae.getMessage() + ". Retrying bulk import to " + tableName);
       }
@@ -405,13 +405,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     fileDestinations.values().stream().flatMap(List::stream)
         .filter(dest -> dest.getRangeType() == RangeType.FILE)
         .flatMap(dest -> Stream.of(dest.getStartRow(), dest.getEndRow())).filter(Objects::nonNull)
-        .map(Text::new).sorted().distinct().forEach(row -> {
-          try {
-            extentCache.lookup(row);
-          } catch (Exception e) {
-            throw new RuntimeException(e);
-          }
-        });
+        .map(Text::new).sorted().distinct().forEach(extentCache::lookup);
 
     SortedMap<KeyExtent,Files> mapping = new TreeMap<>();
 
@@ -571,9 +565,9 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
         pathMapping.forEach((ext, fi) -> mappings.computeIfAbsent(ext, k -> new Files()).add(fi));
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       } catch (ExecutionException e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
     }
 
@@ -596,7 +590,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
         if (ke.contains(oke)) {
           mappings.get(ke).merge(mappings.remove(oke));
         } else if (!oke.contains(ke)) {
-          throw new RuntimeException("Error during bulk import: Unable to merge overlapping "
+          throw new IllegalStateException("Error during bulk import: Unable to merge overlapping "
               + "tablets where neither tablet contains the other. This may be caused by "
               + "a concurrent merge. Key extents " + oke + " and " + ke + " overlap, but "
               + "neither contains the other.");

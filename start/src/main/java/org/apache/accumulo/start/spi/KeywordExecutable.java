@@ -20,6 +20,8 @@ package org.apache.accumulo.start.spi;
 
 import java.util.ServiceLoader;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * An interface used with the Java {@link ServiceLoader} to auto-discover classes executable with a
  * convenient keyword on the command-line.
@@ -77,6 +79,8 @@ public interface KeywordExecutable {
    * @param args
    *          command-line arguments to pass to the executed class
    */
+  @SuppressFBWarnings(value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION",
+      justification = "interface method can throw any exception")
   void execute(final String[] args) throws Exception;
 
 }

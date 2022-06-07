@@ -23,7 +23,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -37,6 +39,8 @@ import javax.security.auth.DestroyFailedException;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * @since 1.5.0
@@ -98,23 +102,40 @@ public class PasswordToken implements AuthenticationToken {
     } else {
       // legacy format; should avoid reading/writing compressed byte arrays using WritableUtils,
       // because GZip is expensive and it doesn't actually compress passwords very well
-      AtomicBoolean calledFirstReadInt = new AtomicBoolean(false);
       DataInput wrapped = (DataInput) Proxy.newProxyInstance(DataInput.class.getClassLoader(),
-          arg0.getClass().getInterfaces(), (obj, method, args) -> {
-            // wrap the original DataInput in order to return the integer that was read
-            // and then not used, because it didn't match -2
-            if (!calledFirstReadInt.get() && method.getName().equals("readInt")) {
-              calledFirstReadInt.set(true);
-              return version;
-            }
-            try {
-              return method.invoke(arg0, args);
-            } catch (InvocationTargetException e) {
-              throw e.getCause();
-            }
-          });
+          arg0.getClass().getInterfaces(), new ReplaceFirstIntInvocationHandler(version, arg0));
       password = WritableUtils.readCompressedByteArray(wrapped);
     }
+  }
+
+  private static class ReplaceFirstIntInvocationHandler implements InvocationHandler {
+
+    private final AtomicBoolean calledFirstReadInt = new AtomicBoolean(false);
+    private final int firstInt;
+    private final DataInput input;
+
+    public ReplaceFirstIntInvocationHandler(int firstInt, DataInput originalInput) {
+      this.firstInt = firstInt;
+      this.input = originalInput;
+    }
+
+    @SuppressFBWarnings(value = "THROWS_METHOD_THROWS_CLAUSE_THROWABLE",
+        justification = "rethrowing InvocationTargetException.getCause")
+    @Override
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+      // wrap the original DataInput in order to simulate replacing the integer that was
+      // previously read and then not used back into the input, after it didn't match -2
+      if (!calledFirstReadInt.get() && method.getName().equals("readInt")) {
+        calledFirstReadInt.set(true);
+        return firstInt;
+      }
+      try {
+        return method.invoke(input, args);
+      } catch (InvocationTargetException e) {
+        throw e.getCause();
+      }
+    }
+
   }
 
   @Override
@@ -160,7 +181,7 @@ public class PasswordToken implements AuthenticationToken {
       clone.password = Arrays.copyOf(password, password.length);
       return clone;
     } catch (CloneNotSupportedException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 

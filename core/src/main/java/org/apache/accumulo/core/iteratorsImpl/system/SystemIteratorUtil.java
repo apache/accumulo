@@ -76,7 +76,7 @@ public class SystemIteratorUtil {
       TSerializer tser = new TSerializer(new TBinaryProtocol.Factory());
       return tser.serialize(iterators);
     } catch (TException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -90,7 +90,7 @@ public class SystemIteratorUtil {
       TDeserializer tdser = new TDeserializer(new TBinaryProtocol.Factory());
       tdser.deserialize(ic, enc);
     } catch (TException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
     return toIteratorSettings(ic);
   }

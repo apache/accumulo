@@ -23,6 +23,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.DataOutput;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Map;
 import java.util.Set;
 
@@ -138,7 +139,7 @@ public abstract class AbstractHashSampler implements Sampler {
     try {
       hash(new DataoutputHasher(hasher), k);
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new UncheckedIOException(e);
     }
     return hasher.hash().asInt() % modulus == 0;
   }

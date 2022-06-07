@@ -24,7 +24,6 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -180,7 +179,7 @@ public class ConfigurationTypeHelper {
 
     try {
       instance = getClassInstance(context, clazzName, base);
-    } catch (RuntimeException | IOException | ReflectiveOperationException e) {
+    } catch (RuntimeException | ReflectiveOperationException e) {
       log.warn("Failed to load class {} in classloader context {}", clazzName, context, e);
     }
 
@@ -203,7 +202,7 @@ public class ConfigurationTypeHelper {
    * @return a new instance of the class
    */
   public static <T> T getClassInstance(String context, String clazzName, Class<T> base)
-      throws IOException, ReflectiveOperationException {
+      throws ReflectiveOperationException {
     T instance;
 
     Class<? extends T> clazz = ClassLoaderUtil.loadClass(context, clazzName, base);

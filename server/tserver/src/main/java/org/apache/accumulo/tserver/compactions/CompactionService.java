@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.tserver.compactions;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
@@ -120,7 +119,7 @@ public class CompactionService {
           new InternalCompactionExecutor(ceid, numThreads, ceMetrics, readLimiter, writeLimiter));
     });
 
-    initParams.getRequestedExternalExecutors().forEach((ceid) -> {
+    initParams.getRequestedExternalExecutors().forEach(ceid -> {
       tmpExecutors.put(ceid, externExecutorSupplier.apply(ceid));
     });
 
@@ -141,8 +140,8 @@ public class CompactionService {
   private CompactionPlanner createPlanner(String plannerClass) {
     try {
       return ConfigurationTypeHelper.getClassInstance(null, plannerClass, CompactionPlanner.class);
-    } catch (IOException | ReflectiveOperationException e) {
-      throw new RuntimeException(e);
+    } catch (ReflectiveOperationException e) {
+      throw new IllegalArgumentException(e);
     }
   }
 
@@ -289,7 +288,8 @@ public class CompactionService {
       Compactable compactable, Consumer<Compactable> completionCallback) {
     // log error if tablet is metadata and compaction is external
     var execIds = plan.getJobs().stream().map(cj -> (CompactionExecutorIdImpl) cj.getExecutor());
-    if (compactable.getExtent().isMeta() && execIds.anyMatch(ceid -> ceid.isExternalId())) {
+    if (compactable.getExtent().isMeta()
+        && execIds.anyMatch(CompactionExecutorIdImpl::isExternalId)) {
       log.error(
           "Compacting metadata tablets on external compactors is not supported, please change "
               + "config for compaction service ({}) and/or table ASAP.  {} is not compacting, "

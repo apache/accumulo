@@ -393,8 +393,8 @@ public class AccumuloVFSClassLoader {
         }
       }
       out.print("\n");
-    } catch (Exception t) {
-      throw new RuntimeException(t);
+    } catch (IOException t) {
+      throw new UncheckedIOException(t);
     }
   }
 

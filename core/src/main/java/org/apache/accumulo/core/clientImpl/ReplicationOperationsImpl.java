@@ -97,7 +97,7 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
           Thread.sleep(1000);
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
-          throw new RuntimeException("Thread interrupted", e);
+          throw new IllegalStateException("Thread interrupted", e);
         }
       }
     }

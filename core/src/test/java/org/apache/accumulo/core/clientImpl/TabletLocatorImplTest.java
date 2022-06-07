@@ -592,7 +592,7 @@ public class TabletLocatorImplTest {
         tservers.tservers.computeIfAbsent(server, k -> new HashMap<>());
     SortedMap<Key,Value> tabletData = tablets.computeIfAbsent(tablet, k -> new TreeMap<>());
     if (!tabletData.isEmpty()) {
-      throw new RuntimeException("Asked for empty tablet, but non empty tablet exists");
+      throw new IllegalStateException("Asked for empty tablet, but non empty tablet exists");
     }
   }
 

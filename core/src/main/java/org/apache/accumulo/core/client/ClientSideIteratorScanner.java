@@ -22,6 +22,7 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
@@ -258,7 +259,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
 
       skvi = IteratorConfigUtil.loadIterators(smi, ib);
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new UncheckedIOException(e);
     }
 
     final Set<ByteSequence> colfs = new TreeSet<>();
@@ -269,7 +270,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     try {
       skvi.seek(range, colfs, true);
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new UncheckedIOException(e);
     }
 
     return new IteratorAdapter(skvi);

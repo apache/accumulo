@@ -97,6 +97,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Suppliers;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * This class represents any essential configuration and credentials needed to initiate RPC
  * operations throughout the code. It is intended to represent a shared object that contains these
@@ -466,8 +468,9 @@ public class ClientContext implements AccumuloClient {
     String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
     byte[] data = zooCache.get(instanceNamePath);
     if (data == null) {
-      throw new RuntimeException("Instance name " + instanceName + " does not exist in zookeeper. "
-          + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
+      throw new IllegalStateException(
+          "Instance name " + instanceName + " does not exist in zookeeper. "
+              + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
     }
     return InstanceId.of(new String(data, UTF_8));
   }
@@ -477,7 +480,7 @@ public class ClientContext implements AccumuloClient {
     requireNonNull(zooCache, "zooCache cannot be null");
     requireNonNull(instanceId, "instanceId cannot be null");
     if (zooCache.get(Constants.ZROOT + "/" + instanceId) == null) {
-      throw new RuntimeException("Instance id " + instanceId
+      throw new IllegalStateException("Instance id " + instanceId
           + (instanceName == null ? "" : " pointed to by the name " + instanceName)
           + " does not exist in zookeeper");
     }
@@ -835,8 +838,14 @@ public class ClientContext implements AccumuloClient {
         return new ClientContext(reservation, info, config, cbi.getUncaughtExceptionHandler());
       } catch (RuntimeException e) {
         reservation.close();
-        throw e;
+        return rethrow(e);
       }
+    }
+
+    @SuppressFBWarnings(value = "THROWS_METHOD_THROWS_RUNTIMEEXCEPTION",
+        justification = "rethrowing caught and handled RuntimeException")
+    private static <T> T rethrow(RuntimeException e) {
+      throw e;
     }
 
     public static Properties buildProps(ClientBuilderImpl<Properties> cbi) {

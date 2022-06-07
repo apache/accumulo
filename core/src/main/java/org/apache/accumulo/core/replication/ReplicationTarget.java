@@ -23,6 +23,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.hadoop.io.DataInputBuffer;
@@ -150,7 +151,7 @@ public class ReplicationTarget implements Writable {
     try {
       target.readFields(buffer);
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new UncheckedIOException(e);
     }
 
     return target;
@@ -171,7 +172,7 @@ public class ReplicationTarget implements Writable {
     try {
       target.readFields(buffer);
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new UncheckedIOException(e);
     }
 
     return target;
@@ -189,7 +190,7 @@ public class ReplicationTarget implements Writable {
     try {
       this.write(buffer);
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new UncheckedIOException(e);
     }
 
     Text t = new Text();

@@ -60,6 +60,8 @@ import org.apache.hadoop.util.hash.Hash;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * A class that sits on top of different accumulo file formats and provides bloom filter
  * functionality.
@@ -263,7 +265,7 @@ public class BloomFilterLayer {
           if (closed)
             LOG.debug("Can't open BloomFilter, RTE after closed ", rte);
           else
-            throw rte;
+            rethrow(rte);
         } finally {
           if (in != null) {
             try {
@@ -277,6 +279,12 @@ public class BloomFilterLayer {
 
       initiateLoad(maxLoadThreads);
 
+    }
+
+    @SuppressFBWarnings(value = "THROWS_METHOD_THROWS_RUNTIMEEXCEPTION",
+        justification = "method created for purpose of suppress warnings due to rethrowing RTEs")
+    private static void rethrow(RuntimeException e) {
+      throw e;
     }
 
     /**

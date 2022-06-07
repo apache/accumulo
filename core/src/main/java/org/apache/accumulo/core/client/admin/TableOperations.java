@@ -263,7 +263,7 @@ public interface TableOperations {
     try {
       return listSplits(tableName);
     } catch (AccumuloSecurityException | AccumuloException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -297,7 +297,7 @@ public interface TableOperations {
     try {
       return listSplits(tableName, maxSplits);
     } catch (AccumuloSecurityException | AccumuloException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 

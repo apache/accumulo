@@ -41,7 +41,7 @@ public class Main {
   private static Class<?> vfsClassLoader;
   private static Map<String,KeywordExecutable> servicesMap;
 
-  public static void main(final String[] args) throws Exception {
+  public static void main(final String[] args) throws IOException, ReflectiveOperationException {
     // Preload classes that cause a deadlock between the ServiceLoader and the DFSClient when
     // using the VFSClassLoader with jars in HDFS.
     ClassLoader loader = getClassLoader();
@@ -58,7 +58,7 @@ public class Main {
     Object conf = null;
     try {
       conf = confClass.getDeclaredConstructor().newInstance();
-    } catch (Exception e) {
+    } catch (ReflectiveOperationException e) {
       log.error("Error creating new instance of Hadoop Configuration", e);
       throw e;
     }

@@ -28,6 +28,7 @@ import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.UncheckedIOException;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -189,7 +190,7 @@ public class MultiLevelIndex {
         sbais.seek(indexOffset + offset);
         return newValue();
       } catch (IOException ioe) {
-        throw new RuntimeException(ioe);
+        throw new UncheckedIOException(ioe);
       }
     }
 
@@ -397,7 +398,7 @@ public class MultiLevelIndex {
         offsetsArray = offsets;
         newFormat = false;
       } else {
-        throw new RuntimeException("Unexpected version " + version);
+        throw new IllegalStateException("Unexpected version " + version);
       }
 
     }
@@ -693,7 +694,7 @@ public class MultiLevelIndex {
         try {
           return node.getPreviousNode();
         } catch (IOException e) {
-          throw new RuntimeException(e);
+          throw new UncheckedIOException(e);
         }
       }
 
@@ -701,7 +702,7 @@ public class MultiLevelIndex {
         try {
           return node.getNextNode();
         } catch (IOException e) {
-          throw new RuntimeException(e);
+          throw new UncheckedIOException(e);
         }
       }
 

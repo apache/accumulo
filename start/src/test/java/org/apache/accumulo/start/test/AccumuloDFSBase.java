@@ -20,6 +20,7 @@ package org.apache.accumulo.start.test;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URI;
 
 import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
@@ -76,7 +77,7 @@ public class AccumuloDFSBase {
       // starting up the NameNode. We may get mapped into a FQDN via settings in /etc/hosts.
       HDFS_URI = cluster.getFileSystem().getUri();
     } catch (IOException e) {
-      throw new RuntimeException("Error setting up mini cluster", e);
+      throw new UncheckedIOException("Error setting up mini cluster", e);
     }
 
     // Set up the VFS
@@ -123,7 +124,7 @@ public class AccumuloDFSBase {
       vfs.setCacheStrategy(CacheStrategy.ON_RESOLVE);
       vfs.init();
     } catch (FileSystemException e) {
-      throw new RuntimeException("Error setting up VFS", e);
+      throw new UncheckedIOException("Error setting up VFS", e);
     }
 
   }

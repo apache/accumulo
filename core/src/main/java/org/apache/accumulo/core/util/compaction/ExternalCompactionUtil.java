@@ -108,7 +108,7 @@ public class ExternalCompactionUtil {
       }
       return Optional.of(HostAndPort.fromString(new String(address)));
     } catch (KeeperException | InterruptedException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -142,10 +142,10 @@ public class ExternalCompactionUtil {
 
       return queuesAndAddresses;
     } catch (KeeperException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -252,7 +252,7 @@ public class ExternalCompactionUtil {
           results.add(new RunningCompaction(job, compactorAddress, rcf.getQueue()));
         }
       } catch (InterruptedException | ExecutionException e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
     });
     return results;
@@ -281,7 +281,7 @@ public class ExternalCompactionUtil {
           runningIds.add(ceid);
         }
       } catch (InterruptedException | ExecutionException e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
     });
 

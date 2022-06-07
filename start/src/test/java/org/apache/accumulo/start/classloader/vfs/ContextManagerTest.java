@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 import java.io.File;
+import java.io.UncheckedIOException;
 import java.util.HashSet;
 import java.util.Objects;
 
@@ -55,7 +56,7 @@ public class ContextManagerTest {
     try {
       return AccumuloVFSClassLoader.generateVfs();
     } catch (FileSystemException e) {
-      throw new RuntimeException("Error setting up VFS", e);
+      throw new UncheckedIOException("Error setting up VFS", e);
     }
   }
 
