@@ -37,10 +37,7 @@ public class TabletFileUtil {
   }
 
   public static Reference validate(Reference reference) {
-    Path p = new Path(reference.metadataEntry);
-    if (p.toUri().getScheme() == null) {
-      throw new IllegalArgumentException("Invalid path provided, no scheme in " + reference);
-    }
+    validate(new Path(reference.metadataEntry));
     return reference;
   }
 
