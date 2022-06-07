@@ -170,7 +170,7 @@ public class Initialize implements KeywordExecutable {
       String rootTabletFileUri = new Path(
           fs.choose(chooserEnv, initConfig.getVolumeUris()) + SEPARATOR + TABLE_DIR + SEPARATOR
               + RootTable.ID + SEPARATOR + rootTabletDirName + SEPARATOR + "00000_00000." + ext)
-                  .toString();
+          .toString();
       zki.initialize(context, opts.clearInstanceName, instanceNamePath, rootTabletDirName,
           rootTabletFileUri);
 

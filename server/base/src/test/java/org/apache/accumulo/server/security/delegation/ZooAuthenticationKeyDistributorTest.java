@@ -79,7 +79,7 @@ public class ZooAuthenticationKeyDistributorTest {
     expect(zrw.exists(baseNode)).andReturn(false);
     expect(
         zrw.putPrivatePersistentData(eq(baseNode), aryEq(new byte[0]), eq(NodeExistsPolicy.FAIL)))
-            .andThrow(new AuthFailedException());
+        .andThrow(new AuthFailedException());
 
     replay(zrw);
 
