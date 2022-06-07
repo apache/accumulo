@@ -50,12 +50,17 @@ public class Reference implements Comparable<Reference> {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof Reference) {
-      Reference that = (Reference) obj;
-      return this.metadataEntry.equals(that.metadataEntry);
-    } else {
+    if (this == obj)
+      return true;
+    if (obj == null)
       return false;
-    }
+    if (getClass() != obj.getClass())
+      return false;
+    Reference other = (Reference) obj;
+    if (metadataEntry == null) {
+      return other.metadataEntry == null;
+    } else
+      return metadataEntry.equals(other.metadataEntry);
   }
 
   @Override
