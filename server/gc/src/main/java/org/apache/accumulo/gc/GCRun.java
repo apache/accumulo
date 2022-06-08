@@ -49,7 +49,7 @@ import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.gc.ReferenceDirectory;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.TabletFileUtil;
+import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -209,9 +209,9 @@ public class GCRun implements GarbageCollectionEnvironment {
             // of deleting something that should not be deleted. Must not change value of delete
             // variable because that's what's stored in metadata table.
             log.debug("Volume replaced {} -> {}", delete, switchedDelete);
-            fullPath = TabletFileUtil.validate(switchedDelete);
+            fullPath = ValidationUtil.validate(switchedDelete);
           } else {
-            fullPath = new Path(TabletFileUtil.validate(delete));
+            fullPath = new Path(ValidationUtil.validate(delete));
           }
 
           for (Path pathToDel : GcVolumeUtil.expandAllVolumesUri(fs, fullPath)) {

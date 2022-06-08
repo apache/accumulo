@@ -39,7 +39,7 @@ import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFileUtil;
+import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionFinalState;
@@ -205,7 +205,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
   @Override
   public Mutation createDeleteMutation(Reference tabletFilePathToRemove) {
-    return createDelMutation(TabletFileUtil.validate(tabletFilePathToRemove).metadataEntry);
+    return createDelMutation(ValidationUtil.validate(tabletFilePathToRemove).metadataEntry);
   }
 
   public Mutation createDeleteMutation(StoredTabletFile pathToRemove) {

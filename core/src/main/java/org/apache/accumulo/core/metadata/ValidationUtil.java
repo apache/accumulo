@@ -22,9 +22,9 @@ import org.apache.accumulo.core.gc.Reference;
 import org.apache.hadoop.fs.Path;
 
 /**
- * Utility class for validation of metadata tablet files.
+ * Utility class for validation of tablet file paths.
  */
-public class TabletFileUtil {
+public class ValidationUtil {
 
   /**
    * Validate if string is a valid path. Return normalized string or throw exception if not valid.
