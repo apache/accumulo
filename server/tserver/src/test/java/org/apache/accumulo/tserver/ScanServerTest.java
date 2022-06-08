@@ -134,7 +134,7 @@ public class ScanServerTest {
     reservation.close();
     expect(handler.startScan(tinfo, tcreds, sextent, trange, tcols, 10, titer, ssio, auths, false,
         false, 10, tsc, 30L, classLoaderContext, execHints, resolver, 0L))
-            .andReturn(new InitialScan(15, null));
+        .andReturn(new InitialScan(15, null));
     expect(handler.continueScan(tinfo, 15, 0L)).andReturn(new ScanResult());
     handler.closeScan(tinfo, 15);
 
@@ -174,7 +174,7 @@ public class ScanServerTest {
 
     expect(handler.startScan(tinfo, tcreds, textent, trange, tcols, 10, titer, ssio, auths, false,
         false, 10, tsc, 30L, classLoaderContext, execHints, 0L))
-            .andReturn(new InitialScan(15, null));
+        .andReturn(new InitialScan(15, null));
     expect(handler.continueScan(tinfo, 15, 0L)).andReturn(new ScanResult());
     handler.closeScan(tinfo, 15);
 
