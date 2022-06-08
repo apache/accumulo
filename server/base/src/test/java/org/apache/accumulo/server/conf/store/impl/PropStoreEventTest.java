@@ -43,9 +43,9 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.PropStoreKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -280,17 +280,17 @@ public class PropStoreEventTest {
     private int connectionEventCount = 0;
 
     @Override
-    public void zkChangeEvent(PropCacheKey<?> propCacheKey) {
+    public void zkChangeEvent(PropStoreKey<?> propStoreKey) {
       zkChangeEventCount++;
     }
 
     @Override
-    public void cacheChangeEvent(PropCacheKey<?> propCacheKey) {
+    public void cacheChangeEvent(PropStoreKey<?> propStoreKey) {
       cacheChangeEventCount++;
     }
 
     @Override
-    public void deleteEvent(PropCacheKey<?> propCacheKey) {
+    public void deleteEvent(PropStoreKey<?> propStoreKey) {
       deleteEventCount++;
     }
 

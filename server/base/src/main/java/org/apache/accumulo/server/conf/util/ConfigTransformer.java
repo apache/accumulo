@@ -40,7 +40,7 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
+import org.apache.accumulo.server.conf.store.PropStoreKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
@@ -104,27 +104,27 @@ public class ConfigTransformer {
    *
    * @return the encoded properties.
    */
-  public VersionedProperties transform(final PropCacheKey<?> propCacheKey) {
-    TransformToken token = TransformToken.createToken(propCacheKey, zrw);
-    return transform(propCacheKey, token);
+  public VersionedProperties transform(final PropStoreKey<?> propStoreKey) {
+    TransformToken token = TransformToken.createToken(propStoreKey, zrw);
+    return transform(propStoreKey, token);
   }
 
   // Allow external (mocked) TransformToken to be used
   @VisibleForTesting
-  VersionedProperties transform(final PropCacheKey<?> propCacheKey, final TransformToken token) {
+  VersionedProperties transform(final PropStoreKey<?> propStoreKey, final TransformToken token) {
 
-    log.info("checking for legacy property upgrade transform for {}", propCacheKey);
+    log.info("checking for legacy property upgrade transform for {}", propStoreKey);
 
     VersionedProperties results;
     Instant start = Instant.now();
     try {
 
       // check for node - just return if it exists.
-      results = ZooPropStore.readFromZk(propCacheKey, propStoreWatcher, zrw);
+      results = ZooPropStore.readFromZk(propStoreKey, propStoreWatcher, zrw);
       if (results != null) {
         log.debug(
             "Found existing node at {}. skipping legacy prop conversion - version: {}, timestamp: {}",
-            propCacheKey, results.getDataVersion(), results.getTimestamp());
+            propStoreKey, results.getDataVersion(), results.getTimestamp());
         return results;
       }
 
@@ -134,67 +134,67 @@ public class ConfigTransformer {
           retry.waitForNextAttempt();
           // look and return node if created while trying to token.
           log.trace("own the token - look for existing encoded node at: {}",
-              propCacheKey.getPath());
-          results = ZooPropStore.readFromZk(propCacheKey, propStoreWatcher, zrw);
+              propStoreKey.getPath());
+          results = ZooPropStore.readFromZk(propStoreKey, propStoreWatcher, zrw);
           if (results != null) {
             log.debug(
                 "Found existing node after getting token at {}. skipping legacy prop conversion - version: {}, timestamp: {}",
-                propCacheKey, results.getDataVersion(), results.getTimestamp());
+                propStoreKey, results.getDataVersion(), results.getTimestamp());
             return results;
           }
           // still does not exist - try again.
           token.getTokenOwnership();
         } catch (InterruptedException ex) {
           Thread.currentThread().interrupt();
-          throw new IllegalStateException("Failed to hold transform token for " + propCacheKey, ex);
+          throw new IllegalStateException("Failed to hold transform token for " + propStoreKey, ex);
         } catch (IllegalStateException ex) {
-          throw new IllegalStateException("Failed to hold transform token for " + propCacheKey, ex);
+          throw new IllegalStateException("Failed to hold transform token for " + propStoreKey, ex);
         }
       }
 
-      Set<LegacyPropNode> upgradeNodes = readLegacyProps(propCacheKey);
+      Set<LegacyPropNode> upgradeNodes = readLegacyProps(propStoreKey);
       if (upgradeNodes == null) {
         log.info("Found existing node after reading legacy props {}, skipping conversion",
-            propCacheKey);
-        results = ZooPropStore.readFromZk(propCacheKey, propStoreWatcher, zrw);
+            propStoreKey);
+        results = ZooPropStore.readFromZk(propStoreKey, propStoreWatcher, zrw);
         if (results != null) {
           return results;
         }
       }
 
-      upgradeNodes = convertDeprecatedProps(propCacheKey, upgradeNodes);
+      upgradeNodes = convertDeprecatedProps(propStoreKey, upgradeNodes);
 
-      results = writeConverted(propCacheKey, upgradeNodes);
+      results = writeConverted(propStoreKey, upgradeNodes);
 
       if (results == null) {
-        throw new IllegalStateException("Could not create properties for " + propCacheKey);
+        throw new IllegalStateException("Could not create properties for " + propStoreKey);
       }
 
       // validate token still valid before deletion.
       if (!token.validateToken()) {
         throw new IllegalStateException(
-            "legacy conversion failed. Lost transform token for " + propCacheKey);
+            "legacy conversion failed. Lost transform token for " + propStoreKey);
       }
 
       int errorCount = deleteLegacyProps(upgradeNodes);
       log.debug("deleted legacy props - error count: {}", errorCount);
-      log.debug("property transform for {} took {} ms", propCacheKey,
+      log.debug("property transform for {} took {} ms", propStoreKey,
           new DurationFormat(Duration.between(start, Instant.now()).toMillis(), ""));
 
       return results;
 
     } catch (Exception ex) {
-      log.info("Exception on upgrading legacy properties for: " + propCacheKey, ex);
+      log.info("Exception on upgrading legacy properties for: " + propStoreKey, ex);
     } finally {
       token.releaseToken();
     }
     return null;
   }
 
-  private Set<LegacyPropNode> convertDeprecatedProps(PropCacheKey<?> propCacheKey,
+  private Set<LegacyPropNode> convertDeprecatedProps(PropStoreKey<?> propStoreKey,
       Set<LegacyPropNode> upgradeNodes) {
 
-    if (!(propCacheKey instanceof SystemPropKey)) {
+    if (!(propStoreKey instanceof SystemPropKey)) {
       return upgradeNodes;
     }
 
@@ -212,7 +212,7 @@ public class ConfigTransformer {
     return renamedNodes;
   }
 
-  private @Nullable Set<LegacyPropNode> readLegacyProps(PropCacheKey<?> propCacheKey) {
+  private @Nullable Set<LegacyPropNode> readLegacyProps(PropStoreKey<?> propStoreKey) {
 
     Set<LegacyPropNode> legacyProps = new TreeSet<>();
 
@@ -220,17 +220,17 @@ public class ConfigTransformer {
     var tokenName = TransformToken.TRANSFORM_TOKEN.substring(1);
 
     try {
-      var keyBasePath = propCacheKey.getBasePath();
+      var keyBasePath = propStoreKey.getBasePath();
       List<String> childNames = zrw.getChildren(keyBasePath);
       for (String propName : childNames) {
-        log.trace("processing ZooKeeper child node: {} for: {}", propName, propCacheKey);
+        log.trace("processing ZooKeeper child node: {} for: {}", propName, propStoreKey);
         if (tokenName.equals(propName)) {
           continue;
         }
-        if (PropCacheKey.PROP_NODE_NAME.equals(propName)) {
+        if (PropStoreKey.PROP_NODE_NAME.equals(propName)) {
           log.debug(
               "encoded property node exists for {}. Legacy conversion ignoring conversion of this node",
-              propCacheKey);
+              propStoreKey);
           return null;
         }
         log.trace("Adding: {} to list for legacy conversion", propName);
@@ -278,26 +278,26 @@ public class ConfigTransformer {
     return errorCount;
   }
 
-  private @Nullable VersionedProperties writeConverted(final PropCacheKey<?> propCacheKey,
+  private @Nullable VersionedProperties writeConverted(final PropStoreKey<?> propStoreKey,
       final Set<LegacyPropNode> nodes) {
     final Map<String,String> props = new HashMap<>();
     nodes.forEach(node -> props.put(node.getPropName(), node.getData()));
     VersionedProperties vProps = new VersionedProperties(props);
-    String path = propCacheKey.getPath();
+    String path = propStoreKey.getPath();
     try {
       try {
         zrw.putPrivatePersistentData(path, codec.toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
       } catch (KeeperException.NodeExistsException ex) {
-        vProps = ZooPropStore.readFromZk(propCacheKey, propStoreWatcher, zrw);
+        vProps = ZooPropStore.readFromZk(propStoreKey, propStoreWatcher, zrw);
       }
     } catch (InterruptedException | IOException | KeeperException ex) {
       if (ex instanceof InterruptedException) {
         Thread.currentThread().interrupt();
       }
       throw new IllegalStateException(
-          "failed to create node for " + propCacheKey + " on conversion", ex);
+          "failed to create node for " + propStoreKey + " on conversion", ex);
     }
-    if (!validateWrite(propCacheKey, vProps)) {
+    if (!validateWrite(propStoreKey, vProps)) {
       // failed validation
       return null;
     }
@@ -305,20 +305,20 @@ public class ConfigTransformer {
     return vProps;
   }
 
-  private boolean validateWrite(final PropCacheKey<?> propCacheKey,
+  private boolean validateWrite(final PropStoreKey<?> propStoreKey,
       final VersionedProperties vProps) {
     try {
-      Stat stat = zrw.getStatus(propCacheKey.getPath(), propStoreWatcher);
+      Stat stat = zrw.getStatus(propStoreKey.getPath(), propStoreWatcher);
       if (stat == null) {
         throw new IllegalStateException(
-            "failed to get stat to validate created node for " + propCacheKey);
+            "failed to get stat to validate created node for " + propStoreKey);
       }
       return stat.getVersion() == vProps.getDataVersion();
     } catch (KeeperException ex) {
-      throw new IllegalStateException("failed to validate created node for " + propCacheKey, ex);
+      throw new IllegalStateException("failed to validate created node for " + propStoreKey, ex);
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
-      throw new IllegalStateException("failed to validate created node for " + propCacheKey, ex);
+      throw new IllegalStateException("failed to validate created node for " + propStoreKey, ex);
     }
   }
 

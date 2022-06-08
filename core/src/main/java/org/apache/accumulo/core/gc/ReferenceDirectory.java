@@ -16,26 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.metadata;
+package org.apache.accumulo.core.gc;
 
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 
 /**
- * A reference to a tablet file or directory.
+ * Part of the Tablet File path that is definitely a directory.
  */
-public class Reference {
-  // parts of an absolute URI, like "hdfs://1.2.3.4/accumulo/tables/2a/t-0003"
-  public final TableId tableId; // 2a
-  public final String tabletDir; // t-0003
+public class ReferenceDirectory extends Reference {
 
-  // the exact string that is stored in the metadata
-  public final String metadataEntry;
-
-  public Reference(TableId tableId, String metadataEntry) {
-    MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(tableId.canonical());
-    this.tableId = tableId;
-    this.metadataEntry = metadataEntry;
-    this.tabletDir = metadataEntry;
+  public ReferenceDirectory(TableId tableId, String dirName) {
+    super(tableId, dirName);
   }
 }
