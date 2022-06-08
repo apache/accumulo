@@ -72,7 +72,7 @@ public class TabletFile implements Comparable<TabletFile> {
     var volume = volumePath.toString();
 
     this.tabletDir = new TabletDirectory(volume, TableId.of(id), tabletDirPath.getName());
-    this.normalizedPath = volume + HDFS_TABLES_DIR + "/" + id + "/" + tabletDir + "/" + fileName;
+    this.normalizedPath = tabletDir.getNormalizedPath() + "/" + fileName;
   }
 
   public String getVolume() {

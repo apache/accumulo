@@ -18,12 +18,13 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import org.apache.accumulo.core.gc.Reference;
 import org.apache.hadoop.fs.Path;
 
 /**
- * Utility class for validation of metadata tablet files.
+ * Utility class for validation of tablet file paths.
  */
-public class TabletFileUtil {
+public class ValidationUtil {
 
   /**
    * Validate if string is a valid path. Return normalized string or throw exception if not valid.
@@ -34,6 +35,11 @@ public class TabletFileUtil {
   public static String validate(String path) {
     Path p = new Path(path);
     return validate(p).toString();
+  }
+
+  public static Reference validate(Reference reference) {
+    validate(new Path(reference.metadataEntry));
+    return reference;
   }
 
   public static Path validate(Path path) {
