@@ -511,7 +511,7 @@ public class ConfiguratorBase {
       throws AccumuloException, AccumuloSecurityException {
     return ((org.apache.accumulo.core.clientImpl.ConnectorImpl) getInstance(CLASS, conf)
         .getConnector(getPrincipal(CLASS, conf), getAuthenticationToken(CLASS, conf)))
-            .getAccumuloClient();
+        .getAccumuloClient();
   }
 
   public static ClientContext client(Class<?> CLASS,

@@ -33,6 +33,7 @@ import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -162,7 +163,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     if (Boolean.valueOf(config.getSiteConfig().get(Property.TSERV_NATIVEMAP_ENABLED.getKey()))
         && config.getNativeLibPaths().length == 0
         && !config.getSystemProperties().containsKey("accumulo.native.lib.path")) {
-      throw new RuntimeException(
+      throw new IllegalStateException(
           "MAC configured to use native maps, but native library path was not provided.");
     }
 
@@ -485,7 +486,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       try (var fs = getServerContext().getVolumeManager()) {
         instanceIdPath = serverDirs.getInstanceIdLocation(fs.getFirst());
       } catch (IOException e) {
-        throw new RuntimeException(e);
+        throw new UncheckedIOException(e);
       }
 
       InstanceId instanceIdFromFile =
@@ -505,15 +506,15 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           }
         }
       } catch (KeeperException e) {
-        throw new RuntimeException("Unable to read instance name from zookeeper.", e);
+        throw new IllegalStateException("Unable to read instance name from zookeeper.", e);
       }
       if (instanceName == null) {
-        throw new RuntimeException("Unable to read instance name from zookeeper.");
+        throw new IllegalStateException("Unable to read instance name from zookeeper.");
       }
 
       config.setInstanceName(instanceName);
       if (!AccumuloStatus.isAccumuloOffline(zrw, rootPath)) {
-        throw new RuntimeException(
+        throw new IllegalStateException(
             "The Accumulo instance being used is already running. Aborting.");
       }
     } else {
@@ -547,7 +548,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
               if (n >= 4 && new String(buffer, 0, 4).equals("imok")) {
                 break;
               }
-            } catch (Exception e) {
+            } catch (IOException | RuntimeException e) {
               if (System.currentTimeMillis() - startTime >= config.getZooKeeperStartupTime()) {
                 throw new ZooKeeperBindException("Zookeeper did not start within "
                     + (config.getZooKeeperStartupTime() / 1000) + " seconds. Check the logs in "
@@ -577,8 +578,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         Process initProcess = exec(Initialize.class, args.toArray(new String[0])).getProcess();
         int ret = initProcess.waitFor();
         if (ret != 0) {
-          throw new RuntimeException("Initialize process returned " + ret + ". Check the logs in "
-              + config.getLogDir() + " for errors.");
+          throw new IllegalStateException("Initialize process returned " + ret
+              + ". Check the logs in " + config.getLogDir() + " for errors.");
         }
         initialized = true;
       }
@@ -599,7 +600,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
     if (ret != 0) {
-      throw new RuntimeException("Could not set manager goal state, process returned " + ret
+      throw new IllegalStateException("Could not set manager goal state, process returned " + ret
           + ". Check the logs in " + config.getLogDir() + " for errors.");
     }
 
@@ -647,31 +648,26 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
       String secret = getSiteConfiguration().get(Property.INSTANCE_SECRET);
 
+      String instanceId = null;
       for (int i = 0; i < numTries; i++) {
         if (zk.getState().equals(States.CONNECTED)) {
           ZooUtil.digestAuth(zk, secret);
-          break;
-        } else {
-          Thread.sleep(1000);
-        }
-      }
-
-      String instanceId = null;
-      try {
-        for (String name : zk.getChildren(Constants.ZROOT + Constants.ZINSTANCES, null)) {
-          if (name.equals(config.getInstanceName())) {
-            String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + name;
+          try {
+            zk.sync("/", null, null);
+            String instanceNamePath =
+                Constants.ZROOT + Constants.ZINSTANCES + "/" + config.getInstanceName();
             byte[] bytes = zk.getData(instanceNamePath, null, null);
             instanceId = new String(bytes, UTF_8);
             break;
+          } catch (KeeperException e) {
+            log.debug("Unable to read instance id from zookeeper.", e);
           }
         }
-      } catch (KeeperException e) {
-        throw new RuntimeException("Unable to read instance id from zookeeper.", e);
+        Thread.sleep(1000);
       }
 
       if (instanceId == null) {
-        throw new RuntimeException("Unable to find instance id from zookeeper.");
+        throw new IllegalStateException("Unable to find instance id from zookeeper.");
       }
 
       String rootPath = Constants.ZROOT + "/" + instanceId;
@@ -690,7 +686,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           Thread.sleep(500);
         }
       } catch (KeeperException e) {
-        throw new RuntimeException("Unable to read TServer information from zookeeper.", e);
+        throw new IllegalStateException("Unable to read TServer information from zookeeper.", e);
       }
 
       try {
@@ -699,7 +695,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           Thread.sleep(500);
         }
       } catch (KeeperException e) {
-        throw new RuntimeException("Unable to read Manager information from zookeeper.", e);
+        throw new IllegalStateException("Unable to read Manager information from zookeeper.", e);
       }
 
       try {
@@ -708,7 +704,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           Thread.sleep(500);
         }
       } catch (KeeperException e) {
-        throw new RuntimeException("Unable to read GC information from zookeeper.", e);
+        throw new IllegalStateException("Unable to read GC information from zookeeper.", e);
       }
 
     }
@@ -841,8 +837,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   public FileSystem getFileSystem() {
     try {
       return FileSystem.get(new URI(dfsUri), new Configuration());
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    } catch (IOException | URISyntaxException e) {
+      throw new IllegalStateException(e);
     }
   }
 
