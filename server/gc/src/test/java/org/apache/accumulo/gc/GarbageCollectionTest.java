@@ -37,8 +37,8 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.Reference;
-import org.apache.accumulo.core.metadata.ReferenceDirectory;
+import org.apache.accumulo.core.gc.Reference;
+import org.apache.accumulo.core.gc.ReferenceDirectory;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.junit.jupiter.api.Test;
 

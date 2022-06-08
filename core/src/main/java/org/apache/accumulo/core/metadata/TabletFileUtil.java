@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import org.apache.accumulo.core.gc.Reference;
 import org.apache.hadoop.fs.Path;
 
 /**
