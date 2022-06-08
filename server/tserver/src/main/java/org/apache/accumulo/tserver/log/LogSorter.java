@@ -185,7 +185,9 @@ public class LogSorter {
       if (input != null) {
         bytesCopied = input.getPos();
         input.close();
-        decryptingInput.close();
+        if (decryptingInput != null) {
+          decryptingInput.close();
+        }
         input = null;
       }
     }
