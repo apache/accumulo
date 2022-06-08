@@ -42,7 +42,6 @@ import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.conf.util.TransformToken;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
-import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooKeeper;
 import org.junit.jupiter.api.AfterAll;
@@ -101,12 +100,9 @@ public class TransformTokenIT {
   }
 
   @AfterEach
-  public void cleanupZnodes() {
-    try {
-      ZKUtil.deleteRecursive(zooKeeper, Constants.ZROOT);
-    } catch (KeeperException | InterruptedException ex) {
-      throw new IllegalStateException("Failed to clean-up test zooKeeper nodes.", ex);
-    }
+  public void cleanupZnodes() throws Exception {
+    ZooUtil.digestAuth(zooKeeper, ZooKeeperTestingServer.SECRET);
+    ZKUtil.deleteRecursive(zooKeeper, Constants.ZROOT);
     verify(context, watcher);
   }
 

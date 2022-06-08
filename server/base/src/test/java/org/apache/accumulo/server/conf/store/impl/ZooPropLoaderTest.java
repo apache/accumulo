@@ -453,15 +453,15 @@ public class ZooPropLoaderTest {
 
     expect(
         zrw.getData(eq(propStoreKey.getPath()), capture(propStoreWatcherCapture), capture(stat3)))
-            .andAnswer(() -> {
-              Stat s = stat3.getValue();
-              s.setCtime(System.currentTimeMillis());
-              s.setMtime(System.currentTimeMillis());
-              s.setVersion(initialVersion + 4);
-              stat3.setValue(s);
-              return propCodec.toBytes(new VersionedProperties(initialVersion + 3, Instant.now(),
-                  Map.of(Property.TABLE_SPLIT_THRESHOLD.getKey(), "12G")));
-            }).once();
+        .andAnswer(() -> {
+          Stat s = stat3.getValue();
+          s.setCtime(System.currentTimeMillis());
+          s.setMtime(System.currentTimeMillis());
+          s.setVersion(initialVersion + 4);
+          stat3.setValue(s);
+          return propCodec.toBytes(new VersionedProperties(initialVersion + 3, Instant.now(),
+              Map.of(Property.TABLE_SPLIT_THRESHOLD.getKey(), "12G")));
+        }).once();
 
     propStoreWatcher.signalCacheChangeEvent(eq(propStoreKey));
     expectLastCall();

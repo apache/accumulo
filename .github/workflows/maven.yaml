@@ -67,7 +67,7 @@ jobs:
         profile:
           - {name: 'unit-tests',    javaver: 11, args: 'verify -PskipQA -DskipTests=false'}
           - {name: 'qa-checks',     javaver: 11, args: 'verify javadoc:jar -Psec-bugs -DskipTests -Dspotbugs.timeout=3600000'}
-          - {name: 'compat',        javaver: 11, args: 'package -DskipTests -Dhadoop.version=3.0.3 -Dzookeeper.version=3.5.9'}
+          - {name: 'compat',        javaver: 11, args: 'package -DskipTests -Dhadoop.version=3.0.3 -Dzookeeper.version=3.5.10'}
           - {name: 'errorprone',    javaver: 11, args: 'verify -Perrorprone,skipQA'}
           - {name: 'jdk17',         javaver: 17, args: 'verify -DskipITs'}
       fail-fast: false
