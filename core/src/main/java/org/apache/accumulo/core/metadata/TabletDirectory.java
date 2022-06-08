@@ -23,13 +23,21 @@ import org.apache.accumulo.core.data.TableId;
 /**
  * The Tablet directory that may exist in the metadata table.
  */
-public class TabletDirectory extends RelativeTabletDirectory {
+public class TabletDirectory {
   // parts of an absolute URI, like "hdfs://1.2.3.4/accumulo/tables/2a/t-0003"
   private final String volume; // hdfs://1.2.3.4/accumulo
+  // parts of an absolute URI, like "hdfs://1.2.3.4/accumulo/tables/2a/t-0003"
+  public final TableId tableId; // 2a
+  public final String tabletDir; // t-0003
+
+  // the exact string that is stored in the metadata
+  // public final String metadataEntry;
 
   public TabletDirectory(String volume, TableId tableId, String tabletDir) {
-    super(tableId, tabletDir);
     this.volume = volume;
+    this.tableId = tableId;
+    // this.metadataEntry = metadataEntry;
+    this.tabletDir = tabletDir;
   }
 
   public String getVolume() {

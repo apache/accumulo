@@ -38,7 +38,7 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.Reference;
-import org.apache.accumulo.core.metadata.RelativeTabletDirectory;
+import org.apache.accumulo.core.metadata.ReferenceDirectory;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.junit.jupiter.api.Test;
 
@@ -103,7 +103,7 @@ public class GarbageCollectionTest {
     }
 
     public void addDirReference(String tableId, String endRow, String dir) {
-      references.put(tableId + ":" + endRow, new RelativeTabletDirectory(TableId.of(tableId), dir));
+      references.put(tableId + ":" + endRow, new ReferenceDirectory(TableId.of(tableId), dir));
     }
 
     public void removeDirReference(String tableId, String endRow) {

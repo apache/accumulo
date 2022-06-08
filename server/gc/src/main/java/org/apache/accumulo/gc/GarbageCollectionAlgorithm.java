@@ -37,7 +37,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.Reference;
-import org.apache.accumulo.core.metadata.RelativeTabletDirectory;
+import org.apache.accumulo.core.metadata.ReferenceDirectory;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
@@ -139,8 +139,8 @@ public class GarbageCollectionAlgorithm {
     while (iter.hasNext()) {
       Reference ref = iter.next();
 
-      if (ref instanceof RelativeTabletDirectory) {
-        var dirReference = (RelativeTabletDirectory) ref;
+      if (ref instanceof ReferenceDirectory) {
+        var dirReference = (ReferenceDirectory) ref;
         ServerColumnFamily.validateDirCol(dirReference.tabletDir);
 
         String dir = "/" + dirReference.tableId + "/" + dirReference.tabletDir;

@@ -58,10 +58,10 @@ import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.Reference;
+import org.apache.accumulo.core.metadata.ReferenceDirectory;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletDirectory;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.core.metadata.TabletState;
@@ -642,8 +642,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         Key key = entry.getKey();
         if (key.compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
           var stf = new StoredTabletFile(key.getColumnQualifierData().toString());
-          var tabletDirectory =
-              new TabletDirectory(stf.getVolume(), stf.getTableId(), stf.getTabletDir());
+          var tabletDirectory = new ReferenceDirectory(stf.getTableId(), stf.getTabletDir());
           datafilesAndDirs.add(tabletDirectory);
           if (datafilesAndDirs.size() > 1000) {
             ample.putGcFileAndDirCandidates(extent.tableId(), datafilesAndDirs);
