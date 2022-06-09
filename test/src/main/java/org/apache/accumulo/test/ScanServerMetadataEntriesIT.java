@@ -260,11 +260,12 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
           metadataScanFileRefs.add(file);
         });
         assertEquals(3, metadataScanFileRefs.size());
-        
+
         assertEquals(3, ctx.getAmple().getScanServerFileReferences().count());
 
         List<Reference> refs = gc.getReferences().collect(Collectors.toList());
-        refs.forEach(ref -> LoggerFactory.getLogger(ScanServerMetadataEntriesIT.class).info("REF: {}", ref.metadataEntry));
+        refs.forEach(ref -> LoggerFactory.getLogger(ScanServerMetadataEntriesIT.class)
+            .info("REF: {}", ref.metadataEntry));
         assertTrue(refs.size() > 6);
         List<Reference> tableRefs = new ArrayList<>();
         refs.forEach(r -> {
