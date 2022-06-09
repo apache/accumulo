@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.metadata;
 
-import org.apache.accumulo.core.gc.Reference;
+import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.hadoop.fs.Path;
 
 /**
@@ -37,7 +37,7 @@ public class ValidationUtil {
     return validate(p).toString();
   }
 
-  public static Reference validate(Reference reference) {
+  public static ReferenceFile validate(ReferenceFile reference) {
     validate(new Path(reference.metadataEntry));
     return reference;
   }

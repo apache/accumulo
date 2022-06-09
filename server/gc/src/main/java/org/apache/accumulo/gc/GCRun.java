@@ -47,6 +47,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.gc.ReferenceDirectory;
+import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.ValidationUtil;
@@ -139,21 +140,29 @@ public class GCRun implements GarbageCollectionEnvironment {
   public Stream<Reference> getReferences() {
     Stream<TabletMetadata> tabletStream;
 
+    // create a stream of metadata entries read from file, scan and tablet dir columns
     if (level == Ample.DataLevel.ROOT) {
       tabletStream = Stream.of(context.getAmple().readTablet(RootTable.EXTENT, DIR, FILES, SCANS));
     } else {
-      tabletStream = TabletsMetadata.builder(context).scanTable(level.metaTable())
-          .checkConsistency().fetch(DIR, FILES, SCANS).build().stream();
+      try (var tabletsMetadata = TabletsMetadata.builder(context).scanTable(level.metaTable())
+          .checkConsistency().fetch(DIR, FILES, SCANS).build()) {
+        tabletStream = tabletsMetadata.stream();
+      }
     }
 
+    // there is a lot going on in this "one line" so see below for more info
     return tabletStream.flatMap(tm -> {
-      Stream<Reference> refs = Stream.concat(tm.getFiles().stream(), tm.getScans().stream())
-          .map(f -> new Reference(tm.getTableId(), f.getMetaUpdateDelete()));
+      // combine all the entries read from file and scan columns in the metadata table
+      var fileStream = Stream.concat(tm.getFiles().stream(), tm.getScans().stream());
+      // map the files to Reference objects
+      var stream = fileStream.map(f -> new ReferenceFile(tm.getTableId(), f.getMetaUpdateDelete()));
+      // if dirName is populated then we have a tablet directory aka srv:dir
       if (tm.getDirName() != null) {
-        refs = Stream.concat(refs,
-            Stream.of(new ReferenceDirectory(tm.getTableId(), tm.getDirName())));
+        // add the tablet directory to the stream
+        var tabletDir = new ReferenceDirectory(tm.getTableId(), tm.getDirName());
+        stream = Stream.concat(stream, Stream.of(tabletDir));
       }
-      return refs;
+      return stream;
     });
   }
 

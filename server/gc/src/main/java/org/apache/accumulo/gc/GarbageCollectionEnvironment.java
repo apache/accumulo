@@ -28,9 +28,7 @@ import java.util.SortedMap;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -68,10 +66,9 @@ public interface GarbageCollectionEnvironment {
 
   /**
    * Fetches the references to files, {@link DataFileColumnFamily#NAME} or
-   * {@link ScanFileColumnFamily#NAME}, from tablets
+   * {@link ScanFileColumnFamily#NAME}, from tablets and tablet directories.
    *
-   * @return An {@link Iterator} of {@link Entry}&lt;{@link Key}, {@link Value}&gt; which constitute
-   *         a reference to a file.
+   * @return An {@link Stream} of {@link Reference} objects.
    */
   Stream<Reference> getReferences();
 

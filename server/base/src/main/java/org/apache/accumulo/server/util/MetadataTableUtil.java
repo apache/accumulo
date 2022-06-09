@@ -62,7 +62,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.gc.Reference;
+import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -374,7 +374,7 @@ public class MetadataTableUtil {
           if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
             StoredTabletFile stf = new StoredTabletFile(key.getColumnQualifierData().toString());
             bw.addMutation(
-                ample.createDeleteMutation(new Reference(tableId, stf.getMetaUpdateDelete())));
+                ample.createDeleteMutation(new ReferenceFile(tableId, stf.getMetaUpdateDelete())));
           }
 
           if (ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {

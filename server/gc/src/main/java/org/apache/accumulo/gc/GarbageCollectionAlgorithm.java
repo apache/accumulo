@@ -139,21 +139,22 @@ public class GarbageCollectionAlgorithm {
     while (iter.hasNext()) {
       Reference ref = iter.next();
 
-      if (ref instanceof ReferenceDirectory) {
+      if (ref.isDirectory()) {
         var dirReference = (ReferenceDirectory) ref;
-        ServerColumnFamily.validateDirCol(dirReference.tabletDir);
+        ServerColumnFamily.validateDirCol(dirReference.getTabletDir());
 
-        String dir = "/" + dirReference.tableId + "/" + dirReference.tabletDir;
+        String dir = "/" + dirReference.tableId + "/" + dirReference.getTabletDir();
 
         dir = makeRelative(dir, 2);
 
         if (candidateMap.remove(dir) != null)
           log.debug("Candidate was still in use: {}", dir);
       } else {
-        String reference = ref.metadataEntry;
+        String reference = ref.getMetadataEntry();
         if (reference.startsWith("/")) {
-          log.debug("Candidate {} has a relative path, prepend tableId {}", reference, ref.tableId);
-          reference = "/" + ref.tableId + ref.metadataEntry;
+          log.debug("Candidate {} has a relative path, prepend tableId {}", reference,
+              ref.getTableId());
+          reference = "/" + ref.getTableId() + ref.getMetadataEntry();
         } else if (!reference.contains(":") && !reference.startsWith("../")) {
           throw new RuntimeException("Bad file reference " + reference);
         }

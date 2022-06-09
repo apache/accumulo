@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   https://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -16,27 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.gc;
+package org.apache.accumulo.server.gc;
 
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.gc.ReferenceDirectory;
 
 /**
- * A GC reference to a Tablet directory, like t-0003.
+ * A specially encoded GC Reference to a directory with the {@link GcVolumeUtil#ALL_VOLUMES_PREFIX}
  */
-public class ReferenceDirectory extends ReferenceFile {
-  private final String tabletDir; // t-0003
+public class AllVolumesDirectory extends ReferenceDirectory {
 
-  public ReferenceDirectory(TableId tableId, String dirName) {
+  public AllVolumesDirectory(TableId tableId, String dirName) {
     super(tableId, dirName);
-    this.tabletDir = dirName;
-  }
-
-  @Override
-  public boolean isDirectory() {
-    return true;
-  }
-
-  public String getTabletDir() {
-    return tabletDir;
   }
 }

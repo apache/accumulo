@@ -35,7 +35,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.gc.Reference;
+import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -121,7 +121,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   @Override
-  public void putGcFileAndDirCandidates(TableId tableId, Collection<Reference> candidates) {
+  public void putGcFileAndDirCandidates(TableId tableId, Collection<ReferenceFile> candidates) {
 
     if (RootTable.ID.equals(tableId)) {
 
@@ -204,7 +204,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   @Override
-  public Mutation createDeleteMutation(Reference tabletFilePathToRemove) {
+  public Mutation createDeleteMutation(ReferenceFile tabletFilePathToRemove) {
     return createDelMutation(ValidationUtil.validate(tabletFilePathToRemove).metadataEntry);
   }
 

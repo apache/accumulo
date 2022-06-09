@@ -42,7 +42,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.gc.Reference;
+import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
@@ -311,7 +311,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
         String longpath = "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee"
             + "ffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj";
         var path = String.format("file:/%020d/%s", i, longpath);
-        Mutation delFlag = ample.createDeleteMutation(new Reference(TableId.of("1"), path));
+        Mutation delFlag = ample.createDeleteMutation(new ReferenceFile(TableId.of("1"), path));
         bw.addMutation(delFlag);
       }
     }

@@ -19,50 +19,27 @@
 package org.apache.accumulo.core.gc;
 
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 
 /**
- * A GC reference to a tablet file or directory.
+ * A GC reference used for collecting files and directories into a single stream.
  */
-public class Reference implements Comparable<Reference> {
-  // parts of an absolute URI, like "hdfs://1.2.3.4/accumulo/tables/2a/t-0003"
-  public final TableId tableId; // 2a
+public interface Reference {
+  /**
+   * Only return true if the reference is a directory.
+   */
+  boolean isDirectory();
 
-  // the exact string that is stored in the metadata
-  public final String metadataEntry;
+  /**
+   * Get the {@link TableId} of the reference.
+   */
+  TableId getTableId();
 
-  public Reference(TableId tableId, String metadataEntry) {
-    MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(tableId.canonical());
-    this.tableId = tableId;
-    this.metadataEntry = metadataEntry;
-  }
-
-  @Override
-  public int compareTo(Reference that) {
-    if (equals(that)) {
-      return 0;
-    } else {
-      return this.metadataEntry.compareTo(that.metadataEntry);
-    }
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj)
-      return true;
-    if (obj == null)
-      return false;
-    if (getClass() != obj.getClass())
-      return false;
-    Reference other = (Reference) obj;
-    if (metadataEntry == null) {
-      return other.metadataEntry == null;
-    } else
-      return metadataEntry.equals(other.metadataEntry);
-  }
-
-  @Override
-  public int hashCode() {
-    return this.metadataEntry.hashCode();
-  }
+  /**
+   * Get the exact string stored in the metadata table for this file or directory. A file will be
+   * read from the Tablet "file" column family:
+   * {@link org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily}
+   * A directory will be read from the "srv:dir" column family:
+   * {@link org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily}
+   */
+  String getMetadataEntry();
 }
