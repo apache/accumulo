@@ -231,4 +231,5 @@ public class AccumuloInputFormatTest {
     assertThrows(IllegalStateException.class, () -> aif.getSplits(job, 1),
         "IllegalStateException should have been thrown for not calling store");
   }
+
 }

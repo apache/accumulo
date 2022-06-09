@@ -152,6 +152,7 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
     ClientContext context = (ClientContext) client;
     Authorizations authorizations = InputConfigurator.getScanAuthorizations(CLASS, conf);
     String classLoaderContext = InputConfigurator.getClassLoaderContext(CLASS, conf);
+    ConsistencyLevel cl = InputConfigurator.getConsistencyLevel(CLASS, conf);
     String table = split.getTableName();
 
     // in case the table name changed, we can still use the previous name for terms of
@@ -182,8 +183,7 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
         throw new IOException(e);
       }
 
-      ConsistencyLevel tcl = tableConfig.getConsistencyLevel();
-      scanner.setConsistencyLevel(tcl == null ? ConsistencyLevel.IMMEDIATE : tcl);
+      scanner.setConsistencyLevel(cl == null ? ConsistencyLevel.IMMEDIATE : cl);
       log.info("Using consistency level: {}", scanner.getConsistencyLevel());
       scanner.setRanges(batchSplit.getRanges());
       scannerBase = scanner;
@@ -212,8 +212,7 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
           // Not using public API to create scanner so that we can use table ID
           // Table ID is used in case of renames during M/R job
           scanner = new ScannerImpl(context, TableId.of(split.getTableId()), authorizations);
-          ConsistencyLevel tcl = tableConfig.getConsistencyLevel();
-          scanner.setConsistencyLevel(tcl == null ? ConsistencyLevel.IMMEDIATE : tcl);
+          scanner.setConsistencyLevel(cl == null ? ConsistencyLevel.IMMEDIATE : cl);
           log.info("Using consistency level: {}", scanner.getConsistencyLevel());
         }
         if (isIsolated) {

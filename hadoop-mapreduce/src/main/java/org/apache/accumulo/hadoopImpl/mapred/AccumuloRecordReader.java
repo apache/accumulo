@@ -135,6 +135,7 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
     ClientContext context = (ClientContext) client;
     Authorizations authorizations = InputConfigurator.getScanAuthorizations(CLASS, job);
     String classLoaderContext = InputConfigurator.getClassLoaderContext(CLASS, job);
+    ConsistencyLevel cl = InputConfigurator.getConsistencyLevel(CLASS, job);
     String table = baseSplit.getTableName();
 
     // in case the table name changed, we can still use the previous name for terms of
@@ -162,8 +163,7 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
       } catch (TableNotFoundException e) {
         throw new IOException(e);
       }
-      ConsistencyLevel tcl = tableConfig.getConsistencyLevel();
-      scanner.setConsistencyLevel(tcl == null ? ConsistencyLevel.IMMEDIATE : tcl);
+      scanner.setConsistencyLevel(cl == null ? ConsistencyLevel.IMMEDIATE : cl);
       log.info("Using consistency level: {}", scanner.getConsistencyLevel());
       scanner.setRanges(multiRangeSplit.getRanges());
       scannerBase = scanner;
@@ -192,8 +192,7 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
           scanner = new OfflineScanner(context, TableId.of(baseSplit.getTableId()), authorizations);
         } else {
           scanner = new ScannerImpl(context, TableId.of(baseSplit.getTableId()), authorizations);
-          ConsistencyLevel tcl = tableConfig.getConsistencyLevel();
-          scanner.setConsistencyLevel(tcl == null ? ConsistencyLevel.IMMEDIATE : tcl);
+          scanner.setConsistencyLevel(cl == null ? ConsistencyLevel.IMMEDIATE : cl);
           log.info("Using consistency level: {}", scanner.getConsistencyLevel());
         }
         if (isIsolated) {
