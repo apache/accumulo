@@ -21,6 +21,7 @@ package org.apache.accumulo.core.iteratorsImpl.system;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -34,13 +35,15 @@ public class StatsIterator extends ServerWrappingIterator {
 
   private int numRead = 0;
   private AtomicLong seekCounter;
-  private AtomicLong readCounter;
+  private AtomicLong scanCounter;
+  private LongAdder serverScanCounter;
 
   public StatsIterator(SortedKeyValueIterator<Key,Value> source, AtomicLong seekCounter,
-      AtomicLong readCounter) {
+      AtomicLong tabletScanCounter, LongAdder serverScanCounter) {
     super(source);
     this.seekCounter = seekCounter;
-    this.readCounter = readCounter;
+    this.scanCounter = tabletScanCounter;
+    this.serverScanCounter = serverScanCounter;
   }
 
   @Override
@@ -49,14 +52,15 @@ public class StatsIterator extends ServerWrappingIterator {
     numRead++;
 
     if (numRead % 23 == 0) {
-      readCounter.addAndGet(numRead);
+      scanCounter.addAndGet(numRead);
+      serverScanCounter.add(numRead);
       numRead = 0;
     }
   }
 
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    return new StatsIterator(source.deepCopy(env), seekCounter, readCounter);
+    return new StatsIterator(source.deepCopy(env), seekCounter, scanCounter, serverScanCounter);
   }
 
   @Override
@@ -64,12 +68,14 @@ public class StatsIterator extends ServerWrappingIterator {
       throws IOException {
     source.seek(range, columnFamilies, inclusive);
     seekCounter.incrementAndGet();
-    readCounter.addAndGet(numRead);
+    scanCounter.addAndGet(numRead);
+    serverScanCounter.add(numRead);
     numRead = 0;
   }
 
   public void report() {
-    readCounter.addAndGet(numRead);
+    scanCounter.addAndGet(numRead);
+    serverScanCounter.add(numRead);
     numRead = 0;
   }
 }

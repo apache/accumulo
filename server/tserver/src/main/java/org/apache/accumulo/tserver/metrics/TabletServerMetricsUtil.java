@@ -71,22 +71,6 @@ public class TabletServerMetricsUtil {
     return result;
   }
 
-  public double getQueryByteCount() {
-    double result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      result += tablet.totalQueryResultsBytes();
-    }
-    return result;
-  }
-
-  public double getScannedCount() {
-    double result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      result += tablet.totalScannedCount();
-    }
-    return result;
-  }
-
   public int getMajorCompactions() {
     var mgr = tserver.getCompactionManager();
     return mgr == null ? 0 : mgr.getCompactionsRunning();
@@ -121,22 +105,6 @@ public class TabletServerMetricsUtil {
 
   public int getOpeningCount() {
     return tserver.getOpeningCount();
-  }
-
-  public long getLookupCount() {
-    long result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      result += tablet.totalLookupCount();
-    }
-    return result;
-  }
-
-  public long getQueryResultCount() {
-    long result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      result += tablet.totalQueriesResults();
-    }
-    return result;
   }
 
   public int getUnopenedCount() {

@@ -442,12 +442,12 @@ public class ScanServer extends AbstractServer
       return tabletsMetadata.get(extent);
     }
 
-    SnapshotTablet newTablet(KeyExtent extent) throws IOException {
+    SnapshotTablet newTablet(ScanServer server, KeyExtent extent) throws IOException {
       var tabletMetadata = getTabletMetadata(extent);
       TabletResourceManager trm =
           resourceManager.createTabletResourceManager(tabletMetadata.getExtent(),
               context.getTableConfiguration(tabletMetadata.getExtent().tableId()));
-      return new SnapshotTablet(getContext(), tabletMetadata, trm, scanMetrics);
+      return new SnapshotTablet(server, tabletMetadata, trm);
     }
 
     @Override
@@ -809,7 +809,7 @@ public class ScanServer extends AbstractServer
 
     try (ScanReservation reservation = reserveFiles(Collections.singleton(extent))) {
 
-      TabletBase tablet = reservation.newTablet(extent);
+      TabletBase tablet = reservation.newTablet(this, extent);
 
       InitialScan is = delegate.startScan(tinfo, credentials, extent, range, columns, batchSize,
           ssiList, ssio, authorizations, waitForWrites, isolated, readaheadThreshold, samplerConfig,
@@ -865,7 +865,7 @@ public class ScanServer extends AbstractServer
       HashMap<KeyExtent,TabletBase> tablets = new HashMap<>();
       batch.keySet().forEach(extent -> {
         try {
-          tablets.put(extent, reservation.newTablet(extent));
+          tablets.put(extent, reservation.newTablet(this, extent));
         } catch (IOException e) {
           throw new UncheckedIOException(e);
         }

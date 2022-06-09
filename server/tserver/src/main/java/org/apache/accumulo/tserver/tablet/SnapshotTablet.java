@@ -32,8 +32,8 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.tserver.InMemoryMap;
+import org.apache.accumulo.tserver.TabletHostingServer;
 import org.apache.accumulo.tserver.TabletServerResourceManager;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.slf4j.Logger;
@@ -48,19 +48,18 @@ public class SnapshotTablet extends TabletBase {
 
   private static final Logger log = LoggerFactory.getLogger(SnapshotTablet.class);
 
+  private final TabletHostingServer server;
   private final SortedMap<StoredTabletFile,DataFileValue> files;
   private final TabletServerResourceManager.TabletResourceManager tabletResources;
-  private final TabletServerScanMetrics scanMetrics;
   private boolean closed = false;
   private final AtomicLong dataSourceDeletions = new AtomicLong(0);
 
-  public SnapshotTablet(ServerContext ctx, TabletMetadata metadata,
-      TabletServerResourceManager.TabletResourceManager tabletResources,
-      TabletServerScanMetrics scanMetrics) {
-    super(ctx, metadata.getExtent());
+  public SnapshotTablet(TabletHostingServer server, TabletMetadata metadata,
+      TabletServerResourceManager.TabletResourceManager tabletResources) {
+    super(server, metadata.getExtent());
+    this.server = server;
     this.files = Collections.unmodifiableSortedMap(new TreeMap<>(metadata.getFilesMap()));
     this.tabletResources = tabletResources;
-    this.scanMetrics = scanMetrics;
   }
 
   @Override
@@ -75,7 +74,7 @@ public class SnapshotTablet extends TabletBase {
 
   @Override
   public void addToYieldMetric(int i) {
-    scanMetrics.addYield(i);
+    this.server.getScanMetrics().addYield(i);
   }
 
   @Override
@@ -111,7 +110,7 @@ public class SnapshotTablet extends TabletBase {
 
   @Override
   public TabletServerScanMetrics getScanMetrics() {
-    return scanMetrics;
+    return this.server.getScanMetrics();
   }
 
   @Override

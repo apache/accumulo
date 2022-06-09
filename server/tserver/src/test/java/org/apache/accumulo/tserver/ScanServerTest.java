@@ -129,7 +129,8 @@ public class ScanServerTest {
     Map<String,String> execHints = new HashMap<>();
     TabletResolver resolver = createMock(TabletResolver.class);
 
-    expect(reservation.newTablet(sextent)).andReturn(tablet);
+    TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
+    expect(reservation.newTablet(ss, sextent)).andReturn(tablet);
     reservation.close();
     reservation.close();
     expect(handler.startScan(tinfo, tcreds, sextent, trange, tcols, 10, titer, ssio, auths, false,
@@ -140,7 +141,6 @@ public class ScanServerTest {
 
     replay(reservation, handler);
 
-    TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
     ss.delegate = handler;
     ss.extent = sextent;
     ss.resolver = resolver;
@@ -220,7 +220,8 @@ public class ScanServerTest {
       public void close() {}
     };
 
-    expect(reservation.newTablet(extent)).andReturn(tablet);
+    TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
+    expect(reservation.newTablet(ss, extent)).andReturn(tablet);
     reservation.close();
     reservation.close();
     expect(handler.startMultiScan(tinfo, tcreds, tcols, titer, batch, ssio, auths, false, tsc, 30L,
@@ -230,7 +231,6 @@ public class ScanServerTest {
 
     replay(reservation, handler);
 
-    TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
     ss.delegate = handler;
     ss.extent = extent;
     ss.resolver = resolver;
