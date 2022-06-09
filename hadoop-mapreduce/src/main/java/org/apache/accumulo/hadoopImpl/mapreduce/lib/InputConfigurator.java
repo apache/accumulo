@@ -631,7 +631,8 @@ public class InputConfigurator extends ConfiguratorBase {
   public static ConsistencyLevel getConsistencyLevel(Class<?> implementingClass,
       Configuration conf) {
     return ConsistencyLevel
-        .valueOf(conf.get(enumToConfKey(implementingClass, Features.CONSISTENCY_LEVEL)));
+        .valueOf(conf.get(enumToConfKey(implementingClass, Features.CONSISTENCY_LEVEL),
+            ConsistencyLevel.IMMEDIATE.name()));
   }
 
   /**
