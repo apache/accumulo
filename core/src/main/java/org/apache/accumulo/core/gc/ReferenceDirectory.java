@@ -16,22 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.metadata;
+package org.apache.accumulo.core.gc;
 
 import org.apache.accumulo.core.data.TableId;
 
 /**
  * Part of the Tablet File path that is definitely a directory.
  */
-public class RelativeTabletDirectory extends Reference {
+public class ReferenceDirectory extends Reference {
 
-  public RelativeTabletDirectory(TableId tableId, String dirName) {
+  public ReferenceDirectory(TableId tableId, String dirName) {
     super(tableId, dirName);
   }
-
-  @Override
-  public boolean isDirectory() {
-    return true;
-  }
-
 }

@@ -40,11 +40,12 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFileUtil;
+import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionFinalState;
@@ -127,17 +128,18 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   @Override
-  public void putGcFileAndDirCandidates(TableId tableId, Collection<String> candidates) {
+  public void putGcFileAndDirCandidates(TableId tableId, Collection<Reference> candidates) {
 
     if (RootTable.ID.equals(tableId)) {
 
       // Directories are unexpected for the root tablet, so convert to stored tablet file
-      mutateRootGcCandidates(rgcc -> rgcc.add(candidates.stream().map(StoredTabletFile::new)));
+      mutateRootGcCandidates(rgcc -> rgcc.add(
+          candidates.stream().map(reference -> new StoredTabletFile(reference.metadataEntry))));
       return;
     }
 
     try (BatchWriter writer = createWriter(tableId)) {
-      for (String fileOrDir : candidates) {
+      for (var fileOrDir : candidates) {
         writer.addMutation(createDeleteMutation(fileOrDir));
       }
     } catch (MutationsRejectedException e) {
@@ -209,9 +211,8 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   @Override
-  public Mutation createDeleteMutation(String tabletFilePathToRemove) {
-    String path = TabletFileUtil.validate(tabletFilePathToRemove);
-    return createDelMutation(path);
+  public Mutation createDeleteMutation(Reference tabletFilePathToRemove) {
+    return createDelMutation(ValidationUtil.validate(tabletFilePathToRemove).metadataEntry);
   }
 
   public Mutation createDeleteMutation(StoredTabletFile pathToRemove) {

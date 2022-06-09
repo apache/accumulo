@@ -45,11 +45,11 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.gc.Reference;
+import org.apache.accumulo.core.gc.ReferenceDirectory;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.Reference;
-import org.apache.accumulo.core.metadata.RelativeTabletDirectory;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.TabletFileUtil;
+import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -151,7 +151,7 @@ public class GCRun implements GarbageCollectionEnvironment {
           .map(f -> new Reference(tm.getTableId(), f.getMetaUpdateDelete()));
       if (tm.getDirName() != null) {
         refs = Stream.concat(refs,
-            Stream.of(new RelativeTabletDirectory(tm.getTableId(), tm.getDirName())));
+            Stream.of(new ReferenceDirectory(tm.getTableId(), tm.getDirName())));
       }
       return refs;
     });
@@ -214,9 +214,9 @@ public class GCRun implements GarbageCollectionEnvironment {
             // of deleting something that should not be deleted. Must not change value of delete
             // variable because that's what's stored in metadata table.
             log.debug("Volume replaced {} -> {}", delete, switchedDelete);
-            fullPath = TabletFileUtil.validate(switchedDelete);
+            fullPath = ValidationUtil.validate(switchedDelete);
           } else {
-            fullPath = new Path(TabletFileUtil.validate(delete));
+            fullPath = new Path(ValidationUtil.validate(delete));
           }
 
           for (Path pathToDel : GcVolumeUtil.expandAllVolumesUri(fs, fullPath)) {

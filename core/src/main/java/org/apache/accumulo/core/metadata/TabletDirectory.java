@@ -18,18 +18,28 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import static org.apache.accumulo.core.Constants.HDFS_TABLES_DIR;
+
 import org.apache.accumulo.core.data.TableId;
 
 /**
- * The Tablet directory that may exist in the metadata table.
+ * The Tablet directory that should exist on disk. The {@link #toString()} method only returns the
+ * tablet directory itself, the same as {@link #getTabletDir()}, which is just the name of the
+ * directory, like "t-0003". For the full directory path, use {@link #getNormalizedPath}.
  */
-public class TabletDirectory extends RelativeTabletDirectory {
+public class TabletDirectory {
   // parts of an absolute URI, like "hdfs://1.2.3.4/accumulo/tables/2a/t-0003"
   private final String volume; // hdfs://1.2.3.4/accumulo
+  private final TableId tableId; // 2a
+  private final String tabletDir; // t-0003
+  private final String normalizedPath;
 
   public TabletDirectory(String volume, TableId tableId, String tabletDir) {
-    super(tableId, tabletDir);
     this.volume = volume;
+    this.tableId = tableId;
+    this.tabletDir = tabletDir;
+    this.normalizedPath = volume + HDFS_TABLES_DIR + "/" + tableId.canonical() + "/" + tabletDir;
+
   }
 
   public String getVolume() {
@@ -42,6 +52,10 @@ public class TabletDirectory extends RelativeTabletDirectory {
 
   public String getTabletDir() {
     return tabletDir;
+  }
+
+  public String getNormalizedPath() {
+    return normalizedPath;
   }
 
   @Override

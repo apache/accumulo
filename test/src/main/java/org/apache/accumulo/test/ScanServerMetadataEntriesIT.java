@@ -46,7 +46,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.Reference;
+import org.apache.accumulo.core.gc.Reference;
+import org.apache.accumulo.core.gc.ReferenceDirectory;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ScanServerFileReferenceSection;
@@ -259,11 +260,15 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
           metadataScanFileRefs.add(file);
         });
         assertEquals(3, metadataScanFileRefs.size());
+        
+        assertEquals(3, ctx.getAmple().getScanServerFileReferences().count());
 
-        Set<Reference> refs = gc.getReferences().collect(Collectors.toSet());
+        List<Reference> refs = gc.getReferences().collect(Collectors.toList());
+        refs.forEach(ref -> LoggerFactory.getLogger(ScanServerMetadataEntriesIT.class).info("REF: {}", ref.metadataEntry));
+        assertTrue(refs.size() > 6);
         List<Reference> tableRefs = new ArrayList<>();
         refs.forEach(r -> {
-          if (r.tableId.equals(tid) && !r.isDirectory()) {
+          if (r.tableId.equals(tid) && !(r instanceof ReferenceDirectory)) {
             assertTrue(metadataScanFileRefs.contains(r.metadataEntry));
             tableRefs.add(r);
           }

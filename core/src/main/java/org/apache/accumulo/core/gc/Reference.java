@@ -16,15 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.metadata;
+package org.apache.accumulo.core.gc;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 
 /**
- * A reference to a tablet file or directory.
+ * A GC reference to a tablet file or directory.
  */
-public class Reference {
+public class Reference implements Comparable<Reference> {
   // parts of an absolute URI, like "hdfs://1.2.3.4/accumulo/tables/2a/t-0003"
   public final TableId tableId; // 2a
   public final String tabletDir; // t-0003
@@ -39,14 +39,37 @@ public class Reference {
     this.tabletDir = metadataEntry;
   }
 
-  public boolean isDirectory() {
-    return false;
+  @Override
+  public String toString() {
+    return "Reference [id=" + tableId + ", ref=" + metadataEntry + "]";
   }
 
   @Override
-  public String toString() {
-    return "Reference [id=" + tableId + ", ref=" + metadataEntry + ", isDirectory=" + isDirectory()
-        + "]";
+  public int compareTo(Reference that) {
+    if (equals(that)) {
+      return 0;
+    } else {
+      return this.metadataEntry.compareTo(that.metadataEntry);
+    }
   }
 
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    Reference other = (Reference) obj;
+    if (metadataEntry == null) {
+      return other.metadataEntry == null;
+    } else
+      return metadataEntry.equals(other.metadataEntry);
+  }
+
+  @Override
+  public int hashCode() {
+    return this.metadataEntry.hashCode();
+  }
 }
