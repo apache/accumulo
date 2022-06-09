@@ -24,12 +24,18 @@ import static org.apache.accumulo.server.init.Initialize.REPL_TABLE_ID;
 import java.io.IOException;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
@@ -43,7 +49,7 @@ import org.apache.accumulo.server.tables.TableManager;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
 
-class ZooKeeperInitializer {
+public class ZooKeeperInitializer {
 
   private final byte[] EMPTY_BYTE_ARRAY = new byte[0];
   private final byte[] ZERO_CHAR_ARRAY = {'0'};
@@ -76,7 +82,7 @@ class ZooKeeperInitializer {
       if (zoo.exists(sysPropPath)) {
         return;
       }
-      var created = zoo.putPersistentData(sysPropPath,
+      var created = zoo.putPrivatePersistentData(sysPropPath,
           VersionedPropCodec.getDefault().toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
       if (!created) {
         throw new IllegalStateException(
@@ -130,7 +136,7 @@ class ZooKeeperInitializer {
     zoo.putPersistentData(zkInstanceRoot + Constants.ZPROBLEMS, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + RootTable.ZROOT_TABLET,
-        RootTabletMetadata.getInitialJson(rootTabletDirName, rootTabletFileUri),
+        getInitialRootTabletJson(rootTabletDirName, rootTabletFileUri),
         ZooUtil.NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + RootTable.ZROOT_TABLET_GC_CANDIDATES,
         new RootGcCandidates().toJson().getBytes(UTF_8), ZooUtil.NodeExistsPolicy.FAIL);
@@ -174,6 +180,28 @@ class ZooKeeperInitializer {
     zoo.putPersistentData(zkInstanceRoot + Constants.ZCOMPACTORS, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
 
+  }
+
+  /**
+   * Generate initial json for the root tablet metadata. Return the JSON converted to a byte[].
+   */
+  public static byte[] getInitialRootTabletJson(String dirName, String file) {
+    MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(dirName);
+    Mutation mutation =
+        MetadataSchema.TabletsSection.TabletColumnFamily.createPrevRowMutation(RootTable.EXTENT);
+    MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mutation,
+        new Value(dirName));
+
+    mutation.put(MetadataSchema.TabletsSection.DataFileColumnFamily.STR_NAME, file,
+        new DataFileValue(0, 0).encodeAsValue());
+
+    MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mutation,
+        new Value(new MetadataTime(0, TimeType.LOGICAL).encode()));
+
+    RootTabletMetadata rootTabletJson = new RootTabletMetadata();
+    rootTabletJson.update(mutation);
+
+    return rootTabletJson.toJson().getBytes(UTF_8);
   }
 
 }

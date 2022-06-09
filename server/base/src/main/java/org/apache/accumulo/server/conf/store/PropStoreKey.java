@@ -41,12 +41,12 @@ import org.slf4j.LoggerFactory;
  * Provides utility methods from constructing different id based on type and methods to parse a
  * ZooKeeper path and return a prop cache id.
  */
-public abstract class PropCacheKey<ID_TYPE extends AbstractId<ID_TYPE>>
-    implements Comparable<PropCacheKey<ID_TYPE>> {
+public abstract class PropStoreKey<ID_TYPE extends AbstractId<ID_TYPE>>
+    implements Comparable<PropStoreKey<ID_TYPE>> {
 
   public static final String PROP_NODE_NAME = "encoded_props";
 
-  private static final Logger log = LoggerFactory.getLogger(PropCacheKey.class);
+  private static final Logger log = LoggerFactory.getLogger(PropStoreKey.class);
 
   // indices for path.split();
   public static final int TYPE_TOKEN_POSITION = 3;
@@ -62,7 +62,7 @@ public abstract class PropCacheKey<ID_TYPE extends AbstractId<ID_TYPE>>
 
   private final String path;
 
-  protected PropCacheKey(final InstanceId instanceId, final String path, final ID_TYPE id) {
+  protected PropStoreKey(final InstanceId instanceId, final String path, final ID_TYPE id) {
     this.instanceId = instanceId;
     this.path = path;
     this.id = id;
@@ -87,7 +87,7 @@ public abstract class PropCacheKey<ID_TYPE extends AbstractId<ID_TYPE>>
    *          the path
    * @return the prop cache id
    */
-  public static @Nullable PropCacheKey<?> fromPath(final String path) {
+  public static @Nullable PropStoreKey<?> fromPath(final String path) {
     String[] tokens = path.split("/");
 
     InstanceId instanceId;
@@ -111,8 +111,8 @@ public abstract class PropCacheKey<ID_TYPE extends AbstractId<ID_TYPE>>
   }
 
   @Override
-  public int compareTo(@NonNull PropCacheKey<ID_TYPE> other) {
-    return Comparator.comparing(PropCacheKey<ID_TYPE>::getPath).compare(this, other);
+  public int compareTo(@NonNull PropStoreKey<ID_TYPE> other) {
+    return Comparator.comparing(PropStoreKey<ID_TYPE>::getPath).compare(this, other);
   }
 
   @Override
@@ -121,7 +121,7 @@ public abstract class PropCacheKey<ID_TYPE extends AbstractId<ID_TYPE>>
       return true;
     if (o == null || getClass() != o.getClass())
       return false;
-    PropCacheKey<?> that = (PropCacheKey<?>) o;
+    PropStoreKey<?> that = (PropStoreKey<?>) o;
     if (getId().getClass() != that.getId().getClass()) {
       return false;
     }

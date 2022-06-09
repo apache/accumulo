@@ -437,7 +437,7 @@
                   <configuration>
                     <reuseForks>false</reuseForks>
                     <excludes combine.self="override" />
-                    <includes>
+                    <includes combine.self="override">
                       <include>**/InternerTest.java</include>
                       <include>**/NamespaceIdTest.java</include>
                       <include>**/TableIdTest.java</include>

@@ -52,9 +52,7 @@ import org.slf4j.LoggerFactory;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
- * Serialization updated for supporting multiple volumes in import table from 1L to 2L See:
- * https://github.com/apache/accumulo/issues/1053 https://github.com/apache/accumulo/pull/1060
- * https://github.com/apache/accumulo/issues/1576
+ * Serialization updated for supporting multiple volumes in import table from 1L to 2L.
  */
 public class ImportTable extends ManagerRepo {
   private static final Logger log = LoggerFactory.getLogger(ImportTable.class);

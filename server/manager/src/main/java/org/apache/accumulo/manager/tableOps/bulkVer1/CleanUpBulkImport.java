@@ -23,6 +23,7 @@ import java.util.Collections;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
@@ -61,7 +62,7 @@ public class CleanUpBulkImport extends ManagerRepo {
     MetadataTableUtil.removeBulkLoadInProgressFlag(manager.getContext(),
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
     manager.getContext().getAmple().putGcFileAndDirCandidates(tableId,
-        Collections.singleton(bulkDir.toString()));
+        Collections.singleton(new Reference(tableId, bulkDir.toString())));
     log.debug("removing the metadata table markers for loaded files");
     AccumuloClient client = manager.getContext();
     MetadataTableUtil.removeBulkLoadEntries(client, tableId, tid);

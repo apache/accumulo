@@ -81,8 +81,7 @@ $(document).ready(function () {
     "searching": false,
     "paging": false,
     "info": false,
-    "columnDefs": [
-      {
+    "columnDefs": [{
         "targets": "big-num",
         "render": function (data, type) {
           if (type === 'display') {
@@ -110,10 +109,15 @@ $(document).ready(function () {
         }
       }
     ],
-    "columns": [
-      { "data": "manager" },
-      { "data": "onlineTabletServers" },
-      { "data": "totalTabletServers" },
+    "columns": [{
+        "data": "manager"
+      },
+      {
+        "data": "onlineTabletServers"
+      },
+      {
+        "data": "totalTabletServers"
+      },
       {
         "data": "lastGC",
         "type": "html",
@@ -127,14 +131,30 @@ $(document).ready(function () {
           return data;
         }
       },
-      { "data": "tablets" },
-      { "data": "unassignedTablets" },
-      { "data": "numentries" },
-      { "data": "ingestrate" },
-      { "data": "entriesRead" },
-      { "data": "queryrate" },
-      { "data": "holdTime" },
-      { "data": "osload" },
+      {
+        "data": "tablets"
+      },
+      {
+        "data": "unassignedTablets"
+      },
+      {
+        "data": "numentries"
+      },
+      {
+        "data": "ingestrate"
+      },
+      {
+        "data": "entriesRead"
+      },
+      {
+        "data": "queryrate"
+      },
+      {
+        "data": "holdTime"
+      },
+      {
+        "data": "osload"
+      },
     ]
   });
 
@@ -153,8 +173,7 @@ $(document).ready(function () {
         return data;
       }
     },
-    "columnDefs": [
-      {
+    "columnDefs": [{
         "targets": "duration",
         "render": function (data, type) {
           if (type === 'display') {
@@ -174,11 +193,18 @@ $(document).ready(function () {
       }
     ],
     "stateSave": true,
-    "columns": [
-      { "data": "server" },
-      { "data": "log" },
-      { "data": "time" },
-      { "data": "progress" }
+    "columns": [{
+        "data": "server"
+      },
+      {
+        "data": "log"
+      },
+      {
+        "data": "time"
+      },
+      {
+        "data": "progress"
+      }
     ]
   });
 

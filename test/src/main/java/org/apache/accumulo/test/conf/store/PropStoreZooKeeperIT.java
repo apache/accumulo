@@ -43,9 +43,9 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
-import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.PropStoreKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
@@ -87,6 +87,7 @@ public class PropStoreZooKeeperIT {
     // using default zookeeper port - we don't have a full configuration
     testZk = new ZooKeeperTestingServer(tempDir);
     zooKeeper = testZk.getZooKeeper();
+    ZooUtil.digestAuth(zooKeeper, ZooKeeperTestingServer.SECRET);
   }
 
   @AfterAll
@@ -197,7 +198,7 @@ public class PropStoreZooKeeperIT {
 
     assertEquals("true", props1.asMap().get(Property.TABLE_BLOOM_ENABLED.getKey()));
 
-    int version0 = props1.getDataVersion();
+    long version0 = props1.getDataVersion();
 
     Map<String,String> updateProps = new HashMap<>();
     updateProps.put(Property.TABLE_BLOOM_ENABLED.getKey(), "false");
@@ -214,7 +215,7 @@ public class PropStoreZooKeeperIT {
 
     var props2 = propStore.get(propKey);
     // validate version changed on write.
-    int version1 = props2.getDataVersion();
+    long version1 = props2.getDataVersion();
 
     log.trace("V0: {}, V1: {}", version0, version1);
 
@@ -233,7 +234,7 @@ public class PropStoreZooKeeperIT {
     var props3 = propStore.get(propKey);
     log.trace("current props: {}", props3.print(true));
 
-    int version2 = props3.getDataVersion();
+    long version2 = props3.getDataVersion();
     log.trace("versions created by test: v0: {}, v1: {}, v2: {}", version0, version1, version2);
 
     assertTrue(version0 < version2);
@@ -358,7 +359,7 @@ public class PropStoreZooKeeperIT {
     byte[] updatedBytes = propCodec.toBytes(pendingProps);
     // force external write to ZooKeeper
     context.getZooReaderWriter().overwritePersistentData(tableAPropKey.getPath(), updatedBytes,
-        firstRead.getDataVersion());
+        (int) firstRead.getDataVersion());
 
     Thread.sleep(150);
 
@@ -382,22 +383,22 @@ public class PropStoreZooKeeperIT {
 
   private static class TestChangeListener implements PropChangeListener {
 
-    private final Map<PropCacheKey<?>,Integer> changeCounts = new ConcurrentHashMap<>();
-    private final Map<PropCacheKey<?>,Integer> deleteCounts = new ConcurrentHashMap<>();
+    private final Map<PropStoreKey<?>,Integer> changeCounts = new ConcurrentHashMap<>();
+    private final Map<PropStoreKey<?>,Integer> deleteCounts = new ConcurrentHashMap<>();
 
     @Override
-    public void zkChangeEvent(PropCacheKey<?> propCacheKey) {
-      changeCounts.merge(propCacheKey, 1, Integer::sum);
+    public void zkChangeEvent(PropStoreKey<?> propStoreKey) {
+      changeCounts.merge(propStoreKey, 1, Integer::sum);
     }
 
     @Override
-    public void cacheChangeEvent(PropCacheKey<?> propCacheKey) {
-      changeCounts.merge(propCacheKey, 1, Integer::sum);
+    public void cacheChangeEvent(PropStoreKey<?> propStoreKey) {
+      changeCounts.merge(propStoreKey, 1, Integer::sum);
     }
 
     @Override
-    public void deleteEvent(PropCacheKey<?> propCacheKey) {
-      deleteCounts.merge(propCacheKey, 1, Integer::sum);
+    public void deleteEvent(PropStoreKey<?> propStoreKey) {
+      deleteCounts.merge(propStoreKey, 1, Integer::sum);
     }
 
     @Override
@@ -405,11 +406,11 @@ public class PropStoreZooKeeperIT {
 
     }
 
-    public Map<PropCacheKey<?>,Integer> getChangeCounts() {
+    public Map<PropStoreKey<?>,Integer> getChangeCounts() {
       return changeCounts;
     }
 
-    public Map<PropCacheKey<?>,Integer> getDeleteCounts() {
+    public Map<PropStoreKey<?>,Integer> getDeleteCounts() {
       return deleteCounts;
     }
   }

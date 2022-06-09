@@ -192,7 +192,7 @@ public class ProblemReportTest {
 
     expect(zoorw
         .getData(ZooUtil.getRoot(InstanceId.of("instance")) + Constants.ZPROBLEMS + "/" + node))
-            .andReturn(encoded);
+        .andReturn(encoded);
     replay(zoorw);
 
     r = ProblemReport.decodeZooKeeperEntry(context, node);

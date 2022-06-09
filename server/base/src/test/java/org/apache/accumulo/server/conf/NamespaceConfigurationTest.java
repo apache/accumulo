@@ -37,6 +37,7 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -75,10 +76,10 @@ public class NamespaceConfigurationTest {
     parent = createMock(AccumuloConfiguration.class);
     reset(propStore);
 
-    var nsCacheKey = NamespacePropKey.of(iid, NSID);
-    expect(propStore.get(eq(nsCacheKey))).andReturn(new VersionedProperties(123, Instant.now(),
+    var nsPropStoreKey = NamespacePropKey.of(iid, NSID);
+    expect(propStore.get(eq(nsPropStoreKey))).andReturn(new VersionedProperties(123, Instant.now(),
         Map.of(Property.INSTANCE_SECRET.getKey(), "sekrit"))).anyTimes();
-    propStore.registerAsListener(eq(nsCacheKey), anyObject());
+    propStore.registerAsListener(eq(nsPropStoreKey), anyObject());
     expectLastCall().anyTimes();
 
     replay(propStore, context);
@@ -91,6 +92,7 @@ public class NamespaceConfigurationTest {
     NamespaceConfiguration nsConfig = new NamespaceConfiguration(context, NSID, parent);
     assertEquals(NSID, nsConfig.getNamespaceId());
     assertEquals(parent, nsConfig.getParent());
+    verify(propStore, context);
   }
 
   @Test
@@ -99,21 +101,21 @@ public class NamespaceConfigurationTest {
 
     assertEquals("sekrit", nsConfig.get(Property.INSTANCE_SECRET));
 
-    verify(propStore);
+    verify(propStore, context);
   }
 
   @Test
   public void testGet_InParent() {
-    Property p = Property.INSTANCE_SECRET;
-
-    expect(parent.get(p.getKey())).andReturn("sekrit");
-    replay(parent);
+    String randomKey = UUID.randomUUID().toString();
+    String customTablePropKey = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + randomKey;
+    String expectedValue = "thisIsTheExpectedValue";
+    ConfigurationCopy parent = new ConfigurationCopy(Map.of(customTablePropKey, expectedValue));
 
     nsConfig = new NamespaceConfiguration(context, NSID, parent);
 
-    assertEquals("sekrit", nsConfig.get(Property.INSTANCE_SECRET));
+    assertEquals(expectedValue, nsConfig.get(customTablePropKey));
 
-    // TODO Need to check parent and accessor usage
+    verify(propStore, context);
   }
 
   @Test
@@ -129,6 +131,7 @@ public class NamespaceConfigurationTest {
     NamespaceConfiguration accumuloNsConfig =
         new NamespaceConfiguration(context, Namespace.ACCUMULO.id(), parent);
     assertNull(accumuloNsConfig.get(Property.INSTANCE_SECRET));
+    verify(propStore, context);
   }
 
   @Test
@@ -160,6 +163,7 @@ public class NamespaceConfigurationTest {
     assertEquals("tock", props.get("tick"));
     assertEquals("bark", props.get("dog"));
     assertEquals("meow", props.get("cat"));
+    verify(propStore, parent, context);
   }
 
   @Test
@@ -170,6 +174,6 @@ public class NamespaceConfigurationTest {
     assertEquals("sekrit", value);
 
     nsConfig.invalidateCache();
-    verify(propStore);
+    verify(propStore, context);
   }
 }

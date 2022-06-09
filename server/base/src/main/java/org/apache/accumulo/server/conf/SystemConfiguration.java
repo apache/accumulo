@@ -31,9 +31,9 @@ public class SystemConfiguration extends ZooBasedConfiguration {
 
   private final RuntimeFixedProperties runtimeFixedProps;
 
-  public SystemConfiguration(ServerContext context, SystemPropKey propCacheKey,
+  public SystemConfiguration(ServerContext context, SystemPropKey propStoreKey,
       AccumuloConfiguration parent) {
-    super(log, context, propCacheKey, parent);
+    super(log, context, propStoreKey, parent);
     runtimeFixedProps = new RuntimeFixedProperties(getSnapshot(), context.getSiteConfiguration());
   }
 

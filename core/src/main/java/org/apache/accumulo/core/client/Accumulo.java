@@ -70,8 +70,9 @@ public final class Accumulo {
    * </code>
    * </pre>
    *
-   * For a list of all client properties see the documentation on the Accumulo website:
-   * https://accumulo.apache.org/docs/2.x/configuration/client-properties
+   * For a list of all client properties, see the documentation on the
+   * <a href="https://accumulo.apache.org/docs/2.x/configuration/client-properties">Accumulo
+   * website</a>
    *
    * @return a builder object for Accumulo clients
    */
@@ -90,8 +91,9 @@ public final class Accumulo {
    * </code>
    * </pre>
    *
-   * For a list of all client properties see the documentation on the Accumulo website:
-   * https://accumulo.apache.org/docs/2.x/configuration/client-properties
+   * For a list of all client properties, see the documentation on the
+   * <a href="https://accumulo.apache.org/docs/2.x/configuration/client-properties">Accumulo
+   * website</a>
    *
    * @return a builder object for client Properties
    */

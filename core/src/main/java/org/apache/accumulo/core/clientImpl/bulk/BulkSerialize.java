@@ -130,8 +130,7 @@ public class BulkSerialize {
     final Path renamingFile = new Path(bulkDir, Constants.BULK_RENAME_FILE);
     try (OutputStream fsOut = output.create(renamingFile);
         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(fsOut))) {
-      Gson gson = new GsonBuilder().create();
-      gson.toJson(oldToNewNameMap, writer);
+      new Gson().toJson(oldToNewNameMap, writer);
     }
   }
 

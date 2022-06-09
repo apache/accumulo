@@ -19,6 +19,7 @@
 package org.apache.accumulo.server.manager.state;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.server.init.ZooKeeperInitializer.getInitialRootTabletJson;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -49,14 +50,14 @@ public class RootTabletStateStoreTest {
 
   private static class TestAmple implements Ample {
 
-    private String json = new String(
-        RootTabletMetadata.getInitialJson("dir", "hdfs://nn/acc/tables/some/dir/0000.rf"), UTF_8);
+    private String json =
+        new String(getInitialRootTabletJson("dir", "hdfs://nn/acc/tables/some/dir/0000.rf"), UTF_8);
 
     @Override
     public TabletMetadata readTablet(KeyExtent extent, ReadConsistency rc,
         ColumnType... colsToFetch) {
       Preconditions.checkArgument(extent.equals(RootTable.EXTENT));
-      return RootTabletMetadata.fromJson(json).convertToTabletMetadata();
+      return new RootTabletMetadata(json).toTabletMetadata();
     }
 
     @Override
@@ -73,10 +74,8 @@ public class RootTabletStateStoreTest {
         public void mutate() {
           Mutation m = getMutation();
 
-          RootTabletMetadata rtm = RootTabletMetadata.fromJson(json);
-
+          var rtm = new RootTabletMetadata(json);
           rtm.update(m);
-
           json = rtm.toJson();
         }
       };

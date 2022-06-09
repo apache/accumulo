@@ -20,8 +20,8 @@ package org.apache.accumulo.server.conf.store.impl;
 
 import java.util.Set;
 
-import org.apache.accumulo.server.conf.store.PropCacheKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
+import org.apache.accumulo.server.conf.store.PropStoreKey;
 
 /**
  * Provides a simple runnable base task for notifying listeners for PropStore event change
@@ -29,7 +29,7 @@ import org.apache.accumulo.server.conf.store.PropChangeListener;
  */
 public abstract class PropStoreEventTask implements Runnable {
 
-  private final PropCacheKey<?> propCacheKey;
+  private final PropStoreKey<?> propStoreKey;
   private final Set<PropChangeListener> listeners;
 
   /**
@@ -39,60 +39,60 @@ public abstract class PropStoreEventTask implements Runnable {
    *          the set of listeners.
    */
   private PropStoreEventTask(final Set<PropChangeListener> listeners) {
-    this.propCacheKey = null;
+    this.propStoreKey = null;
     this.listeners = listeners;
   }
 
   /**
    * Used when listeners for the specified prop cahe key should receive a notification.
    *
-   * @param propCacheKey
+   * @param propStoreKey
    *          the prop cache key
    * @param listeners
    *          the set of listeners
    */
-  private PropStoreEventTask(final PropCacheKey<?> propCacheKey,
+  private PropStoreEventTask(final PropStoreKey<?> propStoreKey,
       final Set<PropChangeListener> listeners) {
-    this.propCacheKey = propCacheKey;
+    this.propStoreKey = propStoreKey;
     this.listeners = listeners;
   }
 
   public static class PropStoreZkChangeEventTask extends PropStoreEventTask {
 
-    PropStoreZkChangeEventTask(final PropCacheKey<?> propCacheKey,
+    PropStoreZkChangeEventTask(final PropStoreKey<?> propStoreKey,
         final Set<PropChangeListener> listeners) {
-      super(propCacheKey, listeners);
+      super(propStoreKey, listeners);
     }
 
     @Override
     public void run() {
-      super.listeners.forEach(listener -> listener.zkChangeEvent(super.propCacheKey));
+      super.listeners.forEach(listener -> listener.zkChangeEvent(super.propStoreKey));
     }
   }
 
   public static class PropStoreCacheChangeEventTask extends PropStoreEventTask {
 
-    PropStoreCacheChangeEventTask(final PropCacheKey<?> propCacheKey,
+    PropStoreCacheChangeEventTask(final PropStoreKey<?> propStoreKey,
         final Set<PropChangeListener> listeners) {
-      super(propCacheKey, listeners);
+      super(propStoreKey, listeners);
     }
 
     @Override
     public void run() {
-      super.listeners.forEach(listener -> listener.cacheChangeEvent(super.propCacheKey));
+      super.listeners.forEach(listener -> listener.cacheChangeEvent(super.propStoreKey));
     }
   }
 
   public static class PropStoreDeleteEventTask extends PropStoreEventTask {
 
-    PropStoreDeleteEventTask(final PropCacheKey<?> propCacheKey,
+    PropStoreDeleteEventTask(final PropStoreKey<?> propStoreKey,
         final Set<PropChangeListener> listeners) {
-      super(propCacheKey, listeners);
+      super(propStoreKey, listeners);
     }
 
     @Override
     public void run() {
-      super.listeners.forEach(listener -> listener.deleteEvent(super.propCacheKey));
+      super.listeners.forEach(listener -> listener.deleteEvent(super.propStoreKey));
     }
   }
 

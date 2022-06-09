@@ -175,11 +175,9 @@ public class FateCommand extends Command {
       validateArgs(txids);
       failedCommand = deleteTx(admin, zs, zk, managerLockPath, txids);
     } else if (cl.hasOption(list.getOpt())) {
-      printTx(shellState, admin, zs, zk, tableLocksPath, cl.getOptionValues(list.getOpt()), cl,
-          cl.hasOption(statusOption.getOpt()));
+      printTx(shellState, admin, zs, zk, tableLocksPath, cl.getOptionValues(list.getOpt()), cl);
     } else if (cl.hasOption(print.getOpt())) {
-      printTx(shellState, admin, zs, zk, tableLocksPath, cl.getOptionValues(print.getOpt()), cl,
-          cl.hasOption(statusOption.getOpt()));
+      printTx(shellState, admin, zs, zk, tableLocksPath, cl.getOptionValues(print.getOpt()), cl);
     } else if (cl.hasOption(dump.getOpt())) {
       String output = dumpTx(zs, cl.getOptionValues(dump.getOpt()));
       System.out.println(output);
@@ -216,12 +214,11 @@ public class FateCommand extends Command {
   }
 
   protected void printTx(Shell shellState, AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
-      ZooReaderWriter zk, ServiceLock.ServiceLockPath tableLocksPath, String[] args, CommandLine cl,
-      boolean printStatus) throws InterruptedException, KeeperException, IOException {
+      ZooReaderWriter zk, ServiceLock.ServiceLockPath tableLocksPath, String[] args, CommandLine cl)
+      throws InterruptedException, KeeperException, IOException {
     // Parse transaction ID filters for print display
-    Set<Long> filterTxid = null;
-    if (args.length >= 2) {
-      filterTxid = new HashSet<>(args.length);
+    Set<Long> filterTxid = new HashSet<>();
+    if (args != null && args.length >= 2) {
       for (int i = 1; i < args.length; i++) {
         Long val = parseTxid(args[i]);
         filterTxid.add(val);
@@ -230,7 +227,7 @@ public class FateCommand extends Command {
 
     // Parse TStatus filters for print display
     EnumSet<TStatus> filterStatus = null;
-    if (printStatus) {
+    if (cl.hasOption(statusOption.getOpt())) {
       filterStatus = EnumSet.noneOf(TStatus.class);
       String[] tstat = cl.getOptionValues(statusOption.getOpt());
       for (String element : tstat) {

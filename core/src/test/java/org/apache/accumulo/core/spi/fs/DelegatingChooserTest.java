@@ -37,7 +37,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class PerTableVolumeChooserTest {
+public class DelegatingChooserTest {
 
   private static final String TABLE_CUSTOM_SUFFIX = "volume.chooser";
 
@@ -47,7 +47,7 @@ public class PerTableVolumeChooserTest {
 
   private ServiceEnvironment serviceEnv;
   private Configuration tableConf;
-  private PerTableVolumeChooser chooser;
+  private DelegatingChooser chooser;
   private Configuration systemConf;
 
   public static class MockChooser1 extends RandomVolumeChooser {}
@@ -58,7 +58,7 @@ public class PerTableVolumeChooserTest {
   public void before() {
     serviceEnv = createStrictMock(ServiceEnvironment.class);
 
-    chooser = new PerTableVolumeChooser();
+    chooser = new DelegatingChooser();
 
     tableConf = createStrictMock(Configuration.class);
     systemConf = createStrictMock(Configuration.class);

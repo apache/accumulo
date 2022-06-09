@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.upgrade;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
 import static org.easymock.EasyMock.createNiceMock;
 import static org.easymock.EasyMock.expect;
@@ -74,7 +73,7 @@ public class ConfigPropertyUpgraderIT {
     // using default zookeeper port - we don't have a full configuration
     testZk = new ZooKeeperTestingServer(tempDir);
     zooKeeper = testZk.getZooKeeper();
-    zooKeeper.addAuthInfo("digest", "accumulo:test".getBytes(UTF_8));
+    ZooUtil.digestAuth(zooKeeper, ZooKeeperTestingServer.SECRET);
 
     zrw = testZk.getZooReaderWriter();
 
