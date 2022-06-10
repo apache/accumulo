@@ -24,8 +24,10 @@ import org.apache.accumulo.core.data.TableId;
  * Part of the Tablet File path that is definitely a directory.
  */
 public class ReferenceDirectory extends Reference {
+  public final String tabletDir; // t-0003
 
   public ReferenceDirectory(TableId tableId, String dirName) {
     super(tableId, dirName);
+    this.tabletDir = dirName;
   }
 }
