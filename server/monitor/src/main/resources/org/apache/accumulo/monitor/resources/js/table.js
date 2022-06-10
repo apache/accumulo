@@ -34,6 +34,10 @@ function refresh() {
   refreshTable();
 }
 
+function getQueuedAndRunning(data) {
+  return `${data.running}(${data.queued})`;
+}
+
 /**
  * Initialize the table
  * 
@@ -107,22 +111,19 @@ function initTableServerTable(tableID) {
         "data": "holdtime"
       },
       {
-        "data": "compactions.scans.running"
+        "data": function (row) {
+          return getQueuedAndRunning(row.compactions.scans);
+        }
       },
       {
-        "data": "compactions.scans.queued"
+        "data": function (row) {
+          return getQueuedAndRunning(row.compactions.minor);
+        }
       },
       {
-        "data": "compactions.minor.running"
-      },
-      {
-        "data": "compactions.minor.queued"
-      },
-      {
-        "data": "compactions.major.running"
-      },
-      {
-        "data": "compactions.major.queued"
+        "data": function (row) {
+          return getQueuedAndRunning(row.compactions.major);
+        }
       },
       {
         "data": "indexCacheHitRate"
