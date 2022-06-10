@@ -27,7 +27,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 public class Reference implements Comparable<Reference> {
   // parts of an absolute URI, like "hdfs://1.2.3.4/accumulo/tables/2a/t-0003"
   public final TableId tableId; // 2a
-  public final String tabletDir; // t-0003
 
   // the exact string that is stored in the metadata
   public final String metadataEntry;
@@ -36,7 +35,6 @@ public class Reference implements Comparable<Reference> {
     MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(tableId.canonical());
     this.tableId = tableId;
     this.metadataEntry = metadataEntry;
-    this.tabletDir = metadataEntry;
   }
 
   @Override

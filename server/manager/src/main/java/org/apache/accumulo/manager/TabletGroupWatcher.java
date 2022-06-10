@@ -53,7 +53,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.gc.Reference;
-import org.apache.accumulo.core.gc.ReferenceDirectory;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
@@ -642,8 +641,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         Key key = entry.getKey();
         if (key.compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
           var stf = new StoredTabletFile(key.getColumnQualifierData().toString());
-          var tabletDirectory = new ReferenceDirectory(stf.getTableId(), stf.getTabletDir());
-          datafilesAndDirs.add(tabletDirectory);
+          datafilesAndDirs.add(new Reference(stf.getTableId(), stf.getMetaUpdateDelete()));
           if (datafilesAndDirs.size() > 1000) {
             ample.putGcFileAndDirCandidates(extent.tableId(), datafilesAndDirs);
             datafilesAndDirs.clear();
