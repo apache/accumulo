@@ -97,7 +97,7 @@ public class RootTabletMetadata {
   private final Data data;
 
   public RootTabletMetadata(String json) {
-    log.debug("Creating root tablet metadata from stored JSON: {}", json);
+    log.trace("Creating root tablet metadata from stored JSON: {}", json);
     this.data = gson.fromJson(json, Data.class);
     checkArgument(data.version == VERSION, "Invalid Root Table Metadata JSON version %s",
         data.version);
