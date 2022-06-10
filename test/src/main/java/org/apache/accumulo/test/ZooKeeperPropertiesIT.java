@@ -20,10 +20,10 @@ package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.List;
 import java.util.Map;
-import java.util.SortedSet;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -40,12 +40,8 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.ServerContext;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
-
-  private static final Logger log = LoggerFactory.getLogger(ZooKeeperPropertiesIT.class);
 
   @Test
   public void testNoFiles() {
@@ -59,116 +55,102 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
   @Test
   @Timeout(30)
   public void testTablePropUtils() throws AccumuloException, TableExistsException,
-      AccumuloSecurityException, TableNotFoundException, InterruptedException {
+      AccumuloSecurityException, TableNotFoundException {
     ServerContext context = getServerContext();
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      log.info(">>>> ");
-      log.info(">>>> TABLE TESTING...");
-      log.info(">>>> ");
 
-      String TABLENAME = "propUtilTable";
-
-      client.tableOperations().create(TABLENAME);
-      client.tableOperations().tableIdMap().forEach((k, v) -> log.info(">>>> {} -> {}", k, v));
+      final String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName);
       Map<String,String> idMap = client.tableOperations().tableIdMap();
-      String TID = idMap.get(TABLENAME);
+      String tid = idMap.get(tableName);
 
-      log.info(">>>> Retrieve and verify initial property value...");
-      Iterable<Map.Entry<String,String>> prop1 = null;
-      Map<String,String> properties = client.tableOperations().getConfiguration(TABLENAME);
+      Map<String,String> properties = client.tableOperations().getConfiguration(tableName);
       assertEquals("false", properties.get(Property.TABLE_BLOOM_ENABLED.getKey()));
 
-      log.info(">>>> update and verify updated property...");
-      context.tablePropUtil().setProperties(TableId.of(TID),
+      context.tablePropUtil().setProperties(TableId.of(tid),
           Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
 
-      properties = client.tableOperations().getConfiguration(TABLENAME);
+      // add a sleep to give the property change time to propagate
+      properties = client.tableOperations().getConfiguration(tableName);
       while (!properties.get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true")) {
-        Thread.sleep(250);
-        log.info(">>>> 250");
-        properties = client.tableOperations().getConfiguration(TABLENAME);
+        try {
+          Thread.sleep(250);
+        } catch (InterruptedException e) {
+          fail("Thread interrupted while waiting for tablePropUtil update");
+        }
+        properties = client.tableOperations().getConfiguration(tableName);
       }
-      assertEquals("true", properties.get(Property.TABLE_BLOOM_ENABLED.getKey()));
 
-      log.info(">>>> remove property and re-check");
-      context.tablePropUtil().removeProperties(TableId.of(TID),
+      context.tablePropUtil().removeProperties(TableId.of(tid),
           List.of(Property.TABLE_BLOOM_ENABLED.getKey()));
 
-      properties = client.tableOperations().getConfiguration(TABLENAME);
+      properties = client.tableOperations().getConfiguration(tableName);
       while (!properties.get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false")) {
-        Thread.sleep(250);
-        log.info(">>>> 250");
-        properties = client.tableOperations().getConfiguration(TABLENAME);
+        try {
+          Thread.sleep(250);
+        } catch (InterruptedException e) {
+          fail("Thread interrupted while waiting for tablePropUtil update");
+        }
+        properties = client.tableOperations().getConfiguration(tableName);
       }
-      assertEquals("false", properties.get(Property.TABLE_BLOOM_ENABLED.getKey()));
 
       // Add invalid property
-      assertThrows(IllegalArgumentException.class, () -> {
-        context.tablePropUtil().setProperties(TableId.of(TID),
-            Map.of("NOT_A_PROPERTY", "not_a_value"));
-      }, "Expected IllegalArgumentException to be thrown.");
-    } // try-w/resources end
+      assertThrows(IllegalArgumentException.class,
+          () -> context.tablePropUtil().setProperties(TableId.of(tid),
+              Map.of("NOT_A_PROPERTY", "not_a_value")),
+          "Expected IllegalArgumentException to be thrown.");
+    }
   }
 
   @Test
   @Timeout(30)
   public void testNamespacePropUtils() throws AccumuloException, AccumuloSecurityException,
-      NamespaceExistsException, NamespaceNotFoundException, InterruptedException {
+      NamespaceExistsException, NamespaceNotFoundException {
     ServerContext context = getServerContext();
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
-      log.info(">>>> ");
-      log.info(">>>> NAMESPACE TESTING...");
-      log.info(">>>> ");
-
-      String NAMESPACE = "testNamespace";
-      client.namespaceOperations().create(NAMESPACE);
-
-      SortedSet<String> list = client.namespaceOperations().list();
-      list.forEach(p -> log.info(">>>> list: {}", p));
-
-      client.namespaceOperations().namespaceIdMap()
-          .forEach((k, v) -> log.info(">>>> {} -> {}", k, v));
+      final String namespace = getUniqueNames(1)[0];
+      client.namespaceOperations().create(namespace);
       Map<String,String> nsMap = client.namespaceOperations().namespaceIdMap();
-      nsMap.forEach((k, v) -> log.info(">>>> {}:{}", k, v));
-      String NID = nsMap.get(NAMESPACE);
-      log.info(">>>> NID: {}", NID);
+      String nid = nsMap.get(namespace);
 
-      log.info(">>>> Retrieve and verify initial property value...");
-      Map<String,String> properties = client.namespaceOperations().getConfiguration(NAMESPACE);
+      Map<String,String> properties = client.namespaceOperations().getConfiguration(namespace);
       assertEquals("15", properties.get(Property.TABLE_FILE_MAX.getKey()));
 
-      log.info(">>>> update and verify updated property...");
-      context.namespacePropUtil().setProperties(NamespaceId.of(NID),
+      context.namespacePropUtil().setProperties(NamespaceId.of(nid),
           Map.of(Property.TABLE_FILE_MAX.getKey(), "31"));
 
-      properties = client.namespaceOperations().getConfiguration(NAMESPACE);
+      // add a sleep to give the property change time to propagate
+      properties = client.namespaceOperations().getConfiguration(namespace);
       while (!properties.get(Property.TABLE_FILE_MAX.getKey()).equals("31")) {
-        Thread.sleep(250);
-        log.info(">>>> 250");
-        properties = client.namespaceOperations().getConfiguration(NAMESPACE);
+        try {
+          Thread.sleep(250);
+        } catch (InterruptedException e) {
+          fail("Thread interrupted while waiting for namespacePropUtil update");
+        }
+        properties = client.namespaceOperations().getConfiguration(namespace);
       }
-      assertEquals("31", properties.get(Property.TABLE_FILE_MAX.getKey()));
 
-      log.info(">>>> remove property and re-check");
-      context.namespacePropUtil().removeProperties(NamespaceId.of(NID),
+      context.namespacePropUtil().removeProperties(NamespaceId.of(nid),
           List.of(Property.TABLE_FILE_MAX.getKey()));
 
-      properties = client.namespaceOperations().getConfiguration(NAMESPACE);
+      properties = client.namespaceOperations().getConfiguration(namespace);
       while (!properties.get(Property.TABLE_FILE_MAX.getKey()).equals("15")) {
-        Thread.sleep(250);
-        log.info(">>>> 250");
-        properties = client.namespaceOperations().getConfiguration(NAMESPACE);
+        try {
+          Thread.sleep(250);
+        } catch (InterruptedException e) {
+          fail("Thread interrupted while waiting for namespacePropUtil update");
+        }
+        properties = client.namespaceOperations().getConfiguration(namespace);
       }
-      assertEquals("15", properties.get(Property.TABLE_FILE_MAX.getKey()));
 
       // Add invalid property
-      assertThrows(IllegalArgumentException.class, () -> {
-        context.namespacePropUtil().setProperties(NamespaceId.of(NID),
-            Map.of("NOT_A_PROPERTY", "not_a_value"));
-      }, "Expected IllegalArgumentException to be thrown.");
+      assertThrows(IllegalArgumentException.class,
+          () -> context.namespacePropUtil().setProperties(NamespaceId.of(nid),
+              Map.of("NOT_A_PROPERTY", "not_a_value")),
+          "Expected IllegalArgumentException to be thrown.");
     }
   }
 
