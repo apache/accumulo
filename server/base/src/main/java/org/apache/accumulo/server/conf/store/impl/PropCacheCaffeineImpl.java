@@ -39,7 +39,7 @@ import com.github.benmanes.caffeine.cache.Ticker;
 public class PropCacheCaffeineImpl implements PropCache {
 
   public static final TimeUnit BASE_TIME_UNITS = TimeUnit.MINUTES;
-  public static final int REFRESH_MIN = 15;
+  // public static final int REFRESH_MIN = 15;
   public static final int EXPIRE_MIN = 60;
   private static final Logger log = LoggerFactory.getLogger(PropCacheCaffeineImpl.class);
   private static final Executor executor = ThreadPools.getServerThreadPools().createThreadPool(1,
@@ -52,8 +52,8 @@ public class PropCacheCaffeineImpl implements PropCache {
   private PropCacheCaffeineImpl(final CacheLoader<PropStoreKey<?>,VersionedProperties> cacheLoader,
       final PropStoreMetrics metrics, final Ticker ticker, boolean runTasksInline) {
     this.metrics = metrics;
-    var builder = Caffeine.newBuilder().refreshAfterWrite(REFRESH_MIN, BASE_TIME_UNITS)
-        .expireAfterAccess(EXPIRE_MIN, BASE_TIME_UNITS).evictionListener(this::evictionNotifier);
+    var builder = Caffeine.newBuilder().expireAfterAccess(EXPIRE_MIN, BASE_TIME_UNITS)
+        .evictionListener(this::evictionNotifier);
     if (runTasksInline) {
       builder = builder.executor(Runnable::run);
     } else {

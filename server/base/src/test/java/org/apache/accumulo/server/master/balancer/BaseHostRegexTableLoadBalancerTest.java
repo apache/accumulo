@@ -56,6 +56,7 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
@@ -180,7 +181,7 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     expect(mockContext.getZooKeepersSessionTimeOut()).andReturn(30).anyTimes();
     expect(mockContext.getInstanceID()).andReturn(instanceId).anyTimes();
     expect(mockContext.getZooKeeperRoot()).andReturn(Constants.ZROOT + "/1111").anyTimes();
-
+    expect(mockContext.threadPools()).andReturn(ThreadPools.getServerThreadPools()).anyTimes();
     expect(mockContext.getPropStore()).andReturn(propStore).anyTimes();
     propStore.registerAsListener(anyObject(), anyObject());
     expectLastCall().anyTimes();

@@ -29,8 +29,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -47,6 +49,8 @@ import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class ServerConfigurationFactoryTest {
   private static final String ZK_HOST = "localhost";
@@ -81,6 +85,9 @@ public class ServerConfigurationFactoryTest {
     expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
     expect(context.tableNodeExists(TID)).andReturn(true).anyTimes();
     expect(context.getPropStore()).andReturn(propStore).anyTimes();
+    expect(context.threadPools()).andReturn(null).anyTimes(); // disable snapshot refresh
+
+    replay(context);
 
     scf = new ServerConfigurationFactory(context, siteConfig) {
       @Override
@@ -92,7 +99,7 @@ public class ServerConfigurationFactoryTest {
       }
     };
 
-    replay(propStore, context);
+    replay(propStore);
   }
 
   @AfterEach
@@ -121,4 +128,13 @@ public class ServerConfigurationFactoryTest {
     assertSame(tableConfigSingleton, scf.getTableConfiguration(TID));
   }
 
+  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
+      justification = "random number is not used in a security sensitive context")
+  @Test
+  public void x() {
+    for (int d = 0; d < 10; d++) {
+      int i = ThreadLocalRandom.current().nextInt(1, 19);
+      System.out.println(Duration.ofMillis(i));
+    }
+  }
 }
