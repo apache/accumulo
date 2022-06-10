@@ -98,7 +98,7 @@ public class Upgrader9to10Test {
 
   private void compareReferences(Reference ref1, Reference ref2) {
     assertEquals(ref1.metadataEntry, ref2.metadataEntry);
-    assertEquals(ref1.tabletDir, ref2.tabletDir);
+    assertEquals(ref1.tableId, ref2.tableId);
   }
 
   @Test
