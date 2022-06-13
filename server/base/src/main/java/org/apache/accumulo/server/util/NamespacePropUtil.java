@@ -39,7 +39,7 @@ public class NamespacePropUtil extends PropUtil<NamespaceId> {
    *           if an underlying exception (KeeperException, InterruptException) or other failure to
    *           read properties from the cache / backend store
    * @throws IllegalArgumentException
-   *           if a provided property is not valid *
+   *           if a provided property is not valid
    */
   @Override
   public void setProperties(NamespaceId namespaceId, Map<String,String> properties) {
