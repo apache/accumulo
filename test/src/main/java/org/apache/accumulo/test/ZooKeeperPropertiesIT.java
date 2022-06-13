@@ -73,7 +73,7 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
 
       // add a sleep to give the property change time to propagate
       properties = client.tableOperations().getConfiguration(tableName);
-      while (!properties.get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true")) {
+      while (properties.get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false")) {
         try {
           Thread.sleep(250);
         } catch (InterruptedException e) {
@@ -86,7 +86,7 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
           List.of(Property.TABLE_BLOOM_ENABLED.getKey()));
 
       properties = client.tableOperations().getConfiguration(tableName);
-      while (!properties.get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false")) {
+      while (properties.get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true")) {
         try {
           Thread.sleep(250);
         } catch (InterruptedException e) {
