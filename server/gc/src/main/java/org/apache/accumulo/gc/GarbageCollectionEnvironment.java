@@ -68,7 +68,7 @@ public interface GarbageCollectionEnvironment {
    * Fetches the references to files, {@link DataFileColumnFamily#NAME} or
    * {@link ScanFileColumnFamily#NAME}, from tablets and tablet directories.
    *
-   * @return An {@link Stream} of {@link Reference} objects.
+   * @return An {@link Stream} of {@link Reference} objects, that will need to be closed.
    */
   Stream<Reference> getReferences();
 

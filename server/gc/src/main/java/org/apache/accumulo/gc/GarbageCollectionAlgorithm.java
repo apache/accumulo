@@ -135,7 +135,8 @@ public class GarbageCollectionAlgorithm {
 
   private void removeCandidatesInUse(GarbageCollectionEnvironment gce,
       SortedMap<String,String> candidateMap) {
-    Iterator<Reference> iter = gce.getReferences().iterator();
+    var refStream = gce.getReferences();
+    Iterator<Reference> iter = refStream.iterator();
     while (iter.hasNext()) {
       Reference ref = iter.next();
 
@@ -171,6 +172,9 @@ public class GarbageCollectionAlgorithm {
           log.debug("Candidate was still in use: {}", relativePath);
       }
     }
+
+    // close underlying scanner
+    refStream.close();
   }
 
   private long removeBlipCandidates(GarbageCollectionEnvironment gce,

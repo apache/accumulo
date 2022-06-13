@@ -144,10 +144,9 @@ public class GCRun implements GarbageCollectionEnvironment {
     if (level == Ample.DataLevel.ROOT) {
       tabletStream = Stream.of(context.getAmple().readTablet(RootTable.EXTENT, DIR, FILES, SCANS));
     } else {
-      try (var tabletsMetadata = TabletsMetadata.builder(context).scanTable(level.metaTable())
-          .checkConsistency().fetch(DIR, FILES, SCANS).build()) {
-        tabletStream = tabletsMetadata.stream();
-      }
+      var tabletsMetadata = TabletsMetadata.builder(context).scanTable(level.metaTable())
+          .checkConsistency().fetch(DIR, FILES, SCANS).build();
+      tabletStream = tabletsMetadata.stream();
     }
 
     // there is a lot going on in this "one line" so see below for more info
