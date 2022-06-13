@@ -19,7 +19,6 @@
 package org.apache.accumulo.server.util;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.Property;
@@ -39,15 +38,18 @@ public class TablePropUtil extends PropUtil<TableId> {
    * @throws IllegalStateException
    *           if an underlying exception (KeeperException, InterruptException) or other failure to
    *           read properties from the cache / backend store
+   * @throws IllegalArgumentException
+   *           if a provided property is not valid
    */
   @Override
-  public void setProperties(TableId tableId, Map<String,String> props) {
-    Map<String,String> tempProps = new HashMap<>(props);
-    // TODO reconcile with NamespacePropUtil see https://github.com/apache/accumulo/issues/2633
-    tempProps.entrySet().removeIf(e -> !Property.isTablePropertyValid(e.getKey(), e.getValue()));
-
-    context.getPropStore().putAll(TablePropKey.of(context, tableId), props);
-
+  public void setProperties(TableId tableId, Map<String,String> properties) {
+    for (Map.Entry<String,String> prop : properties.entrySet()) {
+      if (!Property.isTablePropertyValid(prop.getKey(), prop.getValue())) {
+        throw new IllegalArgumentException("Invalid property for table: " + tableId + " name: "
+            + prop.getKey() + ", value: " + prop.getValue());
+      }
+    }
+    context.getPropStore().putAll(TablePropKey.of(context, tableId), properties);
   }
 
   @Override
