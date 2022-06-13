@@ -313,6 +313,20 @@ public class ManagerApiIT extends SharedMiniClusterBase {
     expectPermissionSuccess(op, privilegedUser);
   }
 
+  @Test
+  public void shutdownTabletServer() throws Exception {
+    op = client -> {
+      client.shutdownTabletServer(TraceUtil.traceInfo(), rootUser.toThrift(instanceId),
+          "fakeTabletServer:9997", true);
+      return null;
+    };
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps())
+        .as(rootUser.getPrincipal(), rootUser.getToken()).build()) {
+      ClientContext context = (ClientContext) client;
+      ThriftClientTypes.MANAGER.execute(context, op);
+    }
+  }
+
   // this test should go last, because it shuts things down;
   // see the junit annotation to control test ordering at the top of this class
   @Test
