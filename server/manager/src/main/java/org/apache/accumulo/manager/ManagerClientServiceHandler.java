@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -261,10 +261,14 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
     final TServerInstance doomed = manager.tserverSet.find(tabletServer);
+    if (doomed == null) {
+      Manager.log.warn("No server found for name {}, unable to shut it down", tabletServer);
+      return;
+    }
     if (!force) {
       final TServerConnection server = manager.tserverSet.getConnection(doomed);
       if (server == null) {
-        Manager.log.warn("No server found for name {}", tabletServer);
+        Manager.log.warn("No server found for name {}, unable to shut it down", tabletServer);
         return;
       }
     }
