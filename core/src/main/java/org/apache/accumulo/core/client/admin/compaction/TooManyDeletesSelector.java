@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.accumulo.core.client.admin.compaction;
 
 import static org.apache.accumulo.core.client.summary.summarizers.DeletesSummarizer.DELETES_STAT;

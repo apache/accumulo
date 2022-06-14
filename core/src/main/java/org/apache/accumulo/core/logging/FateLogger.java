@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.accumulo.core.logging;
 
 import static org.apache.accumulo.fate.FateTxId.formatTid;

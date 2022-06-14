@@ -133,7 +133,7 @@ public class UnsynchronizedBuffer {
      * Adds a long value to this writer's buffer. The long is encoded as a variable-length list of
      * bytes. For a description of the encoding scheme, see <code>WritableUtils.writeVLong()</code>
      * in the Hadoop API. [<a href=
-     * "http://hadoop.apache.org/docs/stable/api/org/apache/hadoop/io/WritableUtils.html#writeVLong%28java.io.DataOutput,%20long%29">link</a>]
+     * "https://hadoop.apache.org/docs/stable/api/org/apache/hadoop/io/WritableUtils.html#writeVLong%28java.io.DataOutput,%20long%29">link</a>]
      *
      * @param i
      *          long value

@@ -53,7 +53,7 @@ class RollingStats {
 
   /**
    * @see <a href=
-   *      "http://jonisalonen.com/2014/efficient-and-accurate-rolling-standard-deviation/">Efficient
+   *      "https://jonisalonen.com/2014/efficient-and-accurate-rolling-standard-deviation">Efficient
    *      and accurate rolling standard deviation</a>
    */
   private void update(double newValue, double oldValue, int windowSize) {

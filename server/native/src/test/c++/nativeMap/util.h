@@ -16,6 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 size_t getMemUsage();
 

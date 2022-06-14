@@ -75,7 +75,7 @@ ${LINE_NOTATION} to you under the Apache License, Version 2.0 (the
 ${LINE_NOTATION} "License"); you may not use this file except in compliance
 ${LINE_NOTATION} with the License.  You may obtain a copy of the License at
 ${LINE_NOTATION}
-${LINE_NOTATION}   http://www.apache.org/licenses/LICENSE-2.0
+${LINE_NOTATION}   https://www.apache.org/licenses/LICENSE-2.0
 ${LINE_NOTATION}
 ${LINE_NOTATION} Unless required by applicable law or agreed to in writing,
 ${LINE_NOTATION} software distributed under the License is distributed on an

@@ -136,7 +136,7 @@ public class ClientConfigGenerate {
       doc.println("# (the \"License\"); you may not use this file except in compliance with");
       doc.println("# the License.  You may obtain a copy of the License at");
       doc.println("#");
-      doc.println("#     http://www.apache.org/licenses/LICENSE-2.0");
+      doc.println("#     https://www.apache.org/licenses/LICENSE-2.0");
       doc.println("#");
       doc.println("# Unless required by applicable law or agreed to in writing, software");
       doc.println("# distributed under the License is distributed on an \"AS IS\" BASIS,");
