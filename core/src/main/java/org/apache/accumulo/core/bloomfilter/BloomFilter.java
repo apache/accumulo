@@ -64,7 +64,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *
  * @see Filter The general behavior of a filter
  *
- * @see <a href="http://portal.acm.org/citation.cfm?id=362692&dl=ACM&coll=portal">Space/Time
+ * @see <a href="https://portal.acm.org/citation.cfm?id=362692&dl=ACM&coll=portal">Space/Time
  *      Trade-Offs in Hash Coding with Allowable Errors</a>
  */
 public class BloomFilter extends Filter {

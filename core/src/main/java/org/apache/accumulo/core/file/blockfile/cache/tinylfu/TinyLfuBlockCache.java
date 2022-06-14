@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -48,9 +48,9 @@ import com.github.benmanes.caffeine.cache.stats.CacheStats;
  * A block cache that is memory bounded using the W-TinyLFU eviction algorithm. This implementation
  * delegates to a Caffeine cache to provide concurrent O(1) read and write operations.
  * <ul>
- * <li><a href="http://arxiv.org/pdf/1512.00727.pdf">W-TinyLFU</a></li>
+ * <li><a href="https://arxiv.org/pdf/1512.00727.pdf">W-TinyLFU</a></li>
  * <li><a href="https://github.com/ben-manes/caffeine">Caffeine</a></li>
- * <li><a href="http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html">Cache
+ * <li><a href="https://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html">Cache
  * design</a></li>
  * </ul>
  */
