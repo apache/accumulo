@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -29,21 +29,20 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
  * accessible indirectly via methods in this class. Below are a list of APIs entry points that are
  * not accessible from here.
  *
- * <UL>
- * <LI>Hadoop input, output formats and partitioners in {@code org.apache.accumulo.hadoop.mapred}
+ * <ul>
+ * <li>Hadoop input, output formats and partitioners in {@code org.apache.accumulo.hadoop.mapred}
  * and {@code org.apache.accumulo.hadoop.mapreduce} packages.
- * <LI>{@code org.apache.accumulo.minicluster.MiniAccumuloCluster} Not linkable by javadoc, because
+ * <li>{@code org.apache.accumulo.minicluster.MiniAccumuloCluster} Not linkable by javadoc, because
  * in a separate module.
- * <LI>{@link Lexicoder} and all of its implementations in the same package.
- * <LI>{@link RFile}
- * </UL>
+ * <li>{@link Lexicoder} and all of its implementations in the same package.
+ * <li>{@link RFile}
+ * </ul>
  *
- * @see <a href="http://accumulo.apache.org/">Accumulo Website</a>
- * @see <a href="http://accumulo.apache.org/api">Accumulo Public API</a>
- * @see <a href="http://semver.org/spec/v2.0.0">Semver 2.0</a>
+ * @see <a href="https://accumulo.apache.org/">Accumulo Website</a>
+ * @see <a href="https://accumulo.apache.org/api">Accumulo Public API</a>
+ * @see <a href="https://semver.org/spec/v2.0.0">Semver 2.0</a>
  * @since 2.0.0
  */
-// CHECKSTYLE:ON
 public final class Accumulo {
 
   private Accumulo() {}
