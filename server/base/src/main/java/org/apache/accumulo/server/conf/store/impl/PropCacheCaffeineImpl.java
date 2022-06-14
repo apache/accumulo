@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.conf.store.impl;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -111,6 +113,17 @@ public class PropCacheCaffeineImpl implements PropCache {
    */
   public @Nullable VersionedProperties getWithoutCaching(PropStoreKey<?> propStoreKey) {
     return cache.getIfPresent(propStoreKey);
+  }
+
+  /**
+   * This returns a weakly consistent view of the entries in the cache - changes may or may not be
+   * reflected in the view and it is undefined which changes (including eviction) will be visible to
+   * the view.
+   *
+   * @return a map weakly consistent view of the underlying cache entries.
+   */
+  public Map<PropStoreKey<?>,VersionedProperties> asMap() {
+    return Collections.unmodifiableMap(cache.asMap());
   }
 
   public static class Builder {

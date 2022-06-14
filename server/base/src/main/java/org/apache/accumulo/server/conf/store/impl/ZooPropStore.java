@@ -19,15 +19,22 @@
 package org.apache.accumulo.server.conf.store.impl;
 
 import static java.util.Objects.requireNonNullElseGet;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BiFunction;
 
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.metrics.MetricsUtil;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
@@ -48,6 +55,8 @@ import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Ticker;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class ZooPropStore implements PropStore, PropChangeListener {
 
   private final static Logger log = LoggerFactory.getLogger(ZooPropStore.class);
@@ -58,6 +67,14 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   private final PropCacheCaffeineImpl cache;
   private final PropStoreMetrics cacheMetrics = new PropStoreMetrics();
   private final ReadyMonitor zkReadyMon;
+
+  private static final ScheduledThreadPoolExecutor executor =
+      ThreadPools.getServerThreadPools().createScheduledExecutorService(4, "propstore-sync", false);
+  private final ScheduledFuture<?> refreshTaskFuture;
+  // TODO - DEBUG VALUE ONLY
+  private static final int REFRESH_PERIOD_MINUTES = 1;
+  // max jitter delay between ZK calls (milliseconds)
+  private static final int MAX_JITTER_DELAY = 23;
 
   /**
    * Create instance using ZooPropStore.Builder
@@ -87,6 +104,8 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    * @param ticker
    *          a synthetic clock used for testing. Optional, if null, one is created.
    */
+  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
+      justification = "random number not used in secure context")
   ZooPropStore(final InstanceId instanceId, final ZooReaderWriter zrw, final ReadyMonitor monitor,
       final PropStoreWatcher watcher, final Ticker ticker) {
 
@@ -121,6 +140,13 @@ public class ZooPropStore implements PropStore, PropChangeListener {
       throw new IllegalStateException("Failed to read root node " + instanceId + " from ZooKeeper",
           ex);
     }
+    Runnable refreshTask = this::verifySnapshotVersions;
+    // randomly stagger initial and then subsequent calls across cluster
+    int randDelay =
+        ThreadLocalRandom.current().nextInt(REFRESH_PERIOD_MINUTES / 4, REFRESH_PERIOD_MINUTES);
+    refreshTaskFuture =
+        executor.scheduleWithFixedDelay(refreshTask, randDelay, REFRESH_PERIOD_MINUTES, MINUTES);
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> refreshTaskFuture.cancel(true)));
   }
 
   public static PropStore initialize(@NonNull final InstanceId instanceId,
@@ -391,4 +417,61 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   public @Nullable VersionedProperties getWithoutCaching(PropStoreKey<?> propStoreKey) {
     return cache.getWithoutCaching(propStoreKey);
   }
+
+  /**
+   * Check that the stored version in ZooKeeper matches the version held in the local snapshot. When
+   * a mismatch is detected, a change event is sent to the prop store which will cause a re-load. If
+   * the Zookeeper node has been deleted, the local cache entries are removed.
+   * <p>
+   * This method is designed to be called as a scheduled task, so it does not propagate exceptions
+   * other than interrupted Exceptions so the scheduled tasks will continue to run.
+   */
+  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
+      justification = "random number not used in secure context")
+  private void verifySnapshotVersions() {
+    long refreshStart = System.nanoTime();
+    int keyCount = 0;
+    int keyChangedCount = 0;
+
+    var cacheView = cache.asMap();
+    for (Map.Entry<PropStoreKey<?>,VersionedProperties> entry : cacheView.entrySet()) {
+      keyCount++;
+      var key = entry.getKey();
+      if (versionChanged(key, entry.getValue())) {
+        keyChangedCount++;
+        propStoreWatcher.signalZkChangeEvent(key);
+        log.debug("data version sync: difference found. forcing configuration update for {}}", key);
+      }
+      // add small jitter between calls.
+      int randDelay = ThreadLocalRandom.current().nextInt(0, MAX_JITTER_DELAY);
+      try {
+        Thread.sleep(randDelay);
+      } catch (InterruptedException ex) {
+        Thread.currentThread().interrupt();
+        throw new IllegalStateException(ex);
+      }
+    }
+    log.debug("data version sync: Total runtime {} ms for {} entries, changes detected: {}",
+        MILLISECONDS.convert(System.nanoTime() - refreshStart, NANOSECONDS), keyCount,
+        keyChangedCount);
+  }
+
+  private boolean versionChanged(PropStoreKey<?> key, VersionedProperties vProps) {
+    try {
+      Stat stat = zrw.getStatus(key.getPath());
+      log.trace("data version sync: stat returned: {} for {}", stat, key);
+      if (stat == null) {
+        return true;
+      }
+      if (vProps.getDataVersion() != stat.getVersion()) {
+        return true;
+      }
+    } catch (Exception ex) {
+      log.debug(
+          "exception occurred verifying data version for {}, skipping entry for this iteration",
+          key);
+    }
+    return false;
+  }
+
 }
