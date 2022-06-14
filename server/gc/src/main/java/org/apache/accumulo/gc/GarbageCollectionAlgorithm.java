@@ -172,9 +172,6 @@ public class GarbageCollectionAlgorithm {
           log.debug("Candidate was still in use: {}", relativePath);
       }
     }
-
-    // close underlying scanner
-    refStream.close();
   }
 
   private long removeBlipCandidates(GarbageCollectionEnvironment gce,
