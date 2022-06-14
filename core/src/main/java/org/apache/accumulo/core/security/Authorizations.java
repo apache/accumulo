@@ -21,7 +21,6 @@ package org.apache.accumulo.core.security;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -40,12 +39,10 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 /**
  * A collection of authorization strings.
  */
-public class Authorizations implements Iterable<byte[]>, Serializable, AuthorizationContainer {
+public class Authorizations implements Iterable<byte[]>, AuthorizationContainer {
 
-  private static final long serialVersionUID = 1L;
-
-  private Set<ByteSequence> auths = new HashSet<>();
-  private List<byte[]> authsList = new ArrayList<>(); // sorted order
+  private final Set<ByteSequence> auths = new HashSet<>();
+  private final List<byte[]> authsList = new ArrayList<>(); // sorted order
 
   /**
    * An empty set of authorizations.
