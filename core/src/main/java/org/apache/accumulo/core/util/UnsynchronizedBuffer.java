@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -133,7 +133,7 @@ public class UnsynchronizedBuffer {
      * Adds a long value to this writer's buffer. The long is encoded as a variable-length list of
      * bytes. For a description of the encoding scheme, see <code>WritableUtils.writeVLong()</code>
      * in the Hadoop API. [<a href=
-     * "http://hadoop.apache.org/docs/stable/api/org/apache/hadoop/io/WritableUtils.html#writeVLong%28java.io.DataOutput,%20long%29">link</a>]
+     * "https://hadoop.apache.org/docs/stable/api/org/apache/hadoop/io/WritableUtils.html#writeVLong%28java.io.DataOutput,%20long%29">link</a>]
      *
      * @param i
      *          long value
