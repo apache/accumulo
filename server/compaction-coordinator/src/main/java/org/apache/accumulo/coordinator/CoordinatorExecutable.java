@@ -22,6 +22,8 @@ import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.google.auto.service.AutoService;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 @AutoService(KeywordExecutable.class)
 public class CoordinatorExecutable implements KeywordExecutable {
 
@@ -40,6 +42,8 @@ public class CoordinatorExecutable implements KeywordExecutable {
     return "Starts Accumulo Compaction Coordinator";
   }
 
+  @SuppressFBWarnings(value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION",
+      justification = "okay for what is effectively a main method")
   @Override
   public void execute(final String[] args) throws Exception {
     System.err.println("WARNING: External compaction processes are experimental");

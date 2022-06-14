@@ -99,7 +99,7 @@ public class ChangeSecret {
         recurse(zoo, root + "/" + child, v);
       }
     } catch (Exception ex) {
-      throw new RuntimeException(ex);
+      throw new IllegalStateException(ex);
     }
   }
 

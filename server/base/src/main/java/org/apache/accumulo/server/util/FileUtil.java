@@ -264,8 +264,8 @@ public class FileUtil {
 
       if (numLte > numKeys) {
         // something went wrong
-        throw new RuntimeException("numLte > numKeys " + numLte + " " + numKeys + " " + prevEndRow
-            + " " + endRow + " " + splitRow + " " + mapFiles);
+        throw new IllegalStateException("numLte > numKeys " + numLte + " " + numKeys + " "
+            + prevEndRow + " " + endRow + " " + splitRow + " " + mapFiles);
       }
 
       // do not want to return 0% or 100%, so add 1 and 2 below

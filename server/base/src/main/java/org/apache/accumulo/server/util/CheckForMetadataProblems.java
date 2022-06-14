@@ -185,7 +185,7 @@ public class CheckForMetadataProblems {
       System.out.println();
       checkMetadataAndRootTableEntries(MetadataTable.NAME, opts);
       if (sawProblems)
-        throw new RuntimeException();
+        throw new IllegalStateException();
     } catch (Exception e) {
       TraceUtil.setException(span, e, true);
       throw e;

@@ -90,6 +90,8 @@ import org.slf4j.LoggerFactory;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class CompactionCoordinator extends AbstractServer
     implements CompactionCoordinatorService.Iface, LiveTServerSet.Listener {
 
@@ -241,7 +243,7 @@ public class CompactionCoordinator extends AbstractServer
     try {
       coordinatorAddress = startCoordinatorClientService();
     } catch (UnknownHostException e1) {
-      throw new RuntimeException("Failed to start the coordinator service", e1);
+      throw new IllegalStateException("Failed to start the coordinator service", e1);
     }
     final HostAndPort clientAddress = coordinatorAddress.address;
 
@@ -322,7 +324,7 @@ public class CompactionCoordinator extends AbstractServer
         while (!executor.awaitTermination(1, TimeUnit.MINUTES)) {}
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
 
       // remove any queues that were seen in the past, but were not seen in the latest gathering of
@@ -714,10 +716,12 @@ public class CompactionCoordinator extends AbstractServer
       LOG.warn("Failed to clean up compactors", e);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
+  @SuppressFBWarnings(value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION",
+      justification = "okay for main method")
   public static void main(String[] args) throws Exception {
     try (CompactionCoordinator compactor = new CompactionCoordinator(new ServerOpts(), args)) {
       compactor.runServer();

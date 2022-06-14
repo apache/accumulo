@@ -116,7 +116,7 @@ public class RootTabletMutatorImpl extends TabletMutatorBase implements Ample.Ta
       if (closeAfterMutate != null)
         closeAfterMutate.close();
     } catch (Exception e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 }

@@ -28,6 +28,8 @@ import org.apache.accumulo.server.HighlyAvailableService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * An {@link InvocationHandler} which checks to see if a {@link HighlyAvailableService} is the
  * current active instance of that service, throwing {@link ThriftNotActiveServiceException} when it
@@ -45,6 +47,8 @@ public class HighlyAvailableServiceInvocationHandler<I> implements InvocationHan
     this.service = Objects.requireNonNull(service);
   }
 
+  @SuppressFBWarnings(value = "THROWS_METHOD_THROWS_CLAUSE_THROWABLE",
+      justification = "invoked method could throw anything")
   @Override
   public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 

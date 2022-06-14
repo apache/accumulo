@@ -20,6 +20,7 @@ package org.apache.accumulo.server.fs;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.Map;
@@ -215,18 +216,18 @@ public interface VolumeManager extends AutoCloseable {
       log.debug("Trying to read instance id from {}", instanceDirectory);
       if (files == null || files.length == 0) {
         log.error("unable to obtain instance id at {}", instanceDirectory);
-        throw new RuntimeException(
+        throw new IllegalStateException(
             "Accumulo not initialized, there is no instance id at " + instanceDirectory);
       } else if (files.length != 1) {
         log.error("multiple potential instances in {}", instanceDirectory);
-        throw new RuntimeException(
+        throw new IllegalStateException(
             "Accumulo found multiple possible instance ids in " + instanceDirectory);
       } else {
         return InstanceId.of(files[0].getPath().getName());
       }
     } catch (IOException e) {
       log.error("Problem reading instance id out of hdfs at " + instanceDirectory, e);
-      throw new RuntimeException(
+      throw new UncheckedIOException(
           "Can't tell if Accumulo is initialized; can't read instance id at " + instanceDirectory,
           e);
     } catch (IllegalArgumentException exception) {

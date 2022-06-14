@@ -199,7 +199,7 @@ public class FileManager {
 
       List<OpenReader> ofl = openFiles.get(or.fileName);
       if (!ofl.remove(or)) {
-        throw new RuntimeException("Failed to remove open reader that should have been there");
+        throw new IllegalStateException("Failed to remove open reader that should have been there");
       }
 
       if (ofl.isEmpty()) {

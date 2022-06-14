@@ -98,7 +98,7 @@ public class ReplicationTableUtil {
     try {
       iterators = tops.listIterators(tableName);
     } catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
 
     if (!iterators.containsKey(COMBINER_NAME)) {
@@ -111,7 +111,7 @@ public class ReplicationTableUtil {
       try {
         tops.attachIterator(tableName, setting);
       } catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
     }
 
@@ -120,7 +120,7 @@ public class ReplicationTableUtil {
     try {
       properties = tops.getConfiguration(tableName);
     } catch (AccumuloException | TableNotFoundException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
 
     for (Entry<String,String> property : properties.entrySet()) {
@@ -132,7 +132,7 @@ public class ReplicationTableUtil {
             tops.setProperty(tableName, Property.TABLE_FORMATTER_CLASS.getKey(),
                 STATUS_FORMATTER_CLASS_NAME);
           } catch (AccumuloException | AccumuloSecurityException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
           }
         }
 
@@ -147,7 +147,7 @@ public class ReplicationTableUtil {
       tops.setProperty(tableName, Property.TABLE_FORMATTER_CLASS.getKey(),
           STATUS_FORMATTER_CLASS_NAME);
     } catch (AccumuloException | AccumuloSecurityException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 

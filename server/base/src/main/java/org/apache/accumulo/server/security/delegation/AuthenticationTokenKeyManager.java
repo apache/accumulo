@@ -166,7 +166,7 @@ public class AuthenticationTokenKeyManager implements Runnable {
         keyDistributor.advertise(newKey);
       } catch (KeeperException | InterruptedException e) {
         log.error("Failed to advertise AuthenticationKey in ZooKeeper. Exiting.", e);
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
 
       lastKeyUpdate = now;

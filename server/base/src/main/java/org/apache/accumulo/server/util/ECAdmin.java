@@ -138,7 +138,7 @@ public class ECAdmin implements KeywordExecutable {
       coordinatorClient.cancel(TraceUtil.traceInfo(), context.rpcCreds(), ecid);
       System.out.println("Cancel sent to coordinator for " + ecid);
     } catch (Exception e) {
-      throw new RuntimeException("Exception calling cancel compaction for " + ecid, e);
+      throw new IllegalStateException("Exception calling cancel compaction for " + ecid, e);
     } finally {
       ThriftUtil.returnClient(coordinatorClient, context);
     }
@@ -188,7 +188,7 @@ public class ECAdmin implements KeywordExecutable {
         }
       });
     } catch (Exception e) {
-      throw new RuntimeException("Unable to get running compactions.", e);
+      throw new IllegalStateException("Unable to get running compactions.", e);
     } finally {
       ThriftUtil.returnClient(coordinatorClient, context);
     }

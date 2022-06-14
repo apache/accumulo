@@ -200,7 +200,7 @@ public class CompactionFinalizer {
 
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       } catch (RuntimeException e) {
         LOG.warn("Failed to process pending notifications", e);
       }
@@ -219,7 +219,7 @@ public class CompactionFinalizer {
       }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     } catch (RuntimeException e) {
       LOG.warn("Failed to notify tservers", e);
     }

@@ -177,7 +177,7 @@ public class TableDiskUsage {
       try {
         mdScanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
       } catch (TableNotFoundException e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
       mdScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       mdScanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());

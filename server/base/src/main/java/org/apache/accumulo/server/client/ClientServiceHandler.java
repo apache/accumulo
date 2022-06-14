@@ -315,7 +315,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       case DEFAULT:
         return conf(credentials, context.getDefaultConfiguration());
     }
-    throw new RuntimeException("Unexpected configuration type " + type);
+    throw new IllegalArgumentException("Unexpected configuration type " + type);
   }
 
   @Override

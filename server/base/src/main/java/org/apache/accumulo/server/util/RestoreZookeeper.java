@@ -57,7 +57,7 @@ public class RestoreZookeeper {
       if ("node".equals(name)) {
         String child = attributes.getValue("name");
         if (child == null) {
-          throw new RuntimeException("name attribute not set");
+          throw new IllegalStateException("name attribute not set");
         }
         String encoding = attributes.getValue("encoding");
         String value = attributes.getValue("value");
@@ -97,12 +97,12 @@ public class RestoreZookeeper {
               overwrite ? NodeExistsPolicy.OVERWRITE : NodeExistsPolicy.FAIL);
         } catch (KeeperException e) {
           if (e.code().equals(KeeperException.Code.NODEEXISTS)) {
-            throw new RuntimeException(path + " exists.  Remove it first.");
+            throw new IllegalStateException(path + " exists.  Remove it first.");
           }
           throw e;
         }
       } catch (Exception e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
     }
   }

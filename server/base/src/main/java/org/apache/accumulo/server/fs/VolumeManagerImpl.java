@@ -94,7 +94,7 @@ public class VolumeManagerImpl implements VolumeManager {
       // null chooser handled below
     }
     if (chooser1 == null) {
-      throw new RuntimeException(
+      throw new IllegalStateException(
           "Failed to load volume chooser specified by " + Property.GENERAL_VOLUME_CHOOSER);
     }
     chooser = chooser1;
@@ -216,7 +216,7 @@ public class VolumeManagerImpl implements VolumeManager {
               + " not be configured as false. " + ticketMessage;
           // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
           log.error("FATAL {}", msg);
-          throw new RuntimeException(msg);
+          throw new IllegalStateException(msg);
         }
 
         // Warn if synconclose isn't set
@@ -416,7 +416,7 @@ public class VolumeManagerImpl implements VolumeManager {
     if (!options.contains(choice)) {
       String msg = "The configured volume chooser, '" + chooser.getClass()
           + "', or one of its delegates returned a volume not in the set of options provided";
-      throw new RuntimeException(msg);
+      throw new IllegalStateException(msg);
     }
     return choice;
   }
@@ -429,7 +429,7 @@ public class VolumeManagerImpl implements VolumeManager {
       if (!options.contains(choice)) {
         String msg = "The configured volume chooser, '" + chooser.getClass()
             + "', or one of its delegates returned a volume not in the set of options provided";
-        throw new RuntimeException(msg);
+        throw new IllegalStateException(msg);
       }
     }
     return choices;

@@ -175,7 +175,7 @@ public class TableManager {
       });
     } catch (Exception e) {
       log.error("FATAL Failed to transition table to state {}", newState);
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 

@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.problems;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Iterator;
@@ -34,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -50,6 +53,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.hadoop.io.Text;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -181,97 +185,93 @@ public class ProblemReports implements Iterable<ProblemReport> {
   }
 
   public Iterator<ProblemReport> iterator(final TableId table) {
-    try {
+    return new Iterator<>() {
 
-      return new Iterator<>() {
+      ZooReaderWriter zoo = context.getZooReaderWriter();
+      private int iter1Count = 0;
+      private Iterator<String> iter1;
 
-        ZooReaderWriter zoo = context.getZooReaderWriter();
-        private int iter1Count = 0;
-        private Iterator<String> iter1;
-
-        private Iterator<String> getIter1() {
-          if (iter1 == null) {
-            try {
-              List<String> children;
-              if (table == null || isMeta(table)) {
-                children = zoo.getChildren(context.getZooKeeperRoot() + Constants.ZPROBLEMS);
-              } else {
-                children = Collections.emptyList();
-              }
-              iter1 = children.iterator();
-            } catch (Exception e) {
-              throw new RuntimeException(e);
-            }
-          }
-
-          return iter1;
-        }
-
-        private Iterator<Entry<Key,Value>> iter2;
-
-        private Iterator<Entry<Key,Value>> getIter2() {
-          if (iter2 == null) {
-            try {
-              if ((table == null || !isMeta(table)) && iter1Count == 0) {
-                Scanner scanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-                scanner.setTimeout(3, TimeUnit.SECONDS);
-
-                if (table == null) {
-                  scanner.setRange(new Range(new Text("~err_"), false, new Text("~err`"), false));
-                } else {
-                  scanner.setRange(new Range(new Text("~err_" + table)));
-                }
-
-                iter2 = scanner.iterator();
-
-              } else {
-                Map<Key,Value> m = Collections.emptyMap();
-                iter2 = m.entrySet().iterator();
-              }
-            } catch (Exception e) {
-              throw new RuntimeException(e);
-            }
-          }
-
-          return iter2;
-        }
-
-        @Override
-        public boolean hasNext() {
-          if (getIter1().hasNext()) {
-            return true;
-          }
-          return getIter2().hasNext();
-        }
-
-        @Override
-        public ProblemReport next() {
+      private Iterator<String> getIter1() {
+        if (iter1 == null) {
           try {
-            if (getIter1().hasNext()) {
-              iter1Count++;
-              return ProblemReport.decodeZooKeeperEntry(context, getIter1().next());
+            List<String> children;
+            if (table == null || isMeta(table)) {
+              children = zoo.getChildren(context.getZooKeeperRoot() + Constants.ZPROBLEMS);
+            } else {
+              children = Collections.emptyList();
             }
-
-            if (getIter2().hasNext()) {
-              return ProblemReport.decodeMetadataEntry(getIter2().next());
-            }
+            iter1 = children.iterator();
           } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
+          }
+        }
+
+        return iter1;
+      }
+
+      private Iterator<Entry<Key,Value>> iter2;
+
+      private Iterator<Entry<Key,Value>> getIter2() {
+        if (iter2 == null) {
+          try {
+            if ((table == null || !isMeta(table)) && iter1Count == 0) {
+              Scanner scanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+              scanner.setTimeout(3, TimeUnit.SECONDS);
+
+              if (table == null) {
+                scanner.setRange(new Range(new Text("~err_"), false, new Text("~err`"), false));
+              } else {
+                scanner.setRange(new Range(new Text("~err_" + table)));
+              }
+
+              iter2 = scanner.iterator();
+
+            } else {
+              Map<Key,Value> m = Collections.emptyMap();
+              iter2 = m.entrySet().iterator();
+            }
+          } catch (TableNotFoundException e) {
+            throw new IllegalStateException(e);
+          }
+        }
+
+        return iter2;
+      }
+
+      @Override
+      public boolean hasNext() {
+        if (getIter1().hasNext()) {
+          return true;
+        }
+        return getIter2().hasNext();
+      }
+
+      @Override
+      public ProblemReport next() {
+        try {
+          if (getIter1().hasNext()) {
+            iter1Count++;
+            return ProblemReport.decodeZooKeeperEntry(context, getIter1().next());
           }
 
-          throw new NoSuchElementException();
+          if (getIter2().hasNext()) {
+            return ProblemReport.decodeMetadataEntry(getIter2().next());
+          }
+        } catch (IOException e) {
+          throw new UncheckedIOException(e);
+        } catch (KeeperException | InterruptedException e) {
+          throw new IllegalStateException(e);
         }
 
-        @Override
-        public void remove() {
-          throw new UnsupportedOperationException();
-        }
+        throw new NoSuchElementException();
+      }
 
-      };
+      @Override
+      public void remove() {
+        throw new UnsupportedOperationException();
+      }
 
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+    };
   }
 
   @Override

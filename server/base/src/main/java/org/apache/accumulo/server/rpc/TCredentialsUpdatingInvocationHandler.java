@@ -37,6 +37,8 @@ import org.apache.accumulo.server.security.UserImpersonation.UsersWithHosts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Extracts the TCredentials object from the RPC argument list and asserts that the Accumulo
  * principal is equal to the Kerberos 'primary' component of the Kerberos principal (e.g. Accumulo
@@ -57,10 +59,11 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
     impersonation = new UserImpersonation(conf);
   }
 
+  @SuppressFBWarnings(value = "THROWS_METHOD_THROWS_CLAUSE_THROWABLE",
+      justification = "invoked method could throw anything")
   @Override
   public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
     updateArgs(args);
-
     return invokeMethod(method, args);
   }
 
@@ -173,6 +176,8 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
     return current != null ? current : typedClz;
   }
 
+  @SuppressFBWarnings(value = "THROWS_METHOD_THROWS_CLAUSE_THROWABLE",
+      justification = "invoked method could throw anything")
   private Object invokeMethod(Method method, Object[] args) throws Throwable {
     try {
       return method.invoke(instance, args);

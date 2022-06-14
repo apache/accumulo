@@ -22,6 +22,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -157,7 +158,7 @@ public class BulkImporter {
         try {
           threadPool.awaitTermination(60, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
-          throw new RuntimeException(e);
+          throw new IllegalStateException(e);
         }
       }
       timer.stop(Timers.EXAMINE_MAP_FILES);
@@ -343,7 +344,7 @@ public class BulkImporter {
       }
     } catch (IOException e) {
       log.error("Failed to get map files in for {}: {}", paths, e.getMessage(), e);
-      throw new RuntimeException(e);
+      throw new UncheckedIOException(e);
     }
 
     final Map<Path,List<AssignmentInfo>> ais = Collections.synchronizedMap(new TreeMap<>());
@@ -401,7 +402,7 @@ public class BulkImporter {
       } catch (InterruptedException e) {
         log.error("Encountered InterruptedException while waiting for the threadPool to terminate.",
             e);
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
     }
 
@@ -547,7 +548,7 @@ public class BulkImporter {
       } catch (InterruptedException e) {
         log.error(
             "Encountered InterruptedException while waiting for the thread pool to terminate.", e);
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
     }
 

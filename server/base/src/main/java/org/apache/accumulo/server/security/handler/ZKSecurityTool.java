@@ -25,6 +25,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -169,8 +170,8 @@ class ZKSecurityTool {
         out.writeByte(sp.getId());
     } catch (IOException e) {
       log.error("{}", e.getMessage(), e);
-      throw new RuntimeException(e); // this is impossible with ByteArrayOutputStream; crash hard if
-                                     // this happens
+      // this is impossible with ByteArrayOutputStream; crash hard if this happens
+      throw new UncheckedIOException(e);
     }
     return bytes.toByteArray();
   }
@@ -197,8 +198,8 @@ class ZKSecurityTool {
         out.writeByte(tp.getId());
     } catch (IOException e) {
       log.error("{}", e.getMessage(), e);
-      throw new RuntimeException(e); // this is impossible with ByteArrayOutputStream; crash hard if
-                                     // this happens
+      // this is impossible with ByteArrayOutputStream; crash hard if this happens
+      throw new UncheckedIOException(e);
     }
     return bytes.toByteArray();
   }
@@ -218,8 +219,8 @@ class ZKSecurityTool {
         out.writeByte(tnp.getId());
     } catch (IOException e) {
       log.error("{}", e.getMessage(), e);
-      throw new RuntimeException(e); // this is impossible with ByteArrayOutputStream; crash hard if
-                                     // this happens
+      // this is impossible with ByteArrayOutputStream; crash hard if this happens
+      throw new UncheckedIOException(e);
     }
     return bytes.toByteArray();
   }

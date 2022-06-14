@@ -51,7 +51,7 @@ public class MetadataBulkLoadFilterTest {
     @Override
     public boolean transactionComplete(String type, long tid) {
       if (tid == 9)
-        throw new RuntimeException();
+        throw new IllegalArgumentException();
       return tid != 5 && tid != 7;
     }
   }
