@@ -25,7 +25,7 @@ assignees: ''
   - [ ] In [Maven Central](https://repo1.maven.org/maven2/org/apache/accumulo/accumulo-core/)
   - [ ] In [ASF Downloads](https://downloads.apache.org/accumulo)
   - [ ] In [several mirrors](https://www.apache.org/dyn/closer.lua/accumulo)
-- Update the [staging website](http://accumulo.staged.apache.org/)
+- Update the [staging website](https://accumulo.staged.apache.org/)
   - [ ] Release notes
   - [ ] Add `LTM: true` to the release notes front-matter for LTM releases
   - [ ] Navigation

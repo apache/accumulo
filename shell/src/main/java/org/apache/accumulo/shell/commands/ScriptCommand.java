@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -63,7 +63,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class ScriptCommand extends Command {
 
   // Command to allow user to run scripts, see JSR-223
-  // http://www.oracle.com/technetwork/articles/javase/scripting-140262.html
+  // https://www.oracle.com/technetwork/articles/javase/scripting-140262.html
 
   protected Option list, engine, script, file, args, out, function, object;
   private static final String DEFAULT_ENGINE = "rhino";
