@@ -71,8 +71,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   private static final ScheduledThreadPoolExecutor executor =
       ThreadPools.getServerThreadPools().createScheduledExecutorService(4, "propstore-sync", false);
   private final ScheduledFuture<?> refreshTaskFuture;
-  // TODO - DEBUG VALUE ONLY
-  private static final int REFRESH_PERIOD_MINUTES = 1;
+  private static final int REFRESH_PERIOD_MINUTES = 15;
   // max jitter delay between ZK calls (milliseconds)
   private static final int MAX_JITTER_DELAY = 23;
 
