@@ -42,6 +42,13 @@ enum TableOperation {
   COMPACT_CANCEL
 }
 
+enum TFateAction {
+  FAIL
+  DELETE
+  PRINT
+  CANCEL
+}
+
 enum TableOperationExceptionType {
   EXISTS
   NOTFOUND
@@ -106,6 +113,17 @@ exception ThriftNotActiveServiceException {
 struct TDiskUsage {
   1:list<string> tables
   2:i64 usage
+}
+
+struct TFateTransaction {
+  1:i64 txid
+  2:string tstatus
+  3:string debug
+  4:list<string> hlocks
+  5:list<string> wlocks
+  6:string top
+  7:i64 timecreated
+  8:string stackInfo
 }
 
 service ClientService {
@@ -333,6 +351,16 @@ service ClientService {
   ) throws (
     1:ThriftTableOperationException tope
   )
+
+  set<TFateTransaction> executeFateAction(
+      1:trace.TInfo tinfo
+      2:security.TCredentials credentials
+      3:TFateAction action
+      4:set<i64> txids
+      5:list<string> filterStatues
+    ) throws (
+      1:ThriftSecurityException sec
+    )
 
   bool checkClass(
     1:trace.TInfo tinfo
