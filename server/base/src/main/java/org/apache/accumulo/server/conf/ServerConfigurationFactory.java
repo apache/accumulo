@@ -30,7 +30,13 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.store.NamespacePropKey;
+import org.apache.accumulo.server.conf.store.PropChangeListener;
+import org.apache.accumulo.server.conf.store.PropStoreKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
+import org.apache.accumulo.server.conf.store.TablePropKey;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Suppliers;
 
@@ -38,6 +44,7 @@ import com.google.common.base.Suppliers;
  * A factor for configurations used by a server process. Instance of this class are thread-safe.
  */
 public class ServerConfigurationFactory extends ServerConfiguration {
+  private final static Logger log = LoggerFactory.getLogger(ServerConfigurationFactory.class);
 
   private final Map<TableId,NamespaceConfiguration> tableParentConfigs = new ConcurrentHashMap<>();
   private final Map<TableId,TableConfiguration> tableConfigs = new ConcurrentHashMap<>();
@@ -47,6 +54,8 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   private final ServerContext context;
   private final SiteConfiguration siteConfig;
   private final Supplier<SystemConfiguration> systemConfig;
+
+  private final DeleteWatcher deleteWatcher = new DeleteWatcher();
 
   public ServerConfigurationFactory(ServerContext context, SiteConfiguration siteConfig) {
     this.context = context;
@@ -76,6 +85,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   public TableConfiguration getTableConfiguration(TableId tableId) {
     return tableConfigs.computeIfAbsent(tableId, key -> {
       if (context.tableNodeExists(tableId)) {
+        context.getPropStore().registerAsListener(TablePropKey.of(context, tableId), deleteWatcher);
         var conf =
             new TableConfiguration(context, tableId, getNamespaceConfigurationForTable(tableId));
         ConfigCheckUtil.validate(conf);
@@ -99,10 +109,43 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   @Override
   public NamespaceConfiguration getNamespaceConfiguration(NamespaceId namespaceId) {
     return namespaceConfigs.computeIfAbsent(namespaceId, key -> {
+      context.getPropStore().registerAsListener(NamespacePropKey.of(context, namespaceId),
+          deleteWatcher);
       var conf = new NamespaceConfiguration(context, namespaceId, getSystemConfiguration());
       ConfigCheckUtil.validate(conf);
       return conf;
     });
   }
 
+  private class DeleteWatcher implements PropChangeListener {
+
+    @Override
+    public void zkChangeEvent(PropStoreKey<?> propStoreKey) {
+      // no-op. changes handled by prop store impl
+    }
+
+    @Override
+    public void cacheChangeEvent(PropStoreKey<?> propStoreKey) {
+      // no-op. changes handled by prop store impl
+    }
+
+    @Override
+    public void deleteEvent(PropStoreKey<?> propStoreKey) {
+      if (propStoreKey instanceof NamespacePropKey) {
+        log.trace("configuration snapshot refresh: Handle namespace delete for {}", propStoreKey);
+        namespaceConfigs.remove(((NamespacePropKey) propStoreKey).getId());
+        return;
+      }
+      if (propStoreKey instanceof TablePropKey) {
+        log.trace("configuration snapshot refresh: Handle table delete for {}", propStoreKey);
+        tableConfigs.remove(((TablePropKey) propStoreKey).getId());
+        tableParentConfigs.remove(((TablePropKey) propStoreKey).getId());
+      }
+    }
+
+    @Override
+    public void connectionEvent() {
+      // no-op. changes handled by prop store impl
+    }
+  }
 }
