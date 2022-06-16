@@ -57,7 +57,7 @@ public class CompletableFutureUtil {
    * The step function should always return an asynchronous {@code
    * CompletableFuture} in order to avoid stack overflows.
    */
-  public static <T> CompletableFuture<T> iterateWhile(Function<T,CompletableFuture<T>> step,
+  public static <T> CompletableFuture<T> iterateUntil(Function<T,CompletableFuture<T>> step,
       Predicate<T> isDone, T init) {
     // We'd like to use a lambda here, but lambdas don't have
     // `this`, so we would have to use some clumsy indirection to
