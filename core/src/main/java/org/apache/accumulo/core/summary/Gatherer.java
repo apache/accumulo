@@ -393,6 +393,16 @@ public class Gatherer {
     }
 
     @Override
+    public boolean isCancelled() {
+      return future.isCancelled();
+    }
+
+    @Override
+    public boolean isDone() {
+      return future.isDone();
+    }
+
+    @Override
     public SummaryCollection get() throws InterruptedException, ExecutionException {
       return future.get();
     }
@@ -403,15 +413,6 @@ public class Gatherer {
       return future.get(timeout, unit);
     }
 
-    @Override
-    public boolean isCancelled() {
-      return future.isCancelled();
-    }
-
-    @Override
-    public boolean isDone() {
-      return future.isDone();
-    }
   }
 
   /**
