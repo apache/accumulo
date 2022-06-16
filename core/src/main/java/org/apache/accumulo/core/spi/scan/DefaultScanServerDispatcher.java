@@ -20,6 +20,7 @@ package org.apache.accumulo.core.spi.scan;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.lang.reflect.Type;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -31,6 +32,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.data.TabletId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,53 +42,241 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.Sets;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 /**
- * The default Accumulo dispatcher for scan servers. This dispatcher will hash tablets to a few
- * random scan servers (defaults to 3). So a given tablet will always go to the same 3 scan servers.
- * When scan servers are busy, this dispatcher will rapidly expand the number of scan servers it
- * randomly chooses from for a given tablet. With the default settings and 1000 scan servers that
- * are busy, this dispatcher would randomly choose from 3, 21, 144, and then 1000 scan servers.
- * After getting to a point where we are raondomly choosing from all scan server, if busy is still
- * being observed then this dispatcher will start to exponentially increase the busy timeout. If all
- * scan servers are busy then its best to just go to one and wait for your scan to run, which is why
- * the busy timeout increases exponentially when it seems like everything is busy.
- *
- * <p>
- * The following options are accepted in {@link #init(InitParameters)}
- * </p>
+ * The default Accumulo dispatcher for scan servers. This dispatcher will :
  *
  * <ul>
- * <li><b>initialServers</b> the initial number of servers to randomly choose from for a given
- * tablet. Defaults to 3.</li>
- * <li><b>initialBusyTimeout</b>The initial busy timeout to use when contacting a scan servers. If
- * the scan does start running within the busy timeout then another scan server can be tried.
- * Defaults to PT0.033S see {@link Duration#parse(CharSequence)}</li>
- * <li><b>maxBusyTimeout</b>When busy is repeatedly seen, then the busy timeout will be increased
- * exponentially. This setting controls the maximum busyTimeout. Defaults to PT30M</li>
- * <li><b>maxDepth</b>When busy is observed the number of servers to randomly chose from is
- * expanded. This setting controls how many busy observations it will take before we choose from all
- * servers.</li>
+ * <li>Hash each tablet to a per attempt configurable number of scan servers and then randomly
+ * choose one of those scan servers. Using hashing allows different client to select the same scan
+ * servers for a given tablet.</li>
+ * <li>Use a per attempt configurable busy timeout.</li>
  * </ul>
  *
+ * <p>
+ * This class accepts a single configuration that has a json value. To configure this class set
+ * {@code scan.server.dispatcher.opts.profiles=<json>} in the accumulo client configuration along
+ * with the config for the class. The following is the default configuration value.
+ * </p>
+ * <p>
+ * {@value DefaultScanServerDispatcher#PROFILES_DEFAULT}
+ * </p>
  *
+ * The json is structured as a list of profiles, with each profile having the following fields.
+ *
+ * <ul>
+ * <li><b>isDefault : </b> A boolean that specifies whether this is the default profile. One and
+ * only one profile must set this to true.</li>
+ * <li><b>maxBusyTimeout : </b> The maximum busy timeout to use. The busy timeout from the last
+ * attempt configuration grows exponentially up to this max.</li>
+ * <li><b>scanTypeActivations : </b> A list of scan types that will activate this profile. Scan
+ * types are specified by setting {@code scan_type=<scan_type>} as execution on the scanner. See
+ * {@link org.apache.accumulo.core.client.ScannerBase#setExecutionHints(Map)}</li>
+ * <li><b>attemptPlans : </b> A list of configuration to use for each scan attempt. Each list object
+ * has the following fields:
+ * <ul>
+ * <li><b>servers : </b> The number of servers to randomly choose from for this attempt.</li>
+ * <li><b>busyTimeout : </b> The busy timeout to use for this attempt.</li>
+ * <li><b>salt : </b> An optional string to append when hashing the tablet. When this is set
+ * differently for attempts it has the potential to cause the set of servers chosen from to be
+ * disjoint. When not set or the same, the servers between attempts will be subsets.</li>
+ * </ul>
+ * </li>
+ * </ul>
+ *
+ * <p>
+ * Below is an example configuration with two profiles, one is the default and the other is used
+ * when the scan execution hint {@code scan_type=slow} is set.
+ * </p>
+ *
+ * <pre>
+ *    [
+ *     {
+ *       "isDefault":true,
+ *       "maxBusyTimeout":"5m",
+ *       "busyTimeoutMultiplier":4,
+ *       "attemptPlans":[
+ *         {"servers":"3", "busyTimeout":"33ms"},
+ *         {"servers":"100%", "busyTimeout":"100ms"}
+ *       ]
+ *     },
+ *     {
+ *       "scanTypeActivations":["slow"]
+ *       "maxBusyTimeout":"20m",
+ *       "busyTimeoutMultiplier":8,
+ *       "attemptPlans":[
+ *         {"servers":"1", "busyTimeout":"10s"},
+ *         {"servers":"3", "busyTimeout":"30s","salt","42"},
+ *         {"servers":"9", "busyTimeout":"60s","salt","84"}
+ *       ]
+ *     }
+ *    ]
+ * </pre>
+ *
+ * <p>
+ * For the default profile in the example it will start off by choosing randomly from 3 scan servers
+ * based on a hash of the tablet with no salt. For the first attempt it will use a busy timeout of
+ * 33 milliseconds. If the first attempt returns with busy, then it will randomly choose from 100%
+ * or all servers for the second attempt and use a busy timeout of 100ms. For subsequent attempts it
+ * will keep choosing from all servers and start multiplying the busy timeout by 4 until the max
+ * busy timeout of 4 minutes is reached.
+ * </p>
+ *
+ * <p>
+ * For the profile activated by {@code scan_type=slow} it start off by choosing randomly from 1 scan
+ * server based on a hash of the tablet with no salt and a busy timeout of 10s. The second attempt
+ * will choose from 3 scan servers based on a hash of the tablet plus the salt {@literal 42}.
+ * Without the salt, the single scan servers from the first attempt would always be included in the
+ * set of 3. With the salt the single scan server from the first attempt may not be included. The
+ * third attempt will choose a scan server from 9 using the salt {@literal 84} and a busy timeout of
+ * 60s. The different salt means the set of servers that attempts 2 and 3 choose from may be
+ * disjoint. Attempt 4 and greater will continue to choose from the same 9 servers as attempt 3 and
+ * will keep increasing the busy timeout by multiplying 8 until the maximum of 20 minutes is
+ * reached.
+ * </p>
  */
 public class DefaultScanServerDispatcher implements ScanServerDispatcher {
 
   private static final Logger LOG = LoggerFactory.getLogger(DefaultScanServerDispatcher.class);
 
   private static final SecureRandom RANDOM = new SecureRandom();
-
-  protected Duration initialBusyTimeout;
-  protected Duration maxBusyTimeout;
-
-  protected int initialServers;
-  protected int maxDepth;
+  public static final String PROFILES_DEFAULT = "[{'isDefault':true,'maxBusyTimeout':'5m',"
+      + "'busyTimeoutMultiplier':8, " + "'scanTypeActivations':[], "
+      + "'attemptPlans':[{'servers':'3', 'busyTimeout':'33ms', 'salt':'one'},"
+      + "{'servers':'13', 'busyTimeout':'33ms', 'salt':'two'},"
+      + "{'servers':'100%', 'busyTimeout':'33ms'}]}]";
 
   private Supplier<List<String>> orderedScanServersSupplier;
 
-  private static final Set<String> OPT_NAMES =
-      Set.of("initialServers", "maxDepth", "initialBusyTimeout", "maxBusyTimeout");
+  private Map<String,Profile> profiles;
+  private Profile defaultProfile;
+
+  private static final Set<String> OPT_NAMES = Set.of("profiles");
+
+  private static class AttemptPlan {
+    String servers;
+    String busyTimeout;
+    String salt = "";
+
+    transient double serversRatio;
+    transient int parsedServers;
+    transient boolean isServersPercent;
+    transient boolean parsed = false;
+    transient long parsedBusyTimeout;
+
+    void parse() {
+      if (parsed)
+        return;
+
+      if (servers.endsWith("%")) {
+        // TODO check < 100
+        serversRatio = Double.parseDouble(servers.substring(0, servers.length() - 1)) / 100.0;
+        if (serversRatio < 0 || serversRatio > 1) {
+          throw new IllegalArgumentException("Bad servers percentage : " + servers);
+        }
+        isServersPercent = true;
+      } else {
+        parsedServers = Integer.parseInt(servers);
+        if (parsedServers <= 0) {
+          throw new IllegalArgumentException("Server must be positive : " + servers);
+        }
+        isServersPercent = false;
+      }
+
+      parsedBusyTimeout = ConfigurationTypeHelper.getTimeInMillis(busyTimeout);
+
+      parsed = true;
+    }
+
+    int getNumServers(int totalServers) {
+      parse();
+      if (isServersPercent) {
+        return Math.max(1, (int) Math.round(serversRatio * totalServers));
+      } else {
+        return Math.min(totalServers, parsedServers);
+      }
+    }
+
+    long getBusyTimeout() {
+      parse();
+      return parsedBusyTimeout;
+    }
+  }
+
+  private static class Profile {
+    public List<AttemptPlan> attemptPlans;
+    List<String> scanTypeActivations;
+    boolean isDefault = false;
+    int busyTimeoutMultiplier;
+    String maxBusyTimeout;
+
+    transient boolean parsed = false;
+    transient long parsedMaxBusyTimeout;
+
+    int getNumServers(int attempt, int totalServers) {
+      int index = Math.min(attempt, attemptPlans.size() - 1);
+      return attemptPlans.get(index).getNumServers(totalServers);
+    }
+
+    void parse() {
+      if (parsed)
+        return;
+      parsedMaxBusyTimeout = ConfigurationTypeHelper.getTimeInMillis(maxBusyTimeout);
+      parsed = true;
+    }
+
+    long getBusyTimeout(int attempt) {
+      int index = Math.min(attempt, attemptPlans.size() - 1);
+      long busyTimeout = attemptPlans.get(index).getBusyTimeout();
+      if (attempt >= attemptPlans.size()) {
+        parse();
+        busyTimeout = (long) (busyTimeout
+            * Math.pow(busyTimeoutMultiplier, attempt - attemptPlans.size() + 1));
+        busyTimeout = Math.min(busyTimeout, parsedMaxBusyTimeout);
+      }
+
+      return busyTimeout;
+    }
+
+    public String getSalt(int attempts) {
+      int index = Math.min(attempts, attemptPlans.size() - 1);
+      return attemptPlans.get(index).salt;
+    }
+  }
+
+  private void parseProfiles(Map<String,String> options) {
+    Type listType = new TypeToken<ArrayList<Profile>>() {}.getType();
+    Gson gson = new Gson();
+    List<Profile> profList =
+        gson.fromJson(options.getOrDefault("profiles", PROFILES_DEFAULT), listType);
+
+    profiles = new HashMap<>();
+    defaultProfile = null;
+
+    for (Profile prof : profList) {
+      if (prof.scanTypeActivations != null) {
+        for (String scanType : prof.scanTypeActivations) {
+          if (profiles.put(scanType, prof) != null) {
+            throw new IllegalArgumentException(
+                "Scan type activation seen in multiple profiles : " + scanType);
+          }
+        }
+      }
+      if (prof.isDefault) {
+        if (defaultProfile != null) {
+          throw new IllegalArgumentException("Multiple default profiles seen");
+        }
+
+        defaultProfile = prof;
+      }
+
+      if (defaultProfile == null) {
+        throw new IllegalArgumentException("No default profile specified");
+      }
+    }
+  }
 
   @Override
   public void init(InitParameters params) {
@@ -103,23 +293,7 @@ public class DefaultScanServerDispatcher implements ScanServerDispatcher {
 
     Preconditions.checkArgument(diff.isEmpty(), "Unknown options %s", diff);
 
-    initialServers = Integer.parseInt(opts.getOrDefault("initialServers", "3"));
-    maxDepth = Integer.parseInt(opts.getOrDefault("maxDepth", "3"));
-    initialBusyTimeout = Duration.parse(opts.getOrDefault("initialBusyTimeout", "PT0.033S"));
-    maxBusyTimeout = Duration.parse(opts.getOrDefault("maxBusyTimeout", "PT30M"));
-
-    Preconditions.checkArgument(initialServers > 0, "initialServers must be positive : %s",
-        initialServers);
-    Preconditions.checkArgument(maxDepth > 0, "maxDepth must be positive : %s", maxDepth);
-    Preconditions.checkArgument(initialBusyTimeout.compareTo(Duration.ZERO) > 0,
-        "initialBusyTimeout must be positive %s", initialBusyTimeout);
-    Preconditions.checkArgument(maxBusyTimeout.compareTo(Duration.ZERO) > 0,
-        "maxBusyTimeout must be positive %s", maxBusyTimeout);
-
-    LOG.debug(
-        "DefaultScanServerDispatcher configured with initialServers: {}"
-            + ", maxDepth: {}, initialBusyTimeout: {}, maxBusyTimeout: {}",
-        initialServers, maxDepth, initialBusyTimeout, maxBusyTimeout);
+    parseProfiles(params.getOptions());
   }
 
   @Override
@@ -150,28 +324,27 @@ public class DefaultScanServerDispatcher implements ScanServerDispatcher {
 
     Map<TabletId,String> serversToUse = new HashMap<>();
 
-    long maxBusyAttempts = 0;
+    // get the max number of busy attempts, treat errors as busy attempts
+    int attempts = params.getTablets().stream()
+        .mapToInt(tablet -> params.getAttempts(tablet).size()).max().orElse(0);
+
+    String scanType = params.getHints().get("scan_type");
+
+    Profile profile = null;
+
+    if (scanType != null) {
+      profile = profiles.getOrDefault(scanType, defaultProfile);
+    } else {
+      profile = defaultProfile;
+    }
+
+    int numServers = profile.getNumServers(attempts, orderedScanServers.size());
 
     for (TabletId tablet : params.getTablets()) {
 
-      // this a count of errors and busy attempts, will treat errors as busy
-      long busyAttempts = params.getAttempts(tablet).size();
-
-      maxBusyAttempts = Math.max(maxBusyAttempts, busyAttempts);
-
       String serverToUse = null;
 
-      var hashCode = hashTablet(tablet);
-
-      int numServers;
-
-      if (busyAttempts < maxDepth) {
-        numServers = (int) Math
-            .round(initialServers * Math.pow(orderedScanServers.size() / (double) initialServers,
-                busyAttempts / (double) maxDepth));
-      } else {
-        numServers = orderedScanServers.size();
-      }
+      var hashCode = hashTablet(tablet, profile.getSalt(attempts));
 
       int serverIndex =
           (Math.abs(hashCode.asInt()) + RANDOM.nextInt(numServers)) % orderedScanServers.size();
@@ -181,14 +354,7 @@ public class DefaultScanServerDispatcher implements ScanServerDispatcher {
       serversToUse.put(tablet, serverToUse);
     }
 
-    long busyTimeout = initialBusyTimeout.toMillis();
-
-    if (maxBusyAttempts > maxDepth) {
-      busyTimeout = (long) (busyTimeout * Math.pow(8, maxBusyAttempts - (maxDepth + 1)));
-      busyTimeout = Math.min(busyTimeout, maxBusyTimeout.toMillis());
-    }
-
-    Duration busyTO = Duration.ofMillis(busyTimeout);
+    Duration busyTO = Duration.ofMillis(profile.getBusyTimeout(attempts));
 
     return new Actions() {
       @Override
@@ -208,7 +374,7 @@ public class DefaultScanServerDispatcher implements ScanServerDispatcher {
     };
   }
 
-  private HashCode hashTablet(TabletId tablet) {
+  private HashCode hashTablet(TabletId tablet, String salt) {
     var hasher = Hashing.murmur3_128().newHasher();
 
     if (tablet.getEndRow() != null) {
@@ -224,6 +390,10 @@ public class DefaultScanServerDispatcher implements ScanServerDispatcher {
     }
 
     hasher.putString(tablet.getTable().canonical(), UTF_8);
+
+    if (salt != null && !salt.isEmpty()) {
+      hasher.putString(salt, UTF_8);
+    }
 
     return hasher.hash();
   }

@@ -84,16 +84,20 @@ public class DefaultScanServerDispatcherTest {
 
     private final Collection<TabletId> tablets;
     private final Map<TabletId,Collection<? extends ScanServerDispatcher.ScanAttempt>> attempts;
+    private final Map<String,String> hints;
 
     DaParams(TabletId tablet) {
       this.tablets = Set.of(tablet);
       this.attempts = Map.of();
+      this.hints = Map.of();
     }
 
     DaParams(TabletId tablet,
-        Map<TabletId,Collection<? extends ScanServerDispatcher.ScanAttempt>> attempts) {
+        Map<TabletId,Collection<? extends ScanServerDispatcher.ScanAttempt>> attempts,
+        Map<String,String> hints) {
       this.tablets = Set.of(tablet);
       this.attempts = attempts;
+      this.hints = hints;
     }
 
     @Override
@@ -108,7 +112,7 @@ public class DefaultScanServerDispatcherTest {
 
     @Override
     public Map<String,String> getHints() {
-      return Map.of();
+      return hints;
     }
   }
 
@@ -171,6 +175,11 @@ public class DefaultScanServerDispatcherTest {
 
   private void runBusyTest(int numServers, int busyAttempts, int expectedServers,
       long expectedBusyTimeout, Map<String,String> opts) {
+    runBusyTest(numServers, busyAttempts, expectedServers, expectedBusyTimeout, opts, Map.of());
+  }
+
+  private void runBusyTest(int numServers, int busyAttempts, int expectedServers,
+      long expectedBusyTimeout, Map<String,String> opts, Map<String,String> hints) {
     DefaultScanServerDispatcher dispatcher = new DefaultScanServerDispatcher();
 
     var servers = Stream.iterate(1, i -> i <= numServers, i -> i + 1).map(i -> "s" + i + ":" + i)
@@ -192,7 +201,7 @@ public class DefaultScanServerDispatcherTest {
 
     for (int i = 0; i < 100 * numServers; i++) {
       ScanServerDispatcher.Actions actions =
-          dispatcher.determineActions(new DaParams(tabletId, attempts));
+          dispatcher.determineActions(new DaParams(tabletId, attempts, hints));
 
       assertEquals(expectedBusyTimeout, actions.getBusyTimeout().toMillis());
       assertEquals(0, actions.getDelay().toMillis());
@@ -206,29 +215,25 @@ public class DefaultScanServerDispatcherTest {
   @Test
   public void testBusy() {
     runBusyTest(1000, 0, 3, 33);
-    runBusyTest(1000, 1, 21, 33);
-    runBusyTest(1000, 2, 144, 33);
-    runBusyTest(1000, 3, 1000, 33);
-    runBusyTest(1000, 4, 1000, 33);
-    runBusyTest(1000, 5, 1000, 33 * 8);
-    runBusyTest(1000, 9, 1000, 33 * 8 * 8 * 8 * 8 * 8);
-    runBusyTest(1000, 10, 1000, 1800000);
+    runBusyTest(1000, 1, 13, 33);
+    runBusyTest(1000, 2, 1000, 33);
+    runBusyTest(1000, 3, 1000, 33 * 8);
+    runBusyTest(1000, 4, 1000, 33 * 8 * 8);
+    runBusyTest(1000, 6, 1000, 33 * 8 * 8 * 8 * 8);
+    runBusyTest(1000, 7, 1000, 300000);
+    runBusyTest(1000, 20, 1000, 300000);
 
     runBusyTest(27, 0, 3, 33);
-    runBusyTest(27, 1, 6, 33);
-    runBusyTest(27, 2, 13, 33);
-    runBusyTest(27, 3, 27, 33);
-    runBusyTest(27, 4, 27, 33);
-    runBusyTest(27, 5, 27, 33 * 8);
+    runBusyTest(27, 1, 13, 33);
+    runBusyTest(27, 2, 27, 33);
+    runBusyTest(27, 3, 27, 33 * 8);
 
     runBusyTest(6, 0, 3, 33);
-    runBusyTest(6, 1, 4, 33);
-    runBusyTest(6, 2, 5, 33);
-    runBusyTest(6, 3, 6, 33);
-    runBusyTest(6, 4, 6, 33);
-    runBusyTest(6, 5, 6, 33 * 8);
+    runBusyTest(6, 1, 6, 33);
+    runBusyTest(6, 2, 6, 33);
+    runBusyTest(6, 3, 6, 33 * 8);
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 2; i++) {
       runBusyTest(1, i, 1, 33);
       runBusyTest(2, i, 2, 33);
       runBusyTest(3, i, 3, 33);
@@ -271,16 +276,53 @@ public class DefaultScanServerDispatcherTest {
 
   @Test
   public void testOpts() {
-    var opts = Map.of("initialServers", "5", "maxDepth", "4", "initialBusyTimeout", "PT0.066S",
-        "maxBusyTimeout", "PT10M");
 
-    runBusyTest(1000, 0, 5, 66, opts);
-    runBusyTest(1000, 1, 19, 66, opts);
-    runBusyTest(1000, 2, 71, 66, opts);
-    runBusyTest(1000, 3, 266, 66, opts);
-    runBusyTest(1000, 4, 1000, 66, opts);
-    runBusyTest(1000, 8, 1000, 66 * 8 * 8 * 8, opts);
-    runBusyTest(1000, 10, 1000, 600000, opts);
+    String defaultProfile = "{'isDefault':true,'maxBusyTimeout':'5m','busyTimeoutMultiplier':4, "
+        + "'attemptPlans':[{'servers':'5', 'busyTimeout':'5ms'},"
+        + "{'servers':'20', 'busyTimeout':'33ms'}," + "{'servers':'50%', 'busyTimeout':'100ms'},"
+        + "{'servers':'100%', 'busyTimeout':'200ms'}]" + "}";
+
+    String profile1 = "{'scanTypeActivations':['long','st9'],'maxBusyTimeout':'30m',"
+        + "'busyTimeoutMultiplier':4, " + "'attemptPlans':[{'servers':'2', 'busyTimeout':'10s'},"
+        + "{'servers':'4', 'busyTimeout':'2m'}," + "{'servers':'10%', 'busyTimeout':'5m'}]" + "}";
+
+    String profile2 =
+        "{'scanTypeActivations':['mega'],'maxBusyTimeout':'60m'," + "'busyTimeoutMultiplier':2, "
+            + "'attemptPlans':[{'servers':'100%', 'busyTimeout':'10m'}]" + "}";
+
+    var opts = Map.of("profiles",
+        "[" + defaultProfile + ", " + profile1 + "," + profile2 + "]".replace('\'', '"'));
+
+    runBusyTest(1000, 0, 5, 5, opts);
+    runBusyTest(1000, 1, 20, 33, opts);
+    runBusyTest(1000, 2, 500, 100, opts);
+    runBusyTest(1000, 3, 1000, 200, opts);
+    runBusyTest(1000, 4, 1000, 200 * 4, opts);
+    runBusyTest(1000, 5, 1000, 200 * 4 * 4, opts);
+    runBusyTest(1000, 8, 1000, 200 * 4 * 4 * 4 * 4 * 4, opts);
+    runBusyTest(1000, 9, 1000, 300000, opts);
+    runBusyTest(1000, 10, 1000, 300000, opts);
+
+    var hints = Map.of("scan_type", "long");
+
+    runBusyTest(1000, 0, 2, 10000, opts, hints);
+    runBusyTest(1000, 1, 4, 120000, opts, hints);
+    runBusyTest(1000, 2, 100, 300000, opts, hints);
+    runBusyTest(1000, 3, 100, 1200000, opts, hints);
+    runBusyTest(1000, 4, 100, 1800000, opts, hints);
+    runBusyTest(1000, 50, 100, 1800000, opts, hints);
+
+    hints = Map.of("scan_type", "st9");
+    runBusyTest(1000, 0, 2, 10000, opts, hints);
+
+    hints = Map.of("scan_type", "mega");
+    runBusyTest(1000, 0, 1000, 600000, opts, hints);
+    runBusyTest(1000, 1, 1000, 1200000, opts, hints);
+
+    // test case where no profile is activated by a scan_type, so should use default profile
+    hints = Map.of("scan_type", "st7");
+    runBusyTest(1000, 0, 5, 5, opts, hints);
+
   }
 
   @Test
@@ -289,6 +331,40 @@ public class DefaultScanServerDispatcherTest {
     var exception =
         assertThrows(IllegalArgumentException.class, () -> runBusyTest(1000, 0, 5, 66, opts));
     assertTrue(exception.getMessage().contains("abc"));
+  }
+
+  @Test
+  public void testIncorrectOptions() {
+
+    String defaultProfile = "{'isDefault':true,'maxBusyTimeout':'5m','busyTimeoutMultiplier':4, "
+        + "'attemptPlans':[{'servers':'5', 'busyTimeout':'5ms'},"
+        + "{'servers':'20', 'busyTimeout':'33ms'}," + "{'servers':'50%', 'busyTimeout':'100ms'},"
+        + "{'servers':'100%', 'busyTimeout':'200ms'}]" + "}";
+
+    String profile1 = "{'scanTypeActivations':['long','mega'],'maxBusyTimeout':'30m',"
+        + "'busyTimeoutMultiplier':4, " + "'attemptPlans':[{'servers':'2', 'busyTimeout':'10s'},"
+        + "{'servers':'4', 'busyTimeout':'2m'}," + "{'servers':'10%', 'busyTimeout':'5m'}]" + "}";
+
+    String profile2 =
+        "{'scanTypeActivations':['mega'],'maxBusyTimeout':'60m'," + "'busyTimeoutMultiplier':2, "
+            + "'attemptPlans':[{'servers':'100%', 'busyTimeout':'10m'}]" + "}";
+
+    var opts1 = Map.of("profiles",
+        "[" + defaultProfile + ", " + profile1 + "," + profile2 + "]".replace('\'', '"'));
+
+    // two profiles activate on the scan type "mega", so should fail
+    var exception =
+        assertThrows(IllegalArgumentException.class, () -> runBusyTest(1000, 0, 5, 66, opts1));
+    assertTrue(exception.getMessage().contains("mega"));
+
+    var opts2 = Map.of("profiles", "[" + profile1 + "]".replace('\'', '"'));
+
+    // missing a default profile, so should fail
+    exception =
+        assertThrows(IllegalArgumentException.class, () -> runBusyTest(1000, 0, 5, 66, opts2));
+
+    assertTrue(exception.getMessage().contains("default"));
+
   }
 
   @Test
