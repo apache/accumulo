@@ -41,6 +41,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
@@ -83,7 +84,6 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.hash.Hashing;
@@ -350,7 +350,7 @@ public class Gatherer {
     private final AtomicBoolean cancelFlag = new AtomicBoolean(false);
 
     PartitionFuture(TInfo tinfo, ExecutorService execSrv, int modulus, int remainder) {
-      Function<ProcessedFiles,CompletableFuture<ProcessedFiles>> go = (previousWork) -> {
+      Function<ProcessedFiles,CompletableFuture<ProcessedFiles>> go = previousWork -> {
         Predicate<TabletFile> fileSelector = file -> Math
             .abs(Hashing.murmur3_32_fixed().hashString(file.getPathStr(), UTF_8).asInt()) % modulus
             == remainder;
@@ -379,8 +379,8 @@ public class Gatherer {
       };
       future = CompletableFutureUtil
           .iterateWhileAsync(go,
-              (previousWork) -> previousWork != null && previousWork.failedFiles.isEmpty(), null)
-          .thenApply((pf) -> pf.summaries);
+              previousWork -> previousWork != null && previousWork.failedFiles.isEmpty(), null)
+          .thenApply(pf -> pf.summaries);
     }
 
     @Override
