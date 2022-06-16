@@ -23,7 +23,6 @@ import static org.apache.accumulo.core.Constants.HDFS_TABLES_DIR;
 import java.util.Objects;
 
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;

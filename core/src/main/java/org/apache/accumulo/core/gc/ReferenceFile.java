@@ -21,7 +21,6 @@ package org.apache.accumulo.core.gc;
 import java.util.Objects;
 
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 
 /**
  * A GC reference used for streaming and delete markers. This type is a file. Subclass is a
