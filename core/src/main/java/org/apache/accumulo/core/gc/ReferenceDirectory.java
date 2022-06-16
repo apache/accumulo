@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.gc;
 
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 
 /**
  * A GC reference to a Tablet directory, like t-0003.
@@ -28,6 +29,7 @@ public class ReferenceDirectory extends ReferenceFile {
 
   public ReferenceDirectory(TableId tableId, String dirName) {
     super(tableId, dirName);
+    MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(dirName);
     this.tabletDir = dirName;
   }
 

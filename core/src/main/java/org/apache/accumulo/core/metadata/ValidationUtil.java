@@ -21,6 +21,8 @@ package org.apache.accumulo.core.metadata;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.hadoop.fs.Path;
 
+import java.util.Objects;
+
 /**
  * Utility class for validation of tablet file paths.
  */
@@ -47,5 +49,13 @@ public class ValidationUtil {
       throw new IllegalArgumentException("Invalid path provided, no scheme in " + path);
     }
     return path;
+  }
+
+  public static void validateRFileName(String fileName) {
+    Objects.requireNonNull(fileName);
+    if (!fileName.endsWith(".rf") && !fileName.endsWith("_tmp")) {
+      throw new IllegalArgumentException(
+              "Provided filename (" + fileName + ") does not end with '.rf' or '_tmp'");
+    }
   }
 }

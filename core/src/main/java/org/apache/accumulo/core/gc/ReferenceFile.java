@@ -35,7 +35,6 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
   protected String metadataEntry;
 
   public ReferenceFile(TableId tableId, String metadataEntry) {
-    MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(tableId.canonical());
     this.tableId = Objects.requireNonNull(tableId);
     this.metadataEntry = Objects.requireNonNull(metadataEntry);
   }
