@@ -22,23 +22,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
 
 public class GcVolumeUtil {
   // AGCAV : Accumulo Garbage Collector All Volumes
   static final String ALL_VOLUMES_PREFIX = "agcav:/";
-
-  public static AllVolumesDirectory getDeleteTabletOnAllVolumesUri(TableId tableId,
-      String dirName) {
-    ServerColumnFamily.validateDirCol(dirName);
-    String metadataEntry = ALL_VOLUMES_PREFIX + Constants.TABLE_DIR + Path.SEPARATOR + tableId
-        + Path.SEPARATOR + dirName;
-    return new AllVolumesDirectory(tableId, metadataEntry);
-  }
 
   public static Collection<Path> expandAllVolumesUri(VolumeManager fs, Path path) {
     if (path.toString().startsWith(ALL_VOLUMES_PREFIX)) {

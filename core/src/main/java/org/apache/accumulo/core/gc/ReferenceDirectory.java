@@ -39,4 +39,16 @@ public class ReferenceDirectory extends ReferenceFile {
   public String getTabletDir() {
     return tabletDir;
   }
+
+  /**
+   * A Tablet directory should have a metadata entry equal to the dirName.
+   */
+  @Override
+  public String getMetadataEntry() {
+    if (!tabletDir.equals(metadataEntry)) {
+      throw new IllegalStateException(
+          "Tablet dir " + tabletDir + " is not equal to metadataEntry: " + metadataEntry);
+    }
+    return metadataEntry;
+  }
 }

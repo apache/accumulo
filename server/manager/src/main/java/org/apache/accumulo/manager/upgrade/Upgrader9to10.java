@@ -75,6 +75,7 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.util.ConfigPropertyUpgrader;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.server.metadata.RootGcCandidates;
 import org.apache.accumulo.server.metadata.TabletMutatorBase;
@@ -520,7 +521,7 @@ public class Upgrader9to10 implements Upgrader {
       if (pathNoVolume.getName().startsWith(Constants.BULK_PREFIX)) {
         return new ReferenceFile(tableId, olddelete.toString());
       } else {
-        return GcVolumeUtil.getDeleteTabletOnAllVolumesUri(tableId, tabletDir);
+        return new AllVolumesDirectory(tableId, tabletDir);
       }
     } else {
       // depth of 4 should be a file like, "tables/5a/t-0005/A0012.rf"

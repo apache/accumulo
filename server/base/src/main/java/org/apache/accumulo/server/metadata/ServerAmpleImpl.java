@@ -126,8 +126,8 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     if (RootTable.ID.equals(tableId)) {
 
       // Directories are unexpected for the root tablet, so convert to stored tablet file
-      mutateRootGcCandidates(rgcc -> rgcc.add(
-          candidates.stream().map(reference -> new StoredTabletFile(reference.metadataEntry))));
+      mutateRootGcCandidates(rgcc -> rgcc.add(candidates.stream()
+          .map(reference -> new StoredTabletFile(reference.getMetadataEntry()))));
       return;
     }
 
@@ -205,7 +205,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
   @Override
   public Mutation createDeleteMutation(ReferenceFile tabletFilePathToRemove) {
-    return createDelMutation(ValidationUtil.validate(tabletFilePathToRemove).metadataEntry);
+    return createDelMutation(ValidationUtil.validate(tabletFilePathToRemove).getMetadataEntry());
   }
 
   public Mutation createDeleteMutation(StoredTabletFile pathToRemove) {

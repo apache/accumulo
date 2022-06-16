@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.gc;
 
+import java.util.Objects;
+
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 
@@ -30,12 +32,12 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
   public final TableId tableId; // 2a
 
   // the exact string that is stored in the metadata
-  public final String metadataEntry;
+  protected String metadataEntry;
 
   public ReferenceFile(TableId tableId, String metadataEntry) {
     MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(tableId.canonical());
-    this.tableId = tableId;
-    this.metadataEntry = metadataEntry;
+    this.tableId = Objects.requireNonNull(tableId);
+    this.metadataEntry = Objects.requireNonNull(metadataEntry);
   }
 
   @Override
@@ -55,6 +57,9 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
 
   @Override
   public int compareTo(ReferenceFile that) {
+    if (metadataEntry == null) {
+      throw new IllegalStateException("Metadata entry is null");
+    }
     if (equals(that)) {
       return 0;
     } else {
@@ -64,6 +69,9 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
 
   @Override
   public boolean equals(Object obj) {
+    if (metadataEntry == null) {
+      throw new IllegalStateException("Metadata entry is null");
+    }
     if (this == obj)
       return true;
     if (obj == null)
@@ -71,14 +79,14 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
     if (getClass() != obj.getClass())
       return false;
     ReferenceFile other = (ReferenceFile) obj;
-    if (metadataEntry == null) {
-      return other.metadataEntry == null;
-    } else
-      return metadataEntry.equals(other.metadataEntry);
+    return metadataEntry.equals(other.metadataEntry);
   }
 
   @Override
   public int hashCode() {
+    if (metadataEntry == null) {
+      throw new IllegalStateException("Metadata entry is null");
+    }
     return this.metadataEntry.hashCode();
   }
 }

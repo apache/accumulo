@@ -59,7 +59,7 @@ import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.gc.GcVolumeUtil;
+import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -79,7 +79,7 @@ public class Upgrader9to10Test {
   public void testSwitchRelativeDeletes() {
     Path resolved = Upgrader9to10.resolveRelativeDelete("/5a/t-0005", VOL_PROP);
     assertEquals(new Path(VOL_PROP + "/tables/5a/t-0005"), resolved);
-    var allVolumesDir = GcVolumeUtil.getDeleteTabletOnAllVolumesUri(tableId5a, "t-0005");
+    var allVolumesDir = new AllVolumesDirectory(tableId5a, "t-0005");
     var ref1 = Upgrader9to10.switchToAllVolumes(resolved);
     compareReferences(allVolumesDir, ref1);
 
@@ -97,7 +97,7 @@ public class Upgrader9to10Test {
   }
 
   private void compareReferences(ReferenceFile ref1, ReferenceFile ref2) {
-    assertEquals(ref1.metadataEntry, ref2.metadataEntry);
+    assertEquals(ref1.getMetadataEntry(), ref2.getMetadataEntry());
     assertEquals(ref1.tableId, ref2.tableId);
   }
 
@@ -117,7 +117,7 @@ public class Upgrader9to10Test {
   public void testSwitchAllVolumes() {
     Path resolved = Upgrader9to10
         .resolveRelativeDelete("hdfs://localhost:9000/accumulo/tables/5a/t-0005", VOL_PROP);
-    var allVolumesDir = GcVolumeUtil.getDeleteTabletOnAllVolumesUri(tableId5a, "t-0005");
+    var allVolumesDir = new AllVolumesDirectory(tableId5a, "t-0005");
     var ref1 = Upgrader9to10.switchToAllVolumes(resolved);
     compareReferences(allVolumesDir, ref1);
 

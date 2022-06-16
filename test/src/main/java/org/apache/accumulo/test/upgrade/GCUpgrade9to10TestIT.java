@@ -50,7 +50,7 @@ import org.apache.accumulo.manager.upgrade.Upgrader9to10;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessNotFoundException;
-import org.apache.accumulo.server.gc.GcVolumeUtil;
+import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -241,8 +241,7 @@ public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
         Mutation delFlag = createOldDelMutation(longpath, "", "", "");
         bw.addMutation(delFlag);
         expected.put(
-            DeletesSection.encodeRow(
-                GcVolumeUtil.getDeleteTabletOnAllVolumesUri(tableId, dirName).metadataEntry),
+            DeletesSection.encodeRow(new AllVolumesDirectory(tableId, dirName).getMetadataEntry()),
             Upgrader9to10.UPGRADED.toString());
       }
 

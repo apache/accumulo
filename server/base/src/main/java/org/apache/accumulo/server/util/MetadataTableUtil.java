@@ -95,7 +95,7 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.gc.GcVolumeUtil;
+import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -378,8 +378,7 @@ public class MetadataTableUtil {
           }
 
           if (ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-            var uri =
-                GcVolumeUtil.getDeleteTabletOnAllVolumesUri(tableId, cell.getValue().toString());
+            var uri = new AllVolumesDirectory(tableId, cell.getValue().toString());
             bw.addMutation(ample.createDeleteMutation(uri));
           }
         }

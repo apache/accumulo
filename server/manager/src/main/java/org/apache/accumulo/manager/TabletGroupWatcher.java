@@ -84,7 +84,6 @@ import org.apache.accumulo.manager.state.TableStats;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.gc.AllVolumesDirectory;
-import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
@@ -653,8 +652,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           throw new IllegalStateException(
               "Tablet " + key.getRow() + " is assigned during a merge!");
         } else if (ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-          var allVolumesDirectory = GcVolumeUtil.getDeleteTabletOnAllVolumesUri(extent.tableId(),
-              entry.getValue().toString());
+          var allVolumesDirectory =
+              new AllVolumesDirectory(extent.tableId(), entry.getValue().toString());
           datafilesAndDirs.add(allVolumesDirectory);
           if (datafilesAndDirs.size() > 1000) {
             ample.putGcFileAndDirCandidates(extent.tableId(), datafilesAndDirs);
@@ -739,9 +738,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           maxLogicalTime =
               TabletTime.maxMetadataTime(maxLogicalTime, MetadataTime.parse(value.toString()));
         } else if (ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-          AllVolumesDirectory uri =
-              GcVolumeUtil.getDeleteTabletOnAllVolumesUri(range.tableId(), value.toString());
-          bw.addMutation(manager.getContext().getAmple().createDeleteMutation(uri));
+          var allVolumesDir = new AllVolumesDirectory(range.tableId(), value.toString());
+          bw.addMutation(manager.getContext().getAmple().createDeleteMutation(allVolumesDir));
         }
       }
 

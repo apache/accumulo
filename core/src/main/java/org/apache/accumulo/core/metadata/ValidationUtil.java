@@ -38,7 +38,7 @@ public class ValidationUtil {
   }
 
   public static ReferenceFile validate(ReferenceFile reference) {
-    validate(new Path(reference.metadataEntry));
+    validate(new Path(reference.getMetadataEntry()));
     return reference;
   }
 
