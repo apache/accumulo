@@ -52,9 +52,12 @@ public class CompletableFutureUtil {
   }
 
   /**
-   * Asynchronously, iterate some function until a given condition is met.
+   * Iterate some function until a given condition is met.
+   *
+   * The step function should always return an asynchronous {@code
+   * CompletableFuture} in order to avoid stack overflows.
    */
-  public static <T> CompletableFuture<T> iterateWhileAsync(Function<T,CompletableFuture<T>> step,
+  public static <T> CompletableFuture<T> iterateWhile(Function<T,CompletableFuture<T>> step,
       Predicate<T> isDone, T init) {
     // We'd like to use a lambda here, but lambdas don't have
     // `this`, so we would have to use some clumsy indirection to
@@ -65,14 +68,9 @@ public class CompletableFutureUtil {
         if (isDone.test(x)) {
           return CompletableFuture.completedFuture(x);
         }
-        // Making the recursive call with thenComposeAsync prevents
-        // stack overflows (but risks deadlock if we run out of
-        // threads).
-        //
-        // TODO should this method take an ExecutorService argument?
-        return step.apply(x).thenComposeAsync(this);
+        return step.apply(x).thenCompose(this);
       }
     };
-    return CompletableFuture.completedFuture(init).thenComposeAsync(go);
+    return CompletableFuture.completedFuture(init).thenCompose(go);
   }
 }

@@ -378,7 +378,7 @@ public class Gatherer {
             (pf1, pf2) -> ProcessedFiles.merge(pf1, pf2, factory), ProcessedFiles::new);
       };
       future = CompletableFutureUtil
-          .iterateWhileAsync(go,
+          .iterateWhile(go,
               previousWork -> previousWork != null && previousWork.failedFiles.isEmpty(), null)
           .thenApply(pf -> pf.summaries);
     }
