@@ -36,11 +36,11 @@ import com.google.common.base.Preconditions;
  * {@link org.apache.accumulo.core.client.ScannerBase#setConsistencyLevel(ScannerBase.ConsistencyLevel)}
  * to {@link org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel#EVENTUAL} then this plugin
  * is used to determine which scan servers to use for a given tablet. To configure a class to use
- * for this plugin set its name using the client config {@code scan.server.dispatcher.impl}
+ * for this plugin set its name using the client config {@code scan.server.selector.impl}
  *
  * @since 2.1.0
  */
-public interface ScanServerDispatcher {
+public interface ScanServerSelector {
 
   /**
    * This interface exists so that is easier to evolve what is passed to
@@ -52,8 +52,8 @@ public interface ScanServerDispatcher {
 
     /**
      * @return Options that were set in the client config using the prefix
-     *         {@code scan.server.dispatcher.opts.}. The prefix will be stripped. For example if
-     *         {@code scan.server.dispatcher.opts.k1=v1} is set in client config, then the returned
+     *         {@code scan.server.selector.opts.}. The prefix will be stripped. For example if
+     *         {@code scan.server.selector.opts.k1=v1} is set in client config, then the returned
      *         map will contain {@code k1=v1}.
      */
     Map<String,String> getOptions();
@@ -63,14 +63,14 @@ public interface ScanServerDispatcher {
     /**
      * @return the set of live ScanServers. Each time the supplier is called it may return something
      *         different. A good practice would be to call this no more than once per a call to
-     *         {@link #determineActions(DispatcherParameters)} so that decisions are made using a
+     *         {@link #determineActions(SelectorParameters)} so that decisions are made using a
      *         consistent set of scan servers.
      */
     Supplier<Set<String>> getScanServers();
   }
 
   /**
-   * This method is called once after a ScanDispatcher is instantiated.
+   * This method is called once after a ScanSelector is instantiated.
    */
   default void init(InitParameters params) {
     Preconditions.checkArgument(params.getOptions().isEmpty(), "No options expected");
@@ -98,11 +98,11 @@ public interface ScanServerDispatcher {
 
   /**
    * This interface exists so that is easier to evolve what is passed to
-   * {@link #determineActions(DispatcherParameters)} without having to make breaking changes.
+   * {@link #determineActions(SelectorParameters)} without having to make breaking changes.
    *
    * @since 2.1.0
    */
-  public interface DispatcherParameters {
+  public interface SelectorParameters {
 
     /**
      * @return the set of tablets to be scanned
@@ -148,12 +148,12 @@ public interface ScanServerDispatcher {
   }
 
   /**
-   * Uses the DispatcherParameters to determine which, if any, ScanServer should be used for
-   * scanning a tablet.
+   * Uses the SelectorParameters to determine which, if any, ScanServer should be used for scanning
+   * a tablet.
    *
    * @param params
    *          parameters for the calculation
    * @return results
    */
-  Actions determineActions(DispatcherParameters params);
+  Actions determineActions(SelectorParameters params);
 }

@@ -62,7 +62,7 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.spi.scan.ScanServerDispatcher;
+import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.ScanServerBusyException;
@@ -500,16 +500,16 @@ public class ThriftScanner {
           && scanState.prevLoc.tablet_session.equals("scan_server")
           && scanState.prevLoc.tablet_extent.equals(loc.tablet_extent)) {
         // this is the case of continuing a scan on a scan server for the same tablet, so lets not
-        // call the scan server dispatcher and just go back to the previous scan server
+        // call the scan server selector and just go back to the previous scan server
         newLoc = scanState.prevLoc;
         log.trace(
-            "For tablet {} continuing scan on scan server {} without consulting scan server dispatcher, using busyTimeout {}",
+            "For tablet {} continuing scan on scan server {} without consulting scan server selector, using busyTimeout {}",
             loc.tablet_extent, newLoc.tablet_location, scanState.busyTimeout);
       } else {
         // obtain a snapshot once and only expose this snapshot to the plugin for consistency
         var attempts = scanState.scanAttempts.snapshot();
 
-        var params = new ScanServerDispatcher.DispatcherParameters() {
+        var params = new ScanServerSelector.SelectorParameters() {
 
           @Override
           public List<TabletId> getTablets() {
@@ -517,7 +517,7 @@ public class ThriftScanner {
           }
 
           @Override
-          public Collection<? extends ScanServerDispatcher.ScanAttempt>
+          public Collection<? extends ScanServerSelector.ScanAttempt>
               getAttempts(TabletId tabletId) {
             return attempts.getOrDefault(tabletId, Set.of());
           }
@@ -530,8 +530,8 @@ public class ThriftScanner {
           }
         };
 
-        ScanServerDispatcher.Actions actions =
-            context.getScanServerDispatcher().determineActions(params);
+        ScanServerSelector.Actions actions =
+            context.getScanServerSelector().determineActions(params);
 
         Duration delay = null;
 
@@ -541,13 +541,13 @@ public class ThriftScanner {
           delay = actions.getDelay();
           scanState.busyTimeout = actions.getBusyTimeout();
           log.trace(
-              "For tablet {} scan server dispatcher chose scan_server:{} delay:{} busyTimeout:{}",
+              "For tablet {} scan server selector chose scan_server:{} delay:{} busyTimeout:{}",
               loc.tablet_extent, scanServer, delay, scanState.busyTimeout);
         } else {
           newLoc = loc;
           delay = actions.getDelay();
           scanState.busyTimeout = Duration.ZERO;
-          log.trace("For tablet {} scan server dispatcher chose tablet_server", loc.tablet_extent);
+          log.trace("For tablet {} scan server selector chose tablet_server", loc.tablet_extent);
         }
 
         if (!delay.isZero()) {
@@ -566,10 +566,10 @@ public class ThriftScanner {
         var ret = scanRpc(newLoc, scanState, context, scanState.busyTimeout.toMillis());
         return ret;
       } catch (ScanServerBusyException ssbe) {
-        reporter.report(ScanServerDispatcher.ScanAttempt.Result.BUSY);
+        reporter.report(ScanServerSelector.ScanAttempt.Result.BUSY);
         throw ssbe;
       } catch (Exception e) {
-        reporter.report(ScanServerDispatcher.ScanAttempt.Result.ERROR);
+        reporter.report(ScanServerSelector.ScanAttempt.Result.ERROR);
         throw e;
       }
     } else {

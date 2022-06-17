@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import static org.apache.accumulo.core.spi.scan.DefaultScanServerDispatcherTest.nti;
+import static org.apache.accumulo.core.spi.scan.DefaultScanServerSelectorTest.nti;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Collection;
@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.data.TabletId;
-import org.apache.accumulo.core.spi.scan.ScanServerDispatcher;
+import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.junit.jupiter.api.Test;
 
 public class ScanAttemptsImplTest {
@@ -59,7 +59,7 @@ public class ScanAttemptsImplTest {
 
     var reporter1 = sai.createReporter("ss1:1", tablet1);
 
-    reporter1.report(ScanServerDispatcher.ScanAttempt.Result.BUSY);
+    reporter1.report(ScanServerSelector.ScanAttempt.Result.BUSY);
 
     assertEquals(Map.of(), snap1);
 
@@ -67,7 +67,7 @@ public class ScanAttemptsImplTest {
 
     assertEquals(Map.of(tablet1, Set.of("ss1:1_BUSY")), simplify(snap2));
 
-    reporter1.report(ScanServerDispatcher.ScanAttempt.Result.ERROR);
+    reporter1.report(ScanServerSelector.ScanAttempt.Result.ERROR);
 
     assertEquals(Map.of(), snap1);
     assertEquals(Map.of(tablet1, Set.of("ss1:1_BUSY")), simplify(snap2));
@@ -81,8 +81,8 @@ public class ScanAttemptsImplTest {
     var tablet3 = nti("2", "r");
     var reporter3 = sai.createReporter("ss2:2", tablet3);
 
-    reporter2.report(ScanServerDispatcher.ScanAttempt.Result.BUSY);
-    reporter3.report(ScanServerDispatcher.ScanAttempt.Result.ERROR);
+    reporter2.report(ScanServerSelector.ScanAttempt.Result.BUSY);
+    reporter3.report(ScanServerSelector.ScanAttempt.Result.ERROR);
 
     var snap4 = sai.snapshot();
 

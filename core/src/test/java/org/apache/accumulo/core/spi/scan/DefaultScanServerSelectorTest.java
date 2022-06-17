@@ -42,9 +42,9 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
-public class DefaultScanServerDispatcherTest {
+public class DefaultScanServerSelectorTest {
 
-  static class InitParams implements ScanServerDispatcher.InitParameters {
+  static class InitParams implements ScanServerSelector.InitParameters {
 
     private final Map<String,String> opts;
     private final Set<String> scanServers;
@@ -80,10 +80,10 @@ public class DefaultScanServerDispatcherTest {
     }
   }
 
-  static class DaParams implements ScanServerDispatcher.DispatcherParameters {
+  static class DaParams implements ScanServerSelector.SelectorParameters {
 
     private final Collection<TabletId> tablets;
-    private final Map<TabletId,Collection<? extends ScanServerDispatcher.ScanAttempt>> attempts;
+    private final Map<TabletId,Collection<? extends ScanServerSelector.ScanAttempt>> attempts;
     private final Map<String,String> hints;
 
     DaParams(TabletId tablet) {
@@ -93,7 +93,7 @@ public class DefaultScanServerDispatcherTest {
     }
 
     DaParams(TabletId tablet,
-        Map<TabletId,Collection<? extends ScanServerDispatcher.ScanAttempt>> attempts,
+        Map<TabletId,Collection<? extends ScanServerSelector.ScanAttempt>> attempts,
         Map<String,String> hints) {
       this.tablets = Set.of(tablet);
       this.attempts = attempts;
@@ -106,7 +106,7 @@ public class DefaultScanServerDispatcherTest {
     }
 
     @Override
-    public Collection<? extends ScanServerDispatcher.ScanAttempt> getAttempts(TabletId tabletId) {
+    public Collection<? extends ScanServerSelector.ScanAttempt> getAttempts(TabletId tabletId) {
       return attempts.getOrDefault(tabletId, Set.of());
     }
 
@@ -116,7 +116,7 @@ public class DefaultScanServerDispatcherTest {
     }
   }
 
-  static class TestScanAttempt implements ScanServerDispatcher.ScanAttempt {
+  static class TestScanAttempt implements ScanServerSelector.ScanAttempt {
 
     private final String server;
     private final long endTime;
@@ -151,8 +151,8 @@ public class DefaultScanServerDispatcherTest {
 
   @Test
   public void testBasic() {
-    DefaultScanServerDispatcher dispatcher = new DefaultScanServerDispatcher();
-    dispatcher.init(new InitParams(
+    DefaultScanServerSelector selector = new DefaultScanServerSelector();
+    selector.init(new InitParams(
         Set.of("ss1:1", "ss2:2", "ss3:3", "ss4:4", "ss5:5", "ss6:6", "ss7:7", "ss8:8")));
 
     Set<String> servers = new HashSet<>();
@@ -160,7 +160,7 @@ public class DefaultScanServerDispatcherTest {
     for (int i = 0; i < 100; i++) {
       var tabletId = nti("1", "m");
 
-      ScanServerDispatcher.Actions actions = dispatcher.determineActions(new DaParams(tabletId));
+      ScanServerSelector.Actions actions = selector.determineActions(new DaParams(tabletId));
 
       servers.add(actions.getScanServer(tabletId));
     }
@@ -180,12 +180,12 @@ public class DefaultScanServerDispatcherTest {
 
   private void runBusyTest(int numServers, int busyAttempts, int expectedServers,
       long expectedBusyTimeout, Map<String,String> opts, Map<String,String> hints) {
-    DefaultScanServerDispatcher dispatcher = new DefaultScanServerDispatcher();
+    DefaultScanServerSelector selector = new DefaultScanServerSelector();
 
     var servers = Stream.iterate(1, i -> i <= numServers, i -> i + 1).map(i -> "s" + i + ":" + i)
         .collect(Collectors.toSet());
 
-    dispatcher.init(new InitParams(servers, opts));
+    selector.init(new InitParams(servers, opts));
 
     Set<String> serversSeen = new HashSet<>();
 
@@ -193,15 +193,15 @@ public class DefaultScanServerDispatcherTest {
 
     var tabletAttempts = Stream.iterate(1, i -> i <= busyAttempts, i -> i + 1)
         .map(i -> (new TestScanAttempt("ss" + i + ":" + i, i,
-            ScanServerDispatcher.ScanAttempt.Result.BUSY)))
+            ScanServerSelector.ScanAttempt.Result.BUSY)))
         .collect(Collectors.toList());
 
-    Map<TabletId,Collection<? extends ScanServerDispatcher.ScanAttempt>> attempts = new HashMap<>();
+    Map<TabletId,Collection<? extends ScanServerSelector.ScanAttempt>> attempts = new HashMap<>();
     attempts.put(tabletId, tabletAttempts);
 
     for (int i = 0; i < 100 * numServers; i++) {
-      ScanServerDispatcher.Actions actions =
-          dispatcher.determineActions(new DaParams(tabletId, attempts, hints));
+      ScanServerSelector.Actions actions =
+          selector.determineActions(new DaParams(tabletId, attempts, hints));
 
       assertEquals(expectedBusyTimeout, actions.getBusyTimeout().toMillis());
       assertEquals(0, actions.getDelay().toMillis());
@@ -242,10 +242,10 @@ public class DefaultScanServerDispatcherTest {
 
   @Test
   public void testCoverage() {
-    DefaultScanServerDispatcher dispatcher = new DefaultScanServerDispatcher();
+    DefaultScanServerSelector selector = new DefaultScanServerSelector();
     var servers = Stream.iterate(1, i -> i <= 20, i -> i + 1).map(i -> "s" + i + ":" + i)
         .collect(Collectors.toSet());
-    dispatcher.init(new InitParams(servers));
+    selector.init(new InitParams(servers));
 
     Map<String,Long> allServersSeen = new HashMap<>();
 
@@ -259,7 +259,7 @@ public class DefaultScanServerDispatcherTest {
       var tabletId = t % 1000 == 0 ? nti("" + t, null) : nti("" + t, endRow);
 
       for (int i = 0; i < 100; i++) {
-        ScanServerDispatcher.Actions actions = dispatcher.determineActions(new DaParams(tabletId));
+        ScanServerSelector.Actions actions = selector.determineActions(new DaParams(tabletId));
         serversSeen.add(actions.getScanServer(tabletId));
         allServersSeen.merge(actions.getScanServer(tabletId), 1L, Long::sum);
       }
@@ -369,11 +369,11 @@ public class DefaultScanServerDispatcherTest {
 
   @Test
   public void testNoScanServers() {
-    DefaultScanServerDispatcher dispatcher = new DefaultScanServerDispatcher();
-    dispatcher.init(new InitParams(Set.of()));
+    DefaultScanServerSelector selector = new DefaultScanServerSelector();
+    selector.init(new InitParams(Set.of()));
 
     var tabletId = nti("1", "m");
-    ScanServerDispatcher.Actions actions = dispatcher.determineActions(new DaParams(tabletId));
+    ScanServerSelector.Actions actions = selector.determineActions(new DaParams(tabletId));
     assertNull(actions.getScanServer(tabletId));
     assertEquals(Duration.ZERO, actions.getDelay());
     assertEquals(Duration.ZERO, actions.getBusyTimeout());

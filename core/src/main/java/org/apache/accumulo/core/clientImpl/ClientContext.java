@@ -87,7 +87,7 @@ import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
-import org.apache.accumulo.core.spi.scan.ScanServerDispatcher;
+import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.tables.TableZooHelper;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -133,7 +133,7 @@ public class ClientContext implements AccumuloClient {
   private final Supplier<Long> timeoutSupplier;
   private final Supplier<SaslConnectionParams> saslSupplier;
   private final Supplier<SslConnectionParams> sslSupplier;
-  private final Supplier<ScanServerDispatcher> scanServerDispatcherSupplier;
+  private final Supplier<ScanServerSelector> scanServerSelectorSupplier;
   private TCredentials rpcCreds;
   private ThriftTransportPool thriftTransportPool;
 
@@ -161,23 +161,24 @@ public class ClientContext implements AccumuloClient {
     return () -> Suppliers.memoizeWithExpiration(s::get, 100, MILLISECONDS).get();
   }
 
-  private ScanServerDispatcher createScanServerDispatcher() {
-    String clazz = ClientProperty.SCAN_SERVER_DISPATCHER.getValue(info.getProperties());
+  private ScanServerSelector createScanServerSelector() {
+    String clazz = ClientProperty.SCAN_SERVER_SELECTOR.getValue(info.getProperties());
     try {
-      Class<? extends ScanServerDispatcher> impl =
-          Class.forName(clazz).asSubclass(ScanServerDispatcher.class);
-      ScanServerDispatcher scanServerDispatcher = impl.getDeclaredConstructor().newInstance();
+      Class<? extends ScanServerSelector> impl =
+          Class.forName(clazz).asSubclass(ScanServerSelector.class);
+      ScanServerSelector scanServerSelector = impl.getDeclaredConstructor().newInstance();
 
       Map<String,String> sserverProps = new HashMap<>();
-      ClientProperty.getPrefix(info.getProperties(),
-          ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey()).forEach((k, v) -> {
+      ClientProperty
+          .getPrefix(info.getProperties(), ClientProperty.SCAN_SERVER_SELECTOR_OPTS_PREFIX.getKey())
+          .forEach((k, v) -> {
             sserverProps.put(
                 k.toString()
-                    .substring(ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey().length()),
+                    .substring(ClientProperty.SCAN_SERVER_SELECTOR_OPTS_PREFIX.getKey().length()),
                 v.toString());
           });
 
-      scanServerDispatcher.init(new ScanServerDispatcher.InitParameters() {
+      scanServerSelector.init(new ScanServerSelector.InitParameters() {
         @Override
         public Map<String,String> getOptions() {
           return Collections.unmodifiableMap(sserverProps);
@@ -193,9 +194,9 @@ public class ClientContext implements AccumuloClient {
           return () -> new HashSet<>(ClientContext.this.getScanServers().keySet());
         }
       });
-      return scanServerDispatcher;
+      return scanServerSelector;
     } catch (Exception e) {
-      throw new RuntimeException("Error creating ScanServerDispatcher implementation: " + clazz, e);
+      throw new RuntimeException("Error creating ScanServerSelector implementation: " + clazz, e);
     }
   }
 
@@ -218,7 +219,7 @@ public class ClientContext implements AccumuloClient {
     sslSupplier = memoizeWithExpiration(() -> SslConnectionParams.forClient(getConfiguration()));
     saslSupplier = memoizeWithExpiration(
         () -> SaslConnectionParams.from(getConfiguration(), getCredentials().getToken()));
-    scanServerDispatcherSupplier = memoizeWithExpiration(() -> createScanServerDispatcher());
+    scanServerSelectorSupplier = memoizeWithExpiration(() -> createScanServerSelector());
     this.singletonReservation = Objects.requireNonNull(reservation);
     this.tableops = new TableOperationsImpl(this);
     this.namespaceops = new NamespaceOperationsImpl(this, tableops);
@@ -403,12 +404,12 @@ public class ClientContext implements AccumuloClient {
   }
 
   /**
-   * @return the scan server dispatcher implementation used for determining which scan servers will
-   *         be used when performing an eventually consistent scan
+   * @return the scan server selector implementation used for determining which scan servers will be
+   *         used when performing an eventually consistent scan
    */
-  public ScanServerDispatcher getScanServerDispatcher() {
+  public ScanServerSelector getScanServerSelector() {
     ensureOpen();
-    return scanServerDispatcherSupplier.get();
+    return scanServerSelectorSupplier.get();
   }
 
   static ConditionalWriterConfig getConditionalWriterConfig(Properties props) {
