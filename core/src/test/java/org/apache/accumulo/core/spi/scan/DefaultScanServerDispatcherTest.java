@@ -277,18 +277,18 @@ public class DefaultScanServerDispatcherTest {
   @Test
   public void testOpts() {
 
-    String defaultProfile = "{'isDefault':true,'maxBusyTimeout':'5m','busyTimeoutMultiplier':4, "
-        + "'attemptPlans':[{'servers':'5', 'busyTimeout':'5ms'},"
-        + "{'servers':'20', 'busyTimeout':'33ms'}," + "{'servers':'50%', 'busyTimeout':'100ms'},"
-        + "{'servers':'100%', 'busyTimeout':'200ms'}]" + "}";
+    String defaultProfile =
+        "{'isDefault':true,'maxBusyTimeout':'5m','busyTimeoutMultiplier':4, 'attemptPlans':"
+            + "[{'servers':'5', 'busyTimeout':'5ms'},{'servers':'20', 'busyTimeout':'33ms'},"
+            + "{'servers':'50%', 'busyTimeout':'100ms'},{'servers':'100%', 'busyTimeout':'200ms'}]}";
 
     String profile1 = "{'scanTypeActivations':['long','st9'],'maxBusyTimeout':'30m',"
-        + "'busyTimeoutMultiplier':4, " + "'attemptPlans':[{'servers':'2', 'busyTimeout':'10s'},"
-        + "{'servers':'4', 'busyTimeout':'2m'}," + "{'servers':'10%', 'busyTimeout':'5m'}]" + "}";
+        + "'busyTimeoutMultiplier':4, 'attemptPlans':[{'servers':'2', 'busyTimeout':'10s'},"
+        + "{'servers':'4', 'busyTimeout':'2m'},{'servers':'10%', 'busyTimeout':'5m'}]}";
 
     String profile2 =
-        "{'scanTypeActivations':['mega'],'maxBusyTimeout':'60m'," + "'busyTimeoutMultiplier':2, "
-            + "'attemptPlans':[{'servers':'100%', 'busyTimeout':'10m'}]" + "}";
+        "{'scanTypeActivations':['mega'],'maxBusyTimeout':'60m','busyTimeoutMultiplier':2, "
+            + "'attemptPlans':[{'servers':'100%', 'busyTimeout':'10m'}]}";
 
     var opts = Map.of("profiles",
         "[" + defaultProfile + ", " + profile1 + "," + profile2 + "]".replace('\'', '"'));
@@ -338,16 +338,16 @@ public class DefaultScanServerDispatcherTest {
 
     String defaultProfile = "{'isDefault':true,'maxBusyTimeout':'5m','busyTimeoutMultiplier':4, "
         + "'attemptPlans':[{'servers':'5', 'busyTimeout':'5ms'},"
-        + "{'servers':'20', 'busyTimeout':'33ms'}," + "{'servers':'50%', 'busyTimeout':'100ms'},"
-        + "{'servers':'100%', 'busyTimeout':'200ms'}]" + "}";
+        + "{'servers':'20', 'busyTimeout':'33ms'},{'servers':'50%', 'busyTimeout':'100ms'},"
+        + "{'servers':'100%', 'busyTimeout':'200ms'}]}";
 
     String profile1 = "{'scanTypeActivations':['long','mega'],'maxBusyTimeout':'30m',"
-        + "'busyTimeoutMultiplier':4, " + "'attemptPlans':[{'servers':'2', 'busyTimeout':'10s'},"
-        + "{'servers':'4', 'busyTimeout':'2m'}," + "{'servers':'10%', 'busyTimeout':'5m'}]" + "}";
+        + "'busyTimeoutMultiplier':4, 'attemptPlans':[{'servers':'2', 'busyTimeout':'10s'},"
+        + "{'servers':'4', 'busyTimeout':'2m'},{'servers':'10%', 'busyTimeout':'5m'}]}";
 
     String profile2 =
-        "{'scanTypeActivations':['mega'],'maxBusyTimeout':'60m'," + "'busyTimeoutMultiplier':2, "
-            + "'attemptPlans':[{'servers':'100%', 'busyTimeout':'10m'}]" + "}";
+        "{'scanTypeActivations':['mega'],'maxBusyTimeout':'60m','busyTimeoutMultiplier':2, "
+            + "'attemptPlans':[{'servers':'100%', 'busyTimeout':'10m'}]}";
 
     var opts1 = Map.of("profiles",
         "[" + defaultProfile + ", " + profile1 + "," + profile2 + "]".replace('\'', '"'));

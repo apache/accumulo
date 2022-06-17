@@ -178,10 +178,10 @@ public class ScanServerIT extends SharedMiniClusterBase {
   public void testScannerTimeout() throws Exception {
     // Configure the client to use different scan server dispatcher property values
     Properties props = getClientProps();
-    props.put(ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey() + "initialBusyTimeout",
-        "PT0.100S");
-    props.put(ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey() + "maxBusyTimeout",
-        "PT1.000S");
+    String profiles = "[{'isDefault':true,'maxBusyTimeout':'1s'," + "'busyTimeoutMultiplier':8, "
+        + "'attemptPlans':[{'servers':'3', 'busyTimeout':'100ms'},"
+        + "{'servers':'100%', 'busyTimeout':'100ms'}]}]";
+    props.put(ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey() + "profiles", profiles);
 
     String tName = null;
     try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
@@ -208,12 +208,12 @@ public class ScanServerIT extends SharedMiniClusterBase {
   @Test
   @Timeout(value = 20)
   public void testBatchScannerTimeout() throws Exception {
-    // Configure the client to use different scan server dispatcher property values
+    // Configure the client to use different scan server selector property values
     Properties props = getClientProps();
-    props.put(ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey() + "initialBusyTimeout",
-        "PT0.100S");
-    props.put(ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey() + "maxBusyTimeout",
-        "PT1.000S");
+    String profiles = "[{'isDefault':true,'maxBusyTimeout':'1s'," + "'busyTimeoutMultiplier':8, "
+        + "'attemptPlans':[{'servers':'3', 'busyTimeout':'100ms'},"
+        + "{'servers':'100%', 'busyTimeout':'100ms'}]}]";
+    props.put(ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey() + "profiles", profiles);
 
     String tName = null;
     try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
