@@ -157,7 +157,8 @@ public class DefaultScanServerDispatcher implements ScanServerDispatcher {
 
   private static final Set<String> OPT_NAMES = Set.of("profiles");
 
-  @SuppressFBWarnings(value = {"NP_UNWRITTEN_FIELD", "UWF_UNWRITTEN_FIELD"}, justification = "Object deserialized by GSON")
+  @SuppressFBWarnings(value = {"NP_UNWRITTEN_FIELD", "UWF_UNWRITTEN_FIELD"},
+      justification = "Object deserialized by GSON")
   private static class AttemptPlan {
     String servers;
     String busyTimeout;
@@ -208,7 +209,8 @@ public class DefaultScanServerDispatcher implements ScanServerDispatcher {
     }
   }
 
-  @SuppressFBWarnings(value = {"NP_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_FIELD"}, justification = "Object deserialized by GSON")
+  @SuppressFBWarnings(value = {"NP_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_FIELD"},
+      justification = "Object deserialized by GSON")
   private static class Profile {
     public List<AttemptPlan> attemptPlans;
     List<String> scanTypeActivations;
