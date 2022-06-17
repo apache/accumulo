@@ -18,12 +18,16 @@
  */
 package org.apache.accumulo.core.data;
 
+import java.io.Serializable;
+
 import org.apache.hadoop.io.WritableComparator;
 
 /**
  * A sequence of bytes.
  */
-public abstract class ByteSequence implements Comparable<ByteSequence> {
+public abstract class ByteSequence implements Comparable<ByteSequence>, Serializable {
+
+  private static final long serialVersionUID = 1L;
 
   /**
    * Gets a byte within this sequence.

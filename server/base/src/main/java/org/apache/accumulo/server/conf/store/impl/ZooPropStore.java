@@ -148,7 +148,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     Runtime.getRuntime().addShutdownHook(new Thread(() -> refreshTaskFuture.cancel(true)));
   }
 
-  public static PropStore initialize(@NonNull final InstanceId instanceId,
+  public static ZooPropStore initialize(@NonNull final InstanceId instanceId,
       @NonNull final ZooReaderWriter zrw) {
     return new ZooPropStore(instanceId, zrw);
   }

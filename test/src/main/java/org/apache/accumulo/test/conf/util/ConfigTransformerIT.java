@@ -101,7 +101,7 @@ public class ConfigTransformerIT {
     for (LegacyPropData.PropNode node : nodes) {
       zrw.putPersistentData(node.getPath(), node.getData(), ZooUtil.NodeExistsPolicy.SKIP);
     }
-    propStore = (ZooPropStore) ZooPropStore.initialize(instanceId, zrw);
+    propStore = ZooPropStore.initialize(instanceId, zrw);
 
     context = createMock(ServerContext.class);
     expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
