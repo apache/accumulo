@@ -178,7 +178,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
   public void testScannerTimeout() throws Exception {
     // Configure the client to use different scan server dispatcher property values
     Properties props = getClientProps();
-    String profiles = "[{'isDefault':true,'maxBusyTimeout':'1s'," + "'busyTimeoutMultiplier':8, "
+    String profiles = "[{'isDefault':true,'maxBusyTimeout':'1s', 'busyTimeoutMultiplier':8, "
         + "'attemptPlans':[{'servers':'3', 'busyTimeout':'100ms'},"
         + "{'servers':'100%', 'busyTimeout':'100ms'}]}]";
     props.put(ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey() + "profiles", profiles);
@@ -210,7 +210,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
   public void testBatchScannerTimeout() throws Exception {
     // Configure the client to use different scan server selector property values
     Properties props = getClientProps();
-    String profiles = "[{'isDefault':true,'maxBusyTimeout':'1s'," + "'busyTimeoutMultiplier':8, "
+    String profiles = "[{'isDefault':true,'maxBusyTimeout':'1s', 'busyTimeoutMultiplier':8, "
         + "'attemptPlans':[{'servers':'3', 'busyTimeout':'100ms'},"
         + "{'servers':'100%', 'busyTimeout':'100ms'}]}]";
     props.put(ClientProperty.SCAN_SERVER_DISPATCHER_OPTS_PREFIX.getKey() + "profiles", profiles);
