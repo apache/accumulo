@@ -89,7 +89,7 @@ public class TransformTokenIT {
       zrw.putPersistentData(node.getPath(), node.getData(), ZooUtil.NodeExistsPolicy.SKIP);
     }
 
-    ZooPropStore propStore = (ZooPropStore) ZooPropStore.initialize(instanceId, zrw);
+    ZooPropStore propStore = ZooPropStore.initialize(instanceId, zrw);
 
     context = createMock(ServerContext.class);
     expect(context.getInstanceID()).andReturn(instanceId).anyTimes();

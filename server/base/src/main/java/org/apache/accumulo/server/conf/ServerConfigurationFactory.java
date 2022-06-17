@@ -20,7 +20,6 @@ package org.apache.accumulo.server.conf;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -33,12 +32,9 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
-import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Suppliers;
 
 /**
  * A factor for configurations used by a server process. Instance of this class are thread-safe.
@@ -53,15 +49,11 @@ public class ServerConfigurationFactory extends ServerConfiguration {
 
   private final ServerContext context;
   private final SiteConfiguration siteConfig;
-  private final Supplier<SystemConfiguration> systemConfig;
-
   private final DeleteWatcher deleteWatcher = new DeleteWatcher();
 
   public ServerConfigurationFactory(ServerContext context, SiteConfiguration siteConfig) {
     this.context = context;
     this.siteConfig = siteConfig;
-    systemConfig = Suppliers.memoize(
-        () -> new SystemConfiguration(context, SystemPropKey.of(context), getSiteConfiguration()));
   }
 
   public ServerContext getServerContext() {
@@ -78,7 +70,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
 
   @Override
   public AccumuloConfiguration getSystemConfiguration() {
-    return systemConfig.get();
+    return context.getConfiguration();
   }
 
   @Override
