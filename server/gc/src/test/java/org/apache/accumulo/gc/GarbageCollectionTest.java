@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -37,8 +37,8 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.Reference;
-import org.apache.accumulo.core.metadata.RelativeTabletDirectory;
+import org.apache.accumulo.core.gc.Reference;
+import org.apache.accumulo.core.gc.ReferenceDirectory;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.junit.jupiter.api.Test;
 
@@ -103,7 +103,7 @@ public class GarbageCollectionTest {
     }
 
     public void addDirReference(String tableId, String endRow, String dir) {
-      references.put(tableId + ":" + endRow, new RelativeTabletDirectory(TableId.of(tableId), dir));
+      references.put(tableId + ":" + endRow, new ReferenceDirectory(TableId.of(tableId), dir));
     }
 
     public void removeDirReference(String tableId, String endRow) {

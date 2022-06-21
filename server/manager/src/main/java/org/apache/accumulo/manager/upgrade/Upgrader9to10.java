@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -52,6 +52,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -481,7 +482,7 @@ public class Upgrader9to10 implements Upgrader {
           log.trace("upgrading delete entry for {}", olddelete);
 
           Path absolutePath = resolveRelativeDelete(olddelete, upgradeProp);
-          String updatedDel = switchToAllVolumes(absolutePath);
+          Reference updatedDel = switchToAllVolumes(absolutePath);
 
           writer.addMutation(ample.createDeleteMutation(updatedDel));
         }
@@ -507,16 +508,29 @@ public class Upgrader9to10 implements Upgrader {
    * "tables/5a/t-0005/A0012.rf" depth = 4 will be returned as is.
    */
   @VisibleForTesting
-  static String switchToAllVolumes(Path olddelete) {
+  static Reference switchToAllVolumes(Path olddelete) {
     Path pathNoVolume = Objects.requireNonNull(VolumeManager.FileType.TABLE.removeVolume(olddelete),
         "Invalid delete marker. No volume in path: " + olddelete);
 
-    // a directory path with volume removed will have a depth of 3 so change volume to all volumes
-    if (pathNoVolume.depth() == 3 && !pathNoVolume.getName().startsWith(Constants.BULK_PREFIX)) {
-      return GcVolumeUtil.getDeleteTabletOnAllVolumesUri(
-          TableId.of(pathNoVolume.getParent().getName()), pathNoVolume.getName());
+    // a directory path with volume removed will have a depth of 3 like, "tables/5a/t-0005"
+    if (pathNoVolume.depth() == 3) {
+      String tabletDir = pathNoVolume.getName();
+      var tableId = TableId.of(pathNoVolume.getParent().getName());
+      // except bulk directories don't get an all volume prefix
+      if (pathNoVolume.getName().startsWith(Constants.BULK_PREFIX)) {
+        return new Reference(tableId, olddelete.toString());
+      } else {
+        return GcVolumeUtil.getDeleteTabletOnAllVolumesUri(tableId, tabletDir);
+      }
     } else {
-      return olddelete.toString();
+      // depth of 4 should be a file like, "tables/5a/t-0005/A0012.rf"
+      if (pathNoVolume.depth() == 4) {
+        Path tabletDirPath = pathNoVolume.getParent();
+        var tableId = TableId.of(tabletDirPath.getParent().getName());
+        return new Reference(tableId, olddelete.toString());
+      } else {
+        throw new IllegalStateException("Invalid delete marker: " + olddelete);
+      }
     }
   }
 

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -311,6 +311,20 @@ public class ManagerApiIT extends SharedMiniClusterBase {
       return null;
     };
     expectPermissionSuccess(op, privilegedUser);
+  }
+
+  @Test
+  public void shutdownTabletServer() throws Exception {
+    op = client -> {
+      client.shutdownTabletServer(TraceUtil.traceInfo(), rootUser.toThrift(instanceId),
+          "fakeTabletServer:9997", true);
+      return null;
+    };
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps())
+        .as(rootUser.getPrincipal(), rootUser.getToken()).build()) {
+      ClientContext context = (ClientContext) client;
+      ThriftClientTypes.MANAGER.execute(context, op);
+    }
   }
 
   // this test should go last, because it shuts things down;

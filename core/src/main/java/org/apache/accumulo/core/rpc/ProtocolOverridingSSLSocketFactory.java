@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -35,7 +35,7 @@ import javax.net.ssl.SSLSocketFactory;
  * This only appears to be an issue on the client sockets, not the server sockets.
  *
  * This class wraps the SSLSocketFactory ensuring that the Socket is properly configured.
- * http://www.coderanch.com/t/637177/Security/Disabling-handshake-message-Java
+ * https://www.coderanch.com/t/637177/Security/Disabling-handshake-message-Java
  *
  * This class can be removed when JDK6 support is officially unsupported by Accumulo
  */

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -170,7 +170,7 @@ public class Initialize implements KeywordExecutable {
       String rootTabletFileUri = new Path(
           fs.choose(chooserEnv, initConfig.getVolumeUris()) + SEPARATOR + TABLE_DIR + SEPARATOR
               + RootTable.ID + SEPARATOR + rootTabletDirName + SEPARATOR + "00000_00000." + ext)
-                  .toString();
+          .toString();
       zki.initialize(context, opts.clearInstanceName, instanceNamePath, rootTabletDirName,
           rootTabletFileUri);
 

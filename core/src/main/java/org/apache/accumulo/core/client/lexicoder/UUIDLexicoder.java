@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -36,7 +36,7 @@ public class UUIDLexicoder extends AbstractLexicoder<UUID> {
   /**
    * {@inheritDoc}
    *
-   * @see <a href="http://www.ietf.org/rfc/rfc4122.txt"> RFC 4122: A Universally Unique IDentifier
+   * @see <a href="https://www.ietf.org/rfc/rfc4122.txt"> RFC 4122: A Universally Unique IDentifier
    *      (UUID) URN Namespace, "Rules for Lexical Equivalence" in Section 3.</a>
    */
   @Override

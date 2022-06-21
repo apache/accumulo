@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -84,14 +84,15 @@ public class SequentialWorkAssignerTest {
     // file1 replicated
     expect(zooCache.get(ZooUtil.getRoot(iid) + ReplicationConstants.ZOO_WORK_QUEUE + "/"
         + DistributedWorkQueueWorkAssignerHelper.getQueueKey("file1",
-            new ReplicationTarget("cluster1", "1", TableId.of("1"))))).andReturn(null);
+            new ReplicationTarget("cluster1", "1", TableId.of("1")))))
+        .andReturn(null);
     // file2 still needs to replicate
     expect(
         zooCache
             .get(ZooUtil.getRoot(iid) + ReplicationConstants.ZOO_WORK_QUEUE + "/"
                 + DistributedWorkQueueWorkAssignerHelper.getQueueKey("file2",
                     new ReplicationTarget("cluster1", "2", TableId.of("2")))))
-                        .andReturn(new byte[0]);
+        .andReturn(new byte[0]);
 
     replay(workQueue, zooCache, opts, client);
 

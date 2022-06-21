@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -190,7 +191,7 @@ public interface Ample {
   /**
    * Unlike {@link #putGcCandidates(TableId, Collection)} this takes file and dir GC candidates.
    */
-  default void putGcFileAndDirCandidates(TableId tableId, Collection<String> candidates) {
+  default void putGcFileAndDirCandidates(TableId tableId, Collection<Reference> candidates) {
     throw new UnsupportedOperationException();
   }
 
@@ -217,16 +218,16 @@ public interface Ample {
   }
 
   /**
-   * Return an encoded delete marker Mutation to delete the specified TabletFile path. A String is
-   * used for the parameter because the Garbage Collector is optimized to store a directory for
-   * Tablet File. Otherwise a {@link TabletFile} object could be used. The tabletFilePathToRemove is
-   * validated and normalized before creating the mutation.
+   * Return an encoded delete marker Mutation to delete the specified TabletFile path. A Reference
+   * is used for the parameter because the Garbage Collector is optimized to store a directory for
+   * Tablet File. Otherwise, a {@link TabletFile} object could be used. The tabletFilePathToRemove
+   * is validated and normalized before creating the mutation.
    *
    * @param tabletFilePathToRemove
    *          String full path of the TabletFile
    * @return Mutation with encoded delete marker
    */
-  default Mutation createDeleteMutation(String tabletFilePathToRemove) {
+  default Mutation createDeleteMutation(Reference tabletFilePathToRemove) {
     throw new UnsupportedOperationException();
   }
 

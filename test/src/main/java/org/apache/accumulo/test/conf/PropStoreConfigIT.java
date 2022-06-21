@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -23,6 +23,8 @@ import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
@@ -72,6 +74,60 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
           assertEquals("true", e.getValue());
         }
       }
+    }
+  }
+
+  @Test
+  public void deletePropsTest() throws Exception {
+    String[] names = getUniqueNames(2);
+    String namespace = names[0];
+    String table = namespace + "." + names[1];
+
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+
+      client.namespaceOperations().create(namespace);
+      client.tableOperations().create(table);
+
+      log.info("Tables: {}", client.tableOperations().list());
+
+      client.instanceOperations().setProperty(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
+      client.tableOperations().setProperty(table, Property.TABLE_BLOOM_ENABLED.getKey(), "true");
+
+      Thread.sleep(SECONDS.toMillis(1L));
+
+      var props = client.tableOperations().getProperties(table);
+      log.info("Props: {}", props);
+      for (Map.Entry<String,String> e : props) {
+        if (e.getKey().contains("table.bloom.enabled")) {
+          log.info("after bloom property: {}={}", e.getKey(), e.getValue());
+          assertEquals("true", e.getValue());
+        }
+      }
+
+      var tableIdMap = client.tableOperations().tableIdMap();
+      var nsIdMap = client.namespaceOperations().namespaceIdMap();
+
+      ServerContext context = getServerContext();
+
+      NamespaceId nid = NamespaceId.of(nsIdMap.get(namespace));
+      TableId tid = TableId.of(tableIdMap.get(table));
+
+      // check zk nodes exist
+      assertTrue(context.getPropStore().exists(NamespacePropKey.of(context, nid)));
+      assertTrue(context.getPropStore().exists(TablePropKey.of(context, tid)));
+      // check ServerConfigurationFactory
+      assertNotNull(context.getNamespaceConfiguration(nid));
+      assertNotNull(context.getTableConfiguration(tid));
+
+      client.tableOperations().delete(table);
+      client.namespaceOperations().delete(namespace);
+      Thread.sleep(100);
+
+      // check zk nodes deleted
+      assertFalse(context.getPropStore().exists(NamespacePropKey.of(context, nid)));
+      assertFalse(context.getPropStore().exists(TablePropKey.of(context, tid)));
+      // check ServerConfigurationFactory deleted - should return null
+      assertNull(context.getTableConfiguration(tid));
     }
   }
 

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -42,7 +42,6 @@ import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.conf.util.TransformToken;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
-import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooKeeper;
 import org.junit.jupiter.api.AfterAll;
@@ -90,7 +89,7 @@ public class TransformTokenIT {
       zrw.putPersistentData(node.getPath(), node.getData(), ZooUtil.NodeExistsPolicy.SKIP);
     }
 
-    ZooPropStore propStore = (ZooPropStore) ZooPropStore.initialize(instanceId, zrw);
+    ZooPropStore propStore = ZooPropStore.initialize(instanceId, zrw);
 
     context = createMock(ServerContext.class);
     expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
@@ -101,12 +100,9 @@ public class TransformTokenIT {
   }
 
   @AfterEach
-  public void cleanupZnodes() {
-    try {
-      ZKUtil.deleteRecursive(zooKeeper, Constants.ZROOT);
-    } catch (KeeperException | InterruptedException ex) {
-      throw new IllegalStateException("Failed to clean-up test zooKeeper nodes.", ex);
-    }
+  public void cleanupZnodes() throws Exception {
+    ZooUtil.digestAuth(zooKeeper, ZooKeeperTestingServer.SECRET);
+    ZKUtil.deleteRecursive(zooKeeper, Constants.ZROOT);
     verify(context, watcher);
   }
 

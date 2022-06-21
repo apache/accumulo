@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -37,7 +37,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletFileUtil;
+import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.FateTxId;
@@ -125,7 +125,7 @@ class CopyFailed extends ManagerRepo {
       for (Entry<Key,Value> entry : mscanner) {
         if (BulkFileColumnFamily.getBulkLoadTid(entry.getValue()) == tid) {
           Path loadedFile =
-              new Path(TabletFileUtil.validate(entry.getKey().getColumnQualifierData().toString()));
+              new Path(ValidationUtil.validate(entry.getKey().getColumnQualifierData().toString()));
           if (failures.remove(loadedFile)) {
             loadedFailures.add(loadedFile);
           }

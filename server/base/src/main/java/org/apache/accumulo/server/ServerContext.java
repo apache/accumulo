@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -96,7 +96,7 @@ public class ServerContext extends ClientContext {
   private final ServerInfo info;
   private final ZooReaderWriter zooReaderWriter;
   private final ServerDirs serverDirs;
-  private final PropStore propStore;
+  private final Supplier<ZooPropStore> propStore;
 
   // lazily loaded resources, only loaded when needed
   private final Supplier<TableManager> tableManager;
@@ -119,7 +119,8 @@ public class ServerContext extends ClientContext {
     this.info = info;
     zooReaderWriter = new ZooReaderWriter(info.getSiteConfiguration());
     serverDirs = info.getServerDirs();
-    propStore = ZooPropStore.initialize(info.getInstanceID(), zooReaderWriter);
+
+    propStore = memoize(() -> ZooPropStore.initialize(getInstanceID(), getZooReaderWriter()));
 
     tableManager = memoize(() -> new TableManager(this));
     nameAllocator = memoize(() -> new UniqueNameAllocator(this));
@@ -443,7 +444,7 @@ public class ServerContext extends ClientContext {
   }
 
   public PropStore getPropStore() {
-    return propStore;
+    return propStore.get();
   }
 
   @Override
