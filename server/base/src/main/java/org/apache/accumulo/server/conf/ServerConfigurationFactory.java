@@ -202,6 +202,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
       jitterDelay();
 
       for (Map.Entry<NamespaceId,NamespaceConfiguration> entry : namespaceConfigs.entrySet()) {
+        keyCount++;
         PropStoreKey<?> propKey = NamespacePropKey.of(context, entry.getKey());
         if (!propStore.validateDataVersion(propKey, entry.getValue().getDataVersion())) {
           keyChangedCount++;
@@ -211,6 +212,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
       }
 
       for (Map.Entry<TableId,TableConfiguration> entry : tableConfigs.entrySet()) {
+        keyCount++;
         TableId tid = entry.getKey();
         PropStoreKey<?> propKey = TablePropKey.of(context, tid);
         if (!propStore.validateDataVersion(propKey, entry.getValue().getDataVersion())) {
