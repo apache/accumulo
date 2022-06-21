@@ -18,8 +18,15 @@
  */
 package org.apache.accumulo.server.conf;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -28,13 +35,18 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
+import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
+import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * A factor for configurations used by a server process. Instance of this class are thread-safe.
@@ -51,9 +63,16 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   private final SiteConfiguration siteConfig;
   private final DeleteWatcher deleteWatcher = new DeleteWatcher();
 
+  private static final int REFRESH_PERIOD_MINUTES = 15;
+
+  private final ConfigRefreshRunner refresher;
+
   public ServerConfigurationFactory(ServerContext context, SiteConfiguration siteConfig) {
     this.context = context;
     this.siteConfig = siteConfig;
+
+    refresher = new ConfigRefreshRunner();
+    Runtime.getRuntime().addShutdownHook(new Thread(refresher::shutdown));
   }
 
   public ServerContext getServerContext() {
@@ -138,6 +157,108 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     @Override
     public void connectionEvent() {
       // no-op. changes handled by prop store impl
+    }
+  }
+
+  private class ConfigRefreshRunner {
+    private static final long MIN_JITTER_DELAY = 1;
+
+    private static final long MAX_JITTER_DELAY = 23;
+    private final ScheduledFuture<?> refreshTaskFuture;
+
+    ConfigRefreshRunner() {
+
+      Runnable refreshTask = this::verifySnapshotVersions;
+      // randomly stagger initial and then subsequent calls across cluster
+      long randDelay = jitter(REFRESH_PERIOD_MINUTES / 4, REFRESH_PERIOD_MINUTES);
+
+      ScheduledThreadPoolExecutor executor = ThreadPools.getServerThreadPools()
+          .createScheduledExecutorService(4, "config-refresh", false);
+      refreshTaskFuture =
+          executor.scheduleWithFixedDelay(refreshTask, randDelay, REFRESH_PERIOD_MINUTES, MINUTES);
+      Runtime.getRuntime().addShutdownHook(new Thread(() -> refreshTaskFuture.cancel(true)));
+    }
+
+    /**
+     * Check that the stored version in ZooKeeper matches the version held in the local snapshot.
+     * When a mismatch is detected, a change event is sent to the prop store which will cause a
+     * re-load. If the Zookeeper node has been deleted, the local cache entries are removed.
+     * <p>
+     * This method is designed to be called as a scheduled task, so it does not propagate exceptions
+     * other than interrupted Exceptions so the scheduled tasks will continue to run.
+     */
+
+    private synchronized void verifySnapshotVersions() {
+      long refreshStart = System.nanoTime();
+      int keyCount = 0;
+      int keyChangedCount = 0;
+
+      PropStore propStore = context.getPropStore();
+      keyCount++;
+
+      // rely on store to propagate change event if different
+      propStore.validateDataVersion(SystemPropKey.of(context),
+          ((ZooBasedConfiguration) getSystemConfiguration()).getDataVersion());
+      jitterDelay();
+
+      for (Map.Entry<NamespaceId,NamespaceConfiguration> entry : namespaceConfigs.entrySet()) {
+        PropStoreKey<?> propKey = NamespacePropKey.of(context, entry.getKey());
+        if (!propStore.validateDataVersion(propKey, entry.getValue().getDataVersion())) {
+          keyChangedCount++;
+          namespaceConfigs.remove(entry.getKey());
+        }
+        jitterDelay();
+      }
+
+      for (Map.Entry<TableId,TableConfiguration> entry : tableConfigs.entrySet()) {
+        TableId tid = entry.getKey();
+        PropStoreKey<?> propKey = TablePropKey.of(context, tid);
+        if (!propStore.validateDataVersion(propKey, entry.getValue().getDataVersion())) {
+          keyChangedCount++;
+          tableConfigs.remove(tid);
+          tableParentConfigs.remove(tid);
+          log.debug("data version sync: difference found. forcing configuration update for {}}",
+              propKey);
+        }
+        jitterDelay();
+      }
+
+      log.debug("data version sync: Total runtime {} ms for {} entries, changes detected: {}",
+          MILLISECONDS.convert(System.nanoTime() - refreshStart, NANOSECONDS), keyCount,
+          keyChangedCount);
+    }
+
+    /**
+     * Generate a small random integer for jitter between [min,max).
+     *
+     * @param min
+     *          minimum number (inclusive)
+     *
+     * @param max
+     *          maximum number (exclusive)
+     *
+     * @return random number between min and MAJ_JITTER_DELAY
+     */
+    @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
+        justification = "random number not used in secure context")
+    private long jitter(final long min, final long max) {
+      return ThreadLocalRandom.current().nextLong(min, max);
+    }
+
+    /**
+     * Sleep for a random jitter interval defined by MIN_JITTER_DELAY and MAX_JITTER_DELAY
+     */
+    private void jitterDelay() {
+      try {
+        Thread.sleep(jitter(MIN_JITTER_DELAY, MAX_JITTER_DELAY));
+      } catch (InterruptedException ex) {
+        Thread.currentThread().interrupt();
+        throw new IllegalStateException(ex);
+      }
+    }
+
+    public void shutdown() {
+      refreshTaskFuture.cancel(true);
     }
   }
 }

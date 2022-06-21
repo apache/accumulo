@@ -120,4 +120,15 @@ public interface PropStore {
   @Nullable
   VersionedProperties getWithoutCaching(PropStoreKey<?> propStoreKey);
 
+  /**
+   * Compare the stored data version with the expected version. Notifies subscribers of the change
+   * detection.
+   *
+   * @param storeKey
+   *          specifies key for backend store
+   * @param expectedVersion
+   *          the expected data version
+   * @return true if the stored version matches the provided expected version.
+   */
+  boolean validateDataVersion(PropStoreKey<?> storeKey, long expectedVersion);
 }
