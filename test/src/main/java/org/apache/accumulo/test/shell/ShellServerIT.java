@@ -2115,7 +2115,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     Thread.sleep(3_000);
     // compaction should still be running
-    // assertFalse(countFiles(tableId) < oldCount);
 
     log.info("Calling fate print for table = {}", table);
     ts.exec("fate -print", true, "txid:", true);
