@@ -2110,17 +2110,25 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("flush -w");
     int oldCount = countFiles(tableId);
 
+    // no transactions running
+    ts.exec("fate -print", true, "0 transactions", true);
+
     // merge two files into one
     ts.exec("compact -t " + table);
-
+    Thread.sleep(1_000);
+    // start 2nd transaction
+    ts.exec("compact -t " + table);
     Thread.sleep(3_000);
-    // compaction should still be running
 
+    // 2 compactions should be running so parse the output to get one of the transaction ids
     log.info("Calling fate print for table = {}", table);
-    ts.exec("fate -print", true, "txid:", true);
-
+    String result = ts.exec("fate -print", true, "txid:", true);
+    String[] resultParts = result.split("txid: ");
+    String[] parts = resultParts[1].split(" ");
+    String txid = parts[0];
     // test filters
-    ts.exec("fate -print -t IN_PROGRESS", true, "txid:", true);
+    ts.exec("fate -print -t IN_PROGRESS", true, "2 transactions", true);
+    ts.exec("fate -print " + txid + " -t IN_PROGRESS", true, "1 transactions", true);
     ts.exec("fate -print -t NEW", true, "0 transactions", true);
     ts.exec("fate -print 1234", true, "0 transactions", true);
     ts.exec("fate -print FATE[aaa] 1 2 3", true, "0 transactions", true);
