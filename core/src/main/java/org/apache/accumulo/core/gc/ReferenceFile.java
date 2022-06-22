@@ -31,7 +31,7 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
   public final TableId tableId; // 2a
 
   // the exact string that is stored in the metadata
-  protected String metadataEntry;
+  protected final String metadataEntry;
 
   public ReferenceFile(TableId tableId, String metadataEntry) {
     this.tableId = Objects.requireNonNull(tableId);
@@ -55,9 +55,6 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
 
   @Override
   public int compareTo(ReferenceFile that) {
-    if (metadataEntry == null) {
-      throw new IllegalStateException("Metadata entry is null");
-    }
     if (equals(that)) {
       return 0;
     } else {
@@ -67,9 +64,6 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
 
   @Override
   public boolean equals(Object obj) {
-    if (metadataEntry == null) {
-      throw new IllegalStateException("Metadata entry is null");
-    }
     if (this == obj)
       return true;
     if (obj == null)
@@ -82,9 +76,6 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
 
   @Override
   public int hashCode() {
-    if (metadataEntry == null) {
-      throw new IllegalStateException("Metadata entry is null");
-    }
     return this.metadataEntry.hashCode();
   }
 }
