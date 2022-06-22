@@ -60,7 +60,7 @@ public class TabletFile implements Comparable<TabletFile> {
 
     // use Path object to step backwards from the filename through all the parts
     this.fileName = metaPath.getName();
-    ValidationUtil.validateRFileName(fileName);
+    ValidationUtil.validateFileName(fileName);
 
     Path tabletDirPath = Objects.requireNonNull(metaPath.getParent(), errorMsg);
 

@@ -58,4 +58,12 @@ public class ValidationUtil {
           "Provided filename (" + fileName + ") does not end with '.rf' or '_tmp'");
     }
   }
+
+  public static void validateFileName(String fileName) {
+    Objects.requireNonNull(fileName);
+    if (!fileName.matches("[\\dA-Za-z._-]+")) {
+      throw new IllegalArgumentException(
+          "Provided filename (" + fileName + ") contains invalid characters.");
+    }
+  }
 }

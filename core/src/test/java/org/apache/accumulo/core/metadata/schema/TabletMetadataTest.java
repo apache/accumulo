@@ -78,8 +78,8 @@ public class TabletMetadataTest {
     FLUSH_COLUMN.put(mutation, new Value("6"));
     TIME_COLUMN.put(mutation, new Value("M123456789"));
 
-    String bf1 = "hdfs://nn1/acc/tables/1/t-0001/bf1.rf";
-    String bf2 = "hdfs://nn1/acc/tables/1/t-0001/bf2.rf";
+    String bf1 = "hdfs://nn1/acc/tables/1/t-0001/bf1";
+    String bf2 = "hdfs://nn1/acc/tables/1/t-0001/bf2";
     mutation.at().family(BulkFileColumnFamily.NAME).qualifier(bf1).put(FateTxId.formatTid(56));
     mutation.at().family(BulkFileColumnFamily.NAME).qualifier(bf2).put(FateTxId.formatTid(59));
 

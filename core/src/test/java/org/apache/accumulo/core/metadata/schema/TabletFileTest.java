@@ -59,7 +59,7 @@ public class TabletFileTest {
 
     assertThrows(NullPointerException.class, () -> test("C0004.rf", "", "2a", "t-0003", "C0004.rf"),
         message);
-    assertThrows(IllegalArgumentException.class, () -> test("dir", "", "2a", "", ""), message);
+    assertThrows(NullPointerException.class, () -> test("dir", "", "2a", "", ""), message);
 
     assertThrows(IllegalArgumentException.class,
         () -> test("hdfs://localhost:8020/accumulo/tablets/2a/default_tablet/F0000070.rf",
