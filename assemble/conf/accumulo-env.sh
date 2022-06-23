@@ -111,7 +111,7 @@ JAVA_OPTS=("-Daccumulo.log.dir=${ACCUMULO_LOG_DIR}"
 
 ## Optionally setup OpenTelemetry SDK AutoConfigure
 ## See https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure
-#JAVA_OPTS=('-Dotel.traces.exporter=jaeger' "${JAVA_OPTS[@]}")
+#JAVA_OPTS=('-Dotel.traces.exporter=jaeger' '-Dotel.metrics.exporter=none' '-Dotel.logs.exporter=none' "${JAVA_OPTS[@]}")
 
 ## Optionally setup OpenTelemetry Java Agent
 ## See https://github.com/open-telemetry/opentelemetry-java-instrumentation for more options
