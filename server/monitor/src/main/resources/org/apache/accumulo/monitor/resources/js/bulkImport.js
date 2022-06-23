@@ -51,10 +51,12 @@ $(document).ready(function () {
     },
     "stateSave": true,
     "columns": [{
-        "data": "filename"
+        "data": "filename",
+        "width": "40%"
       },
       {
         "data": "age",
+        "width": "45%",
         "render": function (data, type) {
           if (type === 'display' && Number(data) > 0) {
             data = new Date(Number(data));
@@ -65,7 +67,8 @@ $(document).ready(function () {
         }
       },
       {
-        "data": "state"
+        "data": "state",
+        "width": "15%"
       }
     ]
   });
