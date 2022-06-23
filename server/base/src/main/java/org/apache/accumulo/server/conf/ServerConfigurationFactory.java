@@ -49,7 +49,7 @@ import org.slf4j.LoggerFactory;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
- * A factor for configurations used by a server process. Instance of this class are thread-safe.
+ * A factory for configurations used by a server process. Instance of this class are thread-safe.
  */
 public class ServerConfigurationFactory extends ServerConfiguration {
   private final static Logger log = LoggerFactory.getLogger(ServerConfigurationFactory.class);
@@ -176,7 +176,6 @@ public class ServerConfigurationFactory extends ServerConfiguration {
           .createScheduledExecutorService(4, "config-refresh", false);
       refreshTaskFuture =
           executor.scheduleWithFixedDelay(refreshTask, randDelay, REFRESH_PERIOD_MINUTES, MINUTES);
-      Runtime.getRuntime().addShutdownHook(new Thread(() -> refreshTaskFuture.cancel(true)));
     }
 
     /**
