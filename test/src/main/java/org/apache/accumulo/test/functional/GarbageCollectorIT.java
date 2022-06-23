@@ -42,7 +42,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.gc.Reference;
+import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
@@ -124,23 +124,35 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       c.tableOperations().setProperty(table, Property.TABLE_SPLIT_THRESHOLD.getKey(), "5K");
       VerifyParams params = new VerifyParams(getClientProperties(), table, 10_000);
       params.cols = 1;
+      log.info("Ingesting files to {}", table);
       TestIngest.ingest(c, cluster.getFileSystem(), params);
+      log.info("Compacting the table {}", table);
       c.tableOperations().compact(table, null, null, true, true);
-      int before = countFiles();
+      String pathString = cluster.getConfig().getDir() + "/accumulo/tables/1/*/*.rf";
+      log.info("Counting files in path: {}", pathString);
+
+      int before = countFiles(pathString);
+      log.info("Counted {} files in path: {}", before, pathString);
+
       while (true) {
         sleepUninterruptibly(1, TimeUnit.SECONDS);
-        int more = countFiles();
+        int more = countFiles(pathString);
         if (more <= before)
           break;
         before = more;
       }
 
       // restart GC
+      log.info("Restarting GC...");
       getCluster().start();
       sleepUninterruptibly(15, TimeUnit.SECONDS);
-      int after = countFiles();
+      log.info("Again Counting files in path: {}", pathString);
+
+      int after = countFiles(pathString);
+      log.info("Counted {} files in path: {}", after, pathString);
+
       VerifyIngest.verifyIngest(c, params);
-      assertTrue(after < before);
+      assertTrue(after < before, "After count " + after + " was not less than " + before);
     }
   }
 
@@ -297,8 +309,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     }
   }
 
-  private int countFiles() throws Exception {
-    Path path = new Path(cluster.getConfig().getDir() + "/accumulo/tables/1/*/*.rf");
+  private int countFiles(String pathStr) throws Exception {
+    Path path = new Path(pathStr);
     return Iterators.size(Arrays.asList(cluster.getFileSystem().globStatus(path)).iterator());
   }
 
@@ -311,7 +323,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
         String longpath = "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee"
             + "ffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj";
         var path = String.format("file:/%020d/%s", i, longpath);
-        Mutation delFlag = ample.createDeleteMutation(new Reference(TableId.of("1"), path));
+        Mutation delFlag = ample.createDeleteMutation(new ReferenceFile(TableId.of("1"), path));
         bw.addMutation(delFlag);
       }
     }

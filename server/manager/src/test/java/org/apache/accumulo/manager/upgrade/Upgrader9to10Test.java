@@ -51,7 +51,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.gc.Reference;
+import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
@@ -59,7 +59,7 @@ import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.gc.GcVolumeUtil;
+import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -79,25 +79,25 @@ public class Upgrader9to10Test {
   public void testSwitchRelativeDeletes() {
     Path resolved = Upgrader9to10.resolveRelativeDelete("/5a/t-0005", VOL_PROP);
     assertEquals(new Path(VOL_PROP + "/tables/5a/t-0005"), resolved);
-    var ref1 = GcVolumeUtil.getDeleteTabletOnAllVolumesUri(tableId5a, "t-0005");
-    var ref2 = Upgrader9to10.switchToAllVolumes(resolved);
-    compareReferences(ref1, ref2);
+    var allVolumesDir = new AllVolumesDirectory(tableId5a, "t-0005");
+    var ref1 = Upgrader9to10.switchToAllVolumes(resolved);
+    compareReferences(allVolumesDir, ref1);
 
     resolved = Upgrader9to10.resolveRelativeDelete("/5a/" + BULK_PREFIX + "0005", VOL_PROP);
     assertEquals(new Path(VOL_PROP + "/tables/5a/" + BULK_PREFIX + "0005"), resolved);
-    ref1 = new Reference(tableId5a, VOL_PROP + "/tables/5a/" + BULK_PREFIX + "0005");
-    ref2 = Upgrader9to10.switchToAllVolumes(resolved);
+    ref1 = new ReferenceFile(tableId5a, VOL_PROP + "/tables/5a/" + BULK_PREFIX + "0005");
+    var ref2 = Upgrader9to10.switchToAllVolumes(resolved);
     compareReferences(ref1, ref2);
 
     resolved = Upgrader9to10.resolveRelativeDelete("/5a/t-0005/F0009.rf", VOL_PROP);
     assertEquals(new Path(VOL_PROP + "/tables/5a/t-0005/F0009.rf"), resolved);
-    ref1 = new Reference(tableId5a, VOL_PROP + "/tables/5a/t-0005/F0009.rf");
+    ref1 = new ReferenceFile(tableId5a, VOL_PROP + "/tables/5a/t-0005/F0009.rf");
     ref2 = Upgrader9to10.switchToAllVolumes(resolved);
     compareReferences(ref1, ref2);
   }
 
-  private void compareReferences(Reference ref1, Reference ref2) {
-    assertEquals(ref1.metadataEntry, ref2.metadataEntry);
+  private void compareReferences(ReferenceFile ref1, ReferenceFile ref2) {
+    assertEquals(ref1.getMetadataEntry(), ref2.getMetadataEntry());
     assertEquals(ref1.tableId, ref2.tableId);
   }
 
@@ -117,20 +117,20 @@ public class Upgrader9to10Test {
   public void testSwitchAllVolumes() {
     Path resolved = Upgrader9to10
         .resolveRelativeDelete("hdfs://localhost:9000/accumulo/tables/5a/t-0005", VOL_PROP);
-    var ref1 = GcVolumeUtil.getDeleteTabletOnAllVolumesUri(tableId5a, "t-0005");
+    var allVolumesDir = new AllVolumesDirectory(tableId5a, "t-0005");
+    var ref1 = Upgrader9to10.switchToAllVolumes(resolved);
+    compareReferences(allVolumesDir, ref1);
+
+    resolved = Upgrader9to10.resolveRelativeDelete(
+        "hdfs://localhost:9000/accumulo/tables/5a/" + BULK_PREFIX + "0005", VOL_PROP);
+    ref1 = new ReferenceFile(tableId5a,
+        "hdfs://localhost:9000/accumulo/tables/5a/" + BULK_PREFIX + "0005");
     var ref2 = Upgrader9to10.switchToAllVolumes(resolved);
     compareReferences(ref1, ref2);
 
     resolved = Upgrader9to10.resolveRelativeDelete(
-        "hdfs://localhost:9000/accumulo/tables/5a/" + BULK_PREFIX + "0005", VOL_PROP);
-    ref1 = new Reference(tableId5a,
-        "hdfs://localhost:9000/accumulo/tables/5a/" + BULK_PREFIX + "0005");
-    ref2 = Upgrader9to10.switchToAllVolumes(resolved);
-    compareReferences(ref1, ref2);
-
-    resolved = Upgrader9to10.resolveRelativeDelete(
         "hdfs://localhost:9000/accumulo/tables/5a/t-0005/C0009.rf", VOL_PROP);
-    ref1 = new Reference(tableId5a, "hdfs://localhost:9000/accumulo/tables/5a/t-0005/C0009.rf");
+    ref1 = new ReferenceFile(tableId5a, "hdfs://localhost:9000/accumulo/tables/5a/t-0005/C0009.rf");
     ref2 = Upgrader9to10.switchToAllVolumes(resolved);
     compareReferences(ref1, ref2);
   }

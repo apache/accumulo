@@ -23,9 +23,10 @@ import static org.apache.accumulo.core.Constants.HDFS_TABLES_DIR;
 import java.util.Objects;
 
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
@@ -46,6 +47,8 @@ public class TabletFile implements Comparable<TabletFile> {
   protected final Path metaPath;
   private final String normalizedPath;
 
+  private static final Logger log = LoggerFactory.getLogger(TabletFile.class);
+
   /**
    * Construct new tablet file using a Path. Used in the case where we had to use Path object to
    * qualify an absolute path or create a new file.
@@ -53,10 +56,11 @@ public class TabletFile implements Comparable<TabletFile> {
   public TabletFile(Path metaPath) {
     this.metaPath = Objects.requireNonNull(metaPath);
     String errorMsg = "Missing or invalid part of tablet file metadata entry: " + metaPath;
+    log.debug("Parsing TabletFile from {}", metaPath);
 
     // use Path object to step backwards from the filename through all the parts
     this.fileName = metaPath.getName();
-    ServerColumnFamily.validateDirCol(fileName);
+    ValidationUtil.validateFileName(fileName);
 
     Path tabletDirPath = Objects.requireNonNull(metaPath.getParent(), errorMsg);
 
