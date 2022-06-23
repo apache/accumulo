@@ -49,7 +49,6 @@ import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TSamplerConfiguration;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.tserver.ScanServer.ScanReservation;
 import org.apache.accumulo.tserver.session.ScanSession.TabletResolver;
 import org.apache.accumulo.tserver.tablet.SnapshotTablet;
@@ -67,7 +66,7 @@ public class ScanServerTest {
     private ScanReservation reservation;
     private boolean loadTabletFailure = false;
 
-    protected TestScanServer(ServerOpts opts, String[] args) {
+    protected TestScanServer(ScanServerOpts opts, String[] args) {
       super(opts, args);
     }
 

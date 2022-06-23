@@ -28,14 +28,13 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.net.URL;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
@@ -43,6 +42,7 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -88,6 +88,7 @@ import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector;
+import org.apache.accumulo.core.spi.scan.ScanServerSelector.ScanServer;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.tables.TableZooHelper;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -190,8 +191,19 @@ public class ClientContext implements AccumuloClient {
         }
 
         @Override
-        public Supplier<Set<String>> getScanServers() {
-          return () -> new HashSet<>(ClientContext.this.getScanServers().keySet());
+        public Supplier<Collection<ScanServer>> getScanServers() {
+          return () -> ClientContext.this.getScanServers().entrySet().stream()
+              .map(entry -> new ScanServer() {
+                @Override
+                public String getAddress() {
+                  return entry.getKey();
+                }
+
+                @Override
+                public String getGroup() {
+                  return entry.getValue().group;
+                }
+              }).collect(Collectors.toSet());
         }
       });
       return scanServerSelector;
@@ -380,11 +392,22 @@ public class ClientContext implements AccumuloClient {
     return batchWriterConfig;
   }
 
+  public static class ScanServerInfo {
+    public final UUID uuid;
+    public final String group;
+
+    public ScanServerInfo(UUID uuid, String group) {
+      this.uuid = uuid;
+      this.group = group;
+    }
+
+  }
+
   /**
    * @return map of live scan server addresses to lock uuids.
    */
-  public Map<String,UUID> getScanServers() {
-    Map<String,UUID> liveScanServers = new HashMap<>();
+  public Map<String,ScanServerInfo> getScanServers() {
+    Map<String,ScanServerInfo> liveScanServers = new HashMap<>();
     String root = this.getZooKeeperRoot() + Constants.ZSSERVERS;
     var addrs = this.getZooCache().getChildren(root);
     for (String addr : addrs) {
@@ -393,8 +416,10 @@ public class ClientContext implements AccumuloClient {
         ZcStat stat = new ZcStat();
         byte[] lockData = ServiceLock.getLockData(getZooCache(), zLockPath, stat);
         if (lockData != null) {
-          UUID uuid = UUID.fromString(new String(lockData, UTF_8));
-          liveScanServers.put(addr, uuid);
+          String[] fields = new String(lockData, UTF_8).split(",", 2);
+          UUID uuid = UUID.fromString(fields[0]);
+          String group = fields[1];
+          liveScanServers.put(addr, new ScanServerInfo(uuid, group));
         }
       } catch (Exception e) {
         log.error("Error validating zookeeper scan server node: " + addr, e);

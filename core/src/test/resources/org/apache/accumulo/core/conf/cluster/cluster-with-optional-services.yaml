@@ -35,10 +35,11 @@ tserver:
   - localhost4
 
 sserver:
-  - localhost5
-  - localhost6
-  - localhost7
-  - localhost8
+  - group:
+    - default
+  - default:
+    - localhost1
+    - localhost2
 
 compaction:
   coordinator:

@@ -65,6 +65,7 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
@@ -111,6 +112,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.Parameter;
 import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
@@ -121,6 +123,18 @@ import com.google.common.collect.Sets;
 
 public class ScanServer extends AbstractServer
     implements TabletScanClientService.Iface, TabletHostingServer {
+
+  public static class ScanServerOpts extends ServerOpts {
+    @Parameter(required = false, names = {"-g", "--group"},
+        description = "Optional group name that will be made available to the ScanServerSelector client plugin.  If not specified will be set to '"
+            + ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME
+            + "'.  Groups support at least two use cases : dedicating resources to scans and/or using different hardware for scans.")
+    private String groupName = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
+
+    public String getGroupName() {
+      return groupName;
+    }
+  }
 
   private static final Logger log = LoggerFactory.getLogger(ScanServer.class);
 
@@ -187,7 +201,9 @@ public class ScanServer extends AbstractServer
 
   private ZooCache managerLockCache;
 
-  public ScanServer(ServerOpts opts, String[] args) {
+  private final String groupName;
+
+  public ScanServer(ScanServerOpts opts, String[] args) {
     super("sserver", opts, args);
 
     context = super.getContext();
@@ -230,6 +246,8 @@ public class ScanServer extends AbstractServer
     }
 
     delegate = newThriftScanClientHandler(new WriteTracker());
+
+    this.groupName = Objects.requireNonNull(opts.getGroupName());
 
     ThreadPools.watchCriticalScheduledTask(getContext().getScheduledExecutor()
         .scheduleWithFixedDelay(() -> cleanUpReservedFiles(scanServerReservationExpiration),
@@ -318,7 +336,7 @@ public class ScanServer extends AbstractServer
       };
 
       // Don't use the normal ServerServices lock content, instead put the server UUID here.
-      byte[] lockContent = serverLockUUID.toString().getBytes(UTF_8);
+      byte[] lockContent = (serverLockUUID.toString() + "," + groupName).getBytes(UTF_8);
 
       for (int i = 0; i < 120 / 5; i++) {
         zoo.putPersistentData(zLockPath.toString(), new byte[0], NodeExistsPolicy.SKIP);
@@ -961,7 +979,7 @@ public class ScanServer extends AbstractServer
   }
 
   public static void main(String[] args) throws Exception {
-    try (ScanServer tserver = new ScanServer(new ServerOpts(), args)) {
+    try (ScanServer tserver = new ScanServer(new ScanServerOpts(), args)) {
       tserver.runServer();
     }
   }

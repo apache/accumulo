@@ -24,6 +24,7 @@ import java.lang.reflect.Type;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -74,6 +75,12 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * <li><b>scanTypeActivations : </b> A list of scan types that will activate this profile. Scan
  * types are specified by setting {@code scan_type=<scan_type>} as execution on the scanner. See
  * {@link org.apache.accumulo.core.client.ScannerBase#setExecutionHints(Map)}</li>
+ * <li><b>group : </b> Scan servers can be started with an optional group. If specified, this option
+ * will limit the scan servers used to those that were started with this group name. If not
+ * specified, the set of scan servers that did not specify a group will be used. Grouping scan
+ * servers supports at least two use cases. First groups can be used to dedicate resources for
+ * certain scans. Second groups can be used to have different hardware/VM types for scans, for
+ * example could have some scans use expensive high memory VMs and others use cheaper burstable VMs.
  * <li><b>attemptPlans : </b> A list of configuration to use for each scan attempt. Each list object
  * has the following fields:
  * <ul>
@@ -106,6 +113,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *       "scanTypeActivations":["slow"]
  *       "maxBusyTimeout":"20m",
  *       "busyTimeoutMultiplier":8,
+ *       "group":"lowcost"
  *       "attemptPlans":[
  *         {"servers":"1", "busyTimeout":"10s"},
  *         {"servers":"3", "busyTimeout":"30s","salt","42"},
@@ -134,7 +142,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * 60s. The different salt means the set of servers that attempts 2 and 3 choose from may be
  * disjoint. Attempt 4 and greater will continue to choose from the same 9 servers as attempt 3 and
  * will keep increasing the busy timeout by multiplying 8 until the maximum of 20 minutes is
- * reached.
+ * reached. For this profile it will choose from scan servers in the group {@literal lowcost}.
  * </p>
  */
 public class DefaultScanServerSelector implements ScanServerSelector {
@@ -146,7 +154,7 @@ public class DefaultScanServerSelector implements ScanServerSelector {
       + "{'servers':'13', 'busyTimeout':'33ms', 'salt':'two'},"
       + "{'servers':'100%', 'busyTimeout':'33ms'}]}]";
 
-  private Supplier<List<String>> orderedScanServersSupplier;
+  private Supplier<Map<String,List<String>>> orderedScanServersSupplier;
 
   private Map<String,Profile> profiles;
   private Profile defaultProfile;
@@ -213,6 +221,7 @@ public class DefaultScanServerSelector implements ScanServerSelector {
     boolean isDefault = false;
     int busyTimeoutMultiplier;
     String maxBusyTimeout;
+    String group = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
 
     transient boolean parsed = false;
     transient long parsedMaxBusyTimeout;
@@ -284,9 +293,12 @@ public class DefaultScanServerSelector implements ScanServerSelector {
   public void init(InitParameters params) {
     // avoid constantly resorting the scan servers, just do it periodically in case they change
     orderedScanServersSupplier = Suppliers.memoizeWithExpiration(() -> {
-      List<String> oss = new ArrayList<>(params.getScanServers().get());
-      Collections.sort(oss);
-      return Collections.unmodifiableList(oss);
+      Collection<ScanServer> scanServers = params.getScanServers().get();
+      Map<String,List<String>> groupedServers = new HashMap<>();
+      scanServers.forEach(sserver -> groupedServers
+          .computeIfAbsent(sserver.getGroup(), k -> new ArrayList<>()).add(sserver.getAddress()));
+      groupedServers.values().forEach(ssAddrs -> Collections.sort(ssAddrs));
+      return groupedServers;
     }, 100, TimeUnit.MILLISECONDS);
 
     var opts = params.getOptions();
@@ -301,9 +313,20 @@ public class DefaultScanServerSelector implements ScanServerSelector {
   @Override
   public Actions determineActions(SelectorParameters params) {
 
+    String scanType = params.getHints().get("scan_type");
+
+    Profile profile = null;
+
+    if (scanType != null) {
+      profile = profiles.getOrDefault(scanType, defaultProfile);
+    } else {
+      profile = defaultProfile;
+    }
+
     // only get this once and use it for the entire method so that the method uses a consistent
     // snapshot
-    List<String> orderedScanServers = orderedScanServersSupplier.get();
+    List<String> orderedScanServers =
+        orderedScanServersSupplier.get().getOrDefault(profile.group, List.of());
 
     if (orderedScanServers.isEmpty()) {
       return new Actions() {
@@ -329,16 +352,6 @@ public class DefaultScanServerSelector implements ScanServerSelector {
     // get the max number of busy attempts, treat errors as busy attempts
     int attempts = params.getTablets().stream()
         .mapToInt(tablet -> params.getAttempts(tablet).size()).max().orElse(0);
-
-    String scanType = params.getHints().get("scan_type");
-
-    Profile profile = null;
-
-    if (scanType != null) {
-      profile = profiles.getOrDefault(scanType, defaultProfile);
-    } else {
-      profile = defaultProfile;
-    }
 
     int numServers = profile.getNumServers(attempts, orderedScanServers.size());
 

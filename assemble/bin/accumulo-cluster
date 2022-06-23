@@ -92,6 +92,13 @@ function parse_config {
     fi
   done
 
+  for group in $SSERVER_GROUPS; do
+    G="SSERVER_HOSTS_${group}"
+    if [[ -z ${!G} ]]; then
+      echo "WARN: ScanServer group $group configured, but no hosts configured for it"
+    fi
+  done
+
   unset manager1
   manager1=$(echo "${MANAGER_HOSTS}" | cut -d" " -f1)
 
@@ -190,8 +197,11 @@ function start_all() {
     start_service "$monitor" monitor
   done
 
-  for sserver in $SSERVER_HOSTS; do
-    start_service "$sserver" sserver
+  for group in $SSERVER_GROUPS; do
+    G="SSERVER_HOSTS_${group}"
+    for sserver in "${!G}"; do
+      start_service "$sserver" sserver "-g" "$group"
+    done
   done
 
   for coordinator in $COORDINATOR_HOSTS; do
@@ -247,12 +257,14 @@ function start_here() {
     done
   done
 
-  for host in $local_hosts; do
-    for sserver in $SSERVER_HOSTS; do
-      if echo "$sserver" | grep -q "^${host}\$"; then
-        start_service "$host" sserver
-        break
-      fi
+  for group in $SSERVER_GROUPS; do
+    for host in $local_hosts; do
+      G="SSERVER_HOSTS_${group}"
+      for sserver in "${!G}"; do
+        if echo "$sserver" | grep -q "^${host}\$"; then
+          start_service "$sserver" sserver "-g" "$group"
+        fi
+      done
     done
   done
 
@@ -322,8 +334,11 @@ function kill_all() {
     kill_service "$monitor" monitor
   done
 
-  for sserver in $SSERVER_HOSTS; do
-    kill_service "$sserver" sserver
+  for group in $SSERVER_GROUPS; do
+    G="SSERVER_HOSTS_${group}"
+    for sserver in "${!G}"; do
+      kill_service "$sserver" sserver "-g" "$group"
+    done
   done
 
   for host in $TSERVER_HOSTS; do
@@ -375,8 +390,11 @@ function stop_all() {
       end_service $end_cmd "$monitor" monitor
     done
 
-    for sserver in $SSERVER_HOSTS; do
-      end_service $end_cmd "$sserver" sserver
+    for group in $SSERVER_GROUPS; do
+      G="SSERVER_HOSTS_${group}"
+      for sserver in "${!G}"; do
+        end_service $end_cmd "$sserver" sserver "-g" "$group"
+      done
     done
 
     for coordinator in $COORDINATOR_HOSTS; do
@@ -417,8 +435,14 @@ function stop_here() {
 
   for host in "${hosts_to_check[@]}"; do
     for end_cmd in "stop" "kill"; do
-      for svc in tserver gc manager monitor compaction-coordinator sserver; do
+      for svc in tserver gc manager monitor compaction-coordinator; do
         end_service $end_cmd "$host" $svc
+      done
+      for group in $SSERVER_GROUPS; do
+        G="SSERVER_HOSTS_${group}"
+        for sserver in "${!G}"; do
+          end_service $end_cmd "$sserver" sserver "-g" "$group"
+        done
       done
       for queue in $COMPACTION_QUEUES; do
         Q="COMPACTOR_HOSTS_${queue}"
@@ -465,6 +489,12 @@ gc:
 tserver:
   - localhost
 
+#sserver:
+#  - group:
+#    - default
+#  - default:
+#    - localhost
+#
 #compaction:
 #  coordinator:
 #    - localhost
@@ -477,8 +507,7 @@ tserver:
 #    - q2:
 #        - localhost
 #
-#sserver:
-#  - localhost
+
 EOF
       ;;
     restart)
