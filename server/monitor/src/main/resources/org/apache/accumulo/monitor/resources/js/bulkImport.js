@@ -21,7 +21,7 @@
 var bulkListTable, bulkPerServerTable;
 
 /**
- * Fetches and populates DataTables with new data
+ * Fetches new data and updates DataTables with it
  */
 function refreshBulkImport() {
   ajaxReloadTable(bulkListTable);
