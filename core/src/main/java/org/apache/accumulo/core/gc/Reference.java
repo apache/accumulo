@@ -21,7 +21,9 @@ package org.apache.accumulo.core.gc;
 import org.apache.accumulo.core.data.TableId;
 
 /**
- * A GC reference used for collecting files and directories into a single stream.
+ * A GC reference used for collecting files and directories into a single stream. The GC deals with
+ * two inputs conceptually: candidates and references. Candidates are files that could be possibly
+ * be deleted if they are not defeated by a reference.
  */
 public interface Reference {
   /**
