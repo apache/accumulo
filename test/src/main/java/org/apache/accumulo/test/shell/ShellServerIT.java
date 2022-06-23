@@ -2129,6 +2129,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     // test filters
     ts.exec("fate -print -t IN_PROGRESS", true, "2 transactions", true);
     ts.exec("fate -print " + txid + " -t IN_PROGRESS", true, "1 transactions", true);
+    ts.exec("fate -print " + txid + " -t FAILED", true, "0 transactions", true);
     ts.exec("fate -print -t NEW", true, "0 transactions", true);
     ts.exec("fate -print 1234", true, "0 transactions", true);
     ts.exec("fate -print FATE[aaa] 1 2 3", true, "0 transactions", true);
