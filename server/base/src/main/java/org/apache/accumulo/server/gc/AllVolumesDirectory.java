@@ -45,4 +45,9 @@ public class AllVolumesDirectory extends ReferenceFile {
   public String getMetadataEntry() {
     return metadataEntry;
   }
+
+  @Override
+  public boolean isDirectory() {
+    return true;
+  }
 }
