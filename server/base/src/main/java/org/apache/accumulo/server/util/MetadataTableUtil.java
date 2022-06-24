@@ -62,7 +62,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.gc.Reference;
+import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -95,7 +95,7 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.gc.GcVolumeUtil;
+import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -374,12 +374,11 @@ public class MetadataTableUtil {
           if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
             StoredTabletFile stf = new StoredTabletFile(key.getColumnQualifierData().toString());
             bw.addMutation(
-                ample.createDeleteMutation(new Reference(tableId, stf.getMetaUpdateDelete())));
+                ample.createDeleteMutation(new ReferenceFile(tableId, stf.getMetaUpdateDelete())));
           }
 
           if (ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-            var uri =
-                GcVolumeUtil.getDeleteTabletOnAllVolumesUri(tableId, cell.getValue().toString());
+            var uri = new AllVolumesDirectory(tableId, cell.getValue().toString());
             bw.addMutation(ample.createDeleteMutation(uri));
           }
         }

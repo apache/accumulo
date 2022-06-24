@@ -26,7 +26,7 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.gc.Reference;
+import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
@@ -193,7 +193,7 @@ public interface Ample {
   /**
    * Unlike {@link #putGcCandidates(TableId, Collection)} this takes file and dir GC candidates.
    */
-  default void putGcFileAndDirCandidates(TableId tableId, Collection<Reference> candidates) {
+  default void putGcFileAndDirCandidates(TableId tableId, Collection<ReferenceFile> candidates) {
     throw new UnsupportedOperationException();
   }
 
@@ -220,16 +220,16 @@ public interface Ample {
   }
 
   /**
-   * Return an encoded delete marker Mutation to delete the specified TabletFile path. A Reference
-   * is used for the parameter because the Garbage Collector is optimized to store a directory for
-   * Tablet File. Otherwise, a {@link TabletFile} object could be used. The tabletFilePathToRemove
-   * is validated and normalized before creating the mutation.
+   * Return an encoded delete marker Mutation to delete the specified TabletFile path. A
+   * ReferenceFile is used for the parameter because the Garbage Collector is optimized to store a
+   * directory for Tablet File. Otherwise, a {@link TabletFile} object could be used. The
+   * tabletFilePathToRemove is validated and normalized before creating the mutation.
    *
    * @param tabletFilePathToRemove
    *          String full path of the TabletFile
    * @return Mutation with encoded delete marker
    */
-  default Mutation createDeleteMutation(Reference tabletFilePathToRemove) {
+  default Mutation createDeleteMutation(ReferenceFile tabletFilePathToRemove) {
     throw new UnsupportedOperationException();
   }
 

@@ -39,6 +39,7 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.file.FileOperations;
+import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -131,11 +132,7 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
 
   @Override
   public WriterFSOptions to(String filename) {
-    Objects.requireNonNull(filename);
-    if (!filename.endsWith(".rf")) {
-      throw new IllegalArgumentException(
-          "Provided filename (" + filename + ") does not end with '.rf'");
-    }
+    ValidationUtil.validateRFileName(filename);
     this.out = new OutputArgs(filename);
     return this;
   }

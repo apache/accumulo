@@ -192,11 +192,13 @@ public class MetadataSchema {
       public static final String DEFAULT_TABLET_DIR_NAME = "default_tablet";
 
       /**
+       * Matches regex for a tablet directory like "default_tablet" or "t-000009x"
+       *
        * @return true if dirName is a valid value for the {@link #DIRECTORY_COLUMN} in the metadata
        *         table. Returns false otherwise.
        */
       public static boolean isValidDirCol(String dirName) {
-        return !dirName.contains("/");
+        return dirName.matches("[\\dA-Za-z_-]+");
       }
 
       /**

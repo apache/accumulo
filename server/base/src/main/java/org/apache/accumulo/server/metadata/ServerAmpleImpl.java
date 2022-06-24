@@ -40,7 +40,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.gc.Reference;
+import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
@@ -128,13 +128,13 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   @Override
-  public void putGcFileAndDirCandidates(TableId tableId, Collection<Reference> candidates) {
+  public void putGcFileAndDirCandidates(TableId tableId, Collection<ReferenceFile> candidates) {
 
     if (RootTable.ID.equals(tableId)) {
 
       // Directories are unexpected for the root tablet, so convert to stored tablet file
-      mutateRootGcCandidates(rgcc -> rgcc.add(
-          candidates.stream().map(reference -> new StoredTabletFile(reference.metadataEntry))));
+      mutateRootGcCandidates(rgcc -> rgcc.add(candidates.stream()
+          .map(reference -> new StoredTabletFile(reference.getMetadataEntry()))));
       return;
     }
 
@@ -211,8 +211,8 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   @Override
-  public Mutation createDeleteMutation(Reference tabletFilePathToRemove) {
-    return createDelMutation(ValidationUtil.validate(tabletFilePathToRemove).metadataEntry);
+  public Mutation createDeleteMutation(ReferenceFile tabletFilePathToRemove) {
+    return createDelMutation(ValidationUtil.validate(tabletFilePathToRemove).getMetadataEntry());
   }
 
   public Mutation createDeleteMutation(StoredTabletFile pathToRemove) {
