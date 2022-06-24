@@ -108,8 +108,17 @@ public class ClusterConfigParser {
         }
       }
     }
-    if (config.containsKey("sserver")) {
-      out.printf(PROPERTY_FORMAT, "SSERVER_HOSTS", config.get("sserver"));
+    if (config.containsKey("sserver.group")) {
+      out.printf(PROPERTY_FORMAT, "SSERVER_GROUPS", config.get("sserver.group"));
+    }
+    String groups = config.get("sserver.group");
+    if (StringUtils.isNotEmpty(groups)) {
+      String[] g = groups.split(" ");
+      for (int i = 0; i < g.length; i++) {
+        if (config.containsKey("sserver." + g[i])) {
+          out.printf(PROPERTY_FORMAT, "SSERVER_HOSTS_" + g[i], config.get("sserver." + g[i]));
+        }
+      }
     }
 
     out.flush();

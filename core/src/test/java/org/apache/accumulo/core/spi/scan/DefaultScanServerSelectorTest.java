@@ -39,6 +39,7 @@ import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
+import org.apache.accumulo.core.spi.scan.ScanServerSelector.ScanServer;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
@@ -47,19 +48,20 @@ public class DefaultScanServerSelectorTest {
   static class InitParams implements ScanServerSelector.InitParameters {
 
     private final Map<String,String> opts;
-    private final Set<String> scanServers;
-
-    InitParams(Map<String,String> opts, Set<String> scanServers) {
-      this.opts = opts;
-      this.scanServers = scanServers;
-    }
+    private final Map<String,String> scanServers;
 
     InitParams(Set<String> scanServers) {
-      this.opts = Map.of();
-      this.scanServers = scanServers;
+      this(scanServers, Map.of());
     }
 
     InitParams(Set<String> scanServers, Map<String,String> opts) {
+      this.opts = opts;
+      this.scanServers = new HashMap<>();
+      scanServers.forEach(
+          sserv -> this.scanServers.put(sserv, ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME));
+    }
+
+    InitParams(Map<String,String> scanServers, Map<String,String> opts) {
       this.opts = opts;
       this.scanServers = scanServers;
     }
@@ -75,8 +77,20 @@ public class DefaultScanServerSelectorTest {
     }
 
     @Override
-    public Supplier<Set<String>> getScanServers() {
-      return () -> scanServers;
+    public Supplier<Collection<ScanServer>> getScanServers() {
+      return () -> scanServers.entrySet().stream().map(entry -> new ScanServer() {
+
+        @Override
+        public String getAddress() {
+          return entry.getKey();
+        }
+
+        @Override
+        public String getGroup() {
+          return entry.getValue();
+        }
+
+      }).collect(Collectors.toSet());
     }
   }
 
@@ -377,5 +391,88 @@ public class DefaultScanServerSelectorTest {
     assertNull(actions.getScanServer(tabletId));
     assertEquals(Duration.ZERO, actions.getDelay());
     assertEquals(Duration.ZERO, actions.getBusyTimeout());
+  }
+
+  @Test
+  public void testGroups() {
+
+    String defaultProfile =
+        "{'isDefault':true,'maxBusyTimeout':'5m','busyTimeoutMultiplier':4, 'attemptPlans':"
+            + "[{'servers':'100%', 'busyTimeout':'60s'}]}";
+
+    String profile1 = "{'scanTypeActivations':['long','st9'],'maxBusyTimeout':'30m','group':'g1',"
+        + "'busyTimeoutMultiplier':4, 'attemptPlans':[{'servers':'100%', 'busyTimeout':'60s'}]}";
+
+    String profile2 =
+        "{'scanTypeActivations':['mega'],'maxBusyTimeout':'60m','busyTimeoutMultiplier':2, 'group':'g2',"
+            + "'attemptPlans':[{'servers':'100%', 'busyTimeout':'10m'}]}";
+
+    var opts = Map.of("profiles",
+        "[" + defaultProfile + ", " + profile1 + "," + profile2 + "]".replace('\'', '"'));
+
+    DefaultScanServerSelector selector = new DefaultScanServerSelector();
+    var dg = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
+    selector.init(new InitParams(Map.of("ss1:1", dg, "ss2:2", dg, "ss3:3", dg, "ss4:4", "g1",
+        "ss5:5", "g1", "ss6:6", "g2", "ss7:7", "g2", "ss8:8", "g2"), opts));
+
+    Set<String> servers = new HashSet<>();
+
+    for (int i = 0; i < 1000; i++) {
+      var tabletId = nti("1", "m" + i);
+
+      ScanServerSelector.Actions actions = selector.determineActions(new DaParams(tabletId));
+
+      servers.add(actions.getScanServer(tabletId));
+    }
+
+    assertEquals(Set.of("ss1:1", "ss2:2", "ss3:3"), servers);
+
+    // config should map this scan type to the group of scan servers g1
+    var hints = Map.of("scan_type", "long");
+
+    servers.clear();
+
+    for (int i = 0; i < 1000; i++) {
+      var tabletId = nti("1", "m" + i);
+
+      ScanServerSelector.Actions actions =
+          selector.determineActions(new DaParams(tabletId, Map.of(), hints));
+
+      servers.add(actions.getScanServer(tabletId));
+    }
+
+    assertEquals(Set.of("ss4:4", "ss5:5"), servers);
+
+    // config should map this scan type to the group of scan servers g2
+    hints = Map.of("scan_type", "mega");
+
+    servers.clear();
+
+    for (int i = 0; i < 1000; i++) {
+      var tabletId = nti("1", "m" + i);
+
+      ScanServerSelector.Actions actions =
+          selector.determineActions(new DaParams(tabletId, Map.of(), hints));
+
+      servers.add(actions.getScanServer(tabletId));
+    }
+
+    assertEquals(Set.of("ss6:6", "ss7:7", "ss8:8"), servers);
+
+    // config does map this scan type to anything, so should use the default group of scan servers
+    hints = Map.of("scan_type", "rust");
+
+    servers.clear();
+
+    for (int i = 0; i < 1000; i++) {
+      var tabletId = nti("1", "m" + i);
+
+      ScanServerSelector.Actions actions =
+          selector.determineActions(new DaParams(tabletId, Map.of(), hints));
+
+      servers.add(actions.getScanServer(tabletId));
+    }
+
+    assertEquals(Set.of("ss1:1", "ss2:2", "ss3:3"), servers);
   }
 }

@@ -19,9 +19,9 @@
 package org.apache.accumulo.server.util;
 
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.server.ServerContext;
@@ -41,11 +41,12 @@ public class ScanServerMetadataEntries {
 
     // gather the list of current live scan servers, its important that this is done after the above
     // step in order to avoid removing new scan servers that start while the method is running
-    final Map<String,UUID> scanServers = context.getScanServers();
+    final Set<UUID> scanServerUuids =
+        context.getScanServers().values().stream().map(ssi -> ssi.uuid).collect(Collectors.toSet());
 
     // remove all live scan servers from the uuids seen in the metadata table... what is left is
     // uuids for scan servers that are dead
-    uuidsToDelete.removeAll(scanServers.values());
+    uuidsToDelete.removeAll(scanServerUuids);
 
     if (!uuidsToDelete.isEmpty()) {
       final Set<ScanServerRefTabletFile> refsToDelete = new HashSet<>();

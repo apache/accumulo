@@ -21,7 +21,6 @@ package org.apache.accumulo.core.spi.scan;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.ScannerBase;
@@ -41,6 +40,30 @@ import com.google.common.base.Preconditions;
  * @since 2.1.0
  */
 public interface ScanServerSelector {
+
+  /**
+   * The scan server group name that will be used when one is not specified.
+   */
+  public static final String DEFAULT_SCAN_SERVER_GROUP_NAME = "default";
+
+  /**
+   * Information about a scan server.
+   *
+   * @since 2.1.0
+   */
+  public interface ScanServer {
+    /**
+     * @return the address in the form of {@code <host>:<port>} where the scan server is running.
+     */
+    String getAddress();
+
+    /**
+     * @return the group name set when the scan server was started. If a group name was not set for
+     *         the scan server, then the string {@value #DEFAULT_SCAN_SERVER_GROUP_NAME} is
+     *         returned.
+     */
+    String getGroup();
+  }
 
   /**
    * This interface exists so that is easier to evolve what is passed to
@@ -66,7 +89,7 @@ public interface ScanServerSelector {
      *         {@link #determineActions(SelectorParameters)} so that decisions are made using a
      *         consistent set of scan servers.
      */
-    Supplier<Set<String>> getScanServers();
+    Supplier<Collection<ScanServer>> getScanServers();
   }
 
   /**
