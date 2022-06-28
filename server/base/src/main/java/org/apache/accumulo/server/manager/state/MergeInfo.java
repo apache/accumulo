@@ -21,9 +21,13 @@ package org.apache.accumulo.server.manager.state;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.io.Writable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Information about the current merge/rangeDelete.
@@ -32,6 +36,8 @@ import org.apache.hadoop.io.Writable;
  */
 public class MergeInfo implements Writable {
 
+  private static final Logger LOG = LoggerFactory.getLogger(MergeInfo.class);
+
   public enum Operation {
     MERGE, DELETE,
   }
@@ -39,6 +45,7 @@ public class MergeInfo implements Writable {
   MergeState state = MergeState.NONE;
   KeyExtent extent;
   Operation operation = Operation.MERGE;
+  private Map<KeyExtent,Boolean> previouslyEvaluatedOverlaps = new HashMap<>();
 
   public MergeInfo() {}
 
@@ -93,10 +100,16 @@ public class MergeInfo implements Writable {
   }
 
   public boolean overlaps(KeyExtent otherExtent) {
-    boolean result = this.extent.overlaps(otherExtent);
-    if (!result && needsToBeChopped(otherExtent))
-      return true;
-    return result;
+    return previouslyEvaluatedOverlaps.computeIfAbsent(otherExtent, b -> {
+      boolean result = this.extent.overlaps(otherExtent);
+      if (!result && needsToBeChopped(otherExtent))
+        result = true;
+      if (result)
+        LOG.debug("mergeInfo overlaps: {} true", extent);
+      else
+        LOG.trace("mergeInfo overlaps: {} false", extent);
+      return result;
+    });
   }
 
   @Override

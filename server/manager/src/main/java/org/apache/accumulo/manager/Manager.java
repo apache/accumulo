@@ -593,7 +593,6 @@ public class Manager extends AbstractServer
         final boolean overlaps = mergeInfo.overlaps(extent);
 
         if (overlaps) {
-          log.debug("mergeInfo overlaps: {} true", extent);
           switch (mergeInfo.getState()) {
             case NONE:
             case COMPLETE:
@@ -615,8 +614,6 @@ public class Manager extends AbstractServer
             case MERGING:
               return TabletGoalState.UNASSIGNED;
           }
-        } else {
-          log.trace("mergeInfo overlaps: {} false", extent);
         }
       }
 
