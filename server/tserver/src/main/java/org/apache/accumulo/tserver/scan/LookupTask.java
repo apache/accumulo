@@ -22,10 +22,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
@@ -89,23 +87,24 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       Key partNextKey = null;
       boolean partNextKeyInclusive = false;
 
-      Iterator<Entry<KeyExtent,List<Range>>> iter = session.queries.entrySet().iterator();
+      // Iterator<Entry<KeyExtent,List<Range>>> iter = session.queries.entrySet().iterator();
+      log.error("number of extents: " + session.queries.size() + " -- " + session.queries.keySet());
 
       // check the time so that the read ahead thread is not monopolized
-      while (iter.hasNext() && bytesAdded < maxResultsSize
+      while (!session.queries.isEmpty() && bytesAdded < maxResultsSize
           && (System.currentTimeMillis() - startTime) < maxScanTime) {
-        Entry<KeyExtent,List<Range>> entry = iter.next();
-
-        iter.remove();
+        KeyExtent extent = session.queries.keySet().iterator().next();
+        List<Range> ranges = session.queries.remove(extent);
 
         // check that tablet server is serving requested tablet
-        TabletBase tablet = session.getTabletResolver().getTablet(entry.getKey());
+        TabletBase tablet = session.getTabletResolver().getTablet(extent);
+
         if (tablet == null) {
-          failures.put(entry.getKey(), entry.getValue());
+          failures.put(extent, ranges);
           continue;
         }
         Thread.currentThread().setName("Client: " + session.client + " User: " + session.getUser()
-            + " Start: " + session.startTime + " Tablet: " + entry.getKey());
+            + " Start: " + session.startTime + " Tablet: " + extent);
 
         LookupResult lookupResult;
         try {
@@ -116,8 +115,10 @@ public class LookupTask extends ScanTask<MultiScanResult> {
           if (isCancelled())
             interruptFlag.set(true);
 
-          lookupResult = tablet.lookup(entry.getValue(), results, session.scanParams,
+          List<KVEntry> tabletResults = new ArrayList<>();
+          lookupResult = tablet.lookup(ranges, tabletResults, session.scanParams,
               maxResultsSize - bytesAdded, interruptFlag);
+          results.addAll(tabletResults);
 
           // if the tablet was closed it it possible that the
           // interrupt flag was set.... do not want it set for
@@ -126,20 +127,25 @@ public class LookupTask extends ScanTask<MultiScanResult> {
           interruptFlag.set(false);
 
         } catch (IOException e) {
-          log.warn("lookup failed for tablet " + entry.getKey(), e);
+          log.warn("lookup failed for tablet " + extent, e);
           throw new RuntimeException(e);
         }
 
         bytesAdded += lookupResult.bytesAdded;
 
         if (lookupResult.unfinishedRanges.isEmpty()) {
-          fullScans.add(entry.getKey());
+          fullScans.add(extent);
+          if (partScan != null && partScan.equals(extent)) {
+            partScan = null;
+            partNextKey = null;
+            partNextKeyInclusive = false;
+          }
         } else {
           if (lookupResult.closed) {
-            failures.put(entry.getKey(), lookupResult.unfinishedRanges);
+            failures.put(extent, lookupResult.unfinishedRanges);
           } else {
-            session.queries.put(entry.getKey(), lookupResult.unfinishedRanges);
-            partScan = entry.getKey();
+            session.queries.put(extent, lookupResult.unfinishedRanges);
+            partScan = extent;
             partNextKey = lookupResult.unfinishedRanges.get(0).getStartKey();
             partNextKeyInclusive = lookupResult.unfinishedRanges.get(0).isStartKeyInclusive();
           }

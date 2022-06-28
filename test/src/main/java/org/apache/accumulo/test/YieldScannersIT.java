@@ -18,17 +18,23 @@
  */
 package org.apache.accumulo.test;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -166,6 +172,64 @@ public class YieldScannersIT extends AccumuloClusterHarness {
         }
         assertEquals(10, keyCount, "Did not get the expected number of results");
       }
+    }
+  }
+
+  @Test
+  public void testBatchScanWithSplits() throws Exception {
+    // make a table
+    final String tableName = getUniqueNames(1)[0];
+    TreeSet<Text> splits = new TreeSet<>();
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().create(tableName);
+      final BatchWriter writer = client.createBatchWriter(tableName, new BatchWriterConfig());
+      List<Range> ranges = new ArrayList<>();
+      for (int i = 0; i < 26; i++) {
+        byte[] row = new byte[] {(byte) (START_ROW + i)};
+        Text beginRow = new Text(row);
+        Mutation m = new Mutation(beginRow);
+        m.put(new Text(), new Text(), new Value());
+        writer.addMutation(m);
+        Text endRow = new Text(row);
+        endRow.append("\0".getBytes(UTF_8), 0, 1);
+        Range r = new Range(new Text(row), endRow);
+        System.out.println(r);
+        ranges.add(r);
+        if (i % 4 == 0) {
+          splits.add(beginRow);
+        }
+      }
+      client.tableOperations().addSplits(tableName, splits);
+      writer.flush();
+      writer.close();
+
+      log.info("Creating batch scanner");
+      // make a scanner for a table with 10 keys
+      final BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY, 1);
+      final IteratorSetting cfg = new IteratorSetting(100, YieldingIterator.class);
+      scanner.addScanIterator(cfg);
+      Collections.reverse(ranges);
+      scanner.setRanges(ranges);
+
+      log.info("iterating");
+      Iterator<Map.Entry<Key,Value>> it = scanner.iterator();
+      TreeMap<Key,Value> results = new TreeMap<>();
+      while (it.hasNext()) {
+        Map.Entry<Key,Value> next = it.next();
+        results.put(next.getKey(), next.getValue());
+      }
+
+      int keyCount = 0;
+      for (Map.Entry<Key,Value> next : results.entrySet()) {
+        log.info(keyCount + ": Got key " + next.getKey() + " with value " + next.getValue());
+
+        // verify we got the expected key
+        char expected = (char) (START_ROW + keyCount);
+        assertEquals(Character.toString(expected), next.getKey().getRow().toString(),
+            "Unexpected row");
+        keyCount++;
+      }
+      assertEquals(26, keyCount, "Did not get the expected number of results");
     }
   }
 }
