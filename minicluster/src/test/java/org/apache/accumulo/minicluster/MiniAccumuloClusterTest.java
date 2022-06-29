@@ -19,9 +19,7 @@
 package org.apache.accumulo.minicluster;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Objects.requireNonNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -30,7 +28,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
@@ -58,16 +55,11 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class MiniAccumuloClusterTest extends WithTestNames {
-
-  @SuppressWarnings("removal")
-  private static final Property VFS_CONTEXT_CLASSPATH_PROPERTY =
-      Property.VFS_CONTEXT_CLASSPATH_PROPERTY;
 
   public static final String ROOT_PASSWORD = "superSecret";
   public static final String ROOT_USER = "root";
@@ -183,65 +175,6 @@ public class MiniAccumuloClusterTest extends WithTestNames {
 
     assertEquals(4, count);
 
-    conn.tableOperations().delete(tableName);
-  }
-
-  @TempDir
-  private static File tempDir;
-
-  @SuppressWarnings("deprecation")
-  @Test
-  @Timeout(60)
-  public void testPerTableClasspath() throws Exception {
-    org.apache.accumulo.core.client.Connector conn =
-        accumulo.getConnector(ROOT_USER, ROOT_PASSWORD);
-
-    final String tableName = testName();
-    File jarFile = new File(tempDir, "iterator.jar");
-
-    var ntc = new NewTableConfiguration();
-    ntc.setProperties(Map.of(Property.TABLE_CLASSLOADER_CONTEXT.getKey(), "cx1"));
-    ntc.attachIterator(new IteratorSetting(100, "foocensor", "org.apache.accumulo.test.FooFilter"));
-
-    conn.tableOperations().create(tableName, ntc);
-
-    FileUtils.copyURLToFile(requireNonNull(getClass().getResource("/FooFilter.jar")), jarFile);
-
-    conn.instanceOperations().setProperty(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1",
-        jarFile.toURI().toString());
-
-    // Batchwriter is intermittently failing with a constraint violation because the TabletServer
-    // is not seeing the property changes above before the BatchWriter below closes and a
-    // MutationsRejectedException is being thrown.
-    Thread.sleep(5000);
-
-    try (BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig())) {
-
-      Mutation m1 = new Mutation("foo");
-      m1.put("cf1", "cq1", "v2");
-      m1.put("cf1", "cq2", "v3");
-
-      bw.addMutation(m1);
-
-      Mutation m2 = new Mutation("bar");
-      m2.put("cf1", "cq1", "v6");
-      m2.put("cf1", "cq2", "v7");
-
-      bw.addMutation(m2);
-
-    }
-
-    int count = 0;
-    try (Scanner scanner = conn.createScanner(tableName, new Authorizations())) {
-      for (Entry<Key,Value> entry : scanner) {
-        assertFalse(entry.getKey().getRowData().toString().toLowerCase().contains("foo"));
-        count++;
-      }
-    }
-
-    assertEquals(2, count);
-
-    conn.instanceOperations().removeProperty(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
     conn.tableOperations().delete(tableName);
   }
 
