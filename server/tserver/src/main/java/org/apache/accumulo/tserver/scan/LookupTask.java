@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -37,6 +38,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.tserver.TabletHostingServer;
 import org.apache.accumulo.tserver.session.MultiScanSession;
@@ -79,6 +81,8 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       long maxScanTime = 4000;
 
       long startTime = System.currentTimeMillis();
+      LinkedList<Pair<KeyExtent, List<Range>>> queryQueue = new LinkedList<>();
+      session.queries.entrySet().forEach(e -> queryQueue.addLast(new Pair<>(e.getKey(), e.getValue())));
 
       List<KVEntry> results = new ArrayList<>();
       Map<KeyExtent,List<Range>> failures = new HashMap<>();
@@ -87,14 +91,12 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       Key partNextKey = null;
       boolean partNextKeyInclusive = false;
 
-      // Iterator<Entry<KeyExtent,List<Range>>> iter = session.queries.entrySet().iterator();
-      log.error("number of extents: " + session.queries.size() + " -- " + session.queries.keySet());
-
       // check the time so that the read ahead thread is not monopolized
-      while (!session.queries.isEmpty() && bytesAdded < maxResultsSize
+      while (!queryQueue.isEmpty() && bytesAdded < maxResultsSize
           && (System.currentTimeMillis() - startTime) < maxScanTime) {
-        KeyExtent extent = session.queries.keySet().iterator().next();
-        List<Range> ranges = session.queries.remove(extent);
+        Pair<KeyExtent, List<Range>> extentRangePair = queryQueue.removeFirst();
+        KeyExtent extent = extentRangePair.getFirst();
+        List<Range> ranges = extentRangePair.getSecond();
 
         // check that tablet server is serving requested tablet
         TabletBase tablet = session.getTabletResolver().getTablet(extent);
@@ -135,6 +137,7 @@ public class LookupTask extends ScanTask<MultiScanResult> {
 
         if (lookupResult.unfinishedRanges.isEmpty()) {
           fullScans.add(extent);
+          // if this extent was previously saved, but now completed then reset these values
           if (partScan != null && partScan.equals(extent)) {
             partScan = null;
             partNextKey = null;
@@ -144,7 +147,9 @@ public class LookupTask extends ScanTask<MultiScanResult> {
           if (lookupResult.closed) {
             failures.put(extent, lookupResult.unfinishedRanges);
           } else {
-            session.queries.put(extent, lookupResult.unfinishedRanges);
+            // add to beginning of queue so that we handle this extent and unfinished ranges next
+            // unfinished ranges will either be finished or returned as partially completed
+            queryQueue.addFirst(new Pair<>(extent, lookupResult.unfinishedRanges));
             partScan = extent;
             partNextKey = lookupResult.unfinishedRanges.get(0).getStartKey();
             partNextKeyInclusive = lookupResult.unfinishedRanges.get(0).isStartKeyInclusive();
@@ -177,7 +182,7 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       }
       // add results to queue
       addResult(new MultiScanResult(retResults, retFailures, retFullScans, retPartScan,
-          retPartNextKey, partNextKeyInclusive, !session.queries.isEmpty()));
+          retPartNextKey, partNextKeyInclusive, !queryQueue.isEmpty()));
     } catch (IterationInterruptedException iie) {
       if (!isCancelled()) {
         log.warn("Iteration interrupted, when scan not cancelled", iie);
