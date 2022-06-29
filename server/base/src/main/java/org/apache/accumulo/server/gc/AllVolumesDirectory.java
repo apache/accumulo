@@ -16,41 +16,38 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.gc;
+package org.apache.accumulo.server.gc;
 
+import static org.apache.accumulo.server.gc.GcVolumeUtil.ALL_VOLUMES_PREFIX;
+
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.hadoop.fs.Path;
 
 /**
- * A GC reference to a Tablet directory, like t-0003.
+ * A specially encoded GC Reference to a directory with the {@link GcVolumeUtil#ALL_VOLUMES_PREFIX}
  */
-public class ReferenceDirectory extends ReferenceFile {
-  private final String tabletDir; // t-0003
+public class AllVolumesDirectory extends ReferenceFile {
 
-  public ReferenceDirectory(TableId tableId, String dirName) {
-    super(tableId, dirName);
+  public AllVolumesDirectory(TableId tableId, String dirName) {
+    super(tableId, getDeleteTabletOnAllVolumesUri(tableId, dirName));
+  }
+
+  private static String getDeleteTabletOnAllVolumesUri(TableId tableId, String dirName) {
     MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(dirName);
-    this.tabletDir = dirName;
+    return ALL_VOLUMES_PREFIX + Constants.TABLE_DIR + Path.SEPARATOR + tableId + Path.SEPARATOR
+        + dirName;
+  }
+
+  @Override
+  public String getMetadataEntry() {
+    return metadataEntry;
   }
 
   @Override
   public boolean isDirectory() {
     return true;
-  }
-
-  public String getTabletDir() {
-    return tabletDir;
-  }
-
-  /**
-   * A Tablet directory should have a metadata entry equal to the dirName.
-   */
-  @Override
-  public String getMetadataEntry() {
-    if (!tabletDir.equals(metadataEntry)) {
-      throw new IllegalStateException(
-          "Tablet dir " + tabletDir + " is not equal to metadataEntry: " + metadataEntry);
-    }
-    return metadataEntry;
   }
 }

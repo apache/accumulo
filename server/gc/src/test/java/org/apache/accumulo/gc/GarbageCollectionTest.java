@@ -39,6 +39,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.gc.ReferenceDirectory;
+import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.junit.jupiter.api.Test;
 
@@ -95,7 +96,8 @@ public class GarbageCollectionTest {
     }
 
     public void addFileReference(String tableId, String endRow, String file) {
-      references.put(tableId + ":" + endRow + ":" + file, new Reference(TableId.of(tableId), file));
+      references.put(tableId + ":" + endRow + ":" + file,
+          new ReferenceFile(TableId.of(tableId), file));
     }
 
     public void removeFileReference(String tableId, String endRow, String file) {

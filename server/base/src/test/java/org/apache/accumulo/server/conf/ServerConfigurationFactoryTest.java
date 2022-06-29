@@ -58,6 +58,7 @@ public class ServerConfigurationFactoryTest {
 
   private PropStore propStore;
   private ServerContext context;
+  private SystemConfiguration sysConfig;
   private ServerConfigurationFactory scf;
 
   @BeforeEach
@@ -73,6 +74,10 @@ public class ServerConfigurationFactoryTest {
     propStore.registerAsListener(anyObject(), anyObject());
     expectLastCall().anyTimes();
 
+    sysConfig = createMock(SystemConfiguration.class);
+    sysConfig.getProperties(anyObject(), anyObject());
+    expectLastCall().anyTimes();
+
     context = createMock(ServerContext.class);
     expect(context.getZooKeeperRoot()).andReturn("/accumulo/" + IID).anyTimes();
     expect(context.getInstanceID()).andReturn(IID).anyTimes();
@@ -81,7 +86,7 @@ public class ServerConfigurationFactoryTest {
     expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
     expect(context.tableNodeExists(TID)).andReturn(true).anyTimes();
     expect(context.getPropStore()).andReturn(propStore).anyTimes();
-
+    expect(context.getConfiguration()).andReturn(sysConfig).anyTimes();
     scf = new ServerConfigurationFactory(context, siteConfig) {
       @Override
       public NamespaceConfiguration getNamespaceConfigurationForTable(TableId tableId) {
@@ -92,12 +97,12 @@ public class ServerConfigurationFactoryTest {
       }
     };
 
-    replay(propStore, context);
+    replay(propStore, context, sysConfig);
   }
 
   @AfterEach
   public void verifyMocks() {
-    verify(propStore, context);
+    verify(propStore, context, sysConfig);
   }
 
   @Test

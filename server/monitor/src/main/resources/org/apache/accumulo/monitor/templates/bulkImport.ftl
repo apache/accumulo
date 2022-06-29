@@ -29,7 +29,7 @@
             <caption><span class="table-caption">Bulk Imports</span><br/></caption>
             <thead>
               <tr>
-                <th class="firstcell">Directory&nbsp;</th>
+                <th>Directory&nbsp;</th>
                 <th title="The age of the import.">Age&nbsp;</th>
                 <th title="The current state of the bulk import">State&nbsp;</th>
               </tr>
@@ -38,14 +38,14 @@
           </table>
         </div>
       </div>
-
+      </br></br>
       <div class="row">
         <div class="col-xs-12">
           <table id="bulkPerServerTable" class="table table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Per TabletServer</span><br/></caption>
             <thead>
               <tr>
-                <th class="firstcell">Server</th>
+                <th>Server</th>
                 <th title="Number of imports presently running">#</th>
                 <th title="The age of the oldest import running on this server.">Oldest&nbsp;Age</th>
               </tr>

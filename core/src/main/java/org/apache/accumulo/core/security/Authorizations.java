@@ -44,8 +44,8 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
 
   private static final long serialVersionUID = 1L;
 
-  private Set<ByteSequence> auths = new HashSet<>();
-  private List<byte[]> authsList = new ArrayList<>(); // sorted order
+  private final HashSet<ByteSequence> auths = new HashSet<>();
+  private final ArrayList<byte[]> authsList = new ArrayList<>(); // sorted order
 
   /**
    * An empty set of authorizations.
