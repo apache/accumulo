@@ -499,9 +499,6 @@ tserver:
 #  coordinator:
 #    - localhost
 #  compactor:
-#    - queue:
-#      - q1
-#      - q2
 #    - q1:
 #        - localhost
 #    - q2:

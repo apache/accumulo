@@ -39,9 +39,6 @@ tserver:
 #    - localhost1
 #    - localhost2
 #  compactor:
-#    - queue:
-#      - q1
-#      - q2
 #    - q1:
 #        - localhost1
 #        - localhost2

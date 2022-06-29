@@ -73,7 +73,7 @@ public class ClusterConfigParserTest {
 
     Map<String,String> contents =
         ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
-    assertEquals(10, contents.size());
+    assertEquals(9, contents.size());
     assertTrue(contents.containsKey("manager"));
     assertEquals("localhost1 localhost2", contents.get("manager"));
     assertTrue(contents.containsKey("monitor"));
@@ -86,12 +86,10 @@ public class ClusterConfigParserTest {
     assertTrue(contents.containsKey("compaction.coordinator"));
     assertEquals("localhost1 localhost2", contents.get("compaction.coordinator"));
     assertFalse(contents.containsKey("compaction.compactor"));
-    assertTrue(contents.containsKey("compaction.compactor.queue"));
-    assertEquals("q1 q2", contents.get("compaction.compactor.queue"));
     assertTrue(contents.containsKey("compaction.compactor.q1"));
     assertEquals("localhost1 localhost2", contents.get("compaction.compactor.q1"));
     assertTrue(contents.containsKey("compaction.compactor.q2"));
-    assertEquals("localhost1 localhost2", contents.get("compaction.compactor.q2"));
+    assertEquals("localhost3 localhost4", contents.get("compaction.compactor.q2"));
     assertFalse(contents.containsKey("sserver"));
     assertTrue(contents.containsKey("sserver.group"));
     assertEquals("default", contents.get("sserver.group"));
@@ -133,7 +131,7 @@ public class ClusterConfigParserTest {
             "\"localhost1 localhost2\"", "GC_HOSTS", "\"localhost\"", "TSERVER_HOSTS",
             "\"localhost1 localhost2 localhost3 localhost4\"", "COORDINATOR_HOSTS",
             "\"localhost1 localhost2\"", "COMPACTION_QUEUES", "\"q1 q2\"", "COMPACTOR_HOSTS_q1",
-            "\"localhost1 localhost2\"", "COMPACTOR_HOSTS_q2", "\"localhost1 localhost2\"",
+            "\"localhost1 localhost2\"", "COMPACTOR_HOSTS_q2", "\"localhost3 localhost4\"",
             "SSERVER_GROUPS", "\"default\"", "SSERVER_HOSTS_default", "\"localhost1 localhost2\"");
 
     Map<String,String> actual = new HashMap<>();
