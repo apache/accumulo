@@ -210,6 +210,11 @@ public class MiniAccumuloClusterTest extends WithTestNames {
     conn.instanceOperations().setProperty(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1",
         jarFile.toURI().toString());
 
+    // Batchwriter is intermittently failing with a constraint violation because the TabletServer
+    // is not seeing the property changes above before the BatchWriter below closes and a
+    // MutationsRejectedException is being thrown.
+    Thread.sleep(5000);
+
     try (BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig())) {
 
       Mutation m1 = new Mutation("foo");
