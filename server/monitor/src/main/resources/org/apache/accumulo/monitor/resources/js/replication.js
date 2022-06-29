@@ -18,20 +18,13 @@
  */
 "use strict";
 
-/**
- * Creates replication initial table
- */
-$(document).ready(function () {
-  refreshReplication();
-});
+var replicationStatsTable;
 
 /**
- * Makes the REST calls, generates the tables with the new information
+ * Populates the table with the new information
  */
 function refreshReplication() {
-  getReplication().then(function () {
-    refreshReplicationsTable();
-  });
+  ajaxReloadTable(replicationStatsTable);
 }
 
 /**
@@ -42,37 +35,40 @@ function refresh() {
 }
 
 /**
- * Generates the replication table
+ * Creates replication initial table
  */
-function refreshReplicationsTable() {
-  clearTableBody('replicationStats');
+$(document).ready(function () {
 
-  var data = sessionStorage.replication === undefined ? [] : JSON.parse(sessionStorage.replication);
+  replicationStatsTable = $('#replicationStats').DataTable({
+    "ajax": {
+      "url": "/rest/replication",
+      "dataSrc": ""
+    },
+    "stateSave": true,
+    "columns": [{
+        "data": "tableName"
+      },
+      {
+        "data": "peerName"
+      },
+      {
+        "data": "remoteIdentifier"
+      },
+      {
+        "data": "replicaSystemType"
+      },
+      {
+        "data": "filesNeedingReplication",
+        "render": function (data, type) {
+          if (type === 'display') {
+            data = bigNumberForQuantity(data);
+          }
+          return data;
+        }
+      }
+    ]
+  });
 
-  if (data.length === 0) {
-    var items = [];
-    items.push(createEmptyRow(5, 'Replication is disabled by default. Replication table is currently offline.'));
-    $('<tr/>', {
-      html: items.join('')
-    }).appendTo('#replicationStats tbody');
-  } else {
-    $.each(data, function (key, val) {
-      var items = [];
-      items.push(createFirstCell(val.tableName, val.tableName));
+  refreshReplication();
 
-      items.push(createRightCell(val.peerName, val.peerName));
-
-      items.push(createRightCell(val.remoteIdentifier, val.remoteIdentifier));
-
-      items.push(createRightCell(val.replicaSystemType, val.replicaSystemType));
-
-      items.push(createRightCell(val.filesNeedingReplication,
-        bigNumberForQuantity(val.filesNeedingReplication)));
-
-      $('<tr/>', {
-        html: items.join('')
-      }).appendTo('#replicationStats tbody');
-
-    });
-  }
-}
+});
