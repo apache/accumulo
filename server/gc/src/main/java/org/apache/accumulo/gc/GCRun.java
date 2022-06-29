@@ -61,6 +61,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
+import org.apache.accumulo.fate.util.UtilWaitThread;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeUtil;
@@ -68,6 +70,7 @@ import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.server.replication.proto.Replication;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -169,7 +172,20 @@ public class GCRun implements GarbageCollectionEnvironment {
 
   @Override
   public Set<TableId> getTableIDs() {
-    return context.getTableIdToNameMap().keySet();
+    final String tablesPath = context.getZooKeeperRoot() + Constants.ZTABLES;
+    final ZooReader zr = context.getZooReader();
+    final Set<TableId> tids = new HashSet<>();
+    while (true) {
+      try {
+        zr.sync(tablesPath);
+        zr.getChildren(tablesPath).forEach(t -> tids.add(TableId.of(t)));
+        return tids;
+      } catch (KeeperException | InterruptedException e) {
+        log.error("Error getting tables from ZooKeeper, retrying", e);
+        UtilWaitThread.sleepUninterruptibly(1, TimeUnit.SECONDS);
+        continue;
+      }
+    }
   }
 
   @Override
