@@ -30,9 +30,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -41,10 +44,15 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveCompaction.CompactionHost;
 import org.apache.accumulo.core.client.admin.ActiveScan;
+import org.apache.accumulo.core.client.admin.FateAction;
+import org.apache.accumulo.core.client.admin.FateTransaction;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
+import org.apache.accumulo.core.clientImpl.thrift.TFateAction;
+import org.apache.accumulo.core.clientImpl.thrift.TFateTransaction;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
+import org.apache.accumulo.core.data.FateTxId;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
@@ -310,4 +318,48 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public InstanceId getInstanceId() {
     return context.getInstanceID();
   }
+
+  @Override
+  public Set<FateTransaction> getFateTransactions() {
+    Set<FateTransaction> txs;
+    try {
+      Set<TFateTransaction> thriftTxs = ThriftClientTypes.CLIENT.execute(context,
+          client -> client.executeFateAction(TraceUtil.traceInfo(), context.rpcCreds(),
+              TFateAction.PRINT, Set.of(), List.of()));
+      txs = thriftTxs.stream().map(FateTransactionImpl::fromThrift).collect(Collectors.toSet());
+    } catch (AccumuloSecurityException | AccumuloException e) {
+      throw new RuntimeException("Unexpected exception thrown", e);
+    }
+    return txs;
+  }
+
+  @Override
+  public void executeFateAction(FateAction action, List<FateTxId> transactions)
+      throws AccumuloException, AccumuloSecurityException {
+    Set<Long> txids = new TreeSet<>();
+    transactions.forEach(fateTxId -> txids.add(fateTxId.canonical()));
+
+    Set<TFateTransaction> thriftTxs = ThriftClientTypes.CLIENT.execute(context,
+        client -> client.executeFateAction(TraceUtil.traceInfo(), context.rpcCreds(),
+            getThriftAction(action), txids, List.of()));
+    // only calls to PRINT should return something
+    if (!thriftTxs.isEmpty()) {
+      throw new IllegalStateException(
+          "Client action " + action + " for " + transactions + " returned unexpected results.");
+    }
+  }
+
+  private TFateAction getThriftAction(FateAction action) {
+    switch (action) {
+      case CANCEL:
+        return TFateAction.CANCEL;
+      case DELETE:
+        return TFateAction.DELETE;
+      case FAIL:
+        return TFateAction.FAIL;
+      default:
+        throw new IllegalArgumentException("Unsupported action " + action);
+    }
+  }
+
 }

@@ -34,7 +34,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.fate.FateTxId;
+import org.apache.accumulo.fate.FateTxIdUtil;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
@@ -278,8 +278,8 @@ public class MetadataSchema {
       }
 
       public static long getBulkLoadTid(String vs) {
-        if (FateTxId.isFormatedTid(vs)) {
-          return FateTxId.fromString(vs);
+        if (FateTxIdUtil.isFormatedTid(vs)) {
+          return FateTxIdUtil.fromString(vs);
         } else {
           // a new serialization format was introduce in 2.0. This code support deserializing the
           // old format.

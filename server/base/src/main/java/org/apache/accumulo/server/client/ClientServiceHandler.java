@@ -21,6 +21,8 @@ package org.apache.accumulo.server.client;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -29,10 +31,12 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.FateTransaction;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -43,6 +47,8 @@ import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TDiskUsage;
+import org.apache.accumulo.core.clientImpl.thrift.TFateAction;
+import org.apache.accumulo.core.clientImpl.thrift.TFateTransaction;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -59,6 +65,12 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.thrift.TInfo;
+import org.apache.accumulo.fate.AdminUtil;
+import org.apache.accumulo.fate.AdminUtil.FateStatus;
+import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
+import org.apache.accumulo.fate.ZooStore;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
@@ -68,6 +80,7 @@ import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.TableDiskUsage;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.thrift.TException;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -450,6 +463,72 @@ public class ClientServiceHandler implements ClientService.Iface {
     } catch (TableNotFoundException | IOException e) {
       throw new TException(e);
     }
+  }
+
+  @Override
+  public Set<TFateTransaction> executeFateAction(TInfo tInfo, TCredentials credentials,
+      TFateAction tFateAction, Set<Long> txids, List<String> filterStatuses)
+      throws ThriftSecurityException, TException {
+    try {
+      authenticate(tInfo, credentials);
+      if (!security.canPerformSystemActions(credentials)) {
+        throw new AccumuloSecurityException(credentials.getPrincipal(),
+            SecurityErrorCode.PERMISSION_DENIED);
+      }
+      AdminUtil<ClientServiceHandler> admin = new AdminUtil<>(false);
+      String path = context.getZooKeeperRoot() + Constants.ZFATE;
+      var managerLockPath = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK);
+      ZooReaderWriter zk = context.getZooReaderWriter();
+      ZooStore<ClientServiceHandler> zs = new ZooStore<>(path, zk);
+
+      switch (tFateAction) {
+        case FAIL: {
+          for (Long tid : txids) {
+            if (!admin.prepFail(zs, zk, managerLockPath, tid.toString())) {
+              log.error("Could not fail transaction: " + tid);
+            }
+          }
+          return Collections.emptySet();
+        }
+        case DELETE: {
+          for (Long tid : txids) {
+            if (admin.prepDelete(zs, zk, managerLockPath, tid.toString())) {
+              var lockPath = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS);
+              admin.deleteLocks(zk, lockPath, tid.toString());
+            } else {
+              throw new TException("Could not delete transaction: " + tid);
+            }
+          }
+          return Collections.emptySet();
+        }
+        case PRINT: {
+          EnumSet<TStatus> fs = null;
+          if (filterStatuses != null && !filterStatuses.isEmpty()) {
+            fs = EnumSet.noneOf(TStatus.class);
+            for (String element : filterStatuses) {
+              fs.add(TStatus.valueOf(element));
+            }
+          }
+          var lockPath = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS);
+          FateStatus fateStatus = admin.getStatus(zs, zk, lockPath, txids, fs);
+
+          Set<TFateTransaction> fateTxs = new TreeSet<>();
+          for (FateTransaction tx : fateStatus.getTransactions()) {
+            fateTxs.add(new TFateTransaction(tx.getId().canonical(), tx.getStatus().toString(),
+                tx.getDebug(), tx.getHeldLocks(), tx.getWaitingLocks(), tx.getTop(),
+                tx.getTimeCreated(), tx.getStackInfo()));
+          }
+
+          return fateTxs;
+        }
+        default:
+          throw new UnsupportedOperationException();
+      }
+
+    } catch (InterruptedException | KeeperException | AccumuloSecurityException e) {
+      throw new TException(e);
+    }
+
   }
 
   @Override

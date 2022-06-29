@@ -61,7 +61,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.fate.FateTxId;
+import org.apache.accumulo.fate.FateTxIdUtil;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
@@ -80,8 +80,8 @@ public class TabletMetadataTest {
 
     String bf1 = "hdfs://nn1/acc/tables/1/t-0001/bf1";
     String bf2 = "hdfs://nn1/acc/tables/1/t-0001/bf2";
-    mutation.at().family(BulkFileColumnFamily.NAME).qualifier(bf1).put(FateTxId.formatTid(56));
-    mutation.at().family(BulkFileColumnFamily.NAME).qualifier(bf2).put(FateTxId.formatTid(59));
+    mutation.at().family(BulkFileColumnFamily.NAME).qualifier(bf1).put(FateTxIdUtil.formatTid(56));
+    mutation.at().family(BulkFileColumnFamily.NAME).qualifier(bf2).put(FateTxIdUtil.formatTid(59));
 
     mutation.at().family(ClonedColumnFamily.NAME).qualifier("").put("OK");
 

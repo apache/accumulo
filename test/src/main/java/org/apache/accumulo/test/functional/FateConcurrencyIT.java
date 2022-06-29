@@ -41,6 +41,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.FateTransaction;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
@@ -241,7 +242,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     slowOps.startCompactTask();
 
     AdminUtil.FateStatus withLocks = null;
-    List<AdminUtil.TransactionStatus> noLocks = null;
+    List<FateTransaction> noLocks = null;
 
     int maxRetries = 3;
 
@@ -288,14 +289,14 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     int matchCount = 0;
 
-    for (AdminUtil.TransactionStatus tx : withLocks.getTransactions()) {
+    for (FateTransaction tx : withLocks.getTransactions()) {
 
       if (isCompaction(tx)) {
 
-        log.trace("Fate id: {}, status: {}", tx.getTxid(), tx.getStatus());
+        log.trace("Fate id: {}, status: {}", tx.getId(), tx.getStatus());
 
-        for (AdminUtil.TransactionStatus tx2 : noLocks) {
-          if (tx2.getTxid().equals(tx.getTxid())) {
+        for (FateTransaction tx2 : noLocks) {
+          if (tx2.getId().equals(tx.getId())) {
             matchCount++;
           }
         }
@@ -341,7 +342,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
       TableId tableId = context.getTableId(tableName);
 
-      log.trace("tid: {}", tableId);
+      log.info("tid: {}", tableId);
 
       InstanceId instanceId = context.getInstanceID();
       ZooReaderWriter zk = context.getZooReader().asWriter(secret);
@@ -350,9 +351,9 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
           ServiceLock.path(ZooUtil.getRoot(instanceId) + Constants.ZTABLE_LOCKS + "/" + tableId);
       AdminUtil.FateStatus fateStatus = admin.getStatus(zs, zk, lockPath, null, null);
 
-      log.trace("current fates: {}", fateStatus.getTransactions().size());
+      log.info("current fates: {}", fateStatus.getTransactions().size());
 
-      for (AdminUtil.TransactionStatus tx : fateStatus.getTransactions()) {
+      for (FateTransaction tx : fateStatus.getTransactions()) {
 
         if (isCompaction(tx))
           return true;
@@ -374,14 +375,14 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
    *          transaction status
    * @return true if tx top and debug have compaction messages.
    */
-  private boolean isCompaction(AdminUtil.TransactionStatus tx) {
+  private boolean isCompaction(FateTransaction tx) {
 
     if (tx == null) {
       log.trace("Fate tx is null");
       return false;
     }
 
-    log.trace("Fate id: {}, status: {}", tx.getTxid(), tx.getStatus());
+    log.trace("Fate id: {}, status: {}", tx.getId(), tx.getStatus());
 
     String top = tx.getTop();
     String debug = tx.getDebug();
@@ -479,7 +480,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
    * valid.
    */
   @Test
-  public void multipleCompactions() {
+  public void multipleCompactions() throws AccumuloException {
 
     int tableCount = 4;
     SlowOps.setExpectedCompactions(client, tableCount);
@@ -488,6 +489,11 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
         .map(tableName -> new SlowOps(client, tableName, maxWaitMillis))
         .collect(Collectors.toList());
     tables.forEach(SlowOps::startCompactTask);
+
+    for (var fts : client.instanceOperations().getFateTransactions()) {
+      log.debug("Debugging: {} {} {} {}", fts.getStatus(), fts.getId(), fts.getDebug(),
+          fts.getTop());
+    }
 
     assertEquals(tableCount,
         tables.stream().map(SlowOps::getTableName).filter(this::findFate).count());

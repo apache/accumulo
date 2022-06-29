@@ -157,7 +157,7 @@ public class Fate<T> {
      */
     private void blockIfHadoopShutdown(long tid, Exception e) {
       if (ShutdownUtil.isShutdownInProgress()) {
-        String tidStr = FateTxId.formatTid(tid);
+        String tidStr = FateTxIdUtil.formatTid(tid);
 
         if (e instanceof AcceptableException) {
           log.debug("Ignoring exception possibly caused by Hadoop Shutdown hook. {} ", tidStr, e);
@@ -178,7 +178,7 @@ public class Fate<T> {
     }
 
     private void transitionToFailed(long tid, Exception e) {
-      String tidStr = FateTxId.formatTid(tid);
+      String tidStr = FateTxIdUtil.formatTid(tid);
       final String msg = "Failed to execute Repo, " + tidStr;
       // Certain FATE ops that throw exceptions don't need to be propagated up to the Monitor
       // as a warning. They're a normal, handled failure condition.
@@ -220,7 +220,7 @@ public class Fate<T> {
       try {
         op.undo(tid, environment);
       } catch (Exception e) {
-        log.warn("Failed to undo Repo, " + FateTxId.formatTid(tid), e);
+        log.warn("Failed to undo Repo, " + FateTxIdUtil.formatTid(tid), e);
       }
     }
 
@@ -287,7 +287,7 @@ public class Fate<T> {
       if (store.getStatus(tid) == NEW) {
         if (store.top(tid) == null) {
           try {
-            log.info("Seeding {} {}", FateTxId.formatTid(tid), goalMessage);
+            log.info("Seeding {} {}", FateTxIdUtil.formatTid(tid), goalMessage);
             store.push(tid, repo);
           } catch (StackOverflowException e) {
             // this should not happen
@@ -366,7 +366,7 @@ public class Fate<T> {
         case FAILED_IN_PROGRESS:
         case IN_PROGRESS:
           throw new IllegalStateException(
-              "Can not delete in progress transaction " + FateTxId.formatTid(tid));
+              "Can not delete in progress transaction " + FateTxIdUtil.formatTid(tid));
         case UNKNOWN:
           // nothing to do, it does not exist
           break;
@@ -381,7 +381,7 @@ public class Fate<T> {
     try {
       if (store.getStatus(tid) != SUCCESSFUL)
         throw new IllegalStateException("Tried to get exception when transaction "
-            + FateTxId.formatTid(tid) + " not in successful state");
+            + FateTxIdUtil.formatTid(tid) + " not in successful state");
       return (String) store.getProperty(tid, RETURN_PROP);
     } finally {
       store.unreserve(tid, 0);
@@ -394,7 +394,7 @@ public class Fate<T> {
     try {
       if (store.getStatus(tid) != FAILED)
         throw new IllegalStateException("Tried to get exception when transaction "
-            + FateTxId.formatTid(tid) + " not in failed state");
+            + FateTxIdUtil.formatTid(tid) + " not in failed state");
       return (Exception) store.getProperty(tid, EXCEPTION_PROP);
     } finally {
       store.unreserve(tid, 0);

@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.logging;
 
-import static org.apache.accumulo.fate.FateTxId.formatTid;
+import static org.apache.accumulo.fate.FateTxIdUtil.formatTid;
 
 import java.io.Serializable;
 import java.util.EnumSet;

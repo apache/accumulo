@@ -18,37 +18,31 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.fate.FateTxIdUtil.parseHexLongFromString;
 
 import java.io.IOException;
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Base64;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.Formatter;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.admin.FateTransaction;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.FateTransactionImpl;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.fate.AdminUtil;
-import org.apache.accumulo.fate.FateTxId;
-import org.apache.accumulo.fate.ReadOnlyRepo;
-import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.ZooStore;
-import org.apache.accumulo.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -59,58 +53,10 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.zookeeper.KeeperException;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
-
 /**
  * Manage FATE transactions
  */
 public class FateCommand extends Command {
-
-  // this class serializes references to interfaces with the concrete class name
-  private static class InterfaceSerializer<T> implements JsonSerializer<T> {
-    @Override
-    public JsonElement serialize(T link, Type type, JsonSerializationContext context) {
-      JsonElement je = context.serialize(link, link.getClass());
-      JsonObject jo = new JsonObject();
-      jo.add(link.getClass().getName(), je);
-      return jo;
-    }
-  }
-
-  // the purpose of this class is to be serialized as JSon for display
-  public static class ByteArrayContainer {
-    public String asUtf8;
-    public String asBase64;
-
-    ByteArrayContainer(byte[] ba) {
-      asUtf8 = new String(ba, UTF_8);
-      asBase64 = Base64.getUrlEncoder().encodeToString(ba);
-    }
-  }
-
-  // serialize byte arrays in human and machine readable ways
-  private static class ByteArraySerializer implements JsonSerializer<byte[]> {
-    @Override
-    public JsonElement serialize(byte[] link, Type type, JsonSerializationContext context) {
-      return context.serialize(new ByteArrayContainer(link));
-    }
-  }
-
-  // the purpose of this class is to be serialized as JSon for display
-  public static class FateStack {
-    String txid;
-    List<ReadOnlyRepo<FateCommand>> stack;
-
-    FateStack(Long txid, List<ReadOnlyRepo<FateCommand>> stack) {
-      this.txid = String.format("%016x", txid);
-      this.stack = stack;
-    }
-  }
 
   private Option cancel;
   private Option delete;
@@ -118,17 +64,8 @@ public class FateCommand extends Command {
   private Option fail;
   private Option list;
   private Option print;
-  private Option secretOption;
   private Option statusOption;
   private Option disablePaginationOpt;
-
-  private long parseTxid(String s) {
-    if (FateTxId.isFormatedTid(s)) {
-      return FateTxId.fromString(s);
-    } else {
-      return Long.parseLong(s, 16);
-    }
-  }
 
   protected String getZKRoot(ClientContext context) {
     return context.getZooKeeperRoot();
@@ -150,17 +87,7 @@ public class FateCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws ParseException, KeeperException, InterruptedException, IOException, AccumuloException,
       AccumuloSecurityException {
-    ClientContext context = shellState.getContext();
     boolean failedCommand = false;
-
-    AdminUtil<FateCommand> admin = new AdminUtil<>(false);
-
-    String zkRoot = getZKRoot(context);
-    String fatePath = zkRoot + Constants.ZFATE;
-    var managerLockPath = ServiceLock.path(zkRoot + Constants.ZMANAGER_LOCK);
-    var tableLocksPath = ServiceLock.path(zkRoot + Constants.ZTABLE_LOCKS);
-    ZooReaderWriter zk = getZooReaderWriter(context, cl.getOptionValue(secretOption.getOpt()));
-    ZooStore<FateCommand> zs = getZooStore(fatePath, zk);
 
     if (cl.hasOption(cancel.getOpt())) {
       String[] txids = cl.getOptionValues(cancel.getOpt());
@@ -169,17 +96,17 @@ public class FateCommand extends Command {
     } else if (cl.hasOption(fail.getOpt())) {
       String[] txids = cl.getOptionValues(fail.getOpt());
       validateArgs(txids);
-      failedCommand = failTx(admin, zs, zk, managerLockPath, txids);
+      failedCommand = failTx(shellState, List.of(txids));
     } else if (cl.hasOption(delete.getOpt())) {
       String[] txids = cl.getOptionValues(delete.getOpt());
       validateArgs(txids);
-      failedCommand = deleteTx(admin, zs, zk, managerLockPath, txids);
+      failedCommand = deleteTx(shellState, txids);
     } else if (cl.hasOption(list.getOpt())) {
-      printTx(shellState, admin, zs, zk, tableLocksPath, cl.getOptionValues(list.getOpt()), cl);
+      printTx(shellState, cl.getOptionValues(list.getOpt()), cl);
     } else if (cl.hasOption(print.getOpt())) {
-      printTx(shellState, admin, zs, zk, tableLocksPath, cl.getOptionValues(print.getOpt()), cl);
+      printTx(shellState, cl.getOptionValues(print.getOpt()), cl);
     } else if (cl.hasOption(dump.getOpt())) {
-      String output = dumpTx(zs, cl.getOptionValues(dump.getOpt()));
+      String output = dumpTx(shellState, cl.getOptionValues(dump.getOpt()));
       System.out.println(output);
     } else {
       throw new ParseException("Invalid command option");
@@ -188,80 +115,95 @@ public class FateCommand extends Command {
     return failedCommand ? 1 : 0;
   }
 
-  String dumpTx(ZooStore<FateCommand> zs, String[] args) {
-    List<Long> txids;
-    if (args.length == 1) {
-      txids = zs.list();
-    } else {
-      txids = new ArrayList<>();
-      for (int i = 1; i < args.length; i++) {
-        txids.add(parseTxid(args[i]));
-      }
-    }
-
-    Gson gson = new GsonBuilder()
-        .registerTypeAdapter(ReadOnlyRepo.class, new InterfaceSerializer<>())
-        .registerTypeAdapter(Repo.class, new InterfaceSerializer<>())
-        .registerTypeAdapter(byte[].class, new ByteArraySerializer()).setPrettyPrinting().create();
-
-    List<FateStack> txStacks = new ArrayList<>();
-    for (Long txid : txids) {
-      List<ReadOnlyRepo<FateCommand>> repoStack = zs.getStack(txid);
-      txStacks.add(new FateStack(txid, repoStack));
-    }
-
-    return gson.toJson(txStacks);
-  }
-
-  protected void printTx(Shell shellState, AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
-      ZooReaderWriter zk, ServiceLock.ServiceLockPath tableLocksPath, String[] args, CommandLine cl)
-      throws InterruptedException, KeeperException, IOException {
-    // Parse transaction ID filters for print display
-    Set<Long> filterTxid = new HashSet<>();
-    if (args != null && args.length >= 1) {
-      for (int i = 0; i < args.length; i++) {
-        if (!args[i].isEmpty()) {
-          Long val = parseTxid(args[i]);
-          filterTxid.add(val);
-        }
-      }
-    }
-
-    // Parse TStatus filters for print display
-    EnumSet<TStatus> filterStatus = null;
-    if (cl.hasOption(statusOption.getOpt())) {
-      filterStatus = EnumSet.noneOf(TStatus.class);
-      String[] tstat = cl.getOptionValues(statusOption.getOpt());
-      for (String element : tstat) {
-        filterStatus.add(TStatus.valueOf(element));
-      }
-    }
-
-    StringBuilder buf = new StringBuilder(8096);
-    Formatter fmt = new Formatter(buf);
-    admin.print(zs, zk, tableLocksPath, fmt, filterTxid, filterStatus);
-    shellState.printLines(Collections.singletonList(buf.toString()).iterator(),
-        !cl.hasOption(disablePaginationOpt.getOpt()));
-  }
-
-  protected boolean deleteTx(AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
-      ZooReaderWriter zk, ServiceLockPath zLockManagerPath, String[] args)
-      throws InterruptedException, KeeperException {
-    for (int i = 1; i < args.length; i++) {
-      if (admin.prepDelete(zs, zk, zLockManagerPath, args[i])) {
-        admin.deleteLocks(zk, zLockManagerPath, args[i]);
-      } else {
-        System.out.printf("Could not delete transaction: %s%n", args[i]);
-        return false;
-      }
-    }
+  protected boolean deleteTx(Shell shellState, String[] txids) throws AccumuloException {
+    var allRunningTx = shellState.getAccumuloClient().instanceOperations().getFateTransactions();
+    Set<String> txSet = new HashSet<>(Arrays.asList(txids));
+    // TODO delete txIds passed in
     return true;
   }
 
-  private void validateArgs(String[] args) throws ParseException {
-    if (args.length < 1) {
-      throw new ParseException("Must provide transaction ID");
+  protected String dumpTx(Shell shellState, String[] txids) throws AccumuloException {
+    return dumpTx(shellState.getAccumuloClient().instanceOperations().getFateTransactions(), txids);
+  }
+
+  // visible for testing
+  protected String dumpTx(Set<FateTransaction> allRunningTx, String[] txids)
+      throws AccumuloException {
+    if (txids == null) {
+      txids = new String[] {};
     }
+
+    Set<String> userProvidedTx = new HashSet<>(Arrays.asList(txids));
+    Set<FateTransactionImpl> txToDump = getTransactions(allRunningTx, userProvidedTx, List.of());
+
+    if (txToDump.isEmpty())
+      return " No transactions to dump";
+
+    StringBuilder sb = new StringBuilder();
+    for (FateTransaction tx : txToDump) {
+      sb.append(tx.getStackInfo());
+    }
+    return sb.toString();
+  }
+
+  protected void printTx(Shell shellState, String[] txids, CommandLine cl)
+      throws IOException, AccumuloException {
+    // Parse TStatus filters for print display
+    final List<String> filterStatus;
+    if (cl.hasOption(statusOption.getOpt())) {
+      filterStatus = Arrays.asList(cl.getOptionValues(statusOption.getOpt()));
+    } else {
+      filterStatus = Collections.emptyList();
+    }
+
+    if (txids == null) {
+      txids = new String[] {};
+    }
+
+    Set<String> userProvidedIds = new HashSet<>(Arrays.asList(txids));
+    var allRunningTx = shellState.getAccumuloClient().instanceOperations().getFateTransactions();
+
+    var transactionsToPrint = getTransactions(allRunningTx, userProvidedIds, filterStatus);
+
+    StringBuilder sb = new StringBuilder(8096);
+    Formatter fmt = new Formatter(sb);
+    for (FateTransaction txStatus : transactionsToPrint) {
+      fmt.format(
+          "txid: %s  status: %-18s  op: %-15s  locked: %-15s locking: %-15s top: %-15s created: %s%n",
+          txStatus.getId(), txStatus.getStatus(), txStatus.getDebug(), txStatus.getHeldLocks(),
+          txStatus.getWaitingLocks(), txStatus.getTop(), txStatus.getTimeCreatedFormatted());
+    }
+    fmt.format(" %s transactions", transactionsToPrint.size());
+
+    shellState.printLines(Collections.singletonList(sb.toString()).iterator(),
+        !cl.hasOption(disablePaginationOpt.getOpt()));
+  }
+
+  // visible for testing
+  protected Set<FateTransactionImpl> getTransactions(Set<FateTransaction> allRunningTx,
+      Set<String> userProvidedIds, List<String> filterStatus) {
+    Set<Long> userProvidedHexIds = new TreeSet<>();
+    userProvidedIds.forEach(userTxId -> userProvidedHexIds.add(parseHexLongFromString(userTxId)));
+    // cast to allow for sorted order
+    Stream<FateTransactionImpl> stream = allRunningTx.stream().map(tx -> (FateTransactionImpl) tx);
+
+    // if user options are empty, return everything
+    if (filterStatus.isEmpty() && userProvidedHexIds.isEmpty()) {
+      return stream.collect(Collectors.toSet());
+    }
+
+    if (filterStatus.isEmpty()) {
+      return stream.filter(tx -> userProvidedHexIds.contains(tx.getId().canonical()))
+          .collect(Collectors.toSet());
+    }
+    if (userProvidedHexIds.isEmpty()) {
+      return stream.filter(tx -> filterStatus.contains(tx.getStatus().toString()))
+          .collect(Collectors.toSet());
+    }
+
+    // gather all the running TXs that the user asked for
+    return stream.filter(tx -> userProvidedHexIds.contains(tx.getId().canonical()))
+        .filter(tx -> filterStatus.contains(tx.getStatus().toString())).collect(Collectors.toSet());
   }
 
   protected boolean cancelSubmittedTxs(final Shell shellState, String[] args)
@@ -289,8 +231,8 @@ public class FateCommand extends Command {
     return true;
   }
 
-  private static boolean cancelFateOperation(ClientContext context, long txid,
-      final Shell shellState) throws AccumuloException, AccumuloSecurityException {
+  private boolean cancelFateOperation(ClientContext context, long txid, Shell shellState)
+      throws AccumuloException {
     FateService.Client client = null;
     try {
       client = ThriftClientTypes.FATE.getConnectionWithRetry(context);
@@ -305,16 +247,17 @@ public class FateCommand extends Command {
     }
   }
 
-  public boolean failTx(AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs, ZooReaderWriter zk,
-      ServiceLockPath managerLockPath, String[] args) {
-    boolean success = true;
-    for (int i = 1; i < args.length; i++) {
-      if (!admin.prepFail(zs, zk, managerLockPath, args[i])) {
-        System.out.printf("Could not fail transaction: %s%n", args[i]);
-        return !success;
-      }
+  public boolean failTx(Shell shellState, List<String> txids) throws AccumuloException {
+    shellState.getAccumuloClient().instanceOperations().getFateTransactions().stream()
+        .filter(fateTransaction -> txids.contains(fateTransaction.getId().canonical().toString()))
+        .forEach(FateTransaction::fail);
+    return true;
+  }
+
+  private void validateArgs(String[] txids) throws ParseException {
+    if (txids.length < 1) {
+      throw new ParseException("Must provide transaction ID");
     }
-    return success;
   }
 
   @Override
@@ -370,9 +313,6 @@ public class FateCommand extends Command {
     commands.addOption(dump);
     o.addOptionGroup(commands);
 
-    secretOption = new Option("s", "secret", true, "specify the instance secret to use");
-    secretOption.setOptionalArg(false);
-    o.addOption(secretOption);
     statusOption = new Option("t", "status-type", true,
         "filter 'print' on the transaction status type(s) {NEW, SUBMITTED, IN_PROGRESS,"
             + " FAILED_IN_PROGRESS, FAILED, SUCCESSFUL}");

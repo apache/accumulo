@@ -18,12 +18,12 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import static org.apache.accumulo.core.Constants.ZTABLE_LOCKS;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -33,16 +33,22 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.admin.FateTransaction;
+import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.FateTransactionImpl;
+import org.apache.accumulo.core.data.FateTxId;
 import org.apache.accumulo.fate.AdminUtil;
-import org.apache.accumulo.fate.ReadOnlyRepo;
 import org.apache.accumulo.fate.ReadOnlyTStore;
 import org.apache.accumulo.fate.ZooStore;
-import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.shell.Shell;
@@ -89,15 +95,13 @@ public class FateCommandTest {
     }
 
     @Override
-    String dumpTx(ZooStore<FateCommand> zs, String[] args) {
+    protected String dumpTx(Shell shellState, String[] args) {
       dumpCalled = true;
       return "";
     }
 
     @Override
-    protected boolean deleteTx(AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
-        ZooReaderWriter zk, ServiceLockPath zLockManagerPath, String[] args)
-        throws InterruptedException, KeeperException {
+    protected boolean deleteTx(Shell shell, String[] args) {
       deleteCalled = true;
       return true;
     }
@@ -110,16 +114,13 @@ public class FateCommandTest {
     }
 
     @Override
-    public boolean failTx(AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
-        ZooReaderWriter zk, ServiceLockPath managerLockPath, String[] args) {
+    public boolean failTx(Shell shellState, List<String> txids) {
       failCalled = true;
       return true;
     }
 
     @Override
-    protected void printTx(Shell shellState, AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
-        ZooReaderWriter zk, ServiceLockPath tableLocksPath, String[] args, CommandLine cl)
-        throws InterruptedException, KeeperException, IOException {
+    protected void printTx(Shell shellState, String[] args, CommandLine cl) {
       printCalled = true;
     }
 
@@ -133,6 +134,80 @@ public class FateCommandTest {
 
   }
 
+  private FateTransaction createFateTx(FateTxId txId, FateTransaction.Status status) {
+    return new FateTransactionImpl(txId.canonical(), status.name(), "debug", List.of(), List.of(),
+        "String top", System.currentTimeMillis(), "String stackInfo");
+  }
+
+  public static class TestFateTransaction implements FateTransaction {
+    FateTxId id;
+    FateTransaction.Status status;
+
+    public TestFateTransaction(String txString) {
+      this.id = FateTxId.parse(txString);
+    }
+
+    public TestFateTransaction(FateTxId tx1, Status status) {
+      this.id = tx1;
+      this.status = status;
+    }
+
+    @Override
+    public FateTxId getId() {
+      return id;
+    }
+
+    @Override
+    public Status getStatus() {
+      return status;
+    }
+
+    @Override
+    public String getDebug() {
+      return null;
+    }
+
+    @Override
+    public List<String> getHeldLocks() {
+      return null;
+    }
+
+    @Override
+    public List<String> getWaitingLocks() {
+      return null;
+    }
+
+    @Override
+    public String getTop() {
+      return null;
+    }
+
+    @Override
+    public String getTimeCreatedFormatted() {
+      return null;
+    }
+
+    @Override
+    public long getTimeCreated() {
+      return 0;
+    }
+
+    @Override
+    public String getStackInfo() {
+      return null;
+    }
+
+    @Override
+    public void fail() {
+
+    }
+
+    @Override
+    public void delete() throws AccumuloException {
+
+    }
+  }
+
   private static ZooReaderWriter zk;
   private static ServiceLockPath managerLockPath;
 
@@ -140,6 +215,10 @@ public class FateCommandTest {
   public static void setup() {
     zk = createMock(ZooReaderWriter.class);
     managerLockPath = createMock(ServiceLockPath.class);
+  }
+
+  private TestFateTransaction createFateTx(String userTxId) {
+    return new TestFateTransaction("12345");
   }
 
   @Test
@@ -155,39 +234,83 @@ public class FateCommandTest {
     zs.unreserve(tid, 0);
     expectLastCall().once();
 
-    TestHelper helper = new TestHelper(true);
+    // TestHelper helper = new TestHelper(true);
 
     replay(zs);
 
     FateCommand cmd = new FateCommand();
     // require number for Tx
-    assertFalse(cmd.failTx(helper, zs, zk, managerLockPath, new String[] {"fail", "tx1"}));
+    // assertFalse(cmd.failTx(helper, zs, zk, managerLockPath, new String[] {"fail", "tx1"}));
+    // TODO get shell
+    assertFalse(cmd.failTx(createShell(null), List.of("fail", "tx1")));
     // fail the long configured above
-    assertTrue(cmd.failTx(helper, zs, zk, managerLockPath, new String[] {"fail", "12345"}));
+    // assertTrue(cmd.failTx(helper, zs, zk, managerLockPath, new String[] {"fail", "12345"}));
 
     verify(zs);
   }
 
   @Test
-  public void testDump() {
-    ZooStore<FateCommand> zs = createMock(ZooStore.class);
-    ReadOnlyRepo<FateCommand> ser = createMock(ReadOnlyRepo.class);
-    long tid1 = Long.parseLong("12345", 16);
-    long tid2 = Long.parseLong("23456", 16);
-    expect(zs.getStack(tid1)).andReturn(List.of(ser)).once();
-    expect(zs.getStack(tid2)).andReturn(List.of(ser)).once();
+  public void testDump() throws AccumuloException {
+    // ZooStore<FateCommand> zs = createMock(ZooStore.class);
+    // ReadOnlyRepo<FateCommand> ser = createMock(ReadOnlyRepo.class);
+    // long tid1 = Long.parseLong("12345", 16);
+    // long tid2 = Long.parseLong("23456", 16);
+    // expect(zs.getStack(tid1)).andReturn(List.of(ser)).once();
+    // expect(zs.getStack(tid2)).andReturn(List.of(ser)).once();
 
-    replay(zs);
+    // replay(zs);
 
     FateCommand cmd = new FateCommand();
+    Set<FateTransaction> running = new HashSet<>();
+    running.add(createFateTx("12345"));
+    running.add(createFateTx("23456"));
 
     var args = new String[] {"dump", "12345", "23456"};
-    var output = cmd.dumpTx(zs, args);
+    var output = cmd.dumpTx(running, args);
     System.out.println(output);
     assertTrue(output.contains("0000000000012345"));
     assertTrue(output.contains("0000000000023456"));
 
-    verify(zs);
+    // verify(zs);
+  }
+
+  @Test
+  public void testGetTx() {
+    FateCommand cmd = new FateCommand();
+    List<String> userFilters = new ArrayList<>();
+    userFilters.add(FateTransaction.Status.NEW.name());
+    userFilters.add(FateTransaction.Status.IN_PROGRESS.name());
+    Set<String> userProvidedIds = new HashSet<>(List.of("12345", "12346"));
+    Set<FateTransaction> running = new HashSet<>();
+
+    // test empty filters, nothing running
+    Set<FateTransactionImpl> results = cmd.getTransactions(running, Set.of(), List.of());
+    assertEquals(0, results.size());
+
+    var tx1Id = FateTxId.parse("0000000000012345");
+    var tx2Id = FateTxId.parse("0000000000012346");
+    var tx1 = createFateTx(tx1Id, FateTransaction.Status.NEW);
+    var tx2 = createFateTx(tx2Id, FateTransaction.Status.IN_PROGRESS);
+
+    running.add(tx1);
+    running.add(tx2);
+
+    // test return everything
+    results = cmd.getTransactions(running, Set.of(), List.of());
+    assertEquals(2, results.size());
+    assertTrue(results.contains((FateTransactionImpl) tx1));
+    assertTrue(results.contains((FateTransactionImpl) tx2));
+
+    // test return only 1
+    results = cmd.getTransactions(running, new HashSet<>(List.of("12345")), List.of());
+    assertEquals(1, results.size());
+    assertTrue(results.contains((FateTransactionImpl) tx1));
+
+    // test return with user options
+    results = cmd.getTransactions(running, userProvidedIds, userFilters);
+    assertEquals(2, results.size());
+    assertTrue(results.contains((FateTransactionImpl) tx1));
+    assertTrue(results.contains((FateTransactionImpl) tx2));
   }
 
   @Test
@@ -196,35 +319,41 @@ public class FateCommandTest {
     File config = Files.createTempFile(null, null).toFile();
     TestOutputStream output = new TestOutputStream();
     Shell shell = createShell(output);
+    // Shell shell = createMock(Shell.class);
+    AccumuloClient client = createMock(AccumuloClient.class);
+    InstanceOperations ops = createMock(InstanceOperations.class);
+    Set<FateTransaction> fates = new HashSet<>();
 
-    ServiceLockPath tableLocksPath = ServiceLock.path("/accumulo" + ZTABLE_LOCKS);
-    ZooStore<FateCommand> zs = createMock(ZooStore.class);
-    expect(zk.getChildren(tableLocksPath.toString())).andReturn(List.of("5")).anyTimes();
-    expect(zk.getChildren("/accumulo/table_locks/5")).andReturn(List.of()).anyTimes();
-    expect(zs.list()).andReturn(List.of()).anyTimes();
+    // ServiceLockPath tableLocksPath = ServiceLock.path("/accumulo" + ZTABLE_LOCKS);
+    // ZooStore<FateCommand> zs = createMock(ZooStore.class);
+    // expect(zk.getChildren(tableLocksPath.toString())).andReturn(List.of("5")).anyTimes();
+    // expect(zk.getChildren("/accumulo/table_locks/5")).andReturn(List.of()).anyTimes();
+    // expect(zs.list()).andReturn(List.of()).anyTimes();
+    expect(shell.getAccumuloClient()).andReturn(client).once();
+    expect(client.instanceOperations()).andReturn(ops).once();
+    expect(ops.getFateTransactions()).andReturn(fates).once();
 
-    replay(zs, zk);
+    // replay(zs, zk);
+    replay(shell, client, ops);
 
-    TestHelper helper = new TestHelper(true);
+    // TestHelper helper = new TestHelper(true);
     FateCommand cmd = new FateCommand();
     var options = cmd.getOptions();
     CommandLine cli = new CommandLine.Builder().addOption(options.getOption("list"))
         .addOption(options.getOption("print")).addOption(options.getOption("np")).build();
 
     try {
-      cmd.printTx(shell, helper, zs, zk, tableLocksPath, cli.getOptionValues("list"), cli);
-      cmd.printTx(shell, helper, zs, zk, tableLocksPath, cli.getOptionValues("list FATE[1]"), cli);
-      cmd.printTx(shell, helper, zs, zk, tableLocksPath, cli.getOptionValues("list 1234"), cli);
-      cmd.printTx(shell, helper, zs, zk, tableLocksPath, cli.getOptionValues("list 1234 2345"),
-          cli);
-      cmd.printTx(shell, helper, zs, zk, tableLocksPath, cli.getOptionValues("print"), cli);
-      cmd.printTx(shell, helper, zs, zk, tableLocksPath, cli.getOptionValues("print FATE[1]"), cli);
-      cmd.printTx(shell, helper, zs, zk, tableLocksPath, cli.getOptionValues("print 1234"), cli);
-      cmd.printTx(shell, helper, zs, zk, tableLocksPath, cli.getOptionValues("print 1234 2345"),
-          cli);
-      cmd.printTx(shell, helper, zs, zk, tableLocksPath, new String[] {""}, cli);
-      cmd.printTx(shell, helper, zs, zk, tableLocksPath, new String[] {}, cli);
-      cmd.printTx(shell, helper, zs, zk, tableLocksPath, null, cli);
+      cmd.printTx(shell, cli.getOptionValues("list"), cli);
+      cmd.printTx(shell, cli.getOptionValues("print"), cli);
+      cmd.printTx(shell, new String[] {""}, cli);
+      cmd.printTx(shell, new String[] {}, cli);
+      cmd.printTx(shell, null, cli);
+      cmd.printTx(shell, new String[] {"list"}, cli);
+      cmd.printTx(shell, new String[] {"list", "1234"}, cli);
+      cmd.printTx(shell, new String[] {"print"}, cli);
+      cmd.printTx(shell, new String[] {"print", "1234"}, cli);
+    } catch (AccumuloException e) {
+      throw new RuntimeException(e);
     } finally {
       output.clear();
       System.setOut(out);
@@ -233,7 +362,7 @@ public class FateCommandTest {
       }
     }
 
-    verify(zs, zk);
+    // verify(zs, zk);
   }
 
   @Test

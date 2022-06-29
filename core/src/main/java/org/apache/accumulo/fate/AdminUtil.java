@@ -20,11 +20,10 @@ package org.apache.accumulo.fate;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
-import java.util.Date;
 import java.util.EnumSet;
 import java.util.Formatter;
 import java.util.HashMap;
@@ -33,6 +32,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.admin.FateTransaction;
+import org.apache.accumulo.core.clientImpl.FateTransactionImpl;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.zookeeper.FateLock;
 import org.apache.accumulo.fate.zookeeper.FateLock.FateLockPath;
@@ -44,6 +45,13 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -65,91 +73,9 @@ public class AdminUtil<T> {
     this.exitOnError = exitOnError;
   }
 
-  /**
-   * FATE transaction status, including lock information.
-   */
-  public static class TransactionStatus {
-
-    private final long txid;
-    private final TStatus status;
-    private final String debug;
-    private final List<String> hlocks;
-    private final List<String> wlocks;
-    private final String top;
-    private final long timeCreated;
-
-    private TransactionStatus(Long tid, TStatus status, String debug, List<String> hlocks,
-        List<String> wlocks, String top, Long timeCreated) {
-
-      this.txid = tid;
-      this.status = status;
-      this.debug = debug;
-      this.hlocks = Collections.unmodifiableList(hlocks);
-      this.wlocks = Collections.unmodifiableList(wlocks);
-      this.top = top;
-      this.timeCreated = timeCreated;
-
-    }
-
-    /**
-     * @return This fate operations transaction id, formatted in the same way as FATE transactions
-     *         are in the Accumulo logs.
-     */
-    public String getTxid() {
-      return String.format("%016x", txid);
-    }
-
-    public TStatus getStatus() {
-      return status;
-    }
-
-    /**
-     * @return The debug info for the operation on the top of the stack for this Fate operation.
-     */
-    public String getDebug() {
-      return debug;
-    }
-
-    /**
-     * @return list of namespace and table ids locked
-     */
-    public List<String> getHeldLocks() {
-      return hlocks;
-    }
-
-    /**
-     * @return list of namespace and table ids locked
-     */
-    public List<String> getWaitingLocks() {
-      return wlocks;
-    }
-
-    /**
-     * @return The operation on the top of the stack for this Fate operation.
-     */
-    public String getTop() {
-      return top;
-    }
-
-    /**
-     * @return The timestamp of when the operation was created in ISO format with UTC timezone.
-     */
-    public String getTimeCreatedFormatted() {
-      return timeCreated > 0 ? new Date(timeCreated).toInstant().atZone(ZoneOffset.UTC)
-          .format(DateTimeFormatter.ISO_DATE_TIME) : "ERROR";
-    }
-
-    /**
-     * @return The unformatted form of the timestamp.
-     */
-    public long getTimeCreated() {
-      return timeCreated;
-    }
-  }
-
   public static class FateStatus {
 
-    private final List<TransactionStatus> transactions;
+    private final List<FateTransaction> transactions;
     private final Map<String,List<String>> danglingHeldLocks;
     private final Map<String,List<String>> danglingWaitingLocks;
 
@@ -171,14 +97,14 @@ public class AdminUtil<T> {
       return Collections.unmodifiableMap(ret);
     }
 
-    private FateStatus(List<TransactionStatus> transactions,
+    private FateStatus(List<FateTransactionImpl> transactions,
         Map<Long,List<String>> danglingHeldLocks, Map<Long,List<String>> danglingWaitingLocks) {
       this.transactions = Collections.unmodifiableList(transactions);
       this.danglingHeldLocks = convert(danglingHeldLocks);
       this.danglingWaitingLocks = convert(danglingWaitingLocks);
     }
 
-    public List<TransactionStatus> getTransactions() {
+    public List<FateTransaction> getTransactions() {
       return transactions;
     }
 
@@ -220,7 +146,7 @@ public class AdminUtil<T> {
    *          filter results to include only provided status types
    * @return list of FATE transactions that match filter criteria
    */
-  public List<TransactionStatus> getTransactionStatus(ReadOnlyTStore<T> zs, Set<Long> filterTxid,
+  public List<FateTransaction> getTransactionStatus(ReadOnlyTStore<T> zs, Set<Long> filterTxid,
       EnumSet<TStatus> filterStatus) {
 
     FateStatus status = getTransactionStatus(zs, filterTxid, filterStatus,
@@ -357,7 +283,12 @@ public class AdminUtil<T> {
       Map<Long,List<String>> waitingLocks) {
 
     List<Long> transactions = zs.list();
-    List<TransactionStatus> statuses = new ArrayList<>(transactions.size());
+    List<FateTransactionImpl> statuses = new ArrayList<>(transactions.size());
+    Gson gson = new GsonBuilder()
+        // These adapters help to pretty-print the json
+        .registerTypeAdapter(ReadOnlyRepo.class, new InterfaceSerializer<>())
+        .registerTypeAdapter(Repo.class, new InterfaceSerializer<>())
+        .registerTypeAdapter(byte[].class, new ByteArraySerializer()).setPrettyPrinting().create();
 
     for (Long tid : transactions) {
 
@@ -386,10 +317,14 @@ public class AdminUtil<T> {
 
       long timeCreated = zs.timeCreated(tid);
 
+      List<ReadOnlyRepo<T>> repoStack = zs.getStack(tid);
+      FateStack fateStack = new FateStack(tid, repoStack);
+
       zs.unreserve(tid, 0);
 
       if (includeByStatus(status, filterStatus) && includeByTxid(tid, filterTxid)) {
-        statuses.add(new TransactionStatus(tid, status, debug, hlocks, wlocks, top, timeCreated));
+        statuses.add(new FateTransactionImpl(tid, status.toString(), debug, hlocks, wlocks, top,
+          timeCreated, gson.toJson(fateStack)));
       }
     }
 
@@ -415,10 +350,10 @@ public class AdminUtil<T> {
       throws KeeperException, InterruptedException {
     FateStatus fateStatus = getStatus(zs, zk, lockPath, filterTxid, filterStatus);
 
-    for (TransactionStatus txStatus : fateStatus.getTransactions()) {
+    for (FateTransaction txStatus : fateStatus.getTransactions()) {
       fmt.format(
           "txid: %s  status: %-18s  op: %-15s  locked: %-15s locking: %-15s top: %-15s created: %s%n",
-          txStatus.getTxid(), txStatus.getStatus(), txStatus.getDebug(), txStatus.getHeldLocks(),
+          txStatus.getId(), txStatus.getStatus(), txStatus.getDebug(), txStatus.getHeldLocks(),
           txStatus.getWaitingLocks(), txStatus.getTop(), txStatus.getTimeCreatedFormatted());
     }
     fmt.format(" %s transactions", fateStatus.getTransactions().size());
@@ -558,5 +493,45 @@ public class AdminUtil<T> {
         return false;
     }
     return true;
+  }
+
+  public class FateStack {
+    String txid;
+    List<ReadOnlyRepo<T>> stack;
+
+    FateStack(Long txid, List<ReadOnlyRepo<T>> stack) {
+      this.txid = String.format("%016x", txid);
+      this.stack = stack;
+    }
+  }
+
+  // this class serializes references to interfaces with the concrete class name
+  private static class InterfaceSerializer<T> implements JsonSerializer<T> {
+    @Override
+    public JsonElement serialize(T link, Type type, JsonSerializationContext context) {
+      JsonElement je = context.serialize(link, link.getClass());
+      JsonObject jo = new JsonObject();
+      jo.add(link.getClass().getName(), je);
+      return jo;
+    }
+  }
+
+  // the purpose of this class is to be serialized as JSon for display
+  public static class ByteArrayContainer {
+    public String asUtf8;
+    public String asBase64;
+
+    ByteArrayContainer(byte[] ba) {
+      asUtf8 = new String(ba, UTF_8);
+      asBase64 = Base64.getUrlEncoder().encodeToString(ba);
+    }
+  }
+
+  // serialize byte arrays in human and machine readable ways
+  private static class ByteArraySerializer implements JsonSerializer<byte[]> {
+    @Override
+    public JsonElement serialize(byte[] link, Type type, JsonSerializationContext context) {
+      return context.serialize(new ByteArrayContainer(link));
+    }
   }
 }

@@ -31,7 +31,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
-import org.apache.accumulo.fate.FateTxId;
+import org.apache.accumulo.fate.FateTxIdUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -74,7 +74,7 @@ class BulkImportMove extends ManagerRepo {
     final Path bulkDir = new Path(bulkInfo.bulkDir);
     final Path sourceDir = new Path(bulkInfo.sourceDir);
 
-    String fmtTid = FateTxId.formatTid(tid);
+    String fmtTid = FateTxIdUtil.formatTid(tid);
 
     log.debug("{} sourceDir {}", fmtTid, sourceDir);
 
@@ -111,7 +111,7 @@ class BulkImportMove extends ManagerRepo {
     int workerCount = aConf.getCount(
         aConf.resolve(Property.MANAGER_RENAME_THREADS, Property.MANAGER_BULK_RENAME_THREADS));
     Map<Path,Path> oldToNewMap = new HashMap<>();
-    String fmtTid = FateTxId.formatTid(tid);
+    String fmtTid = FateTxIdUtil.formatTid(tid);
 
     for (Map.Entry<String,String> renameEntry : renames.entrySet()) {
       final Path originalPath = new Path(sourceDir, renameEntry.getKey());

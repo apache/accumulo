@@ -31,7 +31,7 @@ import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationExcepti
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.fate.FateTxId;
+import org.apache.accumulo.fate.FateTxIdUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -56,7 +56,7 @@ class MoveExportedFiles extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(long tid, Manager manager) throws Exception {
-    String fmtTid = FateTxId.formatTid(tid);
+    String fmtTid = FateTxIdUtil.formatTid(tid);
 
     int workerCount = manager.getConfiguration().getCount(Property.MANAGER_RENAME_THREADS);
     VolumeManager fs = manager.getVolumeManager();

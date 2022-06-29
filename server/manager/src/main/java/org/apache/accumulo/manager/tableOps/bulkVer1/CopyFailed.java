@@ -40,7 +40,7 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.fate.FateTxId;
+import org.apache.accumulo.fate.FateTxIdUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -79,7 +79,7 @@ class CopyFailed extends ManagerRepo {
         if (client != null && !client.isActive(tid))
           finished.add(server);
       } catch (TException ex) {
-        log.info("Ignoring error trying to check on tid " + FateTxId.formatTid(tid)
+        log.info("Ignoring error trying to check on tid " + FateTxIdUtil.formatTid(tid)
             + " from server " + server + ": " + ex);
       }
     }
@@ -137,7 +137,8 @@ class CopyFailed extends ManagerRepo {
     for (Path orig : failures) {
       Path dest = new Path(error, orig.getName());
       fs.rename(orig, dest);
-      log.debug(FateTxId.formatTid(tid) + " renamed " + orig + " to " + dest + ": import failed");
+      log.debug(
+          FateTxIdUtil.formatTid(tid) + " renamed " + orig + " to " + dest + ": import failed");
     }
 
     if (!loadedFailures.isEmpty()) {
@@ -156,7 +157,7 @@ class CopyFailed extends ManagerRepo {
         bifCopyQueue.addWork(orig.getName(), (orig + "," + dest).getBytes(UTF_8));
         workIds.add(orig.getName());
         log.debug(
-            FateTxId.formatTid(tid) + " added to copyq: " + orig + " to " + dest + ": failed");
+            FateTxIdUtil.formatTid(tid) + " added to copyq: " + orig + " to " + dest + ": failed");
       }
 
       bifCopyQueue.waitUntilDone(workIds);

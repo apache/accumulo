@@ -20,9 +20,11 @@ package org.apache.accumulo.core.client.admin;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.data.FateTxId;
 import org.apache.accumulo.core.data.InstanceId;
 
 public interface InstanceOperations {
@@ -168,4 +170,14 @@ public interface InstanceOperations {
    * @since 2.1.0
    */
   InstanceId getInstanceId();
+
+  /**
+   * Returns a set of FateTransactions, ordered by FateTxId.
+   *
+   * @since 2.1.0
+   */
+  Set<FateTransaction> getFateTransactions();
+
+  void executeFateAction(FateAction action, List<FateTxId> transactions)
+      throws AccumuloException, AccumuloSecurityException;
 }

@@ -60,7 +60,7 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.fate.FateTxId;
+import org.apache.accumulo.fate.FateTxIdUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -93,7 +93,7 @@ class LoadFiles extends ManagerRepo {
   public long isReady(long tid, Manager manager) throws Exception {
     if (manager.onlineTabletServers().isEmpty()) {
       log.warn("There are no tablet server to process bulkDir import, waiting (tid = "
-          + FateTxId.formatTid(tid) + ")");
+          + FateTxIdUtil.formatTid(tid) + ")");
       return 100;
     }
     VolumeManager fs = manager.getVolumeManager();
@@ -152,7 +152,7 @@ class LoadFiles extends ManagerRepo {
       super.start(bulkDir, manager, tid, setTime);
 
       timeInMillis = manager.getConfiguration().getTimeInMillis(Property.MANAGER_BULK_TIMEOUT);
-      fmtTid = FateTxId.formatTid(tid);
+      fmtTid = FateTxIdUtil.formatTid(tid);
 
       loadMsgs = new MapCounter<>();
 

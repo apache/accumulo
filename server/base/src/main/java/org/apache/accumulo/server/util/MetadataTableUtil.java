@@ -92,7 +92,7 @@ import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.fate.FateTxId;
+import org.apache.accumulo.fate.FateTxIdUtil;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.gc.AllVolumesDirectory;
@@ -676,7 +676,7 @@ public class MetadataTableUtil {
   public static void addBulkLoadInProgressFlag(ServerContext context, String path, long fateTxid) {
 
     Mutation m = new Mutation(BlipSection.getRowPrefix() + path);
-    m.put(EMPTY_TEXT, EMPTY_TEXT, new Value(FateTxId.formatTid(fateTxid)));
+    m.put(EMPTY_TEXT, EMPTY_TEXT, new Value(FateTxIdUtil.formatTid(fateTxid)));
 
     // new KeyExtent is only added to force update to write to the metadata table, not the root
     // table

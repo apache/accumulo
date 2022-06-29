@@ -24,7 +24,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.fate.FateTxId;
+import org.apache.accumulo.fate.FateTxIdUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.manager.Manager;
@@ -83,11 +83,11 @@ public class CancelCompactions extends ManagerRepo {
       long cid = Long.parseLong(new String(currentValue2, UTF_8));
 
       if (cid < flushID) {
-        log.debug("{} setting cancel compaction id to {} for {}", FateTxId.formatTid(tid), flushID,
-            tableId);
+        log.debug("{} setting cancel compaction id to {} for {}", FateTxIdUtil.formatTid(tid),
+            flushID, tableId);
         return Long.toString(flushID).getBytes(UTF_8);
       } else {
-        log.debug("{} leaving cancel compaction id as {} for {}", FateTxId.formatTid(tid), cid,
+        log.debug("{} leaving cancel compaction id as {} for {}", FateTxIdUtil.formatTid(tid), cid,
             tableId);
         return Long.toString(cid).getBytes(UTF_8);
       }

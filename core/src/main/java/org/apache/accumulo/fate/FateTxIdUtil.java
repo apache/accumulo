@@ -22,10 +22,10 @@ import java.util.regex.Pattern;
 
 import com.google.common.base.Preconditions;
 
-public class FateTxId {
+public class FateTxIdUtil {
 
-  private static final String PREFIX = "FATE[";
-  private static final String SUFFIX = "]";
+  public static final String PREFIX = "FATE[";
+  public static final String SUFFIX = "]";
 
   private final static Pattern PATTERN =
       Pattern.compile(Pattern.quote(PREFIX) + "[0-9a-fA-F]+" + Pattern.quote(SUFFIX));
@@ -55,6 +55,14 @@ public class FateTxId {
   public static String formatTid(long tid) {
     // do not change how this formats without considering implications for persistence
     return String.format("%s%016x%s", PREFIX, tid, SUFFIX);
+  }
+
+  public static long parseHexLongFromString(String s) {
+    if (FateTxIdUtil.isFormatedTid(s)) {
+      return FateTxIdUtil.fromString(s);
+    } else {
+      return Long.parseLong(s, 16);
+    }
   }
 
 }

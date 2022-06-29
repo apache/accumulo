@@ -26,7 +26,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
-import org.apache.accumulo.fate.FateTxId;
+import org.apache.accumulo.fate.FateTxIdUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -75,7 +75,7 @@ public class CleanUpBulkImport extends ManagerRepo {
       log.debug("Failed to delete renames and/or loadmap", ioe);
     }
 
-    log.debug("completing bulkDir import transaction " + FateTxId.formatTid(tid));
+    log.debug("completing bulkDir import transaction " + FateTxIdUtil.formatTid(tid));
     if (info.tableState == TableState.ONLINE) {
       ZooArbitrator.cleanup(manager.getContext(), Constants.BULK_ARBITRATOR_TYPE, tid);
     }

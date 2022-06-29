@@ -39,7 +39,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.accumulo.fate.FateTxId;
+import org.apache.accumulo.fate.FateTxIdUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -111,7 +111,7 @@ public class BulkImport extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(long tid, Manager manager) throws Exception {
-    String fmtTid = FateTxId.formatTid(tid);
+    String fmtTid = FateTxIdUtil.formatTid(tid);
 
     log.debug(" {} sourceDir {}", fmtTid, sourceDir);
 
