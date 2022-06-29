@@ -73,6 +73,29 @@ public interface GarbageCollectionEnvironment {
   Stream<Reference> getReferences();
 
   /**
+   * Return true if this for the RootTable, usually setup in the constructor
+   *
+   * @return true if the GCE is for the RootTable
+   */
+  boolean isRootTable();
+
+  /**
+   * Return true if this for the MetadataTable, usually setup in the constructor
+   *
+   * @return true if the GCE is for the MetadataTable
+   */
+  boolean isMetadataTable();
+
+  /**
+   * Return a list of TableIDs for which we are considering deletes. For the root table this would
+   * be the metadata table. For the metadata table, this would be all of the other tables in the
+   * system.
+   *
+   * @return The table ids
+   */
+  Set<TableId> getCandidateTableIDs();
+
+  /**
    * Return the set of tableIDs for the given instance this GarbageCollector is running over
    *
    * @return The valueSet for the table name to table id map.

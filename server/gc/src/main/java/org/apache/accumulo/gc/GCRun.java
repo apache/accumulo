@@ -49,9 +49,11 @@ import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.gc.ReferenceDirectory;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -456,5 +458,29 @@ public class GCRun implements GarbageCollectionEnvironment {
 
   public long getCandidatesStat() {
     return candidates;
+  }
+
+  @Override
+  public boolean isRootTable() {
+    return level == DataLevel.ROOT;
+  }
+
+  @Override
+  public boolean isMetadataTable() {
+    return level == DataLevel.METADATA;
+  }
+
+  @Override
+  public Set<TableId> getCandidateTableIDs() {
+    if (isRootTable()) {
+      return Collections.singleton(MetadataTable.ID);
+    } else if (isMetadataTable()) {
+      Set<TableId> tableIds = new HashSet<>(getTableIDs());
+      tableIds.remove(MetadataTable.ID);
+      tableIds.remove(RootTable.ID);
+      return tableIds;
+    } else {
+      throw new RuntimeException("Unexpected Table in GC Env: " + this.level.name());
+    }
   }
 }
