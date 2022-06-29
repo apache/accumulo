@@ -81,8 +81,9 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       long maxScanTime = 4000;
 
       long startTime = System.currentTimeMillis();
-      LinkedList<Pair<KeyExtent, List<Range>>> queryQueue = new LinkedList<>();
-      session.queries.entrySet().forEach(e -> queryQueue.addLast(new Pair<>(e.getKey(), e.getValue())));
+      LinkedList<Pair<KeyExtent,List<Range>>> queryQueue = new LinkedList<>();
+      session.queries.entrySet()
+          .forEach(e -> queryQueue.addLast(new Pair<>(e.getKey(), e.getValue())));
 
       List<KVEntry> results = new ArrayList<>();
       Map<KeyExtent,List<Range>> failures = new HashMap<>();
@@ -94,7 +95,7 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       // check the time so that the read ahead thread is not monopolized
       while (!queryQueue.isEmpty() && bytesAdded < maxResultsSize
           && (System.currentTimeMillis() - startTime) < maxScanTime) {
-        Pair<KeyExtent, List<Range>> extentRangePair = queryQueue.removeFirst();
+        Pair<KeyExtent,List<Range>> extentRangePair = queryQueue.removeFirst();
         KeyExtent extent = extentRangePair.getFirst();
         List<Range> ranges = extentRangePair.getSecond();
 
