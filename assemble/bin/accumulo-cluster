@@ -490,8 +490,6 @@ tserver:
   - localhost
 
 #sserver:
-#  - group:
-#    - default
 #  - default:
 #    - localhost
 #

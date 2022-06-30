@@ -35,11 +35,16 @@ tserver:
   - localhost4
 
 sserver:
-  - group:
-    - default
   - default:
     - localhost1
     - localhost2
+  - highmem:
+    - hmvm1
+    - hmvm2
+    - hmvm3
+  - cheap:
+    - burstyvm1
+    - burstyvm2
 
 compaction:
   coordinator:

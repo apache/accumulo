@@ -35,6 +35,8 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
+import com.google.common.collect.Maps;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths provided by test")
@@ -73,7 +75,8 @@ public class ClusterConfigParserTest {
 
     Map<String,String> contents =
         ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
-    assertEquals(9, contents.size());
+
+    assertEquals(10, contents.size());
     assertTrue(contents.containsKey("manager"));
     assertEquals("localhost1 localhost2", contents.get("manager"));
     assertTrue(contents.containsKey("monitor"));
@@ -91,10 +94,12 @@ public class ClusterConfigParserTest {
     assertTrue(contents.containsKey("compaction.compactor.q2"));
     assertEquals("localhost3 localhost4", contents.get("compaction.compactor.q2"));
     assertFalse(contents.containsKey("sserver"));
-    assertTrue(contents.containsKey("sserver.group"));
-    assertEquals("default", contents.get("sserver.group"));
     assertTrue(contents.containsKey("sserver.default"));
     assertEquals("localhost1 localhost2", contents.get("sserver.default"));
+    assertTrue(contents.containsKey("sserver.highmem"));
+    assertEquals("hmvm1 hmvm2 hmvm3", contents.get("sserver.highmem"));
+    assertTrue(contents.containsKey("sserver.cheap"));
+    assertEquals("burstyvm1 burstyvm2", contents.get("sserver.cheap"));
   }
 
   @Test
@@ -126,13 +131,21 @@ public class ClusterConfigParserTest {
     ClusterConfigParser.outputShellVariables(contents, ps);
     ps.close();
 
-    Map<String,
-        String> expected = Map.of("MANAGER_HOSTS", "\"localhost1 localhost2\"", "MONITOR_HOSTS",
-            "\"localhost1 localhost2\"", "GC_HOSTS", "\"localhost\"", "TSERVER_HOSTS",
-            "\"localhost1 localhost2 localhost3 localhost4\"", "COORDINATOR_HOSTS",
-            "\"localhost1 localhost2\"", "COMPACTION_QUEUES", "\"q1 q2\"", "COMPACTOR_HOSTS_q1",
-            "\"localhost1 localhost2\"", "COMPACTOR_HOSTS_q2", "\"localhost3 localhost4\"",
-            "SSERVER_GROUPS", "\"default\"", "SSERVER_HOSTS_default", "\"localhost1 localhost2\"");
+    Map<String,String> expected = new HashMap<>();
+    expected.put("MANAGER_HOSTS", "localhost1 localhost2");
+    expected.put("MONITOR_HOSTS", "localhost1 localhost2");
+    expected.put("GC_HOSTS", "localhost");
+    expected.put("TSERVER_HOSTS", "localhost1 localhost2 localhost3 localhost4");
+    expected.put("COORDINATOR_HOSTS", "localhost1 localhost2");
+    expected.put("COMPACTION_QUEUES", "q1 q2");
+    expected.put("COMPACTOR_HOSTS_q1", "localhost1 localhost2");
+    expected.put("COMPACTOR_HOSTS_q2", "localhost3 localhost4");
+    expected.put("SSERVER_GROUPS", "default highmem cheap");
+    expected.put("SSERVER_HOSTS_default", "localhost1 localhost2");
+    expected.put("SSERVER_HOSTS_highmem", "hmvm1 hmvm2 hmvm3");
+    expected.put("SSERVER_HOSTS_cheap", "burstyvm1 burstyvm2");
+
+    expected = Maps.transformValues(expected, v -> '"' + v + '"');
 
     Map<String,String> actual = new HashMap<>();
     try (BufferedReader rdr = Files.newBufferedReader(Paths.get(f.toURI()))) {
