@@ -111,7 +111,9 @@ public class YieldingIterator extends WrappingIterator {
       resetCounters();
     } else {
       rebuilds.incrementAndGet();
+    }
 
+    if (range.getStartKey() != null) {
       // yield on every other seek call.
       yieldSeekKey.set(!yieldSeekKey.get());
       if (yield.isPresent() && yieldSeekKey.get()) {
@@ -119,8 +121,12 @@ public class YieldingIterator extends WrappingIterator {
         yieldSeeks.incrementAndGet();
         // since we are not actually skipping keys underneath, simply use the key following the
         // range start key
-        yield.get()
-            .yield(range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME));
+        if (range.isStartKeyInclusive()) {
+          yield.get().yield(range.getStartKey());
+        } else {
+          yield.get()
+              .yield(range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME));
+        }
         log.info("end YieldingIterator.next: yielded at " + range.getStartKey());
       }
     }

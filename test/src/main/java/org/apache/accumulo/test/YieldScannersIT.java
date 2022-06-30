@@ -192,9 +192,7 @@ public class YieldScannersIT extends AccumuloClusterHarness {
         writer.addMutation(m);
         Text endRow = new Text(row);
         endRow.append("\0".getBytes(UTF_8), 0, 1);
-        Range r = new Range(new Text(row), endRow);
-        System.out.println(r);
-        ranges.add(r);
+        ranges.add(new Range(new Text(row), endRow));
         if (i % 4 == 0) {
           splits.add(beginRow);
         }

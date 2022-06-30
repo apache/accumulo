@@ -98,6 +98,7 @@ public class LookupTask extends ScanTask<MultiScanResult> {
         Pair<KeyExtent,List<Range>> extentRangePair = queryQueue.removeFirst();
         KeyExtent extent = extentRangePair.getFirst();
         List<Range> ranges = extentRangePair.getSecond();
+        session.queries.remove(extent);
 
         // check that tablet server is serving requested tablet
         TabletBase tablet = session.getTabletResolver().getTablet(extent);
@@ -151,6 +152,7 @@ public class LookupTask extends ScanTask<MultiScanResult> {
             // add to beginning of queue so that we handle this extent and unfinished ranges next
             // unfinished ranges will either be finished or returned as partially completed
             queryQueue.addFirst(new Pair<>(extent, lookupResult.unfinishedRanges));
+            session.queries.put(extent, lookupResult.unfinishedRanges);
             partScan = extent;
             partNextKey = lookupResult.unfinishedRanges.get(0).getStartKey();
             partNextKeyInclusive = lookupResult.unfinishedRanges.get(0).isStartKeyInclusive();
@@ -183,7 +185,7 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       }
       // add results to queue
       addResult(new MultiScanResult(retResults, retFailures, retFullScans, retPartScan,
-          retPartNextKey, partNextKeyInclusive, !queryQueue.isEmpty()));
+          retPartNextKey, partNextKeyInclusive, !session.queries.isEmpty()));
     } catch (IterationInterruptedException iie) {
       if (!isCancelled()) {
         log.warn("Iteration interrupted, when scan not cancelled", iie);
