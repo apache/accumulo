@@ -312,7 +312,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     propStoreWatcher.registerListener(propStoreKey, listener);
   }
 
-  private void checkZkConnection() {
+  protected void checkZkConnection() {
     if (zkReadyMon.test()) {
       return;
     }

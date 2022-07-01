@@ -25,7 +25,7 @@ import java.util.concurrent.CountDownLatch;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.util.PortUtils;
-import org.apache.curator.test.TestingServer;
+import org.apache.curator.test.AccumuloZKTestingServer;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
@@ -44,7 +44,7 @@ public class ZooKeeperTestingServer implements AutoCloseable {
   private static final Logger log = LoggerFactory.getLogger(ZooKeeperTestingServer.class);
   public static final String SECRET = "secret";
 
-  private TestingServer zkServer;
+  private AccumuloZKTestingServer zkServer;
   private final ZooKeeper zoo;
 
   /**
@@ -72,7 +72,7 @@ public class ZooKeeperTestingServer implements AutoCloseable {
 
         try {
 
-          zkServer = new TestingServer(port, tmpDir);
+          zkServer = new AccumuloZKTestingServer(port, tmpDir);
           zkServer.start();
 
           started = true;
@@ -99,6 +99,10 @@ public class ZooKeeperTestingServer implements AutoCloseable {
 
   public ZooKeeper getZooKeeper() {
     return zoo;
+  }
+
+  public AccumuloZKTestingServer getZooKeeperTestServer() {
+    return zkServer;
   }
 
   public ZooReaderWriter getZooReaderWriter() {

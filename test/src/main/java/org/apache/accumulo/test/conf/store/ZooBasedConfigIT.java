@@ -91,7 +91,6 @@ public class ZooBasedConfigIT {
   private final TableId tidA = TableId.of("A");
   private final TableId tidB = TableId.of("B");
 
-  private TestTicker ticker;
   private PropStore propStore;
   private AccumuloConfiguration parent;
 
@@ -147,8 +146,6 @@ public class ZooBasedConfigIT {
       Thread.currentThread().interrupt();
       throw new IllegalStateException("Interrupted during zookeeper path initialization", ex);
     }
-
-    ticker = new TestTicker();
 
     reset(context);
 
@@ -279,9 +276,6 @@ public class ZooBasedConfigIT {
 
     long updateCount = zbc.getUpdateCount();
 
-    // advance well past unload period.
-    ticker.advance(2, TimeUnit.HOURS);
-
     var tableBPropKey = TablePropKey.of(INSTANCE_ID, tidB);
     propStore.create(tableBPropKey, Map.of());
     Thread.sleep(150);
@@ -315,7 +309,7 @@ public class ZooBasedConfigIT {
     assertEquals(updateCount2, zbc.getUpdateCount());
   }
 
-  private static class TestListener implements PropChangeListener {
+  public static class TestListener implements PropChangeListener {
 
     private final AtomicInteger zkChangeCount = new AtomicInteger(0);
     private final AtomicInteger cacheChangeCount = new AtomicInteger(0);
@@ -370,7 +364,7 @@ public class ZooBasedConfigIT {
     }
   }
 
-  private static class TestTicker implements Ticker {
+  static class TestTicker implements Ticker {
 
     private final long startTime;
     private long elapsed;
