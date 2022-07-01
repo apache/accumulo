@@ -96,7 +96,7 @@ public class ServerContext extends ClientContext {
   private final ServerInfo info;
   private final ZooReaderWriter zooReaderWriter;
   private final ServerDirs serverDirs;
-  private final Supplier<ZooPropStore> propStore;
+  protected Supplier<ZooPropStore> propStore;
 
   // lazily loaded resources, only loaded when needed
   private final Supplier<TableManager> tableManager;

@@ -23,9 +23,6 @@ import java.util.concurrent.CountDownLatch;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.server.conf.codec.VersionedProperties;
-import org.apache.accumulo.server.conf.store.PropStoreKey;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,21 +52,17 @@ public class TestZooPropStore extends ZooPropStore {
   }
 
   @Override
-  public @NonNull VersionedProperties get(PropStoreKey<?> propStoreKey) {
-    try {
-      return super.get(propStoreKey);
-    } finally {
-      // try {
-      // latch.await();
-      // } catch (InterruptedException e) {
-      // LOG.error("Error waiting for latch", e);
-      // }
-    }
-  }
-
-  @Override
   public void checkZkConnection() {
     super.checkZkConnection();
+    LOG.info("super.checkZkConnection() called, calling runCloseConnectionTask");
+    runCloseConnectionTask();
+    LOG.info("runCloseConnectionTask called, waiting for connection event to release latch");
+    try {
+      latch.await();
+      LOG.info("latch released");
+    } catch (InterruptedException e) {
+      LOG.error("Error waiting for latch", e);
+    }
   }
 
   @Override

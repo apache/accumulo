@@ -18,32 +18,28 @@
  */
 package org.apache.accumulo.test.conf.store;
 
+import static com.google.common.base.Suppliers.memoize;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.reset;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.SystemConfiguration;
-import org.apache.accumulo.server.conf.ZooBasedConfiguration;
+import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.impl.TestZooPropStore;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
@@ -56,7 +52,6 @@ import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -66,32 +61,64 @@ import org.slf4j.LoggerFactory;
 @Tag(ZOOKEEPER_TESTING_SERVER)
 public class ZooPropStoreIT {
 
+  /**
+   * Override the propStore to use the TestZooPropStore
+   *
+   */
+  private static class TestServerContext extends ServerContext {
+
+    private final long zkClientSessionId;
+
+    public TestServerContext(SiteConfiguration siteConfig) {
+      super(siteConfig);
+      zkClientSessionId = this.getZooReaderWriter().getZooKeeper().getSessionId();
+      propStore = memoize(() -> new TestZooPropStore(INSTANCE_ID, this.getZooReaderWriter(), null,
+          null, null, () -> {
+            closeClientSession(zkClientSessionId);
+          }));
+    }
+
+  }
+
   @TempDir
   private static File tempDir;
 
   private static final Logger LOG = LoggerFactory.getLogger(ZooPropStoreIT.class);
   private static final InstanceId INSTANCE_ID = InstanceId.of(UUID.randomUUID());
+  // fake ids
+  private static final NamespaceId nsId = NamespaceId.of("nsIdForTest");
+  private static final TableId tidA = TableId.of("A");
+  private static final TableId tidB = TableId.of("B");
+
   private static ZooKeeperTestingServer zkTestServerWrapper = null;
   private static TestingZooKeeperServer zkServer = null;
-  private static ZooReaderWriter zrw;
-  private static ZooKeeper zkClient;
-  private ServerContext context;
-
-  // fake ids
-  private final NamespaceId nsId = NamespaceId.of("nsIdForTest");
-  private final TableId tidA = TableId.of("A");
-  private final TableId tidB = TableId.of("B");
-
-  private TestZooPropStore propStore;
-  private AccumuloConfiguration parent;
+  private static TestServerContext context;
 
   @BeforeAll
-  public static void setupZk() {
+  public static void setupZk() throws Exception {
+
+    // Create the ZooKeeper Testing Server
     zkTestServerWrapper = new ZooKeeperTestingServer(tempDir);
     zkServer = zkTestServerWrapper.getZooKeeperTestServer().getTestingZooKeeperServer();
-    zkClient = zkTestServerWrapper.getZooKeeper();
-    ZooUtil.digestAuth(zkClient, ZooKeeperTestingServer.SECRET);
-    zrw = zkTestServerWrapper.getZooReaderWriter();
+    ZooKeeper zkClient = zkTestServerWrapper.getZooKeeper();
+    // Initialize ZK Paths
+    initPaths(zkClient);
+
+    // Simulate an instance file on the filesystem
+    File instanceIdDir = new File(tempDir, Constants.INSTANCE_ID_DIR);
+    instanceIdDir.mkdir();
+    File instanceIdFile = new File(instanceIdDir, INSTANCE_ID.toString());
+    assertTrue(instanceIdFile.createNewFile());
+
+    // Create the server context
+    Map<String,String> properties = new HashMap<>();
+    properties.put(Property.INSTANCE_ZK_HOST.getKey(), zkTestServerWrapper.getConn());
+    properties.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "5s");
+    properties.put(Property.INSTANCE_SECRET.getKey(), ZooKeeperTestingServer.SECRET);
+    properties.put(Property.INSTANCE_VOLUMES.getKey(), tempDir.toURI().toString());
+    SiteConfiguration site = SiteConfiguration.empty().withOverrides(properties).build();
+    context = new TestServerContext(site);
+
   }
 
   @AfterAll
@@ -99,12 +126,17 @@ public class ZooPropStoreIT {
     zkTestServerWrapper.close();
   }
 
-  @BeforeEach
-  public void initPaths() {
-    context = createMock(ServerContext.class);
+  private static void initPaths(ZooKeeper zkClient) {
+
     zkTestServerWrapper.initPaths(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZCONFIG);
 
     try {
+      zkClient.create(Constants.ZROOT + Constants.ZINSTANCES, new byte[0],
+          ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+      zkClient.create(Constants.ZROOT + Constants.ZINSTANCES + "/test",
+          INSTANCE_ID.canonical().getBytes(UTF_8), ZooDefs.Ids.OPEN_ACL_UNSAFE,
+          CreateMode.PERSISTENT);
+
       zkClient.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES, new byte[0],
           ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
       zkClient.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES + "/" + tidA.canonical(),
@@ -133,35 +165,9 @@ public class ZooPropStoreIT {
       throw new IllegalStateException("Interrupted during zookeeper path initialization", ex);
     }
 
-    reset(context);
-
-    // setup context mock with enough to create prop store
-    expect(context.getInstanceID()).andReturn(INSTANCE_ID).anyTimes();
-    expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
-    expect(context.getZooKeepersSessionTimeOut()).andReturn(zrw.getSessionTimeout()).anyTimes();
-
-    replay(context);
-
-    long zkClientSessionId = zkClient.getSessionId();
-    propStore = new TestZooPropStore(context.getInstanceID(), zrw, null, null, null, () -> {
-      closeClientSession(zkClientSessionId);
-    });
-
-    reset(context);
-
-    // parent = createMock(AccumuloConfiguration.class);
-    parent = DefaultConfiguration.getInstance();
-
-    // setup context mock with prop store and the rest of the env needed.
-    expect(context.getInstanceID()).andReturn(INSTANCE_ID).anyTimes();
-    expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
-    expect(context.getZooKeepersSessionTimeOut()).andReturn(zkClient.getSessionTimeout())
-        .anyTimes();
-    expect(context.getPropStore()).andReturn(propStore).anyTimes();
-    expect(context.getSiteConfiguration()).andReturn(SiteConfiguration.empty().build()).anyTimes();
   }
 
-  private void closeClientSession(long sessionId) {
+  private static void closeClientSession(long sessionId) {
     try {
       Method m = zkServer.getClass().getDeclaredMethod("getMain");
       m.setAccessible(true);
@@ -177,80 +183,12 @@ public class ZooPropStoreIT {
   }
 
   @Test
-  public void testCheckZkConnection() throws Exception {
-    replay(context);
-    propStore.checkZkConnection();
-    closeClientSession(zkClient.getSessionId());
-    Thread.sleep(2000);
-    propStore.checkZkConnection();
-  }
-
-  @Test
-  public void testGetWithFailedConnection() throws Exception {
-    replay(context);
-    propStore.checkZkConnection();
-    propStore.create(SystemPropKey.of(context),
+  public void testGetClosesConnection() throws Exception {
+    ((TestZooPropStore) context.getPropStore()).create(SystemPropKey.of(context),
         Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
-    SystemPropKey sysPropKey = SystemPropKey.of(INSTANCE_ID);
-    ZooBasedConfiguration zbc = new SystemConfiguration(context, sysPropKey, parent);
-    assertEquals("true", zbc.get(Property.TABLE_BLOOM_ENABLED));
-    closeClientSession(zkClient.getSessionId());
-    Thread.sleep(2000);
-    assertEquals("true", zbc.get(Property.TABLE_BLOOM_ENABLED));
+
+    VersionedProperties props =
+        ((TestZooPropStore) context.getPropStore()).get(SystemPropKey.of(INSTANCE_ID));
+    assertNotNull(props);
   }
-
-  // @Test
-  // public void connectionLossTest() throws Exception {
-  //
-  // // expect(parent.getUpdateCount()).andReturn(123L).anyTimes();
-  // replay(context);
-  //
-  // propStore.create(SystemPropKey.of(context),
-  // Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
-  //
-  // var sysPropKey = SystemPropKey.of(INSTANCE_ID);
-  //
-  // TestListener testListener = new TestListener();
-  // propStore.registerAsListener(sysPropKey, testListener);
-  //
-  // ZooBasedConfiguration zbc = new SystemConfiguration(context, sysPropKey, parent);
-  //
-  // assertNotNull(zbc.getSnapshot());
-  // assertEquals("true", zbc.get(Property.TABLE_BLOOM_ENABLED));
-  //
-  // long updateCount = zbc.getUpdateCount();
-  //
-  // var tableBPropKey = TablePropKey.of(INSTANCE_ID, tidB);
-  // propStore.create(tableBPropKey, Map.of());
-  // Thread.sleep(150);
-  //
-  // int changeCount = testListener.getZkChangeCount();
-  //
-  // // force an "external update" directly in ZK - emulates a change external to the prop store.
-  // // just echoing the same data - but it will update the ZooKeeper node data version.
-  // Stat stat = new Stat();
-  // byte[] bytes = zrw.getData(sysPropKey.getPath(), stat);
-  // zrw.overwritePersistentData(sysPropKey.getPath(), bytes, stat.getVersion());
-  //
-  // // allow ZooKeeper notification time to propagate
-  //
-  // int retries = 5;
-  // do {
-  // Thread.sleep(25);
-  // } while (changeCount >= testListener.getZkChangeCount() && --retries > 0);
-  //
-  // assertTrue(changeCount < testListener.getZkChangeCount());
-  //
-  // // prop changed - but will not be loaded in cache.
-  // long updateCount2 = zbc.getUpdateCount();
-  // assertNotEquals(updateCount, updateCount2);
-  //
-  // // read will repopulate the cache.
-  // assertNotNull(zbc.getSnapshot());
-  // assertEquals("true", zbc.get(Property.TABLE_BLOOM_ENABLED));
-  //
-  // assertNotEquals(updateCount, zbc.getUpdateCount());
-  // assertEquals(updateCount2, zbc.getUpdateCount());
-  // }
-
 }

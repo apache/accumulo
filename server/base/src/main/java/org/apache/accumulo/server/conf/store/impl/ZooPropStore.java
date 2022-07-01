@@ -172,8 +172,8 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    */
   @Override
   public @NonNull VersionedProperties get(final PropStoreKey<?> propStoreKey) {
-    checkZkConnection(); // if ZK not connected, block, do not just return a cached value.
     propStoreWatcher.registerListener(propStoreKey, this);
+    checkZkConnection(); // if ZK not connected, block, do not just return a cached value.
 
     var props = cache.get(propStoreKey);
     if (props != null) {
@@ -351,7 +351,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
 
   @Override
   public void connectionEvent() {
-    log.trace("connectionEvent");
+    log.trace("connectionEvent, clearing cache");
     cache.removeAll();
   }
 
