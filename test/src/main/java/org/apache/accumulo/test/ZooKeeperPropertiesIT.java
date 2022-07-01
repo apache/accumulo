@@ -38,6 +38,8 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.store.NamespacePropKey;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
@@ -68,8 +70,10 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
       Map<String,String> properties = client.tableOperations().getConfiguration(tableName);
       assertEquals("false", properties.get(Property.TABLE_BLOOM_ENABLED.getKey()));
 
-      context.tablePropUtil().setProperties(TableId.of(tid),
-          Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
+      final TableId tableId = TableId.of(tid);
+      final TablePropKey tablePropKey = TablePropKey.of(context, tableId);
+      context.propUtil().setProperties(tableId,
+          Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"), tablePropKey);
 
       // add a sleep to give the property change time to propagate
       properties = client.tableOperations().getConfiguration(tableName);
@@ -82,7 +86,7 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
         properties = client.tableOperations().getConfiguration(tableName);
       }
 
-      context.tablePropUtil().removeProperties(TableId.of(tid),
+      context.propUtil().removeProperties(tablePropKey,
           List.of(Property.TABLE_BLOOM_ENABLED.getKey()));
 
       properties = client.tableOperations().getConfiguration(tableName);
@@ -96,9 +100,9 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
       }
 
       // Add invalid property
-      assertThrows(IllegalArgumentException.class,
-          () -> context.tablePropUtil().setProperties(TableId.of(tid),
-              Map.of("NOT_A_PROPERTY", "not_a_value")),
+      assertThrows(
+          IllegalArgumentException.class, () -> context.propUtil().setProperties(tableId,
+              Map.of("NOT_A_PROPERTY", "not_a_value"), tablePropKey),
           "Expected IllegalArgumentException to be thrown.");
     }
   }
@@ -119,8 +123,10 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
       Map<String,String> properties = client.namespaceOperations().getConfiguration(namespace);
       assertEquals("15", properties.get(Property.TABLE_FILE_MAX.getKey()));
 
-      context.namespacePropUtil().setProperties(NamespaceId.of(nid),
-          Map.of(Property.TABLE_FILE_MAX.getKey(), "31"));
+      final NamespaceId namespaceId = NamespaceId.of(nid);
+      final NamespacePropKey namespacePropKey = NamespacePropKey.of(context, namespaceId);
+      context.propUtil().setProperties(namespaceId, Map.of(Property.TABLE_FILE_MAX.getKey(), "31"),
+          namespacePropKey);
 
       // add a sleep to give the property change time to propagate
       properties = client.namespaceOperations().getConfiguration(namespace);
@@ -133,7 +139,7 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
         properties = client.namespaceOperations().getConfiguration(namespace);
       }
 
-      context.namespacePropUtil().removeProperties(NamespaceId.of(nid),
+      context.propUtil().removeProperties(namespacePropKey,
           List.of(Property.TABLE_FILE_MAX.getKey()));
 
       properties = client.namespaceOperations().getConfiguration(namespace);
@@ -148,8 +154,8 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
 
       // Add invalid property
       assertThrows(IllegalArgumentException.class,
-          () -> context.namespacePropUtil().setProperties(NamespaceId.of(nid),
-              Map.of("NOT_A_PROPERTY", "not_a_value")),
+          () -> context.propUtil().setProperties(namespaceId,
+              Map.of("NOT_A_PROPERTY", "not_a_value"), namespacePropKey),
           "Expected IllegalArgumentException to be thrown.");
     }
   }

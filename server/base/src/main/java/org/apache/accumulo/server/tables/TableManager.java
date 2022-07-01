@@ -225,8 +225,8 @@ public class TableManager {
         + Constants.ZTABLE_CONF;
     zoo.recursiveCopyPersistentOverwrite(srcTablePath, newTablePath);
 
-    context.tablePropUtil().setProperties(tableId, propertiesToSet);
-    context.tablePropUtil().removeProperties(tableId, propertiesToExclude);
+    context.propUtil().setProperties(tableId, propertiesToSet, TablePropKey.of(context, tableId));
+    context.propUtil().removeProperties(TablePropKey.of(context, tableId), propertiesToExclude);
 
     updateTableStateCache(tableId);
   }

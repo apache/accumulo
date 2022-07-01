@@ -26,11 +26,11 @@ import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
 
-public abstract class PropUtil<T extends AbstractId<T>> {
+public class PropUtil {
 
   protected final ServerContext context;
 
-  protected PropUtil(ServerContext context) {
+  public PropUtil(ServerContext context) {
     this.context = context;
   }
 
@@ -43,8 +43,8 @@ public abstract class PropUtil<T extends AbstractId<T>> {
    * @throws IllegalArgumentException
    *           if a provided property is not valid
    */
-  public void setProperties(final AbstractId<T> id, final Map<String,String> properties,
-      final PropStoreKey<T> propStoreKey) {
+  public void setProperties(final AbstractId<?> id, final Map<String,String> properties,
+      final PropStoreKey<?> propStoreKey) {
     for (Map.Entry<String,String> prop : properties.entrySet()) {
       if (!Property.isTablePropertyValid(prop.getKey(), prop.getValue())) {
         throw new IllegalArgumentException("Invalid property for : " + id + " name: "
@@ -54,7 +54,7 @@ public abstract class PropUtil<T extends AbstractId<T>> {
     context.getPropStore().putAll(propStoreKey, properties);
   }
 
-  public void removeProperties(final PropStoreKey<T> propStoreKey,
+  public void removeProperties(final PropStoreKey<?> propStoreKey,
       final Collection<String> propertyNames) {
     context.getPropStore().removeProperties(propStoreKey, propertyNames);
   }
