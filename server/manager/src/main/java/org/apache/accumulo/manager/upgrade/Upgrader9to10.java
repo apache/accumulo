@@ -166,8 +166,7 @@ public class Upgrader9to10 implements Upgrader {
             var dispatcherPropsMap = Map.of(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
                 SimpleCompactionDispatcher.class.getName(),
                 Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", dispatcherService);
-            context.propUtil().setProperties(tableId, dispatcherPropsMap,
-                TablePropKey.of(context, tableId));
+            context.propUtil().setProperties(TablePropKey.of(context, tableId), dispatcherPropsMap);
           };
 
       // root compaction props

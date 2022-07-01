@@ -404,8 +404,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
         manager.getContext().propUtil().removeProperties(
             NamespacePropKey.of(manager.getContext(), namespaceId), List.of(property));
       } else {
-        manager.getContext().propUtil().setProperties(namespaceId, Map.of(property, value),
-            NamespacePropKey.of(manager.getContext(), namespaceId));
+        manager.getContext().propUtil().setProperties(
+            NamespacePropKey.of(manager.getContext(), namespaceId), Map.of(property, value));
       }
     } catch (IllegalStateException ex) {
       // race condition on delete... namespace no longer exists? An undelying ZooKeeper.NoNode
@@ -429,8 +429,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
         manager.getContext().propUtil()
             .removeProperties(TablePropKey.of(manager.getContext(), tableId), List.of(property));
       } else {
-        manager.getContext().propUtil().setProperties(tableId, Map.of(property, value),
-            TablePropKey.of(manager.getContext(), tableId));
+        manager.getContext().propUtil()
+            .setProperties(TablePropKey.of(manager.getContext(), tableId), Map.of(property, value));
       }
     } catch (IllegalStateException ex) {
       log.warn("Invalid table property, tried to set: tableId: " + tableId.canonical() + " to: "

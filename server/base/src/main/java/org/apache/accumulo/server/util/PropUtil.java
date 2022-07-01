@@ -22,7 +22,6 @@ import java.util.Collection;
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
 
@@ -43,11 +42,11 @@ public class PropUtil {
    * @throws IllegalArgumentException
    *           if a provided property is not valid
    */
-  public void setProperties(final AbstractId<?> id, final Map<String,String> properties,
-      final PropStoreKey<?> propStoreKey) {
+  public void setProperties(final PropStoreKey<?> propStoreKey,
+      final Map<String,String> properties) {
     for (Map.Entry<String,String> prop : properties.entrySet()) {
       if (!Property.isTablePropertyValid(prop.getKey(), prop.getValue())) {
-        throw new IllegalArgumentException("Invalid property for : " + id + " name: "
+        throw new IllegalArgumentException("Invalid property for : " + propStoreKey + " name: "
             + prop.getKey() + ", value: " + prop.getValue());
       }
     }
