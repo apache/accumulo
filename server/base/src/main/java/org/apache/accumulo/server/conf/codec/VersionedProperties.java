@@ -189,8 +189,8 @@ public class VersionedProperties {
    * @return A new instance of this class with the replaced properties.
    */
   public VersionedProperties replaceAll(final Map<String,String> updates) {
-    var updated = new HashMap<>(updates);
-    return new VersionedProperties(dataVersion, Instant.now(), updated);
+    // Constructor will copy the map to a new map already
+    return new VersionedProperties(dataVersion, Instant.now(), updates);
   }
 
   /**

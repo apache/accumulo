@@ -243,6 +243,33 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   }
 
   @Override
+  public void modifyTableProperties(TInfo tinfo, TCredentials credentials, String tableName,
+      Map<String,String> propertiesMap) throws TException {
+    final TableId tableId = ClientServiceHandler.checkTableId(manager.getContext(), tableName,
+        TableOperation.SET_PROPERTY);
+    NamespaceId namespaceId = getNamespaceIdFromTableId(TableOperation.SET_PROPERTY, tableId);
+    if (!manager.security.canAlterTable(credentials, tableId, namespaceId)) {
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
+    }
+
+    try {
+      PropUtil.replaceProperties(manager.getContext(),
+          TablePropKey.of(manager.getContext(), tableId), propertiesMap);
+    } catch (IllegalStateException ex) {
+      log.warn("Error modifying table properties: tableId: {}", tableId.canonical());
+      // race condition... table no longer exists? This call will throw an exception if the table
+      // was deleted:
+      ClientServiceHandler.checkTableId(manager.getContext(), tableName,
+          TableOperation.SET_PROPERTY);
+      throw new ThriftTableOperationException(tableId.canonical(), tableName,
+          TableOperation.SET_PROPERTY, TableOperationExceptionType.OTHER,
+          "Error modifying table properties: tableId: " + tableId.canonical());
+    }
+
+  }
+
+  @Override
   public void shutdown(TInfo info, TCredentials c, boolean stopTabletServers)
       throws ThriftSecurityException {
     if (!manager.security.canPerformSystemActions(c))
@@ -379,7 +406,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   }
 
   @Override
-  public void modifyProperties(TInfo info, TCredentials c, Map<String,String> propertiesMap)
+  public void modifySystemProperties(TInfo info, TCredentials c, Map<String,String> propertiesMap)
       throws TException {
     if (!manager.security.canPerformSystemActions(c))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
@@ -402,6 +429,30 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   public void setNamespaceProperty(TInfo tinfo, TCredentials credentials, String ns,
       String property, String value) throws ThriftSecurityException, ThriftTableOperationException {
     alterNamespaceProperty(credentials, ns, property, value, TableOperation.SET_PROPERTY);
+  }
+
+  @Override
+  public void modifyNamespaceProperties(TInfo tinfo, TCredentials credentials, String ns,
+      Map<String,String> propertiesMap) throws TException {
+    final NamespaceId namespaceId = ClientServiceHandler.checkNamespaceId(manager.getContext(), ns,
+        TableOperation.SET_PROPERTY);
+    if (!manager.security.canAlterNamespace(credentials, namespaceId)) {
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
+    }
+
+    try {
+      PropUtil.replaceProperties(manager.getContext(),
+          NamespacePropKey.of(manager.getContext(), namespaceId), propertiesMap);
+    } catch (IllegalStateException ex) {
+      // race condition on delete... namespace no longer exists? An undelying ZooKeeper.NoNode
+      // exception will be thrown an exception if the namespace was deleted:
+      ClientServiceHandler.checkNamespaceId(manager.getContext(), ns, TableOperation.SET_PROPERTY);
+      log.warn("Error modifying namespace properties", ex);
+      throw new ThriftTableOperationException(namespaceId.canonical(), ns,
+          TableOperation.SET_PROPERTY, TableOperationExceptionType.OTHER,
+          "Error modifying namespace properties");
+    }
   }
 
   @Override

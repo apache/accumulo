@@ -318,6 +318,11 @@ service ClientService {
     1:ConfigurationType type
   )
 
+  map<string, string> getSystemProperties(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+  )
+
   map<string, string> getTableConfiguration(
     1:trace.TInfo tinfo
     3:security.TCredentials credentials
@@ -326,7 +331,23 @@ service ClientService {
     1:ThriftTableOperationException tope
   )
 
+  map<string, string> getTableProperties(
+    1:trace.TInfo tinfo
+    3:security.TCredentials credentials
+    2:string tableName
+  ) throws (
+    1:ThriftTableOperationException tope
+  )
+
   map<string, string> getNamespaceConfiguration(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string ns
+  ) throws (
+    1:ThriftTableOperationException tope
+  )
+
+  map<string, string> getNamespaceProperties(
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
     3:string ns

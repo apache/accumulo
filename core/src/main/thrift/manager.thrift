@@ -195,6 +195,17 @@ service ManagerClientService {
     3:client.ThriftNotActiveServiceException tnase
   )
 
+  void modifyTableProperties(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string tableName
+    4:map<string, string> propertiesMap
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftTableOperationException tope
+    3:client.ThriftNotActiveServiceException tnase
+  )
+
   void removeTableProperty(
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
@@ -212,6 +223,17 @@ service ManagerClientService {
     3:string ns
     4:string property
     5:string value
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftTableOperationException tope
+    3:client.ThriftNotActiveServiceException tnase
+  )
+
+  void modifyNamespaceProperties(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string ns
+    4:map<string, string> propertiesMap
   ) throws (
     1:client.ThriftSecurityException sec
     2:client.ThriftTableOperationException tope
@@ -268,7 +290,7 @@ service ManagerClientService {
     2:client.ThriftNotActiveServiceException tnase
   )
  
-    void modifyProperties(
+  void modifySystemProperties(
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
     3:map<string, string> propertiesMap

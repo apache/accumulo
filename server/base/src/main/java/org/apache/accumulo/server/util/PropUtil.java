@@ -40,18 +40,29 @@ public final class PropUtil {
    */
   public static void setProperties(final ServerContext context, final PropStoreKey<?> propStoreKey,
       final Map<String,String> properties) {
-    for (Map.Entry<String,String> prop : properties.entrySet()) {
-      if (!Property.isTablePropertyValid(prop.getKey(), prop.getValue())) {
-        throw new IllegalArgumentException("Invalid property for : " + propStoreKey + " name: "
-            + prop.getKey() + ", value: " + prop.getValue());
-      }
-    }
+    PropUtil.validateProperties(context, propStoreKey, properties);
     context.getPropStore().putAll(propStoreKey, properties);
   }
 
   public static void removeProperties(final ServerContext context,
       final PropStoreKey<?> propStoreKey, final Collection<String> propertyNames) {
     context.getPropStore().removeProperties(propStoreKey, propertyNames);
+  }
+
+  public static void replaceProperties(final ServerContext context,
+      final PropStoreKey<?> propStoreKey, final Map<String,String> properties) {
+    PropUtil.validateProperties(context, propStoreKey, properties);
+    context.getPropStore().replaceAll(propStoreKey, properties);
+  }
+
+  protected static void validateProperties(final ServerContext context,
+      final PropStoreKey<?> propStoreKey, final Map<String,String> properties) {
+    for (Map.Entry<String,String> prop : properties.entrySet()) {
+      if (!Property.isTablePropertyValid(prop.getKey(), prop.getValue())) {
+        throw new IllegalArgumentException("Invalid property for : " + propStoreKey + " name: "
+            + prop.getKey() + ", value: " + prop.getValue());
+      }
+    }
   }
 
 }

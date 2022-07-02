@@ -25,17 +25,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.ConcurrentModificationException;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.DiskUsage;
@@ -135,6 +139,12 @@ public class TableOperationsHelperTest {
     }
 
     @Override
+    public void modifyProperties(String tableName, Consumer<Map<String,String>> mapMutator)
+        throws IllegalArgumentException, ConcurrentModificationException {
+      Optional.ofNullable(settings.get(tableName)).ifPresent(map -> mapMutator.accept(map));
+    }
+
+    @Override
     public void removeProperty(String tableName, String property) {
       if (!settings.containsKey(tableName))
         return;
@@ -143,6 +153,15 @@ public class TableOperationsHelperTest {
 
     @Override
     public Map<String,String> getConfiguration(String tableName) {
+      Map<String,String> empty = Collections.emptyMap();
+      if (!settings.containsKey(tableName))
+        return empty;
+      return settings.get(tableName);
+    }
+
+    @Override
+    public Map<String,String> getTableProperties(String tableName)
+        throws AccumuloException, TableNotFoundException {
       Map<String,String> empty = Collections.emptyMap();
       if (!settings.containsKey(tableName))
         return empty;

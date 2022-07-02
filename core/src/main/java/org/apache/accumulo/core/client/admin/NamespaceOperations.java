@@ -22,6 +22,7 @@ import java.util.EnumSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedSet;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -169,6 +170,9 @@ public interface NamespaceOperations {
   void setProperty(String namespace, String property, String value)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
 
+  void modifyProperties(String namespace, Consumer<Map<String,String>> mapMutator)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
+
   /**
    * Removes a property from a namespace. Note that it may take a few seconds to propagate the
    * change everywhere.
@@ -228,6 +232,25 @@ public interface NamespaceOperations {
    * @since 2.1.0
    */
   Map<String,String> getConfiguration(String namespace)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
+
+  /**
+   * Gets properties specific to this namespace. Note that recently changed properties may not be
+   * available immediately. This new method returns a Map instead of an Iterable.
+   *
+   * @param namespace
+   *          the name of the namespace
+   * @return per-table properties specific to this namespace. Note that recently changed properties
+   *         may not be visible immediately.
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission
+   * @throws NamespaceNotFoundException
+   *           if the specified namespace doesn't exist
+   * @since 2.1.0
+   */
+  Map<String,String> getNamespaceProperties(String namespace)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
 
   /**

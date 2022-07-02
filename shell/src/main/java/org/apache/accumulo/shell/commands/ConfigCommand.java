@@ -20,7 +20,6 @@ package org.apache.accumulo.shell.commands;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -120,22 +119,9 @@ public class ConfigCommand extends Command {
         throw new BadArgumentException("Missing '=' operator in set operation.", fullCommand,
             fullCommand.indexOf(property));
       }
-
-      Map<String,String> propertiesMap = new HashMap<>();
-
-      // Handle cases with multiple properties to set
-      if (property.contains(";")) {
-        final String[] propertiesList = property.split(";");
-        for (String entry : propertiesList) {
-          final String[] pair = entry.split("=", 2);
-          propertiesMap.put(pair[0], pair[1]);
-        }
-      } else {
-        final String[] pair = property.split("=", 2);
-        property = pair[0];
-        value = pair[1];
-        propertiesMap.put(property, value);
-      }
+      final String[] pair = property.split("=", 2);
+      property = pair[0];
+      value = pair[1];
 
       if (tableName != null) {
         if (!Property.isValidTablePropertyKey(property)) {
@@ -164,8 +150,6 @@ public class ConfigCommand extends Command {
               fullCommand.indexOf(property));
         }
         shellState.getAccumuloClient().instanceOperations().setProperty(property, value);
-        Shell.log.debug("New config: "
-            + shellState.getAccumuloClient().instanceOperations().getSystemConfiguration());
         Shell.log.debug("Successfully set system configuration option.");
       }
     } else {

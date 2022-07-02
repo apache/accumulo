@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -319,12 +320,27 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
+  public Map<String,String> getSystemProperties(TInfo tinfo, TCredentials credentials)
+      throws TException {
+    return Optional.ofNullable(context.getPropStore().get(SystemPropKey.of(context)))
+        .map(vProps -> vProps.asMap()).orElse(Map.of());
+  }
+
+  @Override
   public Map<String,String> getTableConfiguration(TInfo tinfo, TCredentials credentials,
       String tableName) throws TException, ThriftTableOperationException {
     TableId tableId = checkTableId(context, tableName, null);
     context.getPropStore().getCache().remove(TablePropKey.of(context, tableId));
     AccumuloConfiguration config = context.getTableConfiguration(tableId);
     return conf(credentials, config);
+  }
+
+  @Override
+  public Map<String,String> getTableProperties(TInfo tinfo, TCredentials credentials,
+      String tableName) throws TException {
+    TableId tableId = checkTableId(context, tableName, null);
+    return Optional.ofNullable(context.getPropStore().get(TablePropKey.of(context, tableId)))
+        .map(vProps -> vProps.asMap()).orElse(Map.of());
   }
 
   @Override
@@ -466,6 +482,22 @@ public class ClientServiceHandler implements ClientService.Iface {
     context.getPropStore().getCache().remove(NamespacePropKey.of(context, namespaceId));
     AccumuloConfiguration config = context.getNamespaceConfiguration(namespaceId);
     return conf(credentials, config);
+  }
+
+  @Override
+  public Map<String,String> getNamespaceProperties(TInfo tinfo, TCredentials credentials, String ns)
+      throws TException {
+    NamespaceId namespaceId;
+    try {
+      namespaceId = Namespaces.getNamespaceId(context, ns);
+      return Optional
+          .ofNullable(context.getPropStore().get(NamespacePropKey.of(context, namespaceId)))
+          .map(vProps -> vProps.asMap()).orElse(Map.of());
+    } catch (NamespaceNotFoundException e) {
+      String why = "Could not find namespace while getting configuration.";
+      throw new ThriftTableOperationException(null, ns, null,
+          TableOperationExceptionType.NAMESPACE_NOTFOUND, why);
+    }
   }
 
   public List<BulkImportStatus> getBulkLoadStatus() {

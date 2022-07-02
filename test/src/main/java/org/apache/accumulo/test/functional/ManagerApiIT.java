@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -234,24 +235,24 @@ public class ManagerApiIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testPermissions_setSystemProperty() throws Exception {
+  public void testPermissions_modifySystemProperties() throws Exception {
     // To setSystemProperty, user needs SystemPermission.SYSTEM
     String propKey = Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey();
     op = client -> {
-      client.setSystemProperty(TraceUtil.traceInfo(), regularUser.toThrift(instanceId), propKey,
-          "10000");
+      client.modifySystemProperties(TraceUtil.traceInfo(), regularUser.toThrift(instanceId),
+          Map.of(propKey, "10000"));
       return null;
     };
     expectPermissionDenied(op, regularUser);
     op = client -> {
-      client.setSystemProperty(TraceUtil.traceInfo(), rootUser.toThrift(instanceId), propKey,
-          "10000");
+      client.modifySystemProperties(TraceUtil.traceInfo(), rootUser.toThrift(instanceId),
+          Map.of(propKey, "10000"));
       return null;
     };
     expectPermissionSuccess(op, rootUser);
     op = client -> {
-      client.setSystemProperty(TraceUtil.traceInfo(), privilegedUser.toThrift(instanceId), propKey,
-          "10000");
+      client.modifySystemProperties(TraceUtil.traceInfo(), privilegedUser.toThrift(instanceId),
+          Map.of(propKey, "10000"));
       return null;
     };
     expectPermissionSuccess(op, privilegedUser);
@@ -286,6 +287,33 @@ public class ManagerApiIT extends SharedMiniClusterBase {
       return null;
     };
     expectPermissionSuccess(op, privilegedUser);
+  }
+
+  @Test
+  public void testPermissions_setSystemProperty() throws Exception {
+    // To setSystemProperty, user needs SystemPermission.SYSTEM
+    String propKey = Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey();
+    op = client -> {
+      client.setSystemProperty(TraceUtil.traceInfo(), regularUser.toThrift(instanceId), propKey,
+          "10000");
+      return null;
+    };
+    expectPermissionDenied(op, regularUser);
+    op = client -> {
+      client.setSystemProperty(TraceUtil.traceInfo(), rootUser.toThrift(instanceId), propKey,
+          "10000");
+      return null;
+    };
+    expectPermissionSuccess(op, rootUser);
+    op = client -> {
+      client.setSystemProperty(TraceUtil.traceInfo(), privilegedUser.toThrift(instanceId), propKey,
+          "10000");
+      return null;
+    };
+    expectPermissionSuccess(op, privilegedUser);
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.instanceOperations().removeProperty(propKey); // clean up property
+    }
   }
 
   @Test

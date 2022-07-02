@@ -101,4 +101,42 @@ public class DeprecatedPropertyUtilIT extends ConfigurableMacBase {
     }
   }
 
+  @Test
+  public void testModifyProperties() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      String oldProp = OLD_SYSTEM_PREFIX + "test.prop";
+      String newProp = Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey() + "test.prop";
+      String propValue = "dummy prop value";
+      Map<String,String> config = client.instanceOperations().getSystemConfiguration();
+      assertFalse(config.containsKey(newProp), oldProp + " was in the config!");
+      assertFalse(config.containsKey(newProp), newProp + " was in the config!");
+
+      // create using old prop and verify new prop was created
+      SystemPropUtil.modifyProperties(getServerContext(), Map.of(oldProp, propValue));
+      config = client.instanceOperations().getSystemConfiguration();
+      assertFalse(config.containsKey(oldProp), oldProp + " was in the config after set call!");
+      assertTrue(config.containsKey(newProp), newProp + " was not in the config after set call!");
+      assertEquals(propValue, config.get(newProp));
+
+      // remove using new prop and verify both are gone
+      SystemPropUtil.modifyProperties(getServerContext(), Map.of());
+      config = client.instanceOperations().getSystemConfiguration();
+      assertFalse(config.containsKey(oldProp), oldProp + " was in the config after remove call!");
+      assertFalse(config.containsKey(newProp), newProp + " was in the config after remove call!");
+
+      // re-create using new prop and verify new prop was created
+      SystemPropUtil.modifyProperties(getServerContext(), Map.of(newProp, propValue));
+      config = client.instanceOperations().getSystemConfiguration();
+      assertFalse(config.containsKey(oldProp), oldProp + " was in the config after set call!");
+      assertTrue(config.containsKey(newProp), newProp + " was not in the config after set call!");
+      assertEquals(propValue, config.get(newProp));
+
+      // remove using old prop and verify both are gone
+      SystemPropUtil.modifyProperties(getServerContext(), Map.of());
+      config = client.instanceOperations().getSystemConfiguration();
+      assertFalse(config.containsKey(oldProp), oldProp + " was in the config after remove call!");
+      assertFalse(config.containsKey(newProp), newProp + " was in the config after remove call!");
+    }
+  }
+
 }

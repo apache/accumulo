@@ -28,6 +28,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.conf.Property;
@@ -40,6 +42,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
+import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -182,5 +185,155 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
         assertFalse(tableAcl.get(0).toString().contains("world"));
       }
     }
+  }
+
+  @Test
+  public void modifyInstancePropertiesTest() throws Exception {
+
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      // Grab original default config
+      Map<String,String> config = client.instanceOperations().getSystemConfiguration();
+      final String originalClientPort = config.get(Property.TSERV_CLIENTPORT.getKey());
+      final String originalMaxMem = config.get(Property.TSERV_MAXMEM.getKey());
+
+      // Set properties in ZK
+      client.instanceOperations().modifyProperties(original -> {
+        original.put(Property.TSERV_CLIENTPORT.getKey(), "9998");
+        original.put(Property.TSERV_MAXMEM.getKey(), "35%");
+      });
+
+      // Verify system properties added
+      assertTrue(Wait.waitFor(() -> client.instanceOperations().getSystemProperties().size() > 0,
+          5000, 500));
+
+      // verify properties updated
+      config = client.instanceOperations().getSystemProperties();
+      assertEquals("9998", config.get(Property.TSERV_CLIENTPORT.getKey()));
+      assertEquals("35%", config.get(Property.TSERV_MAXMEM.getKey()));
+
+      // Verify removal by sending empty map - only removes props that were set in previous values
+      // should be restored
+      client.instanceOperations().modifyProperties(Map::clear);
+
+      assertTrue(Wait.waitFor(() -> client.instanceOperations().getSystemProperties().size() == 0,
+          5000, 500));
+
+      // verify default system config restored
+      config = client.instanceOperations().getSystemConfiguration();
+      assertEquals(originalClientPort, config.get(Property.TSERV_CLIENTPORT.getKey()));
+      assertEquals(originalMaxMem, config.get(Property.TSERV_MAXMEM.getKey()));
+    }
+  }
+
+  @Test
+  public void modifyTablePropTest() throws Exception {
+    String table = getUniqueNames(1)[0];
+
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().create(table);
+      log.info("Tables: {}", client.tableOperations().list());
+
+      testModifyProperties(() -> {
+        try {
+          // Method to grab full config
+          return client.tableOperations().getConfiguration(table);
+        } catch (Exception e) {
+          throw new IllegalStateException(e);
+        }
+      }, () -> {
+        try {
+          // Method to grab only properties
+          return client.tableOperations().getTableProperties(table);
+        } catch (Exception e) {
+          throw new IllegalStateException(e);
+        }
+      }, mapMutator -> {
+        try {
+          // Modify props on table
+          client.tableOperations().modifyProperties(table, mapMutator);
+        } catch (Exception e) {
+          throw new IllegalStateException(e);
+        }
+      });
+    }
+  }
+
+  @Test
+  public void modifyNamespacePropTest() throws Exception {
+    String namespace = "modifyNamespacePropTest";
+    String table = namespace + "testtable";
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.namespaceOperations().create(namespace);
+      client.tableOperations().create(table);
+
+      log.info("Tables: {}", client.tableOperations().list());
+
+      testModifyProperties(() -> {
+        try {
+          // Method to grab full config
+          return client.namespaceOperations().getConfiguration(namespace);
+        } catch (Exception e) {
+          throw new IllegalStateException(e);
+        }
+      }, () -> {
+        try {
+          // Method to grab only properties
+          return client.namespaceOperations().getNamespaceProperties(namespace);
+        } catch (Exception e) {
+          throw new IllegalStateException(e);
+        }
+      }, mapMutator -> {
+        try {
+          // Modify props on namespace
+          client.namespaceOperations().modifyProperties(namespace, mapMutator);
+        } catch (Exception e) {
+          throw new IllegalStateException(e);
+        }
+      });
+    }
+  }
+
+  private void testModifyProperties(Supplier<Map<String,String>> fullConfig,
+      Supplier<Map<String,String>> props, Consumer<Consumer<Map<String,String>>> modifyProperties)
+      throws Exception {
+    // Grab original default config
+    Map<String,String> config = fullConfig.get();
+    final String originalBloomEnabled = config.get(Property.TABLE_BLOOM_ENABLED.getKey());
+    final String originalBloomSize = config.get(Property.TABLE_BLOOM_SIZE.getKey());
+
+    var properties = props.get();
+    final int propsSize = properties.size();
+
+    // Modify table properties in ZK
+    modifyProperties.accept(original -> {
+      original.put(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
+      original.put(Property.TABLE_BLOOM_SIZE.getKey(), "1000");
+    });
+
+    assertTrue(Wait.waitFor(() -> props.get().size() > propsSize, 5000, 500));
+
+    // verify properties updated
+    properties = props.get();
+    assertEquals("true", properties.get(Property.TABLE_BLOOM_ENABLED.getKey()));
+    assertEquals("1000", properties.get(Property.TABLE_BLOOM_SIZE.getKey()));
+
+    // verify properties updated in full configuration also
+    config = fullConfig.get();
+    assertEquals("true", config.get(Property.TABLE_BLOOM_ENABLED.getKey()));
+    assertEquals("1000", config.get(Property.TABLE_BLOOM_SIZE.getKey()));
+
+    // Verify removal
+    modifyProperties.accept(original -> {
+      original.remove(Property.TABLE_BLOOM_ENABLED.getKey());
+      original.remove(Property.TABLE_BLOOM_SIZE.getKey());
+    });
+
+    // Wait for clear
+    assertTrue(Wait.waitFor(() -> props.get().size() == propsSize, 5000, 500));
+
+    // verify default system config restored
+    config = fullConfig.get();
+    assertEquals(originalBloomEnabled, config.get(Property.TABLE_BLOOM_ENABLED.getKey()));
+    assertEquals(originalBloomSize, config.get(Property.TABLE_BLOOM_SIZE.getKey()));
   }
 }

@@ -52,7 +52,6 @@ public interface PropStore {
   void create(PropStoreKey<?> propStoreKey, Map<String,String> props);
 
   /**
-   *
    * @param propCacheId
    *          the prop cache key
    * @return The versioned properties.
