@@ -199,7 +199,7 @@ function start_all() {
 
   for group in $SSERVER_GROUPS; do
     G="SSERVER_HOSTS_${group}"
-    for sserver in "${!G}"; do
+    for sserver in ${!G}; do
       start_service "$sserver" sserver "-g" "$group"
     done
   done
@@ -210,7 +210,7 @@ function start_all() {
 
   for queue in $COMPACTION_QUEUES; do
     Q="COMPACTOR_HOSTS_${queue}"
-    for compactor in "${!Q}"; do
+    for compactor in ${!Q}; do
       start_service "$compactor" compactor "-q" "$queue"
     done
   done
@@ -260,7 +260,7 @@ function start_here() {
   for group in $SSERVER_GROUPS; do
     for host in $local_hosts; do
       G="SSERVER_HOSTS_${group}"
-      for sserver in "${!G}"; do
+      for sserver in ${!G}; do
         if echo "$sserver" | grep -q "^${host}\$"; then
           start_service "$sserver" sserver "-g" "$group"
         fi
@@ -279,7 +279,7 @@ function start_here() {
   for queue in $COMPACTION_QUEUES; do
     for host in $local_hosts; do
       Q="COMPACTOR_HOSTS_${queue}"
-      for compactor in "${!Q}"; do
+      for compactor in ${!Q}; do
         if echo "$compactor" | grep -q "^${host}\$"; then
           start_service "$compactor" compactor "-q" "$queue"
         fi
@@ -336,7 +336,7 @@ function kill_all() {
 
   for group in $SSERVER_GROUPS; do
     G="SSERVER_HOSTS_${group}"
-    for sserver in "${!G}"; do
+    for sserver in ${!G}; do
       kill_service "$sserver" sserver "-g" "$group"
     done
   done
@@ -351,7 +351,7 @@ function kill_all() {
 
   for queue in $COMPACTION_QUEUES; do
     Q="COMPACTOR_HOSTS_${queue}"
-    for compactor in "${!Q}"; do
+    for compactor in ${!Q}; do
       kill_service "$compactor" compactor "-q" "$queue"
     done
   done
@@ -392,7 +392,7 @@ function stop_all() {
 
     for group in $SSERVER_GROUPS; do
       G="SSERVER_HOSTS_${group}"
-      for sserver in "${!G}"; do
+      for sserver in ${!G}; do
         end_service $end_cmd "$sserver" sserver "-g" "$group"
       done
     done
@@ -403,7 +403,7 @@ function stop_all() {
 
     for queue in $COMPACTION_QUEUES; do
       Q="COMPACTOR_HOSTS_${queue}"
-      for compactor in "${!Q}"; do
+      for compactor in ${!Q}; do
         end_service $end_cmd "$compactor" compactor "-q" "$queue"
       done
     done
@@ -440,13 +440,13 @@ function stop_here() {
       done
       for group in $SSERVER_GROUPS; do
         G="SSERVER_HOSTS_${group}"
-        for sserver in "${!G}"; do
+        for sserver in ${!G}; do
           end_service $end_cmd "$sserver" sserver "-g" "$group"
         done
       done
       for queue in $COMPACTION_QUEUES; do
         Q="COMPACTOR_HOSTS_${queue}"
-        for compactor in "${!Q}"; do
+        for compactor in ${!Q}; do
           end_service $end_cmd "$host" compactor "-q" "$queue"
         done
       done

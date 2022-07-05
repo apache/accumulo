@@ -110,14 +110,14 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *       ]
  *     },
  *     {
- *       "scanTypeActivations":["slow"]
+ *       "scanTypeActivations":["slow"],
  *       "maxBusyTimeout":"20m",
  *       "busyTimeoutMultiplier":8,
- *       "group":"lowcost"
+ *       "group":"lowcost",
  *       "attemptPlans":[
  *         {"servers":"1", "busyTimeout":"10s"},
- *         {"servers":"3", "busyTimeout":"30s","salt","42"},
- *         {"servers":"9", "busyTimeout":"60s","salt","84"}
+ *         {"servers":"3", "busyTimeout":"30s","salt":"42"},
+ *         {"servers":"9", "busyTimeout":"60s","salt":"84"}
  *       ]
  *     }
  *    ]
