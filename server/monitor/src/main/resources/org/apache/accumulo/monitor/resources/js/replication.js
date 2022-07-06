@@ -46,19 +46,24 @@ $(document).ready(function () {
     },
     "stateSave": true,
     "columns": [{
-        "data": "tableName"
+        "data": "tableName",
+        "width": "25%"
       },
       {
-        "data": "peerName"
+        "data": "peerName",
+        "width": "20%"
       },
       {
-        "data": "remoteIdentifier"
+        "data": "remoteIdentifier",
+        "width": "25%"
       },
       {
-        "data": "replicaSystemType"
+        "data": "replicaSystemType",
+        "width": "15%"
       },
       {
         "data": "filesNeedingReplication",
+        "width": "15%",
         "render": function (data, type) {
           if (type === 'display') {
             data = bigNumberForQuantity(data);
