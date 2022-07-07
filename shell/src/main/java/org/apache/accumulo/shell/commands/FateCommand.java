@@ -23,12 +23,15 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Formatter;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
@@ -37,10 +40,12 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.tables.TableMap;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.ReadOnlyRepo;
@@ -52,12 +57,15 @@ import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
+import org.apache.accumulo.shell.commands.summaryReport.SummaryReport;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.zookeeper.KeeperException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -70,6 +78,8 @@ import com.google.gson.JsonSerializer;
  * Manage FATE transactions
  */
 public class FateCommand extends Command {
+
+  private final static Logger LOG = LoggerFactory.getLogger(FateCommand.class);
 
   // this class serializes references to interfaces with the concrete class name
   private static class InterfaceSerializer<T> implements JsonSerializer<T> {
@@ -118,6 +128,7 @@ public class FateCommand extends Command {
   private Option fail;
   private Option list;
   private Option print;
+  private Option summary;
   private Option secretOption;
   private Option statusOption;
   private Option disablePaginationOpt;
@@ -178,6 +189,9 @@ public class FateCommand extends Command {
       printTx(shellState, admin, zs, zk, tableLocksPath, cl.getOptionValues(list.getOpt()), cl);
     } else if (cl.hasOption(print.getOpt())) {
       printTx(shellState, admin, zs, zk, tableLocksPath, cl.getOptionValues(print.getOpt()), cl);
+    } else if (cl.hasOption(summary.getOpt())) {
+      summarizeTx(shellState, admin, zs, zk, tableLocksPath, cl.getOptionValues(summary.getOpt()),
+          cl);
     } else if (cl.hasOption(dump.getOpt())) {
       String output = dumpTx(zs, cl.getOptionValues(dump.getOpt()));
       System.out.println(output);
@@ -228,20 +242,49 @@ public class FateCommand extends Command {
     }
 
     // Parse TStatus filters for print display
-    EnumSet<TStatus> filterStatus = null;
-    if (cl.hasOption(statusOption.getOpt())) {
-      filterStatus = EnumSet.noneOf(TStatus.class);
-      String[] tstat = cl.getOptionValues(statusOption.getOpt());
-      for (String element : tstat) {
-        filterStatus.add(TStatus.valueOf(element));
-      }
-    }
+    EnumSet<TStatus> statusFilter = getCmdLineStatusFilters(cl);
 
     StringBuilder buf = new StringBuilder(8096);
     Formatter fmt = new Formatter(buf);
-    admin.print(zs, zk, tableLocksPath, fmt, filterTxid, filterStatus);
+    admin.print(zs, zk, tableLocksPath, fmt, filterTxid, statusFilter);
     shellState.printLines(Collections.singletonList(buf.toString()).iterator(),
         !cl.hasOption(disablePaginationOpt.getOpt()));
+  }
+
+  protected void summarizeTx(Shell shellState, AdminUtil<FateCommand> admin,
+      ZooStore<FateCommand> zs, ZooReaderWriter zk, ServiceLockPath tableLocksPath, String[] args,
+      CommandLine cl) throws InterruptedException, AccumuloException, AccumuloSecurityException,
+      KeeperException, IOException {
+
+    var transactions = admin.getStatus(zs, zk, tableLocksPath, null, null);
+
+    // build id map - relies on unique ids for tables and namespaces
+    // used to look up the names of either table or namespace by id.
+    Map<TableId,String> tidToNameMap = new TableMap(shellState.getContext()).getIdtoNameMap();
+    Map<String,String> idsToNameMap = new HashMap<>(tidToNameMap.size() * 2);
+    tidToNameMap.forEach((tid, name) -> idsToNameMap.put(tid.canonical(), "t:" + name));
+    shellState.getContext().namespaceOperations().namespaceIdMap().forEach((name, nsid) -> {
+      String prev = idsToNameMap.put(nsid, "ns:" + name);
+      if (prev != null) {
+        LOG.warn("duplicate id found for table / namespace id. table name: {}, namespace name: {}",
+            prev, name);
+      }
+    });
+
+    EnumSet<TStatus> statusFilter = getCmdLineStatusFilters(cl);
+
+    SummaryReport report = new SummaryReport(idsToNameMap, statusFilter);
+
+    // gather statistics
+    transactions.getTransactions().forEach(report::gatherTxnStatus);
+    if (Arrays.asList(cl.getArgs()).contains("json")) {
+      shellState.printLines(Collections.singletonList(report.toJson()).iterator(),
+          !cl.hasOption(disablePaginationOpt.getOpt()));
+    } else {
+      // print the formatted report by lines to allow pagination
+      shellState.printLines(report.formatLines().iterator(),
+          !cl.hasOption(disablePaginationOpt.getOpt()));
+    }
   }
 
   protected boolean deleteTx(AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
@@ -357,6 +400,11 @@ public class FateCommand extends Command {
     print.setArgs(Option.UNLIMITED_VALUES);
     print.setOptionalArg(true);
 
+    summary =
+        new Option("summary", "summary", true, "print a summary of FaTE transaction information");
+    summary.setArgName("--json");
+    summary.setOptionalArg(true);
+
     dump = new Option("dump", "dump", true, "dump FaTE transaction information details");
     dump.setArgName("txid");
     dump.setArgs(Option.UNLIMITED_VALUES);
@@ -367,6 +415,7 @@ public class FateCommand extends Command {
     commands.addOption(delete);
     commands.addOption(list);
     commands.addOption(print);
+    commands.addOption(summary);
     commands.addOption(dump);
     o.addOptionGroup(commands);
 
@@ -390,4 +439,24 @@ public class FateCommand extends Command {
     // Arg length varies between 1 to n
     return -1;
   }
+
+  /**
+   * If provided on the command line, get the TStatus values provided.
+   *
+   * @param cl
+   *          the command line
+   * @return a set of status filters, or an empty set if none provides
+   */
+  private EnumSet<TStatus> getCmdLineStatusFilters(CommandLine cl) {
+    EnumSet<TStatus> statusFilter = null;
+    if (cl.hasOption(statusOption.getOpt())) {
+      statusFilter = EnumSet.noneOf(TStatus.class);
+      String[] tstat = cl.getOptionValues(statusOption.getOpt());
+      for (String element : tstat) {
+        statusFilter.add(TStatus.valueOf(element));
+      }
+    }
+    return statusFilter;
+  }
+
 }
