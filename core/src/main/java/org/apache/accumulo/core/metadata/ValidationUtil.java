@@ -18,7 +18,9 @@
  */
 package org.apache.accumulo.core.metadata;
 
-import org.apache.accumulo.core.gc.Reference;
+import java.util.Objects;
+
+import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.hadoop.fs.Path;
 
 /**
@@ -37,8 +39,8 @@ public class ValidationUtil {
     return validate(p).toString();
   }
 
-  public static Reference validate(Reference reference) {
-    validate(new Path(reference.metadataEntry));
+  public static ReferenceFile validate(ReferenceFile reference) {
+    validate(new Path(reference.getMetadataEntry()));
     return reference;
   }
 
@@ -47,5 +49,21 @@ public class ValidationUtil {
       throw new IllegalArgumentException("Invalid path provided, no scheme in " + path);
     }
     return path;
+  }
+
+  public static void validateRFileName(String fileName) {
+    Objects.requireNonNull(fileName);
+    if (!fileName.endsWith(".rf") && !fileName.endsWith("_tmp")) {
+      throw new IllegalArgumentException(
+          "Provided filename (" + fileName + ") does not end with '.rf' or '_tmp'");
+    }
+  }
+
+  public static void validateFileName(String fileName) {
+    Objects.requireNonNull(fileName);
+    if (!fileName.matches("[\\dA-Za-z._-]+")) {
+      throw new IllegalArgumentException(
+          "Provided filename (" + fileName + ") contains invalid characters.");
+    }
   }
 }

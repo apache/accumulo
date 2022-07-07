@@ -81,6 +81,8 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.tserverOps.ShutdownTServer;
 import org.apache.accumulo.server.client.ClientServiceHandler;
+import org.apache.accumulo.server.conf.store.NamespacePropKey;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
@@ -399,10 +401,11 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
     try {
       if (value == null) {
-        manager.getContext().namespacePropUtil().removeProperties(namespaceId, List.of(property));
+        manager.getContext().propUtil().removeProperties(
+            NamespacePropKey.of(manager.getContext(), namespaceId), List.of(property));
       } else {
-        manager.getContext().namespacePropUtil().setProperties(namespaceId,
-            Map.of(property, value));
+        manager.getContext().propUtil().setProperties(
+            NamespacePropKey.of(manager.getContext(), namespaceId), Map.of(property, value));
       }
     } catch (IllegalStateException ex) {
       // race condition on delete... namespace no longer exists? An undelying ZooKeeper.NoNode
@@ -423,9 +426,11 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
     try {
       if (value == null || value.isEmpty()) {
-        manager.getContext().tablePropUtil().removeProperties(tableId, List.of(property));
+        manager.getContext().propUtil()
+            .removeProperties(TablePropKey.of(manager.getContext(), tableId), List.of(property));
       } else {
-        manager.getContext().tablePropUtil().setProperties(tableId, Map.of(property, value));
+        manager.getContext().propUtil()
+            .setProperties(TablePropKey.of(manager.getContext(), tableId), Map.of(property, value));
       }
     } catch (IllegalStateException ex) {
       log.warn("Invalid table property, tried to set: tableId: " + tableId.canonical() + " to: "

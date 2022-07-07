@@ -78,8 +78,7 @@ import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
-import org.apache.accumulo.server.util.NamespacePropUtil;
-import org.apache.accumulo.server.util.TablePropUtil;
+import org.apache.accumulo.server.util.PropUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.zookeeper.KeeperException;
@@ -107,8 +106,7 @@ public class ServerContext extends ClientContext {
   private final Supplier<CryptoService> cryptoService;
   private final Supplier<ScheduledThreadPoolExecutor> sharedScheduledThreadPool;
   private final Supplier<AuditedSecurityOperation> securityOperation;
-  private final Supplier<TablePropUtil> tablePropUtilSupplier;
-  private final Supplier<NamespacePropUtil> namespacePropUtilSupplier;
+  private final Supplier<PropUtil> propUtilSupplier;
 
   public ServerContext(SiteConfiguration siteConfig) {
     this(new ServerInfo(siteConfig));
@@ -136,8 +134,7 @@ public class ServerContext extends ClientContext {
     securityOperation =
         memoize(() -> new AuditedSecurityOperation(this, SecurityOperation.getAuthorizor(this),
             SecurityOperation.getAuthenticator(this), SecurityOperation.getPermHandler(this)));
-    tablePropUtilSupplier = memoize(() -> new TablePropUtil(this));
-    namespacePropUtilSupplier = memoize(() -> new NamespacePropUtil(this));
+    propUtilSupplier = memoize(() -> new PropUtil(this));
   }
 
   /**
@@ -456,12 +453,8 @@ public class ServerContext extends ClientContext {
     return securityOperation.get();
   }
 
-  public TablePropUtil tablePropUtil() {
-    return tablePropUtilSupplier.get();
-  }
-
-  public NamespacePropUtil namespacePropUtil() {
-    return namespacePropUtilSupplier.get();
+  public PropUtil propUtil() {
+    return propUtilSupplier.get();
   }
 
 }

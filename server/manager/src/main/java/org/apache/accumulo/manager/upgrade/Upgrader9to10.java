@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -52,7 +53,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
-import org.apache.accumulo.core.gc.Reference;
+import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -73,8 +74,10 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.util.ConfigPropertyUpgrader;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.server.metadata.RootGcCandidates;
 import org.apache.accumulo.server.metadata.TabletMutatorBase;
@@ -157,16 +160,19 @@ public class Upgrader9to10 implements Upgrader {
    */
   private void setMetaTableProps(ServerContext context) {
     try {
+      // sets the compaction dispatcher props for the given table and service name
+      BiConsumer<TableId,String> setDispatcherProps =
+          (TableId tableId, String dispatcherService) -> {
+            var dispatcherPropsMap = Map.of(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
+                SimpleCompactionDispatcher.class.getName(),
+                Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", dispatcherService);
+            context.propUtil().setProperties(TablePropKey.of(context, tableId), dispatcherPropsMap);
+          };
+
       // root compaction props
-      context.tablePropUtil().setProperties(RootTable.ID,
-          Map.of(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
-              SimpleCompactionDispatcher.class.getName(),
-              Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "root"));
+      setDispatcherProps.accept(RootTable.ID, "root");
       // metadata compaction props
-      context.tablePropUtil().setProperties(MetadataTable.ID,
-          Map.of(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
-              SimpleCompactionDispatcher.class.getName(),
-              Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "meta"));
+      setDispatcherProps.accept(MetadataTable.ID, "meta");
     } catch (IllegalStateException ex) {
       throw new RuntimeException("Unable to set system table properties", ex);
     }
@@ -482,7 +488,7 @@ public class Upgrader9to10 implements Upgrader {
           log.trace("upgrading delete entry for {}", olddelete);
 
           Path absolutePath = resolveRelativeDelete(olddelete, upgradeProp);
-          Reference updatedDel = switchToAllVolumes(absolutePath);
+          ReferenceFile updatedDel = switchToAllVolumes(absolutePath);
 
           writer.addMutation(ample.createDeleteMutation(updatedDel));
         }
@@ -508,7 +514,7 @@ public class Upgrader9to10 implements Upgrader {
    * "tables/5a/t-0005/A0012.rf" depth = 4 will be returned as is.
    */
   @VisibleForTesting
-  static Reference switchToAllVolumes(Path olddelete) {
+  static ReferenceFile switchToAllVolumes(Path olddelete) {
     Path pathNoVolume = Objects.requireNonNull(VolumeManager.FileType.TABLE.removeVolume(olddelete),
         "Invalid delete marker. No volume in path: " + olddelete);
 
@@ -518,16 +524,16 @@ public class Upgrader9to10 implements Upgrader {
       var tableId = TableId.of(pathNoVolume.getParent().getName());
       // except bulk directories don't get an all volume prefix
       if (pathNoVolume.getName().startsWith(Constants.BULK_PREFIX)) {
-        return new Reference(tableId, olddelete.toString());
+        return new ReferenceFile(tableId, olddelete.toString());
       } else {
-        return GcVolumeUtil.getDeleteTabletOnAllVolumesUri(tableId, tabletDir);
+        return new AllVolumesDirectory(tableId, tabletDir);
       }
     } else {
       // depth of 4 should be a file like, "tables/5a/t-0005/A0012.rf"
       if (pathNoVolume.depth() == 4) {
         Path tabletDirPath = pathNoVolume.getParent();
         var tableId = TableId.of(tabletDirPath.getParent().getName());
-        return new Reference(tableId, olddelete.toString());
+        return new ReferenceFile(tableId, olddelete.toString());
       } else {
         throw new IllegalStateException("Invalid delete marker: " + olddelete);
       }

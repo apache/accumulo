@@ -48,7 +48,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.gc.GcVolumeUtil;
+import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.BeforeEach;
@@ -171,13 +171,13 @@ public class SimpleGarbageCollectorTest {
     confirmed.put("5a/t-0001/F0001.rf", "hdfs://nn1/accumulo/tables/5a/t-0001/F0001.rf");
     confirmed.put("5a/t-0001/F0002.rf", "hdfs://nn1/accumulo/tables/5a/t-0001/F0002.rf");
     confirmed.put("5a/t-0002/F0001.rf", "hdfs://nn1/accumulo/tables/5a/t-0002/F0001.rf");
-    var uri = GcVolumeUtil.getDeleteTabletOnAllVolumesUri(TableId.of("5b"), "t-0003");
-    confirmed.put("5b/t-0003", uri.metadataEntry);
+    var allVolumesDirectory = new AllVolumesDirectory(TableId.of("5b"), "t-0003");
+    confirmed.put("5b/t-0003", allVolumesDirectory.getMetadataEntry());
     confirmed.put("5b/t-0003/F0001.rf", "hdfs://nn1/accumulo/tables/5b/t-0003/F0001.rf");
     confirmed.put("5b/t-0003/F0002.rf", "hdfs://nn2/accumulo/tables/5b/t-0003/F0002.rf");
     confirmed.put("5b/t-0003/F0003.rf", "hdfs://nn3/accumulo/tables/5b/t-0003/F0003.rf");
-    uri = GcVolumeUtil.getDeleteTabletOnAllVolumesUri(TableId.of("5b"), "t-0004");
-    confirmed.put("5b/t-0004", uri.metadataEntry);
+    allVolumesDirectory = new AllVolumesDirectory(TableId.of("5b"), "t-0004");
+    confirmed.put("5b/t-0004", allVolumesDirectory.getMetadataEntry());
     confirmed.put("5b/t-0004/F0001.rf", "hdfs://nn1/accumulo/tables/5b/t-0004/F0001.rf");
 
     List<String> processedDeletes = new ArrayList<>();
@@ -187,11 +187,11 @@ public class SimpleGarbageCollectorTest {
     TreeMap<String,String> expected = new TreeMap<>();
     expected.put("5a/t-0001", "hdfs://nn1/accumulo/tables/5a/t-0001");
     expected.put("5a/t-0002/F0001.rf", "hdfs://nn1/accumulo/tables/5a/t-0002/F0001.rf");
-    uri = GcVolumeUtil.getDeleteTabletOnAllVolumesUri(TableId.of("5b"), "t-0003");
-    expected.put("5b/t-0003", uri.metadataEntry);
+    allVolumesDirectory = new AllVolumesDirectory(TableId.of("5b"), "t-0003");
+    expected.put("5b/t-0003", allVolumesDirectory.getMetadataEntry());
     expected.put("5b/t-0003/F0003.rf", "hdfs://nn3/accumulo/tables/5b/t-0003/F0003.rf");
-    uri = GcVolumeUtil.getDeleteTabletOnAllVolumesUri(TableId.of("5b"), "t-0004");
-    expected.put("5b/t-0004", uri.metadataEntry);
+    allVolumesDirectory = new AllVolumesDirectory(TableId.of("5b"), "t-0004");
+    expected.put("5b/t-0004", allVolumesDirectory.getMetadataEntry());
 
     assertEquals(expected, confirmed);
     assertEquals(Arrays.asList("hdfs://nn1/accumulo/tables/5a/t-0001/F0001.rf",
