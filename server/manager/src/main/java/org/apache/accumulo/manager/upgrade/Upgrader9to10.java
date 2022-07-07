@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -73,6 +74,7 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.util.ConfigPropertyUpgrader;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.gc.AllVolumesDirectory;
@@ -159,16 +161,19 @@ public class Upgrader9to10 implements Upgrader {
    */
   private void setMetaTableProps(ServerContext context) {
     try {
+      // sets the compaction dispatcher props for the given table and service name
+      BiConsumer<TableId,String> setDispatcherProps =
+          (TableId tableId, String dispatcherService) -> {
+            var dispatcherPropsMap = Map.of(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
+                SimpleCompactionDispatcher.class.getName(),
+                Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", dispatcherService);
+            context.propUtil().setProperties(TablePropKey.of(context, tableId), dispatcherPropsMap);
+          };
+
       // root compaction props
-      context.tablePropUtil().setProperties(RootTable.ID,
-          Map.of(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
-              SimpleCompactionDispatcher.class.getName(),
-              Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "root"));
+      setDispatcherProps.accept(RootTable.ID, "root");
       // metadata compaction props
-      context.tablePropUtil().setProperties(MetadataTable.ID,
-          Map.of(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
-              SimpleCompactionDispatcher.class.getName(),
-              Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "meta"));
+      setDispatcherProps.accept(MetadataTable.ID, "meta");
     } catch (IllegalStateException ex) {
       throw new RuntimeException("Unable to set system table properties", ex);
     }
