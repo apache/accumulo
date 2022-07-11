@@ -81,6 +81,7 @@ import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.server.metadata.RootGcCandidates;
 import org.apache.accumulo.server.metadata.TabletMutatorBase;
+import org.apache.accumulo.server.util.PropUtil;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -167,7 +168,7 @@ public class Upgrader9to10 implements Upgrader {
             var dispatcherPropsMap = Map.of(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
                 SimpleCompactionDispatcher.class.getName(),
                 Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", dispatcherService);
-            context.propUtil().setProperties(TablePropKey.of(context, tableId), dispatcherPropsMap);
+            PropUtil.setProperties(context, TablePropKey.of(context, tableId), dispatcherPropsMap);
           };
 
       // root compaction props
