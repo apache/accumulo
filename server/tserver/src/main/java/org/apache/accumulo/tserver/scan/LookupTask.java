@@ -139,7 +139,7 @@ public class LookupTask extends ScanTask<MultiScanResult> {
 
         if (lookupResult.unfinishedRanges.isEmpty()) {
           fullScans.add(extent);
-          // if this extent was previously saved, but now completed then reset these values
+          // if this extent was previously saved but now completed, then reset these values
           if (partScan != null && partScan.equals(extent)) {
             partScan = null;
             partNextKey = null;

@@ -27,8 +27,8 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -182,52 +182,43 @@ public class YieldScannersIT extends AccumuloClusterHarness {
     TreeSet<Text> splits = new TreeSet<>();
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.tableOperations().create(tableName);
-      final BatchWriter writer = client.createBatchWriter(tableName, new BatchWriterConfig());
       List<Range> ranges = new ArrayList<>();
-      for (int i = 0; i < 26; i++) {
-        byte[] row = new byte[] {(byte) (START_ROW + i)};
-        Text beginRow = new Text(row);
-        Mutation m = new Mutation(beginRow);
-        m.put(new Text(), new Text(), new Value());
-        writer.addMutation(m);
-        Text endRow = new Text(row);
-        endRow.append("\0".getBytes(UTF_8), 0, 1);
-        ranges.add(new Range(new Text(row), endRow));
-        if (i % 4 == 0) {
-          splits.add(beginRow);
+      final int alphabetLength = 26;
+      try (BatchWriter writer = client.createBatchWriter(tableName, new BatchWriterConfig())) {
+        for (int i = 0; i < alphabetLength; i++) {
+          byte[] row = new byte[] {(byte) (START_ROW + i)};
+          Text beginRow = new Text(row);
+          Mutation m = new Mutation(beginRow);
+          m.put(new Text(), new Text(), new Value());
+          writer.addMutation(m);
+          Text endRow = new Text(row);
+          endRow.append("\0".getBytes(UTF_8), 0, 1);
+          ranges.add(new Range(new Text(row), endRow));
+          if (i % 4 == 0) {
+            splits.add(beginRow);
+          }
         }
+        client.tableOperations().addSplits(tableName, splits);
+        writer.flush();
       }
-      client.tableOperations().addSplits(tableName, splits);
-      writer.flush();
-      writer.close();
 
       log.info("Creating batch scanner");
-      // make a scanner for a table with 10 keys
-      final BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY, 1);
-      final IteratorSetting cfg = new IteratorSetting(100, YieldingIterator.class);
-      scanner.addScanIterator(cfg);
-      Collections.reverse(ranges);
-      scanner.setRanges(ranges);
+      try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
+        final IteratorSetting cfg = new IteratorSetting(100, YieldingIterator.class);
+        scanner.addScanIterator(cfg);
+        scanner.setRanges(ranges);
 
-      log.info("iterating");
-      Iterator<Map.Entry<Key,Value>> it = scanner.iterator();
-      TreeMap<Key,Value> results = new TreeMap<>();
-      while (it.hasNext()) {
-        Map.Entry<Key,Value> next = it.next();
-        results.put(next.getKey(), next.getValue());
+        final AtomicInteger keyCount = new AtomicInteger();
+        scanner.stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
+          log.info("{}: Got key '{}' with value '{}'", keyCount, entry.getKey(), entry.getValue());
+          // verify we got the expected key
+          char expected = (char) (START_ROW + keyCount.get());
+          assertEquals(Character.toString(expected), entry.getKey().getRow().toString(),
+              "Unexpected row");
+          keyCount.getAndIncrement();
+        });
+        assertEquals(alphabetLength, keyCount.get(), "Did not get the expected number of results");
       }
-
-      int keyCount = 0;
-      for (Map.Entry<Key,Value> next : results.entrySet()) {
-        log.info(keyCount + ": Got key " + next.getKey() + " with value " + next.getValue());
-
-        // verify we got the expected key
-        char expected = (char) (START_ROW + keyCount);
-        assertEquals(Character.toString(expected), next.getKey().getRow().toString(),
-            "Unexpected row");
-        keyCount++;
-      }
-      assertEquals(26, keyCount, "Did not get the expected number of results");
     }
   }
 }
