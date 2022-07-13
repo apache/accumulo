@@ -60,6 +60,7 @@ import org.apache.accumulo.server.util.ConvertConfig;
 import org.apache.accumulo.server.util.ECAdmin;
 import org.apache.accumulo.server.util.Info;
 import org.apache.accumulo.server.util.LoginProperties;
+import org.apache.accumulo.server.util.TableDiskUsage;
 import org.apache.accumulo.server.util.ZooKeeperMain;
 import org.apache.accumulo.server.util.ZooZap;
 import org.apache.accumulo.shell.Shell;
@@ -138,6 +139,7 @@ public class KeywordStartIT {
     expectSet.put("wal-info", LogReader.class);
     expectSet.put("shell", Shell.class);
     expectSet.put("tserver", TServerExecutable.class);
+    expectSet.put("table-disk-usage", TableDiskUsage.class);
     expectSet.put("version", Version.class);
     expectSet.put("zookeeper", ZooKeeperMain.class);
     expectSet.put("create-empty", CreateEmpty.class);
@@ -193,6 +195,7 @@ public class KeywordStartIT {
     expectSet.add(LogReader.class);
     expectSet.add(Shell.class);
     expectSet.add(SimpleGarbageCollector.class);
+    expectSet.add(TableDiskUsage.class);
     expectSet.add(TabletServer.class);
     expectSet.add(ZooKeeperMain.class);
 

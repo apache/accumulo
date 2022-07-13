@@ -48,6 +48,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
@@ -56,12 +57,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 import com.google.common.base.Joiner;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
-public class TableDiskUsage {
+@AutoService(KeywordExecutable.class)
+public class TableDiskUsage implements KeywordExecutable {
 
   private static final Logger log = LoggerFactory.getLogger(TableDiskUsage.class);
   private int nextInternalId = 0;
@@ -69,6 +72,16 @@ public class TableDiskUsage {
   private Map<Integer,TableId> externalIds = new HashMap<>();
   private Map<String,Integer[]> tableFiles = new HashMap<>();
   private Map<String,Long> fileSizes = new HashMap<>();
+
+  @Override
+  public String keyword() {
+    return "table-disk-usage";
+  }
+
+  @Override
+  public String description() {
+    return "Prints the disk usage by the files for the given table(s) in bytes.";
+  }
 
   void addTable(TableId tableId) {
     if (internalIds.containsKey(tableId))
@@ -148,6 +161,22 @@ public class TableDiskUsage {
     // mapping of all enumerations of files being referenced by tables and total size of files who
     // share the same reference
     return externalUsage;
+  }
+
+  @Override
+  public void execute(String[] args) throws Exception {
+    Opts opts = new Opts();
+    opts.parseArgs(TableDiskUsage.class.getName(), args);
+    Span span = TraceUtil.startSpan(TableDiskUsage.class, "main");
+    try (Scope scope = span.makeCurrent()) {
+      try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
+        VolumeManager fs = opts.getServerContext().getVolumeManager();
+        org.apache.accumulo.server.util.TableDiskUsage.printDiskUsage(opts.tables, fs, client,
+            false);
+      } finally {
+        span.end();
+      }
+    }
   }
 
   public interface Printer {
@@ -307,18 +336,7 @@ public class TableDiskUsage {
   }
 
   public static void main(String[] args) throws Exception {
-    Opts opts = new Opts();
-    opts.parseArgs(TableDiskUsage.class.getName(), args);
-    Span span = TraceUtil.startSpan(TableDiskUsage.class, "main");
-    try (Scope scope = span.makeCurrent()) {
-      try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
-        VolumeManager fs = opts.getServerContext().getVolumeManager();
-        org.apache.accumulo.server.util.TableDiskUsage.printDiskUsage(opts.tables, fs, client,
-            false);
-      } finally {
-        span.end();
-      }
-    }
+    new TableDiskUsage().execute(args);
   }
 
 }
