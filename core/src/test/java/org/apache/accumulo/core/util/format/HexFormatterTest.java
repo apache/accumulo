@@ -31,6 +31,7 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+@Deprecated(since = "2.1.0")
 public class HexFormatterTest {
   HexFormatter formatter;
 

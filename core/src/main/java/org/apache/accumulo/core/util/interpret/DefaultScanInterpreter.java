@@ -20,6 +20,10 @@ package org.apache.accumulo.core.util.interpret;
 
 import org.apache.hadoop.io.Text;
 
+/**
+ * @deprecated since 2.1.0 This will be removed in a future version in favor of JShell
+ */
+@Deprecated(since = "2.1.0")
 public class DefaultScanInterpreter implements ScanInterpreter {
 
   @Override
