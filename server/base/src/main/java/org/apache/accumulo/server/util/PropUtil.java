@@ -25,13 +25,9 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
 
-public class PropUtil {
+public final class PropUtil {
 
-  protected final ServerContext context;
-
-  public PropUtil(ServerContext context) {
-    this.context = context;
-  }
+  private PropUtil() {}
 
   /**
    * Method to set provided properties for the provided AbstractId.
@@ -42,7 +38,7 @@ public class PropUtil {
    * @throws IllegalArgumentException
    *           if a provided property is not valid
    */
-  public void setProperties(final PropStoreKey<?> propStoreKey,
+  public static void setProperties(final ServerContext context, final PropStoreKey<?> propStoreKey,
       final Map<String,String> properties) {
     for (Map.Entry<String,String> prop : properties.entrySet()) {
       if (!Property.isTablePropertyValid(prop.getKey(), prop.getValue())) {
@@ -53,8 +49,8 @@ public class PropUtil {
     context.getPropStore().putAll(propStoreKey, properties);
   }
 
-  public void removeProperties(final PropStoreKey<?> propStoreKey,
-      final Collection<String> propertyNames) {
+  public static void removeProperties(final ServerContext context,
+      final PropStoreKey<?> propStoreKey, final Collection<String> propertyNames) {
     context.getPropStore().removeProperties(propStoreKey, propertyNames);
   }
 
