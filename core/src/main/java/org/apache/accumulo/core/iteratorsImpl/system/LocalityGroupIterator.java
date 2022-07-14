@@ -27,8 +27,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -163,26 +166,14 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
       Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     hiter.clear();
 
-    Set<ByteSequence> cfSet;
-    if (columnFamilies.isEmpty()) {
-      cfSet = Collections.emptySet();
-    } else {
-      if (columnFamilies instanceof Set<?>) {
-        cfSet = (Set<ByteSequence>) columnFamilies;
-      } else {
-        cfSet = new HashSet<>();
-        cfSet.addAll(columnFamilies);
-      }
-    }
+    final Set<ByteSequence> cfSet = getCfSet(columnFamilies);
 
     // determine the set of groups to use
-    Collection<LocalityGroup> groups = Collections.emptyList();
+    final Collection<LocalityGroup> groups;
 
     // if no column families specified, then include all groups unless !inclusive
     if (cfSet.isEmpty()) {
-      if (!inclusive) {
-        groups = lgContext.groups;
-      }
+      groups = inclusive ? List.of() : lgContext.groups;
     } else {
       groups = new HashSet<>();
 
@@ -207,24 +198,13 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
        * other
        */
       if (!inclusive) {
-        for (Entry<ByteSequence,LocalityGroup> entry : lgContext.groupByCf.entrySet()) {
-          if (!cfSet.contains(entry.getKey())) {
-            groups.add(entry.getValue());
-          }
-        }
+        lgContext.groupByCf.entrySet().stream().filter(entry -> !cfSet.contains(entry.getKey()))
+            .map(Entry::getValue).forEach(groups::add);
       } else if (lgContext.groupByCf.size() <= cfSet.size()) {
-        for (Entry<ByteSequence,LocalityGroup> entry : lgContext.groupByCf.entrySet()) {
-          if (cfSet.contains(entry.getKey())) {
-            groups.add(entry.getValue());
-          }
-        }
+        lgContext.groupByCf.entrySet().stream().filter(entry -> cfSet.contains(entry.getKey()))
+            .map(Entry::getValue).forEach(groups::add);
       } else {
-        for (ByteSequence cf : cfSet) {
-          LocalityGroup group = lgContext.groupByCf.get(cf);
-          if (group != null) {
-            groups.add(group);
-          }
-        }
+        cfSet.stream().map(lgContext.groupByCf::get).filter(Objects::nonNull).forEach(groups::add);
       }
     }
 
@@ -234,6 +214,20 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
     }
 
     return groups;
+  }
+
+  private static Set<ByteSequence> getCfSet(Collection<ByteSequence> columnFamilies) {
+    final Set<ByteSequence> cfSet;
+    if (columnFamilies.isEmpty()) {
+      cfSet = Collections.emptySet();
+    } else {
+      if (columnFamilies instanceof Set<?>) {
+        cfSet = (Set<ByteSequence>) columnFamilies;
+      } else {
+        cfSet = new HashSet<>(columnFamilies);
+      }
+    }
+    return cfSet;
   }
 
   /**

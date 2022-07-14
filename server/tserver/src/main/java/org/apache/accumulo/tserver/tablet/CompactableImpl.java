@@ -396,80 +396,89 @@ public class CompactableImpl implements Compactable {
           if (isCompactionStratConfigured)
             return Set.of();
 
-          switch (selectStatus) {
-            case NOT_ACTIVE:
-            case CANCELED: {
-              Set<StoredTabletFile> candidates = new HashSet<>(currFiles);
-              candidates.removeAll(allCompactingFiles);
-              return Collections.unmodifiableSet(candidates);
-            }
-            case NEW:
-            case SELECTING:
-              return Set.of();
-            case SELECTED: {
-              Set<StoredTabletFile> candidates = new HashSet<>(currFiles);
-              candidates.removeAll(allCompactingFiles);
-              if (getNanoTime() - selectedTimeNanos < selectedExpirationDuration.toNanos()) {
-                candidates.removeAll(selectedFiles);
-              }
-              return Collections.unmodifiableSet(candidates);
-            }
-            case RESERVED: {
-              Set<StoredTabletFile> candidates = new HashSet<>(currFiles);
-              candidates.removeAll(allCompactingFiles);
-              candidates.removeAll(selectedFiles);
-              return Collections.unmodifiableSet(candidates);
-            }
-            default:
-              throw new AssertionError();
-          }
+          return handleSystemCompaction(currFiles);
         }
         case SELECTOR:
           // intentional fall through
         case USER:
-          switch (selectStatus) {
-            case NOT_ACTIVE:
-            case NEW:
-            case SELECTING:
-            case CANCELED:
-              return Set.of();
-            case SELECTED:
-            case RESERVED: {
-              if (selectKind == kind) {
-                Set<StoredTabletFile> candidates = new HashSet<>(selectedFiles);
-                candidates.removeAll(allCompactingFiles);
-                candidates = Collections.unmodifiableSet(candidates);
-                Preconditions.checkState(currFiles.containsAll(candidates),
-                    "selected files not in all files %s %s", candidates, currFiles);
-                return candidates;
-              } else {
-                return Set.of();
-              }
-            }
-            default:
-              throw new AssertionError();
-          }
+          return handleUserSelectorCompaction(currFiles, kind);
         case CHOP: {
-          switch (chopStatus) {
-            case NOT_ACTIVE:
-            case SELECTING:
-            case MARKING:
-              return Set.of();
-            case SELECTED: {
-              if (selectStatus == FileSelectionStatus.NEW
-                  || selectStatus == FileSelectionStatus.SELECTING)
-                return Set.of();
+          return handleChopCompaction(currFiles);
+        }
+        default:
+          throw new AssertionError();
+      }
+    }
 
-              var filesToChop = getFilesToChop(currFiles);
-              filesToChop.removeAll(allCompactingFiles);
-              if (selectStatus == FileSelectionStatus.SELECTED
-                  || selectStatus == FileSelectionStatus.RESERVED)
-                filesToChop.removeAll(selectedFiles);
-              return Collections.unmodifiableSet(filesToChop);
-            }
-            default:
-              throw new AssertionError();
+    private Set<StoredTabletFile> handleChopCompaction(Set<StoredTabletFile> currFiles) {
+      switch (chopStatus) {
+        case NOT_ACTIVE:
+        case SELECTING:
+        case MARKING:
+          return Set.of();
+        case SELECTED: {
+          if (selectStatus == FileSelectionStatus.NEW
+              || selectStatus == FileSelectionStatus.SELECTING)
+            return Set.of();
+
+          var filesToChop = getFilesToChop(currFiles);
+          filesToChop.removeAll(allCompactingFiles);
+          if (selectStatus == FileSelectionStatus.SELECTED
+              || selectStatus == FileSelectionStatus.RESERVED)
+            filesToChop.removeAll(selectedFiles);
+          return Collections.unmodifiableSet(filesToChop);
+        }
+        default:
+          throw new AssertionError();
+      }
+    }
+
+    private Set<StoredTabletFile> handleUserSelectorCompaction(Set<StoredTabletFile> currFiles,
+        CompactionKind kind) {
+      switch (selectStatus) {
+        case NOT_ACTIVE:
+        case NEW:
+        case SELECTING:
+        case CANCELED:
+          return Set.of();
+        case SELECTED:
+        case RESERVED: {
+          if (selectKind == kind) {
+            Set<StoredTabletFile> candidates = Sets.difference(selectedFiles, allCompactingFiles);
+            Preconditions.checkState(currFiles.containsAll(candidates),
+                "selected files not in all files %s %s", candidates, currFiles);
+            return Collections.unmodifiableSet(candidates);
+          } else {
+            return Set.of();
           }
+        }
+        default:
+          throw new AssertionError();
+      }
+    }
+
+    private Set<StoredTabletFile> handleSystemCompaction(Set<StoredTabletFile> currFiles) {
+      switch (selectStatus) {
+        case NOT_ACTIVE:
+        case CANCELED: {
+          return Collections.unmodifiableSet(Sets.difference(currFiles, allCompactingFiles));
+        }
+        case NEW:
+        case SELECTING:
+          return Set.of();
+        case SELECTED: {
+          Set<StoredTabletFile> candidates = new HashSet<>(currFiles);
+          candidates.removeAll(allCompactingFiles);
+          if (getNanoTime() - selectedTimeNanos < selectedExpirationDuration.toNanos()) {
+            candidates.removeAll(selectedFiles);
+          }
+          return Collections.unmodifiableSet(candidates);
+        }
+        case RESERVED: {
+          Set<StoredTabletFile> candidates = new HashSet<>(currFiles);
+          candidates.removeAll(allCompactingFiles);
+          candidates.removeAll(selectedFiles);
+          return Collections.unmodifiableSet(candidates);
         }
         default:
           throw new AssertionError();
