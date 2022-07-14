@@ -81,6 +81,8 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       long maxScanTime = 4000;
 
       long startTime = System.currentTimeMillis();
+      // Copy entries in session.queries (HashMap) to queryQueue (LinkedList)
+      // to better control the order when unfinished ranges are returned
       LinkedList<Pair<KeyExtent,List<Range>>> queryQueue = new LinkedList<>();
       session.queries.entrySet()
           .forEach(e -> queryQueue.addLast(new Pair<>(e.getKey(), e.getValue())));
@@ -119,9 +121,13 @@ public class LookupTask extends ScanTask<MultiScanResult> {
           if (isCancelled())
             interruptFlag.set(true);
 
+          // Create new List here to collect the results from this Tablet.lookup() call
+          // Ensures that the yield code in Tablet can only compare a yield position
+          // to the results from that call
           List<KVEntry> tabletResults = new ArrayList<>();
           lookupResult = tablet.lookup(ranges, tabletResults, session.scanParams,
               maxResultsSize - bytesAdded, interruptFlag);
+          // Add results from this Tablet.lookup() to the accumulated results
           results.addAll(tabletResults);
 
           // if the tablet was closed it it possible that the
