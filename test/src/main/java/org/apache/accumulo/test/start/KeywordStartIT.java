@@ -57,6 +57,7 @@ import org.apache.accumulo.server.conf.util.ConfigPropertyUpgrader;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.ConvertConfig;
+import org.apache.accumulo.server.util.DumpZookeeper;
 import org.apache.accumulo.server.util.ECAdmin;
 import org.apache.accumulo.server.util.Info;
 import org.apache.accumulo.server.util.LoginProperties;
@@ -123,6 +124,7 @@ public class KeywordStartIT {
     expectSet.put("config-upgrade", ConfigPropertyUpgrader.class);
     expectSet.put("convert-config", ConvertConfig.class);
     expectSet.put("create-token", CreateToken.class);
+    expectSet.put("dump-zoo", DumpZookeeper.class);
     expectSet.put("ec-admin", ECAdmin.class);
     expectSet.put("gc", GCExecutable.class);
     expectSet.put("generate-splits", GenerateSplits.class);
@@ -183,6 +185,7 @@ public class KeywordStartIT {
     expectSet.add(Admin.class);
     expectSet.add(CheckCompactionConfig.class);
     expectSet.add(CreateToken.class);
+    expectSet.add(DumpZookeeper.class);
     expectSet.add(Info.class);
     expectSet.add(Initialize.class);
     expectSet.add(LoginProperties.class);
