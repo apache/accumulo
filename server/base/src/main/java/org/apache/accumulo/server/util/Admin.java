@@ -169,6 +169,13 @@ public class Admin implements KeywordExecutable {
     boolean verbose = false;
   }
 
+  /**
+   * @since 2.1.0
+   */
+  @Parameters(
+      commandDescription = "Changes the unique secret given to the instance that all servers must know.")
+  static class ChangeSecretCommand {}
+
   public static void main(String[] args) {
     new Admin().execute(args);
   }
@@ -199,6 +206,9 @@ public class Admin implements KeywordExecutable {
 
     CheckTabletsCommand checkTabletsCommand = new CheckTabletsCommand();
     cl.addCommand("checkTablets", checkTabletsCommand);
+
+    ChangeSecretCommand changeSecretCommand = new ChangeSecretCommand();
+    cl.addCommand("changeSecret", changeSecretCommand);
 
     ListInstancesCommand listIntancesOpts = new ListInstancesCommand();
     cl.addCommand("listInstances", listIntancesOpts);
@@ -279,6 +289,8 @@ public class Admin implements KeywordExecutable {
       } else if (cl.getParsedCommand().equals("verifyTabletAssigns")) {
         VerifyTabletAssignments.verifyTableAssignments(opts.getClientProps(),
             verifyTabletAssignmentsOpts.verbose);
+      } else if (cl.getParsedCommand().equals("changeSecret")) {
+        ChangeSecret.changeSecret(context, conf);
       } else {
         everything = cl.getParsedCommand().equals("stopAll");
 
