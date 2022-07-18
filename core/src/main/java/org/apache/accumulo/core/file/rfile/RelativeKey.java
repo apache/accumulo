@@ -89,7 +89,8 @@ public class RelativeKey implements Writable {
 
       ByteSequence prevKeyScratch = prevKey.getRowData();
       ByteSequence keyScratch = key.getRowData();
-      rowCommonPrefixLen = getCommonPrefixLen(prevKeyScratch, keyScratch, ROW_SAME, ROW_COMMON_PREFIX);
+      rowCommonPrefixLen =
+          getCommonPrefixLen(prevKeyScratch, keyScratch, ROW_SAME, ROW_COMMON_PREFIX);
 
       prevKeyScratch = prevKey.getColumnFamilyData();
       keyScratch = key.getColumnFamilyData();
@@ -118,7 +119,7 @@ public class RelativeKey implements Writable {
   }
 
   private int getCommonPrefixLen(ByteSequence prevKeyScratch, ByteSequence keyScratch, byte rowSame,
-                                 byte commonPrefix) {
+      byte commonPrefix) {
     int commonPrefixLen = getCommonPrefix(prevKeyScratch, keyScratch);
     if (commonPrefixLen == -1) {
       fieldsSame |= rowSame;
