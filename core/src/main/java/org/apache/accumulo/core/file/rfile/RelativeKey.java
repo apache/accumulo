@@ -89,19 +89,19 @@ public class RelativeKey implements Writable {
 
       ByteSequence prevKeyScratch = prevKey.getRowData();
       ByteSequence keyScratch = key.getRowData();
-      rowCommonPrefixLen = extracted(prevKeyScratch, keyScratch, ROW_SAME, ROW_COMMON_PREFIX);
+      rowCommonPrefixLen = getCommonPrefixLen(prevKeyScratch, keyScratch, ROW_SAME, ROW_COMMON_PREFIX);
 
       prevKeyScratch = prevKey.getColumnFamilyData();
       keyScratch = key.getColumnFamilyData();
-      cfCommonPrefixLen = extracted(prevKeyScratch, keyScratch, CF_SAME, CF_COMMON_PREFIX);
+      cfCommonPrefixLen = getCommonPrefixLen(prevKeyScratch, keyScratch, CF_SAME, CF_COMMON_PREFIX);
 
       prevKeyScratch = prevKey.getColumnQualifierData();
       keyScratch = key.getColumnQualifierData();
-      cqCommonPrefixLen = extracted(prevKeyScratch, keyScratch, CQ_SAME, CQ_COMMON_PREFIX);
+      cqCommonPrefixLen = getCommonPrefixLen(prevKeyScratch, keyScratch, CQ_SAME, CQ_COMMON_PREFIX);
 
       prevKeyScratch = prevKey.getColumnVisibilityData();
       keyScratch = key.getColumnVisibilityData();
-      cvCommonPrefixLen = extracted(prevKeyScratch, keyScratch, CV_SAME, CV_COMMON_PREFIX);
+      cvCommonPrefixLen = getCommonPrefixLen(prevKeyScratch, keyScratch, CV_SAME, CV_COMMON_PREFIX);
 
       tsDiff = key.getTimestamp() - prevKey.getTimestamp();
       if (tsDiff == 0)
@@ -117,8 +117,8 @@ public class RelativeKey implements Writable {
       fieldsSame |= DELETED;
   }
 
-  private int extracted(ByteSequence prevKeyScratch, ByteSequence keyScratch, byte rowSame,
-      byte commonPrefix) {
+  private int getCommonPrefixLen(ByteSequence prevKeyScratch, ByteSequence keyScratch, byte rowSame,
+                                 byte commonPrefix) {
     int commonPrefixLen = getCommonPrefix(prevKeyScratch, keyScratch);
     if (commonPrefixLen == -1) {
       fieldsSame |= rowSame;
@@ -170,10 +170,10 @@ public class RelativeKey implements Writable {
     final byte[] row, cf, cq, cv;
     final long ts;
 
-    row = getBytes(in, ROW_SAME, ROW_COMMON_PREFIX, () -> prevKey.getRowData());
-    cf = getBytes(in, CF_SAME, CF_COMMON_PREFIX, () -> prevKey.getColumnFamilyData());
-    cq = getBytes(in, CQ_SAME, CQ_COMMON_PREFIX, () -> prevKey.getColumnQualifierData());
-    cv = getBytes(in, CV_SAME, CV_COMMON_PREFIX, () -> prevKey.getColumnVisibilityData());
+    row = getData(in, ROW_SAME, ROW_COMMON_PREFIX, () -> prevKey.getRowData());
+    cf = getData(in, CF_SAME, CF_COMMON_PREFIX, () -> prevKey.getColumnFamilyData());
+    cq = getData(in, CQ_SAME, CQ_COMMON_PREFIX, () -> prevKey.getColumnQualifierData());
+    cv = getData(in, CV_SAME, CV_COMMON_PREFIX, () -> prevKey.getColumnVisibilityData());
 
     if ((fieldsSame & TS_SAME) == TS_SAME) {
       ts = prevKey.getTimestamp();
@@ -187,7 +187,7 @@ public class RelativeKey implements Writable {
     this.prevKey = this.key;
   }
 
-  private byte[] getBytes(DataInput in, byte same, byte commonPrefix, Supplier<ByteSequence> data)
+  private byte[] getData(DataInput in, byte same, byte commonPrefix, Supplier<ByteSequence> data)
       throws IOException {
     if ((fieldsSame & same) == same) {
       return data.get().toArray();
