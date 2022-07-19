@@ -377,6 +377,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
     rootToken = new Token();
 
+    @SuppressWarnings("deprecation")
     Command[] dataCommands = {new DeleteCommand(), new DeleteManyCommand(), new DeleteRowsCommand(),
         new EGrepCommand(), new FormatterCommand(), new InterpreterCommand(), new GrepCommand(),
         new ImportDirectoryCommand(), new InsertCommand(), new MaxRowCommand(), new ScanCommand()};

@@ -42,6 +42,7 @@ public class DeleteManyCommand extends ScanCommand {
       throws Exception {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
 
+    @SuppressWarnings("deprecation")
     final ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
 
     // handle first argument, if present, the authorizations list to

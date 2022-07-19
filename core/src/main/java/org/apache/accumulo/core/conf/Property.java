@@ -1113,8 +1113,11 @@ public enum Property {
       "1.3.5"),
   TABLE_FORMATTER_CLASS("table.formatter", DefaultFormatter.class.getName(), PropertyType.STRING,
       "The Formatter class to apply on results in the shell", "1.4.0"),
+  @Deprecated(since = "2.1.0")
   TABLE_INTERPRETER_CLASS("table.interepreter", DefaultScanInterpreter.class.getName(),
-      PropertyType.STRING, "The ScanInterpreter class to apply on scan arguments in the shell",
+      PropertyType.STRING,
+      "The ScanInterpreter class to apply on scan arguments in the shell. "
+          + "Note that this property is deprecated and will be removed in a future version.",
       "1.5.0"),
   TABLE_CLASSLOADER_CONTEXT("table.class.loader.context", "", PropertyType.STRING,
       "The context to use for loading per-table resources, such as iterators"
