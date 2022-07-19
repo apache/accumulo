@@ -78,7 +78,7 @@ import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.shell.commands.summaryReport.SummaryReport;
+import org.apache.accumulo.shell.commands.fateCommand.FateSummaryReport;
 import org.apache.accumulo.test.compaction.TestCompactionStrategy;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.conf.Configuration;
@@ -2176,7 +2176,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
         ts.exec("fate -summary -np json -t NEW IN_PROGRESS FAILED", true, "reportTime", true);
     // strip command included in shell output
     String jsonOut = cmdOut.substring(cmdOut.indexOf("{"));
-    SummaryReport report = SummaryReport.fromJson(jsonOut);
+    FateSummaryReport report = FateSummaryReport.fromJson(jsonOut);
 
     // validate blank report
     assertNotNull(report);
@@ -2204,7 +2204,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     // strip command included in shell output
     jsonOut = cmdOut.substring(cmdOut.indexOf("{"));
     log.debug("report to json:\n{}", jsonOut);
-    report = SummaryReport.fromJson(jsonOut);
+    report = FateSummaryReport.fromJson(jsonOut);
 
     // validate no filters
     assertNotNull(report);
@@ -2218,7 +2218,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     // validate filter by excluding all
     cmdOut = ts.exec("fate -summary -np json -t FAILED", true, "reportTime", true);
     jsonOut = cmdOut.substring(cmdOut.indexOf("{"));
-    report = SummaryReport.fromJson(jsonOut);
+    report = FateSummaryReport.fromJson(jsonOut);
 
     // validate blank report
     assertNotNull(report);

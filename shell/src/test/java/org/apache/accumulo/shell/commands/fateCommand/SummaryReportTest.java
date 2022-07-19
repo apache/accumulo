@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.shell.commands.summaryReport;
+package org.apache.accumulo.shell.commands.fateCommand;
 
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
@@ -44,7 +44,7 @@ class SummaryReportTest {
   @Test
   public void blankReport() {
     Map<String,String> idMap = Map.of("1", "ns1", "2", "tbl1");
-    SummaryReport report = new SummaryReport(idMap, null);
+    FateSummaryReport report = new FateSummaryReport(idMap, null);
     assertNotNull(report);
     assertTrue(report.getReportTime() != 0);
     assertEquals(Map.of(), report.getStatusCounts());
@@ -74,7 +74,7 @@ class SummaryReportTest {
 
     replay(status1);
     Map<String,String> idMap = Map.of("1", "ns1", "2", "");
-    SummaryReport report = new SummaryReport(idMap, null);
+    FateSummaryReport report = new FateSummaryReport(idMap, null);
     report.gatherTxnStatus(status1);
 
     assertNotNull(report);

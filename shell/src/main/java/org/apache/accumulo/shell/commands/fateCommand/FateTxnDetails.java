@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.shell.commands.summaryReport;
+package org.apache.accumulo.shell.commands.fateCommand;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -26,7 +26,7 @@ import java.util.Objects;
 
 import org.apache.accumulo.fate.AdminUtil;
 
-public class TxnDetails implements Comparable<TxnDetails> {
+public class FateTxnDetails implements Comparable<FateTxnDetails> {
   final static String TXN_HEADER =
       "Running\ttxn_id\t\t\t\tStatus\t\tCommand\t\tStep (top)\t\tlocks held:(table id, name)\tlocks waiting:(table id, name)\n";
 
@@ -53,7 +53,7 @@ public class TxnDetails implements Comparable<TxnDetails> {
    * @param idsToNameMap
    *          a map of namespace, table ids to names.
    */
-  public TxnDetails(final long reportTime, final AdminUtil.TransactionStatus txnStatus,
+  public FateTxnDetails(final long reportTime, final AdminUtil.TransactionStatus txnStatus,
       final Map<String,String> idsToNameMap) {
 
     // guard against invalid transaction
@@ -100,11 +100,11 @@ public class TxnDetails implements Comparable<TxnDetails> {
    * so that compareTo remains consistent with hashCode and equals methods.
    *
    * @param other
-   *          the TxnDetails to be compared.
+   *          the FateTxnDetails to be compared.
    * @return -1, 0 or 1 if older, equal or newer than the other
    */
   @Override
-  public int compareTo(TxnDetails other) {
+  public int compareTo(FateTxnDetails other) {
     int v = Long.compare(other.running, this.running);
     if (v != 0)
       return v;
@@ -118,7 +118,7 @@ public class TxnDetails implements Comparable<TxnDetails> {
       return true;
     if (o == null || getClass() != o.getClass())
       return false;
-    TxnDetails that = (TxnDetails) o;
+    FateTxnDetails that = (FateTxnDetails) o;
     return running == that.running && txnId.equals(that.txnId);
   }
 

@@ -57,7 +57,7 @@ import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
-import org.apache.accumulo.shell.commands.summaryReport.SummaryReport;
+import org.apache.accumulo.shell.commands.fateCommand.FateSummaryReport;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
@@ -273,7 +273,7 @@ public class FateCommand extends Command {
 
     EnumSet<TStatus> statusFilter = getCmdLineStatusFilters(cl);
 
-    SummaryReport report = new SummaryReport(idsToNameMap, statusFilter);
+    FateSummaryReport report = new FateSummaryReport(idsToNameMap, statusFilter);
 
     // gather statistics
     transactions.getTransactions().forEach(report::gatherTxnStatus);

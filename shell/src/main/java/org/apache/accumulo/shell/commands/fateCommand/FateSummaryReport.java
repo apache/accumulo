@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.shell.commands.summaryReport;
+package org.apache.accumulo.shell.commands.fateCommand;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -38,12 +38,12 @@ import org.apache.accumulo.fate.ReadOnlyTStore;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-public class SummaryReport {
+public class FateSummaryReport {
 
   private final Map<String,Integer> statusCounts = new TreeMap<>();
   private final Map<String,Integer> cmdCounts = new TreeMap<>();
   private final Map<String,Integer> stepCounts = new TreeMap<>();
-  private final Set<TxnDetails> fateDetails = new TreeSet<>();
+  private final Set<FateTxnDetails> fateDetails = new TreeSet<>();
   // epoch millis to avoid needing gson type adapter.
   private final long reportTime = Instant.now().toEpochMilli();
 
@@ -54,7 +54,7 @@ public class SummaryReport {
   // exclude from json output
   private final transient Map<String,String> idsToNameMap;
 
-  public SummaryReport(Map<String,String> idsToNameMap,
+  public FateSummaryReport(Map<String,String> idsToNameMap,
       EnumSet<ReadOnlyTStore.TStatus> statusFilter) {
     this.idsToNameMap = idsToNameMap;
     if (statusFilter != null) {
@@ -79,7 +79,7 @@ public class SummaryReport {
     if (!statusFilterNames.isEmpty() && !statusFilterNames.contains(txnStatus.getStatus().name())) {
       return;
     }
-    fateDetails.add(new TxnDetails(reportTime, txnStatus, idsToNameMap));
+    fateDetails.add(new FateTxnDetails(reportTime, txnStatus, idsToNameMap));
   }
 
   public Map<String,Integer> getStatusCounts() {
@@ -94,7 +94,7 @@ public class SummaryReport {
     return stepCounts;
   }
 
-  public Set<TxnDetails> getFateDetails() {
+  public Set<FateTxnDetails> getFateDetails() {
     return fateDetails;
   }
 
@@ -110,8 +110,8 @@ public class SummaryReport {
     return gson.toJson(this);
   }
 
-  public static SummaryReport fromJson(final String jsonString) {
-    return gson.fromJson(jsonString, SummaryReport.class);
+  public static FateSummaryReport fromJson(final String jsonString) {
+    return gson.fromJson(jsonString, FateSummaryReport.class);
   }
 
   /**
@@ -143,7 +143,7 @@ public class SummaryReport {
     lines.add("Status Filters: "
         + (statusFilterNames.isEmpty() ? "[NONE]" : statusFilterNames.toString()));
 
-    lines.add("\n" + TxnDetails.TXN_HEADER);
+    lines.add("\n" + FateTxnDetails.TXN_HEADER);
     fateDetails.forEach(txnDetails -> lines.add(txnDetails.toString()));
 
     return lines;

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.shell.commands.summaryReport;
+package org.apache.accumulo.shell.commands.fateCommand;
 
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
@@ -40,7 +40,7 @@ import org.slf4j.LoggerFactory;
 
 class TxnDetailsTest {
 
-  private final static Logger log = LoggerFactory.getLogger(TxnDetails.class);
+  private final static Logger log = LoggerFactory.getLogger(FateTxnDetails.class);
 
   @Test
   void orderingByDuration() {
@@ -68,16 +68,16 @@ class TxnDetailsTest {
 
     replay(status1, status2);
 
-    TxnDetails txn1 = new TxnDetails(System.currentTimeMillis(), status1, idMap);
-    TxnDetails txn2 = new TxnDetails(System.currentTimeMillis(), status2, idMap);
+    FateTxnDetails txn1 = new FateTxnDetails(System.currentTimeMillis(), status1, idMap);
+    FateTxnDetails txn2 = new FateTxnDetails(System.currentTimeMillis(), status2, idMap);
 
-    Set<TxnDetails> sorted = new TreeSet<>();
+    Set<FateTxnDetails> sorted = new TreeSet<>();
     sorted.add(txn1);
     sorted.add(txn2);
 
     log.trace("Sorted: {}", sorted);
 
-    Iterator<TxnDetails> itor = sorted.iterator();
+    Iterator<FateTxnDetails> itor = sorted.iterator();
 
     assertTrue(itor.next().toString().contains("123456789"));
     assertTrue(itor.next().toString().contains("abcdabcd"));
@@ -104,7 +104,7 @@ class TxnDetailsTest {
     replay(status1);
 
     // R:+default, R:1
-    TxnDetails txn1 = new TxnDetails(System.currentTimeMillis(), status1, idMap);
+    FateTxnDetails txn1 = new FateTxnDetails(System.currentTimeMillis(), status1, idMap);
     assertNotNull(txn1);
     log.info("T: {}", txn1);
 
