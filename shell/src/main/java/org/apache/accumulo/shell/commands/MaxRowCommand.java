@@ -36,6 +36,7 @@ public class MaxRowCommand extends ScanCommand {
       throws Exception {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
 
+    @SuppressWarnings("deprecation")
     final ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
 
     final Range range = getRange(cl, interpeter);
