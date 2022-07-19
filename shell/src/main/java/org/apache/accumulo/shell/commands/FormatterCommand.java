@@ -57,6 +57,7 @@ public class FormatterCommand extends ShellPluginConfigurationCommand {
     return options;
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   protected void setPlugin(final CommandLine cl, final Shell shellState, final String tableName,
       final String className) throws AccumuloException, AccumuloSecurityException {
@@ -67,6 +68,7 @@ public class FormatterCommand extends ShellPluginConfigurationCommand {
     }
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   protected void removePlugin(final CommandLine cl, final Shell shellState, final String tableName)
       throws AccumuloException, AccumuloSecurityException {

@@ -29,6 +29,7 @@ import org.apache.hadoop.io.Text;
 /**
  * A simple formatter that print the row, column family, column qualifier, and value as hex
  */
+@Deprecated(since = "2.1.0")
 public class HexFormatter implements Formatter, ScanInterpreter {
 
   private char[] chars =

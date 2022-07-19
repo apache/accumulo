@@ -23,7 +23,10 @@ import org.apache.hadoop.io.Text;
 /**
  * A simple interface for creating shell plugins that translate the range and column arguments for
  * the shell's scan command.
+ *
+ * @deprecated since 2.1.0 This will be removed in a future version in favor of JShell
  */
+@Deprecated(since = "2.1.0")
 public interface ScanInterpreter {
 
   Text interpretRow(Text row);

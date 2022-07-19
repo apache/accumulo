@@ -22,6 +22,10 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.interpret.ScanInterpreter;
 import org.apache.accumulo.shell.Shell;
 
+/**
+ * @deprecated since 2.1.0 This will be removed in a future version
+ */
+@Deprecated(since = "2.1.0")
 public class InterpreterCommand extends ShellPluginConfigurationCommand {
 
   public InterpreterCommand() {
