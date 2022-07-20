@@ -54,6 +54,7 @@ import org.apache.accumulo.monitor.MonitorExecutable;
 import org.apache.accumulo.server.conf.CheckCompactionConfig;
 import org.apache.accumulo.server.conf.CheckServerConfig;
 import org.apache.accumulo.server.conf.util.ConfigPropertyUpgrader;
+import org.apache.accumulo.server.conf.util.ZooInfoViewer;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.ConvertConfig;
@@ -144,6 +145,7 @@ public class KeywordStartIT {
     expectSet.put("zookeeper", ZooKeeperMain.class);
     expectSet.put("create-empty", CreateEmpty.class);
     expectSet.put("split-large", SplitLarge.class);
+    expectSet.put("zoo-info-viewer", ZooInfoViewer.class);
     expectSet.put("zoo-zap", ZooZap.class);
 
     Iterator<Entry<String,Class<? extends KeywordExecutable>>> expectIter =
