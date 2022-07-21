@@ -62,7 +62,6 @@
               <a class="dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Debug&nbsp;<span id="errorsNotification" class="badge"></span><span class="caret"></span>
               </a>
               <ul class="dropdown-menu">
-                <li><a href="/trace/summary?minutes=10">Recent&nbsp;Traces</a></li>
                 <li><a href="/log">Recent&nbsp;Logs&nbsp;<span id="recentLogsNotifications" class="badge"></span></a></li>
                 <li><a href="/problems">Table&nbsp;Problems&nbsp;<span id="tableProblemsNotifications" class="badge"></span></a></li>
               </ul>
