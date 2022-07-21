@@ -476,6 +476,10 @@ function main() {
 
   case "$1" in
     create-config)
+      if [[ -f "$conf"/cluster.yaml ]]; then
+        echo "ERROR : $conf/cluster.yaml already exists, not overwriting"
+        exit 1
+      fi
       cat <<EOF >"$conf"/cluster.yaml
 manager:
   - localhost

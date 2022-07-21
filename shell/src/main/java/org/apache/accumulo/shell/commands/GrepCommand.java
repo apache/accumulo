@@ -51,6 +51,7 @@ public class GrepCommand extends ScanCommand {
         throw new MissingArgumentException("No terms specified");
       }
       final Class<? extends Formatter> formatter = getFormatter(cl, tableName, shellState);
+      @SuppressWarnings("deprecation")
       final ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
 
       // handle first argument, if present, the authorizations list to

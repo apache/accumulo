@@ -104,6 +104,7 @@ public class ScanCommand extends Command {
       final String tableName = OptUtil.getTableOpt(cl, shellState);
 
       final Class<? extends Formatter> formatter = getFormatter(cl, tableName, shellState);
+      @SuppressWarnings("deprecation")
       final ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
 
       String classLoaderContext = null;
@@ -232,6 +233,7 @@ public class ScanCommand extends Command {
     }
   }
 
+  @Deprecated(since = "2.1.0")
   protected ScanInterpreter getInterpreter(final CommandLine cl, final String tableName,
       final Shell shellState) throws Exception {
 
@@ -287,7 +289,8 @@ public class ScanCommand extends Command {
   }
 
   protected void fetchColumns(final CommandLine cl, final ScannerBase scanner,
-      final ScanInterpreter formatter) throws UnsupportedEncodingException {
+      @SuppressWarnings("deprecation") final ScanInterpreter formatter)
+      throws UnsupportedEncodingException {
 
     if ((cl.hasOption(scanOptCf.getOpt()) || cl.hasOption(scanOptCq.getOpt()))
         && cl.hasOption(scanOptColumns.getOpt())) {
@@ -313,7 +316,8 @@ public class ScanCommand extends Command {
     }
   }
 
-  private void fetchColumsWithCFAndCQ(CommandLine cl, Scanner scanner, ScanInterpreter interpeter) {
+  private void fetchColumsWithCFAndCQ(CommandLine cl, Scanner scanner,
+      @SuppressWarnings("deprecation") ScanInterpreter interpeter) {
     String cf = "";
     String cq = "";
     if (cl.hasOption(scanOptCf.getOpt())) {
@@ -339,7 +343,8 @@ public class ScanCommand extends Command {
 
   }
 
-  protected Range getRange(final CommandLine cl, final ScanInterpreter formatter)
+  protected Range getRange(final CommandLine cl,
+      @SuppressWarnings("deprecation") final ScanInterpreter formatter)
       throws UnsupportedEncodingException {
     if ((cl.hasOption(OptUtil.START_ROW_OPT) || cl.hasOption(OptUtil.END_ROW_OPT))
         && cl.hasOption(scanOptRow.getOpt())) {

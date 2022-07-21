@@ -25,6 +25,7 @@ import org.apache.accumulo.core.util.format.HexFormatter;
  * {@link HexFormatter} back to binary. The hex input can contain dashes (because
  * {@link HexFormatter} outputs dashes) which are ignored.
  */
+@Deprecated(since = "2.1.0")
 public class HexScanInterpreter extends HexFormatter {
 
 }
