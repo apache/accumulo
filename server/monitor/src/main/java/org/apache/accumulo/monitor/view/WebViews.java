@@ -18,11 +18,9 @@
  */
 package org.apache.accumulo.monitor.view;
 
-import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX;
 import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX_BLANK_OK;
 import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX_TABLE_ID;
 import static org.apache.accumulo.monitor.util.ParameterValidator.HOSTNAME_PORT_REGEX;
-import static org.apache.accumulo.monitor.util.ParameterValidator.RESOURCE_REGEX;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -32,11 +30,8 @@ import java.util.List;
 import java.util.Map;
 
 import jakarta.inject.Inject;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
-import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
