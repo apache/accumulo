@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.server.conf;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
@@ -169,7 +168,8 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     ConfigRefreshRunner() {
 
       Runnable refreshTask = this::verifySnapshotVersions;
-      // randomly stagger initial and then subsequent calls across cluster
+      // staggering the initial delay prevents synchronization of Accumulo servers communicating
+      // with ZooKeeper for the sync process.
       long randDelay = jitter(REFRESH_PERIOD_MINUTES / 4, REFRESH_PERIOD_MINUTES);
 
       ScheduledThreadPoolExecutor executor = ThreadPools.getServerThreadPools()
@@ -198,6 +198,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
       // rely on store to propagate change event if different
       propStore.validateDataVersion(SystemPropKey.of(context),
           ((ZooBasedConfiguration) getSystemConfiguration()).getDataVersion());
+      // small yield - spread out ZooKeeper calls
       jitterDelay();
 
       for (Map.Entry<NamespaceId,NamespaceConfiguration> entry : namespaceConfigs.entrySet()) {
@@ -207,6 +208,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
           keyChangedCount++;
           namespaceConfigs.remove(entry.getKey());
         }
+        // small yield - spread out ZooKeeper calls between namespace config checks
         jitterDelay();
       }
 
@@ -221,12 +223,12 @@ public class ServerConfigurationFactory extends ServerConfiguration {
           log.debug("data version sync: difference found. forcing configuration update for {}}",
               propKey);
         }
+        // small yield - spread out ZooKeeper calls between table config checks
         jitterDelay();
       }
 
       log.debug("data version sync: Total runtime {} ms for {} entries, changes detected: {}",
-          MILLISECONDS.convert(System.nanoTime() - refreshStart, NANOSECONDS), keyCount,
-          keyChangedCount);
+          NANOSECONDS.toMillis(System.nanoTime() - refreshStart), keyCount, keyChangedCount);
     }
 
     /**
@@ -248,6 +250,10 @@ public class ServerConfigurationFactory extends ServerConfiguration {
 
     /**
      * Sleep for a random jitter interval defined by MIN_JITTER_DELAY and MAX_JITTER_DELAY
+     * </p>
+     * Used to spread out operations so that Server config sync communications don't overwhelm
+     * ZooKeeper and are not synchronized across the cluster.
+     *
      */
     private void jitterDelay() {
       try {

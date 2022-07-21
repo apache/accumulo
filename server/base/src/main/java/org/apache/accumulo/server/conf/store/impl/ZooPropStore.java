@@ -121,7 +121,12 @@ public class ZooPropStore implements PropStore, PropChangeListener {
         throw new IllegalStateException("Instance may not have been initialized, root node: " + path
             + " does not exist in ZooKeeper");
       }
-    } catch (InterruptedException | KeeperException ex) {
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      ;
+      throw new IllegalStateException(
+          "Interrupted trying to read root node " + instanceId + " from ZooKeeper", ex);
+    } catch (KeeperException ex) {
       throw new IllegalStateException("Failed to read root node " + instanceId + " from ZooKeeper",
           ex);
     }
