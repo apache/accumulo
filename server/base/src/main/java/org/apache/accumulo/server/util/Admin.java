@@ -176,6 +176,13 @@ public class Admin implements KeywordExecutable {
       commandDescription = "Changes the unique secret given to the instance that all servers must know.")
   static class ChangeSecretCommand {}
 
+  @Parameters(
+      commandDescription = "List or delete Tablet Server locks. Default with no arguments is to list the locks.")
+  static class TabletServerLocksCommand {
+    @Parameter(names = "-delete", description = "specify a tablet server lock to delete")
+    String delete = null;
+  }
+
   @Parameters(commandDescription = "Deletes instance name or id from zookeeper.")
   static class DeleteZooInstanceCommand {
     @Parameter(names = {"-i", "--instance"}, description = "the instance name or id to delete")
@@ -255,6 +262,9 @@ public class Admin implements KeywordExecutable {
     RandomizeVolumesCommand randomizeVolumesOpts = new RandomizeVolumesCommand();
     cl.addCommand("randomizeVolumes", randomizeVolumesOpts);
 
+    TabletServerLocksCommand tServerLocksOpts = new TabletServerLocksCommand();
+    cl.addCommand("locks", tServerLocksOpts);
+
     VerifyTabletAssignmentsCommand verifyTabletAssignmentsOpts =
         new VerifyTabletAssignmentsCommand();
     cl.addCommand("verifyTabletAssigns", verifyTabletAssignmentsOpts);
@@ -316,6 +326,9 @@ public class Admin implements KeywordExecutable {
         DeleteZooInstance.deleteZooInstance(deleteZooInstanceOpts.instance);
       } else if (cl.getParsedCommand().equals("restoreZoo")) {
         RestoreZookeeper.restoreZookeeper(conf, restoreZooOpts.file, restoreZooOpts.overwrite);
+      } else if (cl.getParsedCommand().equals("locks")) {
+        TabletServerLocks.tabletServerLocks("accumulo locks", context,
+            args.length > 2 ? args[2] : null, tServerLocksOpts.delete);
       } else {
         everything = cl.getParsedCommand().equals("stopAll");
 
