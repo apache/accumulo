@@ -22,6 +22,7 @@ import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -35,7 +36,7 @@ public class GarbageCollectionLogger {
   private final HashMap<String,Long> prevGcTime = new HashMap<>();
   private long lastMemorySize = 0;
   private long gcTimeIncreasedCount = 0;
-  private static long lastMemoryCheckTime = 0;
+  private static AtomicLong lastMemoryCheckTime = new AtomicLong(0);
 
   public synchronized void logGCInfo(AccumuloConfiguration conf) {
     final long now = System.currentTimeMillis();
@@ -97,15 +98,16 @@ public class GarbageCollectionLogger {
     }
 
     final long keepAliveTimeout = conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
-    if (lastMemoryCheckTime > 0 && lastMemoryCheckTime < now) {
-      final long diff = now - lastMemoryCheckTime;
+    long checkedTime = lastMemoryCheckTime.get();
+    if (checkedTime > 0 && checkedTime < now) {
+      final long diff = now - checkedTime;
       if (diff > keepAliveTimeout + 1000) {
         log.warn(String.format(
             "GC pause checker not called in a timely"
                 + " fashion. Expected every %.1f seconds but was %.1f seconds since last check",
             keepAliveTimeout / 1000., diff / 1000.));
       }
-      lastMemoryCheckTime = now;
+      lastMemoryCheckTime.set(now);
       return;
     }
 
@@ -114,7 +116,7 @@ public class GarbageCollectionLogger {
     }
 
     lastMemorySize = mem;
-    lastMemoryCheckTime = now;
+    lastMemoryCheckTime.set(now);
   }
 
 }
