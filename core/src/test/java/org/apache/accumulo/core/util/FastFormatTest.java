@@ -142,6 +142,6 @@ public class FastFormatTest {
     Arrays.fill(str, (byte) '-');
     str = FastFormat.toZeroPaddedHex(123456789L);
     assertEquals(16, str.length);
-    assertEquals("0000000000000040", new String(str, UTF_8));
+    assertEquals("00000000075bcd15", new String(str, UTF_8));
   }
 }
