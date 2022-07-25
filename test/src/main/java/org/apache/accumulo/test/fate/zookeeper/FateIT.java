@@ -46,6 +46,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.AgeOffStore;
 import org.apache.accumulo.fate.Fate;
+import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.ZooStore;
@@ -98,14 +99,14 @@ public class FateIT {
 
     @Override
     public Repo<Manager> call(long tid, Manager manager) throws Exception {
-      LOG.debug("Entering call {}", Long.toHexString(tid));
+      LOG.debug("Entering call {}", FateTxId.formatTid(tid));
       try {
         FateIT.inCall();
         return null;
       } finally {
         Utils.unreserveNamespace(manager, namespaceId, tid, false);
         Utils.unreserveTable(manager, tableId, tid, true);
-        LOG.debug("Leaving call {}", Long.toHexString(tid));
+        LOG.debug("Leaving call {}", FateTxId.formatTid(tid));
       }
 
     }
@@ -232,7 +233,7 @@ public class FateIT {
       finishCall = new CountDownLatch(1);
 
       long txid = fate.startTransaction();
-      LOG.debug("Starting test testCancelWhileNew with {}", Long.toHexString(txid));
+      LOG.debug("Starting test testCancelWhileNew with {}", FateTxId.formatTid(txid));
       assertEquals(NEW, getTxStatus(zk, txid));
       // cancel the transaction
       assertTrue(fate.cancel(txid));
@@ -271,7 +272,7 @@ public class FateIT {
     finishCall = new CountDownLatch(1);
 
     long txid = fate.startTransaction();
-    LOG.debug("Starting test testCancelWhileSubmitted with {}", Long.toHexString(txid));
+    LOG.debug("Starting test testCancelWhileSubmitted with {}", FateTxId.formatTid(txid));
     assertEquals(NEW, getTxStatus(zk, txid));
     fate.seedTransaction(txid, new TestOperation(NS, TID), true, "Test Op");
     assertEquals(SUBMITTED, getTxStatus(zk, txid));
@@ -305,7 +306,7 @@ public class FateIT {
       finishCall = new CountDownLatch(1);
 
       long txid = fate.startTransaction();
-      LOG.debug("Starting test testCancelWhileSubmitted with {}", Long.toHexString(txid));
+      LOG.debug("Starting test testCancelWhileSubmitted with {}", FateTxId.formatTid(txid));
       assertEquals(NEW, getTxStatus(zk, txid));
       fate.seedTransaction(txid, new TestOperation(NS, TID), true, "Test Op");
       assertEquals(SUBMITTED, getTxStatus(zk, txid));
@@ -347,7 +348,7 @@ public class FateIT {
       finishCall = new CountDownLatch(1);
 
       long txid = fate.startTransaction();
-      LOG.debug("Starting test testCancelWhileInCall with {}", Long.toHexString(txid));
+      LOG.debug("Starting test testCancelWhileInCall with {}", FateTxId.formatTid(txid));
       assertEquals(NEW, getTxStatus(zk, txid));
       fate.seedTransaction(txid, new TestOperation(NS, TID), true, "Test Op");
       assertEquals(SUBMITTED, getTxStatus(zk, txid));
