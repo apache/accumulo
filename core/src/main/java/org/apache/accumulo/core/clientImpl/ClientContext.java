@@ -37,6 +37,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -153,6 +154,12 @@ public class ClientContext implements AccumuloClient {
     return () -> Suppliers.memoizeWithExpiration(s::get, 100, MILLISECONDS).get();
   }
 
+  private static <T> Supplier<T> memoizeWithExpiration(Supplier<T> s, long duration,
+      TimeUnit units) {
+    // This insanity exists to make modernizer plugin happy. We are living in the future now.
+    return () -> Suppliers.memoizeWithExpiration(s::get, duration, units).get();
+  }
+
   /**
    * Create a client context with the provided configuration. Legacy client code must provide a
    * no-op SingletonReservation to preserve behavior prior to 2.x. Clients since 2.x should call
@@ -169,7 +176,8 @@ public class ClientContext implements AccumuloClient {
     this.serverConf = serverConf;
     timeoutSupplier = memoizeWithExpiration(
         () -> getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
-    sslSupplier = memoizeWithExpiration(() -> SslConnectionParams.forClient(getConfiguration()));
+    sslSupplier = memoizeWithExpiration(() -> SslConnectionParams.forClient(getConfiguration()), 1,
+        TimeUnit.DAYS);
     saslSupplier = memoizeWithExpiration(
         () -> SaslConnectionParams.from(getConfiguration(), getCredentials().getToken()));
     this.singletonReservation = Objects.requireNonNull(reservation);

@@ -447,6 +447,7 @@ public class ThriftUtil {
       throws TTransportException {
     SSLContext ctx = SSL_CONTEXT_CACHE.getIfPresent(params);
     if (ctx == null) {
+      log.trace("Creating new ssl context.");
       try {
         ctx = SSLContext.getInstance(params.getClientProtocol());
         TrustManagerFactory tmf = null;
@@ -477,10 +478,13 @@ public class ThriftUtil {
         } else {
           ctx.init(null, tmf.getTrustManagers(), null);
         }
-
+        log.trace("Adding context to the cache: {} -> {}", params, ctx);
+        SSL_CONTEXT_CACHE.put(params, ctx);
       } catch (Exception e) {
         throw new TTransportException("Error creating the transport", e);
       }
+    } else {
+      log.trace("Using cached ssl context.");
     }
     return ctx;
   }
