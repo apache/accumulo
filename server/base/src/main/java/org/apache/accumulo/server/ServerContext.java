@@ -106,6 +106,8 @@ public class ServerContext extends ClientContext {
   private final Supplier<ScheduledThreadPoolExecutor> sharedScheduledThreadPool;
   private final Supplier<AuditedSecurityOperation> securityOperation;
 
+  private final Supplier<GarbageCollectionLogger> jvmGcLogger;
+
   public ServerContext(SiteConfiguration siteConfig) {
     this(new ServerInfo(siteConfig));
   }
@@ -132,6 +134,7 @@ public class ServerContext extends ClientContext {
     securityOperation =
         memoize(() -> new AuditedSecurityOperation(this, SecurityOperation.getAuthorizor(this),
             SecurityOperation.getAuthenticator(this), SecurityOperation.getPermHandler(this)));
+    jvmGcLogger = memoize(() -> new GarbageCollectionLogger(this));
   }
 
   /**
@@ -450,4 +453,7 @@ public class ServerContext extends ClientContext {
     return securityOperation.get();
   }
 
+  public GarbageCollectionLogger getGarbageCollectionLogger() {
+    return jvmGcLogger.get();
+  }
 }

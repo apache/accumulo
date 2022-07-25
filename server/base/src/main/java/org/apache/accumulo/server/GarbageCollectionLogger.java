@@ -22,109 +22,113 @@ import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Halt;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class GarbageCollectionLogger {
   private static final Logger log = LoggerFactory.getLogger(GarbageCollectionLogger.class);
 
+  private final ServerContext context;
+
   private final HashMap<String,Long> prevGcTime = new HashMap<>();
   private long lastMemorySize = 0;
   private long gcTimeIncreasedCount = 0;
-  private static long lastMemoryCheckTime = 0;
-  private static final Lock memCheckTimeLock = new ReentrantLock();
+  private long lastMemoryCheckTime = 0;
 
-  public void logGCInfo(AccumuloConfiguration conf) {
+  private static final long TIME_BETWEEN_GC_CHECKS_MIN = 5;
 
-    memCheckTimeLock.lock();
-    try {
-      final long now = System.currentTimeMillis();
+  public GarbageCollectionLogger(final ServerContext context) {
+    this.context = context;
 
-      List<GarbageCollectorMXBean> gcmBeans = ManagementFactory.getGarbageCollectorMXBeans();
-      Runtime rt = Runtime.getRuntime();
+    ScheduledFuture<?> future = context.getScheduledExecutor()
+        .scheduleWithFixedDelay(this::logGCInfo, 0, TIME_BETWEEN_GC_CHECKS_MIN, TimeUnit.MINUTES);
+    ThreadPools.watchNonCriticalScheduledTask(future);
+  }
 
-      StringBuilder sb = new StringBuilder("gc");
+  public synchronized void logGCInfo() {
+    final long now = System.currentTimeMillis();
 
-      boolean sawChange = false;
+    List<GarbageCollectorMXBean> gcmBeans = ManagementFactory.getGarbageCollectorMXBeans();
+    Runtime rt = Runtime.getRuntime();
 
-      long maxIncreaseInCollectionTime = 0;
+    StringBuilder sb = new StringBuilder("gc");
 
-      for (GarbageCollectorMXBean gcBean : gcmBeans) {
-        Long prevTime = prevGcTime.get(gcBean.getName());
-        long pt = 0;
-        if (prevTime != null) {
-          pt = prevTime;
-        }
+    boolean sawChange = false;
 
-        long time = gcBean.getCollectionTime();
+    long maxIncreaseInCollectionTime = 0;
 
-        if (time - pt != 0) {
-          sawChange = true;
-        }
-
-        long increaseInCollectionTime = time - pt;
-        sb.append(String.format(" %s=%,.2f(+%,.2f) secs", gcBean.getName(), time / 1000.0,
-            increaseInCollectionTime / 1000.0));
-        maxIncreaseInCollectionTime =
-            Math.max(increaseInCollectionTime, maxIncreaseInCollectionTime);
-        prevGcTime.put(gcBean.getName(), time);
+    for (GarbageCollectorMXBean gcBean : gcmBeans) {
+      Long prevTime = prevGcTime.get(gcBean.getName());
+      long pt = 0;
+      if (prevTime != null) {
+        pt = prevTime;
       }
 
-      long mem = rt.freeMemory();
-      if (maxIncreaseInCollectionTime == 0) {
-        gcTimeIncreasedCount = 0;
-      } else {
-        gcTimeIncreasedCount++;
-        if (gcTimeIncreasedCount > 3 && mem < rt.maxMemory() * 0.05) {
-          log.warn("Running low on memory");
-          gcTimeIncreasedCount = 0;
-        }
-      }
+      long time = gcBean.getCollectionTime();
 
-      if (mem != lastMemorySize) {
+      if (time - pt != 0) {
         sawChange = true;
       }
 
-      String sign = "+";
-      if (mem - lastMemorySize <= 0) {
-        sign = "";
-      }
-
-      sb.append(String.format(" freemem=%,d(%s%,d) totalmem=%,d", mem, sign, (mem - lastMemorySize),
-          rt.totalMemory()));
-
-      if (sawChange) {
-        log.debug(sb.toString());
-      }
-
-      final long keepAliveTimeout = conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
-      if (lastMemoryCheckTime > 0 && lastMemoryCheckTime < now) {
-        final long diff = now - lastMemoryCheckTime;
-        if (diff > keepAliveTimeout + 1000) {
-          log.warn(String.format(
-              "GC pause checker not called in a timely"
-                  + " fashion. Expected every %.1f seconds but was %.1f seconds since last check",
-              keepAliveTimeout / 1000., diff / 1000.));
-        }
-        lastMemoryCheckTime = now;
-        return;
-      }
-
-      if (maxIncreaseInCollectionTime > keepAliveTimeout) {
-        Halt.halt("Garbage collection may be interfering with lock keep-alive.  Halting.", -1);
-      }
-
-      lastMemorySize = mem;
-      lastMemoryCheckTime = now;
-    } finally {
-      memCheckTimeLock.unlock();
+      long increaseInCollectionTime = time - pt;
+      sb.append(String.format(" %s=%,.2f(+%,.2f) secs", gcBean.getName(), time / 1000.0,
+          increaseInCollectionTime / 1000.0));
+      maxIncreaseInCollectionTime = Math.max(increaseInCollectionTime, maxIncreaseInCollectionTime);
+      prevGcTime.put(gcBean.getName(), time);
     }
-  }
 
+    long mem = rt.freeMemory();
+    if (maxIncreaseInCollectionTime == 0) {
+      gcTimeIncreasedCount = 0;
+    } else {
+      gcTimeIncreasedCount++;
+      if (gcTimeIncreasedCount > 3 && mem < rt.maxMemory() * 0.05) {
+        log.warn("Running low on memory");
+        gcTimeIncreasedCount = 0;
+      }
+    }
+
+    if (mem != lastMemorySize) {
+      sawChange = true;
+    }
+
+    String sign = "+";
+    if (mem - lastMemorySize <= 0) {
+      sign = "";
+    }
+
+    sb.append(String.format(" freemem=%,d(%s%,d) totalmem=%,d", mem, sign, (mem - lastMemorySize),
+        rt.totalMemory()));
+
+    if (sawChange) {
+      log.debug(sb.toString());
+    }
+
+    final long keepAliveTimeout =
+        context.getConfiguration().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
+    if (lastMemoryCheckTime > 0 && lastMemoryCheckTime < now) {
+      final long diff = now - lastMemoryCheckTime;
+      if (diff > keepAliveTimeout + 1000) {
+        log.warn(String.format(
+            "GC pause checker not called in a timely"
+                + " fashion. Expected every %.1f seconds but was %.1f seconds since last check",
+            keepAliveTimeout / 1000., diff / 1000.));
+      }
+      lastMemoryCheckTime = now;
+      return;
+    }
+
+    if (maxIncreaseInCollectionTime > keepAliveTimeout) {
+      Halt.halt("Garbage collection may be interfering with lock keep-alive.  Halting.", -1);
+    }
+
+    lastMemorySize = mem;
+    lastMemoryCheckTime = now;
+  }
 }

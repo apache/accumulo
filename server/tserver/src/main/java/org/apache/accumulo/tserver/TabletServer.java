@@ -176,7 +176,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private static final long TIME_BETWEEN_GC_CHECKS = TimeUnit.SECONDS.toMillis(5);
   private static final long TIME_BETWEEN_LOCATOR_CACHE_CLEARS = TimeUnit.HOURS.toMillis(1);
 
-  final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
+  private final GarbageCollectionLogger gcLogger;
+
   final ZooCache managerLockCache;
 
   final TabletServerLogger logger;
@@ -263,6 +264,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     // check early whether the WAL directory supports sync. issue warning if
     // it doesn't
     checkWalCanSync(context);
+
+    gcLogger = context.getGarbageCollectionLogger();
 
     // This thread will calculate and log out the busiest tablets based on ingest count and
     // query count every #{logBusiestTabletsDelay}
@@ -684,7 +687,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
             if (!serverStopRequested) {
               log.error("Lost tablet server lock (reason = {}), exiting.", reason);
             }
-            gcLogger.logGCInfo(getConfiguration());
+            gcLogger.logGCInfo();
           });
         }
 
@@ -951,7 +954,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       log.warn("Failed to close filesystem : {}", e.getMessage(), e);
     }
 
-    gcLogger.logGCInfo(getConfiguration());
+    gcLogger.logGCInfo();
 
     log.info("TServerInfo: stop requested. exiting ... ");
 
@@ -1046,7 +1049,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
     FileSystemMonitor.start(aconf, Property.TSERV_MONITOR_FS);
 
-    Runnable gcDebugTask = () -> gcLogger.logGCInfo(getConfiguration());
+    Runnable gcDebugTask = () -> gcLogger.logGCInfo();
 
     ScheduledFuture<?> future = context.getScheduledExecutor().scheduleWithFixedDelay(gcDebugTask,
         0, TIME_BETWEEN_GC_CHECKS, TimeUnit.MILLISECONDS);

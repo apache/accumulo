@@ -28,7 +28,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
@@ -48,6 +47,7 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.AbstractServer;
+import org.apache.accumulo.server.GarbageCollectionLogger;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceededException;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -187,9 +187,6 @@ public class CompactorTest {
 
     @Override
     protected void setupSecurity() {}
-
-    @Override
-    protected void startGCLogger(ScheduledThreadPoolExecutor schedExecutor) {}
 
     @Override
     protected void printStartupMsg() {}
@@ -335,6 +332,8 @@ public class CompactorTest {
     ZooKeeper zk = PowerMock.createNiceMock(ZooKeeper.class);
     expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
     expect(zrw.getZooKeeper()).andReturn(zk).anyTimes();
+    GarbageCollectionLogger gcLogger = PowerMock.createNiceMock(GarbageCollectionLogger.class);
+    expect(context.getGarbageCollectionLogger()).andReturn(gcLogger).anyTimes();
     VolumeManagerImpl vm = PowerMock.createNiceMock(VolumeManagerImpl.class);
     expect(context.getVolumeManager()).andReturn(vm);
     vm.close();
@@ -383,6 +382,8 @@ public class CompactorTest {
     ZooKeeper zk = PowerMock.createNiceMock(ZooKeeper.class);
     expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
     expect(zrw.getZooKeeper()).andReturn(zk).anyTimes();
+    GarbageCollectionLogger gcLogger = PowerMock.createNiceMock(GarbageCollectionLogger.class);
+    expect(context.getGarbageCollectionLogger()).andReturn(gcLogger).anyTimes();
     VolumeManagerImpl vm = PowerMock.createNiceMock(VolumeManagerImpl.class);
     expect(context.getVolumeManager()).andReturn(vm);
     vm.close();
@@ -430,6 +431,8 @@ public class CompactorTest {
     ZooReaderWriter zrw = PowerMock.createNiceMock(ZooReaderWriter.class);
     ZooKeeper zk = PowerMock.createNiceMock(ZooKeeper.class);
     expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
+    GarbageCollectionLogger gcLogger = PowerMock.createNiceMock(GarbageCollectionLogger.class);
+    expect(context.getGarbageCollectionLogger()).andReturn(gcLogger).anyTimes();
     expect(zrw.getZooKeeper()).andReturn(zk).anyTimes();
     VolumeManagerImpl vm = PowerMock.createNiceMock(VolumeManagerImpl.class);
     expect(context.getVolumeManager()).andReturn(vm);
@@ -447,5 +450,4 @@ public class CompactorTest {
     assertTrue(c.isFailedCalled());
     assertEquals(TCompactionState.CANCELLED, c.getLatestState());
   }
-
 }

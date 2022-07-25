@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -46,7 +45,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService.Client;
@@ -92,7 +90,6 @@ import org.apache.accumulo.fate.zookeeper.ServiceLock.LockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.AbstractServer;
-import org.apache.accumulo.server.GarbageCollectionLogger;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.compaction.CompactionInfo;
 import org.apache.accumulo.server.compaction.CompactionWatcher;
@@ -131,14 +128,12 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(Compactor.class);
-  private static final long TIME_BETWEEN_GC_CHECKS = 5000;
   private static final long TIME_BETWEEN_CANCEL_CHECKS = MINUTES.toMillis(5);
 
   private static final long TEN_MEGABYTES = 10485760;
 
   protected static final CompactionJobHolder JOB_HOLDER = new CompactionJobHolder();
 
-  private final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
   private final UUID compactorId = UUID.randomUUID();
   private final AccumuloConfiguration aconf;
   private final String queueName;
@@ -167,7 +162,6 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     watcher = new CompactionWatcher(aconf);
     var schedExecutor =
         ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(aconf);
-    startGCLogger(schedExecutor);
     startCancelChecker(schedExecutor, TIME_BETWEEN_CANCEL_CHECKS);
     printStartupMsg();
   }
@@ -186,13 +180,6 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
   protected void setupSecurity() {
     security = getContext().getSecurityOperation();
-  }
-
-  protected void startGCLogger(ScheduledThreadPoolExecutor schedExecutor) {
-    ScheduledFuture<?> future =
-        schedExecutor.scheduleWithFixedDelay(() -> gcLogger.logGCInfo(getConfiguration()), 0,
-            TIME_BETWEEN_GC_CHECKS, TimeUnit.MILLISECONDS);
-    ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
   protected void startCancelChecker(ScheduledThreadPoolExecutor schedExecutor,
@@ -286,7 +273,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       public void lostLock(final LockLossReason reason) {
         Halt.halt(1, () -> {
           LOG.error("Compactor lost lock (reason = {}), exiting.", reason);
-          gcLogger.logGCInfo(getConfiguration());
+          getContext().getGarbageCollectionLogger().logGCInfo();
         });
       }
 
@@ -815,7 +802,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         LOG.warn("Failed to close filesystem : {}", e.getMessage(), e);
       }
 
-      gcLogger.logGCInfo(getConfiguration());
+      getContext().getGarbageCollectionLogger().logGCInfo();
       LOG.info("stop requested. exiting ... ");
       try {
         if (null != compactorLock) {
@@ -836,7 +823,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
   @Override
   public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException, TException {
+      throws TException {
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
@@ -864,7 +851,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
    */
   @Override
   public TExternalCompactionJob getRunningCompaction(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException, TException {
+      throws TException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -875,7 +862,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     // method is called by a coordinator starting up to determine what is currently running on all
     // compactors.
 
-    TExternalCompactionJob job = null;
+    TExternalCompactionJob job;
     synchronized (JOB_HOLDER) {
       job = JOB_HOLDER.getJob();
     }
@@ -888,8 +875,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   }
 
   @Override
-  public String getRunningCompactionId(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException, TException {
+  public String getRunningCompactionId(TInfo tinfo, TCredentials credentials) throws TException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),

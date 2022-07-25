@@ -125,9 +125,6 @@ public class CompactionCoordinatorTest {
     protected void setupSecurity() {}
 
     @Override
-    protected void startGCLogger(ScheduledThreadPoolExecutor stpe) {}
-
-    @Override
     protected void printStartupMsg() {}
 
     @Override

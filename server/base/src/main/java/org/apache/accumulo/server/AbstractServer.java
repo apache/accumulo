@@ -54,6 +54,8 @@ public abstract class AbstractServer implements AutoCloseable, Runnable {
       // Server-side "client" check to make sure we're logged in as a user we expect to be
       context.enforceKerberosLogin();
     }
+    // start jvn gc logging
+    context.getGarbageCollectionLogger();
   }
 
   /**
