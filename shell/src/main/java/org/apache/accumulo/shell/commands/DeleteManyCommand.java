@@ -27,7 +27,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.iterators.SortedKeyIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.format.FormatterConfig;
-import org.apache.accumulo.core.util.interpret.ScanInterpreter;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.format.DeleterFormatter;
 import org.apache.commons.cli.CommandLine;
@@ -43,7 +42,8 @@ public class DeleteManyCommand extends ScanCommand {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
 
     @SuppressWarnings("deprecation")
-    final ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
+    final org.apache.accumulo.core.util.interpret.ScanInterpreter interpeter =
+        getInterpreter(cl, tableName, shellState);
 
     // handle first argument, if present, the authorizations list to
     // scan with

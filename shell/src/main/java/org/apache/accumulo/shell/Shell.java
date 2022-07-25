@@ -120,7 +120,6 @@ import org.apache.accumulo.shell.commands.ImportDirectoryCommand;
 import org.apache.accumulo.shell.commands.ImportTableCommand;
 import org.apache.accumulo.shell.commands.InfoCommand;
 import org.apache.accumulo.shell.commands.InsertCommand;
-import org.apache.accumulo.shell.commands.InterpreterCommand;
 import org.apache.accumulo.shell.commands.ListBulkCommand;
 import org.apache.accumulo.shell.commands.ListCompactionsCommand;
 import org.apache.accumulo.shell.commands.ListIterCommand;
@@ -379,7 +378,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
     @SuppressWarnings("deprecation")
     Command[] dataCommands = {new DeleteCommand(), new DeleteManyCommand(), new DeleteRowsCommand(),
-        new EGrepCommand(), new FormatterCommand(), new InterpreterCommand(), new GrepCommand(),
+        new EGrepCommand(), new FormatterCommand(),
+        new org.apache.accumulo.shell.commands.InterpreterCommand(), new GrepCommand(),
         new ImportDirectoryCommand(), new InsertCommand(), new MaxRowCommand(), new ScanCommand()};
     @SuppressWarnings("deprecation")
     Command[] debuggingCommands =
