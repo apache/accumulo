@@ -25,7 +25,6 @@ import java.net.InetAddress;
 import java.nio.channels.ClosedByInterruptException;
 import java.security.KeyStore;
 import java.security.SecureRandom;
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -54,20 +53,12 @@ import org.apache.thrift.transport.layered.TFramedTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.Scheduler;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Factory methods for creating Thrift client objects
  */
 public class ThriftUtil {
-
-  private static final Cache<SslConnectionParams,SSLContext> SSL_CONTEXT_CACHE =
-      Caffeine.newBuilder().scheduler(Scheduler.systemScheduler())
-          .expireAfterAccess(Duration.ofMinutes(10)).initialCapacity(1).maximumSize(8).build();
 
   private static final Logger log = LoggerFactory.getLogger(ThriftUtil.class);
 
@@ -445,48 +436,40 @@ public class ThriftUtil {
       justification = "code runs in same security context as user who providing the keystore files")
   private static SSLContext createSSLContext(SslConnectionParams params)
       throws TTransportException {
-    SSLContext ctx = SSL_CONTEXT_CACHE.getIfPresent(params);
-    if (ctx == null) {
-      log.trace("Creating new ssl context.");
-      try {
-        ctx = SSLContext.getInstance(params.getClientProtocol());
-        TrustManagerFactory tmf = null;
-        KeyManagerFactory kmf = null;
+    try {
+      SSLContext ctx = SSLContext.getInstance(params.getClientProtocol());
+      TrustManagerFactory tmf = null;
+      KeyManagerFactory kmf = null;
 
-        if (params.isTrustStoreSet()) {
-          tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-          KeyStore ts = KeyStore.getInstance(params.getTrustStoreType());
-          try (FileInputStream fis = new FileInputStream(params.getTrustStorePath())) {
-            ts.load(fis, params.getTrustStorePass().toCharArray());
-          }
-          tmf.init(ts);
+      if (params.isTrustStoreSet()) {
+        tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        KeyStore ts = KeyStore.getInstance(params.getTrustStoreType());
+        try (FileInputStream fis = new FileInputStream(params.getTrustStorePath())) {
+          ts.load(fis, params.getTrustStorePass().toCharArray());
         }
-
-        if (params.isKeyStoreSet()) {
-          kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-          KeyStore ks = KeyStore.getInstance(params.getKeyStoreType());
-          try (FileInputStream fis = new FileInputStream(params.getKeyStorePath())) {
-            ks.load(fis, params.getKeyStorePass().toCharArray());
-          }
-          kmf.init(ks, params.getKeyStorePass().toCharArray());
-        }
-
-        if (params.isKeyStoreSet() && params.isTrustStoreSet()) {
-          ctx.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
-        } else if (params.isKeyStoreSet()) {
-          ctx.init(kmf.getKeyManagers(), null, null);
-        } else {
-          ctx.init(null, tmf.getTrustManagers(), null);
-        }
-        log.trace("Adding context to the cache: {} -> {}", params, ctx);
-        SSL_CONTEXT_CACHE.put(params, ctx);
-      } catch (Exception e) {
-        throw new TTransportException("Error creating the transport", e);
+        tmf.init(ts);
       }
-    } else {
-      log.trace("Using cached ssl context.");
+
+      if (params.isKeyStoreSet()) {
+        kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        KeyStore ks = KeyStore.getInstance(params.getKeyStoreType());
+        try (FileInputStream fis = new FileInputStream(params.getKeyStorePath())) {
+          ks.load(fis, params.getKeyStorePass().toCharArray());
+        }
+        kmf.init(ks, params.getKeyStorePass().toCharArray());
+      }
+
+      if (params.isKeyStoreSet() && params.isTrustStoreSet()) {
+        ctx.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
+      } else if (params.isKeyStoreSet()) {
+        ctx.init(kmf.getKeyManagers(), null, null);
+      } else {
+        ctx.init(null, tmf.getTrustManagers(), null);
+      }
+      return ctx;
+    } catch (Exception e) {
+      throw new TTransportException("Error creating the transport", e);
     }
-    return ctx;
   }
 
   /**
