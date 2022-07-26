@@ -128,9 +128,13 @@ public class FastFormatTest {
     assertEquals(formattedTxId, hexStr);
     long txid = FateTxId.fromString("FATE[2e429160071c63d8]");
     assertEquals("FATE[2e429160071c63d8]", FastFormat.toHexString(PREFIX, txid, SUFFIX));
+    assertEquals(String.format("%016x", 64L), FastFormat.toHexString(64L));
+    assertEquals(String.format("%016x", 0X2e429160071c63d8L),
+        FastFormat.toHexString(0X2e429160071c63d8L));
 
     assertEquals("-0000000000000040-", FastFormat.toHexString("-", 64L, "-"));
     assertEquals("-00000000075bcd15", FastFormat.toHexString("-", 123456789L, ""));
+    assertEquals("000000000000000a", FastFormat.toHexString(0XaL));
     assertEquals("000000000000000a", FastFormat.toHexString(10L));
     assertEquals("0000000000000009", FastFormat.toHexString(9L));
     assertEquals("0000000000000000", FastFormat.toHexString(0L));
@@ -143,5 +147,10 @@ public class FastFormatTest {
     str = FastFormat.toZeroPaddedHex(123456789L);
     assertEquals(16, str.length);
     assertEquals("00000000075bcd15", new String(str, UTF_8));
+
+    Arrays.fill(str, (byte) '-');
+    str = FastFormat.toZeroPaddedHex(0X2e429160071c63d8L);
+    assertEquals(16, str.length);
+    assertEquals("2e429160071c63d8", new String(str, UTF_8));
   }
 }
