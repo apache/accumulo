@@ -451,7 +451,7 @@ public class ZooStore<T> implements TStore<T> {
 
     try {
       if (so instanceof String) {
-        zk.putPersistentData(getTXPath(tid) + "/prop_" + prop, ("S " + so).getBytes(UTF_8),
+        zk.putPersistentData(getTXPath(tid) + "/" + prop, ("S " + so).getBytes(UTF_8),
             NodeExistsPolicy.OVERWRITE);
       } else {
         byte[] sera = serialize(so);
@@ -471,7 +471,7 @@ public class ZooStore<T> implements TStore<T> {
     verifyReserved(tid);
 
     try {
-      byte[] data = zk.getData(getTXPath(tid) + "/prop_" + prop);
+      byte[] data = zk.getData(getTXPath(tid) + "/" + prop);
 
       if (data[0] == 'O') {
         byte[] sera = new byte[data.length - 2];

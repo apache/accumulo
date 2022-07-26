@@ -53,10 +53,10 @@ import org.slf4j.LoggerFactory;
  */
 public class Fate<T> {
 
-  private static final String DEBUG_PROP = "debug";
-  private static final String AUTO_CLEAN_PROP = "autoClean";
-  private static final String EXCEPTION_PROP = "exception";
-  private static final String RETURN_PROP = "return";
+  private static final String DEBUG_PROP = "prop_debug";
+  private static final String AUTO_CLEAN_PROP = "prop_autoClean";
+  private static final String EXCEPTION_PROP = "prop_exception";
+  private static final String RETURN_PROP = "prop_return";
 
   private static final Logger log = LoggerFactory.getLogger(Fate.class);
   private final Logger runnerLog = LoggerFactory.getLogger(TransactionRunner.class);
