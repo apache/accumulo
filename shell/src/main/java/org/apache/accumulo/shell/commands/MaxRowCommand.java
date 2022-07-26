@@ -20,7 +20,6 @@ package org.apache.accumulo.shell.commands;
 
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.interpret.ScanInterpreter;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.apache.hadoop.io.Text;
@@ -37,7 +36,8 @@ public class MaxRowCommand extends ScanCommand {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
 
     @SuppressWarnings("deprecation")
-    final ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
+    final org.apache.accumulo.core.util.interpret.ScanInterpreter interpeter =
+        getInterpreter(cl, tableName, shellState);
 
     final Range range = getRange(cl, interpeter);
     final Authorizations auths = getAuths(cl, shellState);

@@ -27,7 +27,6 @@ import org.apache.accumulo.core.iterators.user.GrepIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterConfig;
-import org.apache.accumulo.core.util.interpret.ScanInterpreter;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.PrintFile;
 import org.apache.commons.cli.CommandLine;
@@ -52,7 +51,8 @@ public class GrepCommand extends ScanCommand {
       }
       final Class<? extends Formatter> formatter = getFormatter(cl, tableName, shellState);
       @SuppressWarnings("deprecation")
-      final ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
+      final org.apache.accumulo.core.util.interpret.ScanInterpreter interpeter =
+          getInterpreter(cl, tableName, shellState);
 
       // handle first argument, if present, the authorizations list to
       // scan with

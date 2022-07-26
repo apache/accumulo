@@ -517,15 +517,8 @@ public class ZooInfoViewer implements KeywordExecutable {
   }
 
   private static class NullWatcher extends PropStoreWatcher {
-
     public NullWatcher(ReadyMonitor zkReadyMonitor) {
       super(zkReadyMonitor);
-    }
-
-    public static NullWatcher get() {
-      ReadyMonitor monitor = new ReadyMonitor("property-printer", 2000);
-      monitor.setReady();
-      return new NullWatcher(monitor);
     }
   }
 }

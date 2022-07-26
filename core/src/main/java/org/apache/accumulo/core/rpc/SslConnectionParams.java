@@ -264,7 +264,7 @@ public class SslConnectionParams {
     }
     hash = 31 * hash + clientProtocol.hashCode();
     hash = 31 * hash + Arrays.hashCode(serverProtocols);
-    return super.hashCode();
+    return hash;
   }
 
   @Override

@@ -44,8 +44,6 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterConfig;
-import org.apache.accumulo.core.util.interpret.DefaultScanInterpreter;
-import org.apache.accumulo.core.util.interpret.ScanInterpreter;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.Shell.PrintFile;
@@ -105,7 +103,8 @@ public class ScanCommand extends Command {
 
       final Class<? extends Formatter> formatter = getFormatter(cl, tableName, shellState);
       @SuppressWarnings("deprecation")
-      final ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
+      final org.apache.accumulo.core.util.interpret.ScanInterpreter interpeter =
+          getInterpreter(cl, tableName, shellState);
 
       String classLoaderContext = null;
       if (cl.hasOption(contextOpt.getOpt())) {
@@ -234,23 +233,23 @@ public class ScanCommand extends Command {
   }
 
   @Deprecated(since = "2.1.0")
-  protected ScanInterpreter getInterpreter(final CommandLine cl, final String tableName,
-      final Shell shellState) throws Exception {
+  protected org.apache.accumulo.core.util.interpret.ScanInterpreter getInterpreter(
+      final CommandLine cl, final String tableName, final Shell shellState) throws Exception {
 
-    Class<? extends ScanInterpreter> clazz = null;
+    Class<? extends org.apache.accumulo.core.util.interpret.ScanInterpreter> clazz = null;
     try {
       if (cl.hasOption(interpreterOpt.getOpt())) {
         Shell.log
             .warn("Scan Interpreter option is deprecated and will be removed in a future version.");
 
         clazz = ClassLoaderUtil.loadClass(cl.getOptionValue(interpreterOpt.getOpt()),
-            ScanInterpreter.class);
+            org.apache.accumulo.core.util.interpret.ScanInterpreter.class);
       } else if (cl.hasOption(formatterInterpeterOpt.getOpt())) {
         Shell.log
             .warn("Scan Interpreter option is deprecated and will be removed in a future version.");
 
         clazz = ClassLoaderUtil.loadClass(cl.getOptionValue(formatterInterpeterOpt.getOpt()),
-            ScanInterpreter.class);
+            org.apache.accumulo.core.util.interpret.ScanInterpreter.class);
       }
     } catch (ClassNotFoundException e) {
       Shell.log.error("Interpreter class could not be loaded.", e);
@@ -260,7 +259,7 @@ public class ScanCommand extends Command {
       clazz = InterpreterCommand.getCurrentInterpreter(tableName, shellState);
 
     if (clazz == null)
-      clazz = DefaultScanInterpreter.class;
+      clazz = org.apache.accumulo.core.util.interpret.DefaultScanInterpreter.class;
 
     return clazz.getDeclaredConstructor().newInstance();
   }
@@ -289,7 +288,7 @@ public class ScanCommand extends Command {
   }
 
   protected void fetchColumns(final CommandLine cl, final ScannerBase scanner,
-      @SuppressWarnings("deprecation") final ScanInterpreter formatter)
+      @SuppressWarnings("deprecation") final org.apache.accumulo.core.util.interpret.ScanInterpreter formatter)
       throws UnsupportedEncodingException {
 
     if ((cl.hasOption(scanOptCf.getOpt()) || cl.hasOption(scanOptCq.getOpt()))
@@ -305,19 +304,24 @@ public class ScanCommand extends Command {
       for (String a : cl.getOptionValue(scanOptColumns.getOpt()).split(",")) {
         final String[] sa = a.split(":", 2);
         if (sa.length == 1) {
-          scanner.fetchColumnFamily(
-              formatter.interpretColumnFamily(new Text(a.getBytes(Shell.CHARSET))));
+          @SuppressWarnings("deprecation")
+          var interprettedCF = formatter.interpretColumnFamily(new Text(a.getBytes(Shell.CHARSET)));
+          scanner.fetchColumnFamily(interprettedCF);
         } else {
-          scanner.fetchColumn(
-              formatter.interpretColumnFamily(new Text(sa[0].getBytes(Shell.CHARSET))),
-              formatter.interpretColumnQualifier(new Text(sa[1].getBytes(Shell.CHARSET))));
+          @SuppressWarnings("deprecation")
+          var interprettedCF =
+              formatter.interpretColumnFamily(new Text(sa[0].getBytes(Shell.CHARSET)));
+          @SuppressWarnings("deprecation")
+          var interprettedCQ =
+              formatter.interpretColumnQualifier(new Text(sa[1].getBytes(Shell.CHARSET)));
+          scanner.fetchColumn(interprettedCF, interprettedCQ);
         }
       }
     }
   }
 
   private void fetchColumsWithCFAndCQ(CommandLine cl, Scanner scanner,
-      @SuppressWarnings("deprecation") ScanInterpreter interpeter) {
+      @SuppressWarnings("deprecation") org.apache.accumulo.core.util.interpret.ScanInterpreter interpeter) {
     String cf = "";
     String cq = "";
     if (cl.hasOption(scanOptCf.getOpt())) {
@@ -332,19 +336,23 @@ public class ScanCommand extends Command {
           scanOptCf.getOpt(), scanOptCq.getOpt());
       throw new IllegalArgumentException(formattedString);
     } else if (!cf.isEmpty() && cq.isEmpty()) {
-      scanner.fetchColumnFamily(
-          interpeter.interpretColumnFamily(new Text(cf.getBytes(Shell.CHARSET))));
-
+      @SuppressWarnings("deprecation")
+      var interprettedCF = interpeter.interpretColumnFamily(new Text(cf.getBytes(Shell.CHARSET)));
+      scanner.fetchColumnFamily(interprettedCF);
     } else if (!cf.isEmpty() && !cq.isEmpty()) {
-      scanner.fetchColumn(interpeter.interpretColumnFamily(new Text(cf.getBytes(Shell.CHARSET))),
-          interpeter.interpretColumnQualifier(new Text(cq.getBytes(Shell.CHARSET))));
+      @SuppressWarnings("deprecation")
+      var interprettedCF = interpeter.interpretColumnFamily(new Text(cf.getBytes(Shell.CHARSET)));
+      @SuppressWarnings("deprecation")
+      var interprettedCQ =
+          interpeter.interpretColumnQualifier(new Text(cq.getBytes(Shell.CHARSET)));
+      scanner.fetchColumn(interprettedCF, interprettedCQ);
 
     }
 
   }
 
   protected Range getRange(final CommandLine cl,
-      @SuppressWarnings("deprecation") final ScanInterpreter formatter)
+      @SuppressWarnings("deprecation") final org.apache.accumulo.core.util.interpret.ScanInterpreter formatter)
       throws UnsupportedEncodingException {
     if ((cl.hasOption(OptUtil.START_ROW_OPT) || cl.hasOption(OptUtil.END_ROW_OPT))
         && cl.hasOption(scanOptRow.getOpt())) {
@@ -355,15 +363,23 @@ public class ScanCommand extends Command {
     }
 
     if (cl.hasOption(scanOptRow.getOpt())) {
-      return new Range(formatter
-          .interpretRow(new Text(cl.getOptionValue(scanOptRow.getOpt()).getBytes(Shell.CHARSET))));
+      @SuppressWarnings("deprecation")
+      var interprettedRow = formatter
+          .interpretRow(new Text(cl.getOptionValue(scanOptRow.getOpt()).getBytes(Shell.CHARSET)));
+      return new Range(interprettedRow);
     } else {
       Text startRow = OptUtil.getStartRow(cl);
-      if (startRow != null)
-        startRow = formatter.interpretBeginRow(startRow);
+      if (startRow != null) {
+        @SuppressWarnings("deprecation")
+        var interprettedBeginRow = formatter.interpretBeginRow(startRow);
+        startRow = interprettedBeginRow;
+      }
       Text endRow = OptUtil.getEndRow(cl);
-      if (endRow != null)
-        endRow = formatter.interpretEndRow(endRow);
+      if (endRow != null) {
+        @SuppressWarnings("deprecation")
+        var interprettedEndRow = formatter.interpretEndRow(endRow);
+        endRow = interprettedEndRow;
+      }
       final boolean startInclusive = !cl.hasOption(optStartRowExclusive.getOpt());
       final boolean endInclusive = !cl.hasOption(optEndRowExclusive.getOpt());
       return new Range(startRow, startInclusive, endRow, endInclusive);
