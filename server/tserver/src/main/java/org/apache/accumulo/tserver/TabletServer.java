@@ -106,7 +106,7 @@ import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.AbstractServer;
-import org.apache.accumulo.server.GarbageCollectionLogger;
+import org.apache.accumulo.server.JvmGcLogger;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.TabletLevel;
@@ -176,7 +176,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private static final long TIME_BETWEEN_GC_CHECKS = TimeUnit.SECONDS.toMillis(5);
   private static final long TIME_BETWEEN_LOCATOR_CACHE_CLEARS = TimeUnit.HOURS.toMillis(1);
 
-  private final GarbageCollectionLogger gcLogger;
+  private final JvmGcLogger jvmGcLogger;
 
   final ZooCache managerLockCache;
 
@@ -265,7 +265,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     // it doesn't
     checkWalCanSync(context);
 
-    gcLogger = context.getGarbageCollectionLogger();
+    jvmGcLogger = context.getJvmGcLogger();
 
     // This thread will calculate and log out the busiest tablets based on ingest count and
     // query count every #{logBusiestTabletsDelay}
@@ -657,8 +657,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   }
 
   @Override
-  public GarbageCollectionLogger getGcLogger() {
-    return gcLogger;
+  public JvmGcLogger getJvmGcLogger() {
+    return jvmGcLogger;
   }
 
   private void announceExistence() {
@@ -687,7 +687,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
             if (!serverStopRequested) {
               log.error("Lost tablet server lock (reason = {}), exiting.", reason);
             }
-            gcLogger.logGCInfo();
+            jvmGcLogger.log();
           });
         }
 
@@ -954,7 +954,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       log.warn("Failed to close filesystem : {}", e.getMessage(), e);
     }
 
-    gcLogger.logGCInfo();
+    jvmGcLogger.log();
 
     log.info("TServerInfo: stop requested. exiting ... ");
 
@@ -1049,7 +1049,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
     FileSystemMonitor.start(aconf, Property.TSERV_MONITOR_FS);
 
-    Runnable gcDebugTask = () -> gcLogger.logGCInfo();
+    Runnable gcDebugTask = () -> jvmGcLogger.log();
 
     ScheduledFuture<?> future = context.getScheduledExecutor().scheduleWithFixedDelay(gcDebugTask,
         0, TIME_BETWEEN_GC_CHECKS, TimeUnit.MILLISECONDS);

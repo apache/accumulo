@@ -22,7 +22,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.server.GarbageCollectionLogger;
+import org.apache.accumulo.server.JvmGcLogger;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
@@ -52,6 +52,6 @@ public interface TabletHostingServer {
 
   ZooCache getManagerLockCache();
 
-  GarbageCollectionLogger getGcLogger();
+  JvmGcLogger getJvmGcLogger();
 
 }

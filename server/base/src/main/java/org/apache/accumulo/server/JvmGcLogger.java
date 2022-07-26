@@ -31,8 +31,8 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class GarbageCollectionLogger {
-  private static final Logger log = LoggerFactory.getLogger(GarbageCollectionLogger.class);
+public class JvmGcLogger {
+  private static final Logger log = LoggerFactory.getLogger(JvmGcLogger.class);
 
   private final ServerContext context;
 
@@ -43,15 +43,15 @@ public class GarbageCollectionLogger {
 
   private static final long TIME_BETWEEN_GC_CHECKS_MIN = 5;
 
-  public GarbageCollectionLogger(final ServerContext context) {
+  public JvmGcLogger(final ServerContext context) {
     this.context = context;
 
-    ScheduledFuture<?> future = context.getScheduledExecutor()
-        .scheduleWithFixedDelay(this::logGCInfo, 0, TIME_BETWEEN_GC_CHECKS_MIN, TimeUnit.MINUTES);
+    ScheduledFuture<?> future = context.getScheduledExecutor().scheduleWithFixedDelay(this::log, 0,
+        TIME_BETWEEN_GC_CHECKS_MIN, TimeUnit.MINUTES);
     ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
-  public synchronized void logGCInfo() {
+  public synchronized void log() {
     final long now = System.currentTimeMillis();
 
     List<GarbageCollectorMXBean> gcmBeans = ManagementFactory.getGarbageCollectorMXBeans();

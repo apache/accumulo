@@ -273,7 +273,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       public void lostLock(final LockLossReason reason) {
         Halt.halt(1, () -> {
           LOG.error("Compactor lost lock (reason = {}), exiting.", reason);
-          getContext().getGarbageCollectionLogger().logGCInfo();
+          getContext().getJvmGcLogger().log();
         });
       }
 
@@ -802,7 +802,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         LOG.warn("Failed to close filesystem : {}", e.getMessage(), e);
       }
 
-      getContext().getGarbageCollectionLogger().logGCInfo();
+      getContext().getJvmGcLogger().log();
       LOG.info("stop requested. exiting ... ");
       try {
         if (null != compactorLock) {
