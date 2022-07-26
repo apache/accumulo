@@ -56,7 +56,7 @@ public class TabletFile implements Comparable<TabletFile> {
   public TabletFile(Path metaPath) {
     this.metaPath = Objects.requireNonNull(metaPath);
     String errorMsg = "Missing or invalid part of tablet file metadata entry: " + metaPath;
-    log.debug("Parsing TabletFile from {}", metaPath);
+    log.trace("Parsing TabletFile from {}", metaPath);
 
     // use Path object to step backwards from the filename through all the parts
     this.fileName = metaPath.getName();

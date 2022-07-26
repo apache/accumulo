@@ -40,7 +40,6 @@ import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
-import org.apache.accumulo.core.util.interpret.DefaultScanInterpreter;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
@@ -1114,7 +1113,8 @@ public enum Property {
   TABLE_FORMATTER_CLASS("table.formatter", DefaultFormatter.class.getName(), PropertyType.STRING,
       "The Formatter class to apply on results in the shell", "1.4.0"),
   @Deprecated(since = "2.1.0")
-  TABLE_INTERPRETER_CLASS("table.interepreter", DefaultScanInterpreter.class.getName(),
+  TABLE_INTERPRETER_CLASS("table.interepreter",
+      org.apache.accumulo.core.util.interpret.DefaultScanInterpreter.class.getName(),
       PropertyType.STRING,
       "The ScanInterpreter class to apply on scan arguments in the shell. "
           + "Note that this property is deprecated and will be removed in a future version.",
