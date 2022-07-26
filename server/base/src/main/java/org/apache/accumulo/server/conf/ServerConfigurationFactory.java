@@ -26,6 +26,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -65,6 +68,8 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   private static final int REFRESH_PERIOD_MINUTES = 15;
 
   private final ConfigRefreshRunner refresher;
+  private static final AtomicBoolean isConfigRefreshRunning = new AtomicBoolean(false);
+  private static final Lock refreshLock = new ReentrantLock();
 
   public ServerConfigurationFactory(ServerContext context, SiteConfiguration siteConfig) {
     this.context = context;
@@ -161,19 +166,19 @@ public class ServerConfigurationFactory extends ServerConfiguration {
 
   private class ConfigRefreshRunner {
     private static final long MIN_JITTER_DELAY = 1;
-
     private static final long MAX_JITTER_DELAY = 23;
     private final ScheduledFuture<?> refreshTaskFuture;
 
     ConfigRefreshRunner() {
 
       Runnable refreshTask = this::verifySnapshotVersions;
-      // staggering the initial delay prevents synchronization of Accumulo servers communicating
-      // with ZooKeeper for the sync process.
-      long randDelay = jitter(REFRESH_PERIOD_MINUTES / 4, REFRESH_PERIOD_MINUTES);
 
       ScheduledThreadPoolExecutor executor = ThreadPools.getServerThreadPools()
-          .createScheduledExecutorService(4, "config-refresh", false);
+          .createScheduledExecutorService(1, "config-refresh", false);
+
+      // staggering the initial delay prevents synchronization of Accumulo servers communicating
+      // with ZooKeeper for the sync process. (Value is 25% -> 100% of the refresh period.)
+      long randDelay = jitter(REFRESH_PERIOD_MINUTES / 4, REFRESH_PERIOD_MINUTES);
       refreshTaskFuture =
           executor.scheduleWithFixedDelay(refreshTask, randDelay, REFRESH_PERIOD_MINUTES, MINUTES);
     }
@@ -186,61 +191,66 @@ public class ServerConfigurationFactory extends ServerConfiguration {
      * This method is designed to be called as a scheduled task, so it does not propagate exceptions
      * other than interrupted Exceptions so the scheduled tasks will continue to run.
      */
+    private void verifySnapshotVersions() {
 
-    private synchronized void verifySnapshotVersions() {
-      long refreshStart = System.nanoTime();
-      int keyCount = 0;
-      int keyChangedCount = 0;
-
-      PropStore propStore = context.getPropStore();
-      keyCount++;
-
-      // rely on store to propagate change event if different
-      propStore.validateDataVersion(SystemPropKey.of(context),
-          ((ZooBasedConfiguration) getSystemConfiguration()).getDataVersion());
-      // small yield - spread out ZooKeeper calls
-      jitterDelay();
-
-      for (Map.Entry<NamespaceId,NamespaceConfiguration> entry : namespaceConfigs.entrySet()) {
-        keyCount++;
-        PropStoreKey<?> propKey = NamespacePropKey.of(context, entry.getKey());
-        if (!propStore.validateDataVersion(propKey, entry.getValue().getDataVersion())) {
-          keyChangedCount++;
-          namespaceConfigs.remove(entry.getKey());
-        }
-        // small yield - spread out ZooKeeper calls between namespace config checks
-        jitterDelay();
+      // short circuit if refresh in progress
+      if (isConfigRefreshRunning.get()) {
+        return;
       }
 
-      for (Map.Entry<TableId,TableConfiguration> entry : tableConfigs.entrySet()) {
-        keyCount++;
-        TableId tid = entry.getKey();
-        PropStoreKey<?> propKey = TablePropKey.of(context, tid);
-        if (!propStore.validateDataVersion(propKey, entry.getValue().getDataVersion())) {
-          keyChangedCount++;
-          tableConfigs.remove(tid);
-          tableParentConfigs.remove(tid);
-          log.debug("data version sync: difference found. forcing configuration update for {}}",
-              propKey);
-        }
-        // small yield - spread out ZooKeeper calls between table config checks
-        jitterDelay();
-      }
+      // allow only one thread if missed short circuit check.
+      refreshLock.lock();
+      try {
+        isConfigRefreshRunning.set(true);
+        long refreshStart = System.nanoTime();
+        int keyCount = 0;
+        int keyChangedCount = 0;
 
-      log.debug("data version sync: Total runtime {} ms for {} entries, changes detected: {}",
-          NANOSECONDS.toMillis(System.nanoTime() - refreshStart), keyCount, keyChangedCount);
+        PropStore propStore = context.getPropStore();
+        keyCount++;
+
+        // rely on store to propagate change event if different
+        propStore.validateDataVersion(SystemPropKey.of(context),
+            ((ZooBasedConfiguration) getSystemConfiguration()).getDataVersion());
+        // small yield - spread out ZooKeeper calls
+        jitterDelay();
+
+        for (Map.Entry<NamespaceId,NamespaceConfiguration> entry : namespaceConfigs.entrySet()) {
+          keyCount++;
+          PropStoreKey<?> propKey = NamespacePropKey.of(context, entry.getKey());
+          if (!propStore.validateDataVersion(propKey, entry.getValue().getDataVersion())) {
+            keyChangedCount++;
+            namespaceConfigs.remove(entry.getKey());
+          }
+          // small yield - spread out ZooKeeper calls between namespace config checks
+          jitterDelay();
+        }
+
+        for (Map.Entry<TableId,TableConfiguration> entry : tableConfigs.entrySet()) {
+          keyCount++;
+          TableId tid = entry.getKey();
+          PropStoreKey<?> propKey = TablePropKey.of(context, tid);
+          if (!propStore.validateDataVersion(propKey, entry.getValue().getDataVersion())) {
+            keyChangedCount++;
+            tableConfigs.remove(tid);
+            tableParentConfigs.remove(tid);
+            log.debug("data version sync: difference found. forcing configuration update for {}}",
+                propKey);
+          }
+          // small yield - spread out ZooKeeper calls between table config checks
+          jitterDelay();
+        }
+
+        log.debug("data version sync: Total runtime {} ms for {} entries, changes detected: {}",
+            NANOSECONDS.toMillis(System.nanoTime() - refreshStart), keyCount, keyChangedCount);
+      } finally {
+        isConfigRefreshRunning.set(false);
+        refreshLock.unlock();
+      }
     }
 
     /**
      * Generate a small random integer for jitter between [min,max).
-     *
-     * @param min
-     *          minimum number (inclusive)
-     *
-     * @param max
-     *          maximum number (exclusive)
-     *
-     * @return random number between min and MAJ_JITTER_DELAY
      */
     @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
         justification = "random number not used in secure context")

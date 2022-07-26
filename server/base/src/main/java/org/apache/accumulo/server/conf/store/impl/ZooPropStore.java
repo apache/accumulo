@@ -123,7 +123,6 @@ public class ZooPropStore implements PropStore, PropChangeListener {
       }
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
-      ;
       throw new IllegalStateException(
           "Interrupted trying to read root node " + instanceId + " from ZooKeeper", ex);
     } catch (KeeperException ex) {
