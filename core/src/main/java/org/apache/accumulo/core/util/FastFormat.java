@@ -23,6 +23,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.google.common.base.Preconditions;
 
 public class FastFormat {
+  private static final byte[] EMPTY_BYTES = new byte[] {};
 
   // this 7 to 8 times faster than String.format("%s%06d",prefix, num)
   public static byte[] toZeroPaddedString(long num, int width, int radix, byte[] prefix) {
@@ -33,6 +34,10 @@ public class FastFormat {
       throw new RuntimeException(" Did not format to expected width " + num + " " + width + " "
           + radix + " " + new String(prefix, UTF_8));
     return ret;
+  }
+
+  public static byte[] toZeroPaddedHex(long hexadecimal) {
+    return toZeroPaddedString(hexadecimal, 16, 16, EMPTY_BYTES);
   }
 
   public static int toZeroPaddedString(byte[] output, int outputOffset, long num, int width,
@@ -63,5 +68,22 @@ public class FastFormat {
     }
 
     return index - outputOffset;
+  }
+
+  /**
+   * Create a zero padded string from a hexadecimal number. This is a faster replacement for:
+   * String.format("%s%016x%s", PREFIX, tid, SUFFIX);
+   */
+  public static String toHexString(String prefix, long hexadecimal, String suffix) {
+    return prefix + new String(toZeroPaddedString(hexadecimal, 16, 16, EMPTY_BYTES), UTF_8)
+        + suffix;
+  }
+
+  /**
+   * Create a zero padded string from a hexadecimal number. This is a faster replacement for:
+   * String.format("%016x", tid)
+   */
+  public static String toHexString(long hexadecimal) {
+    return toHexString("", hexadecimal, "");
   }
 }
