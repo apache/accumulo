@@ -72,4 +72,14 @@ public class StoredTabletFile extends TabletFile {
           + " does not match what was in the metadata: " + metadataEntry);
     }
   }
+
+  @Override
+  public boolean equals(Object o) {
+    return super.equals(o);
+  }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
 }
