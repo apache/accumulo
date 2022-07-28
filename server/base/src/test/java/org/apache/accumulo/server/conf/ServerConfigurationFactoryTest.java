@@ -20,6 +20,7 @@ package org.apache.accumulo.server.conf;
 
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.createNiceMock;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
@@ -74,9 +75,7 @@ public class ServerConfigurationFactoryTest {
     propStore.registerAsListener(anyObject(), anyObject());
     expectLastCall().anyTimes();
 
-    sysConfig = createMock(SystemConfiguration.class);
-    sysConfig.getProperties(anyObject(), anyObject());
-    expectLastCall().anyTimes();
+    sysConfig = createNiceMock(SystemConfiguration.class);
 
     context = createMock(ServerContext.class);
     expect(context.getZooKeeperRoot()).andReturn("/accumulo/" + IID).anyTimes();
