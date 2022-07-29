@@ -70,6 +70,11 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   /**
    * Gets a property value from this configuration.
    *
+   * <p>
+   * Note: this is inefficient, but convenient on occasion. For retrieving multiple properties, use
+   * {@link #getProperties(Map, String...)} if the property names are known or
+   * {@link #getProperties(Map, Predicate)} with a custom filter.
+   *
    * @param property
    *          property to get
    * @return property value
@@ -128,6 +133,10 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * Returns property key/value pairs in this configuration. The pairs include those defined in this
    * configuration which pass the given filter, and those supplied from the parent configuration
    * which are not included from here.
+   *
+   * <p>
+   * Note: this is inefficient for retrieving fully-qualified properties, use
+   * {@link #getProperties(Map, String...)} instead.
    *
    * @param props
    *          properties object to populate
