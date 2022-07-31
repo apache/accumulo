@@ -81,13 +81,19 @@ public class ClientService {
 
     public java.util.Map<java.lang.String,java.lang.String> getSystemProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.thrift.TException;
 
+    public TVersionedProperties getVersionedSystemProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.thrift.TException;
+
     public java.util.Map<java.lang.String,java.lang.String> getTableConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName) throws ThriftTableOperationException, org.apache.thrift.TException;
 
     public java.util.Map<java.lang.String,java.lang.String> getTableProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName) throws ThriftTableOperationException, org.apache.thrift.TException;
 
+    public TVersionedProperties getVersionedTableProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName) throws ThriftTableOperationException, org.apache.thrift.TException;
+
     public java.util.Map<java.lang.String,java.lang.String> getNamespaceConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns) throws ThriftTableOperationException, org.apache.thrift.TException;
 
     public java.util.Map<java.lang.String,java.lang.String> getNamespaceProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns) throws ThriftTableOperationException, org.apache.thrift.TException;
+
+    public TVersionedProperties getVersionedNamespaceProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns) throws ThriftTableOperationException, org.apache.thrift.TException;
 
     public boolean checkClass(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String className, java.lang.String interfaceMatch) throws org.apache.thrift.TException;
 
@@ -151,13 +157,19 @@ public class ClientService {
 
     public void getSystemProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.util.Map<java.lang.String,java.lang.String>> resultHandler) throws org.apache.thrift.TException;
 
+    public void getVersionedSystemProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<TVersionedProperties> resultHandler) throws org.apache.thrift.TException;
+
     public void getTableConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName, org.apache.thrift.async.AsyncMethodCallback<java.util.Map<java.lang.String,java.lang.String>> resultHandler) throws org.apache.thrift.TException;
 
     public void getTableProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName, org.apache.thrift.async.AsyncMethodCallback<java.util.Map<java.lang.String,java.lang.String>> resultHandler) throws org.apache.thrift.TException;
 
+    public void getVersionedTableProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName, org.apache.thrift.async.AsyncMethodCallback<TVersionedProperties> resultHandler) throws org.apache.thrift.TException;
+
     public void getNamespaceConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns, org.apache.thrift.async.AsyncMethodCallback<java.util.Map<java.lang.String,java.lang.String>> resultHandler) throws org.apache.thrift.TException;
 
     public void getNamespaceProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns, org.apache.thrift.async.AsyncMethodCallback<java.util.Map<java.lang.String,java.lang.String>> resultHandler) throws org.apache.thrift.TException;
+
+    public void getVersionedNamespaceProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns, org.apache.thrift.async.AsyncMethodCallback<TVersionedProperties> resultHandler) throws org.apache.thrift.TException;
 
     public void checkClass(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String className, java.lang.String interfaceMatch, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler) throws org.apache.thrift.TException;
 
@@ -894,6 +906,30 @@ public class ClientService {
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getSystemProperties failed: unknown result");
     }
 
+    public TVersionedProperties getVersionedSystemProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.thrift.TException
+    {
+      send_getVersionedSystemProperties(tinfo, credentials);
+      return recv_getVersionedSystemProperties();
+    }
+
+    public void send_getVersionedSystemProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.thrift.TException
+    {
+      getVersionedSystemProperties_args args = new getVersionedSystemProperties_args();
+      args.setTinfo(tinfo);
+      args.setCredentials(credentials);
+      sendBase("getVersionedSystemProperties", args);
+    }
+
+    public TVersionedProperties recv_getVersionedSystemProperties() throws org.apache.thrift.TException
+    {
+      getVersionedSystemProperties_result result = new getVersionedSystemProperties_result();
+      receiveBase(result, "getVersionedSystemProperties");
+      if (result.isSetSuccess()) {
+        return result.success;
+      }
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getVersionedSystemProperties failed: unknown result");
+    }
+
     public java.util.Map<java.lang.String,java.lang.String> getTableConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName) throws ThriftTableOperationException, org.apache.thrift.TException
     {
       send_getTableConfiguration(tinfo, credentials, tableName);
@@ -950,6 +986,34 @@ public class ClientService {
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getTableProperties failed: unknown result");
     }
 
+    public TVersionedProperties getVersionedTableProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName) throws ThriftTableOperationException, org.apache.thrift.TException
+    {
+      send_getVersionedTableProperties(tinfo, credentials, tableName);
+      return recv_getVersionedTableProperties();
+    }
+
+    public void send_getVersionedTableProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName) throws org.apache.thrift.TException
+    {
+      getVersionedTableProperties_args args = new getVersionedTableProperties_args();
+      args.setTinfo(tinfo);
+      args.setCredentials(credentials);
+      args.setTableName(tableName);
+      sendBase("getVersionedTableProperties", args);
+    }
+
+    public TVersionedProperties recv_getVersionedTableProperties() throws ThriftTableOperationException, org.apache.thrift.TException
+    {
+      getVersionedTableProperties_result result = new getVersionedTableProperties_result();
+      receiveBase(result, "getVersionedTableProperties");
+      if (result.isSetSuccess()) {
+        return result.success;
+      }
+      if (result.tope != null) {
+        throw result.tope;
+      }
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getVersionedTableProperties failed: unknown result");
+    }
+
     public java.util.Map<java.lang.String,java.lang.String> getNamespaceConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns) throws ThriftTableOperationException, org.apache.thrift.TException
     {
       send_getNamespaceConfiguration(tinfo, credentials, ns);
@@ -1004,6 +1068,34 @@ public class ClientService {
         throw result.tope;
       }
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getNamespaceProperties failed: unknown result");
+    }
+
+    public TVersionedProperties getVersionedNamespaceProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns) throws ThriftTableOperationException, org.apache.thrift.TException
+    {
+      send_getVersionedNamespaceProperties(tinfo, credentials, ns);
+      return recv_getVersionedNamespaceProperties();
+    }
+
+    public void send_getVersionedNamespaceProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns) throws org.apache.thrift.TException
+    {
+      getVersionedNamespaceProperties_args args = new getVersionedNamespaceProperties_args();
+      args.setTinfo(tinfo);
+      args.setCredentials(credentials);
+      args.setNs(ns);
+      sendBase("getVersionedNamespaceProperties", args);
+    }
+
+    public TVersionedProperties recv_getVersionedNamespaceProperties() throws ThriftTableOperationException, org.apache.thrift.TException
+    {
+      getVersionedNamespaceProperties_result result = new getVersionedNamespaceProperties_result();
+      receiveBase(result, "getVersionedNamespaceProperties");
+      if (result.isSetSuccess()) {
+        return result.success;
+      }
+      if (result.tope != null) {
+        throw result.tope;
+      }
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getVersionedNamespaceProperties failed: unknown result");
     }
 
     public boolean checkClass(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String className, java.lang.String interfaceMatch) throws org.apache.thrift.TException
@@ -2122,6 +2214,41 @@ public class ClientService {
       }
     }
 
+    public void getVersionedSystemProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<TVersionedProperties> resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      getVersionedSystemProperties_call method_call = new getVersionedSystemProperties_call(tinfo, credentials, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class getVersionedSystemProperties_call extends org.apache.thrift.async.TAsyncMethodCall<TVersionedProperties> {
+      private org.apache.accumulo.core.trace.thrift.TInfo tinfo;
+      private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
+      public getVersionedSystemProperties_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<TVersionedProperties> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.tinfo = tinfo;
+        this.credentials = credentials;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getVersionedSystemProperties", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        getVersionedSystemProperties_args args = new getVersionedSystemProperties_args();
+        args.setTinfo(tinfo);
+        args.setCredentials(credentials);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public TVersionedProperties getResult() throws org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new java.lang.IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        return (new Client(prot)).recv_getVersionedSystemProperties();
+      }
+    }
+
     public void getTableConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName, org.apache.thrift.async.AsyncMethodCallback<java.util.Map<java.lang.String,java.lang.String>> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       getTableConfiguration_call method_call = new getTableConfiguration_call(tinfo, credentials, tableName, resultHandler, this, ___protocolFactory, ___transport);
@@ -2198,6 +2325,44 @@ public class ClientService {
       }
     }
 
+    public void getVersionedTableProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName, org.apache.thrift.async.AsyncMethodCallback<TVersionedProperties> resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      getVersionedTableProperties_call method_call = new getVersionedTableProperties_call(tinfo, credentials, tableName, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class getVersionedTableProperties_call extends org.apache.thrift.async.TAsyncMethodCall<TVersionedProperties> {
+      private org.apache.accumulo.core.trace.thrift.TInfo tinfo;
+      private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
+      private java.lang.String tableName;
+      public getVersionedTableProperties_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName, org.apache.thrift.async.AsyncMethodCallback<TVersionedProperties> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.tinfo = tinfo;
+        this.credentials = credentials;
+        this.tableName = tableName;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getVersionedTableProperties", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        getVersionedTableProperties_args args = new getVersionedTableProperties_args();
+        args.setTinfo(tinfo);
+        args.setCredentials(credentials);
+        args.setTableName(tableName);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public TVersionedProperties getResult() throws ThriftTableOperationException, org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new java.lang.IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        return (new Client(prot)).recv_getVersionedTableProperties();
+      }
+    }
+
     public void getNamespaceConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns, org.apache.thrift.async.AsyncMethodCallback<java.util.Map<java.lang.String,java.lang.String>> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       getNamespaceConfiguration_call method_call = new getNamespaceConfiguration_call(tinfo, credentials, ns, resultHandler, this, ___protocolFactory, ___transport);
@@ -2271,6 +2436,44 @@ public class ClientService {
         org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
         org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
         return (new Client(prot)).recv_getNamespaceProperties();
+      }
+    }
+
+    public void getVersionedNamespaceProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns, org.apache.thrift.async.AsyncMethodCallback<TVersionedProperties> resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      getVersionedNamespaceProperties_call method_call = new getVersionedNamespaceProperties_call(tinfo, credentials, ns, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class getVersionedNamespaceProperties_call extends org.apache.thrift.async.TAsyncMethodCall<TVersionedProperties> {
+      private org.apache.accumulo.core.trace.thrift.TInfo tinfo;
+      private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
+      private java.lang.String ns;
+      public getVersionedNamespaceProperties_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns, org.apache.thrift.async.AsyncMethodCallback<TVersionedProperties> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.tinfo = tinfo;
+        this.credentials = credentials;
+        this.ns = ns;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getVersionedNamespaceProperties", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        getVersionedNamespaceProperties_args args = new getVersionedNamespaceProperties_args();
+        args.setTinfo(tinfo);
+        args.setCredentials(credentials);
+        args.setNs(ns);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public TVersionedProperties getResult() throws ThriftTableOperationException, org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new java.lang.IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        return (new Client(prot)).recv_getVersionedNamespaceProperties();
       }
     }
 
@@ -2442,10 +2645,13 @@ public class ClientService {
       processMap.put("revokeNamespacePermission", new revokeNamespacePermission());
       processMap.put("getConfiguration", new getConfiguration());
       processMap.put("getSystemProperties", new getSystemProperties());
+      processMap.put("getVersionedSystemProperties", new getVersionedSystemProperties());
       processMap.put("getTableConfiguration", new getTableConfiguration());
       processMap.put("getTableProperties", new getTableProperties());
+      processMap.put("getVersionedTableProperties", new getVersionedTableProperties());
       processMap.put("getNamespaceConfiguration", new getNamespaceConfiguration());
       processMap.put("getNamespaceProperties", new getNamespaceProperties());
+      processMap.put("getVersionedNamespaceProperties", new getVersionedNamespaceProperties());
       processMap.put("checkClass", new checkClass());
       processMap.put("checkTableClass", new checkTableClass());
       processMap.put("checkNamespaceClass", new checkNamespaceClass());
@@ -3204,6 +3410,31 @@ public class ClientService {
       }
     }
 
+    public static class getVersionedSystemProperties<I extends Iface> extends org.apache.thrift.ProcessFunction<I, getVersionedSystemProperties_args> {
+      public getVersionedSystemProperties() {
+        super("getVersionedSystemProperties");
+      }
+
+      public getVersionedSystemProperties_args getEmptyArgsInstance() {
+        return new getVersionedSystemProperties_args();
+      }
+
+      protected boolean isOneway() {
+        return false;
+      }
+
+      @Override
+      protected boolean rethrowUnhandledExceptions() {
+        return false;
+      }
+
+      public getVersionedSystemProperties_result getResult(I iface, getVersionedSystemProperties_args args) throws org.apache.thrift.TException {
+        getVersionedSystemProperties_result result = new getVersionedSystemProperties_result();
+        result.success = iface.getVersionedSystemProperties(args.tinfo, args.credentials);
+        return result;
+      }
+    }
+
     public static class getTableConfiguration<I extends Iface> extends org.apache.thrift.ProcessFunction<I, getTableConfiguration_args> {
       public getTableConfiguration() {
         super("getTableConfiguration");
@@ -3262,6 +3493,35 @@ public class ClientService {
       }
     }
 
+    public static class getVersionedTableProperties<I extends Iface> extends org.apache.thrift.ProcessFunction<I, getVersionedTableProperties_args> {
+      public getVersionedTableProperties() {
+        super("getVersionedTableProperties");
+      }
+
+      public getVersionedTableProperties_args getEmptyArgsInstance() {
+        return new getVersionedTableProperties_args();
+      }
+
+      protected boolean isOneway() {
+        return false;
+      }
+
+      @Override
+      protected boolean rethrowUnhandledExceptions() {
+        return false;
+      }
+
+      public getVersionedTableProperties_result getResult(I iface, getVersionedTableProperties_args args) throws org.apache.thrift.TException {
+        getVersionedTableProperties_result result = new getVersionedTableProperties_result();
+        try {
+          result.success = iface.getVersionedTableProperties(args.tinfo, args.credentials, args.tableName);
+        } catch (ThriftTableOperationException tope) {
+          result.tope = tope;
+        }
+        return result;
+      }
+    }
+
     public static class getNamespaceConfiguration<I extends Iface> extends org.apache.thrift.ProcessFunction<I, getNamespaceConfiguration_args> {
       public getNamespaceConfiguration() {
         super("getNamespaceConfiguration");
@@ -3313,6 +3573,35 @@ public class ClientService {
         getNamespaceProperties_result result = new getNamespaceProperties_result();
         try {
           result.success = iface.getNamespaceProperties(args.tinfo, args.credentials, args.ns);
+        } catch (ThriftTableOperationException tope) {
+          result.tope = tope;
+        }
+        return result;
+      }
+    }
+
+    public static class getVersionedNamespaceProperties<I extends Iface> extends org.apache.thrift.ProcessFunction<I, getVersionedNamespaceProperties_args> {
+      public getVersionedNamespaceProperties() {
+        super("getVersionedNamespaceProperties");
+      }
+
+      public getVersionedNamespaceProperties_args getEmptyArgsInstance() {
+        return new getVersionedNamespaceProperties_args();
+      }
+
+      protected boolean isOneway() {
+        return false;
+      }
+
+      @Override
+      protected boolean rethrowUnhandledExceptions() {
+        return false;
+      }
+
+      public getVersionedNamespaceProperties_result getResult(I iface, getVersionedNamespaceProperties_args args) throws org.apache.thrift.TException {
+        getVersionedNamespaceProperties_result result = new getVersionedNamespaceProperties_result();
+        try {
+          result.success = iface.getVersionedNamespaceProperties(args.tinfo, args.credentials, args.ns);
         } catch (ThriftTableOperationException tope) {
           result.tope = tope;
         }
@@ -3449,10 +3738,13 @@ public class ClientService {
       processMap.put("revokeNamespacePermission", new revokeNamespacePermission());
       processMap.put("getConfiguration", new getConfiguration());
       processMap.put("getSystemProperties", new getSystemProperties());
+      processMap.put("getVersionedSystemProperties", new getVersionedSystemProperties());
       processMap.put("getTableConfiguration", new getTableConfiguration());
       processMap.put("getTableProperties", new getTableProperties());
+      processMap.put("getVersionedTableProperties", new getVersionedTableProperties());
       processMap.put("getNamespaceConfiguration", new getNamespaceConfiguration());
       processMap.put("getNamespaceProperties", new getNamespaceProperties());
+      processMap.put("getVersionedNamespaceProperties", new getVersionedNamespaceProperties());
       processMap.put("checkClass", new checkClass());
       processMap.put("checkTableClass", new checkTableClass());
       processMap.put("checkNamespaceClass", new checkNamespaceClass());
@@ -5152,6 +5444,67 @@ public class ClientService {
       }
     }
 
+    public static class getVersionedSystemProperties<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, getVersionedSystemProperties_args, TVersionedProperties> {
+      public getVersionedSystemProperties() {
+        super("getVersionedSystemProperties");
+      }
+
+      public getVersionedSystemProperties_args getEmptyArgsInstance() {
+        return new getVersionedSystemProperties_args();
+      }
+
+      public org.apache.thrift.async.AsyncMethodCallback<TVersionedProperties> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
+        final org.apache.thrift.AsyncProcessFunction fcall = this;
+        return new org.apache.thrift.async.AsyncMethodCallback<TVersionedProperties>() { 
+          public void onComplete(TVersionedProperties o) {
+            getVersionedSystemProperties_result result = new getVersionedSystemProperties_result();
+            result.success = o;
+            try {
+              fcall.sendResponse(fb, result, org.apache.thrift.protocol.TMessageType.REPLY,seqid);
+            } catch (org.apache.thrift.transport.TTransportException e) {
+              _LOGGER.error("TTransportException writing to internal frame buffer", e);
+              fb.close();
+            } catch (java.lang.Exception e) {
+              _LOGGER.error("Exception writing to internal frame buffer", e);
+              onError(e);
+            }
+          }
+          public void onError(java.lang.Exception e) {
+            byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
+            org.apache.thrift.TSerializable msg;
+            getVersionedSystemProperties_result result = new getVersionedSystemProperties_result();
+            if (e instanceof org.apache.thrift.transport.TTransportException) {
+              _LOGGER.error("TTransportException inside handler", e);
+              fb.close();
+              return;
+            } else if (e instanceof org.apache.thrift.TApplicationException) {
+              _LOGGER.error("TApplicationException inside handler", e);
+              msgType = org.apache.thrift.protocol.TMessageType.EXCEPTION;
+              msg = (org.apache.thrift.TApplicationException)e;
+            } else {
+              _LOGGER.error("Exception inside handler", e);
+              msgType = org.apache.thrift.protocol.TMessageType.EXCEPTION;
+              msg = new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.INTERNAL_ERROR, e.getMessage());
+            }
+            try {
+              fcall.sendResponse(fb,msg,msgType,seqid);
+            } catch (java.lang.Exception ex) {
+              _LOGGER.error("Exception writing to internal frame buffer", ex);
+              fb.close();
+            }
+          }
+        };
+      }
+
+      protected boolean isOneway() {
+        return false;
+      }
+
+      public void start(I iface, getVersionedSystemProperties_args args, org.apache.thrift.async.AsyncMethodCallback<TVersionedProperties> resultHandler) throws org.apache.thrift.TException {
+        iface.getVersionedSystemProperties(args.tinfo, args.credentials,resultHandler);
+      }
+    }
+
     public static class getTableConfiguration<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, getTableConfiguration_args, java.util.Map<java.lang.String,java.lang.String>> {
       public getTableConfiguration() {
         super("getTableConfiguration");
@@ -5282,6 +5635,71 @@ public class ClientService {
       }
     }
 
+    public static class getVersionedTableProperties<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, getVersionedTableProperties_args, TVersionedProperties> {
+      public getVersionedTableProperties() {
+        super("getVersionedTableProperties");
+      }
+
+      public getVersionedTableProperties_args getEmptyArgsInstance() {
+        return new getVersionedTableProperties_args();
+      }
+
+      public org.apache.thrift.async.AsyncMethodCallback<TVersionedProperties> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
+        final org.apache.thrift.AsyncProcessFunction fcall = this;
+        return new org.apache.thrift.async.AsyncMethodCallback<TVersionedProperties>() { 
+          public void onComplete(TVersionedProperties o) {
+            getVersionedTableProperties_result result = new getVersionedTableProperties_result();
+            result.success = o;
+            try {
+              fcall.sendResponse(fb, result, org.apache.thrift.protocol.TMessageType.REPLY,seqid);
+            } catch (org.apache.thrift.transport.TTransportException e) {
+              _LOGGER.error("TTransportException writing to internal frame buffer", e);
+              fb.close();
+            } catch (java.lang.Exception e) {
+              _LOGGER.error("Exception writing to internal frame buffer", e);
+              onError(e);
+            }
+          }
+          public void onError(java.lang.Exception e) {
+            byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
+            org.apache.thrift.TSerializable msg;
+            getVersionedTableProperties_result result = new getVersionedTableProperties_result();
+            if (e instanceof ThriftTableOperationException) {
+              result.tope = (ThriftTableOperationException) e;
+              result.setTopeIsSet(true);
+              msg = result;
+            } else if (e instanceof org.apache.thrift.transport.TTransportException) {
+              _LOGGER.error("TTransportException inside handler", e);
+              fb.close();
+              return;
+            } else if (e instanceof org.apache.thrift.TApplicationException) {
+              _LOGGER.error("TApplicationException inside handler", e);
+              msgType = org.apache.thrift.protocol.TMessageType.EXCEPTION;
+              msg = (org.apache.thrift.TApplicationException)e;
+            } else {
+              _LOGGER.error("Exception inside handler", e);
+              msgType = org.apache.thrift.protocol.TMessageType.EXCEPTION;
+              msg = new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.INTERNAL_ERROR, e.getMessage());
+            }
+            try {
+              fcall.sendResponse(fb,msg,msgType,seqid);
+            } catch (java.lang.Exception ex) {
+              _LOGGER.error("Exception writing to internal frame buffer", ex);
+              fb.close();
+            }
+          }
+        };
+      }
+
+      protected boolean isOneway() {
+        return false;
+      }
+
+      public void start(I iface, getVersionedTableProperties_args args, org.apache.thrift.async.AsyncMethodCallback<TVersionedProperties> resultHandler) throws org.apache.thrift.TException {
+        iface.getVersionedTableProperties(args.tinfo, args.credentials, args.tableName,resultHandler);
+      }
+    }
+
     public static class getNamespaceConfiguration<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, getNamespaceConfiguration_args, java.util.Map<java.lang.String,java.lang.String>> {
       public getNamespaceConfiguration() {
         super("getNamespaceConfiguration");
@@ -5409,6 +5827,71 @@ public class ClientService {
 
       public void start(I iface, getNamespaceProperties_args args, org.apache.thrift.async.AsyncMethodCallback<java.util.Map<java.lang.String,java.lang.String>> resultHandler) throws org.apache.thrift.TException {
         iface.getNamespaceProperties(args.tinfo, args.credentials, args.ns,resultHandler);
+      }
+    }
+
+    public static class getVersionedNamespaceProperties<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, getVersionedNamespaceProperties_args, TVersionedProperties> {
+      public getVersionedNamespaceProperties() {
+        super("getVersionedNamespaceProperties");
+      }
+
+      public getVersionedNamespaceProperties_args getEmptyArgsInstance() {
+        return new getVersionedNamespaceProperties_args();
+      }
+
+      public org.apache.thrift.async.AsyncMethodCallback<TVersionedProperties> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
+        final org.apache.thrift.AsyncProcessFunction fcall = this;
+        return new org.apache.thrift.async.AsyncMethodCallback<TVersionedProperties>() { 
+          public void onComplete(TVersionedProperties o) {
+            getVersionedNamespaceProperties_result result = new getVersionedNamespaceProperties_result();
+            result.success = o;
+            try {
+              fcall.sendResponse(fb, result, org.apache.thrift.protocol.TMessageType.REPLY,seqid);
+            } catch (org.apache.thrift.transport.TTransportException e) {
+              _LOGGER.error("TTransportException writing to internal frame buffer", e);
+              fb.close();
+            } catch (java.lang.Exception e) {
+              _LOGGER.error("Exception writing to internal frame buffer", e);
+              onError(e);
+            }
+          }
+          public void onError(java.lang.Exception e) {
+            byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
+            org.apache.thrift.TSerializable msg;
+            getVersionedNamespaceProperties_result result = new getVersionedNamespaceProperties_result();
+            if (e instanceof ThriftTableOperationException) {
+              result.tope = (ThriftTableOperationException) e;
+              result.setTopeIsSet(true);
+              msg = result;
+            } else if (e instanceof org.apache.thrift.transport.TTransportException) {
+              _LOGGER.error("TTransportException inside handler", e);
+              fb.close();
+              return;
+            } else if (e instanceof org.apache.thrift.TApplicationException) {
+              _LOGGER.error("TApplicationException inside handler", e);
+              msgType = org.apache.thrift.protocol.TMessageType.EXCEPTION;
+              msg = (org.apache.thrift.TApplicationException)e;
+            } else {
+              _LOGGER.error("Exception inside handler", e);
+              msgType = org.apache.thrift.protocol.TMessageType.EXCEPTION;
+              msg = new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.INTERNAL_ERROR, e.getMessage());
+            }
+            try {
+              fcall.sendResponse(fb,msg,msgType,seqid);
+            } catch (java.lang.Exception ex) {
+              _LOGGER.error("Exception writing to internal frame buffer", ex);
+              fb.close();
+            }
+          }
+        };
+      }
+
+      protected boolean isOneway() {
+        return false;
+      }
+
+      public void start(I iface, getVersionedNamespaceProperties_args args, org.apache.thrift.async.AsyncMethodCallback<TVersionedProperties> resultHandler) throws org.apache.thrift.TException {
+        iface.getVersionedNamespaceProperties(args.tinfo, args.credentials, args.ns,resultHandler);
       }
     }
 
@@ -8304,13 +8787,13 @@ public class ClientService {
             case 5: // FILES
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list8 = iprot.readListBegin();
-                  struct.files = new java.util.ArrayList<java.lang.String>(_list8.size);
-                  @org.apache.thrift.annotation.Nullable java.lang.String _elem9;
-                  for (int _i10 = 0; _i10 < _list8.size; ++_i10)
+                  org.apache.thrift.protocol.TList _list18 = iprot.readListBegin();
+                  struct.files = new java.util.ArrayList<java.lang.String>(_list18.size);
+                  @org.apache.thrift.annotation.Nullable java.lang.String _elem19;
+                  for (int _i20 = 0; _i20 < _list18.size; ++_i20)
                   {
-                    _elem9 = iprot.readString();
-                    struct.files.add(_elem9);
+                    _elem19 = iprot.readString();
+                    struct.files.add(_elem19);
                   }
                   iprot.readListEnd();
                 }
@@ -8367,9 +8850,9 @@ public class ClientService {
           oprot.writeFieldBegin(FILES_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.files.size()));
-            for (java.lang.String _iter11 : struct.files)
+            for (java.lang.String _iter21 : struct.files)
             {
-              oprot.writeString(_iter11);
+              oprot.writeString(_iter21);
             }
             oprot.writeListEnd();
           }
@@ -8443,9 +8926,9 @@ public class ClientService {
         if (struct.isSetFiles()) {
           {
             oprot.writeI32(struct.files.size());
-            for (java.lang.String _iter12 : struct.files)
+            for (java.lang.String _iter22 : struct.files)
             {
-              oprot.writeString(_iter12);
+              oprot.writeString(_iter22);
             }
           }
         }
@@ -8481,13 +8964,13 @@ public class ClientService {
         }
         if (incoming.get(4)) {
           {
-            org.apache.thrift.protocol.TList _list13 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRING);
-            struct.files = new java.util.ArrayList<java.lang.String>(_list13.size);
-            @org.apache.thrift.annotation.Nullable java.lang.String _elem14;
-            for (int _i15 = 0; _i15 < _list13.size; ++_i15)
+            org.apache.thrift.protocol.TList _list23 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRING);
+            struct.files = new java.util.ArrayList<java.lang.String>(_list23.size);
+            @org.apache.thrift.annotation.Nullable java.lang.String _elem24;
+            for (int _i25 = 0; _i25 < _list23.size; ++_i25)
             {
-              _elem14 = iprot.readString();
-              struct.files.add(_elem14);
+              _elem24 = iprot.readString();
+              struct.files.add(_elem24);
             }
           }
           struct.setFilesIsSet(true);
@@ -8987,13 +9470,13 @@ public class ClientService {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list16 = iprot.readListBegin();
-                  struct.success = new java.util.ArrayList<java.lang.String>(_list16.size);
-                  @org.apache.thrift.annotation.Nullable java.lang.String _elem17;
-                  for (int _i18 = 0; _i18 < _list16.size; ++_i18)
+                  org.apache.thrift.protocol.TList _list26 = iprot.readListBegin();
+                  struct.success = new java.util.ArrayList<java.lang.String>(_list26.size);
+                  @org.apache.thrift.annotation.Nullable java.lang.String _elem27;
+                  for (int _i28 = 0; _i28 < _list26.size; ++_i28)
                   {
-                    _elem17 = iprot.readString();
-                    struct.success.add(_elem17);
+                    _elem27 = iprot.readString();
+                    struct.success.add(_elem27);
                   }
                   iprot.readListEnd();
                 }
@@ -9039,9 +9522,9 @@ public class ClientService {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.success.size()));
-            for (java.lang.String _iter19 : struct.success)
+            for (java.lang.String _iter29 : struct.success)
             {
-              oprot.writeString(_iter19);
+              oprot.writeString(_iter29);
             }
             oprot.writeListEnd();
           }
@@ -9088,9 +9571,9 @@ public class ClientService {
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (java.lang.String _iter20 : struct.success)
+            for (java.lang.String _iter30 : struct.success)
             {
-              oprot.writeString(_iter20);
+              oprot.writeString(_iter30);
             }
           }
         }
@@ -9108,13 +9591,13 @@ public class ClientService {
         java.util.BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TList _list21 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRING);
-            struct.success = new java.util.ArrayList<java.lang.String>(_list21.size);
-            @org.apache.thrift.annotation.Nullable java.lang.String _elem22;
-            for (int _i23 = 0; _i23 < _list21.size; ++_i23)
+            org.apache.thrift.protocol.TList _list31 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRING);
+            struct.success = new java.util.ArrayList<java.lang.String>(_list31.size);
+            @org.apache.thrift.annotation.Nullable java.lang.String _elem32;
+            for (int _i33 = 0; _i33 < _list31.size; ++_i33)
             {
-              _elem22 = iprot.readString();
-              struct.success.add(_elem22);
+              _elem32 = iprot.readString();
+              struct.success.add(_elem32);
             }
           }
           struct.setSuccessIsSet(true);
@@ -11106,13 +11589,13 @@ public class ClientService {
             case 2: // TABLES
               if (schemeField.type == org.apache.thrift.protocol.TType.SET) {
                 {
-                  org.apache.thrift.protocol.TSet _set24 = iprot.readSetBegin();
-                  struct.tables = new java.util.HashSet<java.lang.String>(2*_set24.size);
-                  @org.apache.thrift.annotation.Nullable java.lang.String _elem25;
-                  for (int _i26 = 0; _i26 < _set24.size; ++_i26)
+                  org.apache.thrift.protocol.TSet _set34 = iprot.readSetBegin();
+                  struct.tables = new java.util.HashSet<java.lang.String>(2*_set34.size);
+                  @org.apache.thrift.annotation.Nullable java.lang.String _elem35;
+                  for (int _i36 = 0; _i36 < _set34.size; ++_i36)
                   {
-                    _elem25 = iprot.readString();
-                    struct.tables.add(_elem25);
+                    _elem35 = iprot.readString();
+                    struct.tables.add(_elem35);
                   }
                   iprot.readSetEnd();
                 }
@@ -11154,9 +11637,9 @@ public class ClientService {
           oprot.writeFieldBegin(TABLES_FIELD_DESC);
           {
             oprot.writeSetBegin(new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, struct.tables.size()));
-            for (java.lang.String _iter27 : struct.tables)
+            for (java.lang.String _iter37 : struct.tables)
             {
-              oprot.writeString(_iter27);
+              oprot.writeString(_iter37);
             }
             oprot.writeSetEnd();
           }
@@ -11190,9 +11673,9 @@ public class ClientService {
         if (struct.isSetTables()) {
           {
             oprot.writeI32(struct.tables.size());
-            for (java.lang.String _iter28 : struct.tables)
+            for (java.lang.String _iter38 : struct.tables)
             {
-              oprot.writeString(_iter28);
+              oprot.writeString(_iter38);
             }
           }
         }
@@ -11207,13 +11690,13 @@ public class ClientService {
         java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TSet _set29 = iprot.readSetBegin(org.apache.thrift.protocol.TType.STRING);
-            struct.tables = new java.util.HashSet<java.lang.String>(2*_set29.size);
-            @org.apache.thrift.annotation.Nullable java.lang.String _elem30;
-            for (int _i31 = 0; _i31 < _set29.size; ++_i31)
+            org.apache.thrift.protocol.TSet _set39 = iprot.readSetBegin(org.apache.thrift.protocol.TType.STRING);
+            struct.tables = new java.util.HashSet<java.lang.String>(2*_set39.size);
+            @org.apache.thrift.annotation.Nullable java.lang.String _elem40;
+            for (int _i41 = 0; _i41 < _set39.size; ++_i41)
             {
-              _elem30 = iprot.readString();
-              struct.tables.add(_elem30);
+              _elem40 = iprot.readString();
+              struct.tables.add(_elem40);
             }
           }
           struct.setTablesIsSet(true);
@@ -11713,14 +12196,14 @@ public class ClientService {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list32 = iprot.readListBegin();
-                  struct.success = new java.util.ArrayList<TDiskUsage>(_list32.size);
-                  @org.apache.thrift.annotation.Nullable TDiskUsage _elem33;
-                  for (int _i34 = 0; _i34 < _list32.size; ++_i34)
+                  org.apache.thrift.protocol.TList _list42 = iprot.readListBegin();
+                  struct.success = new java.util.ArrayList<TDiskUsage>(_list42.size);
+                  @org.apache.thrift.annotation.Nullable TDiskUsage _elem43;
+                  for (int _i44 = 0; _i44 < _list42.size; ++_i44)
                   {
-                    _elem33 = new TDiskUsage();
-                    _elem33.read(iprot);
-                    struct.success.add(_elem33);
+                    _elem43 = new TDiskUsage();
+                    _elem43.read(iprot);
+                    struct.success.add(_elem43);
                   }
                   iprot.readListEnd();
                 }
@@ -11766,9 +12249,9 @@ public class ClientService {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.success.size()));
-            for (TDiskUsage _iter35 : struct.success)
+            for (TDiskUsage _iter45 : struct.success)
             {
-              _iter35.write(oprot);
+              _iter45.write(oprot);
             }
             oprot.writeListEnd();
           }
@@ -11815,9 +12298,9 @@ public class ClientService {
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (TDiskUsage _iter36 : struct.success)
+            for (TDiskUsage _iter46 : struct.success)
             {
-              _iter36.write(oprot);
+              _iter46.write(oprot);
             }
           }
         }
@@ -11835,14 +12318,14 @@ public class ClientService {
         java.util.BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TList _list37 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-            struct.success = new java.util.ArrayList<TDiskUsage>(_list37.size);
-            @org.apache.thrift.annotation.Nullable TDiskUsage _elem38;
-            for (int _i39 = 0; _i39 < _list37.size; ++_i39)
+            org.apache.thrift.protocol.TList _list47 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+            struct.success = new java.util.ArrayList<TDiskUsage>(_list47.size);
+            @org.apache.thrift.annotation.Nullable TDiskUsage _elem48;
+            for (int _i49 = 0; _i49 < _list47.size; ++_i49)
             {
-              _elem38 = new TDiskUsage();
-              _elem38.read(iprot);
-              struct.success.add(_elem38);
+              _elem48 = new TDiskUsage();
+              _elem48.read(iprot);
+              struct.success.add(_elem48);
             }
           }
           struct.setSuccessIsSet(true);
@@ -12742,13 +13225,13 @@ public class ClientService {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.SET) {
                 {
-                  org.apache.thrift.protocol.TSet _set40 = iprot.readSetBegin();
-                  struct.success = new java.util.HashSet<java.lang.String>(2*_set40.size);
-                  @org.apache.thrift.annotation.Nullable java.lang.String _elem41;
-                  for (int _i42 = 0; _i42 < _set40.size; ++_i42)
+                  org.apache.thrift.protocol.TSet _set50 = iprot.readSetBegin();
+                  struct.success = new java.util.HashSet<java.lang.String>(2*_set50.size);
+                  @org.apache.thrift.annotation.Nullable java.lang.String _elem51;
+                  for (int _i52 = 0; _i52 < _set50.size; ++_i52)
                   {
-                    _elem41 = iprot.readString();
-                    struct.success.add(_elem41);
+                    _elem51 = iprot.readString();
+                    struct.success.add(_elem51);
                   }
                   iprot.readSetEnd();
                 }
@@ -12785,9 +13268,9 @@ public class ClientService {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeSetBegin(new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, struct.success.size()));
-            for (java.lang.String _iter43 : struct.success)
+            for (java.lang.String _iter53 : struct.success)
             {
-              oprot.writeString(_iter43);
+              oprot.writeString(_iter53);
             }
             oprot.writeSetEnd();
           }
@@ -12826,9 +13309,9 @@ public class ClientService {
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (java.lang.String _iter44 : struct.success)
+            for (java.lang.String _iter54 : struct.success)
             {
-              oprot.writeString(_iter44);
+              oprot.writeString(_iter54);
             }
           }
         }
@@ -12843,13 +13326,13 @@ public class ClientService {
         java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TSet _set45 = iprot.readSetBegin(org.apache.thrift.protocol.TType.STRING);
-            struct.success = new java.util.HashSet<java.lang.String>(2*_set45.size);
-            @org.apache.thrift.annotation.Nullable java.lang.String _elem46;
-            for (int _i47 = 0; _i47 < _set45.size; ++_i47)
+            org.apache.thrift.protocol.TSet _set55 = iprot.readSetBegin(org.apache.thrift.protocol.TType.STRING);
+            struct.success = new java.util.HashSet<java.lang.String>(2*_set55.size);
+            @org.apache.thrift.annotation.Nullable java.lang.String _elem56;
+            for (int _i57 = 0; _i57 < _set55.size; ++_i57)
             {
-              _elem46 = iprot.readString();
-              struct.success.add(_elem46);
+              _elem56 = iprot.readString();
+              struct.success.add(_elem56);
             }
           }
           struct.setSuccessIsSet(true);
@@ -18560,13 +19043,13 @@ public class ClientService {
             case 3: // AUTHORIZATIONS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list48 = iprot.readListBegin();
-                  struct.authorizations = new java.util.ArrayList<java.nio.ByteBuffer>(_list48.size);
-                  @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer _elem49;
-                  for (int _i50 = 0; _i50 < _list48.size; ++_i50)
+                  org.apache.thrift.protocol.TList _list58 = iprot.readListBegin();
+                  struct.authorizations = new java.util.ArrayList<java.nio.ByteBuffer>(_list58.size);
+                  @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer _elem59;
+                  for (int _i60 = 0; _i60 < _list58.size; ++_i60)
                   {
-                    _elem49 = iprot.readBinary();
-                    struct.authorizations.add(_elem49);
+                    _elem59 = iprot.readBinary();
+                    struct.authorizations.add(_elem59);
                   }
                   iprot.readListEnd();
                 }
@@ -18599,9 +19082,9 @@ public class ClientService {
           oprot.writeFieldBegin(AUTHORIZATIONS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.authorizations.size()));
-            for (java.nio.ByteBuffer _iter51 : struct.authorizations)
+            for (java.nio.ByteBuffer _iter61 : struct.authorizations)
             {
-              oprot.writeBinary(_iter51);
+              oprot.writeBinary(_iter61);
             }
             oprot.writeListEnd();
           }
@@ -18660,9 +19143,9 @@ public class ClientService {
         if (struct.isSetAuthorizations()) {
           {
             oprot.writeI32(struct.authorizations.size());
-            for (java.nio.ByteBuffer _iter52 : struct.authorizations)
+            for (java.nio.ByteBuffer _iter62 : struct.authorizations)
             {
-              oprot.writeBinary(_iter52);
+              oprot.writeBinary(_iter62);
             }
           }
         }
@@ -18688,13 +19171,13 @@ public class ClientService {
         }
         if (incoming.get(3)) {
           {
-            org.apache.thrift.protocol.TList _list53 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRING);
-            struct.authorizations = new java.util.ArrayList<java.nio.ByteBuffer>(_list53.size);
-            @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer _elem54;
-            for (int _i55 = 0; _i55 < _list53.size; ++_i55)
+            org.apache.thrift.protocol.TList _list63 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRING);
+            struct.authorizations = new java.util.ArrayList<java.nio.ByteBuffer>(_list63.size);
+            @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer _elem64;
+            for (int _i65 = 0; _i65 < _list63.size; ++_i65)
             {
-              _elem54 = iprot.readBinary();
-              struct.authorizations.add(_elem54);
+              _elem64 = iprot.readBinary();
+              struct.authorizations.add(_elem64);
             }
           }
           struct.setAuthorizationsIsSet(true);
@@ -20056,13 +20539,13 @@ public class ClientService {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list56 = iprot.readListBegin();
-                  struct.success = new java.util.ArrayList<java.nio.ByteBuffer>(_list56.size);
-                  @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer _elem57;
-                  for (int _i58 = 0; _i58 < _list56.size; ++_i58)
+                  org.apache.thrift.protocol.TList _list66 = iprot.readListBegin();
+                  struct.success = new java.util.ArrayList<java.nio.ByteBuffer>(_list66.size);
+                  @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer _elem67;
+                  for (int _i68 = 0; _i68 < _list66.size; ++_i68)
                   {
-                    _elem57 = iprot.readBinary();
-                    struct.success.add(_elem57);
+                    _elem67 = iprot.readBinary();
+                    struct.success.add(_elem67);
                   }
                   iprot.readListEnd();
                 }
@@ -20099,9 +20582,9 @@ public class ClientService {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.success.size()));
-            for (java.nio.ByteBuffer _iter59 : struct.success)
+            for (java.nio.ByteBuffer _iter69 : struct.success)
             {
-              oprot.writeBinary(_iter59);
+              oprot.writeBinary(_iter69);
             }
             oprot.writeListEnd();
           }
@@ -20140,9 +20623,9 @@ public class ClientService {
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (java.nio.ByteBuffer _iter60 : struct.success)
+            for (java.nio.ByteBuffer _iter70 : struct.success)
             {
-              oprot.writeBinary(_iter60);
+              oprot.writeBinary(_iter70);
             }
           }
         }
@@ -20157,13 +20640,13 @@ public class ClientService {
         java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TList _list61 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRING);
-            struct.success = new java.util.ArrayList<java.nio.ByteBuffer>(_list61.size);
-            @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer _elem62;
-            for (int _i63 = 0; _i63 < _list61.size; ++_i63)
+            org.apache.thrift.protocol.TList _list71 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRING);
+            struct.success = new java.util.ArrayList<java.nio.ByteBuffer>(_list71.size);
+            @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer _elem72;
+            for (int _i73 = 0; _i73 < _list71.size; ++_i73)
             {
-              _elem62 = iprot.readBinary();
-              struct.success.add(_elem62);
+              _elem72 = iprot.readBinary();
+              struct.success.add(_elem72);
             }
           }
           struct.setSuccessIsSet(true);
@@ -32139,15 +32622,15 @@ public class ClientService {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
                 {
-                  org.apache.thrift.protocol.TMap _map64 = iprot.readMapBegin();
-                  struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map64.size);
-                  @org.apache.thrift.annotation.Nullable java.lang.String _key65;
-                  @org.apache.thrift.annotation.Nullable java.lang.String _val66;
-                  for (int _i67 = 0; _i67 < _map64.size; ++_i67)
+                  org.apache.thrift.protocol.TMap _map74 = iprot.readMapBegin();
+                  struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map74.size);
+                  @org.apache.thrift.annotation.Nullable java.lang.String _key75;
+                  @org.apache.thrift.annotation.Nullable java.lang.String _val76;
+                  for (int _i77 = 0; _i77 < _map74.size; ++_i77)
                   {
-                    _key65 = iprot.readString();
-                    _val66 = iprot.readString();
-                    struct.success.put(_key65, _val66);
+                    _key75 = iprot.readString();
+                    _val76 = iprot.readString();
+                    struct.success.put(_key75, _val76);
                   }
                   iprot.readMapEnd();
                 }
@@ -32175,10 +32658,10 @@ public class ClientService {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, struct.success.size()));
-            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter68 : struct.success.entrySet())
+            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter78 : struct.success.entrySet())
             {
-              oprot.writeString(_iter68.getKey());
-              oprot.writeString(_iter68.getValue());
+              oprot.writeString(_iter78.getKey());
+              oprot.writeString(_iter78.getValue());
             }
             oprot.writeMapEnd();
           }
@@ -32209,10 +32692,10 @@ public class ClientService {
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter69 : struct.success.entrySet())
+            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter79 : struct.success.entrySet())
             {
-              oprot.writeString(_iter69.getKey());
-              oprot.writeString(_iter69.getValue());
+              oprot.writeString(_iter79.getKey());
+              oprot.writeString(_iter79.getValue());
             }
           }
         }
@@ -32224,15 +32707,15 @@ public class ClientService {
         java.util.BitSet incoming = iprot.readBitSet(1);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TMap _map70 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
-            struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map70.size);
-            @org.apache.thrift.annotation.Nullable java.lang.String _key71;
-            @org.apache.thrift.annotation.Nullable java.lang.String _val72;
-            for (int _i73 = 0; _i73 < _map70.size; ++_i73)
+            org.apache.thrift.protocol.TMap _map80 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
+            struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map80.size);
+            @org.apache.thrift.annotation.Nullable java.lang.String _key81;
+            @org.apache.thrift.annotation.Nullable java.lang.String _val82;
+            for (int _i83 = 0; _i83 < _map80.size; ++_i83)
             {
-              _key71 = iprot.readString();
-              _val72 = iprot.readString();
-              struct.success.put(_key71, _val72);
+              _key81 = iprot.readString();
+              _val82 = iprot.readString();
+              struct.success.put(_key81, _val82);
             }
           }
           struct.setSuccessIsSet(true);
@@ -33036,15 +33519,15 @@ public class ClientService {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
                 {
-                  org.apache.thrift.protocol.TMap _map74 = iprot.readMapBegin();
-                  struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map74.size);
-                  @org.apache.thrift.annotation.Nullable java.lang.String _key75;
-                  @org.apache.thrift.annotation.Nullable java.lang.String _val76;
-                  for (int _i77 = 0; _i77 < _map74.size; ++_i77)
+                  org.apache.thrift.protocol.TMap _map84 = iprot.readMapBegin();
+                  struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map84.size);
+                  @org.apache.thrift.annotation.Nullable java.lang.String _key85;
+                  @org.apache.thrift.annotation.Nullable java.lang.String _val86;
+                  for (int _i87 = 0; _i87 < _map84.size; ++_i87)
                   {
-                    _key75 = iprot.readString();
-                    _val76 = iprot.readString();
-                    struct.success.put(_key75, _val76);
+                    _key85 = iprot.readString();
+                    _val86 = iprot.readString();
+                    struct.success.put(_key85, _val86);
                   }
                   iprot.readMapEnd();
                 }
@@ -33072,10 +33555,10 @@ public class ClientService {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, struct.success.size()));
-            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter78 : struct.success.entrySet())
+            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter88 : struct.success.entrySet())
             {
-              oprot.writeString(_iter78.getKey());
-              oprot.writeString(_iter78.getValue());
+              oprot.writeString(_iter88.getKey());
+              oprot.writeString(_iter88.getValue());
             }
             oprot.writeMapEnd();
           }
@@ -33106,10 +33589,10 @@ public class ClientService {
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter79 : struct.success.entrySet())
+            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter89 : struct.success.entrySet())
             {
-              oprot.writeString(_iter79.getKey());
-              oprot.writeString(_iter79.getValue());
+              oprot.writeString(_iter89.getKey());
+              oprot.writeString(_iter89.getValue());
             }
           }
         }
@@ -33121,17 +33604,867 @@ public class ClientService {
         java.util.BitSet incoming = iprot.readBitSet(1);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TMap _map80 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
-            struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map80.size);
-            @org.apache.thrift.annotation.Nullable java.lang.String _key81;
-            @org.apache.thrift.annotation.Nullable java.lang.String _val82;
-            for (int _i83 = 0; _i83 < _map80.size; ++_i83)
+            org.apache.thrift.protocol.TMap _map90 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
+            struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map90.size);
+            @org.apache.thrift.annotation.Nullable java.lang.String _key91;
+            @org.apache.thrift.annotation.Nullable java.lang.String _val92;
+            for (int _i93 = 0; _i93 < _map90.size; ++_i93)
             {
-              _key81 = iprot.readString();
-              _val82 = iprot.readString();
-              struct.success.put(_key81, _val82);
+              _key91 = iprot.readString();
+              _val92 = iprot.readString();
+              struct.success.put(_key91, _val92);
             }
           }
+          struct.setSuccessIsSet(true);
+        }
+      }
+    }
+
+    private static <S extends org.apache.thrift.scheme.IScheme> S scheme(org.apache.thrift.protocol.TProtocol proto) {
+      return (org.apache.thrift.scheme.StandardScheme.class.equals(proto.getScheme()) ? STANDARD_SCHEME_FACTORY : TUPLE_SCHEME_FACTORY).getScheme();
+    }
+  }
+
+  public static class getVersionedSystemProperties_args implements org.apache.thrift.TBase<getVersionedSystemProperties_args, getVersionedSystemProperties_args._Fields>, java.io.Serializable, Cloneable, Comparable<getVersionedSystemProperties_args>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getVersionedSystemProperties_args");
+
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+
+    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getVersionedSystemProperties_argsStandardSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getVersionedSystemProperties_argsTupleSchemeFactory();
+
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo; // required
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials");
+
+      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
+
+      static {
+        for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      @org.apache.thrift.annotation.Nullable
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // TINFO
+            return TINFO;
+          case 2: // CREDENTIALS
+            return CREDENTIALS;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new java.lang.IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      @org.apache.thrift.annotation.Nullable
+      public static _Fields findByName(java.lang.String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final java.lang.String _fieldName;
+
+      _Fields(short thriftId, java.lang.String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public java.lang.String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.trace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
+      metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getVersionedSystemProperties_args.class, metaDataMap);
+    }
+
+    public getVersionedSystemProperties_args() {
+    }
+
+    public getVersionedSystemProperties_args(
+      org.apache.accumulo.core.trace.thrift.TInfo tinfo,
+      org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials)
+    {
+      this();
+      this.tinfo = tinfo;
+      this.credentials = credentials;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public getVersionedSystemProperties_args(getVersionedSystemProperties_args other) {
+      if (other.isSetTinfo()) {
+        this.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo(other.tinfo);
+      }
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials(other.credentials);
+      }
+    }
+
+    public getVersionedSystemProperties_args deepCopy() {
+      return new getVersionedSystemProperties_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.tinfo = null;
+      this.credentials = null;
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public org.apache.accumulo.core.trace.thrift.TInfo getTinfo() {
+      return this.tinfo;
+    }
+
+    public getVersionedSystemProperties_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo) {
+      this.tinfo = tinfo;
+      return this;
+    }
+
+    public void unsetTinfo() {
+      this.tinfo = null;
+    }
+
+    /** Returns true if field tinfo is set (has been assigned a value) and false otherwise */
+    public boolean isSetTinfo() {
+      return this.tinfo != null;
+    }
+
+    public void setTinfoIsSet(boolean value) {
+      if (!value) {
+        this.tinfo = null;
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public org.apache.accumulo.core.securityImpl.thrift.TCredentials getCredentials() {
+      return this.credentials;
+    }
+
+    public getVersionedSystemProperties_args setCredentials(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) {
+      this.credentials = credentials;
+      return this;
+    }
+
+    public void unsetCredentials() {
+      this.credentials = null;
+    }
+
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
+    }
+
+    public void setCredentialsIsSet(boolean value) {
+      if (!value) {
+        this.credentials = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
+      switch (field) {
+      case TINFO:
+        if (value == null) {
+          unsetTinfo();
+        } else {
+          setTinfo((org.apache.accumulo.core.trace.thrift.TInfo)value);
+        }
+        break;
+
+      case CREDENTIALS:
+        if (value == null) {
+          unsetCredentials();
+        } else {
+          setCredentials((org.apache.accumulo.core.securityImpl.thrift.TCredentials)value);
+        }
+        break;
+
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public java.lang.Object getFieldValue(_Fields field) {
+      switch (field) {
+      case TINFO:
+        return getTinfo();
+
+      case CREDENTIALS:
+        return getCredentials();
+
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new java.lang.IllegalArgumentException();
+      }
+
+      switch (field) {
+      case TINFO:
+        return isSetTinfo();
+      case CREDENTIALS:
+        return isSetCredentials();
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(java.lang.Object that) {
+      if (that instanceof getVersionedSystemProperties_args)
+        return this.equals((getVersionedSystemProperties_args)that);
+      return false;
+    }
+
+    public boolean equals(getVersionedSystemProperties_args that) {
+      if (that == null)
+        return false;
+      if (this == that)
+        return true;
+
+      boolean this_present_tinfo = true && this.isSetTinfo();
+      boolean that_present_tinfo = true && that.isSetTinfo();
+      if (this_present_tinfo || that_present_tinfo) {
+        if (!(this_present_tinfo && that_present_tinfo))
+          return false;
+        if (!this.tinfo.equals(that.tinfo))
+          return false;
+      }
+
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
+          return false;
+        if (!this.credentials.equals(that.credentials))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      int hashCode = 1;
+
+      hashCode = hashCode * 8191 + ((isSetTinfo()) ? 131071 : 524287);
+      if (isSetTinfo())
+        hashCode = hashCode * 8191 + tinfo.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetCredentials()) ? 131071 : 524287);
+      if (isSetCredentials())
+        hashCode = hashCode * 8191 + credentials.hashCode();
+
+      return hashCode;
+    }
+
+    @Override
+    public int compareTo(getVersionedSystemProperties_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+
+      lastComparison = java.lang.Boolean.compare(isSetTinfo(), other.isSetTinfo());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTinfo()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tinfo, other.tinfo);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetCredentials(), other.isSetCredentials());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, other.credentials);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      scheme(iprot).read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      scheme(oprot).write(oprot, this);
+    }
+
+    @Override
+    public java.lang.String toString() {
+      java.lang.StringBuilder sb = new java.lang.StringBuilder("getVersionedSystemProperties_args(");
+      boolean first = true;
+
+      sb.append("tinfo:");
+      if (this.tinfo == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tinfo);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("credentials:");
+      if (this.credentials == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.credentials);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+      if (tinfo != null) {
+        tinfo.validate();
+      }
+      if (credentials != null) {
+        credentials.validate();
+      }
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class getVersionedSystemProperties_argsStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      public getVersionedSystemProperties_argsStandardScheme getScheme() {
+        return new getVersionedSystemProperties_argsStandardScheme();
+      }
+    }
+
+    private static class getVersionedSystemProperties_argsStandardScheme extends org.apache.thrift.scheme.StandardScheme<getVersionedSystemProperties_args> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, getVersionedSystemProperties_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 1: // TINFO
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+                struct.tinfo.read(iprot);
+                struct.setTinfoIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 2: // CREDENTIALS
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, getVersionedSystemProperties_args struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class getVersionedSystemProperties_argsTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      public getVersionedSystemProperties_argsTupleScheme getScheme() {
+        return new getVersionedSystemProperties_argsTupleScheme();
+      }
+    }
+
+    private static class getVersionedSystemProperties_argsTupleScheme extends org.apache.thrift.scheme.TupleScheme<getVersionedSystemProperties_args> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, getVersionedSystemProperties_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet optionals = new java.util.BitSet();
+        if (struct.isSetTinfo()) {
+          optionals.set(0);
+        }
+        if (struct.isSetCredentials()) {
+          optionals.set(1);
+        }
+        oprot.writeBitSet(optionals, 2);
+        if (struct.isSetTinfo()) {
+          struct.tinfo.write(oprot);
+        }
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, getVersionedSystemProperties_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet incoming = iprot.readBitSet(2);
+        if (incoming.get(0)) {
+          struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+          struct.tinfo.read(iprot);
+          struct.setTinfoIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
+        }
+      }
+    }
+
+    private static <S extends org.apache.thrift.scheme.IScheme> S scheme(org.apache.thrift.protocol.TProtocol proto) {
+      return (org.apache.thrift.scheme.StandardScheme.class.equals(proto.getScheme()) ? STANDARD_SCHEME_FACTORY : TUPLE_SCHEME_FACTORY).getScheme();
+    }
+  }
+
+  public static class getVersionedSystemProperties_result implements org.apache.thrift.TBase<getVersionedSystemProperties_result, getVersionedSystemProperties_result._Fields>, java.io.Serializable, Cloneable, Comparable<getVersionedSystemProperties_result>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getVersionedSystemProperties_result");
+
+    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRUCT, (short)0);
+
+    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getVersionedSystemProperties_resultStandardSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getVersionedSystemProperties_resultTupleSchemeFactory();
+
+    public @org.apache.thrift.annotation.Nullable TVersionedProperties success; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SUCCESS((short)0, "success");
+
+      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
+
+      static {
+        for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      @org.apache.thrift.annotation.Nullable
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 0: // SUCCESS
+            return SUCCESS;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new java.lang.IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      @org.apache.thrift.annotation.Nullable
+      public static _Fields findByName(java.lang.String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final java.lang.String _fieldName;
+
+      _Fields(short thriftId, java.lang.String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public java.lang.String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TVersionedProperties.class)));
+      metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getVersionedSystemProperties_result.class, metaDataMap);
+    }
+
+    public getVersionedSystemProperties_result() {
+    }
+
+    public getVersionedSystemProperties_result(
+      TVersionedProperties success)
+    {
+      this();
+      this.success = success;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public getVersionedSystemProperties_result(getVersionedSystemProperties_result other) {
+      if (other.isSetSuccess()) {
+        this.success = new TVersionedProperties(other.success);
+      }
+    }
+
+    public getVersionedSystemProperties_result deepCopy() {
+      return new getVersionedSystemProperties_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.success = null;
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public TVersionedProperties getSuccess() {
+      return this.success;
+    }
+
+    public getVersionedSystemProperties_result setSuccess(@org.apache.thrift.annotation.Nullable TVersionedProperties success) {
+      this.success = success;
+      return this;
+    }
+
+    public void unsetSuccess() {
+      this.success = null;
+    }
+
+    /** Returns true if field success is set (has been assigned a value) and false otherwise */
+    public boolean isSetSuccess() {
+      return this.success != null;
+    }
+
+    public void setSuccessIsSet(boolean value) {
+      if (!value) {
+        this.success = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
+      switch (field) {
+      case SUCCESS:
+        if (value == null) {
+          unsetSuccess();
+        } else {
+          setSuccess((TVersionedProperties)value);
+        }
+        break;
+
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public java.lang.Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SUCCESS:
+        return getSuccess();
+
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new java.lang.IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SUCCESS:
+        return isSetSuccess();
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(java.lang.Object that) {
+      if (that instanceof getVersionedSystemProperties_result)
+        return this.equals((getVersionedSystemProperties_result)that);
+      return false;
+    }
+
+    public boolean equals(getVersionedSystemProperties_result that) {
+      if (that == null)
+        return false;
+      if (this == that)
+        return true;
+
+      boolean this_present_success = true && this.isSetSuccess();
+      boolean that_present_success = true && that.isSetSuccess();
+      if (this_present_success || that_present_success) {
+        if (!(this_present_success && that_present_success))
+          return false;
+        if (!this.success.equals(that.success))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      int hashCode = 1;
+
+      hashCode = hashCode * 8191 + ((isSetSuccess()) ? 131071 : 524287);
+      if (isSetSuccess())
+        hashCode = hashCode * 8191 + success.hashCode();
+
+      return hashCode;
+    }
+
+    @Override
+    public int compareTo(getVersionedSystemProperties_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+
+      lastComparison = java.lang.Boolean.compare(isSetSuccess(), other.isSetSuccess());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSuccess()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, other.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      scheme(iprot).read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      scheme(oprot).write(oprot, this);
+      }
+
+    @Override
+    public java.lang.String toString() {
+      java.lang.StringBuilder sb = new java.lang.StringBuilder("getVersionedSystemProperties_result(");
+      boolean first = true;
+
+      sb.append("success:");
+      if (this.success == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.success);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+      if (success != null) {
+        success.validate();
+      }
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class getVersionedSystemProperties_resultStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      public getVersionedSystemProperties_resultStandardScheme getScheme() {
+        return new getVersionedSystemProperties_resultStandardScheme();
+      }
+    }
+
+    private static class getVersionedSystemProperties_resultStandardScheme extends org.apache.thrift.scheme.StandardScheme<getVersionedSystemProperties_result> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, getVersionedSystemProperties_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 0: // SUCCESS
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.success = new TVersionedProperties();
+                struct.success.read(iprot);
+                struct.setSuccessIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, getVersionedSystemProperties_result struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.success != null) {
+          oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
+          struct.success.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class getVersionedSystemProperties_resultTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      public getVersionedSystemProperties_resultTupleScheme getScheme() {
+        return new getVersionedSystemProperties_resultTupleScheme();
+      }
+    }
+
+    private static class getVersionedSystemProperties_resultTupleScheme extends org.apache.thrift.scheme.TupleScheme<getVersionedSystemProperties_result> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, getVersionedSystemProperties_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet optionals = new java.util.BitSet();
+        if (struct.isSetSuccess()) {
+          optionals.set(0);
+        }
+        oprot.writeBitSet(optionals, 1);
+        if (struct.isSetSuccess()) {
+          struct.success.write(oprot);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, getVersionedSystemProperties_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet incoming = iprot.readBitSet(1);
+        if (incoming.get(0)) {
+          struct.success = new TVersionedProperties();
+          struct.success.read(iprot);
           struct.setSuccessIsSet(true);
         }
       }
@@ -34120,15 +35453,15 @@ public class ClientService {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
                 {
-                  org.apache.thrift.protocol.TMap _map84 = iprot.readMapBegin();
-                  struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map84.size);
-                  @org.apache.thrift.annotation.Nullable java.lang.String _key85;
-                  @org.apache.thrift.annotation.Nullable java.lang.String _val86;
-                  for (int _i87 = 0; _i87 < _map84.size; ++_i87)
+                  org.apache.thrift.protocol.TMap _map94 = iprot.readMapBegin();
+                  struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map94.size);
+                  @org.apache.thrift.annotation.Nullable java.lang.String _key95;
+                  @org.apache.thrift.annotation.Nullable java.lang.String _val96;
+                  for (int _i97 = 0; _i97 < _map94.size; ++_i97)
                   {
-                    _key85 = iprot.readString();
-                    _val86 = iprot.readString();
-                    struct.success.put(_key85, _val86);
+                    _key95 = iprot.readString();
+                    _val96 = iprot.readString();
+                    struct.success.put(_key95, _val96);
                   }
                   iprot.readMapEnd();
                 }
@@ -34165,10 +35498,10 @@ public class ClientService {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, struct.success.size()));
-            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter88 : struct.success.entrySet())
+            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter98 : struct.success.entrySet())
             {
-              oprot.writeString(_iter88.getKey());
-              oprot.writeString(_iter88.getValue());
+              oprot.writeString(_iter98.getKey());
+              oprot.writeString(_iter98.getValue());
             }
             oprot.writeMapEnd();
           }
@@ -34207,10 +35540,10 @@ public class ClientService {
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter89 : struct.success.entrySet())
+            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter99 : struct.success.entrySet())
             {
-              oprot.writeString(_iter89.getKey());
-              oprot.writeString(_iter89.getValue());
+              oprot.writeString(_iter99.getKey());
+              oprot.writeString(_iter99.getValue());
             }
           }
         }
@@ -34225,15 +35558,15 @@ public class ClientService {
         java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TMap _map90 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
-            struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map90.size);
-            @org.apache.thrift.annotation.Nullable java.lang.String _key91;
-            @org.apache.thrift.annotation.Nullable java.lang.String _val92;
-            for (int _i93 = 0; _i93 < _map90.size; ++_i93)
+            org.apache.thrift.protocol.TMap _map100 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
+            struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map100.size);
+            @org.apache.thrift.annotation.Nullable java.lang.String _key101;
+            @org.apache.thrift.annotation.Nullable java.lang.String _val102;
+            for (int _i103 = 0; _i103 < _map100.size; ++_i103)
             {
-              _key91 = iprot.readString();
-              _val92 = iprot.readString();
-              struct.success.put(_key91, _val92);
+              _key101 = iprot.readString();
+              _val102 = iprot.readString();
+              struct.success.put(_key101, _val102);
             }
           }
           struct.setSuccessIsSet(true);
@@ -35229,15 +36562,15 @@ public class ClientService {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
                 {
-                  org.apache.thrift.protocol.TMap _map94 = iprot.readMapBegin();
-                  struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map94.size);
-                  @org.apache.thrift.annotation.Nullable java.lang.String _key95;
-                  @org.apache.thrift.annotation.Nullable java.lang.String _val96;
-                  for (int _i97 = 0; _i97 < _map94.size; ++_i97)
+                  org.apache.thrift.protocol.TMap _map104 = iprot.readMapBegin();
+                  struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map104.size);
+                  @org.apache.thrift.annotation.Nullable java.lang.String _key105;
+                  @org.apache.thrift.annotation.Nullable java.lang.String _val106;
+                  for (int _i107 = 0; _i107 < _map104.size; ++_i107)
                   {
-                    _key95 = iprot.readString();
-                    _val96 = iprot.readString();
-                    struct.success.put(_key95, _val96);
+                    _key105 = iprot.readString();
+                    _val106 = iprot.readString();
+                    struct.success.put(_key105, _val106);
                   }
                   iprot.readMapEnd();
                 }
@@ -35274,10 +36607,10 @@ public class ClientService {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, struct.success.size()));
-            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter98 : struct.success.entrySet())
+            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter108 : struct.success.entrySet())
             {
-              oprot.writeString(_iter98.getKey());
-              oprot.writeString(_iter98.getValue());
+              oprot.writeString(_iter108.getKey());
+              oprot.writeString(_iter108.getValue());
             }
             oprot.writeMapEnd();
           }
@@ -35316,10 +36649,10 @@ public class ClientService {
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter99 : struct.success.entrySet())
+            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter109 : struct.success.entrySet())
             {
-              oprot.writeString(_iter99.getKey());
-              oprot.writeString(_iter99.getValue());
+              oprot.writeString(_iter109.getKey());
+              oprot.writeString(_iter109.getValue());
             }
           }
         }
@@ -35334,17 +36667,1079 @@ public class ClientService {
         java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TMap _map100 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
-            struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map100.size);
-            @org.apache.thrift.annotation.Nullable java.lang.String _key101;
-            @org.apache.thrift.annotation.Nullable java.lang.String _val102;
-            for (int _i103 = 0; _i103 < _map100.size; ++_i103)
+            org.apache.thrift.protocol.TMap _map110 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
+            struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map110.size);
+            @org.apache.thrift.annotation.Nullable java.lang.String _key111;
+            @org.apache.thrift.annotation.Nullable java.lang.String _val112;
+            for (int _i113 = 0; _i113 < _map110.size; ++_i113)
             {
-              _key101 = iprot.readString();
-              _val102 = iprot.readString();
-              struct.success.put(_key101, _val102);
+              _key111 = iprot.readString();
+              _val112 = iprot.readString();
+              struct.success.put(_key111, _val112);
             }
           }
+          struct.setSuccessIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.tope = new ThriftTableOperationException();
+          struct.tope.read(iprot);
+          struct.setTopeIsSet(true);
+        }
+      }
+    }
+
+    private static <S extends org.apache.thrift.scheme.IScheme> S scheme(org.apache.thrift.protocol.TProtocol proto) {
+      return (org.apache.thrift.scheme.StandardScheme.class.equals(proto.getScheme()) ? STANDARD_SCHEME_FACTORY : TUPLE_SCHEME_FACTORY).getScheme();
+    }
+  }
+
+  public static class getVersionedTableProperties_args implements org.apache.thrift.TBase<getVersionedTableProperties_args, getVersionedTableProperties_args._Fields>, java.io.Serializable, Cloneable, Comparable<getVersionedTableProperties_args>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getVersionedTableProperties_args");
+
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)3);
+    private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
+
+    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getVersionedTableProperties_argsStandardSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getVersionedTableProperties_argsTupleSchemeFactory();
+
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo; // required
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
+    public @org.apache.thrift.annotation.Nullable java.lang.String tableName; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)3, "credentials"),
+      TABLE_NAME((short)2, "tableName");
+
+      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
+
+      static {
+        for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      @org.apache.thrift.annotation.Nullable
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // TINFO
+            return TINFO;
+          case 3: // CREDENTIALS
+            return CREDENTIALS;
+          case 2: // TABLE_NAME
+            return TABLE_NAME;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new java.lang.IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      @org.apache.thrift.annotation.Nullable
+      public static _Fields findByName(java.lang.String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final java.lang.String _fieldName;
+
+      _Fields(short thriftId, java.lang.String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public java.lang.String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.trace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
+      tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getVersionedTableProperties_args.class, metaDataMap);
+    }
+
+    public getVersionedTableProperties_args() {
+    }
+
+    public getVersionedTableProperties_args(
+      org.apache.accumulo.core.trace.thrift.TInfo tinfo,
+      org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
+      java.lang.String tableName)
+    {
+      this();
+      this.tinfo = tinfo;
+      this.credentials = credentials;
+      this.tableName = tableName;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public getVersionedTableProperties_args(getVersionedTableProperties_args other) {
+      if (other.isSetTinfo()) {
+        this.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo(other.tinfo);
+      }
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials(other.credentials);
+      }
+      if (other.isSetTableName()) {
+        this.tableName = other.tableName;
+      }
+    }
+
+    public getVersionedTableProperties_args deepCopy() {
+      return new getVersionedTableProperties_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.tinfo = null;
+      this.credentials = null;
+      this.tableName = null;
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public org.apache.accumulo.core.trace.thrift.TInfo getTinfo() {
+      return this.tinfo;
+    }
+
+    public getVersionedTableProperties_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo) {
+      this.tinfo = tinfo;
+      return this;
+    }
+
+    public void unsetTinfo() {
+      this.tinfo = null;
+    }
+
+    /** Returns true if field tinfo is set (has been assigned a value) and false otherwise */
+    public boolean isSetTinfo() {
+      return this.tinfo != null;
+    }
+
+    public void setTinfoIsSet(boolean value) {
+      if (!value) {
+        this.tinfo = null;
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public org.apache.accumulo.core.securityImpl.thrift.TCredentials getCredentials() {
+      return this.credentials;
+    }
+
+    public getVersionedTableProperties_args setCredentials(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) {
+      this.credentials = credentials;
+      return this;
+    }
+
+    public void unsetCredentials() {
+      this.credentials = null;
+    }
+
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
+    }
+
+    public void setCredentialsIsSet(boolean value) {
+      if (!value) {
+        this.credentials = null;
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public java.lang.String getTableName() {
+      return this.tableName;
+    }
+
+    public getVersionedTableProperties_args setTableName(@org.apache.thrift.annotation.Nullable java.lang.String tableName) {
+      this.tableName = tableName;
+      return this;
+    }
+
+    public void unsetTableName() {
+      this.tableName = null;
+    }
+
+    /** Returns true if field tableName is set (has been assigned a value) and false otherwise */
+    public boolean isSetTableName() {
+      return this.tableName != null;
+    }
+
+    public void setTableNameIsSet(boolean value) {
+      if (!value) {
+        this.tableName = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
+      switch (field) {
+      case TINFO:
+        if (value == null) {
+          unsetTinfo();
+        } else {
+          setTinfo((org.apache.accumulo.core.trace.thrift.TInfo)value);
+        }
+        break;
+
+      case CREDENTIALS:
+        if (value == null) {
+          unsetCredentials();
+        } else {
+          setCredentials((org.apache.accumulo.core.securityImpl.thrift.TCredentials)value);
+        }
+        break;
+
+      case TABLE_NAME:
+        if (value == null) {
+          unsetTableName();
+        } else {
+          setTableName((java.lang.String)value);
+        }
+        break;
+
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public java.lang.Object getFieldValue(_Fields field) {
+      switch (field) {
+      case TINFO:
+        return getTinfo();
+
+      case CREDENTIALS:
+        return getCredentials();
+
+      case TABLE_NAME:
+        return getTableName();
+
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new java.lang.IllegalArgumentException();
+      }
+
+      switch (field) {
+      case TINFO:
+        return isSetTinfo();
+      case CREDENTIALS:
+        return isSetCredentials();
+      case TABLE_NAME:
+        return isSetTableName();
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(java.lang.Object that) {
+      if (that instanceof getVersionedTableProperties_args)
+        return this.equals((getVersionedTableProperties_args)that);
+      return false;
+    }
+
+    public boolean equals(getVersionedTableProperties_args that) {
+      if (that == null)
+        return false;
+      if (this == that)
+        return true;
+
+      boolean this_present_tinfo = true && this.isSetTinfo();
+      boolean that_present_tinfo = true && that.isSetTinfo();
+      if (this_present_tinfo || that_present_tinfo) {
+        if (!(this_present_tinfo && that_present_tinfo))
+          return false;
+        if (!this.tinfo.equals(that.tinfo))
+          return false;
+      }
+
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
+          return false;
+        if (!this.credentials.equals(that.credentials))
+          return false;
+      }
+
+      boolean this_present_tableName = true && this.isSetTableName();
+      boolean that_present_tableName = true && that.isSetTableName();
+      if (this_present_tableName || that_present_tableName) {
+        if (!(this_present_tableName && that_present_tableName))
+          return false;
+        if (!this.tableName.equals(that.tableName))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      int hashCode = 1;
+
+      hashCode = hashCode * 8191 + ((isSetTinfo()) ? 131071 : 524287);
+      if (isSetTinfo())
+        hashCode = hashCode * 8191 + tinfo.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetCredentials()) ? 131071 : 524287);
+      if (isSetCredentials())
+        hashCode = hashCode * 8191 + credentials.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetTableName()) ? 131071 : 524287);
+      if (isSetTableName())
+        hashCode = hashCode * 8191 + tableName.hashCode();
+
+      return hashCode;
+    }
+
+    @Override
+    public int compareTo(getVersionedTableProperties_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+
+      lastComparison = java.lang.Boolean.compare(isSetTinfo(), other.isSetTinfo());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTinfo()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tinfo, other.tinfo);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetCredentials(), other.isSetCredentials());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, other.credentials);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetTableName(), other.isSetTableName());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTableName()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tableName, other.tableName);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      scheme(iprot).read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      scheme(oprot).write(oprot, this);
+    }
+
+    @Override
+    public java.lang.String toString() {
+      java.lang.StringBuilder sb = new java.lang.StringBuilder("getVersionedTableProperties_args(");
+      boolean first = true;
+
+      sb.append("tinfo:");
+      if (this.tinfo == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tinfo);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("credentials:");
+      if (this.credentials == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.credentials);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("tableName:");
+      if (this.tableName == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tableName);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+      if (tinfo != null) {
+        tinfo.validate();
+      }
+      if (credentials != null) {
+        credentials.validate();
+      }
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class getVersionedTableProperties_argsStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      public getVersionedTableProperties_argsStandardScheme getScheme() {
+        return new getVersionedTableProperties_argsStandardScheme();
+      }
+    }
+
+    private static class getVersionedTableProperties_argsStandardScheme extends org.apache.thrift.scheme.StandardScheme<getVersionedTableProperties_args> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, getVersionedTableProperties_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 1: // TINFO
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+                struct.tinfo.read(iprot);
+                struct.setTinfoIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 3: // CREDENTIALS
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 2: // TABLE_NAME
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+                struct.tableName = iprot.readString();
+                struct.setTableNameIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, getVersionedTableProperties_args struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.tableName != null) {
+          oprot.writeFieldBegin(TABLE_NAME_FIELD_DESC);
+          oprot.writeString(struct.tableName);
+          oprot.writeFieldEnd();
+        }
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class getVersionedTableProperties_argsTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      public getVersionedTableProperties_argsTupleScheme getScheme() {
+        return new getVersionedTableProperties_argsTupleScheme();
+      }
+    }
+
+    private static class getVersionedTableProperties_argsTupleScheme extends org.apache.thrift.scheme.TupleScheme<getVersionedTableProperties_args> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, getVersionedTableProperties_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet optionals = new java.util.BitSet();
+        if (struct.isSetTinfo()) {
+          optionals.set(0);
+        }
+        if (struct.isSetCredentials()) {
+          optionals.set(1);
+        }
+        if (struct.isSetTableName()) {
+          optionals.set(2);
+        }
+        oprot.writeBitSet(optionals, 3);
+        if (struct.isSetTinfo()) {
+          struct.tinfo.write(oprot);
+        }
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
+        }
+        if (struct.isSetTableName()) {
+          oprot.writeString(struct.tableName);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, getVersionedTableProperties_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet incoming = iprot.readBitSet(3);
+        if (incoming.get(0)) {
+          struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+          struct.tinfo.read(iprot);
+          struct.setTinfoIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
+        }
+        if (incoming.get(2)) {
+          struct.tableName = iprot.readString();
+          struct.setTableNameIsSet(true);
+        }
+      }
+    }
+
+    private static <S extends org.apache.thrift.scheme.IScheme> S scheme(org.apache.thrift.protocol.TProtocol proto) {
+      return (org.apache.thrift.scheme.StandardScheme.class.equals(proto.getScheme()) ? STANDARD_SCHEME_FACTORY : TUPLE_SCHEME_FACTORY).getScheme();
+    }
+  }
+
+  public static class getVersionedTableProperties_result implements org.apache.thrift.TBase<getVersionedTableProperties_result, getVersionedTableProperties_result._Fields>, java.io.Serializable, Cloneable, Comparable<getVersionedTableProperties_result>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getVersionedTableProperties_result");
+
+    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRUCT, (short)0);
+    private static final org.apache.thrift.protocol.TField TOPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tope", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+
+    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getVersionedTableProperties_resultStandardSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getVersionedTableProperties_resultTupleSchemeFactory();
+
+    public @org.apache.thrift.annotation.Nullable TVersionedProperties success; // required
+    public @org.apache.thrift.annotation.Nullable ThriftTableOperationException tope; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SUCCESS((short)0, "success"),
+      TOPE((short)1, "tope");
+
+      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
+
+      static {
+        for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      @org.apache.thrift.annotation.Nullable
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 0: // SUCCESS
+            return SUCCESS;
+          case 1: // TOPE
+            return TOPE;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new java.lang.IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      @org.apache.thrift.annotation.Nullable
+      public static _Fields findByName(java.lang.String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final java.lang.String _fieldName;
+
+      _Fields(short thriftId, java.lang.String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public java.lang.String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TVersionedProperties.class)));
+      tmpMap.put(_Fields.TOPE, new org.apache.thrift.meta_data.FieldMetaData("tope", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftTableOperationException.class)));
+      metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getVersionedTableProperties_result.class, metaDataMap);
+    }
+
+    public getVersionedTableProperties_result() {
+    }
+
+    public getVersionedTableProperties_result(
+      TVersionedProperties success,
+      ThriftTableOperationException tope)
+    {
+      this();
+      this.success = success;
+      this.tope = tope;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public getVersionedTableProperties_result(getVersionedTableProperties_result other) {
+      if (other.isSetSuccess()) {
+        this.success = new TVersionedProperties(other.success);
+      }
+      if (other.isSetTope()) {
+        this.tope = new ThriftTableOperationException(other.tope);
+      }
+    }
+
+    public getVersionedTableProperties_result deepCopy() {
+      return new getVersionedTableProperties_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.success = null;
+      this.tope = null;
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public TVersionedProperties getSuccess() {
+      return this.success;
+    }
+
+    public getVersionedTableProperties_result setSuccess(@org.apache.thrift.annotation.Nullable TVersionedProperties success) {
+      this.success = success;
+      return this;
+    }
+
+    public void unsetSuccess() {
+      this.success = null;
+    }
+
+    /** Returns true if field success is set (has been assigned a value) and false otherwise */
+    public boolean isSetSuccess() {
+      return this.success != null;
+    }
+
+    public void setSuccessIsSet(boolean value) {
+      if (!value) {
+        this.success = null;
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public ThriftTableOperationException getTope() {
+      return this.tope;
+    }
+
+    public getVersionedTableProperties_result setTope(@org.apache.thrift.annotation.Nullable ThriftTableOperationException tope) {
+      this.tope = tope;
+      return this;
+    }
+
+    public void unsetTope() {
+      this.tope = null;
+    }
+
+    /** Returns true if field tope is set (has been assigned a value) and false otherwise */
+    public boolean isSetTope() {
+      return this.tope != null;
+    }
+
+    public void setTopeIsSet(boolean value) {
+      if (!value) {
+        this.tope = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
+      switch (field) {
+      case SUCCESS:
+        if (value == null) {
+          unsetSuccess();
+        } else {
+          setSuccess((TVersionedProperties)value);
+        }
+        break;
+
+      case TOPE:
+        if (value == null) {
+          unsetTope();
+        } else {
+          setTope((ThriftTableOperationException)value);
+        }
+        break;
+
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public java.lang.Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SUCCESS:
+        return getSuccess();
+
+      case TOPE:
+        return getTope();
+
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new java.lang.IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SUCCESS:
+        return isSetSuccess();
+      case TOPE:
+        return isSetTope();
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(java.lang.Object that) {
+      if (that instanceof getVersionedTableProperties_result)
+        return this.equals((getVersionedTableProperties_result)that);
+      return false;
+    }
+
+    public boolean equals(getVersionedTableProperties_result that) {
+      if (that == null)
+        return false;
+      if (this == that)
+        return true;
+
+      boolean this_present_success = true && this.isSetSuccess();
+      boolean that_present_success = true && that.isSetSuccess();
+      if (this_present_success || that_present_success) {
+        if (!(this_present_success && that_present_success))
+          return false;
+        if (!this.success.equals(that.success))
+          return false;
+      }
+
+      boolean this_present_tope = true && this.isSetTope();
+      boolean that_present_tope = true && that.isSetTope();
+      if (this_present_tope || that_present_tope) {
+        if (!(this_present_tope && that_present_tope))
+          return false;
+        if (!this.tope.equals(that.tope))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      int hashCode = 1;
+
+      hashCode = hashCode * 8191 + ((isSetSuccess()) ? 131071 : 524287);
+      if (isSetSuccess())
+        hashCode = hashCode * 8191 + success.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetTope()) ? 131071 : 524287);
+      if (isSetTope())
+        hashCode = hashCode * 8191 + tope.hashCode();
+
+      return hashCode;
+    }
+
+    @Override
+    public int compareTo(getVersionedTableProperties_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+
+      lastComparison = java.lang.Boolean.compare(isSetSuccess(), other.isSetSuccess());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSuccess()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, other.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetTope(), other.isSetTope());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTope()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tope, other.tope);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      scheme(iprot).read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      scheme(oprot).write(oprot, this);
+      }
+
+    @Override
+    public java.lang.String toString() {
+      java.lang.StringBuilder sb = new java.lang.StringBuilder("getVersionedTableProperties_result(");
+      boolean first = true;
+
+      sb.append("success:");
+      if (this.success == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.success);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("tope:");
+      if (this.tope == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tope);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+      if (success != null) {
+        success.validate();
+      }
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class getVersionedTableProperties_resultStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      public getVersionedTableProperties_resultStandardScheme getScheme() {
+        return new getVersionedTableProperties_resultStandardScheme();
+      }
+    }
+
+    private static class getVersionedTableProperties_resultStandardScheme extends org.apache.thrift.scheme.StandardScheme<getVersionedTableProperties_result> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, getVersionedTableProperties_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 0: // SUCCESS
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.success = new TVersionedProperties();
+                struct.success.read(iprot);
+                struct.setSuccessIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 1: // TOPE
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.tope = new ThriftTableOperationException();
+                struct.tope.read(iprot);
+                struct.setTopeIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, getVersionedTableProperties_result struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.success != null) {
+          oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
+          struct.success.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.tope != null) {
+          oprot.writeFieldBegin(TOPE_FIELD_DESC);
+          struct.tope.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class getVersionedTableProperties_resultTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      public getVersionedTableProperties_resultTupleScheme getScheme() {
+        return new getVersionedTableProperties_resultTupleScheme();
+      }
+    }
+
+    private static class getVersionedTableProperties_resultTupleScheme extends org.apache.thrift.scheme.TupleScheme<getVersionedTableProperties_result> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, getVersionedTableProperties_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet optionals = new java.util.BitSet();
+        if (struct.isSetSuccess()) {
+          optionals.set(0);
+        }
+        if (struct.isSetTope()) {
+          optionals.set(1);
+        }
+        oprot.writeBitSet(optionals, 2);
+        if (struct.isSetSuccess()) {
+          struct.success.write(oprot);
+        }
+        if (struct.isSetTope()) {
+          struct.tope.write(oprot);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, getVersionedTableProperties_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet incoming = iprot.readBitSet(2);
+        if (incoming.get(0)) {
+          struct.success = new TVersionedProperties();
+          struct.success.read(iprot);
           struct.setSuccessIsSet(true);
         }
         if (incoming.get(1)) {
@@ -36338,15 +38733,15 @@ public class ClientService {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
                 {
-                  org.apache.thrift.protocol.TMap _map104 = iprot.readMapBegin();
-                  struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map104.size);
-                  @org.apache.thrift.annotation.Nullable java.lang.String _key105;
-                  @org.apache.thrift.annotation.Nullable java.lang.String _val106;
-                  for (int _i107 = 0; _i107 < _map104.size; ++_i107)
+                  org.apache.thrift.protocol.TMap _map114 = iprot.readMapBegin();
+                  struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map114.size);
+                  @org.apache.thrift.annotation.Nullable java.lang.String _key115;
+                  @org.apache.thrift.annotation.Nullable java.lang.String _val116;
+                  for (int _i117 = 0; _i117 < _map114.size; ++_i117)
                   {
-                    _key105 = iprot.readString();
-                    _val106 = iprot.readString();
-                    struct.success.put(_key105, _val106);
+                    _key115 = iprot.readString();
+                    _val116 = iprot.readString();
+                    struct.success.put(_key115, _val116);
                   }
                   iprot.readMapEnd();
                 }
@@ -36383,10 +38778,10 @@ public class ClientService {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, struct.success.size()));
-            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter108 : struct.success.entrySet())
+            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter118 : struct.success.entrySet())
             {
-              oprot.writeString(_iter108.getKey());
-              oprot.writeString(_iter108.getValue());
+              oprot.writeString(_iter118.getKey());
+              oprot.writeString(_iter118.getValue());
             }
             oprot.writeMapEnd();
           }
@@ -36425,10 +38820,10 @@ public class ClientService {
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter109 : struct.success.entrySet())
+            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter119 : struct.success.entrySet())
             {
-              oprot.writeString(_iter109.getKey());
-              oprot.writeString(_iter109.getValue());
+              oprot.writeString(_iter119.getKey());
+              oprot.writeString(_iter119.getValue());
             }
           }
         }
@@ -36443,15 +38838,15 @@ public class ClientService {
         java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TMap _map110 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
-            struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map110.size);
-            @org.apache.thrift.annotation.Nullable java.lang.String _key111;
-            @org.apache.thrift.annotation.Nullable java.lang.String _val112;
-            for (int _i113 = 0; _i113 < _map110.size; ++_i113)
+            org.apache.thrift.protocol.TMap _map120 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
+            struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map120.size);
+            @org.apache.thrift.annotation.Nullable java.lang.String _key121;
+            @org.apache.thrift.annotation.Nullable java.lang.String _val122;
+            for (int _i123 = 0; _i123 < _map120.size; ++_i123)
             {
-              _key111 = iprot.readString();
-              _val112 = iprot.readString();
-              struct.success.put(_key111, _val112);
+              _key121 = iprot.readString();
+              _val122 = iprot.readString();
+              struct.success.put(_key121, _val122);
             }
           }
           struct.setSuccessIsSet(true);
@@ -37447,15 +39842,15 @@ public class ClientService {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
                 {
-                  org.apache.thrift.protocol.TMap _map114 = iprot.readMapBegin();
-                  struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map114.size);
-                  @org.apache.thrift.annotation.Nullable java.lang.String _key115;
-                  @org.apache.thrift.annotation.Nullable java.lang.String _val116;
-                  for (int _i117 = 0; _i117 < _map114.size; ++_i117)
+                  org.apache.thrift.protocol.TMap _map124 = iprot.readMapBegin();
+                  struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map124.size);
+                  @org.apache.thrift.annotation.Nullable java.lang.String _key125;
+                  @org.apache.thrift.annotation.Nullable java.lang.String _val126;
+                  for (int _i127 = 0; _i127 < _map124.size; ++_i127)
                   {
-                    _key115 = iprot.readString();
-                    _val116 = iprot.readString();
-                    struct.success.put(_key115, _val116);
+                    _key125 = iprot.readString();
+                    _val126 = iprot.readString();
+                    struct.success.put(_key125, _val126);
                   }
                   iprot.readMapEnd();
                 }
@@ -37492,10 +39887,10 @@ public class ClientService {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, struct.success.size()));
-            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter118 : struct.success.entrySet())
+            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter128 : struct.success.entrySet())
             {
-              oprot.writeString(_iter118.getKey());
-              oprot.writeString(_iter118.getValue());
+              oprot.writeString(_iter128.getKey());
+              oprot.writeString(_iter128.getValue());
             }
             oprot.writeMapEnd();
           }
@@ -37534,10 +39929,10 @@ public class ClientService {
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter119 : struct.success.entrySet())
+            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter129 : struct.success.entrySet())
             {
-              oprot.writeString(_iter119.getKey());
-              oprot.writeString(_iter119.getValue());
+              oprot.writeString(_iter129.getKey());
+              oprot.writeString(_iter129.getValue());
             }
           }
         }
@@ -37552,17 +39947,1079 @@ public class ClientService {
         java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TMap _map120 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
-            struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map120.size);
-            @org.apache.thrift.annotation.Nullable java.lang.String _key121;
-            @org.apache.thrift.annotation.Nullable java.lang.String _val122;
-            for (int _i123 = 0; _i123 < _map120.size; ++_i123)
+            org.apache.thrift.protocol.TMap _map130 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
+            struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map130.size);
+            @org.apache.thrift.annotation.Nullable java.lang.String _key131;
+            @org.apache.thrift.annotation.Nullable java.lang.String _val132;
+            for (int _i133 = 0; _i133 < _map130.size; ++_i133)
             {
-              _key121 = iprot.readString();
-              _val122 = iprot.readString();
-              struct.success.put(_key121, _val122);
+              _key131 = iprot.readString();
+              _val132 = iprot.readString();
+              struct.success.put(_key131, _val132);
             }
           }
+          struct.setSuccessIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.tope = new ThriftTableOperationException();
+          struct.tope.read(iprot);
+          struct.setTopeIsSet(true);
+        }
+      }
+    }
+
+    private static <S extends org.apache.thrift.scheme.IScheme> S scheme(org.apache.thrift.protocol.TProtocol proto) {
+      return (org.apache.thrift.scheme.StandardScheme.class.equals(proto.getScheme()) ? STANDARD_SCHEME_FACTORY : TUPLE_SCHEME_FACTORY).getScheme();
+    }
+  }
+
+  public static class getVersionedNamespaceProperties_args implements org.apache.thrift.TBase<getVersionedNamespaceProperties_args, getVersionedNamespaceProperties_args._Fields>, java.io.Serializable, Cloneable, Comparable<getVersionedNamespaceProperties_args>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getVersionedNamespaceProperties_args");
+
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField NS_FIELD_DESC = new org.apache.thrift.protocol.TField("ns", org.apache.thrift.protocol.TType.STRING, (short)3);
+
+    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getVersionedNamespaceProperties_argsStandardSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getVersionedNamespaceProperties_argsTupleSchemeFactory();
+
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo; // required
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
+    public @org.apache.thrift.annotation.Nullable java.lang.String ns; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials"),
+      NS((short)3, "ns");
+
+      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
+
+      static {
+        for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      @org.apache.thrift.annotation.Nullable
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // TINFO
+            return TINFO;
+          case 2: // CREDENTIALS
+            return CREDENTIALS;
+          case 3: // NS
+            return NS;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new java.lang.IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      @org.apache.thrift.annotation.Nullable
+      public static _Fields findByName(java.lang.String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final java.lang.String _fieldName;
+
+      _Fields(short thriftId, java.lang.String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public java.lang.String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.trace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
+      tmpMap.put(_Fields.NS, new org.apache.thrift.meta_data.FieldMetaData("ns", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getVersionedNamespaceProperties_args.class, metaDataMap);
+    }
+
+    public getVersionedNamespaceProperties_args() {
+    }
+
+    public getVersionedNamespaceProperties_args(
+      org.apache.accumulo.core.trace.thrift.TInfo tinfo,
+      org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
+      java.lang.String ns)
+    {
+      this();
+      this.tinfo = tinfo;
+      this.credentials = credentials;
+      this.ns = ns;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public getVersionedNamespaceProperties_args(getVersionedNamespaceProperties_args other) {
+      if (other.isSetTinfo()) {
+        this.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo(other.tinfo);
+      }
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials(other.credentials);
+      }
+      if (other.isSetNs()) {
+        this.ns = other.ns;
+      }
+    }
+
+    public getVersionedNamespaceProperties_args deepCopy() {
+      return new getVersionedNamespaceProperties_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.tinfo = null;
+      this.credentials = null;
+      this.ns = null;
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public org.apache.accumulo.core.trace.thrift.TInfo getTinfo() {
+      return this.tinfo;
+    }
+
+    public getVersionedNamespaceProperties_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo) {
+      this.tinfo = tinfo;
+      return this;
+    }
+
+    public void unsetTinfo() {
+      this.tinfo = null;
+    }
+
+    /** Returns true if field tinfo is set (has been assigned a value) and false otherwise */
+    public boolean isSetTinfo() {
+      return this.tinfo != null;
+    }
+
+    public void setTinfoIsSet(boolean value) {
+      if (!value) {
+        this.tinfo = null;
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public org.apache.accumulo.core.securityImpl.thrift.TCredentials getCredentials() {
+      return this.credentials;
+    }
+
+    public getVersionedNamespaceProperties_args setCredentials(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) {
+      this.credentials = credentials;
+      return this;
+    }
+
+    public void unsetCredentials() {
+      this.credentials = null;
+    }
+
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
+    }
+
+    public void setCredentialsIsSet(boolean value) {
+      if (!value) {
+        this.credentials = null;
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public java.lang.String getNs() {
+      return this.ns;
+    }
+
+    public getVersionedNamespaceProperties_args setNs(@org.apache.thrift.annotation.Nullable java.lang.String ns) {
+      this.ns = ns;
+      return this;
+    }
+
+    public void unsetNs() {
+      this.ns = null;
+    }
+
+    /** Returns true if field ns is set (has been assigned a value) and false otherwise */
+    public boolean isSetNs() {
+      return this.ns != null;
+    }
+
+    public void setNsIsSet(boolean value) {
+      if (!value) {
+        this.ns = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
+      switch (field) {
+      case TINFO:
+        if (value == null) {
+          unsetTinfo();
+        } else {
+          setTinfo((org.apache.accumulo.core.trace.thrift.TInfo)value);
+        }
+        break;
+
+      case CREDENTIALS:
+        if (value == null) {
+          unsetCredentials();
+        } else {
+          setCredentials((org.apache.accumulo.core.securityImpl.thrift.TCredentials)value);
+        }
+        break;
+
+      case NS:
+        if (value == null) {
+          unsetNs();
+        } else {
+          setNs((java.lang.String)value);
+        }
+        break;
+
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public java.lang.Object getFieldValue(_Fields field) {
+      switch (field) {
+      case TINFO:
+        return getTinfo();
+
+      case CREDENTIALS:
+        return getCredentials();
+
+      case NS:
+        return getNs();
+
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new java.lang.IllegalArgumentException();
+      }
+
+      switch (field) {
+      case TINFO:
+        return isSetTinfo();
+      case CREDENTIALS:
+        return isSetCredentials();
+      case NS:
+        return isSetNs();
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(java.lang.Object that) {
+      if (that instanceof getVersionedNamespaceProperties_args)
+        return this.equals((getVersionedNamespaceProperties_args)that);
+      return false;
+    }
+
+    public boolean equals(getVersionedNamespaceProperties_args that) {
+      if (that == null)
+        return false;
+      if (this == that)
+        return true;
+
+      boolean this_present_tinfo = true && this.isSetTinfo();
+      boolean that_present_tinfo = true && that.isSetTinfo();
+      if (this_present_tinfo || that_present_tinfo) {
+        if (!(this_present_tinfo && that_present_tinfo))
+          return false;
+        if (!this.tinfo.equals(that.tinfo))
+          return false;
+      }
+
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
+          return false;
+        if (!this.credentials.equals(that.credentials))
+          return false;
+      }
+
+      boolean this_present_ns = true && this.isSetNs();
+      boolean that_present_ns = true && that.isSetNs();
+      if (this_present_ns || that_present_ns) {
+        if (!(this_present_ns && that_present_ns))
+          return false;
+        if (!this.ns.equals(that.ns))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      int hashCode = 1;
+
+      hashCode = hashCode * 8191 + ((isSetTinfo()) ? 131071 : 524287);
+      if (isSetTinfo())
+        hashCode = hashCode * 8191 + tinfo.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetCredentials()) ? 131071 : 524287);
+      if (isSetCredentials())
+        hashCode = hashCode * 8191 + credentials.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetNs()) ? 131071 : 524287);
+      if (isSetNs())
+        hashCode = hashCode * 8191 + ns.hashCode();
+
+      return hashCode;
+    }
+
+    @Override
+    public int compareTo(getVersionedNamespaceProperties_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+
+      lastComparison = java.lang.Boolean.compare(isSetTinfo(), other.isSetTinfo());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTinfo()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tinfo, other.tinfo);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetCredentials(), other.isSetCredentials());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, other.credentials);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetNs(), other.isSetNs());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetNs()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.ns, other.ns);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      scheme(iprot).read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      scheme(oprot).write(oprot, this);
+    }
+
+    @Override
+    public java.lang.String toString() {
+      java.lang.StringBuilder sb = new java.lang.StringBuilder("getVersionedNamespaceProperties_args(");
+      boolean first = true;
+
+      sb.append("tinfo:");
+      if (this.tinfo == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tinfo);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("credentials:");
+      if (this.credentials == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.credentials);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("ns:");
+      if (this.ns == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.ns);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+      if (tinfo != null) {
+        tinfo.validate();
+      }
+      if (credentials != null) {
+        credentials.validate();
+      }
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class getVersionedNamespaceProperties_argsStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      public getVersionedNamespaceProperties_argsStandardScheme getScheme() {
+        return new getVersionedNamespaceProperties_argsStandardScheme();
+      }
+    }
+
+    private static class getVersionedNamespaceProperties_argsStandardScheme extends org.apache.thrift.scheme.StandardScheme<getVersionedNamespaceProperties_args> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, getVersionedNamespaceProperties_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 1: // TINFO
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+                struct.tinfo.read(iprot);
+                struct.setTinfoIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 2: // CREDENTIALS
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 3: // NS
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+                struct.ns = iprot.readString();
+                struct.setNsIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, getVersionedNamespaceProperties_args struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.ns != null) {
+          oprot.writeFieldBegin(NS_FIELD_DESC);
+          oprot.writeString(struct.ns);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class getVersionedNamespaceProperties_argsTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      public getVersionedNamespaceProperties_argsTupleScheme getScheme() {
+        return new getVersionedNamespaceProperties_argsTupleScheme();
+      }
+    }
+
+    private static class getVersionedNamespaceProperties_argsTupleScheme extends org.apache.thrift.scheme.TupleScheme<getVersionedNamespaceProperties_args> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, getVersionedNamespaceProperties_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet optionals = new java.util.BitSet();
+        if (struct.isSetTinfo()) {
+          optionals.set(0);
+        }
+        if (struct.isSetCredentials()) {
+          optionals.set(1);
+        }
+        if (struct.isSetNs()) {
+          optionals.set(2);
+        }
+        oprot.writeBitSet(optionals, 3);
+        if (struct.isSetTinfo()) {
+          struct.tinfo.write(oprot);
+        }
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
+        }
+        if (struct.isSetNs()) {
+          oprot.writeString(struct.ns);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, getVersionedNamespaceProperties_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet incoming = iprot.readBitSet(3);
+        if (incoming.get(0)) {
+          struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+          struct.tinfo.read(iprot);
+          struct.setTinfoIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
+        }
+        if (incoming.get(2)) {
+          struct.ns = iprot.readString();
+          struct.setNsIsSet(true);
+        }
+      }
+    }
+
+    private static <S extends org.apache.thrift.scheme.IScheme> S scheme(org.apache.thrift.protocol.TProtocol proto) {
+      return (org.apache.thrift.scheme.StandardScheme.class.equals(proto.getScheme()) ? STANDARD_SCHEME_FACTORY : TUPLE_SCHEME_FACTORY).getScheme();
+    }
+  }
+
+  public static class getVersionedNamespaceProperties_result implements org.apache.thrift.TBase<getVersionedNamespaceProperties_result, getVersionedNamespaceProperties_result._Fields>, java.io.Serializable, Cloneable, Comparable<getVersionedNamespaceProperties_result>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getVersionedNamespaceProperties_result");
+
+    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRUCT, (short)0);
+    private static final org.apache.thrift.protocol.TField TOPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tope", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+
+    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getVersionedNamespaceProperties_resultStandardSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getVersionedNamespaceProperties_resultTupleSchemeFactory();
+
+    public @org.apache.thrift.annotation.Nullable TVersionedProperties success; // required
+    public @org.apache.thrift.annotation.Nullable ThriftTableOperationException tope; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SUCCESS((short)0, "success"),
+      TOPE((short)1, "tope");
+
+      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
+
+      static {
+        for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      @org.apache.thrift.annotation.Nullable
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 0: // SUCCESS
+            return SUCCESS;
+          case 1: // TOPE
+            return TOPE;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new java.lang.IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      @org.apache.thrift.annotation.Nullable
+      public static _Fields findByName(java.lang.String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final java.lang.String _fieldName;
+
+      _Fields(short thriftId, java.lang.String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public java.lang.String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TVersionedProperties.class)));
+      tmpMap.put(_Fields.TOPE, new org.apache.thrift.meta_data.FieldMetaData("tope", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftTableOperationException.class)));
+      metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getVersionedNamespaceProperties_result.class, metaDataMap);
+    }
+
+    public getVersionedNamespaceProperties_result() {
+    }
+
+    public getVersionedNamespaceProperties_result(
+      TVersionedProperties success,
+      ThriftTableOperationException tope)
+    {
+      this();
+      this.success = success;
+      this.tope = tope;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public getVersionedNamespaceProperties_result(getVersionedNamespaceProperties_result other) {
+      if (other.isSetSuccess()) {
+        this.success = new TVersionedProperties(other.success);
+      }
+      if (other.isSetTope()) {
+        this.tope = new ThriftTableOperationException(other.tope);
+      }
+    }
+
+    public getVersionedNamespaceProperties_result deepCopy() {
+      return new getVersionedNamespaceProperties_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.success = null;
+      this.tope = null;
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public TVersionedProperties getSuccess() {
+      return this.success;
+    }
+
+    public getVersionedNamespaceProperties_result setSuccess(@org.apache.thrift.annotation.Nullable TVersionedProperties success) {
+      this.success = success;
+      return this;
+    }
+
+    public void unsetSuccess() {
+      this.success = null;
+    }
+
+    /** Returns true if field success is set (has been assigned a value) and false otherwise */
+    public boolean isSetSuccess() {
+      return this.success != null;
+    }
+
+    public void setSuccessIsSet(boolean value) {
+      if (!value) {
+        this.success = null;
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public ThriftTableOperationException getTope() {
+      return this.tope;
+    }
+
+    public getVersionedNamespaceProperties_result setTope(@org.apache.thrift.annotation.Nullable ThriftTableOperationException tope) {
+      this.tope = tope;
+      return this;
+    }
+
+    public void unsetTope() {
+      this.tope = null;
+    }
+
+    /** Returns true if field tope is set (has been assigned a value) and false otherwise */
+    public boolean isSetTope() {
+      return this.tope != null;
+    }
+
+    public void setTopeIsSet(boolean value) {
+      if (!value) {
+        this.tope = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
+      switch (field) {
+      case SUCCESS:
+        if (value == null) {
+          unsetSuccess();
+        } else {
+          setSuccess((TVersionedProperties)value);
+        }
+        break;
+
+      case TOPE:
+        if (value == null) {
+          unsetTope();
+        } else {
+          setTope((ThriftTableOperationException)value);
+        }
+        break;
+
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public java.lang.Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SUCCESS:
+        return getSuccess();
+
+      case TOPE:
+        return getTope();
+
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new java.lang.IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SUCCESS:
+        return isSetSuccess();
+      case TOPE:
+        return isSetTope();
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(java.lang.Object that) {
+      if (that instanceof getVersionedNamespaceProperties_result)
+        return this.equals((getVersionedNamespaceProperties_result)that);
+      return false;
+    }
+
+    public boolean equals(getVersionedNamespaceProperties_result that) {
+      if (that == null)
+        return false;
+      if (this == that)
+        return true;
+
+      boolean this_present_success = true && this.isSetSuccess();
+      boolean that_present_success = true && that.isSetSuccess();
+      if (this_present_success || that_present_success) {
+        if (!(this_present_success && that_present_success))
+          return false;
+        if (!this.success.equals(that.success))
+          return false;
+      }
+
+      boolean this_present_tope = true && this.isSetTope();
+      boolean that_present_tope = true && that.isSetTope();
+      if (this_present_tope || that_present_tope) {
+        if (!(this_present_tope && that_present_tope))
+          return false;
+        if (!this.tope.equals(that.tope))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      int hashCode = 1;
+
+      hashCode = hashCode * 8191 + ((isSetSuccess()) ? 131071 : 524287);
+      if (isSetSuccess())
+        hashCode = hashCode * 8191 + success.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetTope()) ? 131071 : 524287);
+      if (isSetTope())
+        hashCode = hashCode * 8191 + tope.hashCode();
+
+      return hashCode;
+    }
+
+    @Override
+    public int compareTo(getVersionedNamespaceProperties_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+
+      lastComparison = java.lang.Boolean.compare(isSetSuccess(), other.isSetSuccess());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSuccess()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, other.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetTope(), other.isSetTope());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTope()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tope, other.tope);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      scheme(iprot).read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      scheme(oprot).write(oprot, this);
+      }
+
+    @Override
+    public java.lang.String toString() {
+      java.lang.StringBuilder sb = new java.lang.StringBuilder("getVersionedNamespaceProperties_result(");
+      boolean first = true;
+
+      sb.append("success:");
+      if (this.success == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.success);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("tope:");
+      if (this.tope == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tope);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+      if (success != null) {
+        success.validate();
+      }
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class getVersionedNamespaceProperties_resultStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      public getVersionedNamespaceProperties_resultStandardScheme getScheme() {
+        return new getVersionedNamespaceProperties_resultStandardScheme();
+      }
+    }
+
+    private static class getVersionedNamespaceProperties_resultStandardScheme extends org.apache.thrift.scheme.StandardScheme<getVersionedNamespaceProperties_result> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, getVersionedNamespaceProperties_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 0: // SUCCESS
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.success = new TVersionedProperties();
+                struct.success.read(iprot);
+                struct.setSuccessIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 1: // TOPE
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.tope = new ThriftTableOperationException();
+                struct.tope.read(iprot);
+                struct.setTopeIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, getVersionedNamespaceProperties_result struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.success != null) {
+          oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
+          struct.success.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.tope != null) {
+          oprot.writeFieldBegin(TOPE_FIELD_DESC);
+          struct.tope.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class getVersionedNamespaceProperties_resultTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      public getVersionedNamespaceProperties_resultTupleScheme getScheme() {
+        return new getVersionedNamespaceProperties_resultTupleScheme();
+      }
+    }
+
+    private static class getVersionedNamespaceProperties_resultTupleScheme extends org.apache.thrift.scheme.TupleScheme<getVersionedNamespaceProperties_result> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, getVersionedNamespaceProperties_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet optionals = new java.util.BitSet();
+        if (struct.isSetSuccess()) {
+          optionals.set(0);
+        }
+        if (struct.isSetTope()) {
+          optionals.set(1);
+        }
+        oprot.writeBitSet(optionals, 2);
+        if (struct.isSetSuccess()) {
+          struct.success.write(oprot);
+        }
+        if (struct.isSetTope()) {
+          struct.tope.write(oprot);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, getVersionedNamespaceProperties_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet incoming = iprot.readBitSet(2);
+        if (incoming.get(0)) {
+          struct.success = new TVersionedProperties();
+          struct.success.read(iprot);
           struct.setSuccessIsSet(true);
         }
         if (incoming.get(1)) {

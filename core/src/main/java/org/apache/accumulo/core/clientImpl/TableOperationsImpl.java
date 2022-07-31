@@ -93,6 +93,7 @@ import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Client;
 import org.apache.accumulo.core.clientImpl.thrift.TDiskUsage;
+import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
@@ -1026,16 +1027,17 @@ public class TableOperationsImpl extends TableOperationsHelper {
     EXISTING_TABLE_NAME.validate(tableName);
     checkArgument(mapMutator != null, "mapMutator is null");
 
-    final Map<String,String> properties = ThriftClientTypes.CLIENT.execute(context,
-        client -> client.getTableProperties(TraceUtil.traceInfo(), context.rpcCreds(), tableName));
-    mapMutator.accept(properties);
+    final TVersionedProperties vProperties =
+        ThriftClientTypes.CLIENT.execute(context, client -> client
+            .getVersionedTableProperties(TraceUtil.traceInfo(), context.rpcCreds(), tableName));
+    mapMutator.accept(vProperties.getProperties());
 
     try {
       // Send to server
-      ThriftClientTypes.MANAGER.executeVoid(context, client -> client
-          .modifyTableProperties(TraceUtil.traceInfo(), context.rpcCreds(), tableName, properties));
-
-      for (String property : properties.keySet()) {
+      ThriftClientTypes.MANAGER.executeVoid(context,
+          client -> client.modifyTableProperties(TraceUtil.traceInfo(), context.rpcCreds(),
+              tableName, vProperties));
+      for (String property : vProperties.getProperties().keySet()) {
         checkLocalityGroups(tableName, property);
       }
     } catch (TableNotFoundException e) {

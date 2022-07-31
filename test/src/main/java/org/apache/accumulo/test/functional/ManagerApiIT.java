@@ -34,6 +34,7 @@ import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Credentials;
+import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
@@ -240,19 +241,19 @@ public class ManagerApiIT extends SharedMiniClusterBase {
     String propKey = Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey();
     op = client -> {
       client.modifySystemProperties(TraceUtil.traceInfo(), regularUser.toThrift(instanceId),
-          Map.of(propKey, "10000"));
+          new TVersionedProperties(0, Map.of(propKey, "10000")));
       return null;
     };
     expectPermissionDenied(op, regularUser);
     op = client -> {
       client.modifySystemProperties(TraceUtil.traceInfo(), rootUser.toThrift(instanceId),
-          Map.of(propKey, "10000"));
+          new TVersionedProperties(0, Map.of(propKey, "10000")));
       return null;
     };
     expectPermissionSuccess(op, rootUser);
     op = client -> {
       client.modifySystemProperties(TraceUtil.traceInfo(), privilegedUser.toThrift(instanceId),
-          Map.of(propKey, "10000"));
+          new TVersionedProperties(1, Map.of(propKey, "10000")));
       return null;
     };
     expectPermissionSuccess(op, privilegedUser);

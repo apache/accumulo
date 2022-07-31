@@ -199,11 +199,12 @@ service ManagerClientService {
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
     3:string tableName
-    4:map<string, string> propertiesMap
+    4:client.TVersionedProperties vProperties
   ) throws (
     1:client.ThriftSecurityException sec
     2:client.ThriftTableOperationException tope
     3:client.ThriftNotActiveServiceException tnase
+    4:client.ThriftConcurrentModificationException tcme
   )
 
   void removeTableProperty(
@@ -233,11 +234,12 @@ service ManagerClientService {
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
     3:string ns
-    4:map<string, string> propertiesMap
+    4:client.TVersionedProperties vProperties
   ) throws (
     1:client.ThriftSecurityException sec
     2:client.ThriftTableOperationException tope
     3:client.ThriftNotActiveServiceException tnase
+    4:client.ThriftConcurrentModificationException tcme
   )
 
   void removeNamespaceProperty(
@@ -293,10 +295,11 @@ service ManagerClientService {
   void modifySystemProperties(
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
-    3:map<string, string> propertiesMap
+    3:client.TVersionedProperties vProperties
   ) throws (
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
+    3:client.ThriftConcurrentModificationException tcme
   )
 
   void removeSystemProperty(

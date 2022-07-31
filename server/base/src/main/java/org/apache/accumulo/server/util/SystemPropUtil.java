@@ -39,12 +39,13 @@ public class SystemPropUtil {
         Map.of(validateSystemProperty(property, value), value));
   }
 
-  public static void modifyProperties(ServerContext context, Map<String,String> propertiesMap) {
+  public static void modifyProperties(ServerContext context, long version,
+      Map<String,String> properties) {
     final Map<String,
-        String> checkedProperties = propertiesMap.entrySet().stream().collect(
+        String> checkedProperties = properties.entrySet().stream().collect(
             Collectors.toMap(entry -> validateSystemProperty(entry.getKey(), entry.getValue()),
                 Map.Entry::getValue));
-    context.getPropStore().replaceAll(SystemPropKey.of(context), checkedProperties);
+    context.getPropStore().replaceAll(SystemPropKey.of(context), version, checkedProperties);
   }
 
   public static void removeSystemProperty(ServerContext context, String property) {

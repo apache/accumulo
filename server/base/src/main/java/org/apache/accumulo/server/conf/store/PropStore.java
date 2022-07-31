@@ -19,6 +19,7 @@
 package org.apache.accumulo.server.conf.store;
 
 import java.util.Collection;
+import java.util.ConcurrentModificationException;
 import java.util.Map;
 
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
@@ -81,12 +82,17 @@ public interface PropStore {
    *
    * @param propStoreKey
    *          the prop cache key
+   * @param version
+   *          the version of the properties
    * @param props
    *          a map of property k,v pairs
    * @throws IllegalStateException
    *           if the values cannot be written or if an underlying store exception occurs.
+   * @throws java.util.ConcurrentModificationException
+   *           if the properties changed since reading and can not be modified
    */
-  void replaceAll(PropStoreKey<?> propStoreKey, Map<String,String> props);
+  void replaceAll(PropStoreKey<?> propStoreKey, long version, Map<String,String> props)
+      throws ConcurrentModificationException;
 
   /**
    * Delete the store node from the underlying store.

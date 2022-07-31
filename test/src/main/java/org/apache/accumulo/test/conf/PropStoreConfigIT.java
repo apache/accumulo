@@ -32,6 +32,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
@@ -193,6 +194,11 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
     try (var client = Accumulo.newClient().from(getClientProps()).build()) {
       // Grab original default config
       Map<String,String> config = client.instanceOperations().getSystemConfiguration();
+      TVersionedProperties properties = client.instanceOperations().getSystemProperties();
+
+      // should be empty to start
+      assertEquals(0, properties.getProperties().size());
+
       final String originalClientPort = config.get(Property.TSERV_CLIENTPORT.getKey());
       final String originalMaxMem = config.get(Property.TSERV_MAXMEM.getKey());
 
@@ -203,11 +209,17 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
       });
 
       // Verify system properties added
-      assertTrue(Wait.waitFor(() -> client.instanceOperations().getSystemProperties().size() > 0,
-          5000, 500));
+      assertTrue(Wait.waitFor(
+          () -> client.instanceOperations().getSystemProperties().getProperties().size() > 0, 5000,
+          500));
 
       // verify properties updated
-      config = client.instanceOperations().getSystemProperties();
+      properties = client.instanceOperations().getSystemProperties();
+      assertEquals("9998", properties.getProperties().get(Property.TSERV_CLIENTPORT.getKey()));
+      assertEquals("35%", properties.getProperties().get(Property.TSERV_MAXMEM.getKey()));
+
+      // verify properties updated in config as well
+      config = client.instanceOperations().getSystemConfiguration();
       assertEquals("9998", config.get(Property.TSERV_CLIENTPORT.getKey()));
       assertEquals("35%", config.get(Property.TSERV_MAXMEM.getKey()));
 
@@ -215,8 +227,9 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
       // should be restored
       client.instanceOperations().modifyProperties(Map::clear);
 
-      assertTrue(Wait.waitFor(() -> client.instanceOperations().getSystemProperties().size() == 0,
-          5000, 500));
+      assertTrue(Wait.waitFor(
+          () -> client.instanceOperations().getSystemProperties().getProperties().size() == 0, 5000,
+          500));
 
       // verify default system config restored
       config = client.instanceOperations().getSystemConfiguration();

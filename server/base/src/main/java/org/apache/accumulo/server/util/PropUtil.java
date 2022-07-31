@@ -50,9 +50,9 @@ public final class PropUtil {
   }
 
   public static void replaceProperties(final ServerContext context,
-      final PropStoreKey<?> propStoreKey, final Map<String,String> properties) {
+      final PropStoreKey<?> propStoreKey, final long version, final Map<String,String> properties) {
     PropUtil.validateProperties(context, propStoreKey, properties);
-    context.getPropStore().replaceAll(propStoreKey, properties);
+    context.getPropStore().replaceAll(propStoreKey, version, properties);
   }
 
   protected static void validateProperties(final ServerContext context,

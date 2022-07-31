@@ -47,6 +47,7 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -203,17 +204,18 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     EXISTING_NAMESPACE_NAME.validate(namespace);
     checkArgument(mapMutator != null, "mapMutator is null");
 
-    final Map<String,String> properties = ThriftClientTypes.CLIENT.execute(context, client -> client
-        .getNamespaceProperties(TraceUtil.traceInfo(), context.rpcCreds(), namespace));
-    mapMutator.accept(properties);
+    final TVersionedProperties vProperties =
+        ThriftClientTypes.CLIENT.execute(context, client -> client
+            .getVersionedNamespaceProperties(TraceUtil.traceInfo(), context.rpcCreds(), namespace));
+    mapMutator.accept(vProperties.getProperties());
 
     try {
       // Send to server
       ThriftClientTypes.MANAGER.executeVoidTableCommand(context,
           client -> client.modifyNamespaceProperties(TraceUtil.traceInfo(), context.rpcCreds(),
-              namespace, properties));
+              namespace, vProperties));
 
-      for (String property : properties.keySet()) {
+      for (String property : vProperties.getProperties().keySet()) {
         checkLocalityGroups(namespace, property);
       }
 

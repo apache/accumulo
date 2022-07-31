@@ -103,9 +103,18 @@ exception ThriftNotActiveServiceException {
   2:string description
 }
 
+exception ThriftConcurrentModificationException {
+  1:string description
+}
+
 struct TDiskUsage {
   1:list<string> tables
   2:i64 usage
+}
+
+struct TVersionedProperties {
+   1:i64 version
+   2:map<string, string> properties
 }
 
 service ClientService {
@@ -323,6 +332,11 @@ service ClientService {
     2:security.TCredentials credentials
   )
 
+  TVersionedProperties getVersionedSystemProperties(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+  )
+
   map<string, string> getTableConfiguration(
     1:trace.TInfo tinfo
     3:security.TCredentials credentials
@@ -339,6 +353,14 @@ service ClientService {
     1:ThriftTableOperationException tope
   )
 
+  TVersionedProperties getVersionedTableProperties(
+    1:trace.TInfo tinfo
+    3:security.TCredentials credentials
+    2:string tableName
+  ) throws (
+    1:ThriftTableOperationException tope
+  )
+
   map<string, string> getNamespaceConfiguration(
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
@@ -348,6 +370,14 @@ service ClientService {
   )
 
   map<string, string> getNamespaceProperties(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string ns
+  ) throws (
+    1:ThriftTableOperationException tope
+  )
+
+  TVersionedProperties getVersionedNamespaceProperties(
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
     3:string ns

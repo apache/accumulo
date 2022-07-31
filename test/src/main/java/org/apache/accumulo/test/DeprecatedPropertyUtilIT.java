@@ -21,7 +21,9 @@ package org.apache.accumulo.test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
+import java.util.ConcurrentModificationException;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -112,27 +114,35 @@ public class DeprecatedPropertyUtilIT extends ConfigurableMacBase {
       assertFalse(config.containsKey(newProp), newProp + " was in the config!");
 
       // create using old prop and verify new prop was created
-      SystemPropUtil.modifyProperties(getServerContext(), Map.of(oldProp, propValue));
+      SystemPropUtil.modifyProperties(getServerContext(), 0, Map.of(oldProp, propValue));
       config = client.instanceOperations().getSystemConfiguration();
       assertFalse(config.containsKey(oldProp), oldProp + " was in the config after set call!");
       assertTrue(config.containsKey(newProp), newProp + " was not in the config after set call!");
       assertEquals(propValue, config.get(newProp));
 
+      try {
+        // test version detection
+        SystemPropUtil.modifyProperties(getServerContext(), 0, Map.of());
+        fail("Expected ConcurrentModificationException as version has changed");
+      } catch (ConcurrentModificationException e) {
+        // expected
+      }
+
       // remove using new prop and verify both are gone
-      SystemPropUtil.modifyProperties(getServerContext(), Map.of());
+      SystemPropUtil.modifyProperties(getServerContext(), 1, Map.of());
       config = client.instanceOperations().getSystemConfiguration();
       assertFalse(config.containsKey(oldProp), oldProp + " was in the config after remove call!");
       assertFalse(config.containsKey(newProp), newProp + " was in the config after remove call!");
 
       // re-create using new prop and verify new prop was created
-      SystemPropUtil.modifyProperties(getServerContext(), Map.of(newProp, propValue));
+      SystemPropUtil.modifyProperties(getServerContext(), 2, Map.of(newProp, propValue));
       config = client.instanceOperations().getSystemConfiguration();
       assertFalse(config.containsKey(oldProp), oldProp + " was in the config after set call!");
       assertTrue(config.containsKey(newProp), newProp + " was not in the config after set call!");
       assertEquals(propValue, config.get(newProp));
 
       // remove using old prop and verify both are gone
-      SystemPropUtil.modifyProperties(getServerContext(), Map.of());
+      SystemPropUtil.modifyProperties(getServerContext(), 3, Map.of());
       config = client.instanceOperations().getSystemConfiguration();
       assertFalse(config.containsKey(oldProp), oldProp + " was in the config after remove call!");
       assertFalse(config.containsKey(newProp), newProp + " was in the config after remove call!");

@@ -28,6 +28,7 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.ConcurrentModificationException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -44,8 +45,10 @@ import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.DelegationTokenConfigSerializer;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftConcurrentModificationException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
@@ -244,7 +247,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
   @Override
   public void modifyTableProperties(TInfo tinfo, TCredentials credentials, String tableName,
-      Map<String,String> propertiesMap) throws TException {
+      TVersionedProperties properties) throws TException {
     final TableId tableId = ClientServiceHandler.checkTableId(manager.getContext(), tableName,
         TableOperation.SET_PROPERTY);
     NamespaceId namespaceId = getNamespaceIdFromTableId(TableOperation.SET_PROPERTY, tableId);
@@ -255,7 +258,11 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
     try {
       PropUtil.replaceProperties(manager.getContext(),
-          TablePropKey.of(manager.getContext(), tableId), propertiesMap);
+          TablePropKey.of(manager.getContext(), tableId), properties.getVersion(),
+          properties.getProperties());
+    } catch (ConcurrentModificationException cme) {
+      log.warn("Error modifying table properties, properties have changed", cme);
+      throw new ThriftConcurrentModificationException(cme.getMessage());
     } catch (IllegalStateException ex) {
       log.warn("Error modifying table properties: tableId: {}", tableId.canonical());
       // race condition... table no longer exists? This call will throw an exception if the table
@@ -406,19 +413,23 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   }
 
   @Override
-  public void modifySystemProperties(TInfo info, TCredentials c, Map<String,String> propertiesMap)
+  public void modifySystemProperties(TInfo info, TCredentials c, TVersionedProperties properties)
       throws TException {
     if (!manager.security.canPerformSystemActions(c))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
     try {
-      SystemPropUtil.modifyProperties(manager.getContext(), propertiesMap);
-      for (Map.Entry<String,String> entry : propertiesMap.entrySet()) {
+      SystemPropUtil.modifyProperties(manager.getContext(), properties.getVersion(),
+          properties.getProperties());
+      for (Map.Entry<String,String> entry : properties.getProperties().entrySet()) {
         updatePlugins(entry.getKey());
       }
     } catch (IllegalArgumentException iae) {
       // throw the exception here so it is not caught and converted to a generic TException
       throw iae;
+    } catch (ConcurrentModificationException cme) {
+      log.warn("Error modifying system properties, properties have changed", cme);
+      throw new ThriftConcurrentModificationException(cme.getMessage());
     } catch (Exception e) {
       Manager.log.error("Problem setting config property in zookeeper", e);
       throw new TException(e.getMessage());
@@ -433,7 +444,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
   @Override
   public void modifyNamespaceProperties(TInfo tinfo, TCredentials credentials, String ns,
-      Map<String,String> propertiesMap) throws TException {
+      TVersionedProperties properties) throws TException {
     final NamespaceId namespaceId = ClientServiceHandler.checkNamespaceId(manager.getContext(), ns,
         TableOperation.SET_PROPERTY);
     if (!manager.security.canAlterNamespace(credentials, namespaceId)) {
@@ -443,7 +454,11 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
     try {
       PropUtil.replaceProperties(manager.getContext(),
-          NamespacePropKey.of(manager.getContext(), namespaceId), propertiesMap);
+          NamespacePropKey.of(manager.getContext(), namespaceId), properties.getVersion(),
+          properties.getProperties());
+    } catch (ConcurrentModificationException cme) {
+      log.warn("Error modifying namespace properties, properties have changed", cme);
+      throw new ThriftConcurrentModificationException(cme.getMessage());
     } catch (IllegalStateException ex) {
       // race condition on delete... namespace no longer exists? An undelying ZooKeeper.NoNode
       // exception will be thrown an exception if the namespace was deleted:

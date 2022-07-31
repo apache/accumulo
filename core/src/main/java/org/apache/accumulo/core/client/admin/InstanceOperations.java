@@ -25,6 +25,7 @@ import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.data.InstanceId;
 
 public interface InstanceOperations {
@@ -95,12 +96,10 @@ public interface InstanceOperations {
   /**
    * Retrieve the configured System properties from zookeeper
    *
-   * @return A map of system properties set in zookeeper that can be changed. If a property is not
-   *         set in zookeeper, then it will return the value set in accumulo.properties on some
-   *         server. If nothing is set in an accumulo.properties file, the default value for each
-   *         property will be used.
+   * @return {@link TVersionedProperties} containing a map of system properties set in zookeeper
+   *         that can be changed as well as the version of those properties.
    */
-  Map<String,String> getSystemProperties() throws AccumuloException, AccumuloSecurityException;
+  TVersionedProperties getSystemProperties() throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Retrieve the site configuration (that is set in the server configuration file).

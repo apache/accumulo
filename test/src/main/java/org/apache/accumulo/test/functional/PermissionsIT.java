@@ -122,6 +122,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
 
           // test permission before and after granting it
           String tableNamePrefix = getUniqueNames(1)[0];
+          Thread.sleep(1000);
           testMissingSystemPermission(tableNamePrefix, c, rootUser, test_user_client, testUser,
               perm);
           loginAs(rootUser);

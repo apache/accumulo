@@ -46,6 +46,7 @@ import org.apache.accumulo.core.client.admin.ActiveCompaction.CompactionHost;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
+import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.data.InstanceId;
@@ -67,6 +68,7 @@ import org.slf4j.LoggerFactory;
  * Provides a class for administering the accumulo instance
  */
 public class InstanceOperationsImpl implements InstanceOperations {
+
   private final ClientContext context;
 
   public InstanceOperationsImpl(ClientContext context) {
@@ -96,14 +98,15 @@ public class InstanceOperationsImpl implements InstanceOperations {
       ConcurrentModificationException {
     checkArgument(mapMutator != null, "mapMutator is null");
 
-    final Map<String,String> properties = getSystemProperties();
-    mapMutator.accept(properties);
+    final TVersionedProperties vProperties = getSystemProperties();
+    mapMutator.accept(vProperties.getProperties());
 
-    for (Map.Entry<String,String> entry : properties.entrySet()) {
+    for (Map.Entry<String,String> entry : vProperties.getProperties().entrySet()) {
       final String property = Objects.requireNonNull(entry.getKey(), "property key is null");
 
       DeprecatedPropertyUtil.getReplacementName(property, (log, replacement) -> {
-        // force a warning on the client side, but send the name the user used to the server-side
+        // force a warning on the client side, but send the name the user used to the
+        // server-side
         // to trigger a warning in the server logs, and to handle it there
         log.warn("{} was deprecated and will be removed in a future release;"
             + " setting its replacement {} instead", property, replacement);
@@ -113,7 +116,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
     // Send to server
     ThriftClientTypes.MANAGER.executeVoid(context, client -> client
-        .modifySystemProperties(TraceUtil.traceInfo(), context.rpcCreds(), properties));
+        .modifySystemProperties(TraceUtil.traceInfo(), context.rpcCreds(), vProperties));
   }
 
   @Override
@@ -154,10 +157,10 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public Map<String,String> getSystemProperties()
+  public TVersionedProperties getSystemProperties()
       throws AccumuloException, AccumuloSecurityException {
     return ThriftClientTypes.CLIENT.execute(context,
-        client -> client.getSystemProperties(TraceUtil.traceInfo(), context.rpcCreds()));
+        client -> client.getVersionedSystemProperties(TraceUtil.traceInfo(), context.rpcCreds()));
   }
 
   @Override
