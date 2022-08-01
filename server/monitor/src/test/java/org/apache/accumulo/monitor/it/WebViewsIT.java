@@ -138,20 +138,6 @@ public class WebViewsIT extends JerseyTest {
   }
 
   /**
-   * Test minutes parameter constraints. When outside range we should get a 400 response.
-   */
-  @Test
-  public void testGetTracesSummaryValidationConstraint() {
-    // Test upper bounds of constraint
-    Response output = target("trace/summary").queryParam("minutes", 5000000).request().get();
-    assertEquals(400, output.getStatus(), "should return status 400");
-
-    // Test lower bounds of constraint
-    output = target("trace/summary").queryParam("minutes", -27).request().get();
-    assertEquals(400, output.getStatus(), "should return status 400");
-  }
-
-  /**
    * Silly stub to handle MessageBodyWriter for Hashmap. Registered in configure method and
    * auto-wired by Jersey.
    */

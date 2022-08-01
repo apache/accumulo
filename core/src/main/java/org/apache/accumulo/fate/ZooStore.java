@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -94,7 +95,7 @@ public class ZooStore<T> implements TStore<T> {
   }
 
   private String getTXPath(long tid) {
-    return String.format("%s/tx_%016x", path, tid);
+    return FastFormat.toHexString(path + "/tx_", tid, "");
   }
 
   private long parseTid(String txdir) {

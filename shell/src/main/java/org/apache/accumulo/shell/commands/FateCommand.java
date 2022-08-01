@@ -45,6 +45,7 @@ import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.tables.TableMap;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.FateTxId;
@@ -113,11 +114,11 @@ public class FateCommand extends Command {
 
   // the purpose of this class is to be serialized as JSon for display
   public static class FateStack {
-    String txid;
+    String txIdString;
     List<ReadOnlyRepo<FateCommand>> stack;
 
     FateStack(Long txid, List<ReadOnlyRepo<FateCommand>> stack) {
-      this.txid = String.format("%016x", txid);
+      this.txIdString = FastFormat.toHexString(txid);
       this.stack = stack;
     }
   }
