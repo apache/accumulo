@@ -34,6 +34,7 @@ import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.util.PropUtil;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
@@ -89,8 +90,8 @@ class ImportPopulateZookeeper extends ManagerRepo {
     VolumeManager volMan = env.getVolumeManager();
 
     try {
-      env.getContext().propUtil().setProperties(
-          TablePropKey.of(env.getContext(), tableInfo.tableId), getExportedProps(volMan));
+      PropUtil.setProperties(env.getContext(), TablePropKey.of(env.getContext(), tableInfo.tableId),
+          getExportedProps(volMan));
     } catch (IllegalStateException ex) {
       throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
           tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,

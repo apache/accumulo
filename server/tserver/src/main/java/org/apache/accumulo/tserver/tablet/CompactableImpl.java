@@ -1114,23 +1114,23 @@ public class CompactableImpl implements Compactable {
   }
 
   class CompactionCheck {
-    private final Supplier<Boolean> memoizedCheck;
+    private final Supplier<Boolean> expensiveCheck;
+    private final Supplier<Boolean> inexpensiveCheck;
 
     public CompactionCheck(CompactionServiceId service, CompactionKind kind, Long compactionId) {
-      this.memoizedCheck = Suppliers.memoizeWithExpiration(() -> {
-        if (closed)
+      this.expensiveCheck = Suppliers.memoizeWithExpiration(() -> {
+        return service.equals(getConfiguredService(kind));
+      }, 3, TimeUnit.SECONDS);
+      this.inexpensiveCheck = Suppliers.memoizeWithExpiration(() -> {
+        if (closed
+            || (kind == CompactionKind.USER && lastSeenCompactionCancelId.get() >= compactionId))
           return false;
-        if (!service.equals(getConfiguredService(kind)))
-          return false;
-        if (kind == CompactionKind.USER && lastSeenCompactionCancelId.get() >= compactionId)
-          return false;
-
         return true;
-      }, 100, TimeUnit.MILLISECONDS);
+      }, 50, TimeUnit.MILLISECONDS);
     }
 
     public boolean isCompactionEnabled() {
-      return memoizedCheck.get();
+      return inexpensiveCheck.get() && expensiveCheck.get();
     }
   }
 
