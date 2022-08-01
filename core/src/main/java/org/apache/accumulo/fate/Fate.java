@@ -53,10 +53,10 @@ import org.slf4j.LoggerFactory;
  */
 public class Fate<T> {
 
-  private static final String DEBUG_PROP = "debug";
-  private static final String AUTO_CLEAN_PROP = "autoClean";
-  private static final String EXCEPTION_PROP = "exception";
-  private static final String RETURN_PROP = "return";
+  private static final String DEBUG_PROP = "prop_debug";
+  private static final String AUTO_CLEAN_PROP = "prop_autoClean";
+  private static final String EXCEPTION_PROP = "prop_exception";
+  private static final String RETURN_PROP = "prop_return";
 
   private static final Logger log = LoggerFactory.getLogger(Fate.class);
   private final Logger runnerLog = LoggerFactory.getLogger(TransactionRunner.class);
@@ -322,7 +322,7 @@ public class Fate<T> {
    *         false otherwise
    */
   public boolean cancel(long tid) {
-    String tidStr = Long.toHexString(tid);
+    String tidStr = FateTxId.formatTid(tid);
     for (int retries = 0; retries < 5; retries++) {
       if (store.tryReserve(tid)) {
         try {
@@ -332,12 +332,11 @@ public class Fate<T> {
             store.setProperty(tid, EXCEPTION_PROP, new TApplicationException(
                 TApplicationException.INTERNAL_ERROR, "Fate transaction cancelled by user"));
             store.setStatus(tid, FAILED_IN_PROGRESS);
-            log.info(
-                "Updated status for Repo {} to FAILED_IN_PROGRESS because it was cancelled by user",
+            log.info("Updated status for {} to FAILED_IN_PROGRESS because it was cancelled by user",
                 tidStr);
             return true;
           } else {
-            log.info("Repo {} cancelled by user but already in progress or finished state", tidStr);
+            log.info("{} cancelled by user but already in progress or finished state", tidStr);
             return false;
           }
         } finally {

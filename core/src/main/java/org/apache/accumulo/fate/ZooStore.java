@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -94,7 +95,7 @@ public class ZooStore<T> implements TStore<T> {
   }
 
   private String getTXPath(long tid) {
-    return String.format("%s/tx_%016x", path, tid);
+    return FastFormat.toHexString(path + "/tx_", tid, "");
   }
 
   private long parseTid(String txdir) {
@@ -451,7 +452,7 @@ public class ZooStore<T> implements TStore<T> {
 
     try {
       if (so instanceof String) {
-        zk.putPersistentData(getTXPath(tid) + "/prop_" + prop, ("S " + so).getBytes(UTF_8),
+        zk.putPersistentData(getTXPath(tid) + "/" + prop, ("S " + so).getBytes(UTF_8),
             NodeExistsPolicy.OVERWRITE);
       } else {
         byte[] sera = serialize(so);
@@ -471,7 +472,7 @@ public class ZooStore<T> implements TStore<T> {
     verifyReserved(tid);
 
     try {
-      byte[] data = zk.getData(getTXPath(tid) + "/prop_" + prop);
+      byte[] data = zk.getData(getTXPath(tid) + "/" + prop);
 
       if (data[0] == 'O') {
         byte[] sera = new byte[data.length - 2];
