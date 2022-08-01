@@ -1202,33 +1202,25 @@ public class TabletClientHandler implements TabletClientService.Iface {
       throw new RuntimeException(e);
     }
 
-    ArrayList<Tablet> tabletsToFlush = new ArrayList<>();
-
     KeyExtent ke = new KeyExtent(TableId.of(tableId), ByteBufferUtil.toText(endRow),
         ByteBufferUtil.toText(startRow));
 
-    for (Tablet tablet : server.getOnlineTablets().values()) {
-      if (ke.overlaps(tablet.getExtent())) {
-        tabletsToFlush.add(tablet);
-      }
-    }
+    final Long[] flushID = {null};
 
-    Long flushID = null;
-
-    for (Tablet tablet : tabletsToFlush) {
-      if (flushID == null) {
-        // read the flush id once from zookeeper instead of reading
-        // it for each tablet
-        try {
-          flushID = tablet.getFlushID();
-        } catch (NoNodeException e) {
-          // table was probably deleted
-          log.info("Asked to flush table that has no flush id {} {}", ke, e.getMessage());
-          return;
-        }
-      }
-      tablet.flush(flushID);
-    }
+    server.getOnlineTablets().values().stream().filter(tablet -> ke.overlaps(tablet.getExtent()))
+        .forEach(tablet -> {
+          if (flushID[0] == null) {
+            // read the flush id once from zookeeper instead of reading it for each tablet
+            try {
+              flushID[0] = tablet.getFlushID();
+            } catch (NoNodeException e) {
+              // table was probably deleted
+              log.info("Asked to flush table that has no flush id {} {}", ke, e.getMessage());
+              return;
+            }
+          }
+          tablet.flush(flushID[0]);
+        });
   }
 
   @Override
