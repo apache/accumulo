@@ -414,6 +414,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
       throw new IllegalStateException(ex);
     } catch (KeeperException.NoNodeException ex) {
       propStoreWatcher.signalZkChangeEvent(storeKey);
+      return false;
     } catch (KeeperException ex) {
       log.debug("exception occurred verifying data version for {}", storeKey);
       return false;

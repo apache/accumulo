@@ -26,9 +26,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -38,6 +35,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
@@ -68,15 +66,14 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   private static final int REFRESH_PERIOD_MINUTES = 15;
 
   private final ConfigRefreshRunner refresher;
-  private static final AtomicBoolean isConfigRefreshRunning = new AtomicBoolean(false);
-  private static final Lock refreshLock = new ReentrantLock();
 
   public ServerConfigurationFactory(ServerContext context, SiteConfiguration siteConfig) {
     this.context = context;
     this.siteConfig = siteConfig;
 
     refresher = new ConfigRefreshRunner();
-    Runtime.getRuntime().addShutdownHook(new Thread(refresher::shutdown));
+    Runtime.getRuntime()
+        .addShutdownHook(Threads.createThread("config-refresh-shutdownHook", refresher::shutdown));
   }
 
   public ServerContext getServerContext() {
@@ -176,6 +173,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
       ScheduledThreadPoolExecutor executor = ThreadPools.getServerThreadPools()
           .createScheduledExecutorService(1, "config-refresh", false);
 
+      // scheduleWithFixedDelay - used so only one task will run concurrently.
       // staggering the initial delay prevents synchronization of Accumulo servers communicating
       // with ZooKeeper for the sync process. (Value is 25% -> 100% of the refresh period.)
       long randDelay = jitter(REFRESH_PERIOD_MINUTES / 4, REFRESH_PERIOD_MINUTES);
@@ -193,60 +191,47 @@ public class ServerConfigurationFactory extends ServerConfiguration {
      */
     private void verifySnapshotVersions() {
 
-      // short circuit if refresh in progress
-      if (isConfigRefreshRunning.get()) {
-        return;
-      }
+      long refreshStart = System.nanoTime();
+      int keyCount = 0;
+      int keyChangedCount = 0;
 
-      // allow only one thread if missed short circuit check.
-      refreshLock.lock();
-      try {
-        isConfigRefreshRunning.set(true);
-        long refreshStart = System.nanoTime();
-        int keyCount = 0;
-        int keyChangedCount = 0;
+      PropStore propStore = context.getPropStore();
+      keyCount++;
 
-        PropStore propStore = context.getPropStore();
+      // rely on store to propagate change event if different
+      propStore.validateDataVersion(SystemPropKey.of(context),
+          ((ZooBasedConfiguration) getSystemConfiguration()).getDataVersion());
+      // small yield - spread out ZooKeeper calls
+      jitterDelay();
+
+      for (Map.Entry<NamespaceId,NamespaceConfiguration> entry : namespaceConfigs.entrySet()) {
         keyCount++;
-
-        // rely on store to propagate change event if different
-        propStore.validateDataVersion(SystemPropKey.of(context),
-            ((ZooBasedConfiguration) getSystemConfiguration()).getDataVersion());
-        // small yield - spread out ZooKeeper calls
+        PropStoreKey<?> propKey = NamespacePropKey.of(context, entry.getKey());
+        if (!propStore.validateDataVersion(propKey, entry.getValue().getDataVersion())) {
+          keyChangedCount++;
+          namespaceConfigs.remove(entry.getKey());
+        }
+        // small yield - spread out ZooKeeper calls between namespace config checks
         jitterDelay();
-
-        for (Map.Entry<NamespaceId,NamespaceConfiguration> entry : namespaceConfigs.entrySet()) {
-          keyCount++;
-          PropStoreKey<?> propKey = NamespacePropKey.of(context, entry.getKey());
-          if (!propStore.validateDataVersion(propKey, entry.getValue().getDataVersion())) {
-            keyChangedCount++;
-            namespaceConfigs.remove(entry.getKey());
-          }
-          // small yield - spread out ZooKeeper calls between namespace config checks
-          jitterDelay();
-        }
-
-        for (Map.Entry<TableId,TableConfiguration> entry : tableConfigs.entrySet()) {
-          keyCount++;
-          TableId tid = entry.getKey();
-          PropStoreKey<?> propKey = TablePropKey.of(context, tid);
-          if (!propStore.validateDataVersion(propKey, entry.getValue().getDataVersion())) {
-            keyChangedCount++;
-            tableConfigs.remove(tid);
-            tableParentConfigs.remove(tid);
-            log.debug("data version sync: difference found. forcing configuration update for {}}",
-                propKey);
-          }
-          // small yield - spread out ZooKeeper calls between table config checks
-          jitterDelay();
-        }
-
-        log.debug("data version sync: Total runtime {} ms for {} entries, changes detected: {}",
-            NANOSECONDS.toMillis(System.nanoTime() - refreshStart), keyCount, keyChangedCount);
-      } finally {
-        isConfigRefreshRunning.set(false);
-        refreshLock.unlock();
       }
+
+      for (Map.Entry<TableId,TableConfiguration> entry : tableConfigs.entrySet()) {
+        keyCount++;
+        TableId tid = entry.getKey();
+        PropStoreKey<?> propKey = TablePropKey.of(context, tid);
+        if (!propStore.validateDataVersion(propKey, entry.getValue().getDataVersion())) {
+          keyChangedCount++;
+          tableConfigs.remove(tid);
+          tableParentConfigs.remove(tid);
+          log.debug("data version sync: difference found. forcing configuration update for {}}",
+              propKey);
+        }
+        // small yield - spread out ZooKeeper calls between table config checks
+        jitterDelay();
+      }
+
+      log.debug("data version sync: Total runtime {} ms for {} entries, changes detected: {}",
+          NANOSECONDS.toMillis(System.nanoTime() - refreshStart), keyCount, keyChangedCount);
     }
 
     /**
