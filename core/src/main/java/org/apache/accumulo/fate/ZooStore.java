@@ -460,7 +460,7 @@ public class ZooStore<T> implements TStore<T> {
         System.arraycopy(sera, 0, data, 2, sera.length);
         data[0] = 'O';
         data[1] = ' ';
-        zk.putPersistentData(getTXPath(tid) + "/prop_" + prop, data, NodeExistsPolicy.OVERWRITE);
+        zk.putPersistentData(getTXPath(tid) + "/" + prop, data, NodeExistsPolicy.OVERWRITE);
       }
     } catch (Exception e2) {
       throw new RuntimeException(e2);
