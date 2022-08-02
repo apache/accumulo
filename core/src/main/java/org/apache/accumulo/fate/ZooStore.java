@@ -446,12 +446,12 @@ public class ZooStore<T> implements TStore<T> {
   }
 
   @Override
-  public void setProperty(long tid, String prop, Serializable so) {
+  public void setNodeData(long tid, Fate.NodeData nodeData, Serializable so) {
     verifyReserved(tid);
 
     try {
       if (so instanceof String) {
-        zk.putPersistentData(getTXPath(tid) + "/" + prop, ("S " + so).getBytes(UTF_8),
+        zk.putPersistentData(getTXPath(tid) + "/" + nodeData, ("S " + so).getBytes(UTF_8),
             NodeExistsPolicy.OVERWRITE);
       } else {
         byte[] sera = serialize(so);
@@ -459,7 +459,7 @@ public class ZooStore<T> implements TStore<T> {
         System.arraycopy(sera, 0, data, 2, sera.length);
         data[0] = 'O';
         data[1] = ' ';
-        zk.putPersistentData(getTXPath(tid) + "/" + prop, data, NodeExistsPolicy.OVERWRITE);
+        zk.putPersistentData(getTXPath(tid) + "/" + nodeData, data, NodeExistsPolicy.OVERWRITE);
       }
     } catch (Exception e2) {
       throw new RuntimeException(e2);
@@ -467,11 +467,11 @@ public class ZooStore<T> implements TStore<T> {
   }
 
   @Override
-  public Serializable getProperty(long tid, String prop) {
+  public Serializable getNodeData(long tid, Fate.NodeData nodeData) {
     verifyReserved(tid);
 
     try {
-      byte[] data = zk.getData(getTXPath(tid) + "/" + prop);
+      byte[] data = zk.getData(getTXPath(tid) + "/" + nodeData);
 
       if (data[0] == 'O') {
         byte[] sera = new byte[data.length - 2];
@@ -480,7 +480,7 @@ public class ZooStore<T> implements TStore<T> {
       } else if (data[0] == 'S') {
         return new String(data, 2, data.length - 2, UTF_8);
       } else {
-        throw new IllegalStateException("Bad property data " + prop);
+        throw new IllegalStateException("Bad node data " + nodeData);
       }
     } catch (NoNodeException nne) {
       return null;

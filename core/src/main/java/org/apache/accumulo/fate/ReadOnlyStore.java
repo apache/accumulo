@@ -103,8 +103,8 @@ public class ReadOnlyStore<T> implements ReadOnlyTStore<T> {
   }
 
   @Override
-  public Serializable getProperty(long tid, String prop) {
-    return store.getProperty(tid, prop);
+  public Serializable getNodeData(long tid, Fate.NodeData prop) {
+    return store.getNodeData(tid, prop);
   }
 
   @Override

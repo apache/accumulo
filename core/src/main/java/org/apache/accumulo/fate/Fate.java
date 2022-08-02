@@ -54,11 +54,6 @@ import org.slf4j.LoggerFactory;
  */
 public class Fate<T> {
 
-  public static final String DEBUG_PROP = "prop_debug";
-  private static final String AUTO_CLEAN_PROP = "prop_autoClean";
-  private static final String EXCEPTION_PROP = "prop_exception";
-  private static final String RETURN_PROP = "prop_return";
-
   private static final Logger log = LoggerFactory.getLogger(Fate.class);
   private final Logger runnerLog = LoggerFactory.getLogger(TransactionRunner.class);
 
@@ -70,6 +65,29 @@ public class Fate<T> {
   private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(FAILED, SUCCESSFUL, UNKNOWN);
 
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
+
+  public enum NodeData {
+
+    TARGET_NODE("target_node"),
+    AUTO_CLEAN_NODE("auto_clean_node"),
+    EXCEPTION_NODE("exception_node"),
+    RETURN_NODE("return_node");
+
+    private String name;
+
+    NodeData(final String name) {
+      this.name = name;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    @Override
+    public String toString() {
+      return name;
+    }
+  }
 
   private class TransactionRunner implements Runnable {
 
@@ -111,7 +129,7 @@ public class Fate<T> {
               // transaction is finished
               String ret = prevOp.getReturn();
               if (ret != null)
-                store.setProperty(tid, RETURN_PROP, ret);
+                store.setNodeData(tid, Fate.NodeData.RETURN_NODE, ret);
               store.setStatus(tid, SUCCESSFUL);
               doCleanUp(tid);
             } else {
@@ -190,7 +208,7 @@ public class Fate<T> {
       } else {
         log.warn(msg, e);
       }
-      store.setProperty(tid, EXCEPTION_PROP, e);
+      store.setNodeData(tid, Fate.NodeData.EXCEPTION_NODE, e);
       store.setStatus(tid, FAILED_IN_PROGRESS);
       log.info("Updated status for Repo with {} to FAILED_IN_PROGRESS", tidStr);
     }
@@ -208,7 +226,7 @@ public class Fate<T> {
     }
 
     private void doCleanUp(long tid) {
-      Boolean autoClean = (Boolean) store.getProperty(tid, AUTO_CLEAN_PROP);
+      Boolean autoClean = (Boolean) store.getNodeData(tid, Fate.NodeData.AUTO_CLEAN_NODE);
       if (autoClean != null && autoClean) {
         store.delete(tid);
       } else {
@@ -299,9 +317,9 @@ public class Fate<T> {
         }
 
         if (autoCleanUp)
-          store.setProperty(tid, AUTO_CLEAN_PROP, autoCleanUp);
+          store.setNodeData(tid, Fate.NodeData.AUTO_CLEAN_NODE, autoCleanUp);
 
-        store.setProperty(tid, DEBUG_PROP, repo.getDescription());
+        store.setNodeData(tid, Fate.NodeData.TARGET_NODE, repo.getDescription());
 
         store.setStatus(tid, SUBMITTED);
       }
@@ -332,7 +350,7 @@ public class Fate<T> {
           TStatus status = store.getStatus(tid);
           log.info("status is: {}", status);
           if (status == NEW || status == SUBMITTED) {
-            store.setProperty(tid, EXCEPTION_PROP, new TApplicationException(
+            store.setNodeData(tid, Fate.NodeData.EXCEPTION_NODE, new TApplicationException(
                 TApplicationException.INTERNAL_ERROR, "Fate transaction cancelled by user"));
             store.setStatus(tid, FAILED_IN_PROGRESS);
             log.info("Updated status for {} to FAILED_IN_PROGRESS because it was cancelled by user",
@@ -384,7 +402,7 @@ public class Fate<T> {
       if (store.getStatus(tid) != SUCCESSFUL)
         throw new IllegalStateException("Tried to get exception when transaction "
             + FateTxId.formatTid(tid) + " not in successful state");
-      return (String) store.getProperty(tid, RETURN_PROP);
+      return (String) store.getNodeData(tid, Fate.NodeData.RETURN_NODE);
     } finally {
       store.unreserve(tid, 0);
     }
@@ -397,7 +415,7 @@ public class Fate<T> {
       if (store.getStatus(tid) != FAILED)
         throw new IllegalStateException("Tried to get exception when transaction "
             + FateTxId.formatTid(tid) + " not in failed state");
-      return (Exception) store.getProperty(tid, EXCEPTION_PROP);
+      return (Exception) store.getNodeData(tid, Fate.NodeData.EXCEPTION_NODE);
     } finally {
       store.unreserve(tid, 0);
     }

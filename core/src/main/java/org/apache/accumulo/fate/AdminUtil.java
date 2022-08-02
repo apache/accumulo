@@ -364,7 +364,7 @@ public class AdminUtil<T> {
 
       zs.reserve(tid);
 
-      String debug = (String) zs.getProperty(tid, Fate.DEBUG_PROP);
+      String debug = (String) zs.getNodeData(tid, Fate.NodeData.TARGET_NODE);
 
       List<String> hlocks = heldLocks.remove(tid);
 

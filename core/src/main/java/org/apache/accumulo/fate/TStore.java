@@ -65,7 +65,7 @@ public interface TStore<T> extends ReadOnlyTStore<T> {
    */
   void setStatus(long tid, TStatus status);
 
-  void setProperty(long tid, String prop, Serializable val);
+  void setNodeData(long tid, Fate.NodeData nodeData, Serializable val);
 
   /**
    * Remove the transaction from the store.

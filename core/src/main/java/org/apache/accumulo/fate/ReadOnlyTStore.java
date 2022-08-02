@@ -132,7 +132,7 @@ public interface ReadOnlyTStore<T> {
    * @param prop
    *          name of property to retrieve.
    */
-  Serializable getProperty(long tid, String prop);
+  Serializable getNodeData(long tid, Fate.NodeData prop);
 
   /**
    * list all transaction ids in store.
