@@ -162,7 +162,7 @@ td {
 th {
   border-top: 0;
   border-bottom: 3px #333333 solid;
-  /* border-left: 1px #333333 dotted; */
+  border-left: 1px #333333 dotted;
   border-right: 0;
   text-align: center;
   font-variant: small-caps;
