@@ -110,7 +110,6 @@
         }
       </script>
       <div><h3>${title}</h3></div>
-      <div>
         <table id="logTable" class="table table-bordered table-striped table-condensed">
           <thead>
             <tr>
@@ -125,7 +124,6 @@
           </thead>
           <tbody></tbody>
         </table>
-      </div>
       <div>
        <button type="button" class="btn btn-info" onclick="clearLogs();">Clear Logs</button>
       </div>

@@ -116,6 +116,11 @@ table {
   font-size: 9pt;
 }
 
+.table-bordered th,
+.table-bordered td {
+    border: 1px solid #ddd !important;
+ }
+
 /*
 The following is to avoid a problem with the flot
 javascript library.  This file sets min-width to 60% 
@@ -157,7 +162,7 @@ td {
 th {
   border-top: 0;
   border-bottom: 3px #333333 solid;
-  border-left: 1px #333333 dotted;
+  /* border-left: 1px #333333 dotted; */
   border-right: 0;
   text-align: center;
   font-variant: small-caps;
@@ -281,6 +286,48 @@ pre.logevent {
   background-color: #cef4b5;
 }
 
+.label {
+  display: inline;
+  padding: 0.2em 0.6em 0.3em;
+  font-size: 75%;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: baseline;
+  border-radius: 0.25em;
+}
+
+.label-success {
+  background-color: #5cb85c;
+}
+.label-success[href]:hover,
+.label-success[href]:focus {
+  background-color: #449d44;
+}
+.label-info {
+  background-color: #5bc0de;
+}
+.label-info[href]:hover,
+.label-info[href]:focus {
+  background-color: #31b0d5;
+}
+.label-warning {
+  background-color: #f0ad4e;
+}
+.label-warning[href]:hover,
+.label-warning[href]:focus {
+  background-color: #ec971f;
+}
+.label-danger {
+  background-color: #d9534f;
+}
+.label-danger[href]:hover,
+.label-danger[href]:focus {
+  background-color: #c9302c;
+}
+
 .icon-dot {
   display: inline-block;
   min-width: 1em;
@@ -291,6 +338,8 @@ pre.logevent {
   text-align: center;
   border-radius: 1em;
 }
+
+
 
 .smalltext {
   font-size: 0.8em;
