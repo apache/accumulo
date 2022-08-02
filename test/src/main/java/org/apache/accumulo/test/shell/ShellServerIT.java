@@ -211,6 +211,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       assertEquals(0, cp.run(distCpArgs), "Failed to run distcp: " + Arrays.toString(distCpArgs));
     }
     ts.exec("importtable " + table2 + " " + import_, true);
+    Thread.sleep(100);
     ts.exec("config -t " + table2 + " -np", true, "345M", true);
     ts.exec("getsplits -t " + table2, true, "row5", true);
     ts.exec("constraint --list -t " + table2, true, "VisibilityConstraint=2", true);
