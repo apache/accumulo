@@ -53,7 +53,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 //TODO use zoocache? - ACCUMULO-1297
 //TODO handle zookeeper being down gracefully - ACCUMULO-1297
-//TODO document zookeeper layout - ACCUMULO-1298
 
 public class ZooStore<T> implements TStore<T> {
 
