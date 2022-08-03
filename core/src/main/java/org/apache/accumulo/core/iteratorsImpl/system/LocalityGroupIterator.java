@@ -167,8 +167,20 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
     final Set<ByteSequence> cfSet = getCfSet(columnFamilies);
 
     // determine the set of groups to use
-    final Collection<LocalityGroup> groups;
+    final Collection<LocalityGroup> groups = getLocalityGroups(lgContext, inclusive, cfSet);
 
+    for (LocalityGroup lgr : groups) {
+      lgr.getIterator().seek(range, EMPTY_CF_SET, false);
+      hiter.addSource(lgr.getIterator());
+    }
+
+    return groups;
+  }
+
+  private static Collection<LocalityGroup> getLocalityGroups(LocalityGroupContext lgContext,
+      boolean inclusive, Set<ByteSequence> cfSet) {
+
+    final Collection<LocalityGroup> groups;
     // if no column families specified, then include all groups unless !inclusive
     if (cfSet.isEmpty()) {
       groups = inclusive ? List.of() : lgContext.groups;
@@ -204,11 +216,6 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
       } else {
         cfSet.stream().map(lgContext.groupByCf::get).filter(Objects::nonNull).forEach(groups::add);
       }
-    }
-
-    for (LocalityGroup lgr : groups) {
-      lgr.getIterator().seek(range, EMPTY_CF_SET, false);
-      hiter.addSource(lgr.getIterator());
     }
 
     return groups;
