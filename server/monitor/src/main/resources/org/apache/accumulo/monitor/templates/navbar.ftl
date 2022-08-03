@@ -16,8 +16,8 @@
     KIND, either express or implied.  See the License for the
     specific language governing permissions and limitations
     under the License.
-    -->
 
+-->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container-fluid">
     <a class="navbar-brand" id="headertitle" href="/">
@@ -59,7 +59,6 @@
                                   role="button" data-bs-toggle="dropdown" aria-expanded="false">Debug&nbsp;<span id="errorsNotification" class="badge"></span>
                       </a>
                       <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="/trace/summary?minutes=10">Recent&nbsp;Traces</a></li>
                         <li><a class="dropdown-item" href="/log">Recent&nbsp;Logs&nbsp;<span id="recentLogsNotifications" class="badge"></span></a></li>
                         <li><a class="dropdown-item" href="/problems">Table&nbsp;Problems&nbsp;<span id="tableProblemsNotifications" class="badge"></span></a></li>
                       </ul>
