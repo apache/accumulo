@@ -183,7 +183,7 @@ public class Fate<T> {
       // Certain FATE ops that throw exceptions don't need to be propagated up to the Monitor
       // as a warning. They're a normal, handled failure condition.
       if (e instanceof AcceptableException) {
-        log.debug(msg, e.getCause());
+        log.debug(msg, e.getMessage());
       } else {
         log.warn(msg, e);
       }
