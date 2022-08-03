@@ -18,11 +18,9 @@
  */
 package org.apache.accumulo.monitor.view;
 
-import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX;
 import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX_BLANK_OK;
 import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX_TABLE_ID;
 import static org.apache.accumulo.monitor.util.ParameterValidator.HOSTNAME_PORT_REGEX;
-import static org.apache.accumulo.monitor.util.ParameterValidator.RESOURCE_REGEX;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -32,11 +30,8 @@ import java.util.List;
 import java.util.Map;
 
 import jakarta.inject.Inject;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
-import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -310,77 +305,6 @@ public class WebViews {
     model.put("js", "table.js");
     model.put("tableID", tableID);
     model.put("table", tableName);
-
-    return model;
-  }
-
-  /**
-   * Returns trace summary template
-   *
-   * @param minutes
-   *          Range of minutes, default 10 minutes Min of 0 Max of 30 days in minutes
-   * @return Trace summary model
-   */
-  @GET
-  @Path("trace/summary")
-  @Template(name = "/default.ftl")
-  public Map<String,Object> getTracesSummary(
-      @QueryParam("minutes") @DefaultValue("10") @Min(0) @Max(2592000) int minutes) {
-    Map<String,Object> model = getModel();
-    model.put("title", "Traces for the last&nbsp;" + minutes + "&nbsp;minute(s)");
-
-    model.put("template", "summary.ftl");
-    model.put("js", "summary.js");
-    model.put("minutes", String.valueOf(minutes));
-
-    return model;
-  }
-
-  /**
-   * Returns traces by type template
-   *
-   * @param type
-   *          Type of trace
-   * @param minutes
-   *          Range of minutes, default 10 minutes Min of 0 Max of 30 days in minutes
-   * @return Traces by type model
-   */
-  @GET
-  @Path("trace/listType")
-  @Template(name = "/default.ftl")
-  public Map<String,Object> getTracesForType(
-      @QueryParam("type") @NotNull @Pattern(regexp = RESOURCE_REGEX) String type,
-      @QueryParam("minutes") @DefaultValue("10") @Min(0) @Max(2592000) int minutes) {
-    Map<String,Object> model = getModel();
-    model.put("title", "Traces for " + type + " for the last " + minutes + " minute(s)");
-
-    model.put("template", "listType.ftl");
-    model.put("js", "listType.js");
-    model.put("type", type);
-    model.put("minutes", String.valueOf(minutes));
-
-    return model;
-  }
-
-  /**
-   * Returns traces by ID template
-   *
-   * @param id
-   *          ID of the traces
-   * @return Traces by ID model
-   */
-  @GET
-  @Path("trace/show")
-  @Template(name = "/default.ftl")
-  public Map<String,Object>
-      getTraceShow(@QueryParam("id") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String id) {
-
-    Map<String,Object> model = getModel();
-    model.put("title", "Trace ID " + id);
-
-    model.put("template", "show.ftl");
-    model.put("js", "show.js");
-    model.put("id", id);
 
     return model;
   }

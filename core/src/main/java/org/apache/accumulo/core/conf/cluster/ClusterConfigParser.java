@@ -27,8 +27,9 @@ import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.StringUtils;
 import org.yaml.snakeyaml.Yaml;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -95,19 +96,21 @@ public class ClusterConfigParser {
     if (config.containsKey("compaction.coordinator")) {
       out.printf(PROPERTY_FORMAT, "COORDINATOR_HOSTS", config.get("compaction.coordinator"));
     }
-    if (config.containsKey("compaction.compactor.queue")) {
-      out.printf(PROPERTY_FORMAT, "COMPACTION_QUEUES", config.get("compaction.compactor.queue"));
-    }
-    String queues = config.get("compaction.compactor.queue");
-    if (StringUtils.isNotEmpty(queues)) {
-      String[] q = queues.split(" ");
-      for (int i = 0; i < q.length; i++) {
-        if (config.containsKey("compaction.compactor." + q[i])) {
-          out.printf(PROPERTY_FORMAT, "COMPACTOR_HOSTS_" + q[i],
-              config.get("compaction.compactor." + q[i]));
-        }
+
+    String compactorPrefix = "compaction.compactor.";
+    Set<String> compactorQueues =
+        config.keySet().stream().filter(k -> k.startsWith(compactorPrefix))
+            .map(k -> k.substring(compactorPrefix.length())).collect(Collectors.toSet());
+
+    if (!compactorQueues.isEmpty()) {
+      out.printf(PROPERTY_FORMAT, "COMPACTION_QUEUES",
+          compactorQueues.stream().collect(Collectors.joining(" ")));
+      for (String queue : compactorQueues) {
+        out.printf(PROPERTY_FORMAT, "COMPACTOR_HOSTS_" + queue,
+            config.get("compaction.compactor." + queue));
       }
     }
+
     out.flush();
   }
 

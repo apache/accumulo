@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.client;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -37,10 +38,10 @@ import org.apache.accumulo.core.data.TabletId;
 public class MutationsRejectedException extends AccumuloException {
   private static final long serialVersionUID = 1L;
 
-  private List<ConstraintViolationSummary> cvsl;
-  private Map<TabletId,Set<SecurityErrorCode>> af;
-  private Collection<String> es;
-  private int unknownErrors;
+  private final ArrayList<ConstraintViolationSummary> cvsl = new ArrayList<>();
+  private final HashMap<TabletId,Set<SecurityErrorCode>> af = new HashMap<>();
+  private final HashSet<String> es = new HashSet<>();
+  private final int unknownErrors;
 
   /**
    *
@@ -65,9 +66,9 @@ public class MutationsRejectedException extends AccumuloException {
         "# constraint violations : " + cvsList.size() + "  security codes: " + hashMap.toString()
             + "  # server errors " + serverSideErrors.size() + " # exceptions " + unknownErrors,
         cause);
-    this.cvsl = cvsList;
-    this.af = hashMap;
-    this.es = serverSideErrors;
+    this.cvsl.addAll(cvsList);
+    this.af.putAll(hashMap);
+    this.es.addAll(serverSideErrors);
     this.unknownErrors = unknownErrors;
   }
 
@@ -93,9 +94,9 @@ public class MutationsRejectedException extends AccumuloException {
     super("# constraint violations : " + cvsList.size() + "  security codes: "
         + format(hashMap, (ClientContext) client) + "  # server errors " + serverSideErrors.size()
         + " # exceptions " + unknownErrors, cause);
-    this.cvsl = cvsList;
-    this.af = hashMap;
-    this.es = serverSideErrors;
+    this.cvsl.addAll(cvsList);
+    this.af.putAll(hashMap);
+    this.es.addAll(serverSideErrors);
     this.unknownErrors = unknownErrors;
   }
 
