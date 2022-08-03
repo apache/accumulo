@@ -42,6 +42,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.TablePropKey;
+import org.apache.accumulo.server.util.PropUtil;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -225,8 +226,8 @@ public class TableManager {
         + Constants.ZTABLE_CONF;
     zoo.recursiveCopyPersistentOverwrite(srcTablePath, newTablePath);
 
-    context.tablePropUtil().setProperties(tableId, propertiesToSet);
-    context.tablePropUtil().removeProperties(tableId, propertiesToExclude);
+    PropUtil.setProperties(context, TablePropKey.of(context, tableId), propertiesToSet);
+    PropUtil.removeProperties(context, TablePropKey.of(context, tableId), propertiesToExclude);
 
     updateTableStateCache(tableId);
   }

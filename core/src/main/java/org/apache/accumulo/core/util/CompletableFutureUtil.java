@@ -22,6 +22,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public class CompletableFutureUtil {
@@ -49,4 +51,26 @@ public class CompletableFutureUtil {
     return futures.get(0);
   }
 
+  /**
+   * Iterate some function until a given condition is met.
+   *
+   * The step function should always return an asynchronous {@code
+   * CompletableFuture} in order to avoid stack overflows.
+   */
+  public static <T> CompletableFuture<T> iterateUntil(Function<T,CompletableFuture<T>> step,
+      Predicate<T> isDone, T init) {
+    // We'd like to use a lambda here, but lambdas don't have
+    // `this`, so we would have to use some clumsy indirection to
+    // achieve self-reference.
+    Function<T,CompletableFuture<T>> go = new Function<>() {
+      @Override
+      public CompletableFuture<T> apply(T x) {
+        if (isDone.test(x)) {
+          return CompletableFuture.completedFuture(x);
+        }
+        return step.apply(x).thenCompose(this);
+      }
+    };
+    return CompletableFuture.completedFuture(init).thenCompose(go);
+  }
 }

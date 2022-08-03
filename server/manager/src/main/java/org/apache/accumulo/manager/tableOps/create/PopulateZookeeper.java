@@ -26,6 +26,8 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TableInfo;
 import org.apache.accumulo.manager.tableOps.Utils;
+import org.apache.accumulo.server.conf.store.TablePropKey;
+import org.apache.accumulo.server.util.PropUtil;
 
 class PopulateZookeeper extends ManagerRepo {
 
@@ -57,7 +59,8 @@ class PopulateZookeeper extends ManagerRepo {
           tableInfo.getTableName());
 
       try {
-        manager.getContext().tablePropUtil().setProperties(tableInfo.getTableId(), tableInfo.props);
+        PropUtil.setProperties(manager.getContext(),
+            TablePropKey.of(manager.getContext(), tableInfo.getTableId()), tableInfo.props);
       } catch (IllegalStateException ex) {
         throw new ThriftTableOperationException(null, tableInfo.getTableName(),
             TableOperation.CREATE, TableOperationExceptionType.OTHER,

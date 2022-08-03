@@ -28,7 +28,7 @@
           <table id="replicationStats" class="table table-bordered table-striped table-condensed">
             <thead>
               <tr>
-                <th class="firstcell">Table&nbsp;</th>
+                <th>Table&nbsp;</th>
                 <th>Peer&nbsp;</th>
                 <th>Remote&nbsp;Identifier&nbsp;</th>
                 <th>Replica&nbsp;System&nbsp;Type&nbsp;</th>

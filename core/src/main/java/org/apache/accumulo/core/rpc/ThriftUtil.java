@@ -59,6 +59,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * Factory methods for creating Thrift client objects
  */
 public class ThriftUtil {
+
   private static final Logger log = LoggerFactory.getLogger(ThriftUtil.class);
 
   private static final TraceProtocolFactory protocolFactory = new TraceProtocolFactory();
@@ -435,9 +436,8 @@ public class ThriftUtil {
       justification = "code runs in same security context as user who providing the keystore files")
   private static SSLContext createSSLContext(SslConnectionParams params)
       throws TTransportException {
-    SSLContext ctx;
     try {
-      ctx = SSLContext.getInstance(params.getClientProtocol());
+      SSLContext ctx = SSLContext.getInstance(params.getClientProtocol());
       TrustManagerFactory tmf = null;
       KeyManagerFactory kmf = null;
 
@@ -466,11 +466,10 @@ public class ThriftUtil {
       } else {
         ctx.init(null, tmf.getTrustManagers(), null);
       }
-
+      return ctx;
     } catch (Exception e) {
       throw new TTransportException("Error creating the transport", e);
     }
-    return ctx;
   }
 
   /**

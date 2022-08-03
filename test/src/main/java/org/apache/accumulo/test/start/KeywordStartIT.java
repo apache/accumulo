@@ -54,9 +54,11 @@ import org.apache.accumulo.monitor.MonitorExecutable;
 import org.apache.accumulo.server.conf.CheckCompactionConfig;
 import org.apache.accumulo.server.conf.CheckServerConfig;
 import org.apache.accumulo.server.conf.util.ConfigPropertyUpgrader;
+import org.apache.accumulo.server.conf.util.ZooInfoViewer;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.ConvertConfig;
+import org.apache.accumulo.server.util.DumpZookeeper;
 import org.apache.accumulo.server.util.ECAdmin;
 import org.apache.accumulo.server.util.Info;
 import org.apache.accumulo.server.util.LoginProperties;
@@ -123,6 +125,7 @@ public class KeywordStartIT {
     expectSet.put("config-upgrade", ConfigPropertyUpgrader.class);
     expectSet.put("convert-config", ConvertConfig.class);
     expectSet.put("create-token", CreateToken.class);
+    expectSet.put("dump-zoo", DumpZookeeper.class);
     expectSet.put("ec-admin", ECAdmin.class);
     expectSet.put("gc", GCExecutable.class);
     expectSet.put("generate-splits", GenerateSplits.class);
@@ -142,6 +145,7 @@ public class KeywordStartIT {
     expectSet.put("zookeeper", ZooKeeperMain.class);
     expectSet.put("create-empty", CreateEmpty.class);
     expectSet.put("split-large", SplitLarge.class);
+    expectSet.put("zoo-info-viewer", ZooInfoViewer.class);
     expectSet.put("zoo-zap", ZooZap.class);
 
     Iterator<Entry<String,Class<? extends KeywordExecutable>>> expectIter =
@@ -183,6 +187,7 @@ public class KeywordStartIT {
     expectSet.add(Admin.class);
     expectSet.add(CheckCompactionConfig.class);
     expectSet.add(CreateToken.class);
+    expectSet.add(DumpZookeeper.class);
     expectSet.add(Info.class);
     expectSet.add(Initialize.class);
     expectSet.add(LoginProperties.class);

@@ -21,19 +21,37 @@ package org.apache.accumulo.server.util;
 import java.util.Collection;
 import java.util.Map;
 
-import org.apache.accumulo.core.data.AbstractId;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.store.PropStoreKey;
 
-public abstract class PropUtil<T extends AbstractId<T>> {
+public final class PropUtil {
 
-  protected final ServerContext context;
+  private PropUtil() {}
 
-  protected PropUtil(ServerContext context) {
-    this.context = context;
+  /**
+   * Method to set provided properties for the provided AbstractId.
+   *
+   * @throws IllegalStateException
+   *           if an underlying exception (KeeperException, InterruptException) or other failure to
+   *           read properties from the cache / backend store
+   * @throws IllegalArgumentException
+   *           if a provided property is not valid
+   */
+  public static void setProperties(final ServerContext context, final PropStoreKey<?> propStoreKey,
+      final Map<String,String> properties) {
+    for (Map.Entry<String,String> prop : properties.entrySet()) {
+      if (!Property.isTablePropertyValid(prop.getKey(), prop.getValue())) {
+        throw new IllegalArgumentException("Invalid property for : " + propStoreKey + " name: "
+            + prop.getKey() + ", value: " + prop.getValue());
+      }
+    }
+    context.getPropStore().putAll(propStoreKey, properties);
   }
 
-  public abstract void setProperties(final T id, final Map<String,String> props);
-
-  public abstract void removeProperties(final T id, final Collection<String> propertyNames);
+  public static void removeProperties(final ServerContext context,
+      final PropStoreKey<?> propStoreKey, final Collection<String> propertyNames) {
+    context.getPropStore().removeProperties(propStoreKey, propertyNames);
+  }
 
 }
