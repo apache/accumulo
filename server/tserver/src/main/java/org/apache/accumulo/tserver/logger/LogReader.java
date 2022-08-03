@@ -33,9 +33,11 @@ import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.start.spi.KeywordExecutable;
@@ -106,6 +108,8 @@ public class LogReader implements KeywordExecutable {
     var siteConfig = SiteConfiguration.auto();
     ServerContext context = new ServerContext(siteConfig);
     try (VolumeManager fs = context.getVolumeManager()) {
+      var walCryptoService = CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.WAL,
+          siteConfig.getAllCryptoProperties());
 
       Matcher rowMatcher = null;
       KeyExtent ke = null;
@@ -138,7 +142,7 @@ public class LogReader implements KeywordExecutable {
           }
 
           try (final FSDataInputStream fsinput = fs.open(path);
-              DataInputStream input = DfsLogger.getDecryptingStream(fsinput, siteConfig)) {
+              DataInputStream input = DfsLogger.getDecryptingStream(fsinput, walCryptoService)) {
             while (true) {
               try {
                 key.readFields(input);

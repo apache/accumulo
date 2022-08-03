@@ -1486,8 +1486,10 @@ public class TabletClientHandler implements TabletClientService.Iface {
     }
 
     ExecutorService es = server.resourceManager.getSummaryPartitionExecutor();
-    Future<SummaryCollection> future = new Gatherer(server.getContext(), request,
-        context.getTableConfiguration(tableId), context.getCryptoService()).gather(es);
+    var tableConf = context.getTableConfiguration(tableId);
+    Future<SummaryCollection> future =
+        new Gatherer(server.getContext(), request, tableConf, tableConf.getCryptoService())
+            .gather(es);
 
     return startSummaryOperation(credentials, future);
   }
@@ -1506,7 +1508,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
     TableConfiguration tableConfig =
         context.getTableConfiguration(TableId.of(request.getTableId()));
     Future<SummaryCollection> future =
-        new Gatherer(server.getContext(), request, tableConfig, context.getCryptoService())
+        new Gatherer(server.getContext(), request, tableConfig, tableConfig.getCryptoService())
             .processPartition(spe, modulus, remainder);
 
     return startSummaryOperation(credentials, future);
@@ -1530,7 +1532,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
     VolumeManager fs = context.getVolumeManager();
     FileSystemResolver volMgr = fs::getFileSystemByPath;
     Future<SummaryCollection> future =
-        new Gatherer(server.getContext(), request, tableCfg, context.getCryptoService())
+        new Gatherer(server.getContext(), request, tableCfg, tableCfg.getCryptoService())
             .processFiles(volMgr, files, summaryCache, indexCache, fileLenCache, srp);
 
     return startSummaryOperation(credentials, future);

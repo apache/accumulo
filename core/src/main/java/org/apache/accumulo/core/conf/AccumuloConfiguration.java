@@ -18,6 +18,10 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static org.apache.accumulo.core.conf.Property.GENERAL_ARBITRARY_PROP_PREFIX;
+import static org.apache.accumulo.core.conf.Property.INSTANCE_CRYPTO_PREFIX;
+import static org.apache.accumulo.core.conf.Property.TABLE_CRYPTO_PREFIX;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumMap;
@@ -224,6 +228,14 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     });
 
     return builder.build();
+  }
+
+  public Map<String,String> getAllCryptoProperties() {
+    Map<String,String> allProps = new HashMap<>();
+    allProps.putAll(getAllPropertiesWithPrefix(INSTANCE_CRYPTO_PREFIX));
+    allProps.putAll(getAllPropertiesWithPrefix(GENERAL_ARBITRARY_PROP_PREFIX));
+    allProps.putAll(getAllPropertiesWithPrefix(TABLE_CRYPTO_PREFIX));
+    return allProps;
   }
 
   /**

@@ -35,7 +35,7 @@ import java.io.OutputStream;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.spi.crypto.GenericCryptoServiceFactory;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -80,8 +80,8 @@ public class TestUpgradePathForWALogs extends WithTestNames {
     String path = perTestTempSubDir.getAbsolutePath();
 
     VolumeManager fs = VolumeManagerImpl.getLocalForTesting(path);
-    expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())
-        .anyTimes();
+
+    expect(context.getCryptoFactory()).andReturn(new GenericCryptoServiceFactory()).anyTimes();
     expect(context.getVolumeManager()).andReturn(fs).anyTimes();
     replay(context);
   }

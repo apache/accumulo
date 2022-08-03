@@ -38,9 +38,9 @@ import java.util.Objects;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.spi.crypto.GenericCryptoServiceFactory;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -73,16 +73,16 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
   @BeforeEach
   public void setUp() throws Exception {
     context = createMock(ServerContext.class);
-    logSorter = new LogSorter(context, DefaultConfiguration.getInstance());
 
     workDir = new File(tempDir, testName());
     String path = workDir.getAbsolutePath();
     fs = VolumeManagerImpl.getLocalForTesting(path);
+    expect(context.getCryptoFactory()).andReturn(new GenericCryptoServiceFactory()).anyTimes();
     expect(context.getVolumeManager()).andReturn(fs).anyTimes();
-    expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())
-        .anyTimes();
     expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
     replay(context);
+
+    logSorter = new LogSorter(context, DefaultConfiguration.getInstance());
   }
 
   @AfterEach

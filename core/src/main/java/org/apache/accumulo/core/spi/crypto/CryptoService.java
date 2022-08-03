@@ -21,7 +21,7 @@ package org.apache.accumulo.core.spi.crypto;
 import java.util.Map;
 
 /**
- * Self contained cryptographic service. All on disk encryption and decryption will take place
+ * A self-contained cryptographic service. All on disk encryption and decryption will take place
  * through this interface. Each implementation must implement a {@link FileEncrypter} for encryption
  * and a {@link FileDecrypter} for decryption.
  *

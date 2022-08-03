@@ -38,7 +38,6 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -46,6 +45,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
+import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.datasketches.quantiles.ItemsSketch;
@@ -266,7 +266,7 @@ public class GenerateSplits implements KeywordExecutable {
     try {
       for (Path file : files) {
         FileSKVIterator reader = FileOperations.getInstance().newIndexReaderBuilder()
-            .forFile(file.toString(), fs, hadoopConf, CryptoServiceFactory.newDefaultInstance())
+            .forFile(file.toString(), fs, hadoopConf, NoCryptoServiceFactory.NONE)
             .withTableConfiguration(accumuloConf).build();
         readers.add(reader);
         fileReaders.add(reader);
@@ -295,7 +295,7 @@ public class GenerateSplits implements KeywordExecutable {
     try {
       for (Path file : files) {
         FileSKVIterator reader = FileOperations.getInstance().newScanReaderBuilder()
-            .forFile(file.toString(), fs, hadoopConf, CryptoServiceFactory.newDefaultInstance())
+            .forFile(file.toString(), fs, hadoopConf, NoCryptoServiceFactory.NONE)
             .withTableConfiguration(accumuloConf).overRange(new Range(), Set.of(), false).build();
         readers.add(reader);
         fileReaders.add(reader);
@@ -329,7 +329,7 @@ public class GenerateSplits implements KeywordExecutable {
     try {
       for (Path file : files) {
         FileSKVIterator reader = FileOperations.getInstance().newScanReaderBuilder()
-            .forFile(file.toString(), fs, hadoopConf, CryptoServiceFactory.newDefaultInstance())
+            .forFile(file.toString(), fs, hadoopConf, NoCryptoServiceFactory.NONE)
             .withTableConfiguration(accumuloConf).overRange(new Range(), Set.of(), false).build();
         readers.add(reader);
         fileReaders.add(reader);

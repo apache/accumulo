@@ -1204,8 +1204,8 @@ public class Tablet extends TabletBase {
 
     try {
       // we should make .25 below configurable
-      keys = FileUtil.findMidPoint(context, chooseTabletDir(), extent.prevEndRow(), extent.endRow(),
-          files, .25);
+      keys = FileUtil.findMidPoint(context, tableConfiguration, chooseTabletDir(),
+          extent.prevEndRow(), extent.endRow(), files, .25, true);
     } catch (IOException e) {
       log.error("Failed to find midpoint {}", e.getMessage());
       return null;
@@ -1222,7 +1222,7 @@ public class Tablet extends TabletBase {
 
       Text lastRow;
       if (extent.endRow() == null) {
-        Key lastKey = (Key) FileUtil.findLastKey(context, files);
+        Key lastKey = (Key) FileUtil.findLastKey(context, tableConfiguration, files);
         lastRow = lastKey.getRow();
       } else {
         lastRow = extent.endRow();
@@ -1436,8 +1436,8 @@ public class Tablet extends TabletBase {
     // this info is used for optimization... it is ok if map files are missing
     // from the set... can still query and insert into the tablet while this
     // map file operation is happening
-    Map<TabletFile,FileUtil.FileInfo> firstAndLastRows =
-        FileUtil.tryToGetFirstAndLastRows(context, getDatafileManager().getFiles());
+    Map<TabletFile,FileUtil.FileInfo> firstAndLastRows = FileUtil.tryToGetFirstAndLastRows(context,
+        tableConfiguration, getDatafileManager().getFiles());
 
     synchronized (this) {
       // java needs tuples ...
@@ -1450,8 +1450,9 @@ public class Tablet extends TabletBase {
         splitPoint = findSplitRow(getDatafileManager().getFiles());
       } else {
         Text tsp = new Text(sp);
-        splitPoint = new SplitRowSpec(FileUtil.estimatePercentageLTE(context, chooseTabletDir(),
-            extent.prevEndRow(), extent.endRow(), getDatafileManager().getFiles(), tsp), tsp);
+        var ratio = FileUtil.estimatePercentageLTE(context, tableConfiguration, chooseTabletDir(),
+            extent.prevEndRow(), extent.endRow(), getDatafileManager().getFiles(), tsp);
+        splitPoint = new SplitRowSpec(ratio, tsp);
       }
 
       if (splitPoint == null || splitPoint.row == null) {

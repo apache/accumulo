@@ -185,12 +185,12 @@ public enum Property {
   INSTANCE_CRYPTO_SENSITIVE_PREFIX("instance.crypto.opts.sensitive.", null, PropertyType.PREFIX,
       "Sensitive properties related to on-disk file encryption.", "2.0.0"),
   @Experimental
-  INSTANCE_CRYPTO_SERVICE("instance.crypto.service",
-      "org.apache.accumulo.core.spi.crypto.NoCryptoService", PropertyType.CLASSNAME,
-      "The class which executes on-disk file encryption. The default does nothing. To enable "
+  INSTANCE_CRYPTO_FACTORY("instance.crypto.opts.factory",
+      "org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory", PropertyType.CLASSNAME,
+      "The class which provides crypto services for on-disk file encryption. The default does nothing. To enable "
           + "encryption, replace this classname with an implementation of the"
-          + "org.apache.accumulo.core.spi.crypto.CryptoService interface.",
-      "2.0.0"),
+          + "org.apache.accumulo.core.spi.crypto.CryptoFactory interface.",
+      "X.X.X"),
 
   // general properties
   GENERAL_PREFIX("general.", null, PropertyType.PREFIX,
@@ -956,6 +956,14 @@ public enum Property {
   TABLE_COMPACTION_STRATEGY_PREFIX("table.majc.compaction.strategy.opts.", null,
       PropertyType.PREFIX,
       "Properties in this category are used to configure the compaction strategy.", "1.6.0"),
+  // Crypto-related properties
+  @Experimental
+  TABLE_CRYPTO_PREFIX("table.crypto.opts.", null, PropertyType.PREFIX,
+      "Properties related to on-disk file encryption.", "X.X.X"),
+  @Experimental
+  @Sensitive
+  TABLE_CRYPTO_SENSITIVE_PREFIX("table.crypto.opts.sensitive.", null, PropertyType.PREFIX,
+      "Sensitive properties related to on-disk file encryption.", "X.X.X"),
   TABLE_SCAN_DISPATCHER("table.scan.dispatcher", SimpleScanDispatcher.class.getName(),
       PropertyType.CLASSNAME,
       "This class is used to dynamically dispatch scans to configured scan executors.  Configured "
@@ -1677,7 +1685,8 @@ public enum Property {
             || key.startsWith(TABLE_SCAN_DISPATCHER_OPTS.getKey())
             || key.startsWith(TABLE_COMPACTION_DISPATCHER_OPTS.getKey())
             || key.startsWith(TABLE_COMPACTION_CONFIGURER_OPTS.getKey())
-            || key.startsWith(TABLE_COMPACTION_SELECTOR_OPTS.getKey())));
+            || key.startsWith(TABLE_COMPACTION_SELECTOR_OPTS.getKey()))
+        || key.startsWith(TABLE_CRYPTO_PREFIX.getKey()));
   }
 
   public static final EnumSet<Property> fixedProperties = EnumSet.of(
