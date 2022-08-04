@@ -34,6 +34,5 @@ public class AcceptableThriftTableOperationException extends ThriftTableOperatio
   public AcceptableThriftTableOperationException(String tableId, String tableName,
       TableOperation op, TableOperationExceptionType type, String description) {
     super(tableId, tableName, op, type, description);
-
   }
 }
