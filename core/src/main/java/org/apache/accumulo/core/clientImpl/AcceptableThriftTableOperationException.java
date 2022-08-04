@@ -30,9 +30,44 @@ public class AcceptableThriftTableOperationException extends ThriftTableOperatio
     implements AcceptableException {
 
   private static final long serialVersionUID = 1L;
+  String tableId;
+  String tableName;
+  TableOperation op;
+  TableOperationExceptionType type;
+  String description;
 
   public AcceptableThriftTableOperationException(String tableId, String tableName,
       TableOperation op, TableOperationExceptionType type, String description) {
     super(tableId, tableName, op, type, description);
+    this.tableId = tableId;
+    this.tableName = tableName;
+    this.op = op;
+    this.type = type;
+    this.description = description;
+  }
+
+  @Override
+  public String getTableId() {
+    return tableId;
+  }
+
+  @Override
+  public String getTableName() {
+    return tableName;
+  }
+
+  @Override
+  public TableOperation getOp() {
+    return op;
+  }
+
+  @Override
+  public TableOperationExceptionType getType() {
+    return type;
+  }
+
+  @Override
+  public String getDescription() {
+    return description;
   }
 }
