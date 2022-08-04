@@ -45,7 +45,7 @@ import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Joiner;
 
-class InitialConfiguration {
+public class InitialConfiguration {
 
   // config only for root table
   private final HashMap<String,String> initialRootConf = new HashMap<>();
@@ -57,7 +57,7 @@ class InitialConfiguration {
   private final Configuration hadoopConf;
   private final SiteConfiguration siteConf;
 
-  InitialConfiguration(Configuration hadoopConf, SiteConfiguration siteConf) {
+  public InitialConfiguration(Configuration hadoopConf, SiteConfiguration siteConf) {
     this.hadoopConf = hadoopConf;
     this.siteConf = siteConf;
     initialRootConf.put(Property.TABLE_COMPACTION_DISPATCHER.getKey(),

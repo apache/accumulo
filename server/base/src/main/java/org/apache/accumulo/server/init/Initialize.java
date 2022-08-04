@@ -130,7 +130,7 @@ public class Initialize implements KeywordExecutable {
         initConfig.get(Property.INSTANCE_VOLUMES));
   }
 
-  private boolean doInit(ZooReaderWriter zoo, Opts opts, VolumeManager fs,
+  public boolean doInit(ZooReaderWriter zoo, Opts opts, VolumeManager fs,
       InitialConfiguration initConfig) {
     String instanceNamePath;
     String instanceName;
@@ -443,7 +443,7 @@ public class Initialize implements KeywordExecutable {
     return createDirs(fs, instanceId, uinitializedDirs);
   }
 
-  private static class Opts extends Help {
+  public static class Opts extends Help {
     @Parameter(names = "--add-volumes",
         description = "Initialize any uninitialized volumes listed in instance.volumes")
     boolean addVolumes = false;

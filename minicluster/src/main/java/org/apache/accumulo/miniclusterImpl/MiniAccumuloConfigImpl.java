@@ -91,9 +91,9 @@ public class MiniAccumuloConfigImpl {
   private String[] classpathItems = null;
 
   private String[] nativePathItems = null;
-
-  // These are only used on top of existing instances
   private Configuration hadoopConf;
+
+  // This is only used on top of existing instances
   private SiteConfiguration accumuloConf;
 
   /**
@@ -107,6 +107,7 @@ public class MiniAccumuloConfigImpl {
   public MiniAccumuloConfigImpl(File dir, String rootPassword) {
     this.dir = dir;
     this.rootPassword = rootPassword;
+    this.hadoopConf = new Configuration();
   }
 
   /**
@@ -695,28 +696,20 @@ public class MiniAccumuloConfigImpl {
    *
    * @param accumuloProps
    *          a File representation of the accumulo.properties file for the instance being run
-   * @param hadoopConfDir
+   * @param hadoopConfigDir
    *          a File representation of the hadoop configuration directory containing core-site.xml
    *          and hdfs-site.xml
-   *
-   * @return MiniAccumuloConfigImpl which uses an existing accumulo configuration
-   *
-   * @since 1.6.2
-   *
-   * @throws IOException
-   *           when there are issues converting the provided Files to URLs
    */
-  public MiniAccumuloConfigImpl useExistingInstance(File accumuloProps, File hadoopConfDir)
-      throws IOException {
+  public void useExistingInstance(File accumuloProps, File hadoopConfigDir) throws IOException {
     if (existingInstance != null && !existingInstance) {
       throw new UnsupportedOperationException(
           "Cannot set to useExistingInstance after specifying config/zookeeper");
     }
 
-    this.existingInstance = Boolean.TRUE;
+    existingInstance = Boolean.TRUE;
 
     System.setProperty("accumulo.properties", "accumulo.properties");
-    this.hadoopConfDir = hadoopConfDir;
+    hadoopConfDir = hadoopConfigDir;
     hadoopConf = new Configuration(false);
     accumuloConf = SiteConfiguration.fromFile(accumuloProps).build();
     File coreSite = new File(hadoopConfDir, "core-site.xml");
@@ -734,8 +727,6 @@ public class MiniAccumuloConfigImpl {
       siteConfigMap.put(e.getKey(), e.getValue());
     }
     _setSiteConfig(siteConfigMap);
-
-    return this;
   }
 
   /**

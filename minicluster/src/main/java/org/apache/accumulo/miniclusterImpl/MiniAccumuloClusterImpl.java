@@ -85,6 +85,8 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.init.InitialConfiguration;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.AccumuloStatus;
 import org.apache.accumulo.server.util.PortUtils;
@@ -579,11 +581,17 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         }
 
         log.warn("Initializing ZooKeeper");
-        Process initProcess = exec(Initialize.class, args.toArray(new String[0])).getProcess();
-        int ret = initProcess.waitFor();
-        if (ret != 0) {
-          throw new IllegalStateException("Initialize process returned " + ret
-              + ". Check the logs in " + config.getLogDir() + " for errors.");
+        try (var vm = VolumeManagerImpl.get(siteConfig, config.getHadoopConfiguration())) {
+          log.info("Calling init with {}", args);
+          Initialize init = new Initialize();
+          Initialize.Opts opts = new Initialize.Opts();
+          opts.parseArgs("accumulo init", args.toArray(new String[0]));
+          InitialConfiguration initConfig =
+              new InitialConfiguration(config.getHadoopConfiguration(), siteConfig);
+          init.doInit(new ZooReaderWriter(siteConfig), opts, vm, initConfig);
+        } catch (Exception e) {
+          throw new IllegalStateException("Exception during Initialize. Check the logs in "
+              + config.getLogDir() + " for errors.", e);
         }
         initialized = true;
       } else {
@@ -618,7 +626,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
 
     verifyUp();
-
   }
 
   // wait up to 10 seconds for the process to start
