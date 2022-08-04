@@ -650,7 +650,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       waitForProcessStart(tsp, "TabletServer" + tsExpectedCount);
     }
 
-    try (ZooKeeper zk = new ZooKeeper(getZooKeepers(), 60000, event -> log.info("{}", event))) {
+    try (ZooKeeper zk = new ZooKeeper(getZooKeepers(), 60000, event -> log.warn("{}", event))) {
 
       String secret = getSiteConfiguration().get(Property.INSTANCE_SECRET);
 
@@ -666,6 +666,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
             instanceId = new String(bytes, UTF_8);
             break;
           } catch (KeeperException e) {
+            log.warn("Error trying to read instance id from zookeeper: " + e.getMessage());
             log.debug("Unable to read instance id from zookeeper.", e);
           }
         }
@@ -673,20 +674,26 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       }
 
       if (instanceId == null) {
-        try {
-          log.warn("******* COULD NOT FIND INSTANCE ID - DUMPING ZK ************");
-          log.warn("Connected to ZooKeeper: {}", getZooKeepers());
-          log.warn("Looking for instanceId at {}",
-              Constants.ZROOT + Constants.ZINSTANCES + "/" + config.getInstanceName());
-          ZKUtil.visitSubTreeDFS(zk, Constants.ZROOT, false, new StringCallback() {
-            @Override
-            public void processResult(int rc, String path, Object ctx, String name) {
-              log.warn("{}", path);
+        for (int i = 0; i < numTries; i++) {
+          if (zk.getState().equals(States.CONNECTED)) {
+            ZooUtil.digestAuth(zk, secret);
+            try {
+              log.warn("******* COULD NOT FIND INSTANCE ID - DUMPING ZK ************");
+              log.warn("Connected to ZooKeeper: {}", getZooKeepers());
+              log.warn("Looking for instanceId at {}",
+                  Constants.ZROOT + Constants.ZINSTANCES + "/" + config.getInstanceName());
+              ZKUtil.visitSubTreeDFS(zk, Constants.ZROOT, false, new StringCallback() {
+                @Override
+                public void processResult(int rc, String path, Object ctx, String name) {
+                  log.warn("{}", path);
+                }
+              });
+              log.warn("******* END ZK DUMP ************");
+            } catch (KeeperException | InterruptedException e) {
+              log.error("Error dumping zk", e);
             }
-          });
-          log.warn("******* END ZK DUMP ************");
-        } catch (KeeperException | InterruptedException e) {
-          log.error("Error dumping zk", e);
+          }
+          Thread.sleep(1000);
         }
         throw new IllegalStateException("Unable to find instance id from zookeeper.");
       }
