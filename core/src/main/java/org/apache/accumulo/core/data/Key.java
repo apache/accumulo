@@ -18,6 +18,12 @@
  */
 package org.apache.accumulo.core.data;
 
+import static org.apache.accumulo.core.data.PartialKey.ROW;
+import static org.apache.accumulo.core.data.PartialKey.ROW_COLFAM;
+import static org.apache.accumulo.core.data.PartialKey.ROW_COLFAM_COLQUAL;
+import static org.apache.accumulo.core.data.PartialKey.ROW_COLFAM_COLQUAL_COLVIS;
+import static org.apache.accumulo.core.data.PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME;
+import static org.apache.accumulo.core.data.PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL;
 import static org.apache.accumulo.core.util.ByteBufferUtil.toBytes;
 
 import java.io.DataInput;
@@ -975,30 +981,26 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * @return true if specified parts of keys match, false otherwise
    */
   public boolean equals(Key other, PartialKey part) {
-    switch (part) {
-      case ROW:
-        return isEqual(row, other.row);
-      case ROW_COLFAM:
-        return isEqual(row, other.row) && isEqual(colFamily, other.colFamily);
-      case ROW_COLFAM_COLQUAL:
-        return isEqual(row, other.row) && isEqual(colFamily, other.colFamily)
-            && isEqual(colQualifier, other.colQualifier);
-      case ROW_COLFAM_COLQUAL_COLVIS:
-        return isEqual(row, other.row) && isEqual(colFamily, other.colFamily)
-            && isEqual(colQualifier, other.colQualifier)
-            && isEqual(colVisibility, other.colVisibility);
-      case ROW_COLFAM_COLQUAL_COLVIS_TIME:
-        return isEqual(row, other.row) && isEqual(colFamily, other.colFamily)
-            && isEqual(colQualifier, other.colQualifier)
-            && isEqual(colVisibility, other.colVisibility) && timestamp == other.timestamp;
-      case ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL:
-        return isEqual(row, other.row) && isEqual(colFamily, other.colFamily)
-            && isEqual(colQualifier, other.colQualifier)
-            && isEqual(colVisibility, other.colVisibility) && timestamp == other.timestamp
-            && deleted == other.deleted;
-      default:
-        throw new IllegalArgumentException("Unrecognized partial key specification " + part);
-    }
+    boolean result = isEqual(row, other.row);
+    if (part == ROW)
+      return result;
+    result &= isEqual(colFamily, other.colFamily);
+    if (part == ROW_COLFAM)
+      return result;
+    result &= isEqual(colQualifier, other.colQualifier);
+    if (part == ROW_COLFAM_COLQUAL)
+      return result;
+    result &= isEqual(colVisibility, other.colVisibility);
+    if (part == ROW_COLFAM_COLQUAL_COLVIS)
+      return result;
+    result &= (timestamp == other.timestamp);
+    if (part == ROW_COLFAM_COLQUAL_COLVIS_TIME)
+      return result;
+    result &= (deleted == other.deleted);
+    if (part == ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL)
+      return result;
+
+    throw new IllegalArgumentException("Unrecognized partial key specification " + part);
   }
 
   /**
