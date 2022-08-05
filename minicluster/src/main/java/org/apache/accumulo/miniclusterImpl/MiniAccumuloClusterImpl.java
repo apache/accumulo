@@ -98,7 +98,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
-import org.apache.zookeeper.AsyncCallback.StringCallback;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooKeeper;
@@ -656,7 +655,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
       String instanceId = null;
       for (int i = 0; i < numTries; i++) {
-        if (zk.getState().equals(States.CONNECTED)) {
+        if (zk.getState() == States.CONNECTED) {
           ZooUtil.digestAuth(zk, secret);
           try {
             zk.sync("/", null, null);
@@ -675,19 +674,14 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
       if (instanceId == null) {
         for (int i = 0; i < numTries; i++) {
-          if (zk.getState().equals(States.CONNECTED)) {
+          if (zk.getState() == States.CONNECTED) {
             ZooUtil.digestAuth(zk, secret);
             try {
               log.warn("******* COULD NOT FIND INSTANCE ID - DUMPING ZK ************");
               log.warn("Connected to ZooKeeper: {}", getZooKeepers());
               log.warn("Looking for instanceId at {}",
                   Constants.ZROOT + Constants.ZINSTANCES + "/" + config.getInstanceName());
-              ZKUtil.visitSubTreeDFS(zk, Constants.ZROOT, false, new StringCallback() {
-                @Override
-                public void processResult(int rc, String path, Object ctx, String name) {
-                  log.warn("{}", path);
-                }
-              });
+              ZKUtil.visitSubTreeDFS(zk, Constants.ZROOT, false, (rc, path, ctx, name) -> log.warn("{}", path));
               log.warn("******* END ZK DUMP ************");
             } catch (KeeperException | InterruptedException e) {
               log.error("Error dumping zk", e);
