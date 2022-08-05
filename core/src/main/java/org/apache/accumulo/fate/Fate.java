@@ -37,6 +37,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
+import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.logging.FateLogger;
@@ -179,11 +180,13 @@ public class Fate<T> {
 
     private void transitionToFailed(long tid, Exception e) {
       String tidStr = FateTxId.formatTid(tid);
-      final String msg = "Failed to execute Repo, " + tidStr;
+      final String msg = "Failed to execute Repo " + tidStr;
       // Certain FATE ops that throw exceptions don't need to be propagated up to the Monitor
       // as a warning. They're a normal, handled failure condition.
       if (e instanceof AcceptableException) {
-        log.debug(msg, e.getCause());
+        var tableOpEx = (AcceptableThriftTableOperationException) e;
+        log.debug(msg + " for {}({}) {}", tableOpEx.getTableName(), tableOpEx.getTableId(),
+            tableOpEx.getDescription());
       } else {
         log.warn(msg, e);
       }
