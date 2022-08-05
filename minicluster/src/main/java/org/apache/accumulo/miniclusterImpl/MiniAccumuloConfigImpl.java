@@ -91,9 +91,9 @@ public class MiniAccumuloConfigImpl {
   private String[] classpathItems = null;
 
   private String[] nativePathItems = null;
-  private Configuration hadoopConf;
 
-  // This is only used on top of existing instances
+  // These are only used on top of existing instances
+  private Configuration hadoopConf;
   private SiteConfiguration accumuloConf;
 
   /**
@@ -107,7 +107,6 @@ public class MiniAccumuloConfigImpl {
   public MiniAccumuloConfigImpl(File dir, String rootPassword) {
     this.dir = dir;
     this.rootPassword = rootPassword;
-    this.hadoopConf = new Configuration();
   }
 
   /**

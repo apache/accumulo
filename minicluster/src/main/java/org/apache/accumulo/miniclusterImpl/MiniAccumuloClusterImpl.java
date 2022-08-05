@@ -581,13 +581,16 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         }
 
         log.warn("Initializing ZooKeeper");
-        try (var vm = VolumeManagerImpl.get(siteConfig, config.getHadoopConfiguration())) {
+        var hadoopConfig = new Configuration(false);
+        File csFile = new File(config.getConfDir(), "core-site.xml");
+        hadoopConfig.addResource(csFile.toURI().toURL());
+
+        try (var vm = VolumeManagerImpl.get(siteConfig, hadoopConfig)) {
           log.info("Calling init with {}", args);
           Initialize init = new Initialize();
           Initialize.Opts opts = new Initialize.Opts();
           opts.parseArgs("accumulo init", args.toArray(new String[0]));
-          InitialConfiguration initConfig =
-              new InitialConfiguration(config.getHadoopConfiguration(), siteConfig);
+          InitialConfiguration initConfig = new InitialConfiguration(hadoopConfig, siteConfig);
           init.doInit(new ZooReaderWriter(siteConfig), opts, vm, initConfig);
         } catch (Exception e) {
           throw new IllegalStateException("Exception during Initialize. Check the logs in "
