@@ -35,7 +35,7 @@ import org.apache.accumulo.core.client.security.tokens.CredentialProviderToken;
 import org.apache.accumulo.core.client.security.tokens.DelegationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.spi.scan.DefaultScanServerSelector;
+import org.apache.accumulo.core.spi.scan.ConfigurableScanServerSelector;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -92,7 +92,7 @@ public enum ClientProperty {
   SCANNER_BATCH_SIZE("scanner.batch.size", "1000", PropertyType.COUNT,
       "Number of key/value pairs that will be fetched at time from tablet server", "2.0.0", false),
 
-  SCAN_SERVER_SELECTOR("scan.server.selector.impl", DefaultScanServerSelector.class.getName(),
+  SCAN_SERVER_SELECTOR("scan.server.selector.impl", ConfigurableScanServerSelector.class.getName(),
       PropertyType.CLASSNAME, "Class used by client to find Scan Servers", "2.1.0", false),
 
   SCAN_SERVER_SELECTOR_OPTS_PREFIX("scan.server.selector.opts.", "", PropertyType.PREFIX,

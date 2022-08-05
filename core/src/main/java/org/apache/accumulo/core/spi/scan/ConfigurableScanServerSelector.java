@@ -62,7 +62,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * the config for the class. The following is the default configuration value.
  * </p>
  * <p>
- * {@value DefaultScanServerSelector#PROFILES_DEFAULT}
+ * {@value ConfigurableScanServerSelector#PROFILES_DEFAULT}
  * </p>
  *
  * The json is structured as a list of profiles, with each profile having the following fields.
@@ -145,7 +145,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * reached. For this profile it will choose from scan servers in the group {@literal lowcost}.
  * </p>
  */
-public class DefaultScanServerSelector implements ScanServerSelector {
+public class ConfigurableScanServerSelector implements ScanServerSelector {
 
   private static final SecureRandom RANDOM = new SecureRandom();
   public static final String PROFILES_DEFAULT = "[{'isDefault':true,'maxBusyTimeout':'5m',"

@@ -81,12 +81,11 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
       range = range.bound(this.options.fetchedColumns.first(), this.options.fetchedColumns.last());
     }
 
-    scanState =
-        new ScanState(context, tableId, authorizations, new Range(range), options.fetchedColumns,
-            size, options.serverSideIteratorList, options.serverSideIteratorOptions, isolated,
-            readaheadThreshold, options.getSamplerConfiguration(), options.batchTimeOut,
-            options.classLoaderContext, options.executionHints,
-            (options.getConsistencyLevel().equals(ConsistencyLevel.EVENTUAL)) ? true : false);
+    scanState = new ScanState(context, tableId, authorizations, new Range(range),
+        options.fetchedColumns, size, options.serverSideIteratorList,
+        options.serverSideIteratorOptions, isolated, readaheadThreshold,
+        options.getSamplerConfiguration(), options.batchTimeOut, options.classLoaderContext,
+        options.executionHints, options.getConsistencyLevel() == ConsistencyLevel.EVENTUAL);
 
     // If we want to start readahead immediately, don't wait for hasNext to be called
     if (readaheadThreshold == 0L) {

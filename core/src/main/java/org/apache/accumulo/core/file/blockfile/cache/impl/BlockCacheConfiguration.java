@@ -42,7 +42,19 @@ public class BlockCacheConfiguration implements Configuration {
 
   private final long summaryMaxSize;
 
-  public BlockCacheConfiguration(AccumuloConfiguration conf, Property serverPrefix,
+  public static BlockCacheConfiguration forTabletServer(AccumuloConfiguration conf) {
+    return new BlockCacheConfiguration(conf, Property.TSERV_PREFIX, Property.TSERV_INDEXCACHE_SIZE,
+        Property.TSERV_DATACACHE_SIZE, Property.TSERV_SUMMARYCACHE_SIZE,
+        Property.TSERV_DEFAULT_BLOCKSIZE);
+  }
+
+  public static BlockCacheConfiguration forScanServer(AccumuloConfiguration conf) {
+    return new BlockCacheConfiguration(conf, Property.SSERV_PREFIX, Property.SSERV_INDEXCACHE_SIZE,
+        Property.SSERV_DATACACHE_SIZE, Property.SSERV_SUMMARYCACHE_SIZE,
+        Property.SSERV_DEFAULT_BLOCKSIZE);
+  }
+
+  private BlockCacheConfiguration(AccumuloConfiguration conf, Property serverPrefix,
       Property indexCacheSizeProperty, Property dataCacheSizeProperty,
       Property summaryCacheSizeProperty, Property defaultBlockSizeProperty) {
 

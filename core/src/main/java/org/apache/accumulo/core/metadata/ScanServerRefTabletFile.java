@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import java.util.Objects;
 import java.util.UUID;
 
 import org.apache.accumulo.core.data.Value;
@@ -76,17 +77,7 @@ public class ScanServerRefTabletFile extends TabletFile {
     if (getClass() != obj.getClass())
       return false;
     ScanServerRefTabletFile other = (ScanServerRefTabletFile) obj;
-    if (colf == null) {
-      if (other.colf != null)
-        return false;
-    } else if (!colf.equals(other.colf))
-      return false;
-    if (colq == null) {
-      if (other.colq != null)
-        return false;
-    } else if (!colq.equals(other.colq))
-      return false;
-    return true;
+    return Objects.equals(colf, other.colf) && Objects.equals(colq, other.colq);
   }
 
   @Override

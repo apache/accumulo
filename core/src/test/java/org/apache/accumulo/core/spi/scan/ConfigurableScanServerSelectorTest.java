@@ -43,7 +43,7 @@ import org.apache.accumulo.core.spi.scan.ScanServerSelector.ScanServer;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
-public class DefaultScanServerSelectorTest {
+public class ConfigurableScanServerSelectorTest {
 
   static class InitParams implements ScanServerSelector.InitParameters {
 
@@ -165,7 +165,7 @@ public class DefaultScanServerSelectorTest {
 
   @Test
   public void testBasic() {
-    DefaultScanServerSelector selector = new DefaultScanServerSelector();
+    ConfigurableScanServerSelector selector = new ConfigurableScanServerSelector();
     selector.init(new InitParams(
         Set.of("ss1:1", "ss2:2", "ss3:3", "ss4:4", "ss5:5", "ss6:6", "ss7:7", "ss8:8")));
 
@@ -194,7 +194,7 @@ public class DefaultScanServerSelectorTest {
 
   private void runBusyTest(int numServers, int busyAttempts, int expectedServers,
       long expectedBusyTimeout, Map<String,String> opts, Map<String,String> hints) {
-    DefaultScanServerSelector selector = new DefaultScanServerSelector();
+    ConfigurableScanServerSelector selector = new ConfigurableScanServerSelector();
 
     var servers = Stream.iterate(1, i -> i <= numServers, i -> i + 1).map(i -> "s" + i + ":" + i)
         .collect(Collectors.toSet());
@@ -256,7 +256,7 @@ public class DefaultScanServerSelectorTest {
 
   @Test
   public void testCoverage() {
-    DefaultScanServerSelector selector = new DefaultScanServerSelector();
+    ConfigurableScanServerSelector selector = new ConfigurableScanServerSelector();
     var servers = Stream.iterate(1, i -> i <= 20, i -> i + 1).map(i -> "s" + i + ":" + i)
         .collect(Collectors.toSet());
     selector.init(new InitParams(servers));
@@ -383,7 +383,7 @@ public class DefaultScanServerSelectorTest {
 
   @Test
   public void testNoScanServers() {
-    DefaultScanServerSelector selector = new DefaultScanServerSelector();
+    ConfigurableScanServerSelector selector = new ConfigurableScanServerSelector();
     selector.init(new InitParams(Set.of()));
 
     var tabletId = nti("1", "m");
@@ -410,7 +410,7 @@ public class DefaultScanServerSelectorTest {
     var opts = Map.of("profiles",
         "[" + defaultProfile + ", " + profile1 + "," + profile2 + "]".replace('\'', '"'));
 
-    DefaultScanServerSelector selector = new DefaultScanServerSelector();
+    ConfigurableScanServerSelector selector = new ConfigurableScanServerSelector();
     var dg = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
     selector.init(new InitParams(Map.of("ss1:1", dg, "ss2:2", dg, "ss3:3", dg, "ss4:4", "g1",
         "ss5:5", "g1", "ss6:6", "g2", "ss7:7", "g2", "ss8:8", "g2"), opts));

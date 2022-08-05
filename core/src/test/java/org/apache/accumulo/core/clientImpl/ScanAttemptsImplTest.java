@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import static org.apache.accumulo.core.spi.scan.DefaultScanServerSelectorTest.nti;
+import static org.apache.accumulo.core.spi.scan.ConfigurableScanServerSelectorTest.nti;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Collection;

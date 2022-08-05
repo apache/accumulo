@@ -1378,9 +1378,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   @Override
   public BlockCacheConfiguration getBlockCacheConfiguration(AccumuloConfiguration acuConf) {
-    return new BlockCacheConfiguration(acuConf, Property.TSERV_PREFIX,
-        Property.TSERV_INDEXCACHE_SIZE, Property.TSERV_DATACACHE_SIZE,
-        Property.TSERV_SUMMARYCACHE_SIZE, Property.TSERV_DEFAULT_BLOCKSIZE);
+    return BlockCacheConfiguration.forTabletServer(acuConf);
   }
 
 }

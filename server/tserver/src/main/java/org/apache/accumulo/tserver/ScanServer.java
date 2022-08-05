@@ -973,9 +973,7 @@ public class ScanServer extends AbstractServer
 
   @Override
   public BlockCacheConfiguration getBlockCacheConfiguration(AccumuloConfiguration acuConf) {
-    return new BlockCacheConfiguration(acuConf, Property.SSERV_PREFIX,
-        Property.SSERV_INDEXCACHE_SIZE, Property.SSERV_DATACACHE_SIZE,
-        Property.SSERV_SUMMARYCACHE_SIZE, Property.SSERV_DEFAULT_BLOCKSIZE);
+    return BlockCacheConfiguration.forScanServer(acuConf);
   }
 
   public static void main(String[] args) throws Exception {

@@ -208,9 +208,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
         if (opts.dataCacheSize > 0) {
           cc.set(Property.TSERV_DATACACHE_SIZE, Long.toString(opts.dataCacheSize));
         }
-        blockCacheManager.start(new BlockCacheConfiguration(cc, Property.TSERV_PREFIX,
-            Property.TSERV_INDEXCACHE_SIZE, Property.TSERV_DATACACHE_SIZE,
-            Property.TSERV_SUMMARYCACHE_SIZE, Property.TSERV_DEFAULT_BLOCKSIZE));
+        blockCacheManager.start(BlockCacheConfiguration.forTabletServer(cc));
         this.indexCache = blockCacheManager.getBlockCache(CacheType.INDEX);
         this.dataCache = blockCacheManager.getBlockCache(CacheType.DATA);
       } catch (RuntimeException e) {

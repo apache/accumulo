@@ -304,9 +304,7 @@ public class RFileTest {
       cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(100000));
       cc.set(Property.TSERV_DATACACHE_SIZE, Long.toString(100000000));
       cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(100000000));
-      manager.start(new BlockCacheConfiguration(cc, Property.TSERV_PREFIX,
-          Property.TSERV_INDEXCACHE_SIZE, Property.TSERV_DATACACHE_SIZE,
-          Property.TSERV_SUMMARYCACHE_SIZE, Property.TSERV_DEFAULT_BLOCKSIZE));
+      manager.start(BlockCacheConfiguration.forTabletServer(cc));
       LruBlockCache indexCache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
       LruBlockCache dataCache = (LruBlockCache) manager.getBlockCache(CacheType.DATA);
 
@@ -1707,9 +1705,7 @@ public class RFileTest {
     aconf.set(Property.TSERV_DATACACHE_SIZE, Long.toString(100000000));
     aconf.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(100000000));
     BlockCacheManager manager = BlockCacheManagerFactory.getInstance(aconf);
-    manager.start(new BlockCacheConfiguration(aconf, Property.TSERV_PREFIX,
-        Property.TSERV_INDEXCACHE_SIZE, Property.TSERV_DATACACHE_SIZE,
-        Property.TSERV_SUMMARYCACHE_SIZE, Property.TSERV_DEFAULT_BLOCKSIZE));
+    manager.start(BlockCacheConfiguration.forTabletServer(aconf));
     CachableBuilder cb =
         new CachableBuilder().input(in2, "cache-1").length(data.length).conf(hadoopConf)
             .cryptoService(CryptoServiceFactory.newInstance(aconf, ClassloaderType.JAVA))
