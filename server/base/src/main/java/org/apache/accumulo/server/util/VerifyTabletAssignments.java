@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -75,23 +76,29 @@ public class VerifyTabletAssignments {
     boolean verbose = false;
   }
 
-  public static void main(String[] args) throws Exception {
-    Opts opts = new Opts();
-    opts.parseArgs(VerifyTabletAssignments.class.getName(), args);
+  public static void verifyTableAssignments(Properties clientProps, boolean verbose)
+      throws Exception {
     Span span = TraceUtil.startSpan(VerifyTabletAssignments.class, "main");
     try (Scope scope = span.makeCurrent()) {
-      try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
+      try (AccumuloClient client = Accumulo.newClient().from(clientProps).build()) {
         for (String table : client.tableOperations().list())
-          checkTable((ClientContext) client, opts, table, null);
+          checkTable((ClientContext) client, verbose, table, null);
       } finally {
         span.end();
       }
     }
   }
 
-  private static void checkTable(final ClientContext context, final Opts opts, String tableName,
-      HashSet<KeyExtent> check) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException, InterruptedException {
+  public static void main(String[] args) throws Exception {
+    Opts opts = new Opts();
+    opts.parseArgs(VerifyTabletAssignments.class.getName(), args);
+    verifyTableAssignments(opts.getClientProps(), opts.verbose);
+
+  }
+
+  private static void checkTable(final ClientContext context, final boolean verbose,
+      String tableName, HashSet<KeyExtent> check) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException, InterruptedException {
 
     if (check == null)
       System.out.println("Checking table " + tableName);
@@ -112,7 +119,7 @@ public class VerifyTabletAssignments {
       String loc = entry.getValue();
       if (loc == null)
         System.out.println(" Tablet " + keyExtent + " has no location");
-      else if (opts.verbose)
+      else if (verbose)
         System.out.println(" Tablet " + keyExtent + " is located at " + loc);
 
       if (loc != null) {
@@ -145,7 +152,7 @@ public class VerifyTabletAssignments {
     while (!tp.awaitTermination(1, TimeUnit.HOURS)) {}
 
     if (!failures.isEmpty())
-      checkTable(context, opts, tableName, failures);
+      checkTable(context, verbose, tableName, failures);
   }
 
   private static void checkFailures(HostAndPort server, HashSet<KeyExtent> failures,
