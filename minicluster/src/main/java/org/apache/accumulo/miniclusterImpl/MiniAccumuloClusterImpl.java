@@ -681,7 +681,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
               log.warn("Connected to ZooKeeper: {}", getZooKeepers());
               log.warn("Looking for instanceId at {}",
                   Constants.ZROOT + Constants.ZINSTANCES + "/" + config.getInstanceName());
-              ZKUtil.visitSubTreeDFS(zk, Constants.ZROOT, false, (rc, path, ctx, name) -> log.warn("{}", path));
+              ZKUtil.visitSubTreeDFS(zk, Constants.ZROOT, false,
+                  (rc, path, ctx, name) -> log.warn("{}", path));
               log.warn("******* END ZK DUMP ************");
             } catch (KeeperException | InterruptedException e) {
               log.error("Error dumping zk", e);
