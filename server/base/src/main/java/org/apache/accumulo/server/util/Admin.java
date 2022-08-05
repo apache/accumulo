@@ -162,6 +162,13 @@ public class Admin implements KeywordExecutable {
     String tableName = null;
   }
 
+  @Parameters(commandDescription = "Verify all Tablets are assigned to tablet servers")
+  static class VerifyTabletAssignmentsCommand {
+    @Parameter(names = {"-v", "--verbose"},
+        description = "verbose mode (prints locations of tablets)")
+    boolean verbose = false;
+  }
+
   public static void main(String[] args) {
     new Admin().execute(args);
   }
@@ -217,6 +224,10 @@ public class Admin implements KeywordExecutable {
     RandomizeVolumesCommand randomizeVolumesOpts = new RandomizeVolumesCommand();
     cl.addCommand("randomizeVolumes", randomizeVolumesOpts);
 
+    VerifyTabletAssignmentsCommand verifyTabletAssignmentsOpts =
+        new VerifyTabletAssignmentsCommand();
+    cl.addCommand("verifyTabletAssigns", verifyTabletAssignmentsOpts);
+
     cl.parse(args);
 
     if (opts.help || cl.getParsedCommand() == null) {
@@ -265,6 +276,9 @@ public class Admin implements KeywordExecutable {
         ListVolumesUsed.listVolumes(context);
       } else if (cl.getParsedCommand().equals("randomizeVolumes")) {
         System.out.println(RV_DEPRECATION_MSG);
+      } else if (cl.getParsedCommand().equals("verifyTabletAssigns")) {
+        VerifyTabletAssignments.verifyTableAssignments(opts.getClientProps(),
+            verifyTabletAssignmentsOpts.verbose);
       } else {
         everything = cl.getParsedCommand().equals("stopAll");
 
