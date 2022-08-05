@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -137,8 +138,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public List<String> getScanServers() {
-    return List.copyOf(context.getScanServers().keySet());
+  public Set<String> getScanServers() {
+    return Set.copyOf(context.getScanServers().keySet());
   }
 
   @Override

@@ -27,6 +27,10 @@ import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 
+/**
+ * This utility will remove scan server file references from the metadata table where the scan
+ * server in the metadata entry is not currently running.
+ */
 public class ScanServerMetadataEntries {
 
   public static void clean(ServerContext context) {

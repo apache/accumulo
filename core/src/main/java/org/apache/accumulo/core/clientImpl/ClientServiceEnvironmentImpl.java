@@ -20,6 +20,8 @@ package org.apache.accumulo.core.clientImpl;
 
 import java.io.IOException;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.data.TableId;
@@ -39,7 +41,7 @@ public class ClientServiceEnvironmentImpl implements ServiceEnvironment {
     try {
       return new ConfigurationImpl(
           new ConfigurationCopy(context.instanceOperations().getSystemConfiguration()));
-    } catch (Exception e) {
+    } catch (AccumuloException | AccumuloSecurityException e) {
       throw new RuntimeException("Error getting system configuration", e);
     }
   }
@@ -49,7 +51,7 @@ public class ClientServiceEnvironmentImpl implements ServiceEnvironment {
     try {
       return new ConfigurationImpl(
           new ConfigurationCopy(context.tableOperations().getConfiguration(getTableName(tableId))));
-    } catch (Exception e) {
+    } catch (AccumuloException | TableNotFoundException e) {
       throw new RuntimeException("Error getting table configuration", e);
     }
   }

@@ -20,6 +20,7 @@ package org.apache.accumulo.core.client.admin;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -88,9 +89,9 @@ public interface InstanceOperations {
   /**
    * Returns the locations of the active scan servers
    *
-   * @return A list of currently active scan servers.
+   * @return A set of currently active scan servers.
    */
-  List<String> getScanServers();
+  Set<String> getScanServers();
 
   /**
    * List the currently active tablet servers participating in the accumulo instance

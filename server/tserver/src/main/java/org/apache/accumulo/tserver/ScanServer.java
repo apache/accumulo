@@ -156,10 +156,10 @@ public class ScanServer extends AbstractServer
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public Map<? extends KeyExtent,? extends TabletMetadata>
         loadAll(Set<? extends KeyExtent> keys) {
       long t1 = System.currentTimeMillis();
+      @SuppressWarnings("unchecked")
       var tms = ample.readTablets().forTablets((Collection<KeyExtent>) keys).build().stream()
           .collect(Collectors.toMap(tm -> tm.getExtent(), tm -> tm));
       long t2 = System.currentTimeMillis();
