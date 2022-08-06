@@ -82,8 +82,8 @@ public class ReadOnlyStore<T> implements ReadOnlyTStore<T> {
     }
 
     @Override
-    public String getDescription() {
-      return repo.getDescription();
+    public String getName() {
+      return repo.getName();
     }
   }
 
@@ -103,8 +103,8 @@ public class ReadOnlyStore<T> implements ReadOnlyTStore<T> {
   }
 
   @Override
-  public Serializable getNodeData(long tid, Fate.NodeData prop) {
-    return store.getNodeData(tid, prop);
+  public Serializable getTransactionInfo(long tid, Fate.TxInfo txInfo) {
+    return store.getTransactionInfo(tid, txInfo);
   }
 
   @Override

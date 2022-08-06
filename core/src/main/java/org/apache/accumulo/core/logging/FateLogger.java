@@ -81,8 +81,8 @@ public class FateLogger {
       }
 
       @Override
-      public Serializable getNodeData(long tid, Fate.NodeData prop) {
-        return store.getNodeData(tid, prop);
+      public Serializable getTransactionInfo(long tid, Fate.TxInfo txInfo) {
+        return store.getTransactionInfo(tid, txInfo);
       }
 
       @Override
@@ -130,10 +130,10 @@ public class FateLogger {
       }
 
       @Override
-      public void setNodeData(long tid, Fate.NodeData nodeData, Serializable val) {
-        store.setNodeData(tid, nodeData, val);
+      public void setTransactionInfo(long tid, Fate.TxInfo txInfo, Serializable val) {
+        store.setTransactionInfo(tid, txInfo, val);
         if (storeLog.isTraceEnabled())
-          storeLog.trace("{} setting {} node data to {}", formatTid(tid), nodeData, val);
+          storeLog.trace("{} setting {} txInfo to {}", formatTid(tid), txInfo, val);
       }
 
       @Override

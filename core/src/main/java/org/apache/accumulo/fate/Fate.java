@@ -66,27 +66,8 @@ public class Fate<T> {
 
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
 
-  public enum NodeData {
-
-    TARGET_NODE("target_node"),
-    AUTO_CLEAN_NODE("auto_clean_node"),
-    EXCEPTION_NODE("exception_node"),
-    RETURN_NODE("return_node");
-
-    private String name;
-
-    NodeData(final String name) {
-      this.name = name;
-    }
-
-    public String getName() {
-      return name;
-    }
-
-    @Override
-    public String toString() {
-      return name;
-    }
+  public enum TxInfo {
+    REPO_TARGET, AUTO_CLEAN, EXCEPTION, RETURN_VALUE;
   }
 
   private class TransactionRunner implements Runnable {
@@ -129,7 +110,7 @@ public class Fate<T> {
               // transaction is finished
               String ret = prevOp.getReturn();
               if (ret != null)
-                store.setNodeData(tid, Fate.NodeData.RETURN_NODE, ret);
+                store.setTransactionInfo(tid, TxInfo.RETURN_VALUE, ret);
               store.setStatus(tid, SUCCESSFUL);
               doCleanUp(tid);
             } else {
@@ -208,7 +189,7 @@ public class Fate<T> {
       } else {
         log.warn(msg, e);
       }
-      store.setNodeData(tid, Fate.NodeData.EXCEPTION_NODE, e);
+      store.setTransactionInfo(tid, TxInfo.EXCEPTION, e);
       store.setStatus(tid, FAILED_IN_PROGRESS);
       log.info("Updated status for Repo with {} to FAILED_IN_PROGRESS", tidStr);
     }
@@ -226,7 +207,7 @@ public class Fate<T> {
     }
 
     private void doCleanUp(long tid) {
-      Boolean autoClean = (Boolean) store.getNodeData(tid, Fate.NodeData.AUTO_CLEAN_NODE);
+      Boolean autoClean = (Boolean) store.getTransactionInfo(tid, TxInfo.AUTO_CLEAN);
       if (autoClean != null && autoClean) {
         store.delete(tid);
       } else {
@@ -317,9 +298,9 @@ public class Fate<T> {
         }
 
         if (autoCleanUp)
-          store.setNodeData(tid, Fate.NodeData.AUTO_CLEAN_NODE, autoCleanUp);
+          store.setTransactionInfo(tid, TxInfo.AUTO_CLEAN, autoCleanUp);
 
-        store.setNodeData(tid, Fate.NodeData.TARGET_NODE, repo.getDescription());
+        store.setTransactionInfo(tid, TxInfo.REPO_TARGET, repo.getName());
 
         store.setStatus(tid, SUBMITTED);
       }
@@ -350,7 +331,7 @@ public class Fate<T> {
           TStatus status = store.getStatus(tid);
           log.info("status is: {}", status);
           if (status == NEW || status == SUBMITTED) {
-            store.setNodeData(tid, Fate.NodeData.EXCEPTION_NODE, new TApplicationException(
+            store.setTransactionInfo(tid, TxInfo.EXCEPTION, new TApplicationException(
                 TApplicationException.INTERNAL_ERROR, "Fate transaction cancelled by user"));
             store.setStatus(tid, FAILED_IN_PROGRESS);
             log.info("Updated status for {} to FAILED_IN_PROGRESS because it was cancelled by user",
@@ -402,7 +383,7 @@ public class Fate<T> {
       if (store.getStatus(tid) != SUCCESSFUL)
         throw new IllegalStateException("Tried to get exception when transaction "
             + FateTxId.formatTid(tid) + " not in successful state");
-      return (String) store.getNodeData(tid, Fate.NodeData.RETURN_NODE);
+      return (String) store.getTransactionInfo(tid, TxInfo.RETURN_VALUE);
     } finally {
       store.unreserve(tid, 0);
     }
@@ -415,7 +396,7 @@ public class Fate<T> {
       if (store.getStatus(tid) != FAILED)
         throw new IllegalStateException("Tried to get exception when transaction "
             + FateTxId.formatTid(tid) + " not in failed state");
-      return (Exception) store.getNodeData(tid, Fate.NodeData.EXCEPTION_NODE);
+      return (Exception) store.getTransactionInfo(tid, TxInfo.EXCEPTION);
     } finally {
       store.unreserve(tid, 0);
     }

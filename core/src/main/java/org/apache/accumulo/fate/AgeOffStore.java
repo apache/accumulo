@@ -212,13 +212,13 @@ public class AgeOffStore<T> implements TStore<T> {
   }
 
   @Override
-  public void setNodeData(long tid, Fate.NodeData nodeData, Serializable val) {
-    store.setNodeData(tid, nodeData, val);
+  public void setTransactionInfo(long tid, Fate.TxInfo txInfo, Serializable val) {
+    store.setTransactionInfo(tid, txInfo, val);
   }
 
   @Override
-  public Serializable getNodeData(long tid, Fate.NodeData nodeData) {
-    return store.getNodeData(tid, nodeData);
+  public Serializable getTransactionInfo(long tid, Fate.TxInfo txInfo) {
+    return store.getTransactionInfo(tid, txInfo);
   }
 
   @Override

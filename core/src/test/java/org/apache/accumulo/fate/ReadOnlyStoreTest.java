@@ -36,7 +36,7 @@ public class ReadOnlyStoreTest {
   @Test
   public void everythingPassesThrough() throws Exception {
     Repo<String> repo = EasyMock.createMock(Repo.class);
-    EasyMock.expect(repo.getDescription()).andReturn("description");
+    EasyMock.expect(repo.getName()).andReturn("description");
     EasyMock.expect(repo.isReady(0xdeadbeefL, null)).andReturn(0x0L);
 
     ZooStore<String> mock = EasyMock.createNiceMock(ZooStore.class);
@@ -48,7 +48,8 @@ public class ReadOnlyStoreTest {
 
     EasyMock.expect(mock.waitForStatusChange(0xdeadbeefL, EnumSet.allOf(TStatus.class)))
         .andReturn(TStatus.UNKNOWN);
-    EasyMock.expect(mock.getNodeData(0xdeadbeefL, Fate.NodeData.RETURN_NODE)).andReturn("property");
+    EasyMock.expect(mock.getTransactionInfo(0xdeadbeefL, Fate.TxInfo.RETURN_VALUE))
+        .andReturn("txInfo");
     EasyMock.expect(mock.list()).andReturn(Collections.emptyList());
 
     EasyMock.replay(repo);
@@ -59,14 +60,14 @@ public class ReadOnlyStoreTest {
     store.reserve(0xdeadbeefL);
     ReadOnlyRepo<String> top = store.top(0xdeadbeefL);
     assertFalse(top instanceof Repo);
-    assertEquals("description", top.getDescription());
+    assertEquals("description", top.getName());
     assertEquals(0x0L, top.isReady(0xdeadbeefL, null));
     assertEquals(TStatus.UNKNOWN, store.getStatus(0xdeadbeefL));
     store.unreserve(0xdeadbeefL, 30);
 
     assertEquals(TStatus.UNKNOWN,
         store.waitForStatusChange(0xdeadbeefL, EnumSet.allOf(TStatus.class)));
-    assertEquals("property", store.getNodeData(0xdeadbeefL, Fate.NodeData.RETURN_NODE));
+    assertEquals("txInfo", store.getTransactionInfo(0xdeadbeefL, Fate.TxInfo.RETURN_VALUE));
     assertEquals(Collections.<Long>emptyList(), store.list());
 
     EasyMock.verify(repo);
