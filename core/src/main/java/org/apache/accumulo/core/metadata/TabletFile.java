@@ -128,24 +128,42 @@ public class TabletFile implements Comparable<TabletFile> {
     return metaPath;
   }
 
+  /**
+   * The ordering of this class depends on the normal String ordering of the normalized paths first,
+   * then any original path, if one exists as a StoredTabletFile, second. To ensure subclasses don't
+   * break things, and to preserve commutativity, subclasses should defer to this implementation.
+   */
   @Override
   public int compareTo(TabletFile o) {
-    if (equals(o)) {
+    if (this == o) {
       return 0;
-    } else {
-      return normalizedPath.compareTo(o.normalizedPath);
     }
+    int norm = normalizedPath.compareTo(o.normalizedPath);
+    if (norm == 0 && (this instanceof StoredTabletFile || o instanceof StoredTabletFile)) {
+      // do a secondary comparison of the non-normalized paths if either have one
+      String a = this instanceof StoredTabletFile ? ((StoredTabletFile) this).getMetaUpdateDelete()
+          : normalizedPath;
+      String b = o instanceof StoredTabletFile ? ((StoredTabletFile) o).getMetaUpdateDelete()
+          : o.normalizedPath;
+      return a.compareTo(b);
+    }
+    return norm;
   }
 
+  /**
+   * These are considered equal if their normalized paths are equal. To ensure subclasses don't
+   * break things, and to preserve commutativity, subclasses should defer to this implementation.
+   */
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof TabletFile) {
-      TabletFile that = (TabletFile) obj;
-      return normalizedPath.equals(that.normalizedPath);
-    }
-    return false;
+    return this == obj
+        || (obj instanceof TabletFile && normalizedPath.equals(((TabletFile) obj).normalizedPath));
   }
 
+  /**
+   * The normalized path determines the hash code. To ensure subclasses don't break things, and to
+   * preserve commutativity, subclasses should defer to this implementation.
+   */
   @Override
   public int hashCode() {
     return normalizedPath.hashCode();
