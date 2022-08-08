@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.zookeeper.FateLock;
 import org.apache.accumulo.fate.zookeeper.FateLock.FateLockPath;
@@ -96,7 +97,7 @@ public class AdminUtil<T> {
      *         are in the Accumulo logs.
      */
     public String getTxid() {
-      return String.format("%016x", txid);
+      return FastFormat.toHexString(txid);
     }
 
     public TStatus getStatus() {
@@ -165,7 +166,7 @@ public class AdminUtil<T> {
 
       Map<String,List<String>> ret = new HashMap<>();
       for (Entry<Long,List<String>> entry : danglocks.entrySet()) {
-        ret.put(String.format("%016x", entry.getKey()),
+        ret.put(FastFormat.toHexString(entry.getKey()),
             Collections.unmodifiableList(entry.getValue()));
       }
       return Collections.unmodifiableMap(ret);

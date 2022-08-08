@@ -442,34 +442,6 @@ function getTableServers(tableID) {
 }
 
 /**
- * REST GET call for the trace summary, stores it on a sessionStorage variable
- *
- * @param {string} minutes Number of minutes to display trace summary
- */
-function getTraceSummary(minutes) {
-  return getJSONForTable('/rest/trace/summary/' + minutes, 'traceSummary');
-}
-
-/**
- * REST GET call for the trace type, stores it on a sessionStorage variable
- *
- * @param {string} type Type of the trace
- * @param {string} minutes Number of minutes to display trace
- */
-function getTraceOfType(type, minutes) {
-  return getJSONForTable('/rest/trace/listType/' + type + '/' + minutes, 'traceType');
-}
-
-/**
- * REST GET call for the trace id, stores it on a sessionStorage variable
- *
- * @param {string} id Trace ID
- */
-function getTraceShow(id) {
-  return getJSONForTable('/rest/trace/show/' + id, 'traceShow');
-}
-
-/**
  * REST GET call for the logs, stores it on a sessionStorage variable
  */
 function getLogs() {

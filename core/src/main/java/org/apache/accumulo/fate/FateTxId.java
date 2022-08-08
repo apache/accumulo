@@ -20,6 +20,8 @@ package org.apache.accumulo.fate;
 
 import java.util.regex.Pattern;
 
+import org.apache.accumulo.core.util.FastFormat;
+
 import com.google.common.base.Preconditions;
 
 public class FateTxId {
@@ -54,7 +56,7 @@ public class FateTxId {
    */
   public static String formatTid(long tid) {
     // do not change how this formats without considering implications for persistence
-    return String.format("%s%016x%s", PREFIX, tid, SUFFIX);
+    return FastFormat.toHexString(PREFIX, tid, SUFFIX);
   }
 
 }

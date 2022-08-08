@@ -29,7 +29,7 @@
            <caption><span class="table-caption">Replication Status</span><br />
             <thead>
               <tr>
-                <th class="firstcell">Table&nbsp;</th>
+                <th>Table&nbsp;</th>
                 <th>Peer&nbsp;</th>
                 <th>Remote&nbsp;Identifier&nbsp;</th>
                 <th>Replica&nbsp;System&nbsp;Type&nbsp;</th>

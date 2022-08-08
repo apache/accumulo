@@ -25,14 +25,27 @@ import java.util.Base64;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 
-public class DumpZookeeper {
+@AutoService(KeywordExecutable.class)
+public class DumpZookeeper implements KeywordExecutable {
 
   private static ZooReaderWriter zk = null;
+
+  @Override
+  public String keyword() {
+    return "dump-zoo";
+  }
+
+  @Override
+  public String description() {
+    return "Writes Zookeeper data as human readable or XML to a file.";
+  }
 
   private static class Encoded {
     public String encoding;
@@ -53,7 +66,8 @@ public class DumpZookeeper {
     boolean xml = false;
   }
 
-  public static void main(String[] args) throws KeeperException, InterruptedException {
+  @Override
+  public void execute(String[] args) throws KeeperException, InterruptedException {
     Opts opts = new Opts();
     opts.parseArgs(DumpZookeeper.class.getName(), args);
 
@@ -64,6 +78,10 @@ public class DumpZookeeper {
     } else {
       writeHumanReadable(out, opts.root);
     }
+  }
+
+  public static void main(String[] args) throws KeeperException, InterruptedException {
+    new DumpZookeeper().execute(args);
   }
 
   private static void writeXml(PrintStream out, String root)
