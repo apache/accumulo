@@ -24,7 +24,7 @@
         <!-- Modal content -->
         <div class="modal-content">
         <div >
-          <div class="modal-header>
+          <div class="modal-header justify-content-center">
             <span class="modal-title">
                 <div class="text-center">
                     <a href="https://accumulo.apache.org" target="_blank"><img alt="Apache Accumulo" src="/resources/images/accumulo-logo.png" /></a></span>
@@ -34,23 +34,23 @@
             <div class="container-fluid">
               <div class="row justify-content-evenly">
                 <div class="col-sm-4 text-end">Software</div>
-                <div class="col-sm-6 text-start"><a href="https://accumulo.apache.org" target="_blank">Apache&nbsp;Accumulo</a></div>
+                <div class="col-sm-8 text-start"><a href="https://accumulo.apache.org" target="_blank">Apache&nbsp;Accumulo</a></div>
               </div>
               <div class="row justify-content-evenly">
                 <div class="col-sm-4 text-end">Version</div>
-                <div class="col-sm-6 text-start">${version}</div>
+                <div class="col-sm-8 text-start">${version}</div>
               </div>
               <div class="row justify-content-evenly">
                 <div class="col-sm-4 text-end">Instance&nbsp;Name</div>
-                <div class="col-sm-6 text-start">${instance_name}</div>
+                <div class="col-sm-8 text-start">${instance_name}</div>
               </div>
               <div class="row justify-content-evenly">
                 <div class="col-sm-4 text-end">Instance&nbsp;Id</div>
-                <div class="col-sm-6 text-start">${instance_id}</div>
+                <div class="col-sm-8 text-start">${instance_id}</div>
               </div>
               <div class="row justify-content-evenly">
                 <div class="col-sm-4 text-end">ZooKeeper&nbsp;Hosts</div>
-                <div class="col-sm-6 text-start">${zk_hosts}</div>
+                <div class="col-sm-8 text-start">${zk_hosts}</div>
               </div>
             </div>
           </div>

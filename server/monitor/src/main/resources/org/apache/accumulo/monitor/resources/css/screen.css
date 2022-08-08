@@ -20,7 +20,6 @@
 body {
   font-family: verdana, arial, sans-serif;
   font-size: 10pt;
-  padding-top:50px; /* For fixed top navbar */
 }
 
 #banner {
@@ -442,7 +441,6 @@ pre.logevent {
 }
 
 .dropdown-menu {
-  right: 0;
   left: unset;
 }
 
