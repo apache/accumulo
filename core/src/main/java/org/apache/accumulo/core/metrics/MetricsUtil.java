@@ -28,6 +28,7 @@ import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.commons.math3.exception.NullArgumentException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,6 +77,8 @@ public class MetricsUtil {
 
       if (address != null) {
         tags.add(Tag.of("Address", address.toString()));
+      } else {
+        throw new NullArgumentException(); 
       }
       commonTags = Collections.unmodifiableList(tags);
 
@@ -108,8 +111,16 @@ public class MetricsUtil {
         gc.bindTo(Metrics.globalRegistry);
         new ProcessorMetrics(commonTags).bindTo(Metrics.globalRegistry);
         new JvmThreadMetrics(commonTags).bindTo(Metrics.globalRegistry);
+      } else {
+        throw new Exception("jvmMetricsEnabled is false"); 
       }
-    }
+    } else {
+      if(!enabled) throw new Exception("enabled is false"); 
+      if(factoryClass == null) {
+       throw new NullArgumentException(); 
+     } else if(factoryClass.isEmpty()) 
+       throw new Exception("factoryClass is empty"); 
+   }
   }
 
   public static void initializeProducers(MetricsProducer... producer) {
