@@ -23,7 +23,7 @@
           <h3>${title}</h3>
         </div>
       </div>
-      <div class="row">
+      <div class="row d-flex justify-content-center">
         <div class="col-sm-6 col-sm-offset-3" id="manager">
           <table class="table table-bordered table-striped table-condensed">
             <thead>

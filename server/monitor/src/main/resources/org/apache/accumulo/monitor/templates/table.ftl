@@ -33,7 +33,7 @@
       </div>
       <div class="row">
         <div class="col-xs-12">
-          <table id="participatingTServers" class="table table-bordered table-striped table-condensed">
+          <table id="participatingTServers" class="table caption-top table-bordered table-striped table-condensed">
             <caption><span class="table-caption">${table}</span></caption>
             <thead>
               <tr>

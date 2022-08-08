@@ -18,14 +18,14 @@
     under the License.
 
 -->
-      <div class="row">
+    <div class="row">
         <div class="col-xs-12">
-          <h3>${title}</h3>
+            <h3>Tablet Server Overview</h3>
         </div>
-      </div>
+    </div>
       <div class="row">
         <div class="col-xs-12">
-          <table id="badtservers" class="table table-bordered table-striped table-condensed">
+          <table id="badtservers" class="table caption-top table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Non-Functioning Tablet Servers</span><br/>
               <span class="table-subcaption">The following tablet servers reported a status other than Online.</span><br/></caption>
             <thead>
@@ -36,7 +36,7 @@
             </thead>
             <tbody></tbody>
           </table>
-          <table id="deadtservers" class="table table-bordered table-striped table-condensed">
+          <table id="deadtservers" class="table caption-top table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Dead Tablet Servers</span><br/>
               <span class="table-subcaption">The following tablet servers are no longer reachable.</span><br/></caption>
             <thead>
@@ -50,7 +50,7 @@
             <tbody></tbody>
           </table>
           <span id="recovery-caption" style="background-color: gold; display: none;">Highlighted rows correspond to tservers in recovery mode.</span>
-          <table id="tservers" class="table table-bordered table-striped table-condensed">
+          <table id="tservers" class="table caption-top table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Online Tablet Servers</span><br/>
               <span class="table-subcaption">The following tablet servers reported a status of Online.</span><br/></caption>
             <thead>

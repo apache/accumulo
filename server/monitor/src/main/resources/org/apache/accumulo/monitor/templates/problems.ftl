@@ -34,7 +34,7 @@
       </div>
       <div class="row">
         <div class="col-xs-12">
-          <table id="problemSummary" class="table table-bordered table-striped table-condensed">
+          <table id="problemSummary" class="table caption-top table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Summary</span></caption>
             <thead>
               <tr>
@@ -51,7 +51,7 @@
       </div>
       <div class="row">
         <div class="col-xs-12">
-          <table id="problemDetails" class="table table-bordered table-striped table-condensed">
+          <table id="problemDetails" class="table caption-top table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Details</span></caption>
             <thead>
               <tr>

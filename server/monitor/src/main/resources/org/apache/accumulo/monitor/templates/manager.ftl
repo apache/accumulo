@@ -18,10 +18,15 @@
     under the License.
 
 -->
+    <div class="row">
+       <div class="col-xs-12">
+          <h3>Manager Server Overview</h3>
+       </div>
+    </div>
     <div id="managerBanner" style="display: none;">
         <div class="alert alert-danger" role="alert">Manager Server Not Running</div>
     </div>
-    <table id="managerStatus" class="table table-bordered table-striped table-condensed">
+    <table id="managerStatus" class="table caption-top table-bordered table-striped table-condensed">
         <caption><span class="table-caption">${title}</span><br /></caption>
         <thead>
             <tr>

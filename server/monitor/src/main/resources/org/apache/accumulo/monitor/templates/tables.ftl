@@ -87,9 +87,14 @@
           tableList.ajax.reload(null, false ); // user paging is not reset on reload
         }
       </script>
+      <div class="row">
+         <div class="col-xs-12">
+            <h3>Table Overview</h3>
+         </div>
+      </div>
       <div>
-        <table id="tableList" class="table table-bordered table-striped table-condensed">
-          <caption><span class="table-caption">${tablesTitle}</span><br />
+        <table id="tableList" class="table caption-top table-bordered table-striped table-condensed">
+          <caption><span class="table-caption">Tables</span><br />
           <thead>
             <tr>
               <th>Table&nbsp;Name</th>

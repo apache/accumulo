@@ -25,7 +25,8 @@
       </div>
       <div class="row">
         <div class="col-xs-12">
-          <table id="replicationStats" class="table table-bordered table-striped table-condensed">
+          <table id="replicationStats" class="table caption-top table-bordered table-striped table-condensed">
+           <caption><span class="table-caption">Replication Status</span><br />
             <thead>
               <tr>
                 <th class="firstcell">Table&nbsp;</th>

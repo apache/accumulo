@@ -31,7 +31,7 @@
       </div>
       <div class="row">
         <div class="col-xs-12">
-          <table id="tServerDetail" class="table table-bordered table-striped table-condensed">
+          <table id="tServerDetail" class="table caption-top table-bordered table-striped table-condensed">
             <caption><span class="table-caption">${server}</span></caption>
             <thead>
               <tr>
@@ -48,7 +48,7 @@
       </div>
       <div class="row">
         <div class="col-xs-12">
-          <table id="opHistoryDetails" class="table table-bordered table-striped table-condensed">
+          <table id="opHistoryDetails" class="table caption-top table-bordered table-striped table-condensed">
             <caption><span class="table-caption">All-Time&nbsp;Tablet&nbsp;Operation&nbsp;Results</span></caption>
             <thead>
               <tr>
@@ -68,7 +68,7 @@
       </div>
       <div class="row">
         <div class="col-xs-12">
-          <table id="currentTabletOps" class="table table-bordered table-striped table-condensed">
+          <table id="currentTabletOps" class="table caption-top table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Current&nbsp;Tablet&nbsp;Operation&nbsp;Results</span></caption>
             <thead>
               <tr>
@@ -84,7 +84,7 @@
       </div>
       <div class="row">
         <div class="col-xs-12">
-          <table id="perTabletResults" class="table table-bordered table-striped table-condensed">
+          <table id="perTabletResults" class="table caption-top table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Detailed Tablet Operations</span></caption>
             <thead>
               <tr>

@@ -18,14 +18,15 @@
     under the License.
 
 -->
+    <div class="row">
+       <div class="col-xs-12">
+          <h3>Active Compactions Overview</h3>
+       </div>
+    </div>
       <div class="row">
         <div class="col-xs-12">
-          <h3>${title}</h3>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-xs-12">
-          <table id="compactionsList" class="table table-bordered table-striped table-condensed">
+          <table id="compactionsList" class="table caption-top table-bordered table-striped table-condensed">
+            <caption><span class="table-caption">${title}</span><br /></caption>
             <thead>
               <tr>
                 <th class="firstcell">Server&nbsp;</th>

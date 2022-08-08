@@ -73,8 +73,8 @@
 
     <div id="main" class="container-fluid">
       <#include "${template}">
-
     </div>
+
     <#include "modals.ftl">
   </body>
 </html>

@@ -20,7 +20,7 @@
 -->
       <div class="row">
         <div class="col-xs-12">
-          <h3>${title}</h3>
+          <h3>External Compactions Overview</h3>
         </div>
       </div>
     <#if coordinatorRunning == true>
@@ -39,7 +39,7 @@
       </div>
       <div class="row">
       <div class="col-xs-12">
-        <table id="compactorsTable" class="table table-bordered table-striped table-condensed">
+        <table id="compactorsTable" class="table caption-top table-bordered table-striped table-condensed">
           <caption><span class="table-caption">Compactors</span>
           <a href="javascript:refreshCompactors();"><span class="glyphicon glyphicon-refresh"/></a></caption>
           <thead>
@@ -53,7 +53,7 @@
       </div>
       <div class="row">
           <div class="col-xs-12">
-            <table id="runningTable" class="table table-bordered table-striped table-condensed">
+            <table id="runningTable" class="table caption-top table-bordered table-striped table-condensed">
               <caption><span class="table-caption">Running Compactions</span>
               <a href="javascript:refreshRunning();"><span class="glyphicon glyphicon-refresh"/></a></caption>
               <thead>
