@@ -21,6 +21,7 @@ package org.apache.accumulo.server.manager.recovery;
 import java.io.IOException;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -32,7 +33,7 @@ import org.apache.hadoop.fs.Path;
  * implementations that do not support lease recovery and we should not throw an exception in this
  * case. This LogCloser implementation supports that case.
  *
- * To use this class, set the Property {@link Property.MANAGER_WAL_CLOSER_IMPLEMENTATION} to the
+ * To use this class, set the Property {@link Property#MANAGER_WAL_CLOSER_IMPLEMENTATION} to the
  * full name of this class.
  */
 public class NoOpLogCloser implements LogCloser {
