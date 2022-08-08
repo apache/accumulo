@@ -28,7 +28,6 @@ import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.commons.math3.exception.NullArgumentException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,7 +77,7 @@ public class MetricsUtil {
       if (address != null) {
         tags.add(Tag.of("Address", address.toString()));
       } else {
-        throw new NullArgumentException(); 
+        throw new IllegalArgumentException("address is null"); 
       }
       commonTags = Collections.unmodifiableList(tags);
 
@@ -117,7 +116,7 @@ public class MetricsUtil {
     } else {
       if(!enabled) throw new Exception("enabled is false"); 
       if(factoryClass == null) {
-       throw new NullArgumentException(); 
+       throw new IllegalArgumentException("factoryClass is null"); 
      } else if(factoryClass.isEmpty()) 
        throw new Exception("factoryClass is empty"); 
    }
