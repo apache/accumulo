@@ -301,8 +301,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
       splitPoints.add(new Text("row_0000000008\\0"));
       client.tableOperations().addSplits(tableName, splitPoints);
 
-      @SuppressWarnings("deprecation")
-      Collection<Text> splits = client.tableOperations().getSplits(tableName);
+      Collection<Text> splits = client.tableOperations().listSplits(tableName);
       assertEquals(3, splits.size());
 
       ReadWriteIT.ingest(client, 10, 10, 50, 0, tableName);

@@ -35,8 +35,6 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Maps;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths provided by test")
@@ -145,7 +143,9 @@ public class ClusterConfigParserTest {
     expected.put("SSERVER_HOSTS_highmem", "hmvm1 hmvm2 hmvm3");
     expected.put("SSERVER_HOSTS_cheap", "burstyvm1 burstyvm2");
 
-    expected = Maps.transformValues(expected, v -> '"' + v + '"');
+    expected.replaceAll((k, v) -> {
+      return '"' + v + '"';
+    });
 
     Map<String,String> actual = new HashMap<>();
     try (BufferedReader rdr = Files.newBufferedReader(Paths.get(f.toURI()))) {

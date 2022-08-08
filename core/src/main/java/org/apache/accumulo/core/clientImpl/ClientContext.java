@@ -91,6 +91,7 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector.ScanServer;
 import org.apache.accumulo.core.util.OpTimer;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.tables.TableZooHelper;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -202,7 +203,7 @@ public class ClientContext implements AccumuloClient {
 
                 @Override
                 public String getGroup() {
-                  return entry.getValue().group;
+                  return entry.getValue().getSecond();
                 }
               }).collect(Collectors.toSet());
         }
@@ -395,22 +396,11 @@ public class ClientContext implements AccumuloClient {
     return batchWriterConfig;
   }
 
-  public static class ScanServerInfo {
-    public final UUID uuid;
-    public final String group;
-
-    public ScanServerInfo(UUID uuid, String group) {
-      this.uuid = uuid;
-      this.group = group;
-    }
-
-  }
-
   /**
    * @return map of live scan server addresses to lock uuids.
    */
-  public Map<String,ScanServerInfo> getScanServers() {
-    Map<String,ScanServerInfo> liveScanServers = new HashMap<>();
+  public Map<String,Pair<UUID,String>> getScanServers() {
+    Map<String,Pair<UUID,String>> liveScanServers = new HashMap<>();
     String root = this.getZooKeeperRoot() + Constants.ZSSERVERS;
     var addrs = this.getZooCache().getChildren(root);
     for (String addr : addrs) {
@@ -422,7 +412,7 @@ public class ClientContext implements AccumuloClient {
           String[] fields = new String(lockData, UTF_8).split(",", 2);
           UUID uuid = UUID.fromString(fields[0]);
           String group = fields[1];
-          liveScanServers.put(addr, new ScanServerInfo(uuid, group));
+          liveScanServers.put(addr, new Pair<>(uuid, group));
         }
       } catch (IllegalArgumentException e) {
         log.error("Error validating zookeeper scan server node: " + addr, e);

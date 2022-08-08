@@ -45,8 +45,8 @@ public class ScanServerMetadataEntries {
 
     // gather the list of current live scan servers, its important that this is done after the above
     // step in order to avoid removing new scan servers that start while the method is running
-    final Set<UUID> scanServerUuids =
-        context.getScanServers().values().stream().map(ssi -> ssi.uuid).collect(Collectors.toSet());
+    final Set<UUID> scanServerUuids = context.getScanServers().values().stream()
+        .map(ssi -> ssi.getFirst()).collect(Collectors.toSet());
 
     // remove all live scan servers from the uuids seen in the metadata table... what is left is
     // uuids for scan servers that are dead
