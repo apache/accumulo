@@ -98,7 +98,7 @@ public class FateLogger {
       public long create() {
         long tid = store.create();
         if (storeLog.isTraceEnabled())
-          storeLog.trace("[{}] created fate transaction", formatTid(tid));
+          storeLog.trace("{} created fate transaction", formatTid(tid));
         return tid;
       }
 
@@ -111,35 +111,35 @@ public class FateLogger {
       public void push(long tid, Repo<T> repo) throws StackOverflowException {
         store.push(tid, repo);
         if (storeLog.isTraceEnabled())
-          storeLog.trace("[{}] pushed {}", formatTid(tid), toLogString.apply(repo));
+          storeLog.trace("{} pushed {}", formatTid(tid), toLogString.apply(repo));
       }
 
       @Override
       public void pop(long tid) {
         store.pop(tid);
         if (storeLog.isTraceEnabled())
-          storeLog.trace("[{}] popped", formatTid(tid));
+          storeLog.trace("{} popped", formatTid(tid));
       }
 
       @Override
       public void setStatus(long tid, TStatus status) {
         store.setStatus(tid, status);
         if (storeLog.isTraceEnabled())
-          storeLog.trace("[{}] setStatus to {}", formatTid(tid), status);
+          storeLog.trace("{} setStatus to {}", formatTid(tid), status);
       }
 
       @Override
       public void setProperty(long tid, String prop, Serializable val) {
         store.setProperty(tid, prop, val);
         if (storeLog.isTraceEnabled())
-          storeLog.trace("[{}] setProperty {} to {}", formatTid(tid), prop, val);
+          storeLog.trace("{} setting {} node data to {}", formatTid(tid), prop, val);
       }
 
       @Override
       public void delete(long tid) {
         store.delete(tid);
         if (storeLog.isTraceEnabled())
-          storeLog.trace("[{}] deleted fate transaction", formatTid(tid));
+          storeLog.trace("{} deleted fate transaction", formatTid(tid));
       }
     };
   }

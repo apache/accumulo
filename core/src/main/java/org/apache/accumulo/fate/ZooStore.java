@@ -53,7 +53,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 //TODO use zoocache? - ACCUMULO-1297
 //TODO handle zookeeper being down gracefully - ACCUMULO-1297
-//TODO document zookeeper layout - ACCUMULO-1298
 
 public class ZooStore<T> implements TStore<T> {
 
@@ -452,7 +451,7 @@ public class ZooStore<T> implements TStore<T> {
 
     try {
       if (so instanceof String) {
-        zk.putPersistentData(getTXPath(tid) + "/prop_" + prop, ("S " + so).getBytes(UTF_8),
+        zk.putPersistentData(getTXPath(tid) + "/" + prop, ("S " + so).getBytes(UTF_8),
             NodeExistsPolicy.OVERWRITE);
       } else {
         byte[] sera = serialize(so);
@@ -460,7 +459,7 @@ public class ZooStore<T> implements TStore<T> {
         System.arraycopy(sera, 0, data, 2, sera.length);
         data[0] = 'O';
         data[1] = ' ';
-        zk.putPersistentData(getTXPath(tid) + "/prop_" + prop, data, NodeExistsPolicy.OVERWRITE);
+        zk.putPersistentData(getTXPath(tid) + "/" + prop, data, NodeExistsPolicy.OVERWRITE);
       }
     } catch (Exception e2) {
       throw new RuntimeException(e2);
@@ -472,7 +471,7 @@ public class ZooStore<T> implements TStore<T> {
     verifyReserved(tid);
 
     try {
-      byte[] data = zk.getData(getTXPath(tid) + "/prop_" + prop);
+      byte[] data = zk.getData(getTXPath(tid) + "/" + prop);
 
       if (data[0] == 'O') {
         byte[] sera = new byte[data.length - 2];
