@@ -203,6 +203,17 @@ public class ClientConfConverter {
       }
 
       @Override
+      public void getProperties(Map<String,String> props, String... properties) {
+        defaults.getProperties(props, properties);
+        for (String p : properties) {
+          String value = config.getString(p);
+          if (value != null) {
+            props.put(p, value);
+          }
+        }
+      }
+
+      @Override
       public void getProperties(Map<String,String> props, Predicate<String> filter) {
         defaults.getProperties(props, filter);
 
