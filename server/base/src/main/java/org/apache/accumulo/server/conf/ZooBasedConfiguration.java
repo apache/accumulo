@@ -125,10 +125,14 @@ public class ZooBasedConfiguration extends AccumuloConfiguration {
   public void getProperties(Map<String,String> props, String... properties) {
     parent.getProperties(props, properties);
     Map<String,String> theseProps = getSnapshot();
-    for (String p : properties) {
-      String value = theseProps.get(p);
-      if (value != null) {
-        props.put(p, value);
+    if (properties == null || properties.length == 0) {
+      props.putAll(theseProps);
+    } else {
+      for (String p : properties) {
+        String value = theseProps.get(p);
+        if (value != null) {
+          props.put(p, value);
+        }
       }
     }
   }
