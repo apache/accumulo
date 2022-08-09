@@ -53,7 +53,7 @@ public class BlockCacheFactoryTest {
   public void testStartWithDefault() throws Exception {
     DefaultConfiguration dc = DefaultConfiguration.getInstance();
     BlockCacheManager manager = BlockCacheManagerFactory.getInstance(dc);
-    manager.start(new BlockCacheConfiguration(dc));
+    manager.start(BlockCacheConfiguration.forTabletServer(dc));
     assertNotNull(manager.getBlockCache(CacheType.INDEX));
   }
 }

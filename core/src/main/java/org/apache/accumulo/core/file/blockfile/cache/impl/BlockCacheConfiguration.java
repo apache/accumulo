@@ -24,7 +24,6 @@ import java.util.Map;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager.Configuration;
 import org.apache.accumulo.core.spi.cache.CacheType;
 
@@ -32,6 +31,8 @@ public class BlockCacheConfiguration implements Configuration {
 
   /** Approximate block size */
   private final long blockSize;
+
+  private final Property serverPrefix;
 
   private final Map<String,String> genProps;
 
@@ -41,13 +42,28 @@ public class BlockCacheConfiguration implements Configuration {
 
   private final long summaryMaxSize;
 
-  public BlockCacheConfiguration(AccumuloConfiguration conf) {
-    genProps = conf.getAllPropertiesWithPrefix(Property.TSERV_PREFIX);
+  public static BlockCacheConfiguration forTabletServer(AccumuloConfiguration conf) {
+    return new BlockCacheConfiguration(conf, Property.TSERV_PREFIX, Property.TSERV_INDEXCACHE_SIZE,
+        Property.TSERV_DATACACHE_SIZE, Property.TSERV_SUMMARYCACHE_SIZE,
+        Property.TSERV_DEFAULT_BLOCKSIZE);
+  }
 
-    this.indexMaxSize = conf.getAsBytes(Property.TSERV_INDEXCACHE_SIZE);
-    this.dataMaxSize = conf.getAsBytes(Property.TSERV_DATACACHE_SIZE);
-    this.summaryMaxSize = conf.getAsBytes(Property.TSERV_SUMMARYCACHE_SIZE);
-    this.blockSize = conf.getAsBytes(Property.TSERV_DEFAULT_BLOCKSIZE);
+  public static BlockCacheConfiguration forScanServer(AccumuloConfiguration conf) {
+    return new BlockCacheConfiguration(conf, Property.SSERV_PREFIX, Property.SSERV_INDEXCACHE_SIZE,
+        Property.SSERV_DATACACHE_SIZE, Property.SSERV_SUMMARYCACHE_SIZE,
+        Property.SSERV_DEFAULT_BLOCKSIZE);
+  }
+
+  private BlockCacheConfiguration(AccumuloConfiguration conf, Property serverPrefix,
+      Property indexCacheSizeProperty, Property dataCacheSizeProperty,
+      Property summaryCacheSizeProperty, Property defaultBlockSizeProperty) {
+
+    this.serverPrefix = serverPrefix;
+    this.genProps = conf.getAllPropertiesWithPrefix(serverPrefix);
+    this.indexMaxSize = conf.getAsBytes(indexCacheSizeProperty);
+    this.dataMaxSize = conf.getAsBytes(dataCacheSizeProperty);
+    this.summaryMaxSize = conf.getAsBytes(summaryCacheSizeProperty);
+    this.blockSize = conf.getAsBytes(defaultBlockSizeProperty);
   }
 
   @Override
@@ -80,14 +96,14 @@ public class BlockCacheConfiguration implements Configuration {
     HashMap<String,String> props = new HashMap<>();
 
     // get default props first
-    String defaultPrefix = BlockCacheManager.getFullyQualifiedPropertyPrefix(prefix);
+    String defaultPrefix = getFullyQualifiedPropertyPrefix(serverPrefix, prefix);
     genProps.forEach((k, v) -> {
       if (k.startsWith(defaultPrefix)) {
         props.put(k.substring(defaultPrefix.length()), v);
       }
     });
 
-    String typePrefix = BlockCacheManager.getFullyQualifiedPropertyPrefix(prefix, type);
+    String typePrefix = getFullyQualifiedPropertyPrefix(serverPrefix, prefix, type);
     genProps.forEach((k, v) -> {
       if (k.startsWith(typePrefix)) {
         props.put(k.substring(typePrefix.length()), v);
@@ -96,4 +112,18 @@ public class BlockCacheConfiguration implements Configuration {
 
     return Collections.unmodifiableMap(props);
   }
+
+  public static String getFullyQualifiedPropertyPrefix(Property serverPrefix, String prefix) {
+    return getCachePropertyBase(serverPrefix) + prefix + ".default.";
+  }
+
+  public static String getFullyQualifiedPropertyPrefix(Property serverPrefix, String prefix,
+      CacheType type) {
+    return getCachePropertyBase(serverPrefix) + prefix + "." + type.name().toLowerCase() + ".";
+  }
+
+  public static String getCachePropertyBase(Property serverPrefix) {
+    return serverPrefix.getKey() + "cache.config.";
+  }
+
 }

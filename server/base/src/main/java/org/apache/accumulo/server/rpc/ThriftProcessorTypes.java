@@ -149,6 +149,15 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
     return muxProcessor;
   }
 
+  public static TMultiplexedProcessor
+      getScanServerTProcessor(TabletScanClientService.Iface tserverHandler, ServerContext context) {
+    TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
+    muxProcessor.registerProcessor(TABLET_SERVER_SCAN.getServiceName(),
+        TABLET_SERVER_SCAN.getTProcessor(TabletScanClientService.Processor.class,
+            TabletScanClientService.Iface.class, tserverHandler, context));
+    return muxProcessor;
+  }
+
   public static TMultiplexedProcessor getTabletServerTProcessor(ClientServiceHandler clientHandler,
       TabletClientService.Iface tserverHandler, TabletScanClientService.Iface tserverScanHandler,
       ServerContext context) {

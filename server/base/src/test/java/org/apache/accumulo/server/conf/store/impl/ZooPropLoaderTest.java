@@ -155,13 +155,6 @@ public class ZooPropLoaderTest {
     assertNotNull(cache.get(propStoreKey));
   }
 
-  @Test
-  public void getExpireTimeoutTest() {
-    replay(context, zrw, propStoreWatcher, cacheMetrics);
-    // TODO check into implementing an explicit test.
-    // fail("Implement test");
-  }
-
   /**
    * Verify that an exception on load result in null value and that the exception does not escape
    * the load call.
