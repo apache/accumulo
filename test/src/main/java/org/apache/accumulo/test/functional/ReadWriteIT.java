@@ -146,7 +146,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       }
       if (getCluster() instanceof StandaloneAccumuloCluster) {
         String monitorSslKeystore =
-            getCluster().getSiteConfiguration().get(Property.MONITOR_SSL_KEYSTORE.getKey());
+            getCluster().getSiteConfiguration().get(Property.MONITOR_SSL_KEYSTORE);
         if (monitorSslKeystore != null && !monitorSslKeystore.isEmpty()) {
           log.info(
               "Using HTTPS since monitor ssl keystore configuration was observed in accumulo configuration");

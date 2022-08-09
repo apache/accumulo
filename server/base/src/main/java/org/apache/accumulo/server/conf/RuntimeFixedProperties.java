@@ -64,7 +64,7 @@ public class RuntimeFixedProperties {
         origStored.put(key, value);
       } else {
         // Not in ZK, use config or default.
-        value = siteConfig.get(key);
+        value = siteConfig.get(prop);
       }
       fixed.put(key, value);
       log.trace("fixed property name: {} = {}", key, value);

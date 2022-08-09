@@ -72,17 +72,22 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * Gets a property value from this configuration.
    *
    * <p>
-   * Note: this is inefficient, but convenient on occasion. For retrieving multiple properties, use
-   * {@link #getProperties(Map, Predicate)} with a custom filter.
+   * Note: this is inefficient for values that are not a {@link Property}. For retrieving multiple
+   * properties, use {@link #getProperties(Map, Predicate)} with a custom filter.
    *
    * @param property
    *          property to get
    * @return property value
    */
   public String get(String property) {
-    Map<String,String> propMap = new HashMap<>(1);
-    getProperties(propMap, key -> Objects.equals(property, key));
-    return propMap.get(property);
+    try {
+      return get(Property.valueOf(property));
+    } catch (IllegalArgumentException e) {
+      // Could be a client or custom property, fall back to filtering
+      Map<String,String> propMap = new HashMap<>(1);
+      getProperties(propMap, key -> Objects.equals(property, key));
+      return propMap.get(property);
+    }
   }
 
   /**
