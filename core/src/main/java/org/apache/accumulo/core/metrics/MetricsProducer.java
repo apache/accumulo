@@ -397,6 +397,34 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>Gauge</td>
  * <td></td>
  * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_SCAN_START}</td>
+ * <td>Counter</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_SCAN_CONTINUE}</td>
+ * <td>Counter</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_SCAN_CLOSE}</td>
+ * <td>Counter</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_SCAN_BUSY_TIMEOUT}</td>
+ * <td>Counter</td>
+ * <td></td>
+ * </tr>
  * <!-- major compactions -->
  * <tr>
  * <td>{i|e}_{compactionServiceName}_{executor_name}_queued</td>
@@ -618,6 +646,10 @@ public interface MetricsProducer {
   String METRICS_SCAN_OPEN_FILES = METRICS_SCAN + ".files.open";
   String METRICS_SCAN_RESULTS = METRICS_SCAN + ".result";
   String METRICS_SCAN_YIELDS = METRICS_SCAN + ".yields";
+  String METRICS_SCAN_START = METRICS_SCAN + ".start";
+  String METRICS_SCAN_CONTINUE = METRICS_SCAN + ".continue";
+  String METRICS_SCAN_CLOSE = METRICS_SCAN + ".close";
+  String METRICS_SCAN_BUSY_TIMEOUT = METRICS_SCAN + ".busy_timeout";
 
   String METRICS_TSERVER_PREFIX = "accumulo.tserver.";
   String METRICS_TSERVER_ENTRIES = METRICS_TSERVER_PREFIX + "entries";
