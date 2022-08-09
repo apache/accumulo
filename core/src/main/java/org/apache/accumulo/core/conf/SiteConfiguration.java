@@ -262,17 +262,6 @@ public class SiteConfiguration extends AccumuloConfiguration {
   }
 
   @Override
-  public void getProperties(Map<String,String> props, String... properties) {
-    parent.getProperties(props, properties);
-    for (String p : properties) {
-      String value = config.get(p);
-      if (value != null) {
-        props.put(p, value);
-      }
-    }
-  }
-
-  @Override
   public void getProperties(Map<String,String> props, Predicate<String> filter) {
     getProperties(props, filter, true);
   }

@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.TreeMap;
@@ -72,7 +73,6 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    *
    * <p>
    * Note: this is inefficient, but convenient on occasion. For retrieving multiple properties, use
-   * {@link #getProperties(Map, String...)} if the property names are known or
    * {@link #getProperties(Map, Predicate)} with a custom filter.
    *
    * @param property
@@ -81,7 +81,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    */
   public String get(String property) {
     Map<String,String> propMap = new HashMap<>(1);
-    getProperties(propMap, property);
+    getProperties(propMap, key -> Objects.equals(property, key));
     return propMap.get(property);
   }
 
@@ -120,23 +120,9 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   /**
-   * Returns property key/value pairs in this configuration and parent configuration.
-   *
-   * @param props
-   *          properties object to populate
-   * @param properties
-   *          property key/values to copy to the props map. Copies all properties if null.
-   */
-  public abstract void getProperties(Map<String,String> props, String... properties);
-
-  /**
    * Returns property key/value pairs in this configuration. The pairs include those defined in this
    * configuration which pass the given filter, and those supplied from the parent configuration
    * which are not included from here.
-   *
-   * <p>
-   * Note: this is inefficient for retrieving fully-qualified properties, use
-   * {@link #getProperties(Map, String...)} instead.
    *
    * @param props
    *          properties object to populate
@@ -153,8 +139,9 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    */
   @Override
   public Iterator<Entry<String,String>> iterator() {
+    Predicate<String> all = x -> true;
     TreeMap<String,String> entries = new TreeMap<>();
-    getProperties(entries);
+    getProperties(entries, all);
     return entries.entrySet().iterator();
   }
 
