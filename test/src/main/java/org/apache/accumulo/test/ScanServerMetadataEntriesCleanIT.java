@@ -20,14 +20,13 @@ package org.apache.accumulo.test;
 
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
-import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -52,33 +51,25 @@ public class ScanServerMetadataEntriesCleanIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testServerContextMethods() throws Exception {
+  public void testServerContextMethods() {
+    HostAndPort server = HostAndPort.fromParts("127.0.0.1", 1234);
+    UUID serverLockUUID = UUID.randomUUID();
 
-    try (AccumuloClient ac = Accumulo.newClient().from(getClientProps()).build()) {
-      HostAndPort server = HostAndPort.fromParts("127.0.0.1", 1234);
-      UUID serverLockUUID = UUID.randomUUID();
+    Set<ScanServerRefTabletFile> scanRefs = Stream.of("F0000070.rf", "F0000071.rf")
+        .map(f -> "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/" + f)
+        .map(f -> new ScanServerRefTabletFile(f, server.toString(), serverLockUUID))
+        .collect(Collectors.toSet());
 
-      String[] files =
-          new String[] {"hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf",
-              "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000071.rf"};
+    ServerContext ctx = getCluster().getServerContext();
 
-      Set<ScanServerRefTabletFile> scanRefs = new HashSet<>();
-      for (String file : files) {
-        scanRefs.add(new ScanServerRefTabletFile(file, server.toString(), serverLockUUID));
-      }
+    ctx.getAmple().putScanServerFileReferences(scanRefs);
+    assertEquals(scanRefs.size(), ctx.getAmple().getScanServerFileReferences().count());
 
-      ServerContext ctx = getCluster().getServerContext();
+    Set<ScanServerRefTabletFile> scanRefs2 =
+        ctx.getAmple().getScanServerFileReferences().collect(Collectors.toSet());
+    assertEquals(scanRefs, scanRefs2);
 
-      ctx.getAmple().putScanServerFileReferences(scanRefs);
-      assertEquals(2, ctx.getAmple().getScanServerFileReferences().count());
-
-      Set<ScanServerRefTabletFile> scanRefs2 =
-          ctx.getAmple().getScanServerFileReferences().collect(Collectors.toSet());
-      assertEquals(scanRefs, scanRefs2);
-
-      ScanServerMetadataEntries.clean(ctx);
-      assertEquals(0, ctx.getAmple().getScanServerFileReferences().count());
-
-    }
+    ScanServerMetadataEntries.clean(ctx);
+    assertFalse(ctx.getAmple().getScanServerFileReferences().findAny().isPresent());
   }
 }

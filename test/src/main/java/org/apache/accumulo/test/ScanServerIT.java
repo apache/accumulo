@@ -20,13 +20,11 @@ package org.apache.accumulo.test;
 
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Collections;
-import java.util.Iterator;
-import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -37,13 +35,11 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
-import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.TimedOutException;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
@@ -63,6 +59,9 @@ import com.google.common.collect.Iterables;
 
 @Tag(MINI_CLUSTER_ONLY)
 public class ScanServerIT extends SharedMiniClusterBase {
+
+  protected static final int INGEST_ROW_COUNT = 10, INGEST_COL_COUNT = 10;
+  protected static final int EXPECTED_INGEST_ENTRIES_COUNT = INGEST_ROW_COUNT * INGEST_COL_COUNT;
 
   private static class ScanServerITConfiguration implements MiniClusterConfigurationCallback {
 
@@ -107,21 +106,17 @@ public class ScanServerIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
-      client.tableOperations().create(tableName);
-
-      ReadWriteIT.ingest(client, 10, 10, 50, 0, tableName);
-
-      client.tableOperations().flush(tableName, null, null, true);
+      createTableAndIngest(client, tableName);
 
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(new Range());
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-        assertEquals(100, Iterables.size(scanner));
+        assertEquals(EXPECTED_INGEST_ENTRIES_COUNT, Iterables.size(scanner));
         // if scanning against tserver would see the following, but should not on scan server
         ReadWriteIT.ingest(client, 10, 10, 50, 10, tableName);
-        assertEquals(100, Iterables.size(scanner));
+        assertEquals(EXPECTED_INGEST_ENTRIES_COUNT, Iterables.size(scanner));
         scanner.setConsistencyLevel(ConsistencyLevel.IMMEDIATE);
-        assertEquals(200, Iterables.size(scanner));
+        assertEquals(EXPECTED_INGEST_ENTRIES_COUNT * 2, Iterables.size(scanner));
       } // when the scanner is closed, all open sessions should be closed
     }
   }
@@ -132,43 +127,17 @@ public class ScanServerIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
-      client.tableOperations().create(tableName);
-
-      ReadWriteIT.ingest(client, 10, 10, 50, 0, tableName);
-
-      client.tableOperations().flush(tableName, null, null, true);
+      createTableAndIngest(client, tableName);
 
       try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRanges(Collections.singletonList(new Range()));
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-        assertEquals(100, Iterables.size(scanner));
+        assertEquals(EXPECTED_INGEST_ENTRIES_COUNT, Iterables.size(scanner));
         ReadWriteIT.ingest(client, 10, 10, 50, 10, tableName);
-        assertEquals(100, Iterables.size(scanner));
+        assertEquals(EXPECTED_INGEST_ENTRIES_COUNT, Iterables.size(scanner));
         scanner.setConsistencyLevel(ConsistencyLevel.IMMEDIATE);
-        assertEquals(200, Iterables.size(scanner));
+        assertEquals(EXPECTED_INGEST_ENTRIES_COUNT * 2, Iterables.size(scanner));
       } // when the scanner is closed, all open sessions should be closed
-    }
-  }
-
-  @Test
-  public void testScanOfflineTable() throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = getUniqueNames(1)[0];
-
-      client.tableOperations().create(tableName);
-
-      ReadWriteIT.ingest(client, 10, 10, 50, 0, tableName);
-
-      client.tableOperations().flush(tableName, null, null, true);
-      client.tableOperations().offline(tableName, true);
-
-      assertThrows(TableOfflineException.class, () -> {
-        try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-          scanner.setRange(new Range());
-          scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-          assertEquals(100, Iterables.size(scanner));
-        } // when the scanner is closed, all open sessions should be closed
-      });
     }
   }
 
@@ -183,24 +152,18 @@ public class ScanServerIT extends SharedMiniClusterBase {
         + "{'servers':'100%', 'busyTimeout':'100ms'}]}]";
     props.put(ClientProperty.SCAN_SERVER_SELECTOR_OPTS_PREFIX.getKey() + "profiles", profiles);
 
-    String tName = null;
+    String tableName = getUniqueNames(1)[0];
     try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
-      tName = getUniqueNames(1)[0];
-      client.tableOperations().create(tName);
-      ReadWriteIT.ingest(client, 10, 10, 50, 0, tName);
-      client.tableOperations().flush(tName, null, null, true);
-
-      Scanner scanner = client.createScanner(tName, Authorizations.EMPTY);
-      IteratorSetting slow = new IteratorSetting(30, "slow", SlowIterator.class);
-      SlowIterator.setSleepTime(slow, 30000);
-      SlowIterator.setSeekSleepTime(slow, 30000);
-      scanner.addScanIterator(slow);
-      scanner.setRange(new Range());
-      scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-      scanner.setTimeout(10, TimeUnit.SECONDS);
-      Iterator<Entry<Key,Value>> iter = scanner.iterator();
-      if (iter.hasNext()) {
-        fail("Should not get here");
+      createTableAndIngest(client, tableName);
+      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+        IteratorSetting slow = new IteratorSetting(30, "slow", SlowIterator.class);
+        SlowIterator.setSleepTime(slow, 30000);
+        SlowIterator.setSeekSleepTime(slow, 30000);
+        scanner.addScanIterator(slow);
+        scanner.setRange(new Range());
+        scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
+        scanner.setTimeout(10, TimeUnit.SECONDS);
+        assertFalse(scanner.stream().findAny().isPresent());
       }
     }
   }
@@ -215,20 +178,14 @@ public class ScanServerIT extends SharedMiniClusterBase {
         + "{'servers':'100%', 'busyTimeout':'100ms'}]}]";
     props.put(ClientProperty.SCAN_SERVER_SELECTOR_OPTS_PREFIX.getKey() + "profiles", profiles);
 
-    String tName = null;
+    String tableName = getUniqueNames(1)[0];
     try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
-      tName = getUniqueNames(1)[0];
-      client.tableOperations().create(tName);
-      ReadWriteIT.ingest(client, 10, 10, 50, 0, tName);
-      client.tableOperations().flush(tName, null, null, true);
-
-      try (BatchScanner bs = client.createBatchScanner(tName)) {
+      createTableAndIngest(client, tableName);
+      try (BatchScanner bs = client.createBatchScanner(tableName)) {
         bs.setRanges(Collections.singletonList(new Range()));
         bs.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         // should not timeout
-        for (Entry<Key,Value> entry : bs) {
-          assertNotNull(entry.getKey());
-        }
+        bs.stream().forEach(entry -> assertNotNull(entry.getKey()));
 
         bs.setTimeout(5, TimeUnit.SECONDS);
         IteratorSetting iterSetting = new IteratorSetting(100, SlowIterator.class);
@@ -239,5 +196,19 @@ public class ScanServerIT extends SharedMiniClusterBase {
             "batch scanner did not time out");
       }
     }
+  }
+
+  protected static void createTableAndIngest(AccumuloClient client, String tableName)
+      throws Exception {
+    createTableAndIngest(client, tableName, new NewTableConfiguration());
+  }
+
+  protected static void createTableAndIngest(AccumuloClient client, String tableName,
+      NewTableConfiguration ntc) throws Exception {
+    client.tableOperations().create(tableName, ntc);
+
+    ReadWriteIT.ingest(client, INGEST_ROW_COUNT, INGEST_COL_COUNT, 50, 0, tableName);
+
+    client.tableOperations().flush(tableName, null, null, true);
   }
 }

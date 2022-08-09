@@ -114,8 +114,10 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
       client.tableOperations().create(tableName);
 
       // Load 1000 k/v
-      ReadWriteIT.ingest(client, 10, 100, 50, 0, "COLA", tableName);
+      final int rowCount = 10, colCount = 100;
+      ReadWriteIT.ingest(client, rowCount, colCount, 50, 0, "COLA", tableName);
       client.tableOperations().flush(tableName, null, null, true);
+      final int firstBatchOfEntriesCount = rowCount * colCount;
 
       Scanner scanner1 = client.createScanner(tableName, Authorizations.EMPTY);
       scanner1.setRange(new Range());
@@ -134,8 +136,10 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
       }
 
       // Load another 100 k/v
-      ReadWriteIT.ingest(client, 10, 10, 50, 0, "COLB", tableName);
+      final int rowCount1 = 10, colCount1 = 10;
+      ReadWriteIT.ingest(client, rowCount1, colCount1, 50, 0, "COLB", tableName);
       client.tableOperations().flush(tableName, null, null, true);
+      final int secondBatchOfEntriesCount = rowCount1 * colCount1;
 
       // iter2 should read 1000 k/v because the tablet metadata is cached.
       Iterator<Entry<Key,Value>> iter2 = scanner1.iterator();
@@ -156,14 +160,15 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
         }
         useIter1 = !useIter1;
       } while (iter1.hasNext() || iter2.hasNext());
-      assertEquals(1000, count1);
-      assertEquals(1000, count2);
+      assertEquals(firstBatchOfEntriesCount, count1);
+      assertEquals(firstBatchOfEntriesCount, count2);
 
       scanner1.close();
 
       // A new scan should read all 1100 entries
       try (Scanner scanner2 = client.createScanner(tableName, Authorizations.EMPTY)) {
-        assertEquals(1100, Iterables.size(scanner2));
+        int totalEntriesExpected = firstBatchOfEntriesCount + secondBatchOfEntriesCount;
+        assertEquals(totalEntriesExpected, Iterables.size(scanner2));
       }
     }
   }
@@ -182,52 +187,56 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
       client.tableOperations().create(tableName);
 
       // Load 1000 k/v
-      ReadWriteIT.ingest(client, 10, 100, 50, 0, "COLA", tableName);
+      final int rowCount = 10, colCount = 100;
+      ReadWriteIT.ingest(client, rowCount, colCount, 50, 0, "COLA", tableName);
       client.tableOperations().flush(tableName, null, null, true);
+      final int firstBatchOfEntriesCount = rowCount * colCount;
 
-      Scanner scanner1 = client.createScanner(tableName, Authorizations.EMPTY);
-      scanner1.setRange(new Range());
-      scanner1.setBatchSize(100);
-      scanner1.setReadaheadThreshold(0);
-      scanner1.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
+      try (Scanner scanner1 = client.createScanner(tableName, Authorizations.EMPTY)) {
+        scanner1.setRange(new Range());
+        scanner1.setBatchSize(100);
+        scanner1.setReadaheadThreshold(0);
+        scanner1.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
 
-      // iter1 should read 1000 k/v
-      Iterator<Entry<Key,Value>> iter1 = scanner1.iterator();
+        // iter1 should read 1000 k/v
+        Iterator<Entry<Key,Value>> iter1 = scanner1.iterator();
 
-      // Partially read the data and then start a 2nd scan
-      int count1 = 0;
-      while (iter1.hasNext() && count1 < 10) {
-        iter1.next();
-        count1++;
-      }
-
-      // Load another 100 k/v
-      ReadWriteIT.ingest(client, 10, 10, 50, 0, "COLB", tableName);
-      client.tableOperations().flush(tableName, null, null, true);
-
-      // iter2 should read 1100 k/v because the tablet metadata is not cached.
-      Iterator<Entry<Key,Value>> iter2 = scanner1.iterator();
-      int count2 = 0;
-      boolean useIter1 = true;
-
-      do {
-        if (useIter1) {
-          if (iter1.hasNext()) {
-            iter1.next();
-            count1++;
-          }
-        } else {
-          if (iter2.hasNext()) {
-            iter2.next();
-            count2++;
-          }
+        // Partially read the data and then start a 2nd scan
+        int count1 = 0;
+        while (iter1.hasNext() && count1 < 10) {
+          iter1.next();
+          count1++;
         }
-        useIter1 = !useIter1;
-      } while (iter1.hasNext() || iter2.hasNext());
-      assertEquals(1000, count1);
-      assertEquals(1100, count2);
 
-      scanner1.close();
+        // Load another 100 k/v
+        final int rowCount1 = 10, colCount1 = 10;
+        ReadWriteIT.ingest(client, rowCount1, colCount1, 50, 0, "COLB", tableName);
+        client.tableOperations().flush(tableName, null, null, true);
+        final int secondBatchOfEntriesCount = rowCount1 * colCount1;
+
+        // iter2 should read 1100 k/v because the tablet metadata is not cached.
+        Iterator<Entry<Key,Value>> iter2 = scanner1.iterator();
+        int count2 = 0;
+        boolean useIter1 = true;
+
+        do {
+          if (useIter1) {
+            if (iter1.hasNext()) {
+              iter1.next();
+              count1++;
+            }
+          } else {
+            if (iter2.hasNext()) {
+              iter2.next();
+              count2++;
+            }
+          }
+          useIter1 = !useIter1;
+        } while (iter1.hasNext() || iter2.hasNext());
+        assertEquals(firstBatchOfEntriesCount, count1);
+        assertEquals(firstBatchOfEntriesCount + secondBatchOfEntriesCount, count2);
+
+      }
     }
   }
 }
