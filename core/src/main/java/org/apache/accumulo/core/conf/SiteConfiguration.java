@@ -264,14 +264,10 @@ public class SiteConfiguration extends AccumuloConfiguration {
   @Override
   public void getProperties(Map<String,String> props, String... properties) {
     parent.getProperties(props, properties);
-    if (properties == null || properties.length == 0) {
-      props.putAll(config);
-    } else {
-      for (String p : properties) {
-        String value = config.get(p);
-        if (value != null) {
-          props.put(p, value);
-        }
+    for (String p : properties) {
+      String value = config.get(p);
+      if (value != null) {
+        props.put(p, value);
       }
     }
   }

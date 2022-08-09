@@ -205,14 +205,10 @@ public class ClientConfConverter {
       @Override
       public void getProperties(Map<String,String> props, String... properties) {
         defaults.getProperties(props, properties);
-        if (properties == null || properties.length == 0) {
-          config.getKeys().forEachRemaining(key -> props.put(key, config.getString(key)));
-        } else {
-          for (String p : properties) {
-            String value = config.getString(p);
-            if (value != null) {
-              props.put(p, value);
-            }
+        for (String p : properties) {
+          String value = config.getString(p);
+          if (value != null) {
+            props.put(p, value);
           }
         }
       }
