@@ -174,6 +174,19 @@ public class AccumuloConfigurationTest {
     }
 
     @Override
+    public void getProperties(Map<String,String> props, String... properties) {
+      if (parent != null) {
+        parent.getProperties(props, properties);
+      }
+      for (String p : properties) {
+        String value = props.get(p);
+        if (value != null) {
+          props.put(p, value);
+        }
+      }
+    }
+
+    @Override
     public void getProperties(Map<String,String> output, Predicate<String> filter) {
       if (parent != null) {
         parent.getProperties(output, filter);
