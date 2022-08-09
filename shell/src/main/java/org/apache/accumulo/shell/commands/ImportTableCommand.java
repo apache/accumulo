@@ -44,7 +44,7 @@ public class ImportTableCommand extends Command {
 
   @Override
   public String usage() {
-    return getName() + " <table name> <import dir>";
+    return getName() + " <table name> <import dir>{ <import dir>}";
   }
 
   @Override
