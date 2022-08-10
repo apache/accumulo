@@ -166,7 +166,6 @@ import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.commons.vfs2.FileSystemException;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
@@ -232,9 +231,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   private long authTimeout;
   private long lastUserActivity = System.nanoTime();
   private boolean logErrorsToConsole = false;
-  private boolean masking = false;
 
-  {
+  static {
     // set the JLine output encoding to some reasonable default if it isn't already set
     // despite the misleading property name, "input.encoding" is the property jline uses for the
     // encoding of the output stream writer
@@ -444,8 +442,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   public ClassLoader getClassLoader(final CommandLine cl, final Shell shellState)
-      throws AccumuloException, TableNotFoundException, AccumuloSecurityException,
-      FileSystemException {
+      throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
 
     boolean tables =
         cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty();
@@ -562,7 +559,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     Thread executeThread = Thread.currentThread();
     terminal.handle(Terminal.Signal.INT, signal -> executeThread.interrupt());
 
-    ShellCompletor userCompletor = null;
+    ShellCompletor userCompletor;
 
     if (execFile != null) {
       try (java.util.Scanner scanner = new java.util.Scanner(execFile, UTF_8)) {
@@ -625,7 +622,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     }
   }
 
-  public void printInfo() throws IOException {
+  public void printInfo() {
     ClientInfo info = ClientInfo.from(accumuloClient.properties());
     writer.print("\n" + SHELL_DESCRIPTION + "\n- \n- version: " + Constants.VERSION + "\n"
         + "- instance name: " + info.getInstanceName() + "\n- instance id: "
@@ -634,7 +631,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     writer.flush();
   }
 
-  public void printVerboseInfo() throws IOException {
+  public void printVerboseInfo() {
     StringBuilder sb = new StringBuilder("-\n");
     sb.append("- Current user: ").append(accumuloClient.whoami()).append("\n");
     if (execFile != null) {
@@ -681,8 +678,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     return msg.replaceAll("[\r\n]", "");
   }
 
-  public void execCommand(String input, boolean ignoreAuthTimeout, boolean echoPrompt)
-      throws IOException {
+  public void execCommand(String input, boolean ignoreAuthTimeout, boolean echoPrompt) {
     audit.info("{}", sanitize(getDefaultPrompt() + input));
     if (echoPrompt) {
       writer.print(getDefaultPrompt());
@@ -812,7 +808,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   private ShellCompletor setupCompletion() {
     rootToken = new Token();
 
-    Set<String> tableNames = null;
+    Set<String> tableNames;
     try {
       tableNames = accumuloClient.tableOperations().list();
     } catch (Exception e) {
@@ -820,7 +816,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       tableNames = Collections.emptySet();
     }
 
-    Set<String> userlist = null;
+    Set<String> userlist;
     try {
       userlist = accumuloClient.securityOperations().listLocalUsers();
     } catch (Exception e) {
@@ -828,7 +824,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       userlist = Collections.emptySet();
     }
 
-    Set<String> namespaces = null;
+    Set<String> namespaces;
     try {
       namespaces = accumuloClient.namespaceOperations().list();
     } catch (Exception e) {
@@ -943,11 +939,11 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
     // The general version of this method uses the HelpFormatter
     // that comes with the apache Options package to print out the help
-    public final void printHelp(Shell shellState) throws IOException {
+    public final void printHelp(Shell shellState) {
       shellState.printHelp(usage(), "description: " + this.description(), getOptionsWithHelp());
     }
 
-    public final void printHelp(Shell shellState, int width) throws IOException {
+    public final void printHelp(Shell shellState, int width) {
       shellState.printHelp(usage(), "description: " + this.description(), getOptionsWithHelp(),
           width);
     }
@@ -1093,11 +1089,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   public static String repeat(String s, int c) {
-    StringBuilder sb = new StringBuilder();
-    for (int i = 0; i < c; i++) {
-      sb.append(s);
-    }
-    return sb.toString();
+    return String.valueOf(s).repeat(Math.max(0, c));
   }
 
   public void checkTableState() {
@@ -1108,7 +1100,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     }
   }
 
-  private final void printConstraintViolationException(ConstraintViolationException cve) {
+  private void printConstraintViolationException(ConstraintViolationException cve) {
     printException(cve, "");
     int COL1 = 50, COL2 = 14;
     int col3 = Math.max(1, Math.min(Integer.MAX_VALUE, terminal.getWidth() - COL1 - COL2 - 6));
@@ -1130,17 +1122,16 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     printException(e, e.getMessage());
   }
 
-  private final void printException(Exception e, String msg) {
+  private void printException(Exception e, String msg) {
     logError(e.getClass().getName() + (msg != null ? ": " + msg : ""));
     log.debug("{}{}", e.getClass().getName(), msg != null ? ": " + msg : "", e);
   }
 
-  private final void printHelp(String usage, String description, Options opts) throws IOException {
+  private void printHelp(String usage, String description, Options opts) {
     printHelp(usage, description, opts, Integer.MAX_VALUE);
   }
 
-  private final void printHelp(String usage, String description, Options opts, int width)
-      throws IOException {
+  private void printHelp(String usage, String description, Options opts, int width) {
     new HelpFormatter().printHelp(writer, width, usage, description, opts, 2, 5, null, true);
     writer.flush();
   }
@@ -1248,23 +1239,12 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     }
   }
 
-  public String readMaskedLine(String prompt, Character mask) throws IOException {
-    this.masking = true;
-    String s = reader.readLine(prompt, mask);
-    this.masking = false;
-    return s;
-  }
-
-  public boolean isMasking() {
-    return masking;
+  public String readMaskedLine(String prompt, Character mask) {
+    return reader.readLine(prompt, mask);
   }
 
   public boolean hasExited() {
     return exit;
-  }
-
-  public boolean isTabCompletion() {
-    return tabCompletion;
   }
 
 }
