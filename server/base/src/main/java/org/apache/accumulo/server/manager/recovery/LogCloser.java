@@ -44,6 +44,7 @@ public interface LogCloser {
    *          WALog file path
    * @return amount of time to wait before retrying, 0 if succeeded
    * @throws IOException
+   *           exception closing walog
    */
   long close(AccumuloConfiguration conf, Configuration hadoopConf, VolumeManager fs, Path path)
       throws IOException;
