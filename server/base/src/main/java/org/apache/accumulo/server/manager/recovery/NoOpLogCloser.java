@@ -25,6 +25,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * {@link HadoopLogCloser} recovers leases in DistributedFileSystem implementations and does nothing
@@ -33,10 +35,21 @@ import org.apache.hadoop.fs.Path;
  * implementations that do not support lease recovery and we should not throw an exception in this
  * case. This LogCloser implementation supports that case.
  *
+ * WARNING: USE AT YOUR OWN RISK! When using this class as the LogCloser, it's possible that WALog
+ * recovery will not work if the file system implementation needs some type of recovery to occur for
+ * files that were being written to, but not properly closed.
+ *
  * To use this class, set the Property {@link Property#MANAGER_WAL_CLOSER_IMPLEMENTATION} to the
  * full name of this class.
  */
 public class NoOpLogCloser implements LogCloser {
+
+  private static final Logger LOG = LoggerFactory.getLogger(NoOpLogCloser.class);
+
+  public NoOpLogCloser() {
+    LOG.warn("This log closer makes no attempt at recovering write ahead logs so that they can be "
+        + "properly closed. WALog recovery is not guaranteed to work when using this class.");
+  }
 
   @Override
   public long close(AccumuloConfiguration conf, Configuration hadoopConf, VolumeManager fs,
