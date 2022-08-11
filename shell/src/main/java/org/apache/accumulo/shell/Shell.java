@@ -1089,7 +1089,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   public static String repeat(String s, int c) {
-    return String.valueOf(s).repeat(Math.max(0, c));
+    return s.repeat(Math.max(0, c));
   }
 
   public void checkTableState() {
