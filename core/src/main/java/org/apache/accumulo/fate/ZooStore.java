@@ -208,7 +208,7 @@ public class ZooStore<T> implements TStore<T> {
           }
         }
       }
-    } catch (Exception e) {
+    } catch (InterruptedException | KeeperException e) {
       throw new RuntimeException(e);
     }
   }
