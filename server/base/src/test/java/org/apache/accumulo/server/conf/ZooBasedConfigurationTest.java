@@ -240,7 +240,7 @@ public class ZooBasedConfigurationTest {
 
     // get from "default" - root parent config
     assertEquals(TABLE_BLOOM_SIZE.getDefaultValue(), tableConfig.get(TABLE_BLOOM_SIZE));
-    assertEquals(TABLE_DURABILITY.getDefaultValue(), tableConfig.get(TABLE_DURABILITY.getKey()));
+    assertEquals(TABLE_DURABILITY.getDefaultValue(), tableConfig.get(TABLE_DURABILITY));
 
     // test getProperties
     Map<String,String> props = new HashMap<>();
