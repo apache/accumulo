@@ -654,7 +654,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       String secret = getSiteConfiguration().get(Property.INSTANCE_SECRET);
 
       while (!(zk.getState() == States.CONNECTED)) {
-        log.info("Waiting for ZK client to connect, state: {}", zk.getState());
+      log.info("Waiting for ZK client to connect, state: {} - will retry", zk.getState());
         Thread.sleep(1000);
       }
 
