@@ -25,7 +25,27 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 
+/**
+ * Object that is used by the RecoveryManager to properly close WALogs that were being written to
+ * and were not properly closed (TabletServer died, for example).
+ */
 public interface LogCloser {
+
+  /**
+   * Attempts to properly close a WALog
+   *
+   * @param conf
+   *          AccumuloConfiguration
+   * @param hadoopConf
+   *          Hadoop configuration
+   * @param fs
+   *          VolumeManager
+   * @param path
+   *          WALog file path
+   * @return amount of time to wait before retrying, 0 if succeeded
+   * @throws IOException
+   *           exception closing walog
+   */
   long close(AccumuloConfiguration conf, Configuration hadoopConf, VolumeManager fs, Path path)
       throws IOException;
 }

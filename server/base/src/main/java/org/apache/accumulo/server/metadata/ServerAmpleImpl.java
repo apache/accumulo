@@ -284,7 +284,8 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
         writer.addMutation(m);
       }
     } catch (MutationsRejectedException | TableNotFoundException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(
+          "Error inserting scan server file references into " + DataLevel.USER.metaTable(), e);
     }
   }
 
@@ -298,7 +299,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
           .map(e -> new ScanServerRefTabletFile(e.getKey().getRowData().toString().substring(pLen),
               e.getKey().getColumnFamily(), e.getKey().getColumnQualifier()));
     } catch (TableNotFoundException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(DataLevel.USER.metaTable() + " not found!", e);
     }
   }
 
@@ -321,7 +322,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
         this.deleteScanServerFileReferences(refsToDelete);
       }
     } catch (TableNotFoundException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(DataLevel.USER.metaTable() + " not found!", e);
     }
   }
 
