@@ -54,6 +54,6 @@ public class ImportTableCommand extends Command {
 
   @Override
   public int numArgs() {
-    return 2;
+    return Shell.NO_FIXED_ARG_LENGTH_CHECK;
   }
 }
