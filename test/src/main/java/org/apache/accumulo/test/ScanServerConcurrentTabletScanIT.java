@@ -19,6 +19,8 @@
 package org.apache.accumulo.test;
 
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.apache.accumulo.test.ScanServerIT.createTableAndIngest;
+import static org.apache.accumulo.test.ScanServerIT.ingest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
@@ -44,7 +46,6 @@ import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -111,13 +112,9 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(clientProperties).build()) {
       String tableName = getUniqueNames(1)[0];
 
-      client.tableOperations().create(tableName);
-
-      // Load 1000 k/v
-      final int rowCount = 10, colCount = 100;
-      ReadWriteIT.ingest(client, rowCount, colCount, 50, 0, "COLA", tableName);
-      client.tableOperations().flush(tableName, null, null, true);
-      final int firstBatchOfEntriesCount = rowCount * colCount;
+      // Create table and ingest 1000 k/v
+      final int firstBatchOfEntriesCount =
+          createTableAndIngest(client, tableName, null, 10, 100, "COLA");
 
       Scanner scanner1 = client.createScanner(tableName, Authorizations.EMPTY);
       scanner1.setRange(new Range());
@@ -135,11 +132,8 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
         count1++;
       }
 
-      // Load another 100 k/v
-      final int rowCount1 = 10, colCount1 = 10;
-      ReadWriteIT.ingest(client, rowCount1, colCount1, 50, 0, "COLB", tableName);
-      client.tableOperations().flush(tableName, null, null, true);
-      final int secondBatchOfEntriesCount = rowCount1 * colCount1;
+      // Ingest another 100 k/v with a different column family
+      final int secondBatchOfEntriesCount = ingest(client, tableName, 10, 10, 0, "COLB", true);
 
       // iter2 should read 1000 k/v because the tablet metadata is cached.
       Iterator<Entry<Key,Value>> iter2 = scanner1.iterator();
@@ -184,13 +178,9 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(clientProperties).build()) {
       String tableName = getUniqueNames(1)[0];
 
-      client.tableOperations().create(tableName);
-
-      // Load 1000 k/v
-      final int rowCount = 10, colCount = 100;
-      ReadWriteIT.ingest(client, rowCount, colCount, 50, 0, "COLA", tableName);
-      client.tableOperations().flush(tableName, null, null, true);
-      final int firstBatchOfEntriesCount = rowCount * colCount;
+      // Create table and ingest 1000 k/v
+      final int firstBatchOfEntriesCount =
+          createTableAndIngest(client, tableName, null, 10, 100, "COLA");
 
       try (Scanner scanner1 = client.createScanner(tableName, Authorizations.EMPTY)) {
         scanner1.setRange(new Range());
@@ -208,11 +198,8 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
           count1++;
         }
 
-        // Load another 100 k/v
-        final int rowCount1 = 10, colCount1 = 10;
-        ReadWriteIT.ingest(client, rowCount1, colCount1, 50, 0, "COLB", tableName);
-        client.tableOperations().flush(tableName, null, null, true);
-        final int secondBatchOfEntriesCount = rowCount1 * colCount1;
+        // Ingest another 100 k/v with a different column family
+        final int secondBatchOfEntriesCount = ingest(client, tableName, 10, 10, 0, "COLB", true);
 
         // iter2 should read 1100 k/v because the tablet metadata is not cached.
         Iterator<Entry<Key,Value>> iter2 = scanner1.iterator();

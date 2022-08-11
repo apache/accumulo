@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -59,9 +60,6 @@ import com.google.common.collect.Iterables;
 
 @Tag(MINI_CLUSTER_ONLY)
 public class ScanServerIT extends SharedMiniClusterBase {
-
-  protected static final int INGEST_ROW_COUNT = 10, INGEST_COL_COUNT = 10;
-  protected static final int EXPECTED_INGEST_ENTRIES_COUNT = INGEST_ROW_COUNT * INGEST_COL_COUNT;
 
   private static class ScanServerITConfiguration implements MiniClusterConfigurationCallback {
 
@@ -106,17 +104,21 @@ public class ScanServerIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
-      createTableAndIngest(client, tableName);
+      final int ingestedEntryCount = createTableAndIngest(client, tableName, null, 10, 10, "colf");
 
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(new Range());
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-        assertEquals(EXPECTED_INGEST_ENTRIES_COUNT, Iterables.size(scanner));
+        assertEquals(ingestedEntryCount, Iterables.size(scanner),
+            "The scan server scanner should have seen all ingested and flushed entries");
         // if scanning against tserver would see the following, but should not on scan server
-        ReadWriteIT.ingest(client, 10, 10, 50, 10, tableName);
-        assertEquals(EXPECTED_INGEST_ENTRIES_COUNT, Iterables.size(scanner));
+        final int additionalIngestedEntryCount =
+            ingest(client, tableName, 10, 10, 10, "colf", false);
+        assertEquals(ingestedEntryCount, Iterables.size(scanner),
+            "The scan server scanner should have seen all ingested and flushed entries");
         scanner.setConsistencyLevel(ConsistencyLevel.IMMEDIATE);
-        assertEquals(EXPECTED_INGEST_ENTRIES_COUNT * 2, Iterables.size(scanner));
+        assertEquals(ingestedEntryCount + additionalIngestedEntryCount, Iterables.size(scanner),
+            "Scanning against tserver should have resulted in seeing all ingested entries");
       } // when the scanner is closed, all open sessions should be closed
     }
   }
@@ -127,16 +129,20 @@ public class ScanServerIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
-      createTableAndIngest(client, tableName);
+      final int ingestedEntryCount = createTableAndIngest(client, tableName, null, 10, 10, "colf");
 
       try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRanges(Collections.singletonList(new Range()));
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-        assertEquals(EXPECTED_INGEST_ENTRIES_COUNT, Iterables.size(scanner));
-        ReadWriteIT.ingest(client, 10, 10, 50, 10, tableName);
-        assertEquals(EXPECTED_INGEST_ENTRIES_COUNT, Iterables.size(scanner));
+        assertEquals(ingestedEntryCount, Iterables.size(scanner),
+            "The scan server scanner should have seen all ingested and flushed entries");
+        final int additionalIngestedEntryCount =
+            ingest(client, tableName, 10, 10, 10, "colf", false);
+        assertEquals(ingestedEntryCount, Iterables.size(scanner),
+            "The scan server scanner should have seen all ingested and flushed entries");
         scanner.setConsistencyLevel(ConsistencyLevel.IMMEDIATE);
-        assertEquals(EXPECTED_INGEST_ENTRIES_COUNT * 2, Iterables.size(scanner));
+        assertEquals(ingestedEntryCount + additionalIngestedEntryCount, Iterables.size(scanner),
+            "Scanning against tserver should have resulted in seeing all ingested entries");
       } // when the scanner is closed, all open sessions should be closed
     }
   }
@@ -154,7 +160,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
 
     String tableName = getUniqueNames(1)[0];
     try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
-      createTableAndIngest(client, tableName);
+      createTableAndIngest(client, tableName, null, 10, 10, "colf");
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
         IteratorSetting slow = new IteratorSetting(30, "slow", SlowIterator.class);
         SlowIterator.setSleepTime(slow, 30000);
@@ -163,7 +169,8 @@ public class ScanServerIT extends SharedMiniClusterBase {
         scanner.setRange(new Range());
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         scanner.setTimeout(10, TimeUnit.SECONDS);
-        assertFalse(scanner.stream().findAny().isPresent());
+        assertFalse(scanner.stream().findAny().isPresent(),
+            "The scanner should not see any entries");
       }
     }
   }
@@ -180,7 +187,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
 
     String tableName = getUniqueNames(1)[0];
     try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
-      createTableAndIngest(client, tableName);
+      createTableAndIngest(client, tableName, null, 10, 10, "colf");
       try (BatchScanner bs = client.createBatchScanner(tableName)) {
         bs.setRanges(Collections.singletonList(new Range()));
         bs.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
@@ -198,17 +205,63 @@ public class ScanServerIT extends SharedMiniClusterBase {
     }
   }
 
-  protected static void createTableAndIngest(AccumuloClient client, String tableName)
-      throws Exception {
-    createTableAndIngest(client, tableName, new NewTableConfiguration());
-  }
+  /**
+   * Create a table with the given name and the given client. Then, ingest into the table using
+   * {@link #ingest(AccumuloClient, String, int, int, int, String, boolean)}
+   *
+   * @param client
+   *          used to create the table
+   * @param tableName
+   *          used to create the table
+   * @param ntc
+   *          used to create the table. if null, a new NewTableConfiguration will replace it
+   * @param rowCount
+   *          number of rows to ingest
+   * @param colCount
+   *          number of columns to ingest
+   * @param colf
+   *          column family to use for ingest
+   * @return the number of ingested entries
+   */
+  protected static int createTableAndIngest(AccumuloClient client, String tableName,
+      NewTableConfiguration ntc, int rowCount, int colCount, String colf) throws Exception {
 
-  protected static void createTableAndIngest(AccumuloClient client, String tableName,
-      NewTableConfiguration ntc) throws Exception {
+    if (Objects.isNull(ntc))
+      ntc = new NewTableConfiguration();
+
     client.tableOperations().create(tableName, ntc);
 
-    ReadWriteIT.ingest(client, INGEST_ROW_COUNT, INGEST_COL_COUNT, 50, 0, tableName);
+    return ingest(client, tableName, rowCount, colCount, 0, colf, true);
+  }
 
-    client.tableOperations().flush(tableName, null, null, true);
+  /**
+   * Ingest into the table using the given parameters, then optionally flush the table
+   *
+   * @param client
+   *          used to create the table
+   * @param tableName
+   *          used to create the table
+   * @param rowCount
+   *          number of rows to ingest
+   * @param colCount
+   *          number of columns to ingest
+   * @param offset
+   *          the offset to use for ingest
+   * @param colf
+   *          column family to use for ingest
+   * @param shouldFlush
+   *          if true, the entries will be flushed after ingest
+   * @return the number of ingested entries
+   */
+  protected static int ingest(AccumuloClient client, String tableName, int rowCount, int colCount,
+      int offset, String colf, boolean shouldFlush) throws Exception {
+    ReadWriteIT.ingest(client, colCount, rowCount, 50, offset, colf, tableName);
+
+    final int ingestedEntriesCount = colCount * rowCount;
+
+    if (shouldFlush)
+      client.tableOperations().flush(tableName, null, null, true);
+
+    return ingestedEntriesCount;
   }
 }

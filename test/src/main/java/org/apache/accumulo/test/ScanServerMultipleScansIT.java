@@ -19,12 +19,12 @@
 package org.apache.accumulo.test;
 
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
-import static org.apache.accumulo.test.ScanServerIT.EXPECTED_INGEST_ENTRIES_COUNT;
 import static org.apache.accumulo.test.ScanServerIT.createTableAndIngest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -35,6 +35,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -120,7 +121,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
 
-      createTableAndIngest(client, tableName);
+      final int ingestedEntryCount = createTableAndIngest(client, tableName, null, 10, 10, "colf");
 
       final CountDownLatch latch = new CountDownLatch(1);
 
@@ -135,7 +136,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
           try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
             scanner.setRange(new Range());
             scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-            assertEquals(EXPECTED_INGEST_ENTRIES_COUNT, Iterables.size(scanner));
+            assertEquals(ingestedEntryCount, Iterables.size(scanner));
           } catch (TableNotFoundException e) {
             fail("Table not found");
           }
@@ -155,17 +156,17 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
 
-      SortedSet<Text> splitPoints = new TreeSet<>();
-      splitPoints.add(new Text("row_0000000002\\0"));
-      splitPoints.add(new Text("row_0000000005\\0"));
-      splitPoints.add(new Text("row_0000000008\\0"));
+      SortedSet<Text> splitPoints =
+          getSplits("row_0000000002\\0", "row_0000000005\\0", "row_0000000008\\0");
 
-      createTableAndIngest(client, tableName, new NewTableConfiguration().withSplits(splitPoints));
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splitPoints);
+
+      final int ingestedEntryCount = createTableAndIngest(client, tableName, ntc, 10, 10, "colf");
 
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(new Range());
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-        assertEquals(EXPECTED_INGEST_ENTRIES_COUNT, Iterables.size(scanner));
+        assertEquals(ingestedEntryCount, Iterables.size(scanner));
       }
     }
   }
@@ -175,12 +176,12 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
 
-      SortedSet<Text> splitPoints = new TreeSet<>();
-      splitPoints.add(new Text("row_0000000002\\0"));
-      splitPoints.add(new Text("row_0000000005\\0"));
-      splitPoints.add(new Text("row_0000000008\\0"));
+      SortedSet<Text> splitPoints =
+          getSplits("row_0000000002\\0", "row_0000000005\\0", "row_0000000008\\0");
 
-      createTableAndIngest(client, tableName, new NewTableConfiguration().withSplits(splitPoints));
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splitPoints);
+
+      final int ingestedEntryCount = createTableAndIngest(client, tableName, ntc, 10, 10, "colf");
 
       Collection<Text> splitsFound = client.tableOperations().listSplits(tableName);
       assertEquals(splitPoints, new TreeSet<>(splitsFound));
@@ -233,7 +234,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
         future.get();
       }
 
-      assertEquals(EXPECTED_INGEST_ENTRIES_COUNT, counter.get());
+      assertEquals(ingestedEntryCount, counter.get());
     }
   }
 
@@ -242,7 +243,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
 
-      createTableAndIngest(client, tableName);
+      final int ingestedEntryCount = createTableAndIngest(client, tableName, null, 10, 10, "colf");
 
       final CountDownLatch latch = new CountDownLatch(1);
 
@@ -258,7 +259,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
           try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
             scanner.setRanges(Collections.singletonList(new Range()));
             scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-            assertEquals(EXPECTED_INGEST_ENTRIES_COUNT, Iterables.size(scanner));
+            assertEquals(ingestedEntryCount, Iterables.size(scanner));
           } catch (TableNotFoundException e) {
             fail("Table not found");
           }
@@ -277,18 +278,18 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
 
-      SortedSet<Text> splitPoints = new TreeSet<>();
-      splitPoints.add(new Text("row_0000000002\\0"));
-      splitPoints.add(new Text("row_0000000005\\0"));
-      splitPoints.add(new Text("row_0000000008\\0"));
+      SortedSet<Text> splitPoints =
+          getSplits("row_0000000002\\0", "row_0000000005\\0", "row_0000000008\\0");
 
-      createTableAndIngest(client, tableName, new NewTableConfiguration().withSplits(splitPoints));
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splitPoints);
+
+      final int ingestedEntryCount = createTableAndIngest(client, tableName, ntc, 10, 10, "colf");
 
       try (BatchScanner scanner =
           client.createBatchScanner(tableName, Authorizations.EMPTY, NUM_SCANS)) {
         scanner.setRanges(Collections.singletonList(new Range()));
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-        assertEquals(EXPECTED_INGEST_ENTRIES_COUNT, Iterables.size(scanner));
+        assertEquals(ingestedEntryCount, Iterables.size(scanner));
       }
     }
   }
@@ -298,12 +299,12 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
 
-      SortedSet<Text> splitPoints = new TreeSet<>();
-      splitPoints.add(new Text("row_0000000002\\0"));
-      splitPoints.add(new Text("row_0000000005\\0"));
-      splitPoints.add(new Text("row_0000000008\\0"));
+      SortedSet<Text> splitPoints =
+          getSplits("row_0000000002\\0", "row_0000000005\\0", "row_0000000008\\0");
 
-      createTableAndIngest(client, tableName, new NewTableConfiguration().withSplits(splitPoints));
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splitPoints);
+
+      final int ingestedEntryCount = createTableAndIngest(client, tableName, ntc, 10, 10, "colf");
 
       Collection<Text> splitsFound = client.tableOperations().listSplits(tableName);
       assertEquals(splitPoints, new TreeSet<>(splitsFound));
@@ -356,8 +357,17 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
         future.get();
       }
 
-      assertEquals(EXPECTED_INGEST_ENTRIES_COUNT, counter.get());
+      assertEquals(ingestedEntryCount, counter.get());
     }
+  }
+
+  /**
+   * @param rows
+   *          Array of strings
+   * @return A TreeSet of the given Strings mapped to {@link Text}
+   */
+  private SortedSet<Text> getSplits(String... rows) {
+    return Arrays.stream(rows).map(Text::new).collect(Collectors.toCollection(TreeSet::new));
   }
 
 }

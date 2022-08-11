@@ -19,8 +19,8 @@
 package org.apache.accumulo.test;
 
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
-import static org.apache.accumulo.test.ScanServerIT.EXPECTED_INGEST_ENTRIES_COUNT;
 import static org.apache.accumulo.test.ScanServerIT.createTableAndIngest;
+import static org.apache.accumulo.test.ScanServerIT.ingest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Collections;
@@ -36,7 +36,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -83,15 +82,18 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
-      createTableAndIngest(client, tableName);
+      final int ingestedEntryCount = createTableAndIngest(client, tableName, null, 10, 10, "colf");
 
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(new Range());
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-        assertEquals(EXPECTED_INGEST_ENTRIES_COUNT, Iterables.size(scanner));
-        ReadWriteIT.ingest(client, 10, 10, 50, 10, tableName);
+        assertEquals(ingestedEntryCount, Iterables.size(scanner),
+            "Scanner did not see ingested and flushed entries");
+        final int additionalIngestedEntryCount =
+            ingest(client, tableName, 10, 10, 10, "colf", false);
         // since there are no scan servers, and we are reading from tservers, we should see update
-        assertEquals(EXPECTED_INGEST_ENTRIES_COUNT * 2, Iterables.size(scanner));
+        assertEquals(ingestedEntryCount + additionalIngestedEntryCount, Iterables.size(scanner),
+            "Scanning against tserver should have resulted in seeing all ingested entries");
       } // when the scanner is closed, all open sessions should be closed
     }
   }
@@ -102,15 +104,18 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
-      createTableAndIngest(client, tableName);
+      final int ingestedEntryCount = createTableAndIngest(client, tableName, null, 10, 10, "colf");
 
       try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRanges(Collections.singletonList(new Range()));
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-        assertEquals(EXPECTED_INGEST_ENTRIES_COUNT, Iterables.size(scanner));
-        ReadWriteIT.ingest(client, 10, 10, 50, 10, tableName);
+        assertEquals(ingestedEntryCount, Iterables.size(scanner),
+            "Scanner did not see ingested and flushed entries");
+        final int additionalIngestedEntryCount =
+            ingest(client, tableName, 10, 10, 10, "colf", false);
         // since there are no scan servers, and we are reading from tservers, we should see update
-        assertEquals(EXPECTED_INGEST_ENTRIES_COUNT * 2, Iterables.size(scanner));
+        assertEquals(ingestedEntryCount + additionalIngestedEntryCount, Iterables.size(scanner),
+            "Scanning against tserver should have resulted in seeing all ingested entries");
       } // when the scanner is closed, all open sessions should be closed
     }
   }

@@ -19,6 +19,7 @@
 package org.apache.accumulo.test;
 
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.apache.accumulo.test.ScanServerIT.ingest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -58,7 +59,6 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -106,38 +106,34 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
 
   @Test
   public void testServerContextMethods() {
+    HostAndPort server = HostAndPort.fromParts("127.0.0.1", 1234);
+    UUID serverLockUUID = UUID.randomUUID();
 
-    try (AccumuloClient ac = Accumulo.newClient().from(getClientProps()).build()) {
-      HostAndPort server = HostAndPort.fromParts("127.0.0.1", 1234);
-      UUID serverLockUUID = UUID.randomUUID();
+    Set<ScanServerRefTabletFile> scanRefs = Stream.of("F0000070.rf", "F0000071.rf")
+        .map(f -> "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/" + f)
+        .map(f -> new ScanServerRefTabletFile(f, server.toString(), serverLockUUID))
+        .collect(Collectors.toSet());
 
-      Set<ScanServerRefTabletFile> scanRefs = Stream.of("F0000070.rf", "F0000071.rf")
-          .map(f -> "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/" + f)
-          .map(f -> new ScanServerRefTabletFile(f, server.toString(), serverLockUUID))
-          .collect(Collectors.toSet());
+    ServerContext ctx = getCluster().getServerContext();
 
-      ServerContext ctx = getCluster().getServerContext();
+    ctx.getAmple().putScanServerFileReferences(scanRefs);
+    assertEquals(scanRefs.size(), ctx.getAmple().getScanServerFileReferences().count());
 
-      ctx.getAmple().putScanServerFileReferences(scanRefs);
-      assertEquals(2, ctx.getAmple().getScanServerFileReferences().count());
+    Set<ScanServerRefTabletFile> scanRefs2 =
+        ctx.getAmple().getScanServerFileReferences().collect(Collectors.toSet());
 
-      Set<ScanServerRefTabletFile> scanRefs2 =
-          ctx.getAmple().getScanServerFileReferences().collect(Collectors.toSet());
+    assertEquals(scanRefs, scanRefs2);
 
-      assertEquals(scanRefs, scanRefs2);
+    // attempt to delete file references then make sure they were deleted
+    ctx.getAmple().deleteScanServerFileReferences(server.toString(), serverLockUUID);
+    assertFalse(ctx.getAmple().getScanServerFileReferences().findAny().isPresent());
 
-      // attempt to delete file references then make sure they were deleted
-      ctx.getAmple().deleteScanServerFileReferences(server.toString(), serverLockUUID);
-      assertFalse(ctx.getAmple().getScanServerFileReferences().findAny().isPresent());
+    ctx.getAmple().putScanServerFileReferences(scanRefs);
+    assertEquals(scanRefs.size(), ctx.getAmple().getScanServerFileReferences().count());
 
-      ctx.getAmple().putScanServerFileReferences(scanRefs);
-      assertEquals(scanRefs.size(), ctx.getAmple().getScanServerFileReferences().count());
-
-      // attempt to delete file references then make sure they were deleted
-      ctx.getAmple().deleteScanServerFileReferences(scanRefs);
-      assertFalse(ctx.getAmple().getScanServerFileReferences().findAny().isPresent());
-
-    }
+    // attempt to delete file references then make sure they were deleted
+    ctx.getAmple().deleteScanServerFileReferences(scanRefs);
+    assertFalse(ctx.getAmple().getScanServerFileReferences().findAny().isPresent());
   }
 
   @Test
@@ -151,7 +147,9 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
 
       // Make multiple files
       final int fileCount = 3;
-      createFiles(client, tableName, fileCount);
+      for (int i = 0; i < fileCount; i++) {
+        ingest(client, tableName, 10, 10, 0, "colf", true);
+      }
 
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(new Range());
@@ -184,7 +182,9 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
 
       // Make multiple files
       final int fileCount = 3;
-      createFiles(client, tableName, fileCount);
+      for (int i = 0; i < fileCount; i++) {
+        ingest(client, tableName, 10, 10, 0, "colf", true);
+      }
 
       try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRanges(Collections.singletonList(new Range()));
@@ -218,7 +218,9 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
 
       // Make multiple files
       final int fileCount = 3;
-      createFiles(client, tableName, fileCount);
+      for (int i = 0; i < fileCount; i++) {
+        ingest(client, tableName, 10, 10, 0, "colf", true);
+      }
 
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(new Range());
@@ -272,14 +274,6 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
       Thread.sleep(1000);
     }
 
-  }
-
-  private static void createFiles(AccumuloClient client, String tableName, int fileCount)
-      throws Exception {
-    for (int i = 0; i < fileCount; i++) {
-      ReadWriteIT.ingest(client, 10, 10, 50, 0, tableName);
-      client.tableOperations().flush(tableName, null, null, true);
-    }
   }
 
 }
