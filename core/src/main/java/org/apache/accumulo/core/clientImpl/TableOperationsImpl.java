@@ -156,7 +156,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   private static final SecureRandom random = new SecureRandom();
 
-  public static final String CLONE_EXCLUDE_PREFIX = "!";
+  public static final String PROPERTY_EXCLUDE_PREFIX = "!";
   public static final String COMPACTION_CANCELED_MSG = "Compaction canceled";
   public static final String TABLE_DELETED_MSG = "Table is being deleted";
 
@@ -772,33 +772,21 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloSecurityException, TableNotFoundException, AccumuloException,
       TableExistsException {
     NEW_TABLE_NAME.validate(newTableName);
+    requireNonNull(config, "CloneConfiguration required.");
 
     TableId srcTableId = context.getTableId(srcTableName);
 
     if (config.isFlush())
       _flush(srcTableId, null, null, true);
 
-    Set<String> propertiesToExclude = config.getPropertiesToExclude();
-    if (propertiesToExclude == null)
-      propertiesToExclude = Collections.emptySet();
-
-    Map<String,String> propertiesToSet = config.getPropertiesToSet();
-    if (propertiesToSet == null)
-      propertiesToSet = Collections.emptyMap();
+    Map<String,String> opts = new HashMap<>();
+    validatePropertiesToSet(opts, config.getPropertiesToSet());
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(srcTableId.canonical().getBytes(UTF_8)),
         ByteBuffer.wrap(newTableName.getBytes(UTF_8)),
         ByteBuffer.wrap(Boolean.toString(config.isKeepOffline()).getBytes(UTF_8)));
-    Map<String,String> opts = new HashMap<>();
-    for (Entry<String,String> entry : propertiesToSet.entrySet()) {
-      if (entry.getKey().startsWith(CLONE_EXCLUDE_PREFIX))
-        throw new IllegalArgumentException("Property can not start with " + CLONE_EXCLUDE_PREFIX);
-      opts.put(entry.getKey(), entry.getValue());
-    }
 
-    for (String prop : propertiesToExclude) {
-      opts.put(CLONE_EXCLUDE_PREFIX + prop, "");
-    }
+    prependPropertiesToExclude(opts, config.getPropertiesToExclude());
 
     doTableFateOperation(newTableName, AccumuloException.class, FateOperation.TABLE_CLONE, args,
         opts);
@@ -2016,5 +2004,26 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public ImportDestinationArguments importDirectory(String directory) {
     return new BulkImport(directory, context);
+  }
+
+  private void prependPropertiesToExclude(Map<String,String> opts, Set<String> propsToExclude) {
+    if (propsToExclude == null)
+      return;
+
+    for (String prop : propsToExclude) {
+      opts.put(PROPERTY_EXCLUDE_PREFIX + prop, "");
+    }
+  }
+
+  private void validatePropertiesToSet(Map<String,String> opts, Map<String,String> propsToSet) {
+    if (propsToSet == null)
+      return;
+
+    propsToSet.forEach((k, v) -> {
+      if (k.startsWith(PROPERTY_EXCLUDE_PREFIX))
+        throw new IllegalArgumentException(
+            "Property can not start with " + PROPERTY_EXCLUDE_PREFIX);
+      opts.put(k, v);
+    });
   }
 }
