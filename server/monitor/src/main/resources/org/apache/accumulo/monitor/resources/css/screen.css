@@ -444,6 +444,18 @@ pre.logevent {
   left: unset;
 }
 
+.btn-white-font {
+  color: #fff;
+  background-color: #0dcaf0;
+  border-color: #0dcaf0;
+}
+
+.btn-white-font:hover {
+  color: #fff;
+  background-color: #0dcaf0;
+  border-color: #0dcaf0;
+}
+
 .axis path, .axis line
 {
   fill: none;
@@ -473,4 +485,8 @@ pre.logevent {
 /* gently lighten the bootstrap text color for the navbar */
 .navbar-inverse .navbar-brand, .navbar-inverse .navbar-nav > li > a {
   color: #d3d3d3;
+}
+
+.nav-link.dropdown-toggle.show{
+    background: #6c757d;
 }

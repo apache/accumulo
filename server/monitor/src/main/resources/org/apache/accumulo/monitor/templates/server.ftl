@@ -46,6 +46,7 @@
           </table>
         </div>
       </div>
+      <br />
       <div class="row">
         <div class="col-xs-12">
           <table id="opHistoryDetails" class="table caption-top table-bordered table-striped table-condensed">
@@ -66,6 +67,7 @@
           </table>
         </div>
       </div>
+      <br />
       <div class="row">
         <div class="col-xs-12">
           <table id="currentTabletOps" class="table caption-top table-bordered table-striped table-condensed">
@@ -82,6 +84,7 @@
           </table>
         </div>
       </div>
+      <br />
       <div class="row">
         <div class="col-xs-12">
           <table id="perTabletResults" class="table caption-top table-bordered table-striped table-condensed">

@@ -126,5 +126,5 @@
           <tbody></tbody>
         </table>
       <div>
-       <button type="button" class="btn btn-info" onclick="clearLogs();">Clear Logs</button>
+       <button type="button" class="btn btn-white-font" onclick="clearLogs();">Clear Logs</button>
       </div>

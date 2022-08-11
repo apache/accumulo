@@ -49,6 +49,7 @@
           </table>
         </div>
       </div>
+      <br />
       <div class="row">
         <div class="col-xs-12">
           <table id="problemDetails" class="table caption-top table-bordered table-striped table-condensed">

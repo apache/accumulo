@@ -38,7 +38,7 @@
           </table>
         </div>
       </div>
-      </br></br>
+      <br /><br />
       <div class="row">
         <div class="col-xs-12">
           <table id="bulkPerServerTable" class="table caption-top table-bordered table-striped table-condensed">

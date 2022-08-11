@@ -96,7 +96,7 @@ function refreshSideBarNotifications() {
       $('#recentLogsNotifications').removeClass('error').addClass('warning');
     }
   } else {
-    $('#recentLogsNotifications').removeClass('error').removeClass('warning');
+    $('#recentLogsNotifications').removeClass('error').removeClass('warning').addClass('normal');
   }
   // Number
   var logNumber = data.logNumber > 99 ? '99+' : data.logNumber;
@@ -105,7 +105,7 @@ function refreshSideBarNotifications() {
   if (data.problemNumber > 0) {
     $('#tableProblemsNotifications').addClass('error');
   } else {
-    $('#tableProblemsNotifications').removeClass('error');
+    $('#tableProblemsNotifications').removeClass('error').addClass('normal');
   }
   // Number
   var problemNumber = data.problemNumber > 99 ? '99+' : data.problemNumber;
@@ -119,7 +119,7 @@ function refreshSideBarNotifications() {
       $('#errorsNotification').removeClass('error').addClass('warning');
     }
   } else {
-    $('#errorsNotification').removeClass('error').removeClass('warning');
+    $('#errorsNotification').removeClass('error').removeClass('warning').addClass('normal');
   }
 
   // Number

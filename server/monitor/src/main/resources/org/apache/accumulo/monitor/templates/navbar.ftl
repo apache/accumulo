@@ -56,7 +56,7 @@
         </li>
         <li class="dropdown">
                       <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown"
-                                  role="button" data-bs-toggle="dropdown" aria-expanded="false">Debug&nbsp;<span id="errorsNotification" class="badge"></span>
+                                  role="button" data-bs-toggle="dropdown" aria-expanded="false">Debug&nbsp;<span id="errorsNotification" class="badge"></span><span class="caret"></span>
                       </a>
                       <ul class="dropdown-menu">
                         <li><a class="dropdown-item" href="/log">Recent&nbsp;Logs&nbsp;<span id="recentLogsNotifications" class="badge"></span></a></li>
@@ -73,8 +73,9 @@
                       </ul>
         </li>
         <li class="dropstart">
-                      <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown"
-                                role="button" data-bs-toggle="dropdown" aria-expanded="false">Help
+                      <a class="nav-link" href="#" id="navbarDropdown"
+                                role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <img src="../resources/external/bootstrap/fonts/three-dots-vertical.svg">
                       </a>
                       <ul class="dropdown-menu">
                         <li><a class="dropdown-item" class="auto-refresh" style="cursor:pointer">Auto-Refresh</a></li>
