@@ -194,8 +194,7 @@ public class Initialize implements KeywordExecutable {
     return true;
   }
 
-  private void checkUploadProps(ServerContext context, InitialConfiguration initConfig, Opts opts)
-      throws InterruptedException, KeeperException {
+  private void checkUploadProps(ServerContext context, InitialConfiguration initConfig, Opts opts) {
     if (opts.uploadAccumuloProps) {
       log.info("Uploading properties in accumulo.properties to Zookeeper."
           + " Properties that cannot be set in Zookeeper will be skipped:");
@@ -257,10 +256,20 @@ public class Initialize implements KeywordExecutable {
         fs.mkdirs(
             new Path(new Path(baseDir, Constants.VERSION_DIR), "" + AccumuloDataVersion.get()),
             new FsPermission("700"));
+        log.info("Created directory {}", baseDir);
+
         Path iidLocation = new Path(baseDir, Constants.INSTANCE_ID_DIR);
         fs.mkdirs(iidLocation);
-        fs.createNewFile(new Path(iidLocation, instanceId.canonical()));
-        log.info("Created directory {}", baseDir);
+        log.info("Created directory {}", iidLocation);
+
+        Path iidPath = new Path(iidLocation, instanceId.canonical());
+        boolean createSuccess = fs.createNewFile(iidPath);
+        if (!createSuccess || fs.exists(iidPath)) {
+          log.info("Created instanceId file {} in hdfs", iidPath);
+        } else {
+          log.warn("Failed to create instanceId file {} in hdfs", iidPath);
+          return false;
+        }
       }
       return true;
     } catch (IOException e) {
@@ -367,7 +376,7 @@ public class Initialize implements KeywordExecutable {
 
   /**
    * Create warning message related to initial password, if appropriate.
-   *
+   * </p>
    * ACCUMULO-2907 Remove unnecessary security warning from console message unless its actually
    * appropriate. The warning message should only be displayed when the value of
    * <code>instance.security.authenticator</code> differs between the SiteConfiguration and the
@@ -410,8 +419,7 @@ public class Initialize implements KeywordExecutable {
 
     Set<String> initializedDirs = serverDirs.checkBaseUris(hadoopConf, volumeURIs, true);
 
-    HashSet<String> uinitializedDirs = new HashSet<>();
-    uinitializedDirs.addAll(volumeURIs);
+    HashSet<String> uinitializedDirs = new HashSet<>(volumeURIs);
     uinitializedDirs.removeAll(initializedDirs);
 
     Path aBasePath = new Path(initializedDirs.iterator().next());
