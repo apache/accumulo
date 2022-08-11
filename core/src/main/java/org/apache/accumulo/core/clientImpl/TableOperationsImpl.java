@@ -60,7 +60,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -78,6 +77,7 @@ import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.FindMax;
+import org.apache.accumulo.core.client.admin.ImportConfiguration;
 import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.SummaryRetriever;
@@ -1558,10 +1558,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public void importTable(String tableName, Set<String> importDirs)
+  public void importTable(String tableName, ImportConfiguration itc, Set<String> importDirs)
       throws TableExistsException, AccumuloException, AccumuloSecurityException {
     EXISTING_TABLE_NAME.validate(tableName);
     checkArgument(importDirs != null, "importDir is null");
+
+    boolean keepOffline = itc.isKeepOffline();
+    boolean keepMapping = itc.isKeepMappings();
 
     Set<String> checkedImportDirs = new HashSet<>();
     try {
@@ -1591,15 +1594,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
           ioe.getMessage());
     }
 
-    Stream<String> argStream = Stream.concat(Stream.of(tableName), checkedImportDirs.stream());
-    List<ByteBuffer> args =
-        argStream.map(String::getBytes).map(ByteBuffer::wrap).collect(Collectors.toList());
-
-    Map<String,String> opts = Collections.emptyMap();
+    List<ByteBuffer> args = new ArrayList<>(3 + checkedImportDirs.size());
+    args.add(0, ByteBuffer.wrap(tableName.getBytes(UTF_8)));
+    args.add(1, ByteBuffer.wrap(Boolean.toString(keepOffline).getBytes(UTF_8)));
+    args.add(2, ByteBuffer.wrap(Boolean.toString(keepMapping).getBytes(UTF_8)));
+    checkedImportDirs.stream().map(String::getBytes).map(ByteBuffer::wrap).forEach(args::add);
 
     try {
       doTableFateOperation(tableName, AccumuloException.class, FateOperation.TABLE_IMPORT, args,
-          opts);
+          Collections.emptyMap());
     } catch (TableNotFoundException e) {
       // should not happen
       throw new AssertionError(e);

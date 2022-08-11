@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.tableOps.tableImport;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.Constants.IMPORT_MAPPINGS_FILE;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -68,7 +69,7 @@ class PopulateMetadataTable extends ManagerRepo {
   static void readMappingFile(VolumeManager fs, ImportedTableInfo tableInfo, String importDir,
       Map<String,String> fileNameMappings) throws Exception {
     try (BufferedReader in = new BufferedReader(
-        new InputStreamReader(fs.open(new Path(importDir, "mappings.txt")), UTF_8))) {
+        new InputStreamReader(fs.open(new Path(importDir, IMPORT_MAPPINGS_FILE)), UTF_8))) {
       String line, prev;
       while ((line = in.readLine()) != null) {
         String[] sa = line.split(":", 2);

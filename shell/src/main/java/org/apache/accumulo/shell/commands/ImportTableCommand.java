@@ -26,11 +26,16 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.ImportConfiguration;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
 
 public class ImportTableCommand extends Command {
+  private Option keepMappingsOption;
+  private Option keepOfflineOption;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
@@ -38,7 +43,13 @@ public class ImportTableCommand extends Command {
       TableExistsException {
 
     Set<String> importDirs = Arrays.stream(cl.getArgs()).skip(1).collect(Collectors.toSet());
-    shellState.getAccumuloClient().tableOperations().importTable(cl.getArgs()[0], importDirs);
+    String tableName = cl.getArgs()[0];
+    boolean keepMappings = cl.hasOption(keepMappingsOption.getOpt());
+    boolean keepOffline = cl.hasOption(keepOfflineOption.getOpt());
+
+    var ic = ImportConfiguration.builder().setKeepMappings(keepMappings).setKeepOffline(keepOffline)
+        .build();
+    shellState.getAccumuloClient().tableOperations().importTable(tableName, ic, importDirs);
     return 0;
   }
 
@@ -55,5 +66,17 @@ public class ImportTableCommand extends Command {
   @Override
   public int numArgs() {
     return Shell.NO_FIXED_ARG_LENGTH_CHECK;
+  }
+
+  @Override
+  public Options getOptions() {
+    Options opts = new Options();
+    keepMappingsOption =
+        new Option("m", "mapping", false, "keep the mapping file after importing.");
+    opts.addOption(keepMappingsOption);
+    keepOfflineOption =
+        new Option("o", "offline", false, "do not bring the table online after importing.");
+    opts.addOption(keepOfflineOption);
+    return opts;
   }
 }
