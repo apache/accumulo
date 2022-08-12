@@ -176,6 +176,12 @@ public class Admin implements KeywordExecutable {
       commandDescription = "Changes the unique secret given to the instance that all servers must know.")
   static class ChangeSecretCommand {}
 
+  @Parameters(commandDescription = "Deletes instance name or id from zookeeper.")
+  static class DeleteZooInstanceCommand {
+    @Parameter(names = {"-i", "--instance"}, description = "the instance name or id to delete")
+    String instance;
+  }
+
   public static void main(String[] args) {
     new Admin().execute(args);
   }
@@ -209,6 +215,9 @@ public class Admin implements KeywordExecutable {
 
     ChangeSecretCommand changeSecretCommand = new ChangeSecretCommand();
     cl.addCommand("changeSecret", changeSecretCommand);
+
+    DeleteZooInstanceCommand deleteZooInstanceOpts = new DeleteZooInstanceCommand();
+    cl.addCommand("deleteZooInstance", deleteZooInstanceOpts);
 
     ListInstancesCommand listIntancesOpts = new ListInstancesCommand();
     cl.addCommand("listInstances", listIntancesOpts);
@@ -291,6 +300,8 @@ public class Admin implements KeywordExecutable {
             verifyTabletAssignmentsOpts.verbose);
       } else if (cl.getParsedCommand().equals("changeSecret")) {
         ChangeSecret.changeSecret(context, conf);
+      } else if (cl.getParsedCommand().equals("deleteZooInstance")) {
+        DeleteZooInstance.deleteZooInstance(deleteZooInstanceOpts.instance);
       } else {
         everything = cl.getParsedCommand().equals("stopAll");
 
