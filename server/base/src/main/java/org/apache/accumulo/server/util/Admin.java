@@ -182,6 +182,15 @@ public class Admin implements KeywordExecutable {
     String instance;
   }
 
+  @Parameters(commandDescription = "Restore Zookeeper data from a file.")
+  static class RestoreZooCommand {
+    @Parameter(names = "--overwrite")
+    boolean overwrite = false;
+
+    @Parameter(names = "--file")
+    String file;
+  }
+
   public static void main(String[] args) {
     new Admin().execute(args);
   }
@@ -218,6 +227,9 @@ public class Admin implements KeywordExecutable {
 
     DeleteZooInstanceCommand deleteZooInstanceOpts = new DeleteZooInstanceCommand();
     cl.addCommand("deleteZooInstance", deleteZooInstanceOpts);
+
+    RestoreZooCommand restoreZooOpts = new RestoreZooCommand();
+    cl.addCommand("restoreZoo", restoreZooOpts);
 
     ListInstancesCommand listIntancesOpts = new ListInstancesCommand();
     cl.addCommand("listInstances", listIntancesOpts);
@@ -302,6 +314,8 @@ public class Admin implements KeywordExecutable {
         ChangeSecret.changeSecret(context, conf);
       } else if (cl.getParsedCommand().equals("deleteZooInstance")) {
         DeleteZooInstance.deleteZooInstance(deleteZooInstanceOpts.instance);
+      } else if (cl.getParsedCommand().equals("restoreZoo")) {
+        RestoreZookeeper.restoreZookeeper(conf, restoreZooOpts.file, restoreZooOpts.overwrite);
       } else {
         everything = cl.getParsedCommand().equals("stopAll");
 
