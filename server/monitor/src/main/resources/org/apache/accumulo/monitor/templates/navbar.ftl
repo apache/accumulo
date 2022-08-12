@@ -67,17 +67,17 @@
                       <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown"
                          role="button" data-bs-toggle="dropdown" aria-expanded="false">REST
                       </a>
-                      <ul class="dropdown-menu">
+                      <ul class="dropdown-menu dropdown-menu-end">
                         <li><a class="dropdown-item" href="/rest/xml">XML Summary</a></li>
                         <li><a class="dropdown-item" href="/rest/json">JSON Summary</a></li>
                       </ul>
         </li>
-        <li class="dropstart">
+        <li class="dropdown">
                       <a class="nav-link" href="#" id="navbarDropdown"
                                 role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <img src="../resources/external/bootstrap/fonts/three-dots-vertical.svg">
                       </a>
-                      <ul class="dropdown-menu">
+                      <ul class="dropdown-menu dropdown-menu-end">
                         <li><a class="dropdown-item" class="auto-refresh" style="cursor:pointer">Auto-Refresh</a></li>
                         <li><a class="dropdown-item" data-bs-toggle="modal" href="#aboutModal">About</a></li>
                       </ul>

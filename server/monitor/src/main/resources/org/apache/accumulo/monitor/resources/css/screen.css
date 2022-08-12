@@ -487,6 +487,7 @@ pre.logevent {
   color: #d3d3d3;
 }
 
-.nav-link.dropdown-toggle.show{
+/* will keep navbar buttons highlighted when dropdown menu is displayed */
+.nav-link.dropdown-toggle.show, .nav-link.show{
     background: #6c757d;
 }
