@@ -1621,6 +1621,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
     EXISTING_TABLE_NAME.validate(tableName);
     checkArgument(exportDir != null, "exportDir is null");
 
+    if (isOnline(tableName)) {
+      throw new IllegalStateException("The table " + tableName + " is online; exportTable requires"
+          + " a table to be offline before exporting.");
+    }
+
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)),
         ByteBuffer.wrap(exportDir.getBytes(UTF_8)));
     Map<String,String> opts = Collections.emptyMap();
