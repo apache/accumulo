@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -56,14 +57,18 @@ public class ChangeSecret {
 
   public static void main(String[] args) throws Exception {
     var siteConfig = SiteConfiguration.auto();
-    var hadoopConf = new Configuration();
-
     ServerUtilOpts opts = new ServerUtilOpts();
     opts.parseArgs(ChangeSecret.class.getName(), args);
 
     ServerContext context = opts.getServerContext();
+    changeSecret(context, siteConfig);
+  }
+
+  public static void changeSecret(final ServerContext context, final AccumuloConfiguration conf)
+      throws Exception {
+
     try (var fs = context.getVolumeManager()) {
-      ServerDirs serverDirs = new ServerDirs(siteConfig, hadoopConf);
+      ServerDirs serverDirs = new ServerDirs(conf, new Configuration());
       verifyHdfsWritePermission(serverDirs, fs);
 
       String oldPass = String.valueOf(System.console().readPassword("Old secret: "));
