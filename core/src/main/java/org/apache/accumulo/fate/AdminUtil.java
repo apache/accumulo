@@ -73,18 +73,18 @@ public class AdminUtil<T> {
 
     private final long txid;
     private final TStatus status;
-    private final String debug;
+    private final String repoTarget;
     private final List<String> hlocks;
     private final List<String> wlocks;
     private final String top;
     private final long timeCreated;
 
-    private TransactionStatus(Long tid, TStatus status, String debug, List<String> hlocks,
+    private TransactionStatus(Long tid, TStatus status, String repoTarget, List<String> hlocks,
         List<String> wlocks, String top, Long timeCreated) {
 
       this.txid = tid;
       this.status = status;
-      this.debug = debug;
+      this.repoTarget = repoTarget;
       this.hlocks = Collections.unmodifiableList(hlocks);
       this.wlocks = Collections.unmodifiableList(wlocks);
       this.top = top;
@@ -105,10 +105,10 @@ public class AdminUtil<T> {
     }
 
     /**
-     * @return The debug info for the operation on the top of the stack for this Fate operation.
+     * @return The repo target for the operation on the top of the stack for this Fate operation.
      */
-    public String getDebug() {
-      return debug;
+    public String getRepoTarget() {
+      return repoTarget;
     }
 
     /**
@@ -364,7 +364,7 @@ public class AdminUtil<T> {
 
       zs.reserve(tid);
 
-      String debug = (String) zs.getProperty(tid, Fate.DEBUG_PROP);
+      String repoTarget = (String) zs.getTransactionInfo(tid, Fate.TxInfo.REPO_TARGET);
 
       List<String> hlocks = heldLocks.remove(tid);
 
@@ -381,7 +381,7 @@ public class AdminUtil<T> {
       String top = null;
       ReadOnlyRepo<T> repo = zs.top(tid);
       if (repo != null)
-        top = repo.getDescription();
+        top = repo.getName();
 
       TStatus status = zs.getStatus(tid);
 
@@ -390,7 +390,8 @@ public class AdminUtil<T> {
       zs.unreserve(tid, 0);
 
       if (includeByStatus(status, filterStatus) && includeByTxid(tid, filterTxid)) {
-        statuses.add(new TransactionStatus(tid, status, debug, hlocks, wlocks, top, timeCreated));
+        statuses
+            .add(new TransactionStatus(tid, status, repoTarget, hlocks, wlocks, top, timeCreated));
       }
     }
 
@@ -419,8 +420,9 @@ public class AdminUtil<T> {
     for (TransactionStatus txStatus : fateStatus.getTransactions()) {
       fmt.format(
           "txid: %s  status: %-18s  op: %-15s  locked: %-15s locking: %-15s top: %-15s created: %s%n",
-          txStatus.getTxid(), txStatus.getStatus(), txStatus.getDebug(), txStatus.getHeldLocks(),
-          txStatus.getWaitingLocks(), txStatus.getTop(), txStatus.getTimeCreatedFormatted());
+          txStatus.getTxid(), txStatus.getStatus(), txStatus.getRepoTarget(),
+          txStatus.getHeldLocks(), txStatus.getWaitingLocks(), txStatus.getTop(),
+          txStatus.getTimeCreatedFormatted());
     }
     fmt.format(" %s transactions", fateStatus.getTransactions().size());
 
