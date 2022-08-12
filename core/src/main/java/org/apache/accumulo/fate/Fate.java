@@ -67,7 +67,7 @@ public class Fate<T> {
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
 
   public enum TxInfo {
-    REPO_TARGET, AUTO_CLEAN, EXCEPTION, RETURN_VALUE;
+    REPO_TARGET, AUTO_CLEAN, EXCEPTION, RETURN_VALUE
   }
 
   private class TransactionRunner implements Runnable {

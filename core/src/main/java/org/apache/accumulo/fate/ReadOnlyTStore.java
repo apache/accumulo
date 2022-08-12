@@ -123,7 +123,7 @@ public interface ReadOnlyTStore<T> {
   TStatus waitForStatusChange(long tid, EnumSet<TStatus> expected);
 
   /**
-   * Retrieve a transaction-specific property.
+   * Retrieve transaction-specific information.
    *
    * Caller must have already reserved tid.
    *

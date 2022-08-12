@@ -66,7 +66,7 @@ public interface TStore<T> extends ReadOnlyTStore<T> {
   void setStatus(long tid, TStatus status);
 
   /**
-   * Set a transaction-specific property.
+   * Set transaction-specific information.
    *
    * @param tid
    *          transaction id
