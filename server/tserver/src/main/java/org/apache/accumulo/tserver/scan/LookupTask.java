@@ -22,9 +22,10 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
@@ -38,7 +39,6 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.tserver.TabletHostingServer;
 import org.apache.accumulo.tserver.session.MultiScanSession;
@@ -81,26 +81,24 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       long maxScanTime = 4000;
 
       long startTime = System.currentTimeMillis();
-      // Copy entries in session.queries (HashMap) to queryQueue (LinkedList)
-      // to better control the order when unfinished ranges are returned
-      LinkedList<Pair<KeyExtent,List<Range>>> queryQueue = new LinkedList<>();
-      session.queries.entrySet()
-          .forEach(e -> queryQueue.addLast(new Pair<>(e.getKey(), e.getValue())));
 
       List<KVEntry> results = new ArrayList<>();
       Map<KeyExtent,List<Range>> failures = new HashMap<>();
       List<KeyExtent> fullScans = new ArrayList<>();
+      LookupResult lookupResult = null;
       KeyExtent partScan = null;
       Key partNextKey = null;
       boolean partNextKeyInclusive = false;
 
+      Iterator<Entry<KeyExtent,List<Range>>> iter = session.queries.entrySet().iterator();
+
       // check the time so that the read ahead thread is not monopolized
-      while (!queryQueue.isEmpty() && bytesAdded < maxResultsSize
+      while (iter.hasNext() && bytesAdded < maxResultsSize
           && (System.currentTimeMillis() - startTime) < maxScanTime) {
-        Pair<KeyExtent,List<Range>> extentRangePair = queryQueue.removeFirst();
-        KeyExtent extent = extentRangePair.getFirst();
-        List<Range> ranges = extentRangePair.getSecond();
-        session.queries.remove(extent);
+        Entry<KeyExtent,List<Range>> entry = iter.next();
+        KeyExtent extent = entry.getKey();
+        List<Range> ranges = entry.getValue();
+        iter.remove();
 
         // check that tablet server is serving requested tablet
         TabletBase tablet = session.getTabletResolver().getTablet(extent);
@@ -112,7 +110,6 @@ public class LookupTask extends ScanTask<MultiScanResult> {
         Thread.currentThread().setName("Client: " + session.client + " User: " + session.getUser()
             + " Start: " + session.startTime + " Tablet: " + extent);
 
-        LookupResult lookupResult;
         try {
 
           // do the following check to avoid a race condition
@@ -145,25 +142,23 @@ public class LookupTask extends ScanTask<MultiScanResult> {
 
         if (lookupResult.unfinishedRanges.isEmpty()) {
           fullScans.add(extent);
-          // if this extent was previously saved but now completed, then reset these values
-          if (partScan != null && partScan.equals(extent)) {
-            partScan = null;
-            partNextKey = null;
-            partNextKeyInclusive = false;
-          }
         } else {
           if (lookupResult.closed) {
             failures.put(extent, lookupResult.unfinishedRanges);
           } else {
-            // add to beginning of queue so that we handle this extent and unfinished ranges next
-            // unfinished ranges will either be finished or returned as partially completed
-            queryQueue.addFirst(new Pair<>(extent, lookupResult.unfinishedRanges));
-            session.queries.put(extent, lookupResult.unfinishedRanges);
             partScan = extent;
             partNextKey = lookupResult.unfinishedRanges.get(0).getStartKey();
             partNextKeyInclusive = lookupResult.unfinishedRanges.get(0).isStartKeyInclusive();
+            // Stop this LookupTask. The client side will continue the scan and a
+            // new LookupTask will be created
+            break;
           }
         }
+      }
+      // add unfinished ranges back to session.queries so that we return more=true
+      // when the MultiScanResult is created and returned
+      if (partScan != null) {
+        session.queries.put(partScan, lookupResult.unfinishedRanges);
       }
 
       long finishTime = System.currentTimeMillis();
