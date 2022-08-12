@@ -1201,24 +1201,25 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   private Path checkPath(String dir, String kind, String type)
       throws IOException, AccumuloException, AccumuloSecurityException {
-    FileSystem fs = VolumeConfiguration.fileSystemForPath(dir, context.getHadoopConf());
-    Path ret = dir.contains(":") ? new Path(dir) : fs.makeQualified(new Path(dir));
+    Path ret = new Path(dir);
+    try (FileSystem fs = VolumeConfiguration.fileSystemForPath(dir, context.getHadoopConf())) {
+      if (!dir.contains(":"))
+        ret = fs.makeQualified(new Path(dir));
 
-    try {
       if (!fs.getFileStatus(ret).isDirectory()) {
         throw new AccumuloException(
             kind + " import " + type + " directory " + ret + " is not a directory!");
       }
+
+      if (type.equals("failure")) {
+        FileStatus[] listStatus = fs.listStatus(ret);
+        if (listStatus != null && listStatus.length != 0) {
+          throw new AccumuloException("Bulk import failure directory " + ret + " is not empty");
+        }
+      }
     } catch (FileNotFoundException fnf) {
       throw new AccumuloException(
           kind + " import " + type + " directory " + ret + " does not exist!");
-    }
-
-    if (type.equals("failure")) {
-      FileStatus[] listStatus = fs.listStatus(ret);
-      if (listStatus != null && listStatus.length != 0) {
-        throw new AccumuloException("Bulk import failure directory " + ret + " is not empty");
-      }
     }
 
     return ret;
