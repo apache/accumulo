@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.volume.Volume;
@@ -37,7 +36,6 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -55,16 +53,7 @@ import io.opentelemetry.context.Scope;
 
 public class ChangeSecret {
 
-  public static void main(String[] args) throws Exception {
-    var siteConfig = SiteConfiguration.auto();
-    ServerUtilOpts opts = new ServerUtilOpts();
-    opts.parseArgs(ChangeSecret.class.getName(), args);
-
-    ServerContext context = opts.getServerContext();
-    changeSecret(context, siteConfig);
-  }
-
-  public static void changeSecret(final ServerContext context, final AccumuloConfiguration conf)
+  public static void execute(final ServerContext context, final AccumuloConfiguration conf)
       throws Exception {
 
     try (var fs = context.getVolumeManager()) {

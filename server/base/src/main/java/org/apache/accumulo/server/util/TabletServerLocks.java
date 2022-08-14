@@ -23,25 +23,15 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.util.List;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.cli.Help;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
 
-import com.beust.jcommander.Parameter;
-
 public class TabletServerLocks {
 
-  static class Opts extends Help {
-    @Parameter(names = "-delete")
-    String delete = null;
-  }
-
-  public static void tabletServerLocks(String commandName, final ServerContext context,
-      final String lock, final String delete) throws Exception {
-
+  public static void execute(final ServerContext context, final String lock, final String delete)
+      throws Exception {
     String tserverPath = context.getZooKeeperRoot() + Constants.ZTSERVERS;
 
     ZooCache cache = context.getZooCache();
@@ -49,6 +39,9 @@ public class TabletServerLocks {
 
     if (delete == null) {
       List<String> tabletServers = zoo.getChildren(tserverPath);
+      if (tabletServers.isEmpty()) {
+        System.err.println("No tservers found in ZK at " + tserverPath);
+      }
 
       for (String tabletServer : tabletServers) {
         var zLockPath = ServiceLock.path(tserverPath + "/" + tabletServer);
@@ -62,24 +55,14 @@ public class TabletServerLocks {
       }
     } else {
       if (lock == null) {
-        printUsage(commandName);
+        printUsage();
       }
       ServiceLock.deleteLock(zoo, ServiceLock.path(tserverPath + "/" + lock));
     }
   }
 
-  public static void main(String[] args) throws Exception {
-
-    try (var context = new ServerContext(SiteConfiguration.auto())) {
-      Opts opts = new Opts();
-      opts.parseArgs(TabletServerLocks.class.getName(), args);
-
-      tabletServerLocks(TabletServerLocks.class.getName(), context, args[1], opts.delete);
-    }
-  }
-
-  private static void printUsage(String commandName) {
-    System.out.println("Usage : " + commandName + "-delete <tserver lock>");
+  private static void printUsage() {
+    System.out.println("Usage : accumulo admin locks -delete <tserver lock>");
   }
 
 }
