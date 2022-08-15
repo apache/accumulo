@@ -19,6 +19,7 @@
 package org.apache.accumulo.hadoop.mapreduce;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayOutputStream;
@@ -30,6 +31,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
@@ -248,5 +250,20 @@ public class AccumuloInputFormatTest {
 
     assertThrows(IllegalStateException.class, () -> aif.getSplits(job),
         "IllegalStateException should have been thrown for not calling store");
+  }
+
+  @Test
+  public void testConsistencyLevel() throws Exception {
+    Job job = Job.getInstance();
+
+    AccumuloInputFormat.configure().clientProperties(clientProperties).table("table")
+        .auths(Authorizations.EMPTY).consistencyLevel(ConsistencyLevel.EVENTUAL).store(job);
+
+    assertEquals(ConsistencyLevel.EVENTUAL,
+        InputConfigurator.getConsistencyLevel(AccumuloInputFormat.class, job.getConfiguration()));
+    assertNull(InputConfigurator
+        .getInputTableConfig(AccumuloInputFormat.class, job.getConfiguration(), "table")
+        .getConsistencyLevel());
+
   }
 }

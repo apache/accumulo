@@ -78,4 +78,10 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
   public int hashCode() {
     return this.metadataEntry.hashCode();
   }
+
+  @Override
+  public String toString() {
+    return "Reference [id=" + tableId + ", ref=" + metadataEntry + "]";
+  }
+
 }

@@ -82,6 +82,7 @@ public class ClusterConfigParser {
   }
 
   public static void outputShellVariables(Map<String,String> config, PrintStream out) {
+
     for (String section : SECTIONS) {
       if (config.containsKey(section)) {
         out.printf(PROPERTY_FORMAT, section.toUpperCase() + "_HOSTS", config.get(section));
@@ -109,6 +110,17 @@ public class ClusterConfigParser {
         out.printf(PROPERTY_FORMAT, "COMPACTOR_HOSTS_" + queue,
             config.get("compaction.compactor." + queue));
       }
+    }
+
+    String sserverPrefix = "sserver.";
+    Set<String> sserverGroups = config.keySet().stream().filter(k -> k.startsWith(sserverPrefix))
+        .map(k -> k.substring(sserverPrefix.length())).collect(Collectors.toSet());
+
+    if (!sserverGroups.isEmpty()) {
+      out.printf(PROPERTY_FORMAT, "SSERVER_GROUPS",
+          sserverGroups.stream().collect(Collectors.joining(" ")));
+      sserverGroups.forEach(ssg -> out.printf(PROPERTY_FORMAT, "SSERVER_HOSTS_" + ssg,
+          config.get(sserverPrefix + ssg)));
     }
 
     out.flush();

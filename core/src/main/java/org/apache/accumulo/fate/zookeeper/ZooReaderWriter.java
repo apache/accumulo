@@ -24,8 +24,8 @@ import static java.util.Objects.requireNonNull;
 import java.util.List;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.zookeeper.CreateMode;
@@ -40,7 +40,7 @@ public class ZooReaderWriter extends ZooReader {
     byte[] mutate(byte[] currentValue) throws AcceptableThriftTableOperationException;
   }
 
-  public ZooReaderWriter(SiteConfiguration conf) {
+  public ZooReaderWriter(AccumuloConfiguration conf) {
     this(conf.get(Property.INSTANCE_ZK_HOST),
         (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT),
         conf.get(Property.INSTANCE_SECRET));

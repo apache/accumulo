@@ -65,7 +65,17 @@ public interface TStore<T> extends ReadOnlyTStore<T> {
    */
   void setStatus(long tid, TStatus status);
 
-  void setProperty(long tid, String prop, Serializable val);
+  /**
+   * Set transaction-specific information.
+   *
+   * @param tid
+   *          transaction id
+   * @param txInfo
+   *          name of attribute of a transaction to set.
+   * @param val
+   *          transaction data to store
+   */
+  void setTransactionInfo(long tid, Fate.TxInfo txInfo, Serializable val);
 
   /**
    * Remove the transaction from the store.

@@ -68,6 +68,8 @@ public class Constants {
 
   public static final String ZTSERVERS = "/tservers";
 
+  public static final String ZSSERVERS = "/sservers";
+
   public static final String ZCOMPACTORS = "/compactors";
 
   public static final String ZCOORDINATOR = "/coordinators";

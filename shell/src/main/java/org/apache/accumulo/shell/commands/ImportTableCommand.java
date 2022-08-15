@@ -44,7 +44,7 @@ public class ImportTableCommand extends Command {
 
   @Override
   public String usage() {
-    return getName() + " <table name> <import dir>";
+    return getName() + " <table name> <import dir>{ <import dir>}";
   }
 
   @Override
@@ -54,6 +54,6 @@ public class ImportTableCommand extends Command {
 
   @Override
   public int numArgs() {
-    return 2;
+    return Shell.NO_FIXED_ARG_LENGTH_CHECK;
   }
 }

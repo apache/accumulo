@@ -318,7 +318,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
         bw.addMutations(mutations);
       }
 
-      client.tableOperations().clone(tables[0], tables[1], true, null, null);
+      client.tableOperations().clone(tables[0], tables[1], CloneConfiguration.empty());
 
       client.tableOperations().deleteRows(tables[1], new Text("4"), new Text("8"));
 
@@ -338,15 +338,15 @@ public class CloneTestIT extends AccumuloClusterHarness {
   public void testCloneRootTable() {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       assertThrows(AccumuloException.class,
-          () -> client.tableOperations().clone(RootTable.NAME, "rc1", true, null, null));
+          () -> client.tableOperations().clone(RootTable.NAME, "rc1", CloneConfiguration.empty()));
     }
   }
 
   @Test
   public void testCloneMetadataTable() {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      assertThrows(AccumuloException.class,
-          () -> client.tableOperations().clone(MetadataTable.NAME, "mc1", true, null, null));
+      assertThrows(AccumuloException.class, () -> client.tableOperations().clone(MetadataTable.NAME,
+          "mc1", CloneConfiguration.empty()));
     }
   }
 }
