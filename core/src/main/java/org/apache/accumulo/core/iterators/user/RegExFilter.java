@@ -35,6 +35,8 @@ import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * A Filter that matches entries based on Java regular expressions.
  */
@@ -169,6 +171,8 @@ public class RegExFilter extends Filter {
   }
 
   @Override
+  @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT",
+      justification = "Pattern.compile used to validate - no matching performed")
   public boolean validateOptions(Map<String,String> options) {
     if (!super.validateOptions(options))
       return false;

@@ -136,7 +136,7 @@ class FateMetricValues {
 
         // incr count for op type for for in_progress transactions.
         if (ReadOnlyTStore.TStatus.IN_PROGRESS.equals(tx.getStatus())) {
-          String opType = tx.getDebug();
+          String opType = tx.getRepoTarget();
           if (opType == null || opType.isEmpty()) {
             opType = "UNKNOWN";
           }
