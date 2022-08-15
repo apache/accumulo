@@ -63,11 +63,11 @@ public class TestLruBlockCache {
     cc.set(Property.TSERV_DATACACHE_SIZE, Long.toString(1000027));
     cc.set(Property.TSERV_SUMMARYCACHE_SIZE, Long.toString(1000029));
 
-    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).minFactor(0.93f)
-        .acceptableFactor(0.97f).singleFactor(0.20f).multiFactor(0.30f).memoryFactor(0.50f)
-        .mapConcurrencyLevel(5).buildMap().forEach(cc::set);
+    LruBlockCacheConfiguration.builder(Property.TSERV_PREFIX, CacheType.INDEX)
+        .useEvictionThread(false).minFactor(0.93f).acceptableFactor(0.97f).singleFactor(0.20f)
+        .multiFactor(0.30f).memoryFactor(0.50f).mapConcurrencyLevel(5).buildMap().forEach(cc::set);
 
-    String defaultPrefix = BlockCacheManager.CACHE_PROPERTY_BASE
+    String defaultPrefix = BlockCacheConfiguration.getCachePropertyBase(Property.TSERV_PREFIX)
         + LruBlockCacheConfiguration.PROPERTY_PREFIX + ".default.";
 
     // this should be overridden by cache type specific setting
@@ -76,7 +76,7 @@ public class TestLruBlockCache {
     // this is not set for the cache type, so should fall back to default
     cc.set(defaultPrefix + LruBlockCacheConfiguration.MAP_LOAD_PROPERTY, "0.53");
 
-    BlockCacheConfiguration bcc = new BlockCacheConfiguration(cc);
+    BlockCacheConfiguration bcc = BlockCacheConfiguration.forTabletServer(cc);
     LruBlockCacheConfiguration lbcc = new LruBlockCacheConfiguration(bcc, CacheType.INDEX);
 
     assertFalse(lbcc.isUseEvictionThread());
@@ -103,7 +103,7 @@ public class TestLruBlockCache {
     BlockCacheManager manager = BlockCacheManagerFactory.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
-    manager.start(new BlockCacheConfiguration(cc));
+    manager.start(BlockCacheConfiguration.forTabletServer(cc));
     LruBlockCache cache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
 
     Block[] blocks = generateFixedBlocks(10, blockSize, "block");
@@ -137,7 +137,7 @@ public class TestLruBlockCache {
     BlockCacheManager manager = BlockCacheManagerFactory.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
-    manager.start(new BlockCacheConfiguration(cc));
+    manager.start(BlockCacheConfiguration.forTabletServer(cc));
     LruBlockCache cache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
 
     Block[] blocks = generateRandomBlocks(100, blockSize);
@@ -195,9 +195,9 @@ public class TestLruBlockCache {
     BlockCacheManager manager = BlockCacheManagerFactory.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
-    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).buildMap()
-        .forEach(cc::set);
-    manager.start(new BlockCacheConfiguration(cc));
+    LruBlockCacheConfiguration.builder(Property.TSERV_PREFIX, CacheType.INDEX)
+        .useEvictionThread(false).buildMap().forEach(cc::set);
+    manager.start(BlockCacheConfiguration.forTabletServer(cc));
 
     LruBlockCache cache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
 
@@ -245,10 +245,10 @@ public class TestLruBlockCache {
     BlockCacheManager manager = BlockCacheManagerFactory.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
-    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).minFactor(0.98f)
-        .acceptableFactor(0.99f).singleFactor(0.25f).multiFactor(0.50f).memoryFactor(0.25f)
-        .buildMap().forEach(cc::set);
-    manager.start(new BlockCacheConfiguration(cc));
+    LruBlockCacheConfiguration.builder(Property.TSERV_PREFIX, CacheType.INDEX)
+        .useEvictionThread(false).minFactor(0.98f).acceptableFactor(0.99f).singleFactor(0.25f)
+        .multiFactor(0.50f).memoryFactor(0.25f).buildMap().forEach(cc::set);
+    manager.start(BlockCacheConfiguration.forTabletServer(cc));
     LruBlockCache cache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
 
     Block[] singleBlocks = generateFixedBlocks(5, 10000, "single");
@@ -315,10 +315,10 @@ public class TestLruBlockCache {
     BlockCacheManager manager = BlockCacheManagerFactory.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
-    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).minFactor(0.98f)
-        .acceptableFactor(0.99f).singleFactor(0.33f).multiFactor(0.33f).memoryFactor(0.34f)
-        .buildMap().forEach(cc::set);
-    manager.start(new BlockCacheConfiguration(cc));
+    LruBlockCacheConfiguration.builder(Property.TSERV_PREFIX, CacheType.INDEX)
+        .useEvictionThread(false).minFactor(0.98f).acceptableFactor(0.99f).singleFactor(0.33f)
+        .multiFactor(0.33f).memoryFactor(0.34f).buildMap().forEach(cc::set);
+    manager.start(BlockCacheConfiguration.forTabletServer(cc));
     LruBlockCache cache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
 
     Block[] singleBlocks = generateFixedBlocks(5, blockSize, "single");
@@ -440,10 +440,10 @@ public class TestLruBlockCache {
     BlockCacheManager manager = BlockCacheManagerFactory.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
-    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).minFactor(0.66f)
-        .acceptableFactor(0.99f).singleFactor(0.33f).multiFactor(0.33f).memoryFactor(0.34f)
-        .buildMap().forEach(cc::set);
-    manager.start(new BlockCacheConfiguration(cc));
+    LruBlockCacheConfiguration.builder(Property.TSERV_PREFIX, CacheType.INDEX)
+        .useEvictionThread(false).minFactor(0.66f).acceptableFactor(0.99f).singleFactor(0.33f)
+        .multiFactor(0.33f).memoryFactor(0.34f).buildMap().forEach(cc::set);
+    manager.start(BlockCacheConfiguration.forTabletServer(cc));
     LruBlockCache cache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
 
     Block[] singleBlocks = generateFixedBlocks(20, blockSize, "single");

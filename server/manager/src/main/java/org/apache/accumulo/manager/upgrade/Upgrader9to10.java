@@ -130,6 +130,7 @@ public class Upgrader9to10 implements Upgrader {
     createExternalCompactionNodes(context);
     // special case where old files need to be deleted
     dropSortedMapWALFiles(context);
+    createScanServerNodes(context);
   }
 
   @Override
@@ -176,6 +177,17 @@ public class Upgrader9to10 implements Upgrader {
       setDispatcherProps.accept(MetadataTable.ID, "meta");
     } catch (IllegalStateException ex) {
       throw new RuntimeException("Unable to set system table properties", ex);
+    }
+  }
+
+  private void createScanServerNodes(ServerContext context) {
+    final byte[] EMPTY_BYTE_ARRAY = new byte[0];
+    try {
+      context.getZooReaderWriter().putPersistentData(
+          context.getZooKeeperRoot() + Constants.ZSSERVERS, EMPTY_BYTE_ARRAY,
+          NodeExistsPolicy.SKIP);
+    } catch (KeeperException | InterruptedException e) {
+      throw new RuntimeException("Unable to create scan server paths", e);
     }
   }
 

@@ -595,7 +595,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }
   }
 
-  private final Map<HostAndPort,ScanStats> allScans = new HashMap<>();
+  private final Map<HostAndPort,ScanStats> tserverScans = new HashMap<>();
+  private final Map<HostAndPort,ScanStats> sserverScans = new HashMap<>();
   private final Map<HostAndPort,CompactionStats> allCompactions = new HashMap<>();
   private final RecentLogs recentLogs = new RecentLogs();
   private final ExternalCompactionInfo ecInfo = new ExternalCompactionInfo();
@@ -611,10 +612,18 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
    */
   public synchronized Map<HostAndPort,ScanStats> getScans() {
     if (System.nanoTime() - scansFetchedNanos > fetchTimeNanos) {
-      log.info("User initiated fetch of Active Scans");
+      log.info("User initiated fetch of Active TabletServer Scans");
       fetchScans();
     }
-    return Map.copyOf(allScans);
+    return Map.copyOf(tserverScans);
+  }
+
+  public synchronized Map<HostAndPort,ScanStats> getScanServerScans() {
+    if (System.nanoTime() - scansFetchedNanos > fetchTimeNanos) {
+      log.info("User initiated fetch of Active ScanServer Scans");
+      fetchScans();
+    }
+    return Map.copyOf(sserverScans);
   }
 
   /**
@@ -698,7 +707,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       try {
         tserver = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, context);
         List<ActiveScan> scans = tserver.getActiveScans(null, context.rpcCreds());
-        allScans.put(parsedServer, new ScanStats(scans));
+        tserverScans.put(parsedServer, new ScanStats(scans));
         scansFetchedNanos = System.nanoTime();
       } catch (Exception ex) {
         log.error("Failed to get active scans from {}", server, ex);
@@ -707,13 +716,38 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       }
     }
     // Age off old scan information
-    Iterator<Entry<HostAndPort,ScanStats>> entryIter = allScans.entrySet().iterator();
+    Iterator<Entry<HostAndPort,ScanStats>> tserverIter = tserverScans.entrySet().iterator();
     // clock time used for fetched for date friendly display
     long now = System.currentTimeMillis();
-    while (entryIter.hasNext()) {
-      Entry<HostAndPort,ScanStats> entry = entryIter.next();
+    while (tserverIter.hasNext()) {
+      Entry<HostAndPort,ScanStats> entry = tserverIter.next();
       if (now - entry.getValue().fetched > ageOffEntriesMillis) {
-        entryIter.remove();
+        tserverIter.remove();
+      }
+    }
+    // Scan Servers
+    for (String server : context.instanceOperations().getScanServers()) {
+      final HostAndPort parsedServer = HostAndPort.fromString(server);
+      TabletScanClientService.Client sserver = null;
+      try {
+        sserver = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, context);
+        List<ActiveScan> scans = sserver.getActiveScans(null, context.rpcCreds());
+        sserverScans.put(parsedServer, new ScanStats(scans));
+        scansFetchedNanos = System.nanoTime();
+      } catch (Exception ex) {
+        log.error("Failed to get active scans from {}", server, ex);
+      } finally {
+        ThriftUtil.returnClient(sserver, context);
+      }
+    }
+    // Age off old scan information
+    Iterator<Entry<HostAndPort,ScanStats>> sserverIter = sserverScans.entrySet().iterator();
+    // clock time used for fetched for date friendly display
+    now = System.currentTimeMillis();
+    while (sserverIter.hasNext()) {
+      Entry<HostAndPort,ScanStats> entry = sserverIter.next();
+      if (now - entry.getValue().fetched > ageOffEntriesMillis) {
+        sserverIter.remove();
       }
     }
   }

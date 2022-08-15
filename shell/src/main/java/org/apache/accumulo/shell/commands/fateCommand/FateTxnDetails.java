@@ -71,8 +71,8 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
     if (txnStatus.getTop() != null) {
       step = txnStatus.getTop();
     }
-    if (txnStatus.getDebug() != null) {
-      command = txnStatus.getDebug();
+    if (txnStatus.getRepoTarget() != null) {
+      command = txnStatus.getRepoTarget();
     }
     if (txnStatus.getTxid() != null) {
       txnId = txnStatus.getTxid();

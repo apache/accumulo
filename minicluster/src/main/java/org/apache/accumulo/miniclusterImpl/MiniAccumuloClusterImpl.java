@@ -99,6 +99,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.ZooKeeper.States;
 import org.slf4j.Logger;
@@ -531,6 +532,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       }
 
       if (!config.useExistingZooKeepers()) {
+        log.warn("Starting ZooKeeper");
         control.start(ServerType.ZOOKEEPER);
       }
 
@@ -575,6 +577,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           args.add(config.getRootPassword());
         }
 
+        log.warn("Initializing ZooKeeper");
         Process initProcess = exec(Initialize.class, args.toArray(new String[0])).getProcess();
         int ret = initProcess.waitFor();
         if (ret != 0) {
@@ -582,6 +585,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
               + ". Check the logs in " + config.getLogDir() + " for errors.");
         }
         initialized = true;
+      } else {
+        log.warn("Not initializing ZooKeeper, already initialized");
       }
     }
 
@@ -644,13 +649,18 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       waitForProcessStart(tsp, "TabletServer" + tsExpectedCount);
     }
 
-    try (ZooKeeper zk = new ZooKeeper(getZooKeepers(), 60000, event -> log.info("{}", event))) {
+    try (ZooKeeper zk = new ZooKeeper(getZooKeepers(), 60000, event -> log.warn("{}", event))) {
 
       String secret = getSiteConfiguration().get(Property.INSTANCE_SECRET);
 
+      while (!(zk.getState() == States.CONNECTED)) {
+        log.info("Waiting for ZK client to connect, state: {} - will retry", zk.getState());
+        Thread.sleep(1000);
+      }
+
       String instanceId = null;
       for (int i = 0; i < numTries; i++) {
-        if (zk.getState().equals(States.CONNECTED)) {
+        if (zk.getState() == States.CONNECTED) {
           ZooUtil.digestAuth(zk, secret);
           try {
             zk.sync("/", null, null);
@@ -660,13 +670,33 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
             instanceId = new String(bytes, UTF_8);
             break;
           } catch (KeeperException e) {
+            log.warn("Error trying to read instance id from zookeeper: " + e.getMessage());
             log.debug("Unable to read instance id from zookeeper.", e);
           }
+        } else {
+          log.warn("ZK client not connected, state: {}", zk.getState());
         }
         Thread.sleep(1000);
       }
 
       if (instanceId == null) {
+        for (int i = 0; i < numTries; i++) {
+          if (zk.getState() == States.CONNECTED) {
+            ZooUtil.digestAuth(zk, secret);
+            try {
+              log.warn("******* COULD NOT FIND INSTANCE ID - DUMPING ZK ************");
+              log.warn("Connected to ZooKeeper: {}", getZooKeepers());
+              log.warn("Looking for instanceId at {}",
+                  Constants.ZROOT + Constants.ZINSTANCES + "/" + config.getInstanceName());
+              ZKUtil.visitSubTreeDFS(zk, Constants.ZROOT, false,
+                  (rc, path, ctx, name) -> log.warn("{}", path));
+              log.warn("******* END ZK DUMP ************");
+            } catch (KeeperException | InterruptedException e) {
+              log.error("Error dumping zk", e);
+            }
+          }
+          Thread.sleep(1000);
+        }
         throw new IllegalStateException("Unable to find instance id from zookeeper.");
       }
 

@@ -44,4 +44,12 @@ public class ScanCommandTest {
         "Column Qualifier");
   }
 
+  @Test
+  public void scanServerHelp() {
+    assertTrue(new ScanCommand().getOptions().getOption("cl").getDescription()
+        .contains("consistency level (experimental)"), "Consistency Level");
+    assertTrue(new ScanCommand().getOptions().getOption("consistency-level").getDescription()
+        .contains("consistency level (experimental)"), "Consistency Level");
+  }
+
 }

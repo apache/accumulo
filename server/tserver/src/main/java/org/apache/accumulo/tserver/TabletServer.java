@@ -72,6 +72,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.Compacting;
@@ -351,7 +352,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
     logger = new TabletServerLogger(this, walMaxSize, syncCounter, flushCounter,
         walCreationRetryFactory, walWritingRetryFactory, walMaxAge);
-    this.resourceManager = new TabletServerResourceManager(context);
+    this.resourceManager = new TabletServerResourceManager(context, this);
     this.security = context.getSecurityOperation();
 
     watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
@@ -1374,4 +1375,10 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   public CompactionManager getCompactionManager() {
     return compactionManager;
   }
+
+  @Override
+  public BlockCacheConfiguration getBlockCacheConfiguration(AccumuloConfiguration acuConf) {
+    return BlockCacheConfiguration.forTabletServer(acuConf);
+  }
+
 }

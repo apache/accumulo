@@ -29,6 +29,7 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
 import org.apache.accumulo.core.cli.Help;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -116,15 +117,13 @@ public class RestoreZookeeper {
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who provided input")
-  public static void main(String[] args) throws Exception {
-    Opts opts = new Opts();
-    opts.parseArgs(RestoreZookeeper.class.getName(), args);
-
-    var zoo = new ZooReaderWriter(SiteConfiguration.auto());
+  public static void restoreZookeeper(final AccumuloConfiguration conf, final String file,
+      final boolean overwrite) throws Exception {
+    var zoo = new ZooReaderWriter(conf);
 
     InputStream in = System.in;
-    if (opts.file != null) {
-      in = new FileInputStream(opts.file);
+    if (file != null) {
+      in = new FileInputStream(file);
     }
 
     SAXParserFactory factory = SAXParserFactory.newInstance();
@@ -132,7 +131,13 @@ public class RestoreZookeeper {
     // is a simple switch to remove any chance of external entities causing problems.
     factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
     SAXParser parser = factory.newSAXParser();
-    parser.parse(in, new Restore(zoo, opts.overwrite));
+    parser.parse(in, new Restore(zoo, overwrite));
     in.close();
+  }
+
+  public static void main(String[] args) throws Exception {
+    Opts opts = new Opts();
+    opts.parseArgs(RestoreZookeeper.class.getName(), args);
+    restoreZookeeper(SiteConfiguration.auto(), opts.file, opts.overwrite);
   }
 }

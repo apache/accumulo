@@ -38,7 +38,8 @@ public enum ServerType {
    */
   @Deprecated(since = "2.1.0", forRemoval = true)
   TRACER("Tracer"),
-  MONITOR("Monitor");
+  MONITOR("Monitor"),
+  SCAN_SERVER("SServer");
 
   private final String prettyPrint;
 

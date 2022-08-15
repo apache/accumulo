@@ -66,8 +66,6 @@ public class TabletServerMetrics implements MetricsProducer {
         .description("Number of opening tablets").register(registry);
     Gauge.builder(METRICS_TSERVER_TABLETS_UNOPENED, util, TabletServerMetricsUtil::getUnopenedCount)
         .description("Number of unopened tablets").register(registry);
-    Gauge.builder(METRICS_TSERVER_QUERIES, util, TabletServerMetricsUtil::getLookupCount)
-        .description("Number of queries").register(registry);
     Gauge
         .builder(METRICS_TSERVER_MINC_TOTAL, util,
             TabletServerMetricsUtil::getTotalMinorCompactions)
@@ -83,13 +81,5 @@ public class TabletServerMetrics implements MetricsProducer {
         .description("Ingest rate (entries/sec)").register(registry);
     Gauge.builder(METRICS_TSERVER_INGEST_BYTES, util, TabletServerMetricsUtil::getIngestByteCount)
         .description("Ingest rate (bytes/sec)").register(registry);
-    Gauge.builder(METRICS_TSERVER_SCAN_RESULTS, util, TabletServerMetricsUtil::getQueryResultCount)
-        .description("Query rate (entries/sec)").register(registry);
-    Gauge
-        .builder(METRICS_TSERVER_SCAN_RESULTS_BYTES, util,
-            TabletServerMetricsUtil::getQueryByteCount)
-        .description("Query rate (bytes/sec)").register(registry);
-    Gauge.builder(METRICS_TSERVER_SCANNED_ENTRIES, util, TabletServerMetricsUtil::getScannedCount)
-        .description("Scanned rate").register(registry);
   }
 }

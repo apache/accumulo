@@ -24,8 +24,13 @@ import static org.apache.accumulo.server.util.MetadataTableUtil.EMPTY_TEXT;
 
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -38,6 +43,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -47,6 +53,7 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ExternalCompactionSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.ScanServerFileReferenceSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
@@ -266,4 +273,72 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       throw new RuntimeException(e);
     }
   }
+
+  @Override
+  public void putScanServerFileReferences(Collection<ScanServerRefTabletFile> scanRefs) {
+    try (BatchWriter writer = context.createBatchWriter(DataLevel.USER.metaTable())) {
+      String prefix = ScanServerFileReferenceSection.getRowPrefix();
+      for (ScanServerRefTabletFile ref : scanRefs) {
+        Mutation m = new Mutation(prefix + ref.getRowSuffix());
+        m.put(ref.getServerAddress(), ref.getServerLockUUID(), ref.getValue());
+        writer.addMutation(m);
+      }
+    } catch (MutationsRejectedException | TableNotFoundException e) {
+      throw new IllegalStateException(
+          "Error inserting scan server file references into " + DataLevel.USER.metaTable(), e);
+    }
+  }
+
+  @Override
+  public Stream<ScanServerRefTabletFile> getScanServerFileReferences() {
+    try {
+      Scanner scanner = context.createScanner(DataLevel.USER.metaTable(), Authorizations.EMPTY);
+      scanner.setRange(ScanServerFileReferenceSection.getRange());
+      int pLen = ScanServerFileReferenceSection.getRowPrefix().length();
+      return StreamSupport.stream(scanner.spliterator(), false)
+          .map(e -> new ScanServerRefTabletFile(e.getKey().getRowData().toString().substring(pLen),
+              e.getKey().getColumnFamily(), e.getKey().getColumnQualifier()));
+    } catch (TableNotFoundException e) {
+      throw new IllegalStateException(DataLevel.USER.metaTable() + " not found!", e);
+    }
+  }
+
+  @Override
+  public void deleteScanServerFileReferences(String serverAddress, UUID scanServerLockUUID) {
+    Objects.requireNonNull(serverAddress, "Server address must be supplied");
+    Objects.requireNonNull(scanServerLockUUID, "Server uuid must be supplied");
+    try (
+        Scanner scanner = context.createScanner(DataLevel.USER.metaTable(), Authorizations.EMPTY)) {
+      scanner.setRange(ScanServerFileReferenceSection.getRange());
+      scanner.fetchColumn(new Text(serverAddress), new Text(scanServerLockUUID.toString()));
+
+      int pLen = ScanServerFileReferenceSection.getRowPrefix().length();
+      Set<ScanServerRefTabletFile> refsToDelete = StreamSupport.stream(scanner.spliterator(), false)
+          .map(e -> new ScanServerRefTabletFile(e.getKey().getRowData().toString().substring(pLen),
+              e.getKey().getColumnFamily(), e.getKey().getColumnQualifier()))
+          .collect(Collectors.toSet());
+
+      if (!refsToDelete.isEmpty()) {
+        this.deleteScanServerFileReferences(refsToDelete);
+      }
+    } catch (TableNotFoundException e) {
+      throw new IllegalStateException(DataLevel.USER.metaTable() + " not found!", e);
+    }
+  }
+
+  @Override
+  public void deleteScanServerFileReferences(Collection<ScanServerRefTabletFile> refsToDelete) {
+    try (BatchWriter writer = context.createBatchWriter(DataLevel.USER.metaTable())) {
+      String prefix = ScanServerFileReferenceSection.getRowPrefix();
+      for (ScanServerRefTabletFile ref : refsToDelete) {
+        Mutation m = new Mutation(prefix + ref.getRowSuffix());
+        m.putDelete(ref.getServerAddress(), ref.getServerLockUUID());
+        writer.addMutation(m);
+      }
+      log.debug("Deleted scan server file reference entries for files: {}", refsToDelete);
+    } catch (MutationsRejectedException | TableNotFoundException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
 }

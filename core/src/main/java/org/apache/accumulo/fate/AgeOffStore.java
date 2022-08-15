@@ -212,13 +212,13 @@ public class AgeOffStore<T> implements TStore<T> {
   }
 
   @Override
-  public void setProperty(long tid, String prop, Serializable val) {
-    store.setProperty(tid, prop, val);
+  public void setTransactionInfo(long tid, Fate.TxInfo txInfo, Serializable val) {
+    store.setTransactionInfo(tid, txInfo, val);
   }
 
   @Override
-  public Serializable getProperty(long tid, String prop) {
-    return store.getProperty(tid, prop);
+  public Serializable getTransactionInfo(long tid, Fate.TxInfo txInfo) {
+    return store.getTransactionInfo(tid, txInfo);
   }
 
   @Override
