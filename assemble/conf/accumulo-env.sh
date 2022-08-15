@@ -76,6 +76,7 @@ read -r -a accumulo_initial_opts < <(echo "$ACCUMULO_JAVA_OPTS")
 JAVA_OPTS=(
   '-XX:OnOutOfMemoryError=kill -9 %p'
   '-XX:-OmitStackTraceInFastThrow'
+  '-XX:+UnlockDiagnosticVMOptions'
   '-Djava.net.preferIPv4Stack=true'
   "-Daccumulo.native.lib.path=${lib}/native"
   "${accumulo_initial_opts[@]}"
