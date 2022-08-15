@@ -42,7 +42,7 @@ public class TraceRepo<T> implements Repo<T> {
 
   @Override
   public long isReady(long tid, T environment) throws Exception {
-    Span span = TraceUtil.startFateSpan(repo.getClass(), repo.getDescription(), tinfo);
+    Span span = TraceUtil.startFateSpan(repo.getClass(), repo.getName(), tinfo);
     try (Scope scope = span.makeCurrent()) {
       return repo.isReady(tid, environment);
     } catch (Exception e) {
@@ -55,7 +55,7 @@ public class TraceRepo<T> implements Repo<T> {
 
   @Override
   public Repo<T> call(long tid, T environment) throws Exception {
-    Span span = TraceUtil.startFateSpan(repo.getClass(), repo.getDescription(), tinfo);
+    Span span = TraceUtil.startFateSpan(repo.getClass(), repo.getName(), tinfo);
     try (Scope scope = span.makeCurrent()) {
       Repo<T> result = repo.call(tid, environment);
       if (result == null)
@@ -71,7 +71,7 @@ public class TraceRepo<T> implements Repo<T> {
 
   @Override
   public void undo(long tid, T environment) throws Exception {
-    Span span = TraceUtil.startFateSpan(repo.getClass(), repo.getDescription(), tinfo);
+    Span span = TraceUtil.startFateSpan(repo.getClass(), repo.getName(), tinfo);
     try (Scope scope = span.makeCurrent()) {
       repo.undo(tid, environment);
     } catch (Exception e) {
@@ -83,8 +83,8 @@ public class TraceRepo<T> implements Repo<T> {
   }
 
   @Override
-  public String getDescription() {
-    return repo.getDescription();
+  public String getName() {
+    return repo.getName();
   }
 
   @Override

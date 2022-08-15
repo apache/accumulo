@@ -169,6 +169,35 @@ public class Admin implements KeywordExecutable {
     boolean verbose = false;
   }
 
+  /**
+   * @since 2.1.0
+   */
+  @Parameters(
+      commandDescription = "Changes the unique secret given to the instance that all servers must know.")
+  static class ChangeSecretCommand {}
+
+  @Parameters(
+      commandDescription = "List or delete Tablet Server locks. Default with no arguments is to list the locks.")
+  static class TabletServerLocksCommand {
+    @Parameter(names = "-delete", description = "specify a tablet server lock to delete")
+    String delete = null;
+  }
+
+  @Parameters(commandDescription = "Deletes instance name or id from zookeeper.")
+  static class DeleteZooInstanceCommand {
+    @Parameter(names = {"-i", "--instance"}, description = "the instance name or id to delete")
+    String instance;
+  }
+
+  @Parameters(commandDescription = "Restore Zookeeper data from a file.")
+  static class RestoreZooCommand {
+    @Parameter(names = "--overwrite")
+    boolean overwrite = false;
+
+    @Parameter(names = "--file")
+    String file;
+  }
+
   public static void main(String[] args) {
     new Admin().execute(args);
   }
@@ -200,6 +229,15 @@ public class Admin implements KeywordExecutable {
     CheckTabletsCommand checkTabletsCommand = new CheckTabletsCommand();
     cl.addCommand("checkTablets", checkTabletsCommand);
 
+    ChangeSecretCommand changeSecretCommand = new ChangeSecretCommand();
+    cl.addCommand("changeSecret", changeSecretCommand);
+
+    DeleteZooInstanceCommand deleteZooInstanceOpts = new DeleteZooInstanceCommand();
+    cl.addCommand("deleteZooInstance", deleteZooInstanceOpts);
+
+    RestoreZooCommand restoreZooOpts = new RestoreZooCommand();
+    cl.addCommand("restoreZoo", restoreZooOpts);
+
     ListInstancesCommand listIntancesOpts = new ListInstancesCommand();
     cl.addCommand("listInstances", listIntancesOpts);
 
@@ -223,6 +261,9 @@ public class Admin implements KeywordExecutable {
 
     RandomizeVolumesCommand randomizeVolumesOpts = new RandomizeVolumesCommand();
     cl.addCommand("randomizeVolumes", randomizeVolumesOpts);
+
+    TabletServerLocksCommand tServerLocksOpts = new TabletServerLocksCommand();
+    cl.addCommand("locks", tServerLocksOpts);
 
     VerifyTabletAssignmentsCommand verifyTabletAssignmentsOpts =
         new VerifyTabletAssignmentsCommand();
@@ -279,6 +320,15 @@ public class Admin implements KeywordExecutable {
       } else if (cl.getParsedCommand().equals("verifyTabletAssigns")) {
         VerifyTabletAssignments.verifyTableAssignments(opts.getClientProps(),
             verifyTabletAssignmentsOpts.verbose);
+      } else if (cl.getParsedCommand().equals("changeSecret")) {
+        ChangeSecret.changeSecret(context, conf);
+      } else if (cl.getParsedCommand().equals("deleteZooInstance")) {
+        DeleteZooInstance.deleteZooInstance(deleteZooInstanceOpts.instance);
+      } else if (cl.getParsedCommand().equals("restoreZoo")) {
+        RestoreZookeeper.restoreZookeeper(conf, restoreZooOpts.file, restoreZooOpts.overwrite);
+      } else if (cl.getParsedCommand().equals("locks")) {
+        TabletServerLocks.tabletServerLocks("accumulo locks", context,
+            args.length > 2 ? args[2] : null, tServerLocksOpts.delete);
       } else {
         everything = cl.getParsedCommand().equals("stopAll");
 

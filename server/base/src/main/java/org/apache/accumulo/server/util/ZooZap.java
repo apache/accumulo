@@ -118,7 +118,7 @@ public class ZooZap implements KeywordExecutable {
 
         try {
           zapDirectory(zoo, managerLockPath, opts);
-        } catch (Exception e) {
+        } catch (KeeperException | InterruptedException e) {
           e.printStackTrace();
         }
       }
@@ -141,7 +141,7 @@ public class ZooZap implements KeywordExecutable {
               }
             }
           }
-        } catch (Exception e) {
+        } catch (KeeperException | InterruptedException e) {
           log.error("{}", e.getMessage(), e);
         }
       }
@@ -159,7 +159,7 @@ public class ZooZap implements KeywordExecutable {
         final String coordinatorPath = Constants.ZROOT + "/" + iid + Constants.ZCOORDINATOR_LOCK;
         try {
           zapDirectory(zoo, coordinatorPath, opts);
-        } catch (Exception e) {
+        } catch (KeeperException | InterruptedException e) {
           log.error("Error deleting coordinator from zookeeper, {}", e.getMessage(), e);
         }
       }
@@ -172,7 +172,7 @@ public class ZooZap implements KeywordExecutable {
             message("Deleting " + compactorsBasepath + "/" + queue + " from zookeeper", opts);
             zoo.recursiveDelete(compactorsBasepath + "/" + queue, NodeMissingPolicy.SKIP);
           }
-        } catch (Exception e) {
+        } catch (KeeperException | InterruptedException e) {
           log.error("Error deleting compactors from zookeeper, {}", e.getMessage(), e);
         }
 
@@ -190,7 +190,7 @@ public class ZooZap implements KeywordExecutable {
               ServiceLock.deleteLock(zoo, zLockPath);
             }
           }
-        } catch (Exception e) {
+        } catch (KeeperException | InterruptedException e) {
           log.error("{}", e.getMessage(), e);
         }
       }

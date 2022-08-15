@@ -21,6 +21,7 @@ package org.apache.accumulo.test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -121,6 +122,10 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
       log.info("Exporting table to {}", exportDir);
       log.info("Importing table from {}", importDirs);
+
+      // test fast fail offline check
+      assertThrows(IllegalStateException.class,
+          () -> client.tableOperations().exportTable(srcTable, exportDir.toString()));
 
       // Offline the table
       client.tableOperations().offline(srcTable, true);

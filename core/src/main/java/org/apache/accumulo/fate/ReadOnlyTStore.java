@@ -123,16 +123,16 @@ public interface ReadOnlyTStore<T> {
   TStatus waitForStatusChange(long tid, EnumSet<TStatus> expected);
 
   /**
-   * Retrieve a transaction-specific property.
+   * Retrieve transaction-specific information.
    *
    * Caller must have already reserved tid.
    *
    * @param tid
    *          transaction id, previously reserved.
-   * @param prop
-   *          name of property to retrieve.
+   * @param txInfo
+   *          name of attribute of a transaction to retrieve.
    */
-  Serializable getProperty(long tid, String prop);
+  Serializable getTransactionInfo(long tid, Fate.TxInfo txInfo);
 
   /**
    * list all transaction ids in store.

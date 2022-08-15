@@ -21,6 +21,7 @@ package org.apache.accumulo.server.util;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
@@ -52,6 +53,32 @@ public class DeleteZooInstance {
     }
   }
 
+  public static void deleteZooInstance(final String instance) throws Exception {
+    Objects.requireNonNull(instance, "Instance must not be null");
+
+    var zk = new ZooReaderWriter(SiteConfiguration.auto());
+    // try instance name:
+    Set<String> instances = new HashSet<>(zk.getChildren(Constants.ZROOT + Constants.ZINSTANCES));
+    Set<String> uuids = new HashSet<>(zk.getChildren(Constants.ZROOT));
+    uuids.remove("instances");
+    if (instances.contains(instance)) {
+      String path = Constants.ZROOT + Constants.ZINSTANCES + "/" + instance;
+      byte[] data = zk.getData(path);
+      deleteRetry(zk, path);
+      deleteRetry(zk, Constants.ZROOT + "/" + new String(data, UTF_8));
+    } else if (uuids.contains(instance)) {
+      // look for the real instance name
+      for (String zkInstance : instances) {
+        String path = Constants.ZROOT + Constants.ZINSTANCES + "/" + zkInstance;
+        byte[] data = zk.getData(path);
+        if (instance.equals(new String(data, UTF_8))) {
+          deleteRetry(zk, path);
+        }
+      }
+      deleteRetry(zk, Constants.ZROOT + "/" + instance);
+    }
+  }
+
   /**
    * @param args
    *          : the name or UUID of the instance to be deleted
@@ -59,28 +86,7 @@ public class DeleteZooInstance {
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(DeleteZooInstance.class.getName(), args);
-
-    var zk = new ZooReaderWriter(SiteConfiguration.auto());
-    // try instance name:
-    Set<String> instances = new HashSet<>(zk.getChildren(Constants.ZROOT + Constants.ZINSTANCES));
-    Set<String> uuids = new HashSet<>(zk.getChildren(Constants.ZROOT));
-    uuids.remove("instances");
-    if (instances.contains(opts.instance)) {
-      String path = Constants.ZROOT + Constants.ZINSTANCES + "/" + opts.instance;
-      byte[] data = zk.getData(path);
-      deleteRetry(zk, path);
-      deleteRetry(zk, Constants.ZROOT + "/" + new String(data, UTF_8));
-    } else if (uuids.contains(opts.instance)) {
-      // look for the real instance name
-      for (String instance : instances) {
-        String path = Constants.ZROOT + Constants.ZINSTANCES + "/" + instance;
-        byte[] data = zk.getData(path);
-        if (opts.instance.equals(new String(data, UTF_8))) {
-          deleteRetry(zk, path);
-        }
-      }
-      deleteRetry(zk, Constants.ZROOT + "/" + opts.instance);
-    }
+    deleteZooInstance(opts.instance);
   }
 
 }
