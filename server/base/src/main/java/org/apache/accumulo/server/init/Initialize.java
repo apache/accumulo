@@ -60,6 +60,7 @@ import org.apache.accumulo.server.util.SystemPropUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
@@ -74,7 +75,7 @@ import com.google.auto.service.AutoService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
- * This class is used to setup the directory structure and the root tablet to get an instance
+ * This class is used to set up the directory structure and the root tablet to get an instance
  * started
  */
 @SuppressFBWarnings(value = "DM_EXIT", justification = "CLI utility can exit")
@@ -250,25 +251,54 @@ public class Initialize implements KeywordExecutable {
     }
   }
 
+  /**
+   * Create the version directory and the instance id path and file. The method tries to create the
+   * directories and instance id file for all base directories provided unless an IOException is
+   * thrown. The IOException is not rethrown, but the method not try to create additional entries
+   * and will return false.
+   *
+   * @return false if an IOException occurred, true otherwise.
+   */
   private static boolean createDirs(VolumeManager fs, InstanceId instanceId, Set<String> baseDirs) {
+    boolean success;
+
     try {
       for (String baseDir : baseDirs) {
-        fs.mkdirs(
-            new Path(new Path(baseDir, Constants.VERSION_DIR), "" + AccumuloDataVersion.get()),
-            new FsPermission("700"));
-        log.info("Created directory {}", baseDir);
+        log.debug("creating instance directories for base: {}", baseDir);
+
+        Path verDir =
+            new Path(new Path(baseDir, Constants.VERSION_DIR), "" + AccumuloDataVersion.get());
+        FsPermission permission = new FsPermission("700");
+
+        if (fs.exists(verDir)) {
+          FileStatus fsStat = fs.getFileStatus(verDir);
+          log.info("directory {} exists. Permissions match: {}", fsStat.getPath(),
+              fsStat.getPermission().equals(permission));
+        } else {
+          success = fs.mkdirs(verDir, permission);
+          log.info("Directory {} created - call returned {}", verDir, success);
+        }
 
         Path iidLocation = new Path(baseDir, Constants.INSTANCE_ID_DIR);
-        fs.mkdirs(iidLocation);
-        log.info("Created directory {}", iidLocation);
+        if (fs.exists(iidLocation)) {
+          log.info("directory {} exists.", iidLocation);
+        } else {
+          success = fs.mkdirs(iidLocation);
+          log.info("Directory {} created - call returned {}", iidLocation, success);
+        }
 
         Path iidPath = new Path(iidLocation, instanceId.canonical());
-        boolean createSuccess = fs.createNewFile(iidPath);
-        if (!createSuccess || fs.exists(iidPath)) {
-          log.info("Created instanceId file {} in hdfs", iidPath);
+
+        if (fs.exists(iidPath)) {
+          log.info("InstanceID file {} exists.", iidPath);
         } else {
-          log.warn("Failed to create instanceId file {} in hdfs", iidPath);
-          return false;
+          success = fs.createNewFile(iidPath);
+          // the exists() call provides positive check that the instanceId file is present
+          if (!success || fs.exists(iidPath)) {
+            log.info("Created instanceId file {} in hdfs", iidPath);
+          } else {
+            log.warn("Failed to create instanceId file {} in hdfs", iidPath);
+          }
         }
       }
       return true;
@@ -284,7 +314,7 @@ public class Initialize implements KeywordExecutable {
 
   private String getInstanceNamePath(ZooReaderWriter zoo, Opts opts)
       throws KeeperException, InterruptedException {
-    // setup the instance name
+    // set up the instance name
     String instanceName, instanceNamePath = null;
     boolean exists = true;
     do {
