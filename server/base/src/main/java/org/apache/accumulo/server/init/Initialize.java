@@ -294,10 +294,10 @@ public class Initialize implements KeywordExecutable {
         } else {
           success = fs.createNewFile(iidPath);
           // the exists() call provides positive check that the instanceId file is present
-          if (!success || fs.exists(iidPath)) {
+          if (success && fs.exists(iidPath)) {
             log.info("Created instanceId file {} in hdfs", iidPath);
           } else {
-            log.warn("Failed to create instanceId file {} in hdfs", iidPath);
+            log.warn("May have failed to create instanceId file {} in hdfs", iidPath);
           }
         }
       }
