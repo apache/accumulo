@@ -85,6 +85,7 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       List<KVEntry> results = new ArrayList<>();
       Map<KeyExtent,List<Range>> failures = new HashMap<>();
       List<KeyExtent> fullScans = new ArrayList<>();
+      LookupResult lookupResult = null;
       KeyExtent partScan = null;
       Key partNextKey = null;
       boolean partNextKeyInclusive = false;
@@ -94,26 +95,26 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       // check the time so that the read ahead thread is not monopolized
       while (iter.hasNext() && bytesAdded < maxResultsSize
           && (System.currentTimeMillis() - startTime) < maxScanTime) {
-        final KeyExtent currentKeyExtent;
-        final List<Range> currentRangeList;
+        final KeyExtent extent;
+        final List<Range> ranges;
         {
           final Entry<KeyExtent,List<Range>> entry = iter.next();
-          currentKeyExtent = entry.getKey();
-          currentRangeList = entry.getValue();
+          extent = entry.getKey();
+          ranges = entry.getValue();
         }
 
         iter.remove();
 
         // check that tablet server is serving requested tablet
-        TabletBase tablet = session.getTabletResolver().getTablet(currentKeyExtent);
+        TabletBase tablet = session.getTabletResolver().getTablet(extent);
+
         if (tablet == null) {
-          failures.put(currentKeyExtent, currentRangeList);
+          failures.put(extent, ranges);
           continue;
         }
         Thread.currentThread().setName("Client: " + session.client + " User: " + session.getUser()
-            + " Start: " + session.startTime + " Tablet: " + currentKeyExtent);
+            + " Start: " + session.startTime + " Tablet: " + extent);
 
-        LookupResult lookupResult;
         try {
 
           // do the following check to avoid a race condition between setting false below and the
@@ -121,32 +122,45 @@ public class LookupTask extends ScanTask<MultiScanResult> {
           if (isCancelled())
             interruptFlag.set(true);
 
-          lookupResult = tablet.lookup(currentRangeList, results, session.scanParams,
+          // Create new List here to collect the results from this Tablet.lookup() call
+          // Ensures that the yield code in Tablet can only compare a yield position
+          // to the results from that call
+          List<KVEntry> tabletResults = new ArrayList<>();
+          lookupResult = tablet.lookup(ranges, tabletResults, session.scanParams,
               maxResultsSize - bytesAdded, interruptFlag);
+          // Add results from this Tablet.lookup() to the accumulated results
+          results.addAll(tabletResults);
 
           // if the tablet was closed, it is possible that the interrupt flag was set.... do not
           // want it set for the next lookup
           interruptFlag.set(false);
 
         } catch (IOException e) {
-          log.warn("lookup failed for tablet " + currentKeyExtent, e);
+          log.warn("lookup failed for tablet " + extent, e);
           throw new RuntimeException(e);
         }
 
         bytesAdded += lookupResult.bytesAdded;
 
         if (lookupResult.unfinishedRanges.isEmpty()) {
-          fullScans.add(currentKeyExtent);
+          fullScans.add(extent);
         } else {
           if (lookupResult.closed) {
-            failures.put(currentKeyExtent, lookupResult.unfinishedRanges);
+            failures.put(extent, lookupResult.unfinishedRanges);
           } else {
-            session.queries.put(currentKeyExtent, lookupResult.unfinishedRanges);
-            partScan = currentKeyExtent;
+            partScan = extent;
             partNextKey = lookupResult.unfinishedRanges.get(0).getStartKey();
             partNextKeyInclusive = lookupResult.unfinishedRanges.get(0).isStartKeyInclusive();
+            // Stop this LookupTask. The client side will continue the scan and a
+            // new LookupTask will be created
+            break;
           }
         }
+      }
+      // add unfinished ranges back to session.queries so that we return more=true
+      // when the MultiScanResult is created and returned
+      if (partScan != null) {
+        session.queries.put(partScan, lookupResult.unfinishedRanges);
       }
 
       long finishTime = System.currentTimeMillis();
