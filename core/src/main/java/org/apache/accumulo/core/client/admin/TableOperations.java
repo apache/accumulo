@@ -1072,6 +1072,24 @@ public interface TableOperations {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
+   * Gets the number of bytes being used in the files for a set of tables. This operation will use
+   * the client to scan the metadata table to compute the size metrics for the tables. For the most
+   * accurate information a flush or compaction can be run first on the set of tables.
+   *
+   * @param tables
+   *          set of tables to compute usage across
+   * @param computeShared
+   *          whether to compute size metrics across shared files
+   * @param auths
+   *          authorizations to scan the metadata table
+   * @return The disk usage result
+   *
+   * @since 2.1.0
+   */
+  TableDiskUsageResult getDiskUsageFromMetadata(Set<String> tables, boolean computeShared,
+      Authorizations auths) throws TableNotFoundException;
+
+  /**
    * Test to see if the instance can load the given class as the given type. This check uses the
    * table classpath if it is set.
    *

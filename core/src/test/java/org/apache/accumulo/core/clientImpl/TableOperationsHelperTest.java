@@ -42,6 +42,7 @@ import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.SummaryRetriever;
+import org.apache.accumulo.core.client.admin.TableDiskUsageResult;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.data.Range;
@@ -197,6 +198,12 @@ public class TableOperationsHelperTest {
 
     @Override
     public List<DiskUsage> getDiskUsage(Set<String> tables) {
+      return null;
+    }
+
+    @Override
+    public TableDiskUsageResult getDiskUsageFromMetadata(Set<String> tables, boolean computeShared,
+        Authorizations auths) {
       return null;
     }
 

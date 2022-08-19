@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.TreeSet;
+import java.util.SortedSet;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -64,8 +64,8 @@ import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.security.SecurityOperation;
+import org.apache.accumulo.server.util.HdfsTableDiskUsage;
 import org.apache.accumulo.server.util.ServerBulkImportStatus;
-import org.apache.accumulo.server.util.TableDiskUsage;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -439,10 +439,10 @@ public class ClientServiceHandler implements ClientService.Iface {
       }
 
       // use the same set of tableIds that were validated above to avoid race conditions
-      Map<TreeSet<String>,Long> diskUsage =
-          TableDiskUsage.getDiskUsage(tableIds, context.getVolumeManager(), context);
+      Map<SortedSet<String>,Long> diskUsage =
+          HdfsTableDiskUsage.getDiskUsage(tableIds, context.getVolumeManager(), context);
       List<TDiskUsage> retUsages = new ArrayList<>();
-      for (Map.Entry<TreeSet<String>,Long> usageItem : diskUsage.entrySet()) {
+      for (Map.Entry<SortedSet<String>,Long> usageItem : diskUsage.entrySet()) {
         retUsages.add(new TDiskUsage(new ArrayList<>(usageItem.getKey()), usageItem.getValue()));
       }
       return retUsages;

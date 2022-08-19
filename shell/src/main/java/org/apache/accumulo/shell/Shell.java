@@ -100,6 +100,7 @@ import org.apache.accumulo.shell.commands.DeleteTableCommand;
 import org.apache.accumulo.shell.commands.DeleteUserCommand;
 import org.apache.accumulo.shell.commands.DropTableCommand;
 import org.apache.accumulo.shell.commands.DropUserCommand;
+import org.apache.accumulo.shell.commands.DuMetaCommand;
 import org.apache.accumulo.shell.commands.EGrepCommand;
 import org.apache.accumulo.shell.commands.ExecfileCommand;
 import org.apache.accumulo.shell.commands.ExitCommand;
@@ -404,10 +405,10 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         new UserCommand(), new WhoAmICommand()};
     Command[] tableCommands = {new CloneTableCommand(), new ConfigCommand(),
         new CreateTableCommand(), new DeleteTableCommand(), new DropTableCommand(), new DUCommand(),
-        new ExportTableCommand(), new ImportTableCommand(), new OfflineCommand(),
-        new OnlineCommand(), new RenameTableCommand(), new TablesCommand(), new NamespacesCommand(),
-        new CreateNamespaceCommand(), new DeleteNamespaceCommand(), new RenameNamespaceCommand(),
-        new SummariesCommand()};
+        new DuMetaCommand(), new ExportTableCommand(), new ImportTableCommand(),
+        new OfflineCommand(), new OnlineCommand(), new RenameTableCommand(), new TablesCommand(),
+        new NamespacesCommand(), new CreateNamespaceCommand(), new DeleteNamespaceCommand(),
+        new RenameNamespaceCommand(), new SummariesCommand()};
     Command[] tableControlCommands = {new AddSplitsCommand(), new CompactCommand(),
         new ConstraintCommand(), new FlushCommand(), new GetGroupsCommand(), new GetSplitsCommand(),
         new MergeCommand(), new SetGroupsCommand()};

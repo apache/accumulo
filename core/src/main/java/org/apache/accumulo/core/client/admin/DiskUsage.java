@@ -23,8 +23,8 @@ import java.util.SortedSet;
 
 public class DiskUsage {
 
-  protected final SortedSet<String> tables;
-  protected Long usage;
+  private final SortedSet<String> tables;
+  private final Long usage;
 
   public DiskUsage(SortedSet<String> tables, Long usage) {
     this.tables = tables;
