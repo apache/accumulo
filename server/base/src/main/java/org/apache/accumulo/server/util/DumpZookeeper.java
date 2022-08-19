@@ -80,6 +80,10 @@ public class DumpZookeeper implements KeywordExecutable {
     }
   }
 
+  public static void main(String[] args) throws KeeperException, InterruptedException {
+    new DumpZookeeper().execute(args);
+  }
+
   private static void writeXml(PrintStream out, String root)
       throws KeeperException, InterruptedException {
     write(out, 0, "<dump root='%s'>", root);
