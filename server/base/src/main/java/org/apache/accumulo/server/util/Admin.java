@@ -238,8 +238,8 @@ public class Admin implements KeywordExecutable {
     DumpConfigCommand dumpConfigCommand = new DumpConfigCommand();
     cl.addCommand("dumpConfig", dumpConfigCommand);
 
-    ListInstancesCommand listIntancesOpts = new ListInstancesCommand();
-    cl.addCommand("listInstances", listIntancesOpts);
+    ListInstancesCommand listInstancesOpts = new ListInstancesCommand();
+    cl.addCommand("listInstances", listInstancesOpts);
 
     TabletServerLocksCommand tServerLocksOpts = new TabletServerLocksCommand();
     cl.addCommand("locks", tServerLocksOpts);
@@ -292,8 +292,8 @@ public class Admin implements KeywordExecutable {
       int rc = 0;
 
       if (cl.getParsedCommand().equals("listInstances")) {
-        ListInstances.listInstances(context.getZooKeepers(), listIntancesOpts.printAll,
-            listIntancesOpts.printErrors);
+        ListInstances.listInstances(context.getZooKeepers(), listInstancesOpts.printAll,
+            listInstancesOpts.printErrors);
       } else if (cl.getParsedCommand().equals("ping")) {
         if (ping(context, pingCommand.args) != 0)
           rc = 4;
