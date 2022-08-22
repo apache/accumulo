@@ -52,15 +52,13 @@ public class Main {
           .getClassLoader().loadClass("org.apache.hadoop.conf.Configuration");
       confClass = deprecatedConfClass;
     } catch (ClassNotFoundException e) {
-      log.error("Unable to find Hadoop Configuration class on classpath, check configuration.", e);
-      throw e;
+      die(e, "Unable to find Hadoop Configuration class on classpath, check configuration.");
     }
     Object conf = null;
     try {
       conf = confClass.getDeclaredConstructor().newInstance();
     } catch (Exception e) {
-      log.error("Error creating new instance of Hadoop Configuration", e);
-      throw e;
+      die(e, "Error creating new instance of Hadoop Configuration");
     }
     try {
       Method getClassByNameOrNullMethod =
@@ -68,9 +66,8 @@ public class Main {
       getClassByNameOrNullMethod.invoke(conf, "org.apache.hadoop.mapred.JobConf");
       getClassByNameOrNullMethod.invoke(conf, "org.apache.hadoop.mapred.JobConfigurable");
     } catch (Exception e) {
-      log.error("Error pre-loading JobConf and JobConfigurable classes, VFS classloader with "
-          + "system classes in HDFS may not work correctly", e);
-      throw e;
+      die(e, "Error pre-loading JobConf and JobConfigurable classes, VFS classloader with "
+          + "system classes in HDFS may not work correctly");
     }
 
     if (args.length == 0) {
@@ -101,8 +98,7 @@ public class Main {
         Thread.currentThread().setContextClassLoader(classLoader);
       } catch (IOException | IllegalArgumentException | ReflectiveOperationException
           | SecurityException e) {
-        log.error("Problem initializing the class loader", e);
-        System.exit(1);
+        die(e, "Problem initializing the class loader");
       }
     }
     return classLoader;
@@ -125,7 +121,7 @@ public class Main {
       try {
         keywordExec.execute(args);
       } catch (Exception e) {
-        die(e);
+        die(e, null);
       }
     };
     startThread(r, keywordExec.keyword());
@@ -149,7 +145,7 @@ public class Main {
     try {
       main = classWithMain.getMethod("main", args.getClass());
     } catch (Exception t) {
-      log.error("Could not run main method on '" + classWithMain.getName() + "'.", t);
+      die(t, "Could not run main method on '" + classWithMain.getName() + "'.");
     }
     if (main == null || !Modifier.isPublic(main.getModifiers())
         || !Modifier.isStatic(main.getModifiers())) {
@@ -163,13 +159,13 @@ public class Main {
         finalMain.invoke(null, (Object) args);
       } catch (InvocationTargetException e) {
         if (e.getCause() != null) {
-          die(e.getCause());
+          die(e.getCause(), null);
         } else {
           // Should never happen, but check anyway.
-          die(e);
+          die(e, null);
         }
       } catch (Exception e) {
-        die(e);
+        die(e, null);
       }
     };
     startThread(r, classWithMain.getName());
@@ -194,8 +190,12 @@ public class Main {
    * @param t
    *          The {@link Throwable} containing a stack trace to print.
    */
-  private static void die(final Throwable t) {
-    log.error("Thread '" + Thread.currentThread().getName() + "' died.", t);
+  private static void die(final Throwable t, String msg) {
+    String message =
+        (msg == null) ? "Thread '" + Thread.currentThread().getName() + "' died." : msg;
+    System.err.println(message);
+    t.printStackTrace();
+    log.error(message, t);
     System.exit(1);
   }
 
