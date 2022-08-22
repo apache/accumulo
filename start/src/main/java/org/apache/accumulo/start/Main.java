@@ -51,23 +51,23 @@ public class Main {
       var deprecatedConfClass = org.apache.accumulo.start.classloader.AccumuloClassLoader
           .getClassLoader().loadClass("org.apache.hadoop.conf.Configuration");
       confClass = deprecatedConfClass;
+      Object conf = null;
+      try {
+        conf = confClass.getDeclaredConstructor().newInstance();
+        try {
+          Method getClassByNameOrNullMethod =
+              conf.getClass().getMethod("getClassByNameOrNull", String.class);
+          getClassByNameOrNullMethod.invoke(conf, "org.apache.hadoop.mapred.JobConf");
+          getClassByNameOrNullMethod.invoke(conf, "org.apache.hadoop.mapred.JobConfigurable");
+        } catch (Exception e) {
+          die(e, "Error pre-loading JobConf and JobConfigurable classes, VFS classloader with "
+              + "system classes in HDFS may not work correctly");
+        }
+      } catch (Exception e) {
+        die(e, "Error creating new instance of Hadoop Configuration");
+      }
     } catch (ClassNotFoundException e) {
       die(e, "Unable to find Hadoop Configuration class on classpath, check configuration.");
-    }
-    Object conf = null;
-    try {
-      conf = confClass.getDeclaredConstructor().newInstance();
-    } catch (Exception e) {
-      die(e, "Error creating new instance of Hadoop Configuration");
-    }
-    try {
-      Method getClassByNameOrNullMethod =
-          conf.getClass().getMethod("getClassByNameOrNull", String.class);
-      getClassByNameOrNullMethod.invoke(conf, "org.apache.hadoop.mapred.JobConf");
-      getClassByNameOrNullMethod.invoke(conf, "org.apache.hadoop.mapred.JobConfigurable");
-    } catch (Exception e) {
-      die(e, "Error pre-loading JobConf and JobConfigurable classes, VFS classloader with "
-          + "system classes in HDFS may not work correctly");
     }
 
     if (args.length == 0) {
