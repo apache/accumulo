@@ -114,15 +114,6 @@ function parse_config {
 
 }
 
-function get_ip() {
-  local ip_addr
-  ip_addr=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1 -d'/')
-  if [[ -z $ip_addr ]]; then
-    ip_addr=$(getent ahosts "$(hostname -f)" | grep DGRAM | cut -f 1 -d ' ')
-  fi
-  echo "$ip_addr"
-}
-
 function control_service() {
   control_cmd="$1"
   host="$2"
@@ -139,7 +130,7 @@ function control_service() {
     [[ $service == "compactor" ]] && ACCUMULO_SERVICE_INSTANCE="${inst_id}_${5}"
     [[ $service == "sserver" && ${NUM_SSERVERS:-1} -gt 1 ]] && ACCUMULO_SERVICE_INSTANCE=${inst_id}
 
-    if [[ $host == localhost || $host == "$(hostname -s)" || $host == "$(hostname -f)" || $host == $(get_ip) ]]; then
+    if [[ $host == localhost || $host == "$(hostname -s)" || $host == "$(hostname -f)" || "$(hostname -I)" =~ $host ]]; then
       #
       # The server processes take arguments (e.g. -p, -o, -q [in the case of the Compactor]). Always add the -a argument
       # using the value of $host
@@ -219,7 +210,7 @@ function start_all() {
 
 function start_here() {
 
-  local_hosts="$(hostname -a 2>/dev/null) $(hostname) localhost 127.0.0.1 $(get_ip)"
+  local_hosts="$(hostname -a 2>/dev/null) $(hostname) localhost 127.0.0.1 $(hostname -I)"
 
   for host in $local_hosts; do
     for tserver in $TSERVER_HOSTS; do
