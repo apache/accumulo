@@ -19,17 +19,16 @@
 package org.apache.accumulo.core.clientImpl;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector.ScanAttempt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Collections2;
-import com.google.common.collect.Maps;
 
 /**
  * This class is used to track scan attempts for the ScanServerSelector. Its designed to accept
@@ -79,7 +78,7 @@ public class ScanAttemptsImpl {
     }
   }
 
-  private Map<TabletId,Collection<ScanAttemptImpl>> attempts = new ConcurrentHashMap<>();
+  private final Map<TabletId,Collection<ScanAttemptImpl>> attempts = new ConcurrentHashMap<>();
   private long mutationCounter = 0;
 
   private void add(TabletId tablet, ScanAttempt.Result result, String server, long endTime) {
@@ -110,17 +109,33 @@ public class ScanAttemptsImpl {
     };
   }
 
+  /**
+   * Creates and returns a snapshot of ScanAttempt objects that were added before this call
+   *
+   * @return a map of TabletId to a collection ScanAttempt objects associated with that TabletId
+   */
   Map<TabletId,Collection<ScanAttemptImpl>> snapshot() {
-    // allows only seeing scan attempt objs that were added before this call
 
-    long snapMC;
+    final long mutationCounterSnapshot;
     synchronized (ScanAttemptsImpl.this) {
-      snapMC = mutationCounter;
+      mutationCounterSnapshot = mutationCounter;
     }
-    var tmp = Maps.transformValues(attempts, tabletAttemptList -> Collections2
-        .filter(tabletAttemptList, sai -> sai.getMutationCount() < snapMC));
 
-    return Maps.filterEntries(tmp, entry -> !entry.getValue().isEmpty());
+    Map<TabletId,Collection<ScanAttemptImpl>> result = new ConcurrentHashMap<>();
 
+    attempts.forEach((tabletId, scanAttempts) -> {
+
+      // filter out ScanAttempt objects that were added after this call
+      List<ScanAttemptImpl> filteredScanAttempts = scanAttempts.stream()
+          .filter(scanAttempt -> scanAttempt.getMutationCount() < mutationCounterSnapshot)
+          .collect(Collectors.toList());
+
+      // only add an entry to the map if there are ScanAttempt objects for the current TabletId
+      if (!filteredScanAttempts.isEmpty())
+        result.put(tabletId, filteredScanAttempts);
+
+    });
+
+    return result;
   }
 }
