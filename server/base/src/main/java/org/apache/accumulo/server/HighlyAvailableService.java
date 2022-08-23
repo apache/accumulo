@@ -39,4 +39,13 @@ public interface HighlyAvailableService {
   default boolean isUpgrading() {
     return false;
   }
+
+  /**
+   * Get the name of the service
+   *
+   * @return service name
+   */
+  default String getServiceName() {
+    return this.getClass().getSimpleName();
+  }
 }
