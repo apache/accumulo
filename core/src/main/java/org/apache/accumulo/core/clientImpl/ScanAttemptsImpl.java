@@ -109,6 +109,11 @@ public class ScanAttemptsImpl {
     };
   }
 
+  /**
+   * Creates and returns a snapshot of ScanAttempt objects that were added before this call
+   *
+   * @return a map of TabletId to a collection ScanAttempt objects associated with that TabletId
+   */
   Map<TabletId,Collection<ScanAttemptImpl>> snapshot() {
 
     final long mutationCounterSnapshot;
