@@ -78,7 +78,7 @@
                                 <img src="../resources/external/bootstrap/fonts/three-dots-vertical.svg">
                       </a>
                       <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" class="auto-refresh" style="cursor:pointer">Auto-Refresh</a></li>
+                        <li><a class="dropdown-item auto-refresh" style="cursor:pointer">Auto-Refresh</a></li>
                         <li><a class="dropdown-item" data-bs-toggle="modal" href="#aboutModal">About</a></li>
                       </ul>
         </li>

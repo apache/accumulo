@@ -444,6 +444,14 @@ pre.logevent {
   left: unset;
 }
 
+.active  {
+  color: #fff;
+  text-decoration: none;
+  background-color: #337ab7;
+  outline: 0;
+}
+
+
 .btn-white-font {
   color: #fff;
   background-color: #0dcaf0;
