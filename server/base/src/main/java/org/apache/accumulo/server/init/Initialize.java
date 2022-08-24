@@ -254,8 +254,7 @@ public class Initialize implements KeywordExecutable {
   /**
    * Create the version directory and the instance id path and file. The method tries to create the
    * directories and instance id file for all base directories provided unless an IOException is
-   * thrown. The IOException is not rethrown, but the method not try to create additional entries
-   * and will return false.
+   * thrown. If an IOException occurs, this method won't retry and will return false.
    *
    * @return false if an IOException occurred, true otherwise.
    */
