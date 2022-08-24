@@ -25,6 +25,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.function.Function;
 
+import org.apache.accumulo.fate.Fate;
 import org.apache.accumulo.fate.ReadOnlyRepo;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.StackOverflowException;
@@ -80,8 +81,8 @@ public class FateLogger {
       }
 
       @Override
-      public Serializable getProperty(long tid, String prop) {
-        return store.getProperty(tid, prop);
+      public Serializable getTransactionInfo(long tid, Fate.TxInfo txInfo) {
+        return store.getTransactionInfo(tid, txInfo);
       }
 
       @Override
@@ -129,10 +130,10 @@ public class FateLogger {
       }
 
       @Override
-      public void setProperty(long tid, String prop, Serializable val) {
-        store.setProperty(tid, prop, val);
+      public void setTransactionInfo(long tid, Fate.TxInfo txInfo, Serializable val) {
+        store.setTransactionInfo(tid, txInfo, val);
         if (storeLog.isTraceEnabled())
-          storeLog.trace("{} setting {} node data to {}", formatTid(tid), prop, val);
+          storeLog.trace("{} setting {} txInfo to {}", formatTid(tid), txInfo, val);
       }
 
       @Override

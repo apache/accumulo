@@ -32,6 +32,7 @@ import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -173,6 +174,11 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public List<String> getManagerLocations() {
     return context.getManagerLocations();
+  }
+
+  @Override
+  public Set<String> getScanServers() {
+    return Set.copyOf(context.getScanServers().keySet());
   }
 
   @Override

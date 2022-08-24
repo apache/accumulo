@@ -35,7 +35,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -49,20 +48,16 @@ import org.apache.accumulo.core.metadata.MetadataServicer;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.beust.jcommander.Parameter;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
@@ -70,14 +65,7 @@ import io.opentelemetry.context.Scope;
 public class VerifyTabletAssignments {
   private static final Logger log = LoggerFactory.getLogger(VerifyTabletAssignments.class);
 
-  static class Opts extends ServerUtilOpts {
-    @Parameter(names = {"-v", "--verbose"},
-        description = "verbose mode (prints locations of tablets)")
-    boolean verbose = false;
-  }
-
-  public static void verifyTableAssignments(Properties clientProps, boolean verbose)
-      throws Exception {
+  public static void execute(Properties clientProps, boolean verbose) throws Exception {
     Span span = TraceUtil.startSpan(VerifyTabletAssignments.class, "main");
     try (Scope scope = span.makeCurrent()) {
       try (AccumuloClient client = Accumulo.newClient().from(clientProps).build()) {
@@ -87,13 +75,6 @@ public class VerifyTabletAssignments {
         span.end();
       }
     }
-  }
-
-  public static void main(String[] args) throws Exception {
-    Opts opts = new Opts();
-    opts.parseArgs(VerifyTabletAssignments.class.getName(), args);
-    verifyTableAssignments(opts.getClientProps(), opts.verbose);
-
   }
 
   private static void checkTable(final ClientContext context, final boolean verbose,
@@ -165,8 +146,7 @@ public class VerifyTabletAssignments {
   }
 
   private static void checkTabletServer(ClientContext context,
-      Entry<HostAndPort,List<KeyExtent>> entry, HashSet<KeyExtent> failures)
-      throws ThriftSecurityException, TException, NoSuchScanIDException {
+      Entry<HostAndPort,List<KeyExtent>> entry, HashSet<KeyExtent> failures) throws TException {
     TabletScanClientService.Iface client =
         ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, entry.getKey(), context);
 
@@ -204,13 +184,13 @@ public class VerifyTabletAssignments {
     List<TColumn> emptyListColumn = Collections.emptyList();
     InitialMultiScan is = client.startMultiScan(tinfo, context.rpcCreds(), batch, emptyListColumn,
         emptyListIterInfo, emptyMapSMapSS, Authorizations.EMPTY.getAuthorizationsBB(), false, null,
-        0L, null, null);
+        0L, null, null, 0L);
     if (is.result.more) {
-      MultiScanResult result = client.continueMultiScan(tinfo, is.scanID);
+      MultiScanResult result = client.continueMultiScan(tinfo, is.scanID, 0L);
       checkFailures(entry.getKey(), failures, result);
 
       while (result.more) {
-        result = client.continueMultiScan(tinfo, is.scanID);
+        result = client.continueMultiScan(tinfo, is.scanID, 0L);
         checkFailures(entry.getKey(), failures, result);
       }
     }

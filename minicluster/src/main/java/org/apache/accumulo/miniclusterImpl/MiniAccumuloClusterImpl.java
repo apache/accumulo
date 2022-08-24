@@ -653,6 +653,11 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
       String secret = getSiteConfiguration().get(Property.INSTANCE_SECRET);
 
+      while (!(zk.getState() == States.CONNECTED)) {
+        log.info("Waiting for ZK client to connect, state: {} - will retry", zk.getState());
+        Thread.sleep(1000);
+      }
+
       String instanceId = null;
       for (int i = 0; i < numTries; i++) {
         if (zk.getState() == States.CONNECTED) {
@@ -668,6 +673,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
             log.warn("Error trying to read instance id from zookeeper: " + e.getMessage());
             log.debug("Unable to read instance id from zookeeper.", e);
           }
+        } else {
+          log.warn("ZK client not connected, state: {}", zk.getState());
         }
         Thread.sleep(1000);
       }

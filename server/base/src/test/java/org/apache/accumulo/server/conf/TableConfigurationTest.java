@@ -164,7 +164,7 @@ public class TableConfigurationTest {
     nsConfig.zkChangeEvent(NamespacePropKey.of(instanceId, NID));
 
     assertEquals("123", tableConfig.get(TABLE_FILE_MAX)); // from ns
-    assertEquals("aPassword1", tableConfig.get(INSTANCE_SECRET.getKey())); // from sys
+    assertEquals("aPassword1", tableConfig.get(INSTANCE_SECRET)); // from sys
 
     verify(propStore);
   }

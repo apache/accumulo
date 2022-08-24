@@ -39,7 +39,7 @@ public class ClassLoaderUtil {
   public static synchronized void initContextFactory(AccumuloConfiguration conf) {
     if (FACTORY == null) {
       LOG.debug("Creating {}", ContextClassLoaderFactory.class.getName());
-      String factoryName = conf.get(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY.getKey());
+      String factoryName = conf.get(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY);
       if (factoryName == null || factoryName.isEmpty()) {
         // load the default implementation
         LOG.info("Using default {}, which is subject to change in a future release",

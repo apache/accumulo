@@ -28,6 +28,6 @@ public interface ReadOnlyRepo<T> {
 
   long isReady(long tid, T environment) throws Exception;
 
-  String getDescription();
+  String getName();
 
 }

@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 public class BlockCacheManagerTest {
 
   @Test
+  @SuppressWarnings("deprecation")
   public void testGetPropertyPrefix() {
     assertEquals("tserver.cache.config.lru.data.",
         BlockCacheManager.getFullyQualifiedPropertyPrefix("lru", CacheType.DATA));

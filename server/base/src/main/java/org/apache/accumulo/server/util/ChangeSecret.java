@@ -26,7 +26,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.volume.Volume;
@@ -36,7 +36,6 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -54,16 +53,11 @@ import io.opentelemetry.context.Scope;
 
 public class ChangeSecret {
 
-  public static void main(String[] args) throws Exception {
-    var siteConfig = SiteConfiguration.auto();
-    var hadoopConf = new Configuration();
+  public static void execute(final ServerContext context, final AccumuloConfiguration conf)
+      throws Exception {
 
-    ServerUtilOpts opts = new ServerUtilOpts();
-    opts.parseArgs(ChangeSecret.class.getName(), args);
-
-    ServerContext context = opts.getServerContext();
     try (var fs = context.getVolumeManager()) {
-      ServerDirs serverDirs = new ServerDirs(siteConfig, hadoopConf);
+      ServerDirs serverDirs = new ServerDirs(conf, new Configuration());
       verifyHdfsWritePermission(serverDirs, fs);
 
       String oldPass = String.valueOf(System.console().readPassword("Old secret: "));

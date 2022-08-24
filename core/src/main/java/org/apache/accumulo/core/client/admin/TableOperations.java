@@ -189,7 +189,8 @@ public interface TableOperations {
   }
 
   /**
-   * Imports a table exported via exportTable and copied via hadoop distcp.
+   * Imports a table exported via {@link #exportTable(String, String)} and then copied via hadoop
+   * distcp.
    *
    * @param tableName
    *          Name of a table to create and import into.

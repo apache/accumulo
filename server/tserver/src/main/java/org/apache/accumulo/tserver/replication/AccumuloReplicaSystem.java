@@ -134,8 +134,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       final ReplicaSystemHelper helper) {
     final AccumuloConfiguration localConf = conf;
 
-    log.debug("Replication RPC timeout is {}",
-        localConf.get(Property.REPLICATION_RPC_TIMEOUT.getKey()));
+    log.debug("Replication RPC timeout is {}", localConf.get(Property.REPLICATION_RPC_TIMEOUT));
 
     final String principal = getPrincipal(localConf, target);
     final File keytab;

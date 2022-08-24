@@ -21,6 +21,7 @@ package org.apache.accumulo.core.client.admin;
 import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -116,6 +117,13 @@ public interface InstanceOperations {
    * @since 2.1.0
    */
   List<String> getManagerLocations();
+
+  /**
+   * Returns the locations of the active scan servers
+   *
+   * @return A set of currently active scan servers.
+   */
+  Set<String> getScanServers();
 
   /**
    * List the currently active tablet servers participating in the accumulo instance
