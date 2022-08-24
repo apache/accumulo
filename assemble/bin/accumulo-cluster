@@ -463,6 +463,7 @@ function main() {
   conf="${ACCUMULO_CONF_DIR:-${basedir}/conf}"
 
   if [[ -f "${conf}/accumulo-env.sh" ]]; then
+    #shellcheck source=../conf/accumulo-env.sh
     source "${conf}/accumulo-env.sh"
   fi
 
