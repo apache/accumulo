@@ -462,6 +462,10 @@ function main() {
   basedir=$(cd -P "${bin}"/.. && pwd)
   conf="${ACCUMULO_CONF_DIR:-${basedir}/conf}"
 
+  if [[ -f "${conf}/accumulo-env.sh" ]]; then
+    source "${conf}/accumulo-env.sh"
+  fi
+
   accumulo_cmd="${bin}/accumulo"
   SSH='ssh -qnf -o ConnectTimeout=2'
 

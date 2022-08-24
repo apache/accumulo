@@ -144,3 +144,10 @@ esac
 
 ## Specifies command that will be placed before calls to Java in accumulo script
 # export ACCUMULO_JAVA_PREFIX=""
+
+###############################################
+# Variables used by accumulo-cluster to start
+# multiple server processes per host
+###############################################
+NUM_TSERVERS=1
+NUM_SSERVERS=1
