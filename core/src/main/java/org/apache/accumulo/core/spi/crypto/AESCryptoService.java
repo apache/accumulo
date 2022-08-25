@@ -320,20 +320,11 @@ public class AESCryptoService implements CryptoService {
       private final byte[] firstInitVector;
       private final Key fek;
       private final byte[] initVector = new byte[GCM_IV_LENGTH_IN_BYTES];
-      private final Cipher cipher;
-      private final byte[] decryptionParameters;
 
       AESGCMFileEncrypter() {
-        try {
-          cipher = Cipher.getInstance(transformation);
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
-          throw new CryptoException("Error obtaining cipher for transform " + transformation, e);
-        }
         this.fek = generateKey(random, KEY_LENGTH_IN_BYTES);
         random.nextBytes(this.initVector);
         this.firstInitVector = Arrays.copyOf(this.initVector, this.initVector.length);
-        this.decryptionParameters =
-            createCryptoParameters(VERSION, encryptingKek, keyLocation, keyManager, fek);
       }
 
       @Override
@@ -356,10 +347,13 @@ public class AESCryptoService implements CryptoService {
           throw new CryptoException("Unable to write IV to stream", e);
         }
 
+        Cipher cipher;
         try {
+          cipher = Cipher.getInstance(transformation);
           cipher.init(Cipher.ENCRYPT_MODE, fek,
               new GCMParameterSpec(GCM_TAG_LENGTH_IN_BITS, initVector));
-        } catch (InvalidKeyException | InvalidAlgorithmParameterException e) {
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException
+            | InvalidAlgorithmParameterException e) {
           throw new CryptoException("Unable to initialize cipher", e);
         }
 
@@ -396,21 +390,14 @@ public class AESCryptoService implements CryptoService {
 
       @Override
       public byte[] getDecryptionParameters() {
-        return decryptionParameters;
+        return createCryptoParameters(VERSION, encryptingKek, keyLocation, keyManager, fek);
       }
     }
 
     public class AESGCMFileDecrypter implements FileDecrypter {
-
-      private final Cipher cipher;
       private final Key fek;
 
       AESGCMFileDecrypter(Key fek) {
-        try {
-          cipher = Cipher.getInstance(transformation);
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
-          throw new CryptoException("Error obtaining cipher for transform " + transformation, e);
-        }
         this.fek = fek;
       }
 
@@ -423,11 +410,14 @@ public class AESCryptoService implements CryptoService {
           throw new CryptoException("Unable to read IV from stream", e);
         }
 
+        Cipher cipher;
         try {
+          cipher = Cipher.getInstance(transformation);
           cipher.init(Cipher.DECRYPT_MODE, fek,
               new GCMParameterSpec(GCM_TAG_LENGTH_IN_BITS, initVector));
 
-        } catch (InvalidKeyException | InvalidAlgorithmParameterException e) {
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException
+            | InvalidAlgorithmParameterException e) {
           throw new CryptoException("Unable to initialize cipher", e);
         }
 
@@ -465,21 +455,8 @@ public class AESCryptoService implements CryptoService {
     @SuppressFBWarnings(value = "CIPHER_INTEGRITY", justification = "CBC is provided for WALs")
     public class AESCBCFileEncrypter implements FileEncrypter {
 
-      private final Cipher cipher;
-      private Key fek;
+      private Key fek = generateKey(random, KEY_LENGTH_IN_BYTES);
       private byte[] initVector = new byte[IV_LENGTH_IN_BYTES];
-      private final byte[] decryptionParameters;
-
-      AESCBCFileEncrypter() {
-        try {
-          cipher = Cipher.getInstance(transformation);
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
-          throw new CryptoException("Error obtaining cipher for transform " + transformation, e);
-        }
-        this.fek = generateKey(random, KEY_LENGTH_IN_BYTES);
-        this.decryptionParameters =
-            createCryptoParameters(VERSION, encryptingKek, keyLocation, keyManager, fek);
-      }
 
       @Override
       public OutputStream encryptStream(OutputStream outputStream) throws CryptoException {
@@ -491,9 +468,12 @@ public class AESCryptoService implements CryptoService {
           throw new CryptoException("Unable to write IV to stream", e);
         }
 
+        Cipher cipher;
         try {
+          cipher = Cipher.getInstance(transformation);
           cipher.init(Cipher.ENCRYPT_MODE, fek, new IvParameterSpec(initVector));
-        } catch (InvalidKeyException | InvalidAlgorithmParameterException e) {
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException
+            | InvalidAlgorithmParameterException e) {
           throw new CryptoException("Unable to initialize cipher", e);
         }
 
@@ -503,22 +483,15 @@ public class AESCryptoService implements CryptoService {
 
       @Override
       public byte[] getDecryptionParameters() {
-        return this.decryptionParameters;
+        return createCryptoParameters(VERSION, encryptingKek, keyLocation, keyManager, fek);
       }
     }
 
     @SuppressFBWarnings(value = "CIPHER_INTEGRITY", justification = "CBC is provided for WALs")
     public class AESCBCFileDecrypter implements FileDecrypter {
-
-      private final Cipher cipher;
       private final Key fek;
 
       AESCBCFileDecrypter(Key fek) {
-        try {
-          cipher = Cipher.getInstance(transformation);
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
-          throw new CryptoException("Error obtaining cipher for transform " + transformation, e);
-        }
         this.fek = fek;
       }
 
@@ -531,9 +504,12 @@ public class AESCryptoService implements CryptoService {
           throw new CryptoException("Unable to read IV from stream", e);
         }
 
+        Cipher cipher;
         try {
+          cipher = Cipher.getInstance(transformation);
           cipher.init(Cipher.DECRYPT_MODE, fek, new IvParameterSpec(initVector));
-        } catch (InvalidKeyException | InvalidAlgorithmParameterException e) {
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException
+            | InvalidAlgorithmParameterException e) {
           throw new CryptoException("Unable to initialize cipher", e);
         }
 
