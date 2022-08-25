@@ -120,7 +120,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
       fs.deleteOnExit(importDirA);
       fs.deleteOnExit(importDirB);
       for (Path p : new Path[] {exportDir, importDirA, importDirB}) {
-        assertTrue(fs.mkdirs(p), "Failed to create " + baseDir);
+        assertTrue(fs.mkdirs(p), "Failed to create " + p);
       }
 
       Set<String> importDirs = Set.of(importDirA.toString(), importDirB.toString());

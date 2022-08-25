@@ -41,6 +41,8 @@ public class ImportConfigurationTest {
     ImportConfiguration ic = new ImportConfigurationImpl();
     assertThrows(IllegalStateException.class, ic::isKeepMappings);
     assertThrows(IllegalStateException.class, ic::isKeepOffline);
+    ImportConfigurationImpl ic2 = (ImportConfigurationImpl) ImportConfiguration.builder().build();
+    assertThrows(IllegalStateException.class, () -> ic2.setKeepOffline(true));
   }
 
   @Test
