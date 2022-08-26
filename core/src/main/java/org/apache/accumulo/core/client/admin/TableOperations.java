@@ -198,7 +198,7 @@ public interface TableOperations {
    *          A set of directories containing the files copied by distcp from exportTable
    * @since 2.1.0
    */
-  void importTable(String tableName, ImportConfiguration ic, Set<String> importDirs)
+  void importTable(String tableName, Set<String> importDirs, ImportConfiguration ic)
       throws TableExistsException, AccumuloException, AccumuloSecurityException;
 
   /**
