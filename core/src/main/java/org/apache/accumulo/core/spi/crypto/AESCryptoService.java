@@ -90,21 +90,31 @@ public class AESCryptoService implements CryptoService {
 
   private static final FileEncrypter DISABLED = new NoFileEncrypter();
 
-  private static final ThreadLocal<Cipher> KEY_WRAP_CIPHER = ThreadLocal.withInitial(() -> {
-    try {
-      return Cipher.getInstance(KEY_WRAP_TRANSFORM);
-    } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
-      throw new CryptoException("Error creating Cipher for AESWrap", e);
+  private static final ThreadLocal<Cipher> KEY_WRAP_CIPHER = new ThreadLocal<Cipher>() {
+    @SuppressFBWarnings(value = "CIPHER_INTEGRITY",
+        justification = "integrity not needed for key wrap")
+    @Override
+    protected Cipher initialValue() {
+      try {
+        return Cipher.getInstance(KEY_WRAP_TRANSFORM);
+      } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
+        throw new CryptoException("Error creating Cipher for AESWrap", e);
+      }
     }
-  });
+  };
 
-  private static final ThreadLocal<Cipher> KEY_UNWRAP_CIPHER = ThreadLocal.withInitial(() -> {
-    try {
-      return Cipher.getInstance(KEY_WRAP_TRANSFORM);
-    } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
-      throw new CryptoException("Error creating Cipher for AESWrap", e);
+  private static final ThreadLocal<Cipher> KEY_UNWRAP_CIPHER = new ThreadLocal<Cipher>() {
+    @SuppressFBWarnings(value = "CIPHER_INTEGRITY",
+        justification = "integrity not needed for key wrap")
+    @Override
+    protected Cipher initialValue() {
+      try {
+        return Cipher.getInstance(KEY_WRAP_TRANSFORM);
+      } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
+        throw new CryptoException("Error creating Cipher for AESWrap", e);
+      }
     }
-  });
+  };
 
   @Override
   public void init(Map<String,String> conf) throws CryptoException {
@@ -559,7 +569,7 @@ public class AESCryptoService implements CryptoService {
     return new SecretKeySpec(bytes, "AES");
   }
 
-  public static synchronized Key unwrapKey(byte[] fek, Key kek) {
+  public static Key unwrapKey(byte[] fek, Key kek) {
     try {
       final Cipher c = KEY_UNWRAP_CIPHER.get();
       c.init(Cipher.UNWRAP_MODE, kek);
@@ -569,7 +579,7 @@ public class AESCryptoService implements CryptoService {
     }
   }
 
-  public static synchronized byte[] wrapKey(Key fek, Key kek) {
+  public static byte[] wrapKey(Key fek, Key kek) {
     try {
       final Cipher c = KEY_WRAP_CIPHER.get();
       c.init(Cipher.WRAP_MODE, kek);
