@@ -24,7 +24,7 @@ import org.apache.accumulo.core.clientImpl.ImportConfigurationImpl;
 
 /**
  * A configuration object that can be used with
- * {@link TableOperations#importTable(String, ImportConfiguration, Set)}
+ * {@link TableOperations#importTable(String, Set, ImportConfiguration)}
  *
  * @since 2.1
  */
