@@ -62,9 +62,9 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.scan.ScanServerScanAttempt;
 import org.apache.accumulo.core.spi.scan.ScanServerSelectorActions;
 import org.apache.accumulo.core.spi.scan.ScanServerSelectorParameters;
-import org.apache.accumulo.core.spi.scan.ScanServerScanAttempt;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.ScanServerBusyException;
@@ -519,8 +519,7 @@ public class ThriftScanner {
           }
 
           @Override
-          public Collection<? extends ScanServerScanAttempt>
-              getAttempts(TabletId tabletId) {
+          public Collection<? extends ScanServerScanAttempt> getAttempts(TabletId tabletId) {
             return attempts.getOrDefault(tabletId, Set.of());
           }
 

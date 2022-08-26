@@ -82,7 +82,7 @@ public class ScanAttemptsImpl {
   private long mutationCounter = 0;
 
   private void add(TabletId tablet, ScanServerScanAttempt.Result result, String server,
-                   long endTime) {
+      long endTime) {
 
     ScanAttemptImpl sa = new ScanAttemptImpl(result, server, endTime);
 
@@ -114,7 +114,8 @@ public class ScanAttemptsImpl {
    * Creates and returns a snapshot of {@link ScanServerScanAttempt} objects that were added before
    * this call
    *
-   * @return TabletIds mapped to a collection of {@link ScanServerScanAttempt} objects associated with that TabletId
+   * @return TabletIds mapped to a collection of {@link ScanServerScanAttempt} objects associated
+   *         with that TabletId
    */
   Map<TabletId,Collection<ScanAttemptImpl>> snapshot() {
 
@@ -132,7 +133,8 @@ public class ScanAttemptsImpl {
           .filter(scanAttempt -> scanAttempt.getMutationCount() < mutationCounterSnapshot)
           .collect(Collectors.toList());
 
-      // only add an entry to the map if there are ScanServerScanAttempt objects for the current TabletId
+      // only add an entry to the map if there are ScanServerScanAttempt objects for the current
+      // TabletId
       if (!filteredScanAttempts.isEmpty())
         result.put(tabletId, filteredScanAttempts);
 

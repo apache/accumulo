@@ -105,8 +105,7 @@ public class ConfigurableScanServerSelectorTest {
       this.hints = Map.of();
     }
 
-    DaParams(TabletId tablet,
-        Map<TabletId,Collection<? extends ScanServerScanAttempt>> attempts,
+    DaParams(TabletId tablet, Map<TabletId,Collection<? extends ScanServerScanAttempt>> attempts,
         Map<String,String> hints) {
       this.tablets = Set.of(tablet);
       this.attempts = attempts;
@@ -205,8 +204,7 @@ public class ConfigurableScanServerSelectorTest {
     var tabletId = nti("1", "m");
 
     var tabletAttempts = Stream.iterate(1, i -> i <= busyAttempts, i -> i + 1)
-        .map(i -> (new TestScanAttempt("ss" + i + ":" + i, i,
-            ScanServerScanAttempt.Result.BUSY)))
+        .map(i -> (new TestScanAttempt("ss" + i + ":" + i, i, ScanServerScanAttempt.Result.BUSY)))
         .collect(Collectors.toList());
 
     Map<TabletId,Collection<? extends ScanServerScanAttempt>> attempts = new HashMap<>();

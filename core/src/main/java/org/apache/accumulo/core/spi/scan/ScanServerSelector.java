@@ -47,7 +47,8 @@ public interface ScanServerSelector {
   }
 
   /**
-   * Uses the {@link ScanServerSelectorParameters} to determine which, if any, ScanServer should be used for scanning a tablet.
+   * Uses the {@link ScanServerSelectorParameters} to determine which, if any, ScanServer should be
+   * used for scanning a tablet.
    *
    * @param params
    *          parameters for the calculation
