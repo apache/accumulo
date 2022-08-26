@@ -60,6 +60,7 @@ import org.apache.accumulo.server.util.SystemPropUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
@@ -74,7 +75,7 @@ import com.google.auto.service.AutoService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
- * This class is used to setup the directory structure and the root tablet to get an instance
+ * This class is used to set up the directory structure and the root tablet to get an instance
  * started
  */
 @SuppressFBWarnings(value = "DM_EXIT", justification = "CLI utility can exit")
@@ -194,8 +195,7 @@ public class Initialize implements KeywordExecutable {
     return true;
   }
 
-  private void checkUploadProps(ServerContext context, InitialConfiguration initConfig, Opts opts)
-      throws InterruptedException, KeeperException {
+  private void checkUploadProps(ServerContext context, InitialConfiguration initConfig, Opts opts) {
     if (opts.uploadAccumuloProps) {
       log.info("Uploading properties in accumulo.properties to Zookeeper."
           + " Properties that cannot be set in Zookeeper will be skipped:");
@@ -251,16 +251,54 @@ public class Initialize implements KeywordExecutable {
     }
   }
 
+  /**
+   * Create the version directory and the instance id path and file. The method tries to create the
+   * directories and instance id file for all base directories provided unless an IOException is
+   * thrown. If an IOException occurs, this method won't retry and will return false.
+   *
+   * @return false if an IOException occurred, true otherwise.
+   */
   private static boolean createDirs(VolumeManager fs, InstanceId instanceId, Set<String> baseDirs) {
+    boolean success;
+
     try {
       for (String baseDir : baseDirs) {
-        fs.mkdirs(
-            new Path(new Path(baseDir, Constants.VERSION_DIR), "" + AccumuloDataVersion.get()),
-            new FsPermission("700"));
+        log.debug("creating instance directories for base: {}", baseDir);
+
+        Path verDir =
+            new Path(new Path(baseDir, Constants.VERSION_DIR), "" + AccumuloDataVersion.get());
+        FsPermission permission = new FsPermission("700");
+
+        if (fs.exists(verDir)) {
+          FileStatus fsStat = fs.getFileStatus(verDir);
+          log.info("directory {} exists. Permissions match: {}", fsStat.getPath(),
+              fsStat.getPermission().equals(permission));
+        } else {
+          success = fs.mkdirs(verDir, permission);
+          log.info("Directory {} created - call returned {}", verDir, success);
+        }
+
         Path iidLocation = new Path(baseDir, Constants.INSTANCE_ID_DIR);
-        fs.mkdirs(iidLocation);
-        fs.createNewFile(new Path(iidLocation, instanceId.canonical()));
-        log.info("Created directory {}", baseDir);
+        if (fs.exists(iidLocation)) {
+          log.info("directory {} exists.", iidLocation);
+        } else {
+          success = fs.mkdirs(iidLocation);
+          log.info("Directory {} created - call returned {}", iidLocation, success);
+        }
+
+        Path iidPath = new Path(iidLocation, instanceId.canonical());
+
+        if (fs.exists(iidPath)) {
+          log.info("InstanceID file {} exists.", iidPath);
+        } else {
+          success = fs.createNewFile(iidPath);
+          // the exists() call provides positive check that the instanceId file is present
+          if (success && fs.exists(iidPath)) {
+            log.info("Created instanceId file {} in hdfs", iidPath);
+          } else {
+            log.warn("May have failed to create instanceId file {} in hdfs", iidPath);
+          }
+        }
       }
       return true;
     } catch (IOException e) {
@@ -275,7 +313,7 @@ public class Initialize implements KeywordExecutable {
 
   private String getInstanceNamePath(ZooReaderWriter zoo, Opts opts)
       throws KeeperException, InterruptedException {
-    // setup the instance name
+    // set up the instance name
     String instanceName, instanceNamePath = null;
     boolean exists = true;
     do {
@@ -367,7 +405,7 @@ public class Initialize implements KeywordExecutable {
 
   /**
    * Create warning message related to initial password, if appropriate.
-   *
+   * <p>
    * ACCUMULO-2907 Remove unnecessary security warning from console message unless its actually
    * appropriate. The warning message should only be displayed when the value of
    * <code>instance.security.authenticator</code> differs between the SiteConfiguration and the
@@ -410,8 +448,7 @@ public class Initialize implements KeywordExecutable {
 
     Set<String> initializedDirs = serverDirs.checkBaseUris(hadoopConf, volumeURIs, true);
 
-    HashSet<String> uinitializedDirs = new HashSet<>();
-    uinitializedDirs.addAll(volumeURIs);
+    HashSet<String> uinitializedDirs = new HashSet<>(volumeURIs);
     uinitializedDirs.removeAll(initializedDirs);
 
     Path aBasePath = new Path(initializedDirs.iterator().next());
