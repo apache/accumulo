@@ -39,13 +39,12 @@ import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
-import org.apache.accumulo.core.spi.scan.ScanServerSelector.ScanServer;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
 public class ConfigurableScanServerSelectorTest {
 
-  static class InitParams implements ScanServerSelector.InitParameters {
+  static class InitParams implements ScanServerSelectorInitParameters {
 
     private final Map<String,String> opts;
     private final Map<String,String> scanServers;
@@ -77,8 +76,8 @@ public class ConfigurableScanServerSelectorTest {
     }
 
     @Override
-    public Supplier<Collection<ScanServer>> getScanServers() {
-      return () -> scanServers.entrySet().stream().map(entry -> new ScanServer() {
+    public Supplier<Collection<ScanServerInfo>> getScanServers() {
+      return () -> scanServers.entrySet().stream().map(entry -> new ScanServerInfo() {
 
         @Override
         public String getAddress() {
@@ -94,10 +93,10 @@ public class ConfigurableScanServerSelectorTest {
     }
   }
 
-  static class DaParams implements ScanServerSelector.SelectorParameters {
+  static class DaParams implements ScanServerSelectorParameters {
 
     private final Collection<TabletId> tablets;
-    private final Map<TabletId,Collection<? extends ScanServerSelector.ScanAttempt>> attempts;
+    private final Map<TabletId,Collection<? extends ScanServerScanAttempt>> attempts;
     private final Map<String,String> hints;
 
     DaParams(TabletId tablet) {
@@ -107,7 +106,7 @@ public class ConfigurableScanServerSelectorTest {
     }
 
     DaParams(TabletId tablet,
-        Map<TabletId,Collection<? extends ScanServerSelector.ScanAttempt>> attempts,
+        Map<TabletId,Collection<? extends ScanServerScanAttempt>> attempts,
         Map<String,String> hints) {
       this.tablets = Set.of(tablet);
       this.attempts = attempts;
@@ -120,7 +119,7 @@ public class ConfigurableScanServerSelectorTest {
     }
 
     @Override
-    public Collection<? extends ScanServerSelector.ScanAttempt> getAttempts(TabletId tabletId) {
+    public Collection<? extends ScanServerScanAttempt> getAttempts(TabletId tabletId) {
       return attempts.getOrDefault(tabletId, Set.of());
     }
 
@@ -130,7 +129,7 @@ public class ConfigurableScanServerSelectorTest {
     }
   }
 
-  static class TestScanAttempt implements ScanServerSelector.ScanAttempt {
+  static class TestScanAttempt implements ScanServerScanAttempt {
 
     private final String server;
     private final long endTime;
@@ -174,7 +173,7 @@ public class ConfigurableScanServerSelectorTest {
     for (int i = 0; i < 100; i++) {
       var tabletId = nti("1", "m");
 
-      ScanServerSelector.Actions actions = selector.determineActions(new DaParams(tabletId));
+      ScanServerSelectorActions actions = selector.determineActions(new DaParams(tabletId));
 
       servers.add(actions.getScanServer(tabletId));
     }
@@ -207,14 +206,14 @@ public class ConfigurableScanServerSelectorTest {
 
     var tabletAttempts = Stream.iterate(1, i -> i <= busyAttempts, i -> i + 1)
         .map(i -> (new TestScanAttempt("ss" + i + ":" + i, i,
-            ScanServerSelector.ScanAttempt.Result.BUSY)))
+            ScanServerScanAttempt.Result.BUSY)))
         .collect(Collectors.toList());
 
-    Map<TabletId,Collection<? extends ScanServerSelector.ScanAttempt>> attempts = new HashMap<>();
+    Map<TabletId,Collection<? extends ScanServerScanAttempt>> attempts = new HashMap<>();
     attempts.put(tabletId, tabletAttempts);
 
     for (int i = 0; i < 100 * numServers; i++) {
-      ScanServerSelector.Actions actions =
+      ScanServerSelectorActions actions =
           selector.determineActions(new DaParams(tabletId, attempts, hints));
 
       assertEquals(expectedBusyTimeout, actions.getBusyTimeout().toMillis());
@@ -273,7 +272,7 @@ public class ConfigurableScanServerSelectorTest {
       var tabletId = t % 1000 == 0 ? nti("" + t, null) : nti("" + t, endRow);
 
       for (int i = 0; i < 100; i++) {
-        ScanServerSelector.Actions actions = selector.determineActions(new DaParams(tabletId));
+        ScanServerSelectorActions actions = selector.determineActions(new DaParams(tabletId));
         serversSeen.add(actions.getScanServer(tabletId));
         allServersSeen.merge(actions.getScanServer(tabletId), 1L, Long::sum);
       }
@@ -387,7 +386,7 @@ public class ConfigurableScanServerSelectorTest {
     selector.init(new InitParams(Set.of()));
 
     var tabletId = nti("1", "m");
-    ScanServerSelector.Actions actions = selector.determineActions(new DaParams(tabletId));
+    ScanServerSelectorActions actions = selector.determineActions(new DaParams(tabletId));
     assertNull(actions.getScanServer(tabletId));
     assertEquals(Duration.ZERO, actions.getDelay());
     assertEquals(Duration.ZERO, actions.getBusyTimeout());
@@ -420,7 +419,7 @@ public class ConfigurableScanServerSelectorTest {
     for (int i = 0; i < 1000; i++) {
       var tabletId = nti("1", "m" + i);
 
-      ScanServerSelector.Actions actions = selector.determineActions(new DaParams(tabletId));
+      ScanServerSelectorActions actions = selector.determineActions(new DaParams(tabletId));
 
       servers.add(actions.getScanServer(tabletId));
     }
@@ -435,7 +434,7 @@ public class ConfigurableScanServerSelectorTest {
     for (int i = 0; i < 1000; i++) {
       var tabletId = nti("1", "m" + i);
 
-      ScanServerSelector.Actions actions =
+      ScanServerSelectorActions actions =
           selector.determineActions(new DaParams(tabletId, Map.of(), hints));
 
       servers.add(actions.getScanServer(tabletId));
@@ -451,7 +450,7 @@ public class ConfigurableScanServerSelectorTest {
     for (int i = 0; i < 1000; i++) {
       var tabletId = nti("1", "m" + i);
 
-      ScanServerSelector.Actions actions =
+      ScanServerSelectorActions actions =
           selector.determineActions(new DaParams(tabletId, Map.of(), hints));
 
       servers.add(actions.getScanServer(tabletId));
@@ -467,7 +466,7 @@ public class ConfigurableScanServerSelectorTest {
     for (int i = 0; i < 1000; i++) {
       var tabletId = nti("1", "m" + i);
 
-      ScanServerSelector.Actions actions =
+      ScanServerSelectorActions actions =
           selector.determineActions(new DaParams(tabletId, Map.of(), hints));
 
       servers.add(actions.getScanServer(tabletId));

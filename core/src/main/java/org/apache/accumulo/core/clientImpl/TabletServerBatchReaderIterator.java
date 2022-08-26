@@ -67,6 +67,9 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector;
+import org.apache.accumulo.core.spi.scan.ScanServerSelectorActions;
+import org.apache.accumulo.core.spi.scan.ScanServerSelectorParameters;
+import org.apache.accumulo.core.spi.scan.ScanServerScanAttempt;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.ScanServerBusyException;
 import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
@@ -399,9 +402,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         }
         log.debug("IOException thrown", e);
 
-        ScanServerSelector.ScanAttempt.Result result = ScanServerSelector.ScanAttempt.Result.ERROR;
+        ScanServerScanAttempt.Result result = ScanServerScanAttempt.Result.ERROR;
         if (e.getCause() instanceof ScanServerBusyException) {
-          result = ScanServerSelector.ScanAttempt.Result.BUSY;
+          result = ScanServerScanAttempt.Result.BUSY;
         }
         reporter.report(result);
       } catch (AccumuloSecurityException e) {
@@ -577,7 +580,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
   private static class ScanServerData {
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges;
-    ScanServerSelector.Actions actions;
+    ScanServerSelectorActions actions;
     Map<String,ScanAttemptsImpl.ScanAttemptReporter> reporters;
   }
 
@@ -591,14 +594,14 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     // get a snapshot of this once,not each time the plugin request it
     var scanAttemptsSnapshot = scanAttempts.snapshot();
 
-    ScanServerSelector.SelectorParameters params = new ScanServerSelector.SelectorParameters() {
+    ScanServerSelectorParameters params = new ScanServerSelectorParameters() {
       @Override
       public Collection<TabletId> getTablets() {
         return Collections.unmodifiableCollection(tabletIds);
       }
 
       @Override
-      public Collection<? extends ScanServerSelector.ScanAttempt> getAttempts(TabletId tabletId) {
+      public Collection<? extends ScanServerScanAttempt> getAttempts(TabletId tabletId) {
         return scanAttemptsSnapshot.getOrDefault(tabletId, Set.of());
       }
 

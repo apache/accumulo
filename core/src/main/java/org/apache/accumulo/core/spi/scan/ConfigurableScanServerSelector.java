@@ -290,10 +290,10 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
   }
 
   @Override
-  public void init(InitParameters params) {
+  public void init(ScanServerSelectorInitParameters params) {
     // avoid constantly resorting the scan servers, just do it periodically in case they change
     orderedScanServersSupplier = Suppliers.memoizeWithExpiration(() -> {
-      Collection<ScanServer> scanServers = params.getScanServers().get();
+      Collection<ScanServerInfo> scanServers = params.getScanServers().get();
       Map<String,List<String>> groupedServers = new HashMap<>();
       scanServers.forEach(sserver -> groupedServers
           .computeIfAbsent(sserver.getGroup(), k -> new ArrayList<>()).add(sserver.getAddress()));
@@ -311,7 +311,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
   }
 
   @Override
-  public Actions determineActions(SelectorParameters params) {
+  public ScanServerSelectorActions determineActions(ScanServerSelectorParameters params) {
 
     String scanType = params.getHints().get("scan_type");
 
@@ -329,7 +329,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
         orderedScanServersSupplier.get().getOrDefault(profile.group, List.of());
 
     if (orderedScanServers.isEmpty()) {
-      return new Actions() {
+      return new ScanServerSelectorActions() {
         @Override
         public String getScanServer(TabletId tabletId) {
           return null;
@@ -371,7 +371,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
 
     Duration busyTO = Duration.ofMillis(profile.getBusyTimeout(attempts));
 
-    return new Actions() {
+    return new ScanServerSelectorActions() {
       @Override
       public String getScanServer(TabletId tabletId) {
         return serversToUse.get(tabletId);
