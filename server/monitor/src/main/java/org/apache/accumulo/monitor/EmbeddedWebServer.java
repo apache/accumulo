@@ -51,7 +51,11 @@ public class EmbeddedWebServer {
     secure = requireForSecure.stream().map(conf::get).allMatch(s -> s != null && !s.isEmpty());
 
     connector = new ServerConnector(server, getConnectionFactories(conf, secure));
-    connector.setHost(monitor.getHostname());
+    if (conf.getBoolean(Property.MONITOR_BIND_ALL_INTERFACES)) {
+      connector.setHost("0.0.0.0");
+    } else {
+      connector.setHost(monitor.getHostname());
+    }
     connector.setPort(port);
 
     handler =

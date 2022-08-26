@@ -872,6 +872,10 @@ public enum Property {
   // properties that are specific to the monitor server behavior
   MONITOR_PREFIX("monitor.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the monitor web server.", "1.3.5"),
+  MONITOR_BIND_ALL_INTERFACES("monitor.bind.all.interfaces", "false", PropertyType.BOOLEAN,
+      "The embedded web server will bind to all interfaces if true instead of binding"
+          + " to the supplied address (-a) or the resolved address for the host.",
+      "2.1.0"),
   MONITOR_PORT("monitor.port.client", "9995", PropertyType.PORT,
       "The listening port for the monitor's http service", "1.3.5"),
   MONITOR_SSL_KEYSTORE("monitor.ssl.keyStore", "", PropertyType.PATH,
