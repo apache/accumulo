@@ -1558,13 +1558,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public void importTable(String tableName, ImportConfiguration itc, Set<String> importDirs)
+  public void importTable(String tableName, Set<String> importDirs, ImportConfiguration ic)
       throws TableExistsException, AccumuloException, AccumuloSecurityException {
     EXISTING_TABLE_NAME.validate(tableName);
     checkArgument(importDirs != null, "importDir is null");
 
-    boolean keepOffline = itc.isKeepOffline();
-    boolean keepMapping = itc.isKeepMappings();
+    boolean keepOffline = ic.isKeepOffline();
+    boolean keepMapping = ic.isKeepMappings();
 
     Set<String> checkedImportDirs = new HashSet<>();
     try {

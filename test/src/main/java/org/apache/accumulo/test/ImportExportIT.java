@@ -164,7 +164,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
       log.info("Import dir B: {}", Arrays.toString(fs.listStatus(importDirB)));
 
       // Import the exported data into a new table
-      client.tableOperations().importTable(destTable, ImportConfiguration.empty(), importDirs);
+      client.tableOperations().importTable(destTable, importDirs, ImportConfiguration.empty());
 
       // Get the table ID for the table that the importtable command created
       final String tableId = client.tableOperations().tableIdMap().get(destTable);
@@ -284,7 +284,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
       // Import the exported data into a new offline table and keep mappings file
       ImportConfiguration importConfig =
           ImportConfiguration.builder().setKeepOffline(true).setKeepMappings(true).build();
-      client.tableOperations().importTable(destTable, importConfig, importDirs);
+      client.tableOperations().importTable(destTable, importDirs, importConfig);
 
       // Get the table ID for the table that the importtable command created
       final String tableId = client.tableOperations().tableIdMap().get(destTable);

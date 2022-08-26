@@ -49,7 +49,7 @@ public class ImportTableCommand extends Command {
 
     var ic = ImportConfiguration.builder().setKeepMappings(keepMappings).setKeepOffline(keepOffline)
         .build();
-    shellState.getAccumuloClient().tableOperations().importTable(tableName, ic, importDirs);
+    shellState.getAccumuloClient().tableOperations().importTable(tableName, importDirs, ic);
     return 0;
   }
 

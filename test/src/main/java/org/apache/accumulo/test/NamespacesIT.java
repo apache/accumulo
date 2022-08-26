@@ -1009,8 +1009,8 @@ public class NamespacesIT extends SharedMiniClusterBase {
         () -> ops.clone("a", tableName, true, Collections.emptyMap(), Collections.emptySet()));
     ops.offline("a", true);
     ops.exportTable("a", System.getProperty("user.dir") + "/target");
-    assertAccumuloExceptionNoNamespace(() -> ops.importTable(tableName, ImportConfiguration.empty(),
-        Set.of(System.getProperty("user.dir") + "/target")));
+    assertAccumuloExceptionNoNamespace(() -> ops.importTable(tableName,
+        Set.of(System.getProperty("user.dir") + "/target"), ImportConfiguration.empty()));
 
     // table operations that should throw an AccumuloException caused by a TableNotFoundException
     // caused by a NamespaceNotFoundException

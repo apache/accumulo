@@ -346,7 +346,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
     FileUtils.copyFileToDirectory(importFile, exportDir);
     FileUtils.copyFileToDirectory(importFile, exportDirBulk);
     auditAccumuloClient.tableOperations().importTable(NEW_TEST_TABLE_NAME,
-        ImportConfiguration.empty(), Collections.singleton(exportDir.toString()));
+        Collections.singleton(exportDir.toString()), ImportConfiguration.empty());
 
     // Now do a Directory (bulk) import of the same data.
     auditAccumuloClient.tableOperations().create(THIRD_TEST_TABLE_NAME);
