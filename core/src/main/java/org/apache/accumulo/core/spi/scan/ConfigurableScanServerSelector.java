@@ -290,7 +290,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
   }
 
   @Override
-  public void init(ScanServerSelectorInitParameters params) {
+  public void init(ScanServerSelector.InitParameters params) {
     // avoid constantly resorting the scan servers, just do it periodically in case they change
     orderedScanServersSupplier = Suppliers.memoizeWithExpiration(() -> {
       Collection<ScanServerInfo> scanServers = params.getScanServers().get();
@@ -311,7 +311,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
   }
 
   @Override
-  public ScanServerSelectorActions determineActions(ScanServerSelectorParameters params) {
+  public ScanServerSelectorActions determineActions(ScanServerSelector.SelectorParameters params) {
 
     String scanType = params.getHints().get("scan_type");
 

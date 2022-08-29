@@ -69,7 +69,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.scan.ScanServerScanAttempt;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.core.spi.scan.ScanServerSelectorActions;
-import org.apache.accumulo.core.spi.scan.ScanServerSelectorParameters;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.ScanServerBusyException;
 import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
@@ -594,7 +593,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     // get a snapshot of this once,not each time the plugin request it
     var scanAttemptsSnapshot = scanAttempts.snapshot();
 
-    ScanServerSelectorParameters params = new ScanServerSelectorParameters() {
+    ScanServerSelector.SelectorParameters params = new ScanServerSelector.SelectorParameters() {
       @Override
       public Collection<TabletId> getTablets() {
         return Collections.unmodifiableCollection(tabletIds);

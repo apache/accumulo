@@ -44,7 +44,7 @@ import org.junit.jupiter.api.Test;
 
 public class ConfigurableScanServerSelectorTest {
 
-  static class InitParams implements ScanServerSelectorInitParameters {
+  static class InitParams implements ScanServerSelector.InitParameters {
 
     private final Map<String,String> opts;
     private final Map<String,String> scanServers;
@@ -93,7 +93,7 @@ public class ConfigurableScanServerSelectorTest {
     }
   }
 
-  static class DaParams implements ScanServerSelectorParameters {
+  static class DaParams implements ScanServerSelector.SelectorParameters {
 
     private final Collection<TabletId> tablets;
     private final Map<TabletId,Collection<? extends ScanServerScanAttempt>> attempts;

@@ -63,8 +63,8 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.scan.ScanServerScanAttempt;
+import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.core.spi.scan.ScanServerSelectorActions;
-import org.apache.accumulo.core.spi.scan.ScanServerSelectorParameters;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.ScanServerBusyException;
@@ -511,7 +511,7 @@ public class ThriftScanner {
         // obtain a snapshot once and only expose this snapshot to the plugin for consistency
         var attempts = scanState.scanAttempts.snapshot();
 
-        var params = new ScanServerSelectorParameters() {
+        var params = new ScanServerSelector.SelectorParameters() {
 
           @Override
           public List<TabletId> getTablets() {

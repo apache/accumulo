@@ -90,7 +90,6 @@ import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanServerInfo;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector;
-import org.apache.accumulo.core.spi.scan.ScanServerSelectorInitParameters;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.tables.TableZooHelper;
@@ -182,7 +181,7 @@ public class ClientContext implements AccumuloClient {
                 v.toString());
           });
 
-      scanServerSelector.init(new ScanServerSelectorInitParameters() {
+      scanServerSelector.init(new ScanServerSelector.InitParameters() {
         @Override
         public Map<String,String> getOptions() {
           return Collections.unmodifiableMap(sserverProps);
