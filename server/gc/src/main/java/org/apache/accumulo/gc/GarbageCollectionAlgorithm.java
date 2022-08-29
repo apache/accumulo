@@ -227,14 +227,14 @@ public class GarbageCollectionAlgorithm {
 
   @VisibleForTesting
   /**
-   *
+   * Double check no tables were missed during GC
    */
   protected void ensureAllTablesChecked(Set<TableId> tableIdsBefore, Set<TableId> tableIdsSeen,
       Set<TableId> tableIdsAfter) {
 
     // if a table was added or deleted during this run, it is acceptable to not
     // have seen those tables ids when scanning the metadata table. So get the intersection
-    Set<TableId> tableIdsMustHaveSeen = new HashSet<>(tableIdsBefore);
+    final Set<TableId> tableIdsMustHaveSeen = new HashSet<>(tableIdsBefore);
     tableIdsMustHaveSeen.retainAll(tableIdsAfter);
 
     if (tableIdsMustHaveSeen.isEmpty() && !tableIdsSeen.isEmpty()) {

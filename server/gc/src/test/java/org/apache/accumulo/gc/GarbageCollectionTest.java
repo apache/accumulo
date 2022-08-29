@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -840,7 +839,7 @@ public class GarbageCollectionTest {
   }
 
   @Test
-  public void testMissingTableIds() throws Exception {
+  public void testMissingTableIds() {
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
     TestGCE gce = new TestGCE();
@@ -850,8 +849,8 @@ public class GarbageCollectionTest {
     gce.addFileReference("a", null, "hdfs://foo.com:6000/user/foo/tables/a/t-0/F00.rf");
     gce.addFileReference("c", null, "hdfs://foo.com:6000/user/foo/tables/c/t-0/F00.rf");
 
-    // add 2 more table references that will not be seen by in the scan
-    gce.tableIds.addAll(Arrays.asList(TableId.of("b"), TableId.of("d")));
+    // add 2 more table references that will not be seen by the scan
+    gce.tableIds.addAll(makeUnmodifiableSet("b", "d"));
 
     String msg = assertThrows(RuntimeException.class, () -> gca.collect(gce)).getMessage();
     assertTrue((msg.contains("[b, d]") || msg.contains("[d, b]"))
@@ -871,9 +870,11 @@ public class GarbageCollectionTest {
     return Collections.unmodifiableSet(t);
   }
 
+  /**
+   * happy path, no tables added or removed during this portion and all the tables checked
+   */
   @Test
   public void testNormalGCRun() {
-    // happy path, no tables added or removed during this portion and all the tables checked
     Set<TableId> tablesBefore = makeUnmodifiableSet("1", "2", "3");
     Set<TableId> tablesSeen = makeUnmodifiableSet("2", "1", "3");
     Set<TableId> tablesAfter = makeUnmodifiableSet("1", "3", "2");
@@ -881,9 +882,11 @@ public class GarbageCollectionTest {
     new GarbageCollectionAlgorithm().ensureAllTablesChecked(tablesBefore, tablesSeen, tablesAfter);
   }
 
+  /**
+   * table was added during this portion and we don't see it, should be fine
+   */
   @Test
   public void testTableAddedInMiddle() {
-    // table was added during this portion and we don't see it, should be fine
     Set<TableId> tablesBefore = makeUnmodifiableSet("1", "2", "3");
     Set<TableId> tablesSeen = makeUnmodifiableSet("2", "1", "3");
     Set<TableId> tablesAfter = makeUnmodifiableSet("1", "3", "2", "4");
@@ -891,10 +894,12 @@ public class GarbageCollectionTest {
     new GarbageCollectionAlgorithm().ensureAllTablesChecked(tablesBefore, tablesSeen, tablesAfter);
   }
 
+  /**
+   * Test that a table was added during this portion and we see it. This means that the table was
+   * added after the candidates were grabbed, so there should be nothing to remove
+   */
   @Test
   public void testTableAddedInMiddleTwo() {
-    // table was added during this portion and we DO see it
-    // Means table was added after candidates were grabbed, so there should be nothing to remove
     Set<TableId> tablesBefore = makeUnmodifiableSet("1", "2", "3");
     Set<TableId> tablesSeen = makeUnmodifiableSet("2", "1", "3", "4");
     Set<TableId> tablesAfter = makeUnmodifiableSet("1", "3", "2", "4");
@@ -902,11 +907,13 @@ public class GarbageCollectionTest {
     new GarbageCollectionAlgorithm().ensureAllTablesChecked(tablesBefore, tablesSeen, tablesAfter);
   }
 
+  /**
+   * Test that the table was deleted during this portion and we don't see it. This means any
+   * candidates from the deleted table will stay on the candidate list and during the delete step
+   * they will try to removed
+   */
   @Test
   public void testTableDeletedInMiddle() {
-    // table was deleted during this portion and we don't see it
-    // this mean any candidates from the deleted table wil stay on the candidate list
-    // and during the delete step they will try to removed
     Set<TableId> tablesBefore = makeUnmodifiableSet("1", "2", "3", "4");
     Set<TableId> tablesSeen = makeUnmodifiableSet("2", "1", "4");
     Set<TableId> tablesAfter = makeUnmodifiableSet("1", "2", "4");
@@ -914,11 +921,13 @@ public class GarbageCollectionTest {
     new GarbageCollectionAlgorithm().ensureAllTablesChecked(tablesBefore, tablesSeen, tablesAfter);
   }
 
+  /**
+   * table was deleted during this portion and we DO see it this mean candidates from the deleted
+   * table may get removed from the candidate list which should be ok, as the delete table function
+   * should be responsible for removing those
+   */
   @Test
   public void testTableDeletedInMiddleTwo() {
-    // table was deleted during this portion and we DO see it
-    // this mean candidates from the deleted table may get removed from the candidate list
-    // which should be ok, as the delete table function should be responsible for removing those
     Set<TableId> tablesBefore = makeUnmodifiableSet("1", "2", "3", "4");
     Set<TableId> tablesSeen = makeUnmodifiableSet("2", "1", "4", "3");
     Set<TableId> tablesAfter = makeUnmodifiableSet("1", "2", "4");
@@ -926,15 +935,16 @@ public class GarbageCollectionTest {
     new GarbageCollectionAlgorithm().ensureAllTablesChecked(tablesBefore, tablesSeen, tablesAfter);
   }
 
+  /**
+   * this test simulates missing an entire table when looking for what files are in use if you add
+   * custom splits to the metadata at able boundaries, this can happen with a failed scan recall the
+   * ~tab:~pr for this first entry of a new table is empty, so there is now way to check the prior
+   * row. If you split a couple of tables in the metadata the table boundary , say table ids 2,3,4,
+   * and then miss scanning table 3 but get 4, it is possible other consistency checks will miss
+   * this
+   */
   @Test
   public void testMissEntireTable() {
-    // this test simulates missing an entire table when looking for what files are in use
-    // if you add custom splits to the metadata at able boundaries, this can happen with a failed
-    // scan
-    // recall the ~tab:~pr for this first entry of a new table is empty, so there is now way to
-    // check the prior row. If you split a couple of tables in the metadata the table boundary
-    // , say table ids 2,3,4, and then miss scanning table 3 but get 4, it is possible other
-    // consistency checks will miss this
     Set<TableId> tablesBefore = makeUnmodifiableSet("1", "2", "3", "4");
     Set<TableId> tablesSeen = makeUnmodifiableSet("1", "2", "4");
     Set<TableId> tablesAfter = makeUnmodifiableSet("1", "2", "3", "4");
@@ -946,10 +956,12 @@ public class GarbageCollectionTest {
 
   }
 
+  /**
+   * this test simulates getting nothing from ZK for table ids, which should not happen, but just in
+   * case let's test
+   */
   @Test
   public void testZKHadNoTables() {
-    // this test simulates getting nothing from ZK for table ids, which should not happen,
-    // but just in case let's test
     Set<TableId> tablesBefore = makeUnmodifiableSet();
     Set<TableId> tablesSeen = makeUnmodifiableSet("1", "2");
     Set<TableId> tablesAfter = makeUnmodifiableSet();
@@ -960,9 +972,11 @@ public class GarbageCollectionTest {
     assertTrue(msg.startsWith("Saw no table ids in ZK but did see table ids in metadata table:"));
   }
 
+  /**
+   * simulates missing a table when checking references, and a table being added
+   */
   @Test
   public void testMissingTableAndTableAdd() {
-    // simulates missing a table when checking references, and a table being added
     Set<TableId> tablesBefore = makeUnmodifiableSet("1", "2", "3");
     Set<TableId> tablesSeen = makeUnmodifiableSet("1", "2", "4");
     Set<TableId> tablesAfter = makeUnmodifiableSet("1", "2", "3", "4");
@@ -973,9 +987,11 @@ public class GarbageCollectionTest {
     assertTrue(msg.equals("Saw table IDs in ZK that were not in metadata table:  [3]"));
   }
 
+  /**
+   * simulates missing a table when checking references, and a table being deleted
+   */
   @Test
   public void testMissingTableAndTableDeleted() {
-    // simulates missing a table when checking references, and a table being deleted
     Set<TableId> tablesBefore = makeUnmodifiableSet("1", "2", "3", "4");
     Set<TableId> tablesSeen = makeUnmodifiableSet("1", "2", "4");
     Set<TableId> tablesAfter = makeUnmodifiableSet("1", "2", "3");

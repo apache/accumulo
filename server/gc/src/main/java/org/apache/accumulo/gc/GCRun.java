@@ -188,7 +188,6 @@ public class GCRun implements GarbageCollectionEnvironment {
       } catch (KeeperException | InterruptedException e) {
         log.error("Error getting tables from ZooKeeper, retrying", e);
         UtilWaitThread.sleepUninterruptibly(1, TimeUnit.SECONDS);
-        continue;
       }
     }
   }

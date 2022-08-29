@@ -88,8 +88,7 @@ public interface GarbageCollectionEnvironment {
 
   /**
    * Return a list of TableIDs for which we are considering deletes. For the root table this would
-   * be the metadata table. For the metadata table, this would be all of the other tables in the
-   * system.
+   * be the metadata table. For the metadata table, this would be the other tables in the system.
    *
    * @return The table ids
    */
