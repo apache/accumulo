@@ -149,5 +149,5 @@ esac
 # Variables used by accumulo-cluster to start
 # multiple server processes per host
 ###############################################
-export NUM_TSERVERS=1
-export NUM_SSERVERS=1
+export NUM_TSERVERS=${NUM_TSERVERS:=1}
+export NUM_SSERVERS=${NUM_SSERVERS:=1}
