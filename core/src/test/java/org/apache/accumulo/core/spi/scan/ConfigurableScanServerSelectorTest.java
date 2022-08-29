@@ -172,7 +172,7 @@ public class ConfigurableScanServerSelectorTest {
     for (int i = 0; i < 100; i++) {
       var tabletId = nti("1", "m");
 
-      ScanServerSelectorActions actions = selector.determineActions(new DaParams(tabletId));
+      ScanServerSelections actions = selector.selectServers(new DaParams(tabletId));
 
       servers.add(actions.getScanServer(tabletId));
     }
@@ -211,8 +211,8 @@ public class ConfigurableScanServerSelectorTest {
     attempts.put(tabletId, tabletAttempts);
 
     for (int i = 0; i < 100 * numServers; i++) {
-      ScanServerSelectorActions actions =
-          selector.determineActions(new DaParams(tabletId, attempts, hints));
+      ScanServerSelections actions =
+          selector.selectServers(new DaParams(tabletId, attempts, hints));
 
       assertEquals(expectedBusyTimeout, actions.getBusyTimeout().toMillis());
       assertEquals(0, actions.getDelay().toMillis());
@@ -270,7 +270,7 @@ public class ConfigurableScanServerSelectorTest {
       var tabletId = t % 1000 == 0 ? nti("" + t, null) : nti("" + t, endRow);
 
       for (int i = 0; i < 100; i++) {
-        ScanServerSelectorActions actions = selector.determineActions(new DaParams(tabletId));
+        ScanServerSelections actions = selector.selectServers(new DaParams(tabletId));
         serversSeen.add(actions.getScanServer(tabletId));
         allServersSeen.merge(actions.getScanServer(tabletId), 1L, Long::sum);
       }
@@ -384,7 +384,7 @@ public class ConfigurableScanServerSelectorTest {
     selector.init(new InitParams(Set.of()));
 
     var tabletId = nti("1", "m");
-    ScanServerSelectorActions actions = selector.determineActions(new DaParams(tabletId));
+    ScanServerSelections actions = selector.selectServers(new DaParams(tabletId));
     assertNull(actions.getScanServer(tabletId));
     assertEquals(Duration.ZERO, actions.getDelay());
     assertEquals(Duration.ZERO, actions.getBusyTimeout());
@@ -417,7 +417,7 @@ public class ConfigurableScanServerSelectorTest {
     for (int i = 0; i < 1000; i++) {
       var tabletId = nti("1", "m" + i);
 
-      ScanServerSelectorActions actions = selector.determineActions(new DaParams(tabletId));
+      ScanServerSelections actions = selector.selectServers(new DaParams(tabletId));
 
       servers.add(actions.getScanServer(tabletId));
     }
@@ -432,8 +432,8 @@ public class ConfigurableScanServerSelectorTest {
     for (int i = 0; i < 1000; i++) {
       var tabletId = nti("1", "m" + i);
 
-      ScanServerSelectorActions actions =
-          selector.determineActions(new DaParams(tabletId, Map.of(), hints));
+      ScanServerSelections actions =
+          selector.selectServers(new DaParams(tabletId, Map.of(), hints));
 
       servers.add(actions.getScanServer(tabletId));
     }
@@ -448,8 +448,8 @@ public class ConfigurableScanServerSelectorTest {
     for (int i = 0; i < 1000; i++) {
       var tabletId = nti("1", "m" + i);
 
-      ScanServerSelectorActions actions =
-          selector.determineActions(new DaParams(tabletId, Map.of(), hints));
+      ScanServerSelections actions =
+          selector.selectServers(new DaParams(tabletId, Map.of(), hints));
 
       servers.add(actions.getScanServer(tabletId));
     }
@@ -464,8 +464,8 @@ public class ConfigurableScanServerSelectorTest {
     for (int i = 0; i < 1000; i++) {
       var tabletId = nti("1", "m" + i);
 
-      ScanServerSelectorActions actions =
-          selector.determineActions(new DaParams(tabletId, Map.of(), hints));
+      ScanServerSelections actions =
+          selector.selectServers(new DaParams(tabletId, Map.of(), hints));
 
       servers.add(actions.getScanServer(tabletId));
     }

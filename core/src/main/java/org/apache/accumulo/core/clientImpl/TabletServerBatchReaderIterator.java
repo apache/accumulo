@@ -67,8 +67,8 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.scan.ScanServerScanAttempt;
+import org.apache.accumulo.core.spi.scan.ScanServerSelections;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector;
-import org.apache.accumulo.core.spi.scan.ScanServerSelectorActions;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.ScanServerBusyException;
 import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
@@ -579,7 +579,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
   private static class ScanServerData {
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges;
-    ScanServerSelectorActions actions;
+    ScanServerSelections actions;
     Map<String,ScanAttemptsImpl.ScanAttemptReporter> reporters;
   }
 
@@ -610,7 +610,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       }
     };
 
-    var actions = ecsm.determineActions(params);
+    var actions = ecsm.selectServers(params);
 
     Map<KeyExtent,String> extentToTserverMap = new HashMap<>();
     Map<KeyExtent,List<Range>> extentToRangesMap = new HashMap<>();

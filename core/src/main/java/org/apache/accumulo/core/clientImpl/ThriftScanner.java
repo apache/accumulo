@@ -63,8 +63,8 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.scan.ScanServerScanAttempt;
+import org.apache.accumulo.core.spi.scan.ScanServerSelections;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector;
-import org.apache.accumulo.core.spi.scan.ScanServerSelectorActions;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.ScanServerBusyException;
@@ -531,8 +531,7 @@ public class ThriftScanner {
           }
         };
 
-        ScanServerSelectorActions actions =
-            context.getScanServerSelector().determineActions(params);
+        ScanServerSelections actions = context.getScanServerSelector().selectServers(params);
 
         Duration delay = null;
 

@@ -22,7 +22,7 @@ import java.time.Duration;
 
 import org.apache.accumulo.core.data.TabletId;
 
-public interface ScanServerSelectorActions {
+public interface ScanServerSelections {
 
   /**
    * @return what scan server to use for a given tablet. Returning null indicates the tablet server

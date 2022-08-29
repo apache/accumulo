@@ -311,7 +311,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
   }
 
   @Override
-  public ScanServerSelectorActions determineActions(ScanServerSelector.SelectorParameters params) {
+  public ScanServerSelections selectServers(ScanServerSelector.SelectorParameters params) {
 
     String scanType = params.getHints().get("scan_type");
 
@@ -329,7 +329,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
         orderedScanServersSupplier.get().getOrDefault(profile.group, List.of());
 
     if (orderedScanServers.isEmpty()) {
-      return new ScanServerSelectorActions() {
+      return new ScanServerSelections() {
         @Override
         public String getScanServer(TabletId tabletId) {
           return null;
@@ -371,7 +371,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
 
     Duration busyTO = Duration.ofMillis(profile.getBusyTimeout(attempts));
 
-    return new ScanServerSelectorActions() {
+    return new ScanServerSelections() {
       @Override
       public String getScanServer(TabletId tabletId) {
         return serversToUse.get(tabletId);

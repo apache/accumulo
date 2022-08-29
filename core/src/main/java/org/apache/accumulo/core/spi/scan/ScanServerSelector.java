@@ -73,7 +73,7 @@ public interface ScanServerSelector {
     /**
      * @return the set of live ScanServers. Each time the supplier is called it may return something
      *         different. A good practice would be to call this no more than once per a call to
-     *         {@link ScanServerSelector#determineActions(SelectorParameters)} so that decisions are
+     *         {@link ScanServerSelector#selectServers(SelectorParameters)} so that decisions are
      *         made using a consistent set of scan servers.
      */
     Supplier<Collection<ScanServerInfo>> getScanServers();
@@ -82,7 +82,7 @@ public interface ScanServerSelector {
 
   /**
    * This interface exists so that is easier to evolve what is passed to
-   * {@link ScanServerSelector#determineActions(SelectorParameters)} without having to make breaking
+   * {@link ScanServerSelector#selectServers(SelectorParameters)} without having to make breaking
    * changes.
    *
    * @since 2.1.0
@@ -115,6 +115,6 @@ public interface ScanServerSelector {
    *          parameters for the calculation
    * @return results
    */
-  ScanServerSelectorActions determineActions(SelectorParameters params);
+  ScanServerSelections selectServers(SelectorParameters params);
 
 }
