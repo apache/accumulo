@@ -462,9 +462,16 @@ function main() {
   basedir=$(cd -P "${bin}"/.. && pwd)
   conf="${ACCUMULO_CONF_DIR:-${basedir}/conf}"
 
+  #
+  # Source accumulo-env.sh to get NUM_TSERVERS, NUM_SSERVERS
+  # Reset CLASSPATH afterwards as it causes an issue when starting
+  # services on localhost
+  #
   if [[ -f "${conf}/accumulo-env.sh" ]]; then
+    OLD_CLASSPATH=$CLASSPATH
     #shellcheck source=../conf/accumulo-env.sh
     source "${conf}/accumulo-env.sh"
+    CLASSPATH=$OLD_CLASSPATH
   fi
 
   accumulo_cmd="${bin}/accumulo"
