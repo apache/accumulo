@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -52,7 +53,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 //TODO use zoocache? - ACCUMULO-1297
 //TODO handle zookeeper being down gracefully - ACCUMULO-1297
-//TODO document zookeeper layout - ACCUMULO-1298
 
 public class ZooStore<T> implements TStore<T> {
 
@@ -94,7 +94,7 @@ public class ZooStore<T> implements TStore<T> {
   }
 
   private String getTXPath(long tid) {
-    return String.format("%s/tx_%016x", path, tid);
+    return FastFormat.toHexString(path + "/tx_", tid, "");
   }
 
   private long parseTid(String txdir) {
@@ -208,7 +208,7 @@ public class ZooStore<T> implements TStore<T> {
           }
         }
       }
-    } catch (Exception e) {
+    } catch (InterruptedException | KeeperException e) {
       throw new RuntimeException(e);
     }
   }
@@ -446,12 +446,12 @@ public class ZooStore<T> implements TStore<T> {
   }
 
   @Override
-  public void setProperty(long tid, String prop, Serializable so) {
+  public void setTransactionInfo(long tid, Fate.TxInfo txInfo, Serializable so) {
     verifyReserved(tid);
 
     try {
       if (so instanceof String) {
-        zk.putPersistentData(getTXPath(tid) + "/prop_" + prop, ("S " + so).getBytes(UTF_8),
+        zk.putPersistentData(getTXPath(tid) + "/" + txInfo, ("S " + so).getBytes(UTF_8),
             NodeExistsPolicy.OVERWRITE);
       } else {
         byte[] sera = serialize(so);
@@ -459,7 +459,7 @@ public class ZooStore<T> implements TStore<T> {
         System.arraycopy(sera, 0, data, 2, sera.length);
         data[0] = 'O';
         data[1] = ' ';
-        zk.putPersistentData(getTXPath(tid) + "/prop_" + prop, data, NodeExistsPolicy.OVERWRITE);
+        zk.putPersistentData(getTXPath(tid) + "/" + txInfo, data, NodeExistsPolicy.OVERWRITE);
       }
     } catch (Exception e2) {
       throw new RuntimeException(e2);
@@ -467,11 +467,11 @@ public class ZooStore<T> implements TStore<T> {
   }
 
   @Override
-  public Serializable getProperty(long tid, String prop) {
+  public Serializable getTransactionInfo(long tid, Fate.TxInfo txInfo) {
     verifyReserved(tid);
 
     try {
-      byte[] data = zk.getData(getTXPath(tid) + "/prop_" + prop);
+      byte[] data = zk.getData(getTXPath(tid) + "/" + txInfo);
 
       if (data[0] == 'O') {
         byte[] sera = new byte[data.length - 2];
@@ -480,7 +480,7 @@ public class ZooStore<T> implements TStore<T> {
       } else if (data[0] == 'S') {
         return new String(data, 2, data.length - 2, UTF_8);
       } else {
-        throw new IllegalStateException("Bad property data " + prop);
+        throw new IllegalStateException("Bad node data " + txInfo);
       }
     } catch (NoNodeException nne) {
       return null;

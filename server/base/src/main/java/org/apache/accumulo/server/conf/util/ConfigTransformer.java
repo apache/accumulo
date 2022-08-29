@@ -252,12 +252,12 @@ public class ConfigTransformer {
         }
       }
 
-    } catch (KeeperException e) {
-      // TODO add handling
-      e.printStackTrace();
-    } catch (InterruptedException e) {
+    } catch (KeeperException ex) {
+      throw new IllegalStateException("Failed to read legacy props due to ZooKeeper error", ex);
+    } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
-      e.printStackTrace();
+      throw new IllegalStateException(
+          "Failed to read legacy props due to interrupt read from ZooKeeper", ex);
     }
     return legacyProps;
   }

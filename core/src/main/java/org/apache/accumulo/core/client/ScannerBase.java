@@ -45,6 +45,17 @@ import org.apache.hadoop.io.Text;
 public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
 
   /**
+   * Consistency level for the scanner. The default level is IMMEDIATE, which means that this
+   * scanner will see keys and values that have been successfully written to a TabletServer.
+   * EVENTUAL means that the scanner may not see the latest data that was written to a TabletServer,
+   * but may instead see an older version of data.
+   *
+   */
+  enum ConsistencyLevel {
+    IMMEDIATE, EVENTUAL
+  }
+
+  /**
    * Add a server-side scan iterator.
    *
    * @param cfg
@@ -372,6 +383,23 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
       keyValueConsumer.accept(entry.getKey(), entry.getValue());
     }
   }
+
+  /**
+   * Get the configured consistency level
+   *
+   * @return consistency level
+   * @since 2.1.0
+   */
+  public ConsistencyLevel getConsistencyLevel();
+
+  /**
+   * Set the desired consistency level for this scanner.
+   *
+   * @param level
+   *          consistency level
+   * @since 2.1.0
+   */
+  public void setConsistencyLevel(ConsistencyLevel level);
 
   /**
    * Stream the Scanner results sequentially from this scanner's iterator

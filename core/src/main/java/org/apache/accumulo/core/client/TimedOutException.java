@@ -20,6 +20,7 @@ package org.apache.accumulo.core.client;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -27,7 +28,7 @@ import java.util.Set;
  */
 public class TimedOutException extends RuntimeException {
 
-  private Set<String> timedoutServers;
+  private final HashSet<String> timedoutServers = new HashSet<>();
 
   private static final long serialVersionUID = 1L;
 
@@ -41,13 +42,12 @@ public class TimedOutException extends RuntimeException {
 
   public TimedOutException(Set<String> timedoutServers) {
     super("Servers timed out " + shorten(timedoutServers));
-    this.timedoutServers = timedoutServers;
+    this.timedoutServers.addAll(timedoutServers);
 
   }
 
   public TimedOutException(String msg) {
     super(msg);
-    this.timedoutServers = Collections.emptySet();
   }
 
   public Set<String> getTimedOutSevers() {

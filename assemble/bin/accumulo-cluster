@@ -92,6 +92,13 @@ function parse_config {
     fi
   done
 
+  for group in $SSERVER_GROUPS; do
+    G="SSERVER_HOSTS_${group}"
+    if [[ -z ${!G} ]]; then
+      echo "WARN: ScanServer group $group configured, but no hosts configured for it"
+    fi
+  done
+
   unset manager1
   manager1=$(echo "${MANAGER_HOSTS}" | cut -d" " -f1)
 
@@ -107,15 +114,6 @@ function parse_config {
 
 }
 
-function get_ip() {
-  local ip_addr
-  ip_addr=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1 -d'/')
-  if [[ -z $ip_addr ]]; then
-    ip_addr=$(getent ahosts "$(hostname -f)" | grep DGRAM | cut -f 1 -d ' ')
-  fi
-  echo "$ip_addr"
-}
-
 function control_service() {
   control_cmd="$1"
   host="$2"
@@ -124,13 +122,15 @@ function control_service() {
   local last_instance_id
   last_instance_id=1
   [[ $service == "tserver" ]] && last_instance_id=${NUM_TSERVERS:-1}
+  [[ $service == "sserver" ]] && last_instance_id=${NUM_SSERVERS:-1}
 
   for ((inst_id = 1; inst_id <= last_instance_id; inst_id++)); do
     ACCUMULO_SERVICE_INSTANCE=""
     [[ $service == "tserver" && ${NUM_TSERVERS:-1} -gt 1 ]] && ACCUMULO_SERVICE_INSTANCE=${inst_id}
     [[ $service == "compactor" ]] && ACCUMULO_SERVICE_INSTANCE="${inst_id}_${5}"
+    [[ $service == "sserver" && ${NUM_SSERVERS:-1} -gt 1 ]] && ACCUMULO_SERVICE_INSTANCE=${inst_id}
 
-    if [[ $host == localhost || $host == "$(hostname -s)" || $host == "$(hostname -f)" || $host == $(get_ip) ]]; then
+    if [[ $host == localhost || $host == "$(hostname -s)" || $host == "$(hostname -f)" || "$(hostname -I)" =~ $host ]]; then
       #
       # The server processes take arguments (e.g. -p, -o, -q [in the case of the Compactor]). Always add the -a argument
       # using the value of $host
@@ -188,13 +188,20 @@ function start_all() {
     start_service "$monitor" monitor
   done
 
+  for group in $SSERVER_GROUPS; do
+    G="SSERVER_HOSTS_${group}"
+    for sserver in ${!G}; do
+      start_service "$sserver" sserver "-g" "$group"
+    done
+  done
+
   for coordinator in $COORDINATOR_HOSTS; do
     start_service "$coordinator" compaction-coordinator
   done
 
   for queue in $COMPACTION_QUEUES; do
     Q="COMPACTOR_HOSTS_${queue}"
-    for compactor in "${!Q}"; do
+    for compactor in ${!Q}; do
       start_service "$compactor" compactor "-q" "$queue"
     done
   done
@@ -203,7 +210,7 @@ function start_all() {
 
 function start_here() {
 
-  local_hosts="$(hostname -a 2>/dev/null) $(hostname) localhost 127.0.0.1 $(get_ip)"
+  local_hosts="$(hostname -a 2>/dev/null) $(hostname) localhost 127.0.0.1 $(hostname -I)"
 
   for host in $local_hosts; do
     for tserver in $TSERVER_HOSTS; do
@@ -241,6 +248,17 @@ function start_here() {
     done
   done
 
+  for group in $SSERVER_GROUPS; do
+    for host in $local_hosts; do
+      G="SSERVER_HOSTS_${group}"
+      for sserver in ${!G}; do
+        if echo "$sserver" | grep -q "^${host}\$"; then
+          start_service "$sserver" sserver "-g" "$group"
+        fi
+      done
+    done
+  done
+
   for host in $local_hosts; do
     for coordinator in $COORDINATOR_HOSTS; do
       if echo "$coordinator" | grep -q "^${host}\$"; then
@@ -252,7 +270,7 @@ function start_here() {
   for queue in $COMPACTION_QUEUES; do
     for host in $local_hosts; do
       Q="COMPACTOR_HOSTS_${queue}"
-      for compactor in "${!Q}"; do
+      for compactor in ${!Q}; do
         if echo "$compactor" | grep -q "^${host}\$"; then
           start_service "$compactor" compactor "-q" "$queue"
         fi
@@ -307,6 +325,13 @@ function kill_all() {
     kill_service "$monitor" monitor
   done
 
+  for group in $SSERVER_GROUPS; do
+    G="SSERVER_HOSTS_${group}"
+    for sserver in ${!G}; do
+      kill_service "$sserver" sserver "-g" "$group"
+    done
+  done
+
   for host in $TSERVER_HOSTS; do
     kill_service "$host" tserver
   done
@@ -317,13 +342,13 @@ function kill_all() {
 
   for queue in $COMPACTION_QUEUES; do
     Q="COMPACTOR_HOSTS_${queue}"
-    for compactor in "${!Q}"; do
+    for compactor in ${!Q}; do
       kill_service "$compactor" compactor "-q" "$queue"
     done
   done
 
   echo "Cleaning all server entries in ZooKeeper"
-  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -compaction-coordinators -compactors
+  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -compaction-coordinators -compactors -sservers
 }
 
 function stop_all() {
@@ -356,13 +381,20 @@ function stop_all() {
       end_service $end_cmd "$monitor" monitor
     done
 
+    for group in $SSERVER_GROUPS; do
+      G="SSERVER_HOSTS_${group}"
+      for sserver in ${!G}; do
+        end_service $end_cmd "$sserver" sserver "-g" "$group"
+      done
+    done
+
     for coordinator in $COORDINATOR_HOSTS; do
       end_service $end_cmd "$coordinator" compaction-coordinator
     done
 
     for queue in $COMPACTION_QUEUES; do
       Q="COMPACTOR_HOSTS_${queue}"
-      for compactor in "${!Q}"; do
+      for compactor in ${!Q}; do
         end_service $end_cmd "$compactor" compactor "-q" "$queue"
       done
     done
@@ -373,7 +405,7 @@ function stop_all() {
   stop_tservers
 
   echo "Cleaning all server entries in ZooKeeper"
-  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -compaction-coordinators -compactors
+  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -compaction-coordinators -compactors -sservers
 }
 
 function stop_here() {
@@ -397,9 +429,15 @@ function stop_here() {
       for svc in tserver gc manager monitor compaction-coordinator; do
         end_service $end_cmd "$host" $svc
       done
+      for group in $SSERVER_GROUPS; do
+        G="SSERVER_HOSTS_${group}"
+        for sserver in ${!G}; do
+          end_service $end_cmd "$sserver" sserver "-g" "$group"
+        done
+      done
       for queue in $COMPACTION_QUEUES; do
         Q="COMPACTOR_HOSTS_${queue}"
-        for compactor in "${!Q}"; do
+        for compactor in ${!Q}; do
           end_service $end_cmd "$host" compactor "-q" "$queue"
         done
       done
@@ -429,6 +467,10 @@ function main() {
 
   case "$1" in
     create-config)
+      if [[ -f "$conf"/cluster.yaml ]]; then
+        echo "ERROR : $conf/cluster.yaml already exists, not overwriting"
+        exit 1
+      fi
       cat <<EOF >"$conf"/cluster.yaml
 manager:
   - localhost
@@ -442,17 +484,20 @@ gc:
 tserver:
   - localhost
 
+#sserver:
+#  - default:
+#    - localhost
+#
 #compaction:
 #  coordinator:
 #    - localhost
 #  compactor:
-#    - queue:
-#      - q1
-#      - q2
 #    - q1:
 #        - localhost
 #    - q2:
 #        - localhost
+#
+
 EOF
       ;;
     restart)

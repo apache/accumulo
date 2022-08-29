@@ -92,7 +92,7 @@ public class GCRun implements GarbageCollectionEnvironment {
   private long deleted = 0;
   private long errors = 0;
 
-  GCRun(Ample.DataLevel level, ServerContext context) {
+  public GCRun(Ample.DataLevel level, ServerContext context) {
     this.log = LoggerFactory.getLogger(level.name() + GCRun.class);
     this.level = level;
     this.context = context;
@@ -155,7 +155,7 @@ public class GCRun implements GarbageCollectionEnvironment {
     }
 
     // there is a lot going on in this "one line" so see below for more info
-    return tabletStream.flatMap(tm -> {
+    var tabletReferences = tabletStream.flatMap(tm -> {
       // combine all the entries read from file and scan columns in the metadata table
       var fileStream = Stream.concat(tm.getFiles().stream(), tm.getScans().stream());
       // map the files to Reference objects
@@ -168,6 +168,11 @@ public class GCRun implements GarbageCollectionEnvironment {
       }
       return stream;
     });
+
+    var scanServerRefs = context.getAmple().getScanServerFileReferences()
+        .map(sfr -> new ReferenceFile(sfr.getTableId(), sfr.getPathStr()));
+
+    return Stream.concat(tabletReferences, scanServerRefs);
   }
 
   @Override

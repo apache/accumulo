@@ -81,9 +81,12 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.tserverOps.ShutdownTServer;
 import org.apache.accumulo.server.client.ClientServiceHandler;
+import org.apache.accumulo.server.conf.store.NamespacePropKey;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
+import org.apache.accumulo.server.util.PropUtil;
 import org.apache.accumulo.server.util.SystemPropUtil;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.token.Token;
@@ -399,10 +402,11 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
     try {
       if (value == null) {
-        manager.getContext().namespacePropUtil().removeProperties(namespaceId, List.of(property));
+        PropUtil.removeProperties(manager.getContext(),
+            NamespacePropKey.of(manager.getContext(), namespaceId), List.of(property));
       } else {
-        manager.getContext().namespacePropUtil().setProperties(namespaceId,
-            Map.of(property, value));
+        PropUtil.setProperties(manager.getContext(),
+            NamespacePropKey.of(manager.getContext(), namespaceId), Map.of(property, value));
       }
     } catch (IllegalStateException ex) {
       // race condition on delete... namespace no longer exists? An undelying ZooKeeper.NoNode
@@ -423,9 +427,11 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
     try {
       if (value == null || value.isEmpty()) {
-        manager.getContext().tablePropUtil().removeProperties(tableId, List.of(property));
+        PropUtil.removeProperties(manager.getContext(),
+            TablePropKey.of(manager.getContext(), tableId), List.of(property));
       } else {
-        manager.getContext().tablePropUtil().setProperties(tableId, Map.of(property, value));
+        PropUtil.setProperties(manager.getContext(), TablePropKey.of(manager.getContext(), tableId),
+            Map.of(property, value));
       }
     } catch (IllegalStateException ex) {
       log.warn("Invalid table property, tried to set: tableId: " + tableId.canonical() + " to: "

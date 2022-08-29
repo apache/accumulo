@@ -50,6 +50,7 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.tserver.ScanServer;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
@@ -72,6 +73,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   Process monitor = null;
   Process coordinatorProcess = null;
   final List<Process> tabletServerProcesses = new ArrayList<>();
+  final List<Process> scanServerProcesses = new ArrayList<>();
   final List<Process> compactorProcesses = new ArrayList<>();
 
   public MiniAccumuloClusterControl(MiniAccumuloClusterImpl cluster) {
@@ -227,6 +229,16 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           monitor = cluster._exec(Monitor.class, server, configOverrides).getProcess();
         }
         break;
+      case SCAN_SERVER:
+        synchronized (scanServerProcesses) {
+          int count = 0;
+          for (int i = scanServerProcesses.size();
+              count < limit && i < cluster.getConfig().getNumScanServers(); i++, ++count) {
+            scanServerProcesses
+                .add(cluster._exec(ScanServer.class, server, configOverrides).getProcess());
+          }
+        }
+        break;
       case COMPACTION_COORDINATOR:
         startCoordinator(CompactionCoordinator.class);
         break;
@@ -319,6 +331,23 @@ public class MiniAccumuloClusterControl implements ClusterControl {
             Thread.currentThread().interrupt();
           } finally {
             monitor = null;
+          }
+        }
+        break;
+      case SCAN_SERVER:
+        synchronized (scanServerProcesses) {
+          try {
+            for (Process sserver : scanServerProcesses) {
+              try {
+                cluster.stopProcessWithTimeout(sserver, 30, TimeUnit.SECONDS);
+              } catch (ExecutionException | TimeoutException e) {
+                log.warn("ScanServer did not fully stop after 30 seconds", e);
+              } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+              }
+            }
+          } finally {
+            scanServerProcesses.clear();
           }
         }
         break;
@@ -426,6 +455,22 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           }
           gcProcess = null;
           found = true;
+        }
+        break;
+      case SCAN_SERVER:
+        synchronized (scanServerProcesses) {
+          for (Process sserver : scanServerProcesses) {
+            if (procRef.getProcess().equals(sserver)) {
+              scanServerProcesses.remove(sserver);
+              try {
+                cluster.stopProcessWithTimeout(sserver, 30, TimeUnit.SECONDS);
+              } catch (ExecutionException | TimeoutException e) {
+                log.warn("ScanServer did not fully stop after 30 seconds", e);
+              }
+              found = true;
+              break;
+            }
+          }
         }
         break;
       case COMPACTION_COORDINATOR:

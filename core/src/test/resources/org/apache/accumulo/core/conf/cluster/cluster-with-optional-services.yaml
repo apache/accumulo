@@ -34,17 +34,26 @@ tserver:
   - localhost3
   - localhost4
 
+sserver:
+  - default:
+    - localhost1
+    - localhost2
+  - highmem:
+    - hmvm1
+    - hmvm2
+    - hmvm3
+  - cheap:
+    - burstyvm1
+    - burstyvm2
+
 compaction:
   coordinator:
     - localhost1
     - localhost2
   compactor:
-    - queue:
-      - q1
-      - q2
     - q1:
         - localhost1
         - localhost2
     - q2:
-        - localhost1
-        - localhost2
+        - localhost3
+        - localhost4

@@ -41,6 +41,7 @@ import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -134,6 +135,7 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
     ClientContext context = (ClientContext) client;
     Authorizations authorizations = InputConfigurator.getScanAuthorizations(CLASS, job);
     String classLoaderContext = InputConfigurator.getClassLoaderContext(CLASS, job);
+    ConsistencyLevel cl = InputConfigurator.getConsistencyLevel(CLASS, job);
     String table = baseSplit.getTableName();
 
     // in case the table name changed, we can still use the previous name for terms of
@@ -161,7 +163,8 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
       } catch (TableNotFoundException e) {
         throw new IOException(e);
       }
-
+      scanner.setConsistencyLevel(cl == null ? ConsistencyLevel.IMMEDIATE : cl);
+      log.info("Using consistency level: {}", scanner.getConsistencyLevel());
       scanner.setRanges(multiRangeSplit.getRanges());
       scannerBase = scanner;
 
@@ -189,6 +192,8 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
           scanner = new OfflineScanner(context, TableId.of(baseSplit.getTableId()), authorizations);
         } else {
           scanner = new ScannerImpl(context, TableId.of(baseSplit.getTableId()), authorizations);
+          scanner.setConsistencyLevel(cl == null ? ConsistencyLevel.IMMEDIATE : cl);
+          log.info("Using consistency level: {}", scanner.getConsistencyLevel());
         }
         if (isIsolated) {
           log.info("Creating isolated scanner");

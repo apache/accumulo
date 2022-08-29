@@ -34,7 +34,7 @@ public abstract class ManagerRepo implements Repo<Manager> {
   public void undo(long tid, Manager environment) throws Exception {}
 
   @Override
-  public String getDescription() {
+  public String getName() {
     return this.getClass().getSimpleName();
   }
 

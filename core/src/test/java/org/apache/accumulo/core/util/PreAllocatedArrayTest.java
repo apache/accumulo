@@ -27,6 +27,10 @@ import java.util.Iterator;
 
 import org.junit.jupiter.api.Test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT",
+    justification = "lambda assertThrows testing exception thrown")
 public class PreAllocatedArrayTest {
 
   /**
@@ -97,14 +101,16 @@ public class PreAllocatedArrayTest {
   @Test
   public void testGetIndexHigh() {
     PreAllocatedArray<String> strings = new PreAllocatedArray<>(3);
-    strings.get(2);
+    assertNull(strings.get(2));
+    // spotbugs error suppressed at class level for lambda
     assertThrows(IndexOutOfBoundsException.class, () -> strings.get(3));
   }
 
   @Test
   public void testGetIndexNegative() {
     PreAllocatedArray<String> strings = new PreAllocatedArray<>(3);
-    strings.get(0);
+    assertNull(strings.get(0));
+    // spotbugs error suppressed at class level for lambda
     assertThrows(IndexOutOfBoundsException.class, () -> strings.get(-3));
   }
 }

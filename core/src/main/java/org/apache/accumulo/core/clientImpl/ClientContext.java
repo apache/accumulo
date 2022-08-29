@@ -26,19 +26,24 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 
 import java.lang.Thread.UncaughtExceptionHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -82,12 +87,17 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonReservation;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
+import org.apache.accumulo.core.spi.scan.ScanServerSelector;
+import org.apache.accumulo.core.spi.scan.ScanServerSelector.ScanServer;
 import org.apache.accumulo.core.util.OpTimer;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.tables.TableZooHelper;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.accumulo.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
@@ -126,6 +136,7 @@ public class ClientContext implements AccumuloClient {
   private final Supplier<Long> timeoutSupplier;
   private final Supplier<SaslConnectionParams> saslSupplier;
   private final Supplier<SslConnectionParams> sslSupplier;
+  private final Supplier<ScanServerSelector> scanServerSelectorSupplier;
   private TCredentials rpcCreds;
   private ThriftTransportPool thriftTransportPool;
 
@@ -153,6 +164,58 @@ public class ClientContext implements AccumuloClient {
     return () -> Suppliers.memoizeWithExpiration(s::get, 100, MILLISECONDS).get();
   }
 
+  private ScanServerSelector createScanServerSelector() {
+    String clazz = ClientProperty.SCAN_SERVER_SELECTOR.getValue(info.getProperties());
+    try {
+      Class<? extends ScanServerSelector> impl =
+          Class.forName(clazz).asSubclass(ScanServerSelector.class);
+      ScanServerSelector scanServerSelector = impl.getDeclaredConstructor().newInstance();
+
+      Map<String,String> sserverProps = new HashMap<>();
+      ClientProperty
+          .getPrefix(info.getProperties(), ClientProperty.SCAN_SERVER_SELECTOR_OPTS_PREFIX.getKey())
+          .forEach((k, v) -> {
+            sserverProps.put(
+                k.toString()
+                    .substring(ClientProperty.SCAN_SERVER_SELECTOR_OPTS_PREFIX.getKey().length()),
+                v.toString());
+          });
+
+      scanServerSelector.init(new ScanServerSelector.InitParameters() {
+        @Override
+        public Map<String,String> getOptions() {
+          return Collections.unmodifiableMap(sserverProps);
+        }
+
+        @Override
+        public ServiceEnvironment getServiceEnv() {
+          return new ClientServiceEnvironmentImpl(ClientContext.this);
+        }
+
+        @Override
+        public Supplier<Collection<ScanServer>> getScanServers() {
+          return () -> ClientContext.this.getScanServers().entrySet().stream()
+              .map(entry -> new ScanServer() {
+                @Override
+                public String getAddress() {
+                  return entry.getKey();
+                }
+
+                @Override
+                public String getGroup() {
+                  return entry.getValue().getSecond();
+                }
+              }).collect(Collectors.toSet());
+        }
+      });
+      return scanServerSelector;
+    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+        | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
+        | SecurityException e) {
+      throw new RuntimeException("Error creating ScanServerSelector implementation: " + clazz, e);
+    }
+  }
+
   /**
    * Create a client context with the provided configuration. Legacy client code must provide a
    * no-op SingletonReservation to preserve behavior prior to 2.x. Clients since 2.x should call
@@ -169,9 +232,10 @@ public class ClientContext implements AccumuloClient {
     this.serverConf = serverConf;
     timeoutSupplier = memoizeWithExpiration(
         () -> getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
-    sslSupplier = memoizeWithExpiration(() -> SslConnectionParams.forClient(getConfiguration()));
+    sslSupplier = Suppliers.memoize(() -> SslConnectionParams.forClient(getConfiguration()));
     saslSupplier = memoizeWithExpiration(
         () -> SaslConnectionParams.from(getConfiguration(), getCredentials().getToken()));
+    scanServerSelectorSupplier = memoizeWithExpiration(() -> createScanServerSelector());
     this.singletonReservation = Objects.requireNonNull(reservation);
     this.tableops = new TableOperationsImpl(this);
     this.namespaceops = new NamespaceOperationsImpl(this, tableops);
@@ -330,6 +394,40 @@ public class ClientContext implements AccumuloClient {
       batchWriterConfig = getBatchWriterConfig(info.getProperties());
     }
     return batchWriterConfig;
+  }
+
+  /**
+   * @return map of live scan server addresses to lock uuids.
+   */
+  public Map<String,Pair<UUID,String>> getScanServers() {
+    Map<String,Pair<UUID,String>> liveScanServers = new HashMap<>();
+    String root = this.getZooKeeperRoot() + Constants.ZSSERVERS;
+    var addrs = this.getZooCache().getChildren(root);
+    for (String addr : addrs) {
+      try {
+        final var zLockPath = ServiceLock.path(root + "/" + addr);
+        ZcStat stat = new ZcStat();
+        byte[] lockData = ServiceLock.getLockData(getZooCache(), zLockPath, stat);
+        if (lockData != null) {
+          String[] fields = new String(lockData, UTF_8).split(",", 2);
+          UUID uuid = UUID.fromString(fields[0]);
+          String group = fields[1];
+          liveScanServers.put(addr, new Pair<>(uuid, group));
+        }
+      } catch (IllegalArgumentException e) {
+        log.error("Error validating zookeeper scan server node: " + addr, e);
+      }
+    }
+    return liveScanServers;
+  }
+
+  /**
+   * @return the scan server selector implementation used for determining which scan servers will be
+   *         used when performing an eventually consistent scan
+   */
+  public ScanServerSelector getScanServerSelector() {
+    ensureOpen();
+    return scanServerSelectorSupplier.get();
   }
 
   static ConditionalWriterConfig getConditionalWriterConfig(Properties props) {

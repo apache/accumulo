@@ -23,6 +23,7 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.reset;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -66,6 +67,7 @@ public class FateCommandTest {
     private boolean failCalled = false;
     private boolean cancelCalled = false;
     private boolean printCalled = false;
+    private boolean summarizeCalled = false;
 
     @Override
     public String getName() {
@@ -123,12 +125,20 @@ public class FateCommandTest {
       printCalled = true;
     }
 
+    @Override
+    protected void summarizeTx(Shell shellState, AdminUtil<FateCommand> admin,
+        ZooStore<FateCommand> zs, ZooReaderWriter zk, ServiceLockPath tableLocksPath, String[] args,
+        CommandLine cl) {
+      summarizeCalled = true;
+    }
+
     public void reset() {
       dumpCalled = false;
       deleteCalled = false;
       failCalled = false;
       cancelCalled = false;
       printCalled = false;
+      summarizeCalled = false;
     }
 
   }
@@ -192,6 +202,7 @@ public class FateCommandTest {
 
   @Test
   public void testPrintAndList() throws IOException, InterruptedException, KeeperException {
+    reset(zk);
     PrintStream out = System.out;
     File config = Files.createTempFile(null, null).toFile();
     TestOutputStream output = new TestOutputStream();
@@ -225,6 +236,42 @@ public class FateCommandTest {
       cmd.printTx(shell, helper, zs, zk, tableLocksPath, new String[] {""}, cli);
       cmd.printTx(shell, helper, zs, zk, tableLocksPath, new String[] {}, cli);
       cmd.printTx(shell, helper, zs, zk, tableLocksPath, null, cli);
+    } finally {
+      output.clear();
+      System.setOut(out);
+      if (config.exists()) {
+        assertTrue(config.delete());
+      }
+    }
+
+    verify(zs, zk);
+  }
+
+  @Test
+  public void testSummary() throws IOException, InterruptedException, AccumuloException,
+      AccumuloSecurityException, KeeperException {
+    reset(zk);
+    PrintStream out = System.out;
+    File config = Files.createTempFile(null, null).toFile();
+    TestOutputStream output = new TestOutputStream();
+    Shell shell = createShell(output);
+
+    ServiceLockPath tableLocksPath = ServiceLock.path("/accumulo" + ZTABLE_LOCKS);
+    ZooStore<FateCommand> zs = createMock(ZooStore.class);
+    expect(zk.getChildren(tableLocksPath.toString())).andReturn(List.of("5")).anyTimes();
+    expect(zk.getChildren("/accumulo/table_locks/5")).andReturn(List.of()).anyTimes();
+    expect(zs.list()).andReturn(List.of()).anyTimes();
+
+    replay(zs, zk);
+
+    TestHelper helper = new TestHelper(true);
+    FateCommand cmd = new TestFateCommand();
+    var options = cmd.getOptions();
+    CommandLine cli = new CommandLine.Builder().addOption(options.getOption("summary"))
+        .addOption(options.getOption("np")).build();
+
+    try {
+      cmd.summarizeTx(shell, helper, zs, zk, tableLocksPath, cli.getOptionValues("list"), cli);
     } finally {
       output.clear();
       System.setOut(out);
@@ -324,6 +371,10 @@ public class FateCommandTest {
       cmd.reset();
       shell.execCommand("fate --list 12345 67890", true, false);
       assertTrue(cmd.printCalled);
+      shell.execCommand("fate -summary", true, false);
+      assertTrue(cmd.summarizeCalled);
+      shell.execCommand("fate --summary", true, false);
+      assertTrue(cmd.summarizeCalled);
       cmd.reset();
     } finally {
       shell.shutdown();

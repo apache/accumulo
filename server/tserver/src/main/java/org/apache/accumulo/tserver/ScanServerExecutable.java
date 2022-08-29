@@ -16,42 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.monitor.rest.trace;
+package org.apache.accumulo.tserver;
 
-import java.util.ArrayList;
-import java.util.List;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 
-/**
- * Generates a list of traces grouped by type
- *
- * @since 2.0.0
- */
-public class TraceType {
+import com.google.auto.service.AutoService;
 
-  // Variable names become JSON objects
-  public String traceType;
-  public List<TracesForTypeInformation> traces = new ArrayList<>();
+@AutoService(KeywordExecutable.class)
+public class ScanServerExecutable implements KeywordExecutable {
 
-  public TraceType() {}
-
-  /**
-   * Creates a new list grouped by type
-   *
-   * @param type
-   *          Type of the trace group
-   */
-  public TraceType(String type) {
-    this.traceType = type;
-    this.traces = new ArrayList<>();
+  @Override
+  public String keyword() {
+    return "sserver";
   }
 
-  /**
-   * Adds a new trace to the list
-   *
-   * @param traces
-   *          Trace to add
-   */
-  public void addTrace(TracesForTypeInformation traces) {
-    this.traces.add(traces);
+  @Override
+  public UsageGroup usageGroup() {
+    return UsageGroup.PROCESS;
   }
+
+  @Override
+  public String description() {
+    return "Starts Accumulo scan server";
+  }
+
+  @Override
+  public void execute(final String[] args) throws Exception {
+    ScanServer.main(args);
+  }
+
 }

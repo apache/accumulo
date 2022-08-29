@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -73,12 +74,14 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.util.ConfigPropertyUpgrader;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.server.metadata.RootGcCandidates;
 import org.apache.accumulo.server.metadata.TabletMutatorBase;
+import org.apache.accumulo.server.util.PropUtil;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -127,6 +130,7 @@ public class Upgrader9to10 implements Upgrader {
     createExternalCompactionNodes(context);
     // special case where old files need to be deleted
     dropSortedMapWALFiles(context);
+    createScanServerNodes(context);
   }
 
   @Override
@@ -158,18 +162,32 @@ public class Upgrader9to10 implements Upgrader {
    */
   private void setMetaTableProps(ServerContext context) {
     try {
+      // sets the compaction dispatcher props for the given table and service name
+      BiConsumer<TableId,String> setDispatcherProps =
+          (TableId tableId, String dispatcherService) -> {
+            var dispatcherPropsMap = Map.of(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
+                SimpleCompactionDispatcher.class.getName(),
+                Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", dispatcherService);
+            PropUtil.setProperties(context, TablePropKey.of(context, tableId), dispatcherPropsMap);
+          };
+
       // root compaction props
-      context.tablePropUtil().setProperties(RootTable.ID,
-          Map.of(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
-              SimpleCompactionDispatcher.class.getName(),
-              Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "root"));
+      setDispatcherProps.accept(RootTable.ID, "root");
       // metadata compaction props
-      context.tablePropUtil().setProperties(MetadataTable.ID,
-          Map.of(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
-              SimpleCompactionDispatcher.class.getName(),
-              Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "meta"));
+      setDispatcherProps.accept(MetadataTable.ID, "meta");
     } catch (IllegalStateException ex) {
       throw new RuntimeException("Unable to set system table properties", ex);
+    }
+  }
+
+  private void createScanServerNodes(ServerContext context) {
+    final byte[] EMPTY_BYTE_ARRAY = new byte[0];
+    try {
+      context.getZooReaderWriter().putPersistentData(
+          context.getZooKeeperRoot() + Constants.ZSSERVERS, EMPTY_BYTE_ARRAY,
+          NodeExistsPolicy.SKIP);
+    } catch (KeeperException | InterruptedException e) {
+      throw new RuntimeException("Unable to create scan server paths", e);
     }
   }
 

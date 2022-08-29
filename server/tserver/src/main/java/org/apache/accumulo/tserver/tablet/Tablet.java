@@ -284,7 +284,7 @@ public class Tablet extends TabletBase {
       final TabletResourceManager trm, TabletData data)
       throws IOException, IllegalArgumentException {
 
-    super(tabletServer.getContext(), extent);
+    super(tabletServer, extent);
 
     this.tabletServer = tabletServer;
     this.tabletResources = trm;
@@ -1568,11 +1568,11 @@ public class Tablet extends TabletBase {
 
   // synchronized?
   public void updateRates(long now) {
-    queryRate.update(now, queryResultCount.get());
-    queryByteRate.update(now, queryResultBytes.get());
+    queryRate.update(now, this.queryResultCount.get());
+    queryByteRate.update(now, this.queryResultBytes.get());
     ingestRate.update(now, ingestCount);
     ingestByteRate.update(now, ingestBytes);
-    scannedRate.update(now, scannedCount.get());
+    scannedRate.update(now, this.scannedCount.get());
   }
 
   public long getSplitCreationTime() {

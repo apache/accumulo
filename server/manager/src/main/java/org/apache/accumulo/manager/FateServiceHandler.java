@@ -66,6 +66,7 @@ import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.ByteBufferUtil;
+import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.Validator;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.core.volume.Volume;
@@ -300,9 +301,9 @@ class FateServiceHandler implements FateService.Iface {
         Set<String> propertiesToExclude = new HashSet<>();
 
         for (Entry<String,String> entry : options.entrySet()) {
-          if (entry.getKey().startsWith(TableOperationsImpl.CLONE_EXCLUDE_PREFIX)) {
-            propertiesToExclude
-                .add(entry.getKey().substring(TableOperationsImpl.CLONE_EXCLUDE_PREFIX.length()));
+          if (entry.getKey().startsWith(TableOperationsImpl.PROPERTY_EXCLUDE_PREFIX)) {
+            propertiesToExclude.add(
+                entry.getKey().substring(TableOperationsImpl.PROPERTY_EXCLUDE_PREFIX.length()));
             continue;
           }
 
@@ -800,7 +801,7 @@ class FateServiceHandler implements FateService.Iface {
    */
   public Path mkTempDir(long opid) throws IOException {
     Volume vol = manager.getVolumeManager().getFirst();
-    Path p = vol.prefixChild("/tmp/fate-" + String.format("%016x", opid));
+    Path p = vol.prefixChild("/tmp/fate-" + FastFormat.toHexString(opid));
     FileSystem fs = vol.getFileSystem();
     if (fs.exists(p))
       fs.delete(p, true);
