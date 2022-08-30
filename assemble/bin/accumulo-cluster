@@ -116,6 +116,7 @@ function parse_config {
     echo "INFO: ${NUM_TSERVERS} tservers will be started per host"
   fi
 
+  # shellcheck disable=SC2153
   if [[ -z $NUM_SSERVERS ]]; then
     echo "INFO: ${NUM_SSERVERS} sservers will be started per host"
   fi
