@@ -211,7 +211,7 @@ public class KerberosRenewalIT extends AccumuloITBase {
     } catch (TableExistsException e) {
       log.debug("Table {} already exists. Deleting and trying again.", tableName);
       client.tableOperations().delete(tableName);
-      createTableAndReturnTableName(client);
+      tableName = createTableAndReturnTableName(client);
     }
     // when the table is successfully created, return its name
     return tableName;
