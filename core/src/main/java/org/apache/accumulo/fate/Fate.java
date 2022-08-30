@@ -67,7 +67,7 @@ public class Fate<T> {
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
 
   public enum TxInfo {
-    REPO_TARGET, AUTO_CLEAN, EXCEPTION, RETURN_VALUE
+    RUNNING_REPO, AUTO_CLEAN, EXCEPTION, RETURN_VALUE
   }
 
   private class TransactionRunner implements Runnable {
@@ -300,7 +300,7 @@ public class Fate<T> {
         if (autoCleanUp)
           store.setTransactionInfo(tid, TxInfo.AUTO_CLEAN, autoCleanUp);
 
-        store.setTransactionInfo(tid, TxInfo.REPO_TARGET, repo.getName());
+        store.setTransactionInfo(tid, TxInfo.RUNNING_REPO, repo.getName());
 
         store.setStatus(tid, SUBMITTED);
       }
