@@ -96,7 +96,7 @@ public class ConfigurableScanServerSelectorTest {
   static class DaParams implements ScanServerSelector.SelectorParameters {
 
     private final Collection<TabletId> tablets;
-    private final Map<TabletId,Collection<? extends ScanServerScanAttempt>> attempts;
+    private final Map<TabletId,Collection<? extends ScanServerAttempt>> attempts;
     private final Map<String,String> hints;
 
     DaParams(TabletId tablet) {
@@ -105,7 +105,7 @@ public class ConfigurableScanServerSelectorTest {
       this.hints = Map.of();
     }
 
-    DaParams(TabletId tablet, Map<TabletId,Collection<? extends ScanServerScanAttempt>> attempts,
+    DaParams(TabletId tablet, Map<TabletId,Collection<? extends ScanServerAttempt>> attempts,
         Map<String,String> hints) {
       this.tablets = Set.of(tablet);
       this.attempts = attempts;
@@ -118,7 +118,7 @@ public class ConfigurableScanServerSelectorTest {
     }
 
     @Override
-    public Collection<? extends ScanServerScanAttempt> getAttempts(TabletId tabletId) {
+    public Collection<? extends ScanServerAttempt> getAttempts(TabletId tabletId) {
       return attempts.getOrDefault(tabletId, Set.of());
     }
 
@@ -128,13 +128,13 @@ public class ConfigurableScanServerSelectorTest {
     }
   }
 
-  static class TestScanAttempt implements ScanServerScanAttempt {
+  static class TestScanServerAttempt implements ScanServerAttempt {
 
     private final String server;
     private final long endTime;
     private final Result result;
 
-    TestScanAttempt(String server, long endTime, Result result) {
+    TestScanServerAttempt(String server, long endTime, Result result) {
       this.server = server;
       this.endTime = endTime;
       this.result = result;
@@ -204,10 +204,10 @@ public class ConfigurableScanServerSelectorTest {
     var tabletId = nti("1", "m");
 
     var tabletAttempts = Stream.iterate(1, i -> i <= busyAttempts, i -> i + 1)
-        .map(i -> (new TestScanAttempt("ss" + i + ":" + i, i, ScanServerScanAttempt.Result.BUSY)))
+        .map(i -> (new TestScanServerAttempt("ss" + i + ":" + i, i, ScanServerAttempt.Result.BUSY)))
         .collect(Collectors.toList());
 
-    Map<TabletId,Collection<? extends ScanServerScanAttempt>> attempts = new HashMap<>();
+    Map<TabletId,Collection<? extends ScanServerAttempt>> attempts = new HashMap<>();
     attempts.put(tabletId, tabletAttempts);
 
     for (int i = 0; i < 100 * numServers; i++) {

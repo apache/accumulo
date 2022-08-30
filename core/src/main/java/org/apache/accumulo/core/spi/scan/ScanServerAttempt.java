@@ -24,7 +24,7 @@ package org.apache.accumulo.core.spi.scan;
  *
  * @since 2.1.0
  */
-public interface ScanServerScanAttempt {
+public interface ScanServerAttempt {
 
   // represents reasons that previous attempts to scan failed
   enum Result {
@@ -35,6 +35,6 @@ public interface ScanServerScanAttempt {
 
   long getEndTime();
 
-  ScanServerScanAttempt.Result getResult();
+  ScanServerAttempt.Result getResult();
 
 }

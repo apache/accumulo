@@ -28,13 +28,13 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.data.TabletId;
-import org.apache.accumulo.core.spi.scan.ScanServerScanAttempt;
+import org.apache.accumulo.core.spi.scan.ScanServerAttempt;
 import org.junit.jupiter.api.Test;
 
 public class ScanAttemptsImplTest {
 
   private Map<TabletId,Collection<String>>
-      simplify(Map<TabletId,Collection<ScanAttemptsImpl.ScanAttemptImpl>> map) {
+      simplify(Map<TabletId,Collection<ScanServerAttemptsImpl.ScanServerAttemptImpl>> map) {
     Map<TabletId,Collection<String>> ret = new HashMap<>();
 
     map.forEach((tabletId, scanAttempts) -> {
@@ -49,7 +49,7 @@ public class ScanAttemptsImplTest {
 
   @Test
   public void testBasic() {
-    ScanAttemptsImpl sai = new ScanAttemptsImpl();
+    ScanServerAttemptsImpl sai = new ScanServerAttemptsImpl();
 
     var snap1 = sai.snapshot();
 
@@ -59,7 +59,7 @@ public class ScanAttemptsImplTest {
 
     var reporter1 = sai.createReporter("ss1:1", tablet1);
 
-    reporter1.report(ScanServerScanAttempt.Result.BUSY);
+    reporter1.report(ScanServerAttempt.Result.BUSY);
 
     assertEquals(Map.of(), snap1);
 
@@ -67,7 +67,7 @@ public class ScanAttemptsImplTest {
 
     assertEquals(Map.of(tablet1, Set.of("ss1:1_BUSY")), simplify(snap2));
 
-    reporter1.report(ScanServerScanAttempt.Result.ERROR);
+    reporter1.report(ScanServerAttempt.Result.ERROR);
 
     assertEquals(Map.of(), snap1);
     assertEquals(Map.of(tablet1, Set.of("ss1:1_BUSY")), simplify(snap2));
@@ -81,8 +81,8 @@ public class ScanAttemptsImplTest {
     var tablet3 = nti("2", "r");
     var reporter3 = sai.createReporter("ss2:2", tablet3);
 
-    reporter2.report(ScanServerScanAttempt.Result.BUSY);
-    reporter3.report(ScanServerScanAttempt.Result.ERROR);
+    reporter2.report(ScanServerAttempt.Result.BUSY);
+    reporter3.report(ScanServerAttempt.Result.ERROR);
 
     var snap4 = sai.snapshot();
 

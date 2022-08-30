@@ -97,7 +97,7 @@ public interface ScanServerSelector {
     /**
      * @return scan attempt information for the tablet
      */
-    Collection<? extends ScanServerScanAttempt> getAttempts(TabletId tabletId);
+    Collection<? extends ScanServerAttempt> getAttempts(TabletId tabletId);
 
     /**
      * @return any hints set on a scanner using

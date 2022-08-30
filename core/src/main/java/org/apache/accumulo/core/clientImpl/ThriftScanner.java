@@ -62,7 +62,7 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.spi.scan.ScanServerScanAttempt;
+import org.apache.accumulo.core.spi.scan.ScanServerAttempt;
 import org.apache.accumulo.core.spi.scan.ScanServerSelections;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
@@ -188,7 +188,7 @@ public class ThriftScanner {
     SamplerConfiguration samplerConfig;
     Map<String,String> executionHints;
 
-    ScanAttemptsImpl scanAttempts;
+    ScanServerAttemptsImpl scanAttempts;
 
     Duration busyTimeout;
 
@@ -242,7 +242,7 @@ public class ThriftScanner {
       this.runOnScanServer = useScanServer;
 
       if (useScanServer) {
-        scanAttempts = new ScanAttemptsImpl();
+        scanAttempts = new ScanServerAttemptsImpl();
       }
     }
   }
@@ -519,7 +519,7 @@ public class ThriftScanner {
           }
 
           @Override
-          public Collection<? extends ScanServerScanAttempt> getAttempts(TabletId tabletId) {
+          public Collection<? extends ScanServerAttempt> getAttempts(TabletId tabletId) {
             return attempts.getOrDefault(tabletId, Set.of());
           }
 
@@ -565,10 +565,10 @@ public class ThriftScanner {
       try {
         return scanRpc(newLoc, scanState, context, scanState.busyTimeout.toMillis());
       } catch (ScanServerBusyException ssbe) {
-        reporter.report(ScanServerScanAttempt.Result.BUSY);
+        reporter.report(ScanServerAttempt.Result.BUSY);
         throw ssbe;
       } catch (Exception e) {
-        reporter.report(ScanServerScanAttempt.Result.ERROR);
+        reporter.report(ScanServerAttempt.Result.ERROR);
         throw e;
       }
     } else {
