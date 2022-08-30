@@ -32,7 +32,7 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
 
   private long running;
   private String status = "?";
-  private String command = "?";
+  private String runningRepo = "?";
   private String step = "?";
   private String txnId = "?";
   private List<String> locksHeld = List.of();
@@ -72,7 +72,7 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
       step = txnStatus.getTop();
     }
     if (txnStatus.getRunningRepo() != null) {
-      command = txnStatus.getRunningRepo();
+      runningRepo = txnStatus.getRunningRepo();
     }
     if (txnStatus.getTxid() != null) {
       txnId = txnStatus.getTxid();
@@ -133,7 +133,7 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
     String hms = String.format("%d:%02d:%02d", elapsed.toHours(), elapsed.toMinutesPart(),
         elapsed.toSecondsPart());
 
-    return hms + "\t" + txnId + "\t" + status + "\t" + command + "\t" + step + "\theld:"
+    return hms + "\t" + txnId + "\t" + status + "\t" + runningRepo + "\t" + step + "\theld:"
         + locksHeld.toString() + "\twaiting:" + locksWaiting.toString() + "\n";
   }
 
