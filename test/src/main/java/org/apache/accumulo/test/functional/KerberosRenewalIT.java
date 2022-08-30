@@ -45,11 +45,9 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloITBase;
-import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.MiniClusterHarness;
 import org.apache.accumulo.harness.TestingKdc;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.minikdc.MiniKdc;
@@ -94,7 +92,7 @@ public class KerberosRenewalIT extends AccumuloITBase {
         new TestingKdc(TestingKdc.computeKdcDir(), TestingKdc.computeKeytabDir(), TICKET_LIFETIME);
     kdc.start();
     krbEnabledForITs = System.getProperty(MiniClusterHarness.USE_KERBEROS_FOR_IT_OPTION);
-    if (krbEnabledForITs == null || !Boolean.parseBoolean(krbEnabledForITs)) {
+    if (!Boolean.parseBoolean(krbEnabledForITs)) {
       System.setProperty(MiniClusterHarness.USE_KERBEROS_FOR_IT_OPTION, "true");
     }
     rootUser = kdc.getRootUser();
@@ -115,19 +113,14 @@ public class KerberosRenewalIT extends AccumuloITBase {
   @BeforeEach
   public void startMac() throws Exception {
     MiniClusterHarness harness = new MiniClusterHarness();
-    mac = harness.create(this, new PasswordToken("unused"), kdc,
-        new MiniClusterConfigurationCallback() {
-
-          @Override
-          public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
-            Map<String,String> site = cfg.getSiteConfig();
-            site.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "15s");
-            // Reduce the period just to make sure we trigger renewal fast
-            site.put(Property.GENERAL_KERBEROS_RENEWAL_PERIOD.getKey(), "5s");
-            cfg.setSiteConfig(site);
-            cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "15s");
-          }
-        });
+    mac = harness.create(this, new PasswordToken("unused"), kdc, (cfg, coreSite) -> {
+      Map<String,String> site = cfg.getSiteConfig();
+      site.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "15s");
+      // Reduce the period just to make sure we trigger renewal fast
+      site.put(Property.GENERAL_KERBEROS_RENEWAL_PERIOD.getKey(), "5s");
+      cfg.setSiteConfig(site);
+      cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "15s");
+    });
 
     mac.getConfig().setNumTservers(1);
     mac.start();
@@ -163,19 +156,13 @@ public class KerberosRenewalIT extends AccumuloITBase {
     log.info("Created client as {}", rootUser.getPrincipal());
     assertEquals(rootUser.getPrincipal(), client.whoami());
 
-    long duration = 0;
-    long last = System.currentTimeMillis();
+    long endTime = System.currentTimeMillis() + TICKET_TEST_LIFETIME;
     // Make sure we have a couple renewals happen
-    while (duration < TICKET_TEST_LIFETIME) {
+    while (System.currentTimeMillis() < endTime) {
       // Create a table, write a record, compact, read the record, drop the table.
       createReadWriteDrop(client);
       // Wait a bit after
       Thread.sleep(5000);
-
-      // Update the duration
-      long now = System.currentTimeMillis();
-      duration += now - last;
-      last = now;
     }
   }
 
@@ -209,9 +196,9 @@ public class KerberosRenewalIT extends AccumuloITBase {
     try {
       client.tableOperations().create(tableName);
     } catch (TableExistsException e) {
-      log.debug("Table {} already exists. Deleting and trying again.", tableName);
+      log.debug("Failed to create table {} - already exists. Deleting and trying again", tableName);
       client.tableOperations().delete(tableName);
-      tableName = createTableAndReturnTableName(client);
+      return createTableAndReturnTableName(client);
     }
     // when the table is successfully created, return its name
     return tableName;
