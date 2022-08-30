@@ -186,8 +186,7 @@ public class KerberosRenewalIT extends AccumuloITBase {
    */
   private void createReadWriteDrop(AccumuloClient client) throws TableNotFoundException,
       AccumuloSecurityException, AccumuloException, TableExistsException {
-    final String table = testName() + "_table";
-    client.tableOperations().create(table);
+    final String table = createTableAndReturnTableName(client);
     try (BatchWriter bw = client.createBatchWriter(table)) {
       Mutation m = new Mutation("a");
       m.put("b", "c", "d");
@@ -200,7 +199,21 @@ public class KerberosRenewalIT extends AccumuloITBase {
           new Key("a", "b", "c").compareTo(entry.getKey(), PartialKey.ROW_COLFAM_COLQUAL),
           "Did not find the expected key");
       assertEquals("d", entry.getValue().toString());
-      client.tableOperations().delete(table);
     }
+    client.tableOperations().delete(table);
+  }
+
+  private String createTableAndReturnTableName(AccumuloClient client) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException, TableExistsException {
+    final String tableName = getUniqueNames(1)[0] + "_table";
+    try {
+      client.tableOperations().create(tableName);
+    } catch (TableExistsException e) {
+      log.debug("Table {} already exists. Deleting and trying again.", tableName);
+      client.tableOperations().delete(tableName);
+      createTableAndReturnTableName(client);
+    }
+    // when the table is successfully created, return its name
+    return tableName;
   }
 }
