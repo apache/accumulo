@@ -203,7 +203,7 @@ public class CryptoTest {
     decrypt(encryptedBytes, Scope.WAL, ConfigMode.CRYPTO_ON_DISABLED);
 
     // make sure we don't encrypt when disabled
-    byte[] plainBytes = encrypt(cs, Scope.WAL, ConfigMode.CRYPTO_ON_DISABLED);
+    byte[] plainBytes = encrypt(cs, Scope.WAL, ConfigMode.CRYPTO_ON_DISABLED, false);
     String stringPlainBytes = Arrays.toString(plainBytes);
     assertNotEquals(stringEncryptedBytes, stringPlainBytes);
     decrypt(plainBytes, Scope.WAL, ConfigMode.CRYPTO_ON_DISABLED);
@@ -236,7 +236,7 @@ public class CryptoTest {
     decrypt(encryptedBytes, Scope.RFILE, ConfigMode.CRYPTO_ON_DISABLED);
 
     // make sure we don't encrypt when disabled
-    byte[] plainBytes = encrypt(cs, Scope.RFILE, ConfigMode.CRYPTO_ON_DISABLED);
+    byte[] plainBytes = encrypt(cs, Scope.RFILE, ConfigMode.CRYPTO_ON_DISABLED, false);
     String stringPlainBytes = Arrays.toString(plainBytes);
     assertNotEquals(stringEncryptedBytes, stringPlainBytes);
     decrypt(plainBytes, Scope.RFILE, ConfigMode.CRYPTO_ON_DISABLED);
@@ -428,8 +428,14 @@ public class CryptoTest {
 
   private <C extends CryptoService> byte[] encrypt(C cs, Scope scope, ConfigMode configMode)
       throws Exception {
+    return encrypt(cs, scope, configMode, true);
+  }
+
+  private <C extends CryptoService> byte[] encrypt(C cs, Scope scope, ConfigMode configMode,
+      boolean init) throws Exception {
     AccumuloConfiguration conf = getAccumuloConfig(configMode);
-    cs.init(conf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
+    if (init)
+      cs.init(conf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
     CryptoEnvironmentImpl env = new CryptoEnvironmentImpl(scope, null);
     FileEncrypter encrypter = cs.getFileEncrypter(env);
     byte[] params = encrypter.getDecryptionParameters();

@@ -36,7 +36,7 @@ public class TabletLocationState {
 
   public static class BadLocationStateException extends Exception {
     private static final long serialVersionUID = 1L;
-    private Text metadataTableEntry;
+    private transient final Text metadataTableEntry;
 
     public BadLocationStateException(String msg, Text row) {
       super(msg);

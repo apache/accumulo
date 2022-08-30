@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.metrics;
 
+import java.lang.reflect.InvocationTargetException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -52,14 +53,18 @@ public class MetricsUtil {
   private static List<Tag> commonTags;
 
   public static void initializeMetrics(final AccumuloConfiguration conf, final String appName,
-      final HostAndPort address) throws Exception {
+      final HostAndPort address) throws ClassNotFoundException, InstantiationException,
+      IllegalAccessException, IllegalArgumentException, InvocationTargetException,
+      NoSuchMethodException, SecurityException {
     initializeMetrics(conf.getBoolean(Property.GENERAL_MICROMETER_ENABLED),
         conf.getBoolean(Property.GENERAL_MICROMETER_JVM_METRICS_ENABLED),
         conf.get(Property.GENERAL_MICROMETER_FACTORY), appName, address);
   }
 
   private static void initializeMetrics(boolean enabled, boolean jvmMetricsEnabled,
-      String factoryClass, String appName, HostAndPort address) throws Exception {
+      String factoryClass, String appName, HostAndPort address) throws ClassNotFoundException,
+      InstantiationException, IllegalAccessException, IllegalArgumentException,
+      InvocationTargetException, NoSuchMethodException, SecurityException {
 
     LOG.info("initializing metrics, enabled:{}, class:{}", enabled, factoryClass);
 

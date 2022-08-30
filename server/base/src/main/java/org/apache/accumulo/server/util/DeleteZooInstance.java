@@ -25,20 +25,12 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.zookeeper.KeeperException;
 
-import com.beust.jcommander.Parameter;
-
 public class DeleteZooInstance {
-
-  static class Opts extends Help {
-    @Parameter(names = {"-i", "--instance"}, description = "the instance name or id to delete")
-    String instance;
-  }
 
   static void deleteRetry(ZooReaderWriter zk, String path) throws Exception {
     for (int i = 0; i < 10; i++) {
@@ -53,7 +45,7 @@ public class DeleteZooInstance {
     }
   }
 
-  public static void deleteZooInstance(final String instance) throws Exception {
+  public static void execute(final String instance) throws Exception {
     Objects.requireNonNull(instance, "Instance must not be null");
 
     var zk = new ZooReaderWriter(SiteConfiguration.auto());
@@ -77,16 +69,6 @@ public class DeleteZooInstance {
       }
       deleteRetry(zk, Constants.ZROOT + "/" + instance);
     }
-  }
-
-  /**
-   * @param args
-   *          : the name or UUID of the instance to be deleted
-   */
-  public static void main(String[] args) throws Exception {
-    Opts opts = new Opts();
-    opts.parseArgs(DeleteZooInstance.class.getName(), args);
-    deleteZooInstance(opts.instance);
   }
 
 }
