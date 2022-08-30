@@ -112,9 +112,13 @@ function parse_config {
     GC_HOSTS=$manager1
   fi
 
-  echo "INFO: ${NUM_TSERVERS} tservers will be started per host"
-  echo "INFO: ${NUM_SSERVERS} sservers will be started per host"
+  if [[ -z $NUM_TSERVERS ]]; then
+    echo "INFO: ${NUM_TSERVERS} tservers will be started per host"
+  fi
 
+  if [[ -z $NUM_SSERVERS ]]; then
+    echo "INFO: ${NUM_SSERVERS} sservers will be started per host"
+  fi
 }
 
 function control_service() {
