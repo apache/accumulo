@@ -112,6 +112,9 @@ function parse_config {
     GC_HOSTS=$manager1
   fi
 
+  echo "INFO: ${NUM_TSERVERS} tservers will be started per host"
+  echo "INFO: ${NUM_SSERVERS} sservers will be started per host"
+
 }
 
 function control_service() {
@@ -121,8 +124,8 @@ function control_service() {
 
   local last_instance_id
   last_instance_id=1
-  [[ $service == "tserver" ]] && last_instance_id=${NUM_TSERVERS:-1} && echo "INFO: ${NUM_TSERVERS} tserver per host"
-  [[ $service == "sserver" ]] && last_instance_id=${NUM_SSERVERS:-1} && echo "INFO: ${NUM_SSERVERS} sserver per host"
+  [[ $service == "tserver" ]] && last_instance_id=${NUM_TSERVERS:-1}
+  [[ $service == "sserver" ]] && last_instance_id=${NUM_SSERVERS:-1}
 
   for ((inst_id = 1; inst_id <= last_instance_id; inst_id++)); do
     ACCUMULO_SERVICE_INSTANCE=""
@@ -498,6 +501,16 @@ tserver:
 #        - localhost
 #
 
+# The accumulo-cluster script uses the environment variables NUM_TSERVERS and NUM_SSERVERS
+# to control how many of these services are started per host. When this yaml file is parsed
+# by the accumulo-cluster script it will create these environment variables using the values
+# set below. If these configuration settings are not supplied, they both default to 1.
+#
+# The environment variables are specified in such a way as to allow for other values to be
+# set in the environment and to override both the default of 1 and the value set here. For
+# example, the NUM_TSERVER environment variable is set as: NUM_TSERVERS=${NUM_TSERVERS:=1},
+# where "1" is the value from the tservers_per_host setting below.
+#
 tservers_per_host: 1
 sservers_per_host: 1
 
