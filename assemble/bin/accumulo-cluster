@@ -121,8 +121,8 @@ function control_service() {
 
   local last_instance_id
   last_instance_id=1
-  [[ $service == "tserver" ]] && last_instance_id=${NUM_TSERVERS:-1}
-  [[ $service == "sserver" ]] && last_instance_id=${NUM_SSERVERS:-1}
+  [[ $service == "tserver" ]] && last_instance_id=${NUM_TSERVERS:-1} && echo "INFO: ${NUM_TSERVERS} tserver per host"
+  [[ $service == "sserver" ]] && last_instance_id=${NUM_SSERVERS:-1} && echo "INFO: ${NUM_SSERVERS} sserver per host"
 
   for ((inst_id = 1; inst_id <= last_instance_id; inst_id++)); do
     ACCUMULO_SERVICE_INSTANCE=""
@@ -497,6 +497,9 @@ tserver:
 #    - q2:
 #        - localhost
 #
+
+tservers_per_host: 1
+sservers_per_host: 1
 
 EOF
       ;;
