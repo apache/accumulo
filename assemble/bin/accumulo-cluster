@@ -506,15 +506,12 @@ tserver:
 #        - localhost
 #
 
-# The accumulo-cluster script uses the environment variables NUM_TSERVERS and NUM_SSERVERS
-# to control how many of these services are started per host. When this yaml file is parsed
-# by the accumulo-cluster script it will create these environment variables using the values
-# set below. If these configuration settings are not supplied, they both default to 1.
 #
-# The environment variables are specified in such a way as to allow for other values to be
-# set in the environment and to override both the default of 1 and the value set here. For
-# example, the NUM_TSERVER environment variable is set as: NUM_TSERVERS=${NUM_TSERVERS:=1},
-# where "1" is the value from the tservers_per_host setting below.
+# The following are used by the accumulo-cluster script to determine how many servers
+# to start on each host. If the following variables are not set, then they default to 1.
+# If the environment variable NUM_TSERVERS is set when running accumulo_cluster
+# then its value will override what is set in this file for tservers_per_host. Likewise if
+# NUM_SSERVERS is set then it will override sservers_per_host.
 #
 tservers_per_host: 1
 sservers_per_host: 1
