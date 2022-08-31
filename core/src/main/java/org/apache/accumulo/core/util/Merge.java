@@ -227,7 +227,7 @@ public class Merge {
       Text start = sizes.get(0).extent.prevEndRow();
       Text end = sizes.get(numToMerge - 1).extent.endRow();
       message("Merging %d tablets from (%s to %s]", numToMerge,
-          start == null ? "-inf" : Key.toPrintableString(start.getBytes(), 0, start.getLength(), end.getLength()),
+          start == null ? "-inf" : Key.toPrintableString(start.getBytes(), 0, start.getLength(), start.getLength()),
           end == null ? "+inf" : Key.toPrintableString(end.getBytes(), 0, end.getLength(), end.getLength()));
       client.tableOperations().merge(table, start, end);
     } catch (Exception ex) {
