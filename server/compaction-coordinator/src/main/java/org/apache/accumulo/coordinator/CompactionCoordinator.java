@@ -20,6 +20,7 @@ package org.apache.accumulo.coordinator;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
+import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;
@@ -254,7 +255,9 @@ public class CompactionCoordinator extends AbstractServer
     try {
       MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
           clientAddress);
-    } catch (Exception e1) {
+    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+        | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
+        | SecurityException e1) {
       LOG.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
 
