@@ -73,18 +73,18 @@ public class AdminUtil<T> {
 
     private final long txid;
     private final TStatus status;
-    private final String runningRepo;
+    private final String txName;
     private final List<String> hlocks;
     private final List<String> wlocks;
     private final String top;
     private final long timeCreated;
 
-    private TransactionStatus(Long tid, TStatus status, String runningRepo, List<String> hlocks,
+    private TransactionStatus(Long tid, TStatus status, String txName, List<String> hlocks,
         List<String> wlocks, String top, Long timeCreated) {
 
       this.txid = tid;
       this.status = status;
-      this.runningRepo = runningRepo;
+      this.txName = txName;
       this.hlocks = Collections.unmodifiableList(hlocks);
       this.wlocks = Collections.unmodifiableList(wlocks);
       this.top = top;
@@ -105,10 +105,10 @@ public class AdminUtil<T> {
     }
 
     /**
-     * @return The operation currently running.
+     * @return The name of the transaction running.
      */
-    public String getRunningRepo() {
-      return runningRepo;
+    public String getTxName() {
+      return txName;
     }
 
     /**
@@ -364,7 +364,7 @@ public class AdminUtil<T> {
 
       zs.reserve(tid);
 
-      String runningRepo = (String) zs.getTransactionInfo(tid, Fate.TxInfo.RUNNING_REPO);
+      String txName = (String) zs.getTransactionInfo(tid, Fate.TxInfo.TX_NAME);
 
       List<String> hlocks = heldLocks.remove(tid);
 
@@ -390,8 +390,7 @@ public class AdminUtil<T> {
       zs.unreserve(tid, 0);
 
       if (includeByStatus(status, filterStatus) && includeByTxid(tid, filterTxid)) {
-        statuses
-            .add(new TransactionStatus(tid, status, runningRepo, hlocks, wlocks, top, timeCreated));
+        statuses.add(new TransactionStatus(tid, status, txName, hlocks, wlocks, top, timeCreated));
       }
     }
 
@@ -420,7 +419,7 @@ public class AdminUtil<T> {
     for (TransactionStatus txStatus : fateStatus.getTransactions()) {
       fmt.format(
           "txid: %s  status: %-18s  op: %-15s  locked: %-15s locking: %-15s top: %-15s created: %s%n",
-          txStatus.getTxid(), txStatus.getStatus(), txStatus.getRunningRepo(),
+          txStatus.getTxid(), txStatus.getStatus(), txStatus.getTxName(),
           txStatus.getHeldLocks(), txStatus.getWaitingLocks(), txStatus.getTop(),
           txStatus.getTimeCreatedFormatted());
     }
