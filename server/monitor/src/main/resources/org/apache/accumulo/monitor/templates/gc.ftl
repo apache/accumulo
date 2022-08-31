@@ -19,7 +19,7 @@
 
 -->
       <div>
-        <h3>Garbage Collector Overview</h3>
+        <h3>${title}</h3>
       </div>
       <div id="gcBanner"><div class="alert alert-danger" role="alert">Collector is Unavailable</div></div>
       <div>

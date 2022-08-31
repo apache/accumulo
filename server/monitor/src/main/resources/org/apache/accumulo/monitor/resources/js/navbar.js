@@ -87,13 +87,13 @@ function refreshSideBarNotifications() {
     addClass('warning');
   }
 
-  // Setting individual logs notifications
+  // Setting "Recent Logs" notifications
   // Color
   if (data.logNumber > 0) {
     if (data.logsHaveError) {
-      $('#recentLogsNotifications').removeClass('warning').addClass('error');
+      $('#recentLogsNotifications').removeClass('warning').removeClass('normal').addClass('error');
     } else {
-      $('#recentLogsNotifications').removeClass('error').addClass('warning');
+      $('#recentLogsNotifications').removeClass('error').removeClass('normal').addClass('warning');
     }
   } else {
     $('#recentLogsNotifications').removeClass('error').removeClass('warning').addClass('normal');
@@ -101,27 +101,31 @@ function refreshSideBarNotifications() {
   // Number
   var logNumber = data.logNumber > 99 ? '99+' : data.logNumber;
   $('#recentLogsNotifications').html(logNumber);
+
+
+  // Setting "Table Problems" notifications
   // Color
   if (data.problemNumber > 0) {
-    $('#tableProblemsNotifications').addClass('error');
+    $('#tableProblemsNotifications').removeClass('normal').addClass('error');
   } else {
     $('#tableProblemsNotifications').removeClass('error').addClass('normal');
   }
   // Number
   var problemNumber = data.problemNumber > 99 ? '99+' : data.problemNumber;
   $('#tableProblemsNotifications').html(problemNumber);
-  // Setting overall logs notifications
+
+
+  // Setting "Debug" overall logs notifications
   // Color
   if (data.logNumber > 0 || data.problemNumber > 0) {
     if (data.logsHaveError || data.problemNumber > 0) {
-      $('#errorsNotification').removeClass('warning').addClass('error');
+      $('#errorsNotification').removeClass('warning').removeClass('normal').addClass('error');
     } else {
-      $('#errorsNotification').removeClass('error').addClass('warning');
+      $('#errorsNotification').removeClass('error').removeClass('normal').addClass('warning');
     }
   } else {
     $('#errorsNotification').removeClass('error').removeClass('warning').addClass('normal');
   }
-
   // Number
   var totalNumber = data.logNumber + data.problemNumber > 99 ?
     '99+' : data.logNumber + data.problemNumber;

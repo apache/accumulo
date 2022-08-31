@@ -20,7 +20,7 @@
 -->
       <div class="row">
          <div class="col-xs-12">
-            <h3>Bulk Imports Overview</h3>
+            <h3>${title}</h3>
          </div>
       </div>
       <div class="row">

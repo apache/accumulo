@@ -94,7 +94,7 @@
       </div>
       <div>
         <table id="tableList" class="table caption-top table-bordered table-striped table-condensed">
-          <caption><span class="table-caption">Tables</span><br />
+          <caption><span class="table-caption">${tablesTitle}</span><br />
           <thead>
             <tr>
               <th>Table&nbsp;Name</th>

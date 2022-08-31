@@ -20,7 +20,7 @@
 -->
       <div class="row">
         <div class="col-xs-12">
-          <h3>External Compactions Overview</h3>
+          <h3>${title}</h3>
         </div>
       </div>
     <#if coordinatorRunning == true>

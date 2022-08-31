@@ -19,14 +19,14 @@
 
 -->
       <div class="row">
-         <div class="col-xs-12">
-            <h3>Active Scans Overview</h3>
+        <div class="col-xs-12">
+          <h3>${title}</h3>
          </div>
       </div>
       <div class="row">
         <div class="col-xs-12">
           <table id="scansList" class="table caption-top table-bordered table-striped table-condensed">
-           <caption><span class="table-caption">${title}</span><br /></caption>
+           <caption><span class="table-caption">Scans</span><br /></caption>
             <thead>
              <tr>
                <th class="firstcell">Server&nbsp;</th>

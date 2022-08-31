@@ -109,9 +109,9 @@
           refreshNavBar();
         }
       </script>
-      <div><h3>Recent Logs Overview</h3></div>
+      <div><h3>${title}</h3></div>
         <table id="logTable" class="table caption-top table-bordered table-striped table-condensed">
-         <caption><span class="table-caption">${title}</span><br /></caption>
+         <caption><span class="table-caption">Logs</span><br /></caption>
           <thead>
             <tr>
               <th>Timestamp</th>
