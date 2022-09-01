@@ -50,6 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -99,11 +100,9 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
@@ -120,7 +119,6 @@ import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.metadata.MetadataServicer;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
@@ -2017,30 +2015,16 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public TimeType getTimeType(final String tableName) throws TableNotFoundException {
-    if (tableName.equals(RootTable.NAME)) {
-      throw new IllegalArgumentException("accumulo.root table has no TimeType");
-    }
-    String systemTableToCheck =
-        MetadataTable.NAME.equals(tableName) ? RootTable.NAME : MetadataTable.NAME;
-    final Scanner scanner = context.createScanner(systemTableToCheck, Authorizations.EMPTY);
     String tableId = tableIdMap().get(tableName);
     if (tableId == null) {
       throw new TableNotFoundException(null, tableName, "specified table does not exist");
     }
-    final Text start = new Text(tableId);
-    final Text end = new Text(start);
-    start.append(new byte[] {'<'}, 0, 1);
-    end.append(new byte[] {'<'}, 0, 1);
-    scanner.setRange(new Range(start, end));
-    MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.fetch(scanner);
-    Entry<Key,Value> next = scanner.iterator().next();
-    Value val = next.getValue();
-    if (val.toString().startsWith("L")) {
-      return TimeType.LOGICAL;
-    } else if (val.toString().startsWith("M")) {
-      return TimeType.MILLIS;
-    }
-    throw new RuntimeException("Failed to retrieve TimeType");
+    Optional<TabletMetadata> tabletMetadata =
+        context.getAmple().readTablets().forTable(TableId.of(tableId))
+            .fetch(TabletMetadata.ColumnType.TIME).checkConsistency().build().stream().findFirst();
+    TabletMetadata timeData =
+        tabletMetadata.orElseThrow(() -> new RuntimeException("Failed to retrieve TimeType"));
+    return timeData.getTime().getType();
   }
 
   private void prependPropertiesToExclude(Map<String,String> opts, Set<String> propsToExclude) {

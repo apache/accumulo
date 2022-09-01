@@ -298,18 +298,26 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   @Test
   public void getTimeTypeTest() throws TableNotFoundException, AccumuloException,
       TableExistsException, AccumuloSecurityException {
-    String[] tableNames = getUniqueNames(4);
+    String[] tableNames = getUniqueNames(5);
 
     // Create table with default MILLIS TimeType
+    // By default, tables are created with the default MILLIS TimeType.
     accumuloClient.tableOperations().create(tableNames[0]);
     TimeType timeType = accumuloClient.tableOperations().getTimeType(tableNames[0]);
     assertEquals(TimeType.MILLIS, timeType);
 
-    // Create table with LOGICAL TimeType.
+    // Create table, explicitly setting TimeType to MILLIS
     NewTableConfiguration ntc = new NewTableConfiguration();
-    ntc.setTimeType(TimeType.LOGICAL);
+    ntc.setTimeType(TimeType.MILLIS);
     accumuloClient.tableOperations().create(tableNames[1], ntc);
     timeType = accumuloClient.tableOperations().getTimeType(tableNames[1]);
+    assertEquals(TimeType.MILLIS, timeType);
+
+    // Create table with LOGICAL TimeType.
+    ntc = new NewTableConfiguration();
+    ntc.setTimeType(TimeType.LOGICAL);
+    accumuloClient.tableOperations().create(tableNames[2], ntc);
+    timeType = accumuloClient.tableOperations().getTimeType(tableNames[2]);
     assertEquals(TimeType.LOGICAL, timeType);
 
     // Create some split points
@@ -321,15 +329,15 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     // Create table with MILLIS TimeType. Use splits to create multiple tablets
     ntc = new NewTableConfiguration();
     ntc.withSplits(splits);
-    accumuloClient.tableOperations().create(tableNames[2], ntc);
-    timeType = accumuloClient.tableOperations().getTimeType(tableNames[2]);
+    accumuloClient.tableOperations().create(tableNames[3], ntc);
+    timeType = accumuloClient.tableOperations().getTimeType(tableNames[3]);
     assertEquals(TimeType.MILLIS, timeType);
 
     // Create table with LOGICAL TimeType. Use splits to create multiple tablets
     ntc = new NewTableConfiguration();
     ntc.setTimeType(TimeType.LOGICAL).withSplits(splits);
-    accumuloClient.tableOperations().create(tableNames[3], ntc);
-    timeType = accumuloClient.tableOperations().getTimeType(tableNames[3]);
+    accumuloClient.tableOperations().create(tableNames[4], ntc);
+    timeType = accumuloClient.tableOperations().getTimeType(tableNames[4]);
     assertEquals(TimeType.LOGICAL, timeType);
 
     // check system tables
@@ -339,15 +347,13 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     timeType = accumuloClient.tableOperations().getTimeType("accumulo.replication");
     assertEquals(TimeType.LOGICAL, timeType);
 
+    timeType = accumuloClient.tableOperations().getTimeType("accumulo.root");
+    assertEquals(TimeType.LOGICAL, timeType);
+
     // test non-existent table
     assertThrows(TableNotFoundException.class,
         () -> accumuloClient.tableOperations().getTimeType("notatable"),
-        "specified table that doesn't exist");
-
-    // cannot get TimeType for root table
-    assertThrows(RuntimeException.class,
-        () -> accumuloClient.tableOperations().getTimeType("accumulo.root"),
-        "accumulo.root table has no TimeType");
+        "specified table does not exist");
   }
 
 }
