@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
+import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.shell.Shell;
 import org.jline.reader.LineReader;
@@ -612,6 +613,17 @@ public class ShellIT extends SharedMiniClusterBase {
     // are returned.
     exec("getsplits -m 0", true,
         "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\na\nb\nc\nd\ne\nf\ng\nh\ni\nj\nk\nl\nm\nn\no\np\nq\nr\ns\nt\n");
+  }
+
+  @Test
+  public void testGetTimeType() throws Exception {
+    Shell.log.debug("Starting testGetTimeType test -----------------");
+    exec("createtable tmtype", true);
+    exec("gettimetype", true, TimeType.MILLIS.toString());
+    exec("gettimetype -t tmtype", true, TimeType.MILLIS.toString());
+    exec("gettimetype -t accumulo.metadata", true, TimeType.LOGICAL.toString());
+    exec("gettimetype -t accumulo.root", false);
+    exec("gettimetype -t notable", false);
   }
 
 }
