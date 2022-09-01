@@ -72,8 +72,8 @@ public class FateSummaryReport {
     }
     String top = txnStatus.getTop();
     stepCounts.merge(Objects.requireNonNullElse(top, "?"), 1, Integer::sum);
-    String debug = txnStatus.getRepoTarget();
-    cmdCounts.merge(Objects.requireNonNullElse(debug, "?"), 1, Integer::sum);
+    String runningRepo = txnStatus.getTxName();
+    cmdCounts.merge(Objects.requireNonNullElse(runningRepo, "?"), 1, Integer::sum);
 
     // filter status if provided.
     if (!statusFilterNames.isEmpty() && !statusFilterNames.contains(txnStatus.getStatus().name())) {
