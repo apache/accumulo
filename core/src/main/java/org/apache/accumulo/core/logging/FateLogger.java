@@ -133,7 +133,7 @@ public class FateLogger {
       public void setTransactionInfo(long tid, Fate.TxInfo txInfo, Serializable val) {
         store.setTransactionInfo(tid, txInfo, val);
         if (storeLog.isTraceEnabled())
-          storeLog.trace("{} setting {} txInfo to {}", formatTid(tid), txInfo, val);
+          storeLog.trace("{} setting {} to {}", formatTid(tid), txInfo, val);
       }
 
       @Override
