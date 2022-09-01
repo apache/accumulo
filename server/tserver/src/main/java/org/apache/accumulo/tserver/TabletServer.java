@@ -1040,7 +1040,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
   }
 
-  @SuppressWarnings("removal") // TSERV_MONITOR_FS is marked for removal
   private void config() {
     log.info("Tablet server starting on {}", getHostname());
     Threads.createThread("Split/MajC initiator", new MajorCompactor(context)).start();
@@ -1049,10 +1048,12 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
     final AccumuloConfiguration aconf = getConfiguration();
 
-    if (aconf.getBoolean(Property.TSERV_MONITOR_FS)) {
-      log.info("{} is deprecated and marked for removal.", Property.TSERV_MONITOR_FS.getKey());
+    @SuppressWarnings("removal")
+    Property TSERV_MONITOR_FS = Property.TSERV_MONITOR_FS;
+    if (aconf.getBoolean(TSERV_MONITOR_FS)) {
+      log.warn("{} is deprecated and marked for removal.", TSERV_MONITOR_FS.getKey());
+      FileSystemMonitor.start(aconf);
     }
-    FileSystemMonitor.start(aconf, Property.TSERV_MONITOR_FS);
 
     Runnable gcDebugTask = () -> gcLogger.logGCInfo(getConfiguration());
 
