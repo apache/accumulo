@@ -2013,11 +2013,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return new BulkImport(directory, context);
   }
 
-  @Override
-  public TimeType getTimeType(final String tableName) throws TableNotFoundException {
+  @Override public TimeType getTimeType(final String tableName) throws TableNotFoundException {
     TableId tableId = context.getTableId(tableName);
-    Optional<TabletMetadata> tabletMetadata = context.getAmple().readTablets().forTable(tableId)
-        .fetch(TabletMetadata.ColumnType.TIME).checkConsistency().build().stream().findFirst();
+    Optional<TabletMetadata> tabletMetadata =
+        context.getAmple().readTablets().forTable(tableId).fetch(TabletMetadata.ColumnType.TIME)
+            .checkConsistency().build().stream().findFirst();
     TabletMetadata timeData =
         tabletMetadata.orElseThrow(() -> new RuntimeException("Failed to retrieve TimeType"));
     return timeData.getTime().getType();
