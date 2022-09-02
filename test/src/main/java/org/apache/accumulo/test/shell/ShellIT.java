@@ -621,6 +621,8 @@ public class ShellIT extends SharedMiniClusterBase {
     exec("createtable tmtype", true);
     exec("gettimetype", true, TimeType.MILLIS.toString());
     exec("gettimetype -t tmtype", true, TimeType.MILLIS.toString());
+    exec("createtable -tl logicaltt", true);
+     exec("gettimetype -t logicaltt", true, TimeType.LOGICAL.toString());
     exec("gettimetype -t accumulo.metadata", true, TimeType.LOGICAL.toString());
     exec("gettimetype -t accumulo.root", true, TimeType.LOGICAL.toString());
     exec("gettimetype -t notable", false);
