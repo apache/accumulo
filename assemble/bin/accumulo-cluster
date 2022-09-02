@@ -112,6 +112,14 @@ function parse_config {
     GC_HOSTS=$manager1
   fi
 
+  if [[ -z $NUM_TSERVERS ]]; then
+    echo "INFO: ${NUM_TSERVERS} tservers will be started per host"
+  fi
+
+  # shellcheck disable=SC2153
+  if [[ -z $NUM_SSERVERS ]]; then
+    echo "INFO: ${NUM_SSERVERS} sservers will be started per host"
+  fi
 }
 
 function control_service() {
@@ -497,6 +505,16 @@ tserver:
 #    - q2:
 #        - localhost
 #
+
+#
+# The following are used by the accumulo-cluster script to determine how many servers
+# to start on each host. If the following variables are not set, then they default to 1.
+# If the environment variable NUM_TSERVERS is set when running accumulo_cluster
+# then its value will override what is set in this file for tservers_per_host. Likewise if
+# NUM_SSERVERS is set then it will override sservers_per_host.
+#
+tservers_per_host: 1
+sservers_per_host: 1
 
 EOF
       ;;
