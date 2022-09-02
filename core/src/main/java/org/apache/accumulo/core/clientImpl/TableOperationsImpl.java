@@ -2015,13 +2015,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public TimeType getTimeType(final String tableName) throws TableNotFoundException {
-    String tableId = tableIdMap().get(tableName);
-    if (tableId == null) {
-      throw new TableNotFoundException(null, tableName, "specified table does not exist");
-    }
-    Optional<TabletMetadata> tabletMetadata =
-        context.getAmple().readTablets().forTable(TableId.of(tableId))
-            .fetch(TabletMetadata.ColumnType.TIME).checkConsistency().build().stream().findFirst();
+    TableId tableId = context.getTableId(tableName);
+    Optional<TabletMetadata> tabletMetadata = context.getAmple().readTablets().forTable(tableId)
+        .fetch(TabletMetadata.ColumnType.TIME).checkConsistency().build().stream().findFirst();
     TabletMetadata timeData =
         tabletMetadata.orElseThrow(() -> new RuntimeException("Failed to retrieve TimeType"));
     return timeData.getTime().getType();
