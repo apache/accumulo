@@ -318,7 +318,7 @@ public class FateCommand extends Command {
       boolean cancelTx =
           line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
       if (cancelTx) {
-        boolean cancelled = cancelFateOperation(context, txid, shellState);
+        boolean cancelled = cancelFateOperation(context, txid);
         if (cancelled) {
           shellState.getWriter()
               .println("FaTE transaction " + txid + " was cancelled or already completed.");
@@ -333,15 +333,12 @@ public class FateCommand extends Command {
     return true;
   }
 
-  private static boolean cancelFateOperation(ClientContext context, long txid,
-      final Shell shellState) throws AccumuloException, AccumuloSecurityException {
+  private boolean cancelFateOperation(ClientContext context, long txid) throws AccumuloException {
     FateService.Client client = null;
     try {
       client = ThriftClientTypes.FATE.getConnectionWithRetry(context);
       return client.cancelFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), txid);
     } catch (Exception e) {
-      shellState.getWriter()
-          .println("ManagerClient request failed, retrying. Cause: " + e.getMessage());
       throw new AccumuloException(e);
     } finally {
       if (client != null)
