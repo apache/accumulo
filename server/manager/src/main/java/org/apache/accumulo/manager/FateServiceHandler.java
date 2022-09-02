@@ -583,9 +583,11 @@ class FateServiceHandler implements FateService.Iface {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
         goalMessage += "Import table with new name: " + tableName + " from " + exportDirs;
-        manager.fate.seedTransaction(op.toString(), opid, new TraceRepo<>(new ImportTable(c.getPrincipal(),
-            tableName, exportDirs, namespaceId, keepMappings, !keepOffline)), autoCleanup,
-            goalMessage);
+        manager.fate
+            .seedTransaction(
+                op.toString(), opid, new TraceRepo<>(new ImportTable(c.getPrincipal(), tableName,
+                    exportDirs, namespaceId, keepMappings, !keepOffline)),
+                autoCleanup, goalMessage);
         break;
       }
       case TABLE_EXPORT: {
