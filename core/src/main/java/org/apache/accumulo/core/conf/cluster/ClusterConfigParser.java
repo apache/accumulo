@@ -76,6 +76,9 @@ public class ClusterConfigParser {
       @SuppressWarnings("unchecked")
       Map<String,Object> map = (Map<String,Object>) value;
       map.forEach((k, v) -> flatten(parent + key, k, v, results));
+    } else if (value instanceof Number) {
+      results.put(parent + key, value.toString());
+      return;
     } else {
       throw new RuntimeException("Unhandled object type: " + value.getClass());
     }
@@ -122,6 +125,12 @@ public class ClusterConfigParser {
       sserverGroups.forEach(ssg -> out.printf(PROPERTY_FORMAT, "SSERVER_HOSTS_" + ssg,
           config.get(sserverPrefix + ssg)));
     }
+
+    String numTservers = config.getOrDefault("tservers_per_host", "1");
+    out.print("NUM_TSERVERS=\"${NUM_TSERVERS:=" + numTservers + "}\"\n");
+
+    String numSservers = config.getOrDefault("sservers_per_host", "1");
+    out.print("NUM_SSERVERS=\"${NUM_SSERVERS:=" + numSservers + "}\"\n");
 
     out.flush();
   }

@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -121,12 +120,8 @@ public class FileSystemMonitor {
             try {
               checkMount(mount);
             } catch (final Exception e) {
-              Halt.halt(-42, new Runnable() {
-                @Override
-                public void run() {
-                  log.error("Exception while checking mount points, halting process", e);
-                }
-              });
+              Halt.halt(-42,
+                  () -> log.error("Exception while checking mount points, halting process", e));
             }
           }));
     }
@@ -145,18 +140,16 @@ public class FileSystemMonitor {
       throw new Exception("Filesystem " + mount.mountPoint + " switched to read only");
   }
 
-  public static void start(AccumuloConfiguration conf, Property prop) {
-    if (conf.getBoolean(prop)) {
-      if (new File(PROC_MOUNTS).exists()) {
-        try {
-          new FileSystemMonitor(PROC_MOUNTS, 60000, conf);
-          log.info("Filesystem monitor started");
-        } catch (IOException e) {
-          log.error("Failed to initialize file system monitor", e);
-        }
-      } else {
-        log.info("Not monitoring filesystems, " + PROC_MOUNTS + " does not exists");
+  public static void start(AccumuloConfiguration conf) {
+    if (new File(PROC_MOUNTS).exists()) {
+      try {
+        new FileSystemMonitor(PROC_MOUNTS, 60000, conf);
+        log.info("Filesystem monitor started");
+      } catch (IOException e) {
+        log.error("Failed to initialize file system monitor", e);
       }
+    } else {
+      log.info("Not monitoring filesystems, " + PROC_MOUNTS + " does not exists");
     }
   }
 }

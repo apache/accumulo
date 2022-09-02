@@ -63,6 +63,8 @@ public class ClusterConfigParserTest {
     assertFalse(contents.containsKey("compaction.compactor.queue"));
     assertFalse(contents.containsKey("compaction.compactor.q1"));
     assertFalse(contents.containsKey("compaction.compactor.q2"));
+    assertFalse(contents.containsKey("tservers_per_host"));
+    assertFalse(contents.containsKey("sservers_per_host"));
   }
 
   @Test
@@ -74,7 +76,7 @@ public class ClusterConfigParserTest {
     Map<String,String> contents =
         ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
 
-    assertEquals(10, contents.size());
+    assertEquals(12, contents.size());
     assertTrue(contents.containsKey("manager"));
     assertEquals("localhost1 localhost2", contents.get("manager"));
     assertTrue(contents.containsKey("monitor"));
@@ -98,6 +100,10 @@ public class ClusterConfigParserTest {
     assertEquals("hmvm1 hmvm2 hmvm3", contents.get("sserver.highmem"));
     assertTrue(contents.containsKey("sserver.cheap"));
     assertEquals("burstyvm1 burstyvm2", contents.get("sserver.cheap"));
+    assertTrue(contents.containsKey("tservers_per_host"));
+    assertEquals("2", contents.get("tservers_per_host"));
+    assertTrue(contents.containsKey("sservers_per_host"));
+    assertEquals("1", contents.get("sservers_per_host"));
   }
 
   @Test
@@ -112,6 +118,58 @@ public class ClusterConfigParserTest {
       }
     }
     File f = new File(dir, "ClusterConfigParserTest_testShellOutput");
+    if (!f.createNewFile()) {
+      fail("Unable to create file in ${user.dir}/target");
+    }
+    f.deleteOnExit();
+
+    PrintStream ps = new PrintStream(f);
+
+    URL configFile = ClusterConfigParserTest.class
+        .getResource("/org/apache/accumulo/core/conf/cluster/cluster.yaml");
+    assertNotNull(configFile);
+
+    Map<String,String> contents =
+        ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
+
+    ClusterConfigParser.outputShellVariables(contents, ps);
+    ps.close();
+
+    Map<String,String> expected = new HashMap<>();
+    expected.put("MANAGER_HOSTS", "localhost1 localhost2");
+    expected.put("MONITOR_HOSTS", "localhost1 localhost2");
+    expected.put("GC_HOSTS", "localhost");
+    expected.put("TSERVER_HOSTS", "localhost1 localhost2 localhost3 localhost4");
+    expected.put("NUM_TSERVERS", "${NUM_TSERVERS:=1}");
+    expected.put("NUM_SSERVERS", "${NUM_SSERVERS:=1}");
+
+    expected.replaceAll((k, v) -> {
+      return '"' + v + '"';
+    });
+
+    Map<String,String> actual = new HashMap<>();
+    try (BufferedReader rdr = Files.newBufferedReader(Paths.get(f.toURI()))) {
+      rdr.lines().forEach(l -> {
+        String[] props = l.split("=", 2);
+        actual.put(props[0], props[1]);
+      });
+    }
+
+    assertEquals(expected, actual);
+  }
+
+  @Test
+  public void testShellOutputWithOptionalComponents() throws Exception {
+
+    String userDir = System.getProperty("user.dir");
+    String targetDir = "target";
+    File dir = new File(userDir, targetDir);
+    if (!dir.exists()) {
+      if (!dir.mkdirs()) {
+        fail("Unable to make directory ${user.dir}/target");
+      }
+    }
+    File f = new File(dir, "ClusterConfigParserTest_testShellOutputWithOptionalComponents");
     if (!f.createNewFile()) {
       fail("Unable to create file in ${user.dir}/target");
     }
@@ -142,6 +200,8 @@ public class ClusterConfigParserTest {
     expected.put("SSERVER_HOSTS_default", "localhost1 localhost2");
     expected.put("SSERVER_HOSTS_highmem", "hmvm1 hmvm2 hmvm3");
     expected.put("SSERVER_HOSTS_cheap", "burstyvm1 burstyvm2");
+    expected.put("NUM_TSERVERS", "${NUM_TSERVERS:=2}");
+    expected.put("NUM_SSERVERS", "${NUM_SSERVERS:=1}");
 
     expected.replaceAll((k, v) -> {
       return '"' + v + '"';
@@ -150,7 +210,7 @@ public class ClusterConfigParserTest {
     Map<String,String> actual = new HashMap<>();
     try (BufferedReader rdr = Files.newBufferedReader(Paths.get(f.toURI()))) {
       rdr.lines().forEach(l -> {
-        String[] props = l.split("=");
+        String[] props = l.split("=", 2);
         actual.put(props[0], props[1]);
       });
     }

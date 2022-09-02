@@ -73,18 +73,18 @@ public class AdminUtil<T> {
 
     private final long txid;
     private final TStatus status;
-    private final String repoTarget;
+    private final String txName;
     private final List<String> hlocks;
     private final List<String> wlocks;
     private final String top;
     private final long timeCreated;
 
-    private TransactionStatus(Long tid, TStatus status, String repoTarget, List<String> hlocks,
+    private TransactionStatus(Long tid, TStatus status, String txName, List<String> hlocks,
         List<String> wlocks, String top, Long timeCreated) {
 
       this.txid = tid;
       this.status = status;
-      this.repoTarget = repoTarget;
+      this.txName = txName;
       this.hlocks = Collections.unmodifiableList(hlocks);
       this.wlocks = Collections.unmodifiableList(wlocks);
       this.top = top;
@@ -105,10 +105,10 @@ public class AdminUtil<T> {
     }
 
     /**
-     * @return The repo target for the operation on the top of the stack for this Fate operation.
+     * @return The name of the transaction running.
      */
-    public String getRepoTarget() {
-      return repoTarget;
+    public String getTxName() {
+      return txName;
     }
 
     /**
@@ -364,7 +364,7 @@ public class AdminUtil<T> {
 
       zs.reserve(tid);
 
-      String repoTarget = (String) zs.getTransactionInfo(tid, Fate.TxInfo.REPO_TARGET);
+      String txName = (String) zs.getTransactionInfo(tid, Fate.TxInfo.TX_NAME);
 
       List<String> hlocks = heldLocks.remove(tid);
 
@@ -390,8 +390,7 @@ public class AdminUtil<T> {
       zs.unreserve(tid, 0);
 
       if (includeByStatus(status, filterStatus) && includeByTxid(tid, filterTxid)) {
-        statuses
-            .add(new TransactionStatus(tid, status, repoTarget, hlocks, wlocks, top, timeCreated));
+        statuses.add(new TransactionStatus(tid, status, txName, hlocks, wlocks, top, timeCreated));
       }
     }
 
@@ -419,10 +418,9 @@ public class AdminUtil<T> {
 
     for (TransactionStatus txStatus : fateStatus.getTransactions()) {
       fmt.format(
-          "txid: %s  status: %-18s  op: %-15s  locked: %-15s locking: %-15s top: %-15s created: %s%n",
-          txStatus.getTxid(), txStatus.getStatus(), txStatus.getRepoTarget(),
-          txStatus.getHeldLocks(), txStatus.getWaitingLocks(), txStatus.getTop(),
-          txStatus.getTimeCreatedFormatted());
+          "%-15s txid: %s  status: %-18s locked: %-15s locking: %-15s op: %-15s created: %s%n",
+          txStatus.getTxName(), txStatus.getTxid(), txStatus.getStatus(), txStatus.getHeldLocks(),
+          txStatus.getWaitingLocks(), txStatus.getTop(), txStatus.getTimeCreatedFormatted());
     }
     fmt.format(" %s transactions", fateStatus.getTransactions().size());
 

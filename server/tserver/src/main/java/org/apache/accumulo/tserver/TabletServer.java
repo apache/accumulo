@@ -30,6 +30,7 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -755,7 +756,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     try {
       MetricsUtil.initializeMetrics(context.getConfiguration(), this.applicationName,
           clientAddress);
-    } catch (Exception e1) {
+    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+        | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
+        | SecurityException e1) {
       log.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
 
@@ -1045,7 +1048,12 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
     final AccumuloConfiguration aconf = getConfiguration();
 
-    FileSystemMonitor.start(aconf, Property.TSERV_MONITOR_FS);
+    @SuppressWarnings("removal")
+    Property TSERV_MONITOR_FS = Property.TSERV_MONITOR_FS;
+    if (aconf.getBoolean(TSERV_MONITOR_FS)) {
+      log.warn("{} is deprecated and marked for removal.", TSERV_MONITOR_FS.getKey());
+      FileSystemMonitor.start(aconf);
+    }
 
     Runnable gcDebugTask = () -> gcLogger.logGCInfo(getConfiguration());
 
