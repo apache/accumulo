@@ -21,19 +21,19 @@
       <div class="row">
         <div class="col-xs-12">
           <h3>${title}</h3>
-         </div>
+        </div>
       </div>
       <div class="row">
         <div class="col-xs-12">
           <table id="scansList" class="table caption-top table-bordered table-striped table-condensed">
-           <caption><span class="table-caption">Scans</span><br /></caption>
+            <caption><span class="table-caption">Scans</span><br /></caption>
             <thead>
-             <tr>
-               <th class="firstcell">Server&nbsp;</th>
-               <th title="Number of scans presently running">#&nbsp;</th>
-               <th class="duration" title="The age of the oldest scan on this server.">Oldest&nbsp;Age&nbsp;</th>
-               <th class="date" title="Last time data was fetched. Server fetches on page refresh, at most every minute.">Fetched</th>
-             </tr>
+              <tr>
+                <th class="firstcell">Server&nbsp;</th>
+                <th title="Number of scans presently running">#&nbsp;</th>
+                <th class="duration" title="The age of the oldest scan on this server.">Oldest&nbsp;Age&nbsp;</th>
+                <th class="date" title="Last time data was fetched. Server fetches on page refresh, at most every minute.">Fetched&nbsp;</th>
+              </tr>
             </thead>
             <tbody></tbody>
           </table>

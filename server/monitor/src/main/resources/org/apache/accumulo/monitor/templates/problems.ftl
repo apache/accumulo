@@ -56,7 +56,7 @@
             <caption><span class="table-caption">Details</span></caption>
             <thead>
               <tr>
-                <th class="firstcell" >Table&nbsp;</th>
+                <th class="firstcell">Table&nbsp;</th>
                 <th>Problem&nbsp;Type&nbsp;</th>
                 <th>Server&nbsp;</th>
                 <th class="date">Time&nbsp;</th>

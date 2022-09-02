@@ -27,15 +27,40 @@
         <div class="col-sm-6 col-sm-offset-3" id="manager">
           <table class="table table-bordered table-striped table-condensed">
             <thead>
-              <tr><th colspan="2"><a href="/manager">Accumulo Manager</a></th></tr>
-              <tr><td colspan="2" class="center" style="display:none;"><span class="label label-danger nowrap">Manager is Down</span></td></tr>
-              <tr><td class="left"><a href="/tables">Tables</a></td><td class="right"></td></tr>
-              <tr><td class="left"><a href="/tservers">Total&nbsp;Known&nbsp;Tablet&nbsp;Servers</a></td><td class="right"></td></tr>
-              <tr><td class="left"><a href="/tservers">Dead&nbsp;Tablet&nbsp;Servers</a></td><td class="right"></td></tr>
-              <tr><td class="left">Tablets</td><td class="right"></td></tr>
-              <tr><td class="left">Entries</td><td class="right"></td></tr>
-              <tr><td class="left">Lookups</td><td class="right"></td></tr>
-              <tr><td class="left">Uptime</td><td class="right"></td></tr>
+              <tr>
+                <th colspan="2"><a href="/manager">Accumulo Manager</a></th>
+              </tr>
+              <tr>
+                <td colspan="2" class="center" style="display:none;"><span class="label label-danger nowrap">Manager is Down</span></td>
+              </tr>
+              <tr>
+                <td class="left"><a href="/tables">Tables</a></td>
+                <td class="right"></td>
+              </tr>
+              <tr>
+                <td class="left"><a href="/tservers">Total&nbsp;Known&nbsp;Tablet&nbsp;Servers</a></td>
+                <td class="right"></td>
+              </tr>
+              <tr>
+                <td class="left"><a href="/tservers">Dead&nbsp;Tablet&nbsp;Servers</a></td>
+                <td class="right"></td>
+              </tr>
+              <tr>
+                <td class="left">Tablets</td>
+                <td class="right"></td>
+              </tr>
+              <tr>
+                <td class="left">Entries</td>
+                <td class="right"></td>
+              </tr>
+              <tr>
+                <td class="left">Lookups</td>
+                <td class="right"></td>
+              </tr>
+              <tr>
+                <td class="left">Uptime</td>
+                <td class="right"></td>
+              </tr>
             </thead>
             <tbody></tbody>
           </table>

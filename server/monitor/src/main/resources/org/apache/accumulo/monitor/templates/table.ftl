@@ -23,8 +23,8 @@
          * Creates participating Tservers initial table, passes the tableID from the template
          */
         $(document).ready(function () {
-            initTableServerTable('${tableID}');
-          });
+          initTableServerTable('${tableID}');
+        });
       </script>
       <div class="row">
         <div class="col-xs-12">
@@ -38,7 +38,7 @@
             <thead>
               <tr>
                 <th>Server&nbsp;</th>
-                <th class="big-num">Hosted<br/>Tablets&nbsp;</th>
+                <th class="big-num">Hosted<br />Tablets&nbsp;</th>
                 <th class="duration">Last&nbsp;Contact&nbsp;</th>
                 <th class="big-num" title="Key/value pairs over each instance, table or tablet.">Entries&nbsp;</th>
                 <th class="big-num" title="The number of Key/Value pairs inserted. (Note that deletes are considered inserted)">Ingest&nbsp;</th>
@@ -47,8 +47,8 @@
                 <th title="Information about the scans threads. Shows how many threads are running and, in parentheses, how much work is queued for the threads.">Scans&nbsp;</th>
                 <th title="The action of flushing memory to disk. Multiple tablets can be compacted simultaneously, but sometimes they must wait for resources to be available. The number of tablets waiting for compaction is in parentheses.">Minor&nbsp;Compactions&nbsp;</th>
                 <th title="The action of gathering up many small files and rewriting them as one larger file. The number of queued major compactions is in parentheses.">Major&nbsp;Compactions&nbsp;</th>
-                <th class="percent" title="The recent index cache hit rate.">Index Cache<br/>Hit Rate&nbsp;</th>
-                <th class="percent" title="The recent data cache hit rate.">Data Cache<br/>Hit Rate&nbsp;</th>
+                <th class="percent" title="The recent index cache hit rate.">Index Cache<br />Hit Rate&nbsp;</th>
+                <th class="percent" title="The recent data cache hit rate.">Data Cache<br />Hit Rate&nbsp;</th>
                 <th class="big-num" title="The Unix one minute load average. The average number of processes in the run queue over a one minute interval.">OS&nbsp;Load&nbsp;</th>
               </tr>
             </thead>

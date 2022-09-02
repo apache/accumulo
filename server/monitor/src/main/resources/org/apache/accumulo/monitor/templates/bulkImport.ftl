@@ -19,14 +19,14 @@
 
 -->
       <div class="row">
-         <div class="col-xs-12">
-            <h3>${title}</h3>
-         </div>
+        <div class="col-xs-12">
+          <h3>${title}</h3>
+        </div>
       </div>
       <div class="row">
         <div class="col-xs-12">
           <table id="bulkListTable" class="table caption-top table-bordered table-striped table-condensed">
-            <caption><span class="table-caption">Bulk Imports</span><br/></caption>
+            <caption><span class="table-caption">Bulk Imports</span><br /></caption>
             <thead>
               <tr>
                 <th>Directory&nbsp;</th>
@@ -42,7 +42,7 @@
       <div class="row">
         <div class="col-xs-12">
           <table id="bulkPerServerTable" class="table caption-top table-bordered table-striped table-condensed">
-            <caption><span class="table-caption">Per TabletServer</span><br/></caption>
+            <caption><span class="table-caption">Per TabletServer</span><br /></caption>
             <thead>
               <tr>
                 <th>Server</th>
@@ -52,4 +52,4 @@
             </thead>
             <tbody></tbody>
           </table>
-      </div>
+        </div>
