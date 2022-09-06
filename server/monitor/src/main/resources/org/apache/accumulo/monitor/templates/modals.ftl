@@ -23,12 +23,13 @@
       <div class="modal-dialog" role="document">
         <!-- Modal content -->
         <div class="modal-content">
-        <div >
-          <div class="modal-header justify-content-center">
-            <span class="modal-title">
+          <div>
+            <div class="modal-header justify-content-center">
+              <span class="modal-title">
                 <div class="text-center">
-                    <a href="https://accumulo.apache.org" target="_blank"><img alt="Apache Accumulo" src="/resources/images/accumulo-logo.png" /></a></span>
-                </div>
+                  <a href="https://accumulo.apache.org" target="_blank"><img alt="Apache Accumulo" src="/resources/images/accumulo-logo.png" /></a>
+              </span>
+            </div>
           </div>
           <div class="modal-body">
             <div class="container-fluid">
@@ -60,3 +61,4 @@
         </div>
       </div>
     </div>
+    

@@ -19,7 +19,7 @@
 
 -->
       <script>
-        $(document).ready(function() {
+        $(document).ready(function () {
           // initialize DataTables
           initServerTables('${server}');
         });
@@ -56,10 +56,10 @@
                 <th>Operation&nbsp;</th>
                 <th class="big-num">Success&nbsp;</th>
                 <th class="big-num">Failure&nbsp;</th>
-                <th class="duration">Average<br/>Queue&nbsp;Time&nbsp;</th>
-                <th class="duration">Std.&nbsp;Dev.<br/>Queue&nbsp;Time&nbsp;</th>
-                <th class="duration">Average<br/>Time&nbsp;</th>
-                <th class="duration">Std.&nbsp;Dev.<br/>Time&nbsp;</th>
+                <th class="duration">Average<br />Queue&nbsp;Time&nbsp;</th>
+                <th class="duration">Std.&nbsp;Dev.<br />Queue&nbsp;Time&nbsp;</th>
+                <th class="duration">Average<br />Time&nbsp;</th>
+                <th class="duration">Std.&nbsp;Dev.<br />Time&nbsp;</th>
                 <th>Percentage&nbsp;Time&nbsp;Spent&nbsp;</th>
               </tr>
             </thead>

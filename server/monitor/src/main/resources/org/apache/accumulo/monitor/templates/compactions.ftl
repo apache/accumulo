@@ -18,11 +18,11 @@
     under the License.
 
 -->
-    <div class="row">
-       <div class="col-xs-12">
+      <div class="row">
+        <div class="col-xs-12">
           <h3>${title}</h3>
-       </div>
-    </div>
+        </div>
+      </div>
       <div class="row">
         <div class="col-xs-12">
           <table id="compactionsList" class="table caption-top table-bordered table-striped table-condensed">
