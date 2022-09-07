@@ -149,19 +149,20 @@ public class KerberosRenewalIT extends AccumuloITBase {
         rootUser.getKeytab().getAbsolutePath());
     log.info("Logged in as {}", rootUser.getPrincipal());
 
-    AccumuloClient client = mac.createAccumuloClient(rootUser.getPrincipal(), new KerberosToken());
-    log.info("Created client as {}", rootUser.getPrincipal());
-    assertEquals(rootUser.getPrincipal(), client.whoami());
+    try (var client = mac.createAccumuloClient(rootUser.getPrincipal(), new KerberosToken())) {
+      log.info("Created client as {}", rootUser.getPrincipal());
+      assertEquals(rootUser.getPrincipal(), client.whoami());
 
-    long endTime = System.currentTimeMillis() + TICKET_TEST_LIFETIME;
-    final String tableName = getUniqueNames(1)[0] + "_table";
+      long endTime = System.currentTimeMillis() + TICKET_TEST_LIFETIME;
+      final String tableName = getUniqueNames(1)[0] + "_table";
 
-    // Make sure we have a couple renewals happen
-    while (System.currentTimeMillis() < endTime) {
-      // Create a table, write a record, compact, read the record, drop the table.
-      createReadWriteDrop(client, tableName);
-      // Wait a bit after
-      Thread.sleep(5000L);
+      // Make sure we have a couple renewals happen
+      while (System.currentTimeMillis() < endTime) {
+        // Create a table, write a record, compact, read the record, drop the table.
+        createReadWriteDrop(client, tableName);
+        // Wait a bit after
+        Thread.sleep(5000L);
+      }
     }
   }
 
