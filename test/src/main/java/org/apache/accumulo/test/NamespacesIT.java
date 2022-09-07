@@ -55,6 +55,7 @@ import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.ImportConfiguration;
 import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -1008,8 +1009,8 @@ public class NamespacesIT extends SharedMiniClusterBase {
         () -> ops.clone("a", tableName, true, Collections.emptyMap(), Collections.emptySet()));
     ops.offline("a", true);
     ops.exportTable("a", System.getProperty("user.dir") + "/target");
-    assertAccumuloExceptionNoNamespace(
-        () -> ops.importTable(tableName, Set.of(System.getProperty("user.dir") + "/target")));
+    assertAccumuloExceptionNoNamespace(() -> ops.importTable(tableName,
+        Set.of(System.getProperty("user.dir") + "/target"), ImportConfiguration.empty()));
 
     // table operations that should throw an AccumuloException caused by a TableNotFoundException
     // caused by a NamespaceNotFoundException

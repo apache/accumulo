@@ -557,7 +557,10 @@ class FateServiceHandler implements FateService.Iface {
         }
         String tableName =
             validateName(arguments.get(0), tableOp, NEW_TABLE_NAME.and(NOT_BUILTIN_TABLE));
-        List<ByteBuffer> exportDirArgs = arguments.stream().skip(1).collect(Collectors.toList());
+        boolean keepOffline = Boolean.parseBoolean(ByteBufferUtil.toString(arguments.get(1)));
+        boolean keepMappings = Boolean.parseBoolean(ByteBufferUtil.toString(arguments.get(2)));
+
+        List<ByteBuffer> exportDirArgs = arguments.stream().skip(3).collect(Collectors.toList());
         Set<String> exportDirs = ByteBufferUtil.toStringSet(exportDirArgs);
         NamespaceId namespaceId;
         try {
@@ -580,9 +583,11 @@ class FateServiceHandler implements FateService.Iface {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
         goalMessage += "Import table with new name: " + tableName + " from " + exportDirs;
-        manager.fate.seedTransaction(op.toString(), opid,
-            new TraceRepo<>(new ImportTable(c.getPrincipal(), tableName, exportDirs, namespaceId)),
-            autoCleanup, goalMessage);
+        manager.fate
+            .seedTransaction(
+                op.toString(), opid, new TraceRepo<>(new ImportTable(c.getPrincipal(), tableName,
+                    exportDirs, namespaceId, keepMappings, !keepOffline)),
+                autoCleanup, goalMessage);
         break;
       }
       case TABLE_EXPORT: {

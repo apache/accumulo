@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.tableImport;
 
+import static org.apache.accumulo.core.Constants.IMPORT_MAPPINGS_FILE;
+
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
@@ -44,11 +46,14 @@ class FinishImportTable extends ManagerRepo {
   @Override
   public Repo<Manager> call(long tid, Manager env) throws Exception {
 
-    for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
-      env.getVolumeManager().deleteRecursively(new Path(dm.importDir, "mappings.txt"));
+    if (!tableInfo.keepMappings) {
+      for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
+        env.getVolumeManager().deleteRecursively(new Path(dm.importDir, IMPORT_MAPPINGS_FILE));
+      }
     }
 
-    env.getTableManager().transitionTableState(tableInfo.tableId, TableState.ONLINE);
+    if (tableInfo.onlineTable)
+      env.getTableManager().transitionTableState(tableInfo.tableId, TableState.ONLINE);
 
     Utils.unreserveNamespace(env, tableInfo.namespaceId, tid, false);
     Utils.unreserveTable(env, tableInfo.tableId, tid, true);
