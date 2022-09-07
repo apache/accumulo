@@ -28,12 +28,8 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableExistsException;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -48,6 +44,7 @@ import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.MiniClusterHarness;
 import org.apache.accumulo.harness.TestingKdc;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.minikdc.MiniKdc;
@@ -157,12 +154,14 @@ public class KerberosRenewalIT extends AccumuloITBase {
     assertEquals(rootUser.getPrincipal(), client.whoami());
 
     long endTime = System.currentTimeMillis() + TICKET_TEST_LIFETIME;
+    final String tableName = getUniqueNames(1)[0] + "_table";
+
     // Make sure we have a couple renewals happen
     while (System.currentTimeMillis() < endTime) {
       // Create a table, write a record, compact, read the record, drop the table.
-      createReadWriteDrop(client);
+      createReadWriteDrop(client, tableName);
       // Wait a bit after
-      Thread.sleep(5000);
+      Thread.sleep(5000L);
     }
   }
 
@@ -171,36 +170,23 @@ public class KerberosRenewalIT extends AccumuloITBase {
    * that the system user exists (since the manager does an RPC to the tserver which will create the
    * system user if it doesn't already exist).
    */
-  private void createReadWriteDrop(AccumuloClient client) throws TableNotFoundException,
-      AccumuloSecurityException, AccumuloException, TableExistsException {
-    final String table = createTableAndReturnTableName(client);
-    try (BatchWriter bw = client.createBatchWriter(table)) {
+  private void createReadWriteDrop(AccumuloClient client, String tableName) throws Exception {
+    client.tableOperations().create(tableName);
+    try (BatchWriter bw = client.createBatchWriter(tableName)) {
       Mutation m = new Mutation("a");
       m.put("b", "c", "d");
       bw.addMutation(m);
     }
-    client.tableOperations().compact(table, new CompactionConfig().setFlush(true).setWait(true));
-    try (Scanner s = client.createScanner(table, Authorizations.EMPTY)) {
+    client.tableOperations().compact(tableName,
+        new CompactionConfig().setFlush(true).setWait(true));
+    try (Scanner s = client.createScanner(tableName, Authorizations.EMPTY)) {
       Entry<Key,Value> entry = getOnlyElement(s);
       assertEquals(0,
           new Key("a", "b", "c").compareTo(entry.getKey(), PartialKey.ROW_COLFAM_COLQUAL),
           "Did not find the expected key");
       assertEquals("d", entry.getValue().toString());
     }
-    client.tableOperations().delete(table);
-  }
-
-  private String createTableAndReturnTableName(AccumuloClient client) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException, TableExistsException {
-    final String tableName = getUniqueNames(1)[0] + "_table";
-    try {
-      client.tableOperations().create(tableName);
-    } catch (TableExistsException e) {
-      log.debug("Failed to create table {} - already exists. Deleting and trying again", tableName);
-      client.tableOperations().delete(tableName);
-      return createTableAndReturnTableName(client);
-    }
-    // when the table is successfully created, return its name
-    return tableName;
+    client.tableOperations().delete(tableName);
+    Wait.waitFor(() -> !client.tableOperations().exists(tableName), 20_000L, 200L);
   }
 }
