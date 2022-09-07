@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.Constants;
@@ -71,6 +72,7 @@ import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
@@ -87,6 +89,9 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
+import org.apache.zookeeper.ZKUtil;
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -122,8 +127,11 @@ public class Upgrader9to10 implements Upgrader {
   // effectively an 8MB batch size, since this number is the number of Chars
   public static final long CANDIDATE_BATCH_SIZE = 4_000_000;
 
+  private static final AtomicBoolean asyncErrorOccurred = new AtomicBoolean(false);
+
   @Override
   public void upgradeZookeeper(ServerContext context) {
+    ensureProperAcls(context);
     upgradePropertyStorage(context);
     setMetaTableProps(context);
     upgradeRootTabletMetadata(context);
@@ -131,6 +139,29 @@ public class Upgrader9to10 implements Upgrader {
     // special case where old files need to be deleted
     dropSortedMapWALFiles(context);
     createScanServerNodes(context);
+  }
+
+  private void ensureProperAcls(ServerContext context) {
+
+    final ZooReaderWriter zrw = context.getZooReaderWriter();
+    final ZooKeeper zk = zrw.getZooKeeper();
+    final String rootPath = context.getZooKeeperRoot();
+    try {
+      ZKUtil.visitSubTreeDFS(zk, rootPath, false, (rc, path, ctx, name) -> {
+        try {
+          final Stat stat = zk.exists(path, false);
+          zk.setACL(path, ZooUtil.PUBLIC, stat.getAversion());
+        } catch (KeeperException | InterruptedException e) {
+          log.error("Error setting ACL for path: {}", path, e);
+          asyncErrorOccurred.set(true);
+        }
+      });
+      if (asyncErrorOccurred.get()) {
+        throw new RuntimeException("Error setting ACLs, check the log for details");
+      }
+    } catch (KeeperException | InterruptedException e) {
+      throw new RuntimeException("Error visiting nodes under " + rootPath, e);
+    }
   }
 
   @Override
