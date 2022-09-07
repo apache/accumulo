@@ -67,7 +67,7 @@ public class Fate<T> {
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
 
   public enum TxInfo {
-    REPO_TARGET, AUTO_CLEAN, EXCEPTION, RETURN_VALUE
+    TX_NAME, AUTO_CLEAN, EXCEPTION, RETURN_VALUE
   }
 
   private class TransactionRunner implements Runnable {
@@ -283,7 +283,8 @@ public class Fate<T> {
 
   // start work in the transaction.. it is safe to call this
   // multiple times for a transaction... but it will only seed once
-  public void seedTransaction(long tid, Repo<T> repo, boolean autoCleanUp, String goalMessage) {
+  public void seedTransaction(String txName, long tid, Repo<T> repo, boolean autoCleanUp,
+      String goalMessage) {
     store.reserve(tid);
     try {
       if (store.getStatus(tid) == NEW) {
@@ -300,7 +301,7 @@ public class Fate<T> {
         if (autoCleanUp)
           store.setTransactionInfo(tid, TxInfo.AUTO_CLEAN, autoCleanUp);
 
-        store.setTransactionInfo(tid, TxInfo.REPO_TARGET, repo.getName());
+        store.setTransactionInfo(tid, TxInfo.TX_NAME, txName);
 
         store.setStatus(tid, SUBMITTED);
       }

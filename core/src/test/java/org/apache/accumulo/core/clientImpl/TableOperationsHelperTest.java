@@ -43,6 +43,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.DiskUsage;
+import org.apache.accumulo.core.client.admin.ImportConfiguration;
 import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.SummaryRetriever;
@@ -220,7 +221,7 @@ public class TableOperationsHelperTest {
     }
 
     @Override
-    public void importTable(String tableName, Set<String> exportDir) {}
+    public void importTable(String tableName, Set<String> exportDir, ImportConfiguration ic) {}
 
     @Override
     public void exportTable(String tableName, String exportDir) {}

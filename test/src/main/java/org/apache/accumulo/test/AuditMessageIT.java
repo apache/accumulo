@@ -44,6 +44,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.ImportConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
@@ -345,7 +346,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
     FileUtils.copyFileToDirectory(importFile, exportDir);
     FileUtils.copyFileToDirectory(importFile, exportDirBulk);
     auditAccumuloClient.tableOperations().importTable(NEW_TEST_TABLE_NAME,
-        Collections.singleton(exportDir.toString()));
+        Collections.singleton(exportDir.toString()), ImportConfiguration.empty());
 
     // Now do a Directory (bulk) import of the same data.
     auditAccumuloClient.tableOperations().create(THIRD_TEST_TABLE_NAME);

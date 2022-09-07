@@ -1048,7 +1048,12 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
     final AccumuloConfiguration aconf = getConfiguration();
 
-    FileSystemMonitor.start(aconf, Property.TSERV_MONITOR_FS);
+    @SuppressWarnings("removal")
+    Property TSERV_MONITOR_FS = Property.TSERV_MONITOR_FS;
+    if (aconf.getBoolean(TSERV_MONITOR_FS)) {
+      log.warn("{} is deprecated and marked for removal.", TSERV_MONITOR_FS.getKey());
+      FileSystemMonitor.start(aconf);
+    }
 
     Runnable gcDebugTask = () -> gcLogger.logGCInfo(getConfiguration());
 

@@ -88,8 +88,8 @@ import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
+import org.apache.accumulo.core.spi.scan.ScanServerInfo;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector;
-import org.apache.accumulo.core.spi.scan.ScanServerSelector.ScanServer;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.tables.TableZooHelper;
@@ -193,9 +193,9 @@ public class ClientContext implements AccumuloClient {
         }
 
         @Override
-        public Supplier<Collection<ScanServer>> getScanServers() {
+        public Supplier<Collection<ScanServerInfo>> getScanServers() {
           return () -> ClientContext.this.getScanServers().entrySet().stream()
-              .map(entry -> new ScanServer() {
+              .map(entry -> new ScanServerInfo() {
                 @Override
                 public String getAddress() {
                   return entry.getKey();

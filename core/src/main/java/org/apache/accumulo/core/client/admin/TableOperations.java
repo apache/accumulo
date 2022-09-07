@@ -185,7 +185,7 @@ public interface TableOperations {
    */
   default void importTable(String tableName, String importDir)
       throws TableExistsException, AccumuloException, AccumuloSecurityException {
-    importTable(tableName, Set.of(importDir));
+    importTable(tableName, Set.of(importDir), ImportConfiguration.empty());
   }
 
   /**
@@ -194,11 +194,14 @@ public interface TableOperations {
    *
    * @param tableName
    *          Name of a table to create and import into.
+   * @param ic
+   *          ImportConfiguration for the table being created. If no configuration is needed pass
+   *          {@link ImportConfiguration#empty}
    * @param importDirs
    *          A set of directories containing the files copied by distcp from exportTable
    * @since 2.1.0
    */
-  void importTable(String tableName, Set<String> importDirs)
+  void importTable(String tableName, Set<String> importDirs, ImportConfiguration ic)
       throws TableExistsException, AccumuloException, AccumuloSecurityException;
 
   /**
