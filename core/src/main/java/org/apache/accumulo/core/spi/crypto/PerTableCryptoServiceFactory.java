@@ -103,7 +103,7 @@ public class PerTableCryptoServiceFactory implements CryptoServiceFactory {
   private CryptoService newCryptoService(String cryptoServiceName) {
     CryptoService cs;
     try {
-      cs = PerTableCryptoServiceFactory.class.getClassLoader().loadClass(cryptoServiceName)
+      return ClassLoaderUtil.loadClass(null, cryptoServiceName, CryptoService.class).getDeclaredConstructor().newInstance();
           .asSubclass(CryptoService.class).getDeclaredConstructor().newInstance();
     } catch (ClassNotFoundException | IllegalAccessException | InvocationTargetException
         | InstantiationException | NoSuchMethodException e) {
