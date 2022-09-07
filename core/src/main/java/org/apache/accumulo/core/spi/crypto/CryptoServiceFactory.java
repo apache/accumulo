@@ -20,6 +20,8 @@ package org.apache.accumulo.core.spi.crypto;
 
 import java.util.Map;
 
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
+
 /**
  * A Factory that returns a CryptoService based on the environment and configuration.
  *
@@ -38,4 +40,16 @@ public interface CryptoServiceFactory {
    * @return CryptoService based on the environment and configuration
    */
   CryptoService getService(CryptoEnvironment environment, Map<String,String> properties);
+
+  /**
+   * Loads a crypto service based on the name provided.
+   */
+  default CryptoService newCryptoService(String cryptoServiceName) {
+    try {
+      return ClassLoaderUtil.loadClass(null, cryptoServiceName, CryptoService.class)
+          .getDeclaredConstructor().newInstance();
+    } catch (ReflectiveOperationException e) {
+      throw new RuntimeException(e);
+    }
+  }
 }

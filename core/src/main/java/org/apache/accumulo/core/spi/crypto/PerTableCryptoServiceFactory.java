@@ -22,7 +22,6 @@ import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.core.conf.Property.GENERAL_ARBITRARY_PROP_PREFIX;
 import static org.apache.accumulo.core.conf.Property.TABLE_CRYPTO_PREFIX;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -94,21 +93,6 @@ public class PerTableCryptoServiceFactory implements CryptoServiceFactory {
     log.debug("New CryptoService for TABLE({}) {}={}", tableId, TABLE_SERVICE_NAME_PROP, name);
     CryptoService cs = newCryptoService(name);
     cs.init(props);
-    return cs;
-  }
-
-  /**
-   * Loads a crypto service based on the name provided.
-   */
-  private CryptoService newCryptoService(String cryptoServiceName) {
-    CryptoService cs;
-    try {
-      return ClassLoaderUtil.loadClass(null, cryptoServiceName, CryptoService.class).getDeclaredConstructor().newInstance();
-          .asSubclass(CryptoService.class).getDeclaredConstructor().newInstance();
-    } catch (ClassNotFoundException | IllegalAccessException | InvocationTargetException
-        | InstantiationException | NoSuchMethodException e) {
-      throw new RuntimeException(e);
-    }
     return cs;
   }
 

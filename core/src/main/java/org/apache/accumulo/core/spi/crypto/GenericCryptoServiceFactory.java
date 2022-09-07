@@ -21,7 +21,6 @@ package org.apache.accumulo.core.spi.crypto;
 import static org.apache.accumulo.core.conf.Property.GENERAL_ARBITRARY_PROP_PREFIX;
 import static org.apache.accumulo.core.conf.Property.TABLE_CRYPTO_PREFIX;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 
 /**
@@ -49,22 +48,6 @@ public class GenericCryptoServiceFactory implements CryptoServiceFactory {
     }
     var cs = newCryptoService(cryptoServiceName);
     cs.init(properties);
-    return cs;
-  }
-
-  /**
-   * Loads a crypto service based on the name provided
-   */
-  private CryptoService newCryptoService(String cryptoServiceName) {
-    CryptoService cs;
-    try {
-      cs = GenericCryptoServiceFactory.class.getClassLoader().loadClass(cryptoServiceName)
-          .asSubclass(CryptoService.class).getDeclaredConstructor().newInstance();
-    } catch (ClassNotFoundException | IllegalAccessException | InvocationTargetException
-        | InstantiationException | NoSuchMethodException e) {
-      throw new RuntimeException(e);
-    }
-
     return cs;
   }
 }
