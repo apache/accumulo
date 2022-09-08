@@ -19,7 +19,7 @@
 
 -->
       <script>
-        $(document).ready(function() {
+        $(document).ready(function () {
           // initialize DataTables
           initServerTables('${server}');
         });
@@ -31,7 +31,7 @@
       </div>
       <div class="row">
         <div class="col-xs-12">
-          <table id="tServerDetail" class="table table-bordered table-striped table-condensed">
+          <table id="tServerDetail" class="table caption-top table-bordered table-striped table-condensed">
             <caption><span class="table-caption">${server}</span></caption>
             <thead>
               <tr>
@@ -46,19 +46,20 @@
           </table>
         </div>
       </div>
+      <br />
       <div class="row">
         <div class="col-xs-12">
-          <table id="opHistoryDetails" class="table table-bordered table-striped table-condensed">
+          <table id="opHistoryDetails" class="table caption-top table-bordered table-striped table-condensed">
             <caption><span class="table-caption">All-Time&nbsp;Tablet&nbsp;Operation&nbsp;Results</span></caption>
             <thead>
               <tr>
                 <th>Operation&nbsp;</th>
                 <th class="big-num">Success&nbsp;</th>
                 <th class="big-num">Failure&nbsp;</th>
-                <th class="duration">Average<br/>Queue&nbsp;Time&nbsp;</th>
-                <th class="duration">Std.&nbsp;Dev.<br/>Queue&nbsp;Time&nbsp;</th>
-                <th class="duration">Average<br/>Time&nbsp;</th>
-                <th class="duration">Std.&nbsp;Dev.<br/>Time&nbsp;</th>
+                <th class="duration">Average<br />Queue&nbsp;Time&nbsp;</th>
+                <th class="duration">Std.&nbsp;Dev.<br />Queue&nbsp;Time&nbsp;</th>
+                <th class="duration">Average<br />Time&nbsp;</th>
+                <th class="duration">Std.&nbsp;Dev.<br />Time&nbsp;</th>
                 <th>Percentage&nbsp;Time&nbsp;Spent&nbsp;</th>
               </tr>
             </thead>
@@ -66,9 +67,10 @@
           </table>
         </div>
       </div>
+      <br />
       <div class="row">
         <div class="col-xs-12">
-          <table id="currentTabletOps" class="table table-bordered table-striped table-condensed">
+          <table id="currentTabletOps" class="table caption-top table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Current&nbsp;Tablet&nbsp;Operation&nbsp;Results</span></caption>
             <thead>
               <tr>
@@ -82,9 +84,10 @@
           </table>
         </div>
       </div>
+      <br />
       <div class="row">
         <div class="col-xs-12">
-          <table id="perTabletResults" class="table table-bordered table-striped table-condensed">
+          <table id="perTabletResults" class="table caption-top table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Detailed Tablet Operations</span></caption>
             <thead>
               <tr>
