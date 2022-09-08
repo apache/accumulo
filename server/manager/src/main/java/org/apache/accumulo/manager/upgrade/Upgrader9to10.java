@@ -141,7 +141,7 @@ public class Upgrader9to10 implements Upgrader {
     createScanServerNodes(context);
   }
 
-  private static final AtomicBoolean asyncErrorOccurred = new AtomicBoolean(false);
+  private static final AtomicBoolean aclErrorOccurred = new AtomicBoolean(false);
 
   private void validateACLs(ServerContext context) {
 
@@ -158,20 +158,22 @@ public class Upgrader9to10 implements Upgrader {
               && !acls.equals(ZooDefs.Ids.OPEN_ACL_UNSAFE))
               || (!ZooUtil.PRIVATE.equals(acls) && !ZooUtil.PUBLIC.equals(acls))) {
             log.error("ZNode at {} has unexpected ACL: {}", path, acls);
-            asyncErrorOccurred.set(true);
+            aclErrorOccurred.set(true);
           } else {
-            log.info("ZNode at {} has expected ACL.", path);
+            log.trace("ZNode at {} has expected ACL.", path);
           }
         } catch (KeeperException | InterruptedException e) {
           log.error("Error getting ACL for path: {}", path, e);
-          asyncErrorOccurred.set(true);
+          aclErrorOccurred.set(true);
         }
       });
-      if (asyncErrorOccurred.get()) {
-        throw new RuntimeException("Error validating ACLs, check the log for details");
+      if (aclErrorOccurred.get()) {
+        throw new RuntimeException("Upgrade Failed! Error validating ZNode ACLs. "
+            + "Check the log for specific failed paths, check ZooKeeper troubleshooting in user documentation "
+            + "for instructions on how to fix.");
       }
     } catch (KeeperException | InterruptedException e) {
-      throw new RuntimeException("Error validating nodes under " + rootPath, e);
+      throw new RuntimeException("Upgrade Failed! Error validating nodes under " + rootPath, e);
     }
   }
 
