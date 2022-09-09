@@ -141,10 +141,10 @@ public class Upgrader9to10 implements Upgrader {
     createScanServerNodes(context);
   }
 
-  private static final AtomicBoolean aclErrorOccurred = new AtomicBoolean(false);
 
   private void validateACLs(ServerContext context) {
 
+    final AtomicBoolean aclErrorOccurred = new AtomicBoolean(false);
     final ZooReaderWriter zrw = context.getZooReaderWriter();
     final ZooKeeper zk = zrw.getZooKeeper();
     final String rootPath = context.getZooKeeperRoot();
