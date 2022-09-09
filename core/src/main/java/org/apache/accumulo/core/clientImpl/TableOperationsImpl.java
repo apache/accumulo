@@ -1445,6 +1445,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
+  @Deprecated(since = "2.1.0")
   public List<DiskUsage> getDiskUsage(Set<String> tableNames)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
@@ -1495,8 +1496,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public TableDiskUsageResult getDiskUsageFromMetadata(Set<String> tableNames,
-      boolean computeShared, Authorizations auths) throws TableNotFoundException {
+  public TableDiskUsageResult getEstimatedDiskUsage(Set<String> tableNames, boolean computeShared,
+      Authorizations auths) throws TableNotFoundException {
     return MetadataTableDiskUsage.getDiskUsage(tableNames, context, auths);
   }
 

@@ -20,15 +20,24 @@ package org.apache.accumulo.shell.commands;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DiskUsage;
+import org.apache.accumulo.core.client.admin.TableDiskUsageResult;
 import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -37,13 +46,31 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
+/**
+ * Updated "du" command that will compute disk usage for tables and shared usage across tables by
+ * scanning the metadata table for file size information instead of using the HDFS iterator on the
+ * server side to scan files.
+ *
+ * Because the metadata table is used for computing usage and not the actual files in HDFS the
+ * results will be an estimate. Older entries may exist with no file metadata (resulting in size 0)
+ * and other actions in the cluster can impact the estimated size such as flushes, tablet splits,
+ * compactions, etc.
+ *
+ * For the most accurate information a compaction should first be run on the set of tables being
+ * computed.
+ */
 public class DUCommand extends Command {
 
-  private Option optTablePattern, optHumanReadble, optNamespace;
+  private Option optTablePattern, optHumanReadable, optNamespace, optVerbose;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
-      throws IOException, TableNotFoundException, NamespaceNotFoundException {
+      throws IOException, TableNotFoundException, NamespaceNotFoundException, AccumuloException,
+      AccumuloSecurityException {
+
+    final String user = shellState.getAccumuloClient().whoami();
+    final Authorizations auths =
+        shellState.getAccumuloClient().securityOperations().getUserAuthorizations(user);
 
     final SortedSet<String> tables = new TreeSet<>(Arrays.asList(cl.getArgs()));
 
@@ -51,13 +78,15 @@ public class DUCommand extends Command {
       tables.add(cl.getOptionValue(ShellOptions.tableOption));
     }
 
+    // If a namespace is specified then grab all matching tables
     if (cl.hasOption(optNamespace.getOpt())) {
       NamespaceId namespaceId = Namespaces.getNamespaceId(shellState.getContext(),
           cl.getOptionValue(optNamespace.getOpt()));
       tables.addAll(Namespaces.getTableNames(shellState.getContext(), namespaceId));
     }
 
-    boolean prettyPrint = cl.hasOption(optHumanReadble.getOpt());
+    boolean prettyPrint = cl.hasOption(optHumanReadable.getOpt());
+    boolean verbose = cl.hasOption(optVerbose.getOpt());
 
     // Add any patterns
     if (cl.hasOption(optTablePattern.getOpt())) {
@@ -80,13 +109,53 @@ public class DUCommand extends Command {
     }
 
     try {
-      String valueFormat = prettyPrint ? "%9s" : "%,24d";
-      for (DiskUsage usage : shellState.getAccumuloClient().tableOperations()
-          .getDiskUsage(tables)) {
-        Object value = prettyPrint ? NumUtil.bigNumberForSize(usage.getUsage()) : usage.getUsage();
-        shellState.getWriter()
-            .println(String.format(valueFormat + " %s", value, usage.getTables()));
+      final String valueFormat = prettyPrint ? "%s" : "%,d";
+      final TableDiskUsageResult usageResult = shellState.getAccumuloClient().tableOperations()
+          .getEstimatedDiskUsage(tables, verbose, auths);
+
+      // Print results for each table queried
+      for (Map.Entry<TableId,AtomicLong> entry : usageResult.getTableUsages().entrySet()) {
+        final Object usage =
+            prettyPrint ? NumUtil.bigNumberForSize(entry.getValue().get()) : entry.getValue().get();
+
+        // Print the usage for the table
+        shellState.getWriter().print(String.format("%s  %s  used total: " + valueFormat,
+            shellState.getContext().getTableName(entry.getKey()), entry.getKey(), usage));
+
+        // Print usage for all volume(s) that contain files for this table
+        Optional.ofNullable(usageResult.getVolumeUsages().get(entry.getKey()))
+            .ifPresent(tableVolUsage -> tableVolUsage.entrySet()
+                .forEach(vuEntry -> shellState.getWriter()
+                    .print(String.format("  %s: " + valueFormat, vuEntry.getKey(),
+                        prettyPrint ? NumUtil.bigNumberForSize(vuEntry.getValue().get())
+                            : vuEntry.getValue().get()))));
+
+        // Check/print if this table has any shared files
+        final Optional<Set<TableId>> sharedTables =
+            Optional.ofNullable(usageResult.getSharedTables().get(entry.getKey()));
+        final boolean hasShared = sharedTables.map(st -> st.size() > 0).orElse(false);
+
+        shellState.getWriter().print(String.format("  has_shared: %s", hasShared));
+        if (hasShared) {
+          shellState.getWriter().print(String.format("  shared with:  %s", sharedTables.get()));
+        }
+        shellState.getWriter().println();
       }
+
+      // If the verbose flag is specified then also print the statistics on size that is shared
+      // between the tables that were provided to the du command.
+      if (verbose) {
+        shellState.getWriter().println("\nShared usage between tables:");
+
+        for (DiskUsage usage : usageResult.getSharedDiskUsages()) {
+          Object value =
+              prettyPrint ? NumUtil.bigNumberForSize(usage.getUsage()) : usage.getUsage();
+          shellState.getWriter()
+              .println(String.format(valueFormat + " %s", value, usage.getTables()));
+        }
+      }
+
+      shellState.getWriter().println();
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
@@ -95,9 +164,14 @@ public class DUCommand extends Command {
 
   @Override
   public String description() {
-    return "prints how much space, in bytes, is used by files referenced by a"
-        + " table. When multiple tables are specified it prints how much space, in"
-        + " bytes, is used by files shared between tables, if any.";
+    return "Prints how much estimated space, in bytes, is used by files referenced by a"
+        + " table or tables. If the verbose flag is provided this prints how much estimated space"
+        + " is used by files shared between the provided tables, if any. Because the metadata table "
+        + "is used for computing usage and not the actual files in HDFS the results "
+        + "will be an estimate. Older entries may exist with no file metadata (resulting in size 0) and "
+        + "other actions in the cluster can impact the estimated size such as flushes, tablet splits, "
+        + "compactions, etc. For the most accurate information a compaction should first be run on the "
+        + "set of tables being computed.";
   }
 
   @Override
@@ -107,19 +181,22 @@ public class DUCommand extends Command {
     optTablePattern = new Option("p", "pattern", true, "regex pattern of table names");
     optTablePattern.setArgName("pattern");
 
-    optHumanReadble =
+    optHumanReadable =
         new Option("h", "human-readable", false, "format large sizes to human readable units");
-    optHumanReadble.setArgName("human readable output");
+    optHumanReadable.setArgName("human readable output");
 
     optNamespace =
         new Option(ShellOptions.namespaceOption, "namespace", true, "name of a namespace");
     optNamespace.setArgName("namespace");
 
+    optVerbose = new Option("v", "verbose", false, "display detailed shared usage information");
+
     o.addOption(OptUtil.tableOpt("table to examine"));
 
     o.addOption(optTablePattern);
-    o.addOption(optHumanReadble);
+    o.addOption(optHumanReadable);
     o.addOption(optNamespace);
+    o.addOption(optVerbose);
 
     return o;
   }

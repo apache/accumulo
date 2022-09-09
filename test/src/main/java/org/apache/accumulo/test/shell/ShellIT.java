@@ -376,7 +376,16 @@ public class ShellIT extends SharedMiniClusterBase {
   public void duContextTest() throws Exception {
     Shell.log.debug("Starting du context test --------------------------");
     exec("createtable t", true);
-    exec("du", true, "0 [t]");
+    String tId = shell.getAccumuloClient().tableOperations().tableIdMap().get("t");
+    exec("du", true, "t  " + tId + "  used total: 0");
+    exec("deletetable t -f", true, "Table: [t] has been deleted");
+  }
+
+  @Test
+  public void duContextVerboseTest() throws Exception {
+    Shell.log.debug("Starting du context test --------------------------");
+    exec("createtable t", true);
+    exec("du -v", true, "0 [t]");
     exec("deletetable t -f", true, "Table: [t] has been deleted");
   }
 
@@ -384,18 +393,40 @@ public class ShellIT extends SharedMiniClusterBase {
   public void duTest() throws IOException {
     Shell.log.debug("Starting DU test --------------------------");
     exec("createtable t", true);
-    exec("du t", true, "0 [t]");
+    String tId = shell.getAccumuloClient().tableOperations().tableIdMap().get("t");
+    exec("du t", true, "t  " + tId + "  used total: 0");
+    exec("deletetable t -f", true, "Table: [t] has been deleted");
+  }
+
+  @Test
+  public void duVerboseTest() throws IOException {
+    Shell.log.debug("Starting DU test --------------------------");
+    exec("createtable t", true);
+    exec("du t -v", true, "0 [t]");
     exec("deletetable t -f", true, "Table: [t] has been deleted");
   }
 
   @Test
   public void duPatternTest() throws IOException {
     Shell.log.debug("Starting DU with pattern test --------------------------");
-    exec("createtable t", true);
-    exec("createtable tt", true);
-    exec("du -p t.*", true, "0 [t, tt]");
-    exec("deletetable t -f", true, "Table: [t] has been deleted");
-    exec("deletetable tt -f", true, "Table: [tt] has been deleted");
+    exec("createtable tp1", true);
+    exec("createtable tp2", true);
+    String tId = shell.getAccumuloClient().tableOperations().tableIdMap().get("tp1");
+    String ttId = shell.getAccumuloClient().tableOperations().tableIdMap().get("tp2");
+    execExpectList("du -p tp.*", true, List.of("tp1  " + tId + "  used total: 0  has_shared: false",
+        "tp2  " + ttId + "  used total: 0  has_shared: false"));
+    exec("deletetable tp1 -f", true, "Table: [tp1] has been deleted");
+    exec("deletetable tp2 -f", true, "Table: [tp2] has been deleted");
+  }
+
+  @Test
+  public void duPatternVerboseTest() throws IOException {
+    Shell.log.debug("Starting DU with pattern test --------------------------");
+    exec("createtable tp1", true);
+    exec("createtable tp2", true);
+    exec("du -p tp.* -v", true, "0 [tp1, tp2]");
+    exec("deletetable tp1 -f", true, "Table: [tp1] has been deleted");
+    exec("deletetable tp2 -f", true, "Table: [tp2] has been deleted");
   }
 
   @Test

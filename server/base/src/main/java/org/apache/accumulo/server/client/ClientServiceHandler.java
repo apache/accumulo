@@ -423,8 +423,9 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
+  @SuppressWarnings("deprecation")
   public List<TDiskUsage> getDiskUsage(Set<String> tables, TCredentials credentials)
-      throws ThriftTableOperationException, ThriftSecurityException, TException {
+      throws TException {
     try {
       HashSet<TableId> tableIds = new HashSet<>();
 

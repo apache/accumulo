@@ -94,6 +94,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   public void getDiskUsageErrors() throws TableExistsException, AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
     String tableName = getUniqueNames(1)[0];
@@ -115,15 +116,16 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   }
 
   // Test disk usage is the same using both the new metadata scan and also legacy version
-  // that scans files
+  // that scans files using the HDFS iterator
   @Test
-  public void getDiskUsageFromMetadata() throws TableExistsException, AccumuloException,
+  public void getEstimatedDiskUsage() throws TableExistsException, AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
     getDiskUsage(tables -> accumuloClient.tableOperations()
-        .getDiskUsageFromMetadata(tables, true, Authorizations.EMPTY).getSharedDiskUsages());
+        .getEstimatedDiskUsage(tables, true, Authorizations.EMPTY).getSharedDiskUsages());
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   public void getDiskUsage() throws TableExistsException, AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
     getDiskUsage(tables -> accumuloClient.tableOperations().getDiskUsage(tables));
@@ -168,7 +170,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     Set<String> tables = new HashSet<>();
     tables.add(tableName);
     tables.add(newTable);
-    diskUsages = accumuloClient.tableOperations().getDiskUsage(tables);
+    diskUsages = diskUsageCalculator.calculate(tables);
     assertEquals(1, diskUsages.size());
     assertEquals(2, diskUsages.get(0).getTables().size());
     assertTrue(diskUsages.get(0).getUsage() > 0);

@@ -49,8 +49,16 @@ import org.apache.hadoop.fs.Path;
  * table(s) by using the size value stored in columns that contain the column family
  * {@link MetadataSchema.TabletsSection.DataFileColumnFamily}.
  *
- * This class will also track shared files and usage across all tables that are provided as part of
- * the Set of tables when getting disk usage.
+ * This class will also optionally track shared files to computed shared usage across all tables
+ * that are provided as part of the Set of tables when getting disk usage.
+ *
+ * Because the metadata table is used for computing usage and not the actual files in HDFS the
+ * results will be an estimate. Older entries may exist with no file metadata (resulting in size 0)
+ * and other actions in the cluster can impact the estimated size such as flushes, tablet splits,
+ * compactions, etc.
+ *
+ * For the most accurate information a compaction should first be run on the set of tables being
+ * computed.
  */
 public class MetadataTableDiskUsage extends TableDiskUsage {
 
@@ -59,11 +67,39 @@ public class MetadataTableDiskUsage extends TableDiskUsage {
     Objects.requireNonNull(tableIds).forEach(tableId -> addTable(tableId));
   }
 
+  /**
+   * Compute the estimated disk usage for the given set of tables by scanning the Metadata table for
+   * file sizes. Also will compute shared usage across tables.
+   *
+   * @param tableNames
+   *          set of tables to compute an estimated disk usage for
+   * @param auths
+   *          authorizations to scan the metadata table
+   * @return the computed estimated usage results
+   *
+   * @throws TableNotFoundException
+   *           if the table(s) do not exist
+   */
   public static TableDiskUsageResult getDiskUsage(Set<String> tableNames, AccumuloClient client,
       Authorizations auths) throws TableNotFoundException {
     return getDiskUsage(tableNames, true, client, auths);
   }
 
+  /**
+   * Compute the estimated disk usage for the given set of tables by scanning the Metadata table for
+   * file sizes. Optionally computes shared usage across tables.
+   *
+   * @param tableNames
+   *          set of tables to compute an estimated disk usage for
+   * @param computeShared
+   *          whether to compute size metrics across shared files
+   * @param auths
+   *          authorizations to scan the metadata table
+   * @return the computed estimated usage results
+   *
+   * @throws TableNotFoundException
+   *           if the table(s) do not exist
+   */
   public static TableDiskUsageResult getDiskUsage(Set<String> tableNames, boolean computeShared,
       AccumuloClient client, Authorizations auths) throws TableNotFoundException {
     final Set<TableId> tableIds = new HashSet<>();
@@ -92,7 +128,8 @@ public class MetadataTableDiskUsage extends TableDiskUsage {
         mdScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
         mdScanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
 
-        // initialize the table to a size of 0, so we don't miss any tables with no usage
+        // initialize the table to a size of 0, so we don't miss any tables with no usage or
+        // missing metadata
         tableUsages.put(tableId, new AtomicLong(0));
         final Set<TabletFile> files = new HashSet<>();
 

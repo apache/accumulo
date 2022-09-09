@@ -60,6 +60,13 @@ import com.google.common.base.Joiner;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
+/**
+ * Class that computes shared disk usage across tables by scanning HDFS files.
+ *
+ * @deprecated This class has been deprecated in favor of
+ *             {@link org.apache.accumulo.core.util.tables.MetadataTableDiskUsage}
+ */
+@Deprecated
 public class HdfsTableDiskUsage extends TableDiskUsage {
 
   private static final Logger log = LoggerFactory.getLogger(HdfsTableDiskUsage.class);

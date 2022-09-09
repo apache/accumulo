@@ -21,6 +21,9 @@ package org.apache.accumulo.core.client.admin;
 import java.util.Objects;
 import java.util.SortedSet;
 
+/**
+ * This class is used to track the shared disk usage between multiple tables.
+ */
 public class DiskUsage {
 
   private final SortedSet<String> tables;

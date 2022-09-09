@@ -992,6 +992,7 @@ public class NamespacesIT extends SharedMiniClusterBase {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   public void verifyTableOperationsExceptions() throws Exception {
     String tableName = namespace + ".1";
     IteratorSetting setting = new IteratorSetting(200, VersioningIterator.class);

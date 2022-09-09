@@ -214,6 +214,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   public void testDeleteClone() throws Exception {
     String[] tableNames = getUniqueNames(3);
     String table1 = tableNames[0];

@@ -198,12 +198,13 @@ public class TableOperationsHelperTest {
     }
 
     @Override
+    @Deprecated(since = "2.1.0")
     public List<DiskUsage> getDiskUsage(Set<String> tables) {
       return null;
     }
 
     @Override
-    public TableDiskUsageResult getDiskUsageFromMetadata(Set<String> tables, boolean computeShared,
+    public TableDiskUsageResult getEstimatedDiskUsage(Set<String> tables, boolean computeShared,
         Authorizations auths) {
       return null;
     }

@@ -1070,14 +1070,26 @@ public interface TableOperations {
    *          a set of tables
    * @return a list of disk usage objects containing linked table names and sizes
    * @since 1.6.0
+   *
+   * @deprecated since 2.1.0 use {@link #getEstimatedDiskUsage(Set, boolean, Authorizations)}
+   *             instead.
    */
+  @Deprecated(since = "2.1.0")
   List<DiskUsage> getDiskUsage(Set<String> tables)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
-   * Gets the number of bytes being used in the files for a set of tables. This operation will use
-   * the client to scan the metadata table to compute the size metrics for the tables. For the most
-   * accurate information a flush or compaction can be run first on the set of tables.
+   * Gets the number of bytes being used in by the files for a set of tables. This operation will
+   * use the client to scan the metadata table to compute the size metrics for the tables.
+   * Optionally shared usage information can be computed across tables.
+   *
+   * Because the metadata table is used for computing usage and not the actual files in HDFS the
+   * results will be an estimate. Older entries may exist with no file metadata (resulting in size
+   * 0) and other actions in the cluster can impact the estimated size such as flushes, tablet
+   * splits, compactions, etc.
+   *
+   * For the most accurate information a compaction should first be run on the set of tables being
+   * computed.
    *
    * @param tables
    *          set of tables to compute usage across
@@ -1089,7 +1101,7 @@ public interface TableOperations {
    *
    * @since 2.1.0
    */
-  TableDiskUsageResult getDiskUsageFromMetadata(Set<String> tables, boolean computeShared,
+  TableDiskUsageResult getEstimatedDiskUsage(Set<String> tables, boolean computeShared,
       Authorizations auths) throws TableNotFoundException;
 
   /**
