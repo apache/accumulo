@@ -141,7 +141,6 @@ public class Upgrader9to10 implements Upgrader {
     createScanServerNodes(context);
   }
 
-
   private void validateACLs(ServerContext context) {
 
     final AtomicBoolean aclErrorOccurred = new AtomicBoolean(false);
