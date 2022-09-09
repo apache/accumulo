@@ -62,6 +62,8 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.scan.ScanServerAttempt;
+import org.apache.accumulo.core.spi.scan.ScanServerSelections;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
@@ -186,7 +188,7 @@ public class ThriftScanner {
     SamplerConfiguration samplerConfig;
     Map<String,String> executionHints;
 
-    ScanAttemptsImpl scanAttempts;
+    ScanServerAttemptsImpl scanAttempts;
 
     Duration busyTimeout;
 
@@ -240,7 +242,7 @@ public class ThriftScanner {
       this.runOnScanServer = useScanServer;
 
       if (useScanServer) {
-        scanAttempts = new ScanAttemptsImpl();
+        scanAttempts = new ScanServerAttemptsImpl();
       }
     }
   }
@@ -517,8 +519,7 @@ public class ThriftScanner {
           }
 
           @Override
-          public Collection<? extends ScanServerSelector.ScanAttempt>
-              getAttempts(TabletId tabletId) {
+          public Collection<? extends ScanServerAttempt> getAttempts(TabletId tabletId) {
             return attempts.getOrDefault(tabletId, Set.of());
           }
 
@@ -530,8 +531,7 @@ public class ThriftScanner {
           }
         };
 
-        ScanServerSelector.Actions actions =
-            context.getScanServerSelector().determineActions(params);
+        ScanServerSelections actions = context.getScanServerSelector().selectServers(params);
 
         Duration delay = null;
 
@@ -563,13 +563,12 @@ public class ThriftScanner {
       var reporter = scanState.scanAttempts.createReporter(newLoc.tablet_location, tabletId);
 
       try {
-        var ret = scanRpc(newLoc, scanState, context, scanState.busyTimeout.toMillis());
-        return ret;
+        return scanRpc(newLoc, scanState, context, scanState.busyTimeout.toMillis());
       } catch (ScanServerBusyException ssbe) {
-        reporter.report(ScanServerSelector.ScanAttempt.Result.BUSY);
+        reporter.report(ScanServerAttempt.Result.BUSY);
         throw ssbe;
       } catch (Exception e) {
-        reporter.report(ScanServerSelector.ScanAttempt.Result.ERROR);
+        reporter.report(ScanServerAttempt.Result.ERROR);
         throw e;
       }
     } else {
