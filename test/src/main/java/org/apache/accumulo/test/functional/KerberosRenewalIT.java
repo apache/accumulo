@@ -153,8 +153,8 @@ public class KerberosRenewalIT extends AccumuloITBase {
       log.info("Created client as {}", rootUser.getPrincipal());
       assertEquals(rootUser.getPrincipal(), client.whoami());
 
-      long endTime = System.currentTimeMillis() + TICKET_TEST_LIFETIME;
       final String tableName = getUniqueNames(1)[0] + "_table";
+      long endTime = System.currentTimeMillis() + TICKET_TEST_LIFETIME;
 
       // Make sure we have a couple renewals happen
       while (System.currentTimeMillis() < endTime) {
