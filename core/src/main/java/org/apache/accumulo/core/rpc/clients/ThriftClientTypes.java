@@ -32,33 +32,31 @@ import org.apache.thrift.protocol.TProtocol;
 
 public abstract class ThriftClientTypes<C extends TServiceClient> {
 
-  public static final ClientServiceThriftClient CLIENT =
-      new ClientServiceThriftClient("ClientService");
+  public static final ClientServiceThriftClient CLIENT = new ClientServiceThriftClient("client");
 
   public static final CompactorServiceThriftClient COMPACTOR =
-      new CompactorServiceThriftClient("CompactorService");
+      new CompactorServiceThriftClient("compactor");
 
   public static final CompactionCoordinatorServiceThriftClient COORDINATOR =
-      new CompactionCoordinatorServiceThriftClient("CompactionCoordinatorService");
+      new CompactionCoordinatorServiceThriftClient("coordinator");
 
-  public static final FateThriftClient FATE = new FateThriftClient("FateService");
+  public static final FateThriftClient FATE = new FateThriftClient("fate");
 
-  public static final GCMonitorServiceThriftClient GC =
-      new GCMonitorServiceThriftClient("GCMonitorService");
+  public static final GCMonitorServiceThriftClient GC = new GCMonitorServiceThriftClient("gc");
 
-  public static final ManagerThriftClient MANAGER = new ManagerThriftClient("ManagerClientService");
+  public static final ManagerThriftClient MANAGER = new ManagerThriftClient("mgr");
 
   public static final ReplicationCoordinatorThriftClient REPLICATION_COORDINATOR =
-      new ReplicationCoordinatorThriftClient("ReplicationCoordinator");
+      new ReplicationCoordinatorThriftClient("replCoord");
 
   public static final ReplicationServicerThriftClient REPLICATION_SERVICER =
-      new ReplicationServicerThriftClient("ReplicationServicer");
+      new ReplicationServicerThriftClient("replServ");
 
   public static final TabletServerThriftClient TABLET_SERVER =
-      new TabletServerThriftClient("TabletClientService");
+      new TabletServerThriftClient("tablet");
 
   public static final TabletScanClientServiceThriftClient TABLET_SCAN =
-      new TabletScanClientServiceThriftClient("TabletScanClientService");
+      new TabletScanClientServiceThriftClient("scan");
 
   /**
    * execute method with supplied client returning object of type R
