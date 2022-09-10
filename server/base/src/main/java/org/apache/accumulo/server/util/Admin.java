@@ -183,6 +183,15 @@ public class Admin implements KeywordExecutable {
     String delete = null;
   }
 
+  @Parameters(
+      commandDescription = "Deletes old instances from zookeeper. This command will not delete the instance pointed to by the local accumulo.properties file.")
+  static class CleanZooCommand {
+    @Parameter(names = {"--password"},
+        description = "The system secret, if different than instance.secret in accumulo.properties",
+        password = true)
+    String auth;
+  }
+
   @Parameters(commandDescription = "Deletes instance name or id from zookeeper.")
   static class DeleteZooInstanceCommand {
     @Parameter(names = {"-i", "--instance"}, description = "the instance name or id to delete")
@@ -231,6 +240,9 @@ public class Admin implements KeywordExecutable {
 
     CheckTabletsCommand checkTabletsCommand = new CheckTabletsCommand();
     cl.addCommand("checkTablets", checkTabletsCommand);
+
+    CleanZooCommand cleanZooOpts = new CleanZooCommand();
+    cl.addCommand("cleanZoo", cleanZooOpts);
 
     DeleteZooInstanceCommand deleteZooInstanceOpts = new DeleteZooInstanceCommand();
     cl.addCommand("deleteZooInstance", deleteZooInstanceOpts);
@@ -331,6 +343,8 @@ public class Admin implements KeywordExecutable {
       } else if (cl.getParsedCommand().equals("locks")) {
         TabletServerLocks.execute(context, args.length > 2 ? args[2] : null,
             tServerLocksOpts.delete);
+      } else if (cl.getParsedCommand().equals("cleanZoo")) {
+        CleanZookeeper.execute(context, cleanZooOpts.auth);
       } else {
         everything = cl.getParsedCommand().equals("stopAll");
 
