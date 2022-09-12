@@ -66,6 +66,8 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.scan.ScanServerAttempt;
+import org.apache.accumulo.core.spi.scan.ScanServerSelections;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.ScanServerBusyException;
@@ -109,7 +111,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
   private TabletLocator locator;
 
-  private ScanAttemptsImpl scanAttempts = new ScanAttemptsImpl();
+  private ScanServerAttemptsImpl scanAttempts = new ScanServerAttemptsImpl();
 
   public interface ResultReceiver {
     void receive(List<Entry<Key,Value>> entries);
@@ -342,12 +344,12 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     private List<Column> columns;
     private int semaphoreSize;
     private final long busyTimeout;
-    private final ScanAttemptsImpl.ScanAttemptReporter reporter;
+    private final ScanServerAttemptsImpl.ScanAttemptReporter reporter;
     private final Duration scanServerSelectorDelay;
 
     QueryTask(String tsLocation, Map<KeyExtent,List<Range>> tabletsRanges,
         Map<KeyExtent,List<Range>> failures, ResultReceiver receiver, List<Column> columns,
-        long busyTimeout, ScanAttemptsImpl.ScanAttemptReporter reporter,
+        long busyTimeout, ScanServerAttemptsImpl.ScanAttemptReporter reporter,
         Duration scanServerSelectorDelay) {
       this.tsLocation = tsLocation;
       this.tabletsRanges = tabletsRanges;
@@ -399,9 +401,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         }
         log.debug("IOException thrown", e);
 
-        ScanServerSelector.ScanAttempt.Result result = ScanServerSelector.ScanAttempt.Result.ERROR;
+        ScanServerAttempt.Result result = ScanServerAttempt.Result.ERROR;
         if (e.getCause() instanceof ScanServerBusyException) {
-          result = ScanServerSelector.ScanAttempt.Result.BUSY;
+          result = ScanServerAttempt.Result.BUSY;
         }
         reporter.report(result);
       } catch (AccumuloSecurityException e) {
@@ -485,7 +487,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     long busyTimeout = 0;
     Duration scanServerSelectorDelay = null;
-    Map<String,ScanAttemptsImpl.ScanAttemptReporter> reporters = Map.of();
+    Map<String,ScanServerAttemptsImpl.ScanAttemptReporter> reporters = Map.of();
 
     if (options.getConsistencyLevel().equals(ConsistencyLevel.EVENTUAL)) {
       var scanServerData = rebinToScanServers(binnedRanges);
@@ -577,8 +579,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
   private static class ScanServerData {
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges;
-    ScanServerSelector.Actions actions;
-    Map<String,ScanAttemptsImpl.ScanAttemptReporter> reporters;
+    ScanServerSelections actions;
+    Map<String,ScanServerAttemptsImpl.ScanAttemptReporter> reporters;
   }
 
   private ScanServerData rebinToScanServers(Map<String,Map<KeyExtent,List<Range>>> binnedRanges) {
@@ -598,7 +600,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       }
 
       @Override
-      public Collection<? extends ScanServerSelector.ScanAttempt> getAttempts(TabletId tabletId) {
+      public Collection<? extends ScanServerAttempt> getAttempts(TabletId tabletId) {
         return scanAttemptsSnapshot.getOrDefault(tabletId, Set.of());
       }
 
@@ -608,7 +610,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       }
     };
 
-    var actions = ecsm.determineActions(params);
+    var actions = ecsm.selectServers(params);
 
     Map<KeyExtent,String> extentToTserverMap = new HashMap<>();
     Map<KeyExtent,List<Range>> extentToRangesMap = new HashMap<>();
@@ -622,7 +624,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges2 = new HashMap<>();
 
-    Map<String,ScanAttemptsImpl.ScanAttemptReporter> reporters = new HashMap<>();
+    Map<String,ScanServerAttemptsImpl.ScanAttemptReporter> reporters = new HashMap<>();
 
     for (TabletIdImpl tabletId : tabletIds) {
       KeyExtent extent = tabletId.toKeyExtent();

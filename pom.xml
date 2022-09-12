@@ -123,7 +123,7 @@
     <curator.version>5.2.1</curator.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
     <eclipseFormatterStyle>${project.parent.basedir}/contrib/Eclipse-Accumulo-Codestyle.xml</eclipseFormatterStyle>
-    <errorprone.version>2.11.0</errorprone.version>
+    <errorprone.version>2.15.0</errorprone.version>
     <!-- avoid error shutting down built-in ForkJoinPool.commonPool() during exec:java tasks -->
     <exec.cleanupDaemonThreads>false</exec.cleanupDaemonThreads>
     <extraTestArgs />
@@ -281,7 +281,7 @@
         <!-- converge transitive dependency version between guava and caffeine -->
         <groupId>com.google.errorprone</groupId>
         <artifactId>error_prone_annotations</artifactId>
-        <version>2.15.0</version>
+        <version>${errorprone.version}</version>
       </dependency>
       <dependency>
         <!-- this is a runtime dependency of guava, no longer included with guava as of 27.1 -->
@@ -663,7 +663,7 @@
       <dependency>
         <groupId>org.yaml</groupId>
         <artifactId>snakeyaml</artifactId>
-        <version>1.30</version>
+        <version>1.31</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

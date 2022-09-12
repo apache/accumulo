@@ -59,15 +59,17 @@ public class ImportTable extends ManagerRepo {
 
   private static final long serialVersionUID = 2L;
 
-  private ImportedTableInfo tableInfo;
+  private final ImportedTableInfo tableInfo;
 
-  public ImportTable(String user, String tableName, Set<String> exportDirs,
-      NamespaceId namespaceId) {
+  public ImportTable(String user, String tableName, Set<String> exportDirs, NamespaceId namespaceId,
+      boolean keepMappings, boolean onlineTable) {
     tableInfo = new ImportedTableInfo();
     tableInfo.tableName = tableName;
     tableInfo.user = user;
     tableInfo.namespaceId = namespaceId;
     tableInfo.directories = parseExportDir(exportDirs);
+    tableInfo.keepMappings = keepMappings;
+    tableInfo.onlineTable = onlineTable;
   }
 
   @Override
