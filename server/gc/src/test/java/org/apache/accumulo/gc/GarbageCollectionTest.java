@@ -68,12 +68,10 @@ public class GarbageCollectionTest {
       this.tableName = MetadataTable.NAME;
     }
 
-    @Override
     public boolean isRootTable() {
       return this.tableName.equals(RootTable.NAME);
     }
 
-    @Override
     public boolean isMetadataTable() {
       return this.tableName.equals(MetadataTable.NAME);
     }
