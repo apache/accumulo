@@ -238,14 +238,14 @@ public class GarbageCollectionAlgorithm {
     tableIdsMustHaveSeen.retainAll(tableIdsAfter);
 
     if (tableIdsMustHaveSeen.isEmpty() && !tableIdsSeen.isEmpty()) {
-      if (!tableIdsBefore.isEmpty() && tableIdsAfter.isEmpty()) {
-        throw new RuntimeException("ZK returned no table ids after scanning for references,"
-            + " maybe all the tables were deleted");
-      } else {
-        // we saw no table ids in ZK but did in the metadata table. This is unexpected.
-        throw new RuntimeException(
-            "Saw no table ids in ZK but did see table ids in metadata table: " + tableIdsSeen);
-      }
+      throw new RuntimeException("Garbage collection will not proceed because "
+          + "table ids were seen in the metadata table and none were seen Zookeeper. "
+          + "This can have two causes. First, total number of tables going to/from "
+          + "zero during a GC cycle will cause this. Second, it could be caused by "
+          + "corruption of the metadata table and/or Zookeeper. Only the second cause "
+          + "is problematic, but there is no way to distinguish between the two causes "
+          + "so this GC cycle will not proceed. The first cause should be transient "
+          + "and one would not expect to see this message repeated in subsequent GC cycles.");
     }
 
     // From that intersection, remove all the table ids that were seen.

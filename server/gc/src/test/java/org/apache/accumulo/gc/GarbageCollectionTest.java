@@ -967,7 +967,7 @@ public class GarbageCollectionTest {
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
     String msg = assertThrows(RuntimeException.class,
         () -> gca.ensureAllTablesChecked(tablesBefore, tablesSeen, tablesAfter)).getMessage();
-    assertTrue(msg.startsWith("Saw no table ids in ZK but did see table ids in metadata table:"));
+    assertTrue(msg.startsWith("Garbage collection will not proceed because"));
   }
 
   /**
