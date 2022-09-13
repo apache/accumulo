@@ -749,7 +749,7 @@ public class Admin implements KeywordExecutable {
   }
 
   private void cancelSubmittedFateTxs(ServerContext context, List<String> txList)
-      throws AccumuloException, AccumuloSecurityException {
+      throws AccumuloException {
     for (String txStr : txList) {
       long txid = Long.parseLong(txStr, 16);
       boolean cancelled = cancelFateOperation(context, txid);
@@ -780,7 +780,6 @@ public class Admin implements KeywordExecutable {
 
     String zkRoot = context.getZooKeeperRoot();
     String fateZkPath = zkRoot + Constants.ZFATE;
-    // var managerLockPath = ServiceLock.path(zkRoot + Constants.ZMANAGER_LOCK);
 
     AdminUtil<Admin> admin = new AdminUtil<>(true);
     ZooReaderWriter zk = context.getZooReaderWriter();
