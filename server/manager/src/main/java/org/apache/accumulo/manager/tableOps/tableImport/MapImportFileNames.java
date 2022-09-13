@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.tableOps.tableImport;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.Constants.IMPORT_MAPPINGS_FILE;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -54,7 +55,7 @@ class MapImportFileNames extends ManagerRepo {
   public Repo<Manager> call(long tid, Manager environment) throws Exception {
 
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
-      Path path = new Path(dm.importDir, "mappings.txt");
+      Path path = new Path(dm.importDir, IMPORT_MAPPINGS_FILE);
 
       BufferedWriter mappingsWriter = null;
 

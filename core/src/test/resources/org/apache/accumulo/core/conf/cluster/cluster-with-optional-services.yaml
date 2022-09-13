@@ -57,3 +57,6 @@ compaction:
     - q2:
         - localhost3
         - localhost4
+
+tservers_per_host: 2
+sservers_per_host: 1

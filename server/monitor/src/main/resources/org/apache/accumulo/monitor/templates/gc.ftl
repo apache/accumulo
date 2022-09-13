@@ -18,10 +18,15 @@
     under the License.
 
 -->
-      <div><h3>${title}</h3></div>
-      <div id="gcBanner"><div class="alert alert-danger" role="alert">Collector is Unavailable</div></div>
       <div>
-        <table id="gcActivity" class="table table-bordered table-striped table-condensed">
+        <h3>${title}</h3>
+      </div>
+      <div id="gcBanner">
+        <div class="alert alert-danger" role="alert">Collector is Unavailable</div>
+      </div>
+      <div>
+        <table id="gcActivity" class="table caption-top table-bordered table-striped table-condensed">
+          <caption><span class="table-caption">Garbage Collector Activities</span><br /></caption>
           <thead>
             <tr>
               <th class="firstcell">Activity&nbsp;</th>

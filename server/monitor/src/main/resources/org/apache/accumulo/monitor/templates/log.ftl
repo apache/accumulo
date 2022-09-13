@@ -110,8 +110,8 @@
         }
       </script>
       <div><h3>${title}</h3></div>
-      <div>
-        <table id="logTable" class="table table-bordered table-striped table-condensed">
+        <table id="logTable" class="table caption-top table-bordered table-striped table-condensed">
+         <caption><span class="table-caption">Logs</span><br /></caption>
           <thead>
             <tr>
               <th>Timestamp</th>
@@ -125,7 +125,6 @@
           </thead>
           <tbody></tbody>
         </table>
-      </div>
       <div>
-       <button type="button" class="btn btn-info" onclick="clearLogs();">Clear Logs</button>
+       <button type="button" class="btn btn-white-font" onclick="clearLogs();">Clear Logs</button>
       </div>

@@ -173,7 +173,7 @@ public class FateIT {
 
       long txid = fate.startTransaction();
       assertEquals(TStatus.NEW, getTxStatus(zk, txid));
-      fate.seedTransaction(txid, new TestOperation(NS, TID), true, "Test Op");
+      fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
       assertEquals(TStatus.SUBMITTED, getTxStatus(zk, txid));
       // wait for call() to be called
       callStarted.await();
@@ -238,7 +238,7 @@ public class FateIT {
       // cancel the transaction
       assertTrue(fate.cancel(txid));
       assertTrue(FAILED_IN_PROGRESS == getTxStatus(zk, txid) || FAILED == getTxStatus(zk, txid));
-      fate.seedTransaction(txid, new TestOperation(NS, TID), true, "Test Op");
+      fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
       assertTrue(FAILED_IN_PROGRESS == getTxStatus(zk, txid) || FAILED == getTxStatus(zk, txid));
       fate.delete(txid);
     } finally {
@@ -274,7 +274,7 @@ public class FateIT {
     long txid = fate.startTransaction();
     LOG.debug("Starting test testCancelWhileSubmitted with {}", FateTxId.formatTid(txid));
     assertEquals(NEW, getTxStatus(zk, txid));
-    fate.seedTransaction(txid, new TestOperation(NS, TID), true, "Test Op");
+    fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
     assertEquals(SUBMITTED, getTxStatus(zk, txid));
     assertTrue(fate.cancel(txid));
   }
@@ -308,7 +308,7 @@ public class FateIT {
       long txid = fate.startTransaction();
       LOG.debug("Starting test testCancelWhileSubmitted with {}", FateTxId.formatTid(txid));
       assertEquals(NEW, getTxStatus(zk, txid));
-      fate.seedTransaction(txid, new TestOperation(NS, TID), true, "Test Op");
+      fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
       assertEquals(SUBMITTED, getTxStatus(zk, txid));
       // This is false because the transaction runner has reserved the FaTe
       // transaction.
@@ -350,7 +350,7 @@ public class FateIT {
       long txid = fate.startTransaction();
       LOG.debug("Starting test testCancelWhileInCall with {}", FateTxId.formatTid(txid));
       assertEquals(NEW, getTxStatus(zk, txid));
-      fate.seedTransaction(txid, new TestOperation(NS, TID), true, "Test Op");
+      fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
       assertEquals(SUBMITTED, getTxStatus(zk, txid));
       // wait for call() to be called
       callStarted.await();

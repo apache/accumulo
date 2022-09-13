@@ -34,7 +34,7 @@
       </div>
       <div class="row">
         <div class="col-xs-12">
-          <table id="problemSummary" class="table table-bordered table-striped table-condensed">
+          <table id="problemSummary" class="table caption-top table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Summary</span></caption>
             <thead>
               <tr>
@@ -49,13 +49,14 @@
           </table>
         </div>
       </div>
+      <br />
       <div class="row">
         <div class="col-xs-12">
-          <table id="problemDetails" class="table table-bordered table-striped table-condensed">
+          <table id="problemDetails" class="table caption-top table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Details</span></caption>
             <thead>
               <tr>
-                <th class="firstcell" >Table&nbsp;</th>
+                <th class="firstcell">Table&nbsp;</th>
                 <th>Problem&nbsp;Type&nbsp;</th>
                 <th>Server&nbsp;</th>
                 <th class="date">Time&nbsp;</th>
