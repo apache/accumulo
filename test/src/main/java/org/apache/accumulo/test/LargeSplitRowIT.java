@@ -27,7 +27,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.time.Duration;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedSet;
@@ -69,8 +68,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
 
-    Map<String,String> siteConfig = new HashMap<>();
-    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "50ms");
+    Map<String,String> siteConfig = Map.of(Property.TSERV_MAJC_DELAY.getKey(), "50ms");
     cfg.setSiteConfig(siteConfig);
   }
 
@@ -126,14 +124,17 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
   public void automaticSplitWith250Same() throws Exception {
     log.info("Automatic with 250 with same prefix");
 
-    // make a table and lower the configure properties
+    // make a table and lower the configuration properties
     final String tableName = getUniqueNames(1)[0];
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      Map<String,String> props = new HashMap<>();
-      props.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
-      props.put(Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none");
-      props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "64");
-      props.put(Property.TABLE_MAX_END_ROW_SIZE.getKey(), "1000");
+      // @formatter:off
+      Map<String,String> props = Map.of(
+        Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K",
+        Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none",
+        Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "64",
+        Property.TABLE_MAX_END_ROW_SIZE.getKey(), "1000"
+      );
+      // @formatter:on
       client.tableOperations().create(tableName, new NewTableConfiguration().setProperties(props));
 
       // Create a key for a table entry that is longer than the allowed size for an
@@ -241,12 +242,15 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
   }
 
   private void automaticSplit(AccumuloClient client, int max, int spacing) throws Exception {
-    // make a table and lower the configure properties
-    Map<String,String> props = new HashMap<>();
-    props.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
-    props.put(Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none");
-    props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "64");
-    props.put(Property.TABLE_MAX_END_ROW_SIZE.getKey(), "1000");
+    // make a table and lower the configuration properties
+    // @formatter:off
+    Map<String,String> props = Map.of(
+      Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K",
+      Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none",
+      Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "64",
+      Property.TABLE_MAX_END_ROW_SIZE.getKey(), "1000"
+    );
+    // @formatter:on
 
     final String tableName = getUniqueNames(1)[0];
     client.tableOperations().create(tableName, new NewTableConfiguration().setProperties(props));
