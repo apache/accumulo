@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.shell.commands.fateCommand;
+package org.apache.accumulo.server.util.fateCommand;
 
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;

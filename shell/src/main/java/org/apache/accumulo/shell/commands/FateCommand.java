@@ -23,15 +23,12 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Formatter;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
@@ -40,13 +37,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.manager.thrift.FateService;
-import org.apache.accumulo.core.rpc.ThriftUtil;
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.FastFormat;
-import org.apache.accumulo.core.util.tables.TableMap;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.ReadOnlyRepo;
@@ -58,7 +49,6 @@ import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
-import org.apache.accumulo.shell.commands.fateCommand.FateSummaryReport;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
@@ -123,13 +113,11 @@ public class FateCommand extends Command {
     }
   }
 
-  private Option cancel;
   private Option delete;
   private Option dump;
   private Option fail;
   private Option list;
   private Option print;
-  private Option summary;
   private Option secretOption;
   private Option statusOption;
   private Option disablePaginationOpt;
@@ -174,11 +162,7 @@ public class FateCommand extends Command {
     ZooReaderWriter zk = getZooReaderWriter(context, cl.getOptionValue(secretOption.getOpt()));
     ZooStore<FateCommand> zs = getZooStore(fatePath, zk);
 
-    if (cl.hasOption(cancel.getOpt())) {
-      String[] txids = cl.getOptionValues(cancel.getOpt());
-      validateArgs(txids);
-      failedCommand = cancelSubmittedTxs(shellState, txids);
-    } else if (cl.hasOption(fail.getOpt())) {
+    if (cl.hasOption(fail.getOpt())) {
       String[] txids = cl.getOptionValues(fail.getOpt());
       validateArgs(txids);
       failedCommand = failTx(admin, zs, zk, managerLockPath, txids);
@@ -190,9 +174,6 @@ public class FateCommand extends Command {
       printTx(shellState, admin, zs, zk, tableLocksPath, cl.getOptionValues(list.getOpt()), cl);
     } else if (cl.hasOption(print.getOpt())) {
       printTx(shellState, admin, zs, zk, tableLocksPath, cl.getOptionValues(print.getOpt()), cl);
-    } else if (cl.hasOption(summary.getOpt())) {
-      summarizeTx(shellState, admin, zs, zk, tableLocksPath, cl.getOptionValues(summary.getOpt()),
-          cl);
     } else if (cl.hasOption(dump.getOpt())) {
       String output = dumpTx(zs, cl.getOptionValues(dump.getOpt()));
       System.out.println(output);
@@ -252,42 +233,6 @@ public class FateCommand extends Command {
         !cl.hasOption(disablePaginationOpt.getOpt()));
   }
 
-  protected void summarizeTx(Shell shellState, AdminUtil<FateCommand> admin,
-      ZooStore<FateCommand> zs, ZooReaderWriter zk, ServiceLockPath tableLocksPath, String[] args,
-      CommandLine cl) throws InterruptedException, AccumuloException, AccumuloSecurityException,
-      KeeperException, IOException {
-
-    var transactions = admin.getStatus(zs, zk, tableLocksPath, null, null);
-
-    // build id map - relies on unique ids for tables and namespaces
-    // used to look up the names of either table or namespace by id.
-    Map<TableId,String> tidToNameMap = new TableMap(shellState.getContext()).getIdtoNameMap();
-    Map<String,String> idsToNameMap = new HashMap<>(tidToNameMap.size() * 2);
-    tidToNameMap.forEach((tid, name) -> idsToNameMap.put(tid.canonical(), "t:" + name));
-    shellState.getContext().namespaceOperations().namespaceIdMap().forEach((name, nsid) -> {
-      String prev = idsToNameMap.put(nsid, "ns:" + name);
-      if (prev != null) {
-        LOG.warn("duplicate id found for table / namespace id. table name: {}, namespace name: {}",
-            prev, name);
-      }
-    });
-
-    EnumSet<TStatus> statusFilter = getCmdLineStatusFilters(cl);
-
-    FateSummaryReport report = new FateSummaryReport(idsToNameMap, statusFilter);
-
-    // gather statistics
-    transactions.getTransactions().forEach(report::gatherTxnStatus);
-    if (Arrays.asList(cl.getArgs()).contains("json")) {
-      shellState.printLines(Collections.singletonList(report.toJson()).iterator(),
-          !cl.hasOption(disablePaginationOpt.getOpt()));
-    } else {
-      // print the formatted report by lines to allow pagination
-      shellState.printLines(report.formatLines().iterator(),
-          !cl.hasOption(disablePaginationOpt.getOpt()));
-    }
-  }
-
   protected boolean deleteTx(AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
       ZooReaderWriter zk, ServiceLockPath zLockManagerPath, String[] args)
       throws InterruptedException, KeeperException {
@@ -308,47 +253,6 @@ public class FateCommand extends Command {
     }
   }
 
-  protected boolean cancelSubmittedTxs(final Shell shellState, String[] args)
-      throws AccumuloException, AccumuloSecurityException {
-    ClientContext context = shellState.getContext();
-    for (int i = 1; i < args.length; i++) {
-      long txid = Long.parseLong(args[i], 16);
-      shellState.getWriter().flush();
-      String line = shellState.getReader().readLine("Cancel FaTE Tx " + txid + " (yes|no)? ");
-      boolean cancelTx =
-          line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
-      if (cancelTx) {
-        boolean cancelled = cancelFateOperation(context, txid, shellState);
-        if (cancelled) {
-          shellState.getWriter()
-              .println("FaTE transaction " + txid + " was cancelled or already completed.");
-        } else {
-          shellState.getWriter()
-              .println("FaTE transaction " + txid + " was not cancelled, status may have changed.");
-        }
-      } else {
-        shellState.getWriter().println("Not cancelling FaTE transaction " + txid);
-      }
-    }
-    return true;
-  }
-
-  private static boolean cancelFateOperation(ClientContext context, long txid,
-      final Shell shellState) throws AccumuloException, AccumuloSecurityException {
-    FateService.Client client = null;
-    try {
-      client = ThriftClientTypes.FATE.getConnectionWithRetry(context);
-      return client.cancelFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), txid);
-    } catch (Exception e) {
-      shellState.getWriter()
-          .println("ManagerClient request failed, retrying. Cause: " + e.getMessage());
-      throw new AccumuloException(e);
-    } finally {
-      if (client != null)
-        ThriftUtil.close(client, context);
-    }
-  }
-
   public boolean failTx(AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs, ZooReaderWriter zk,
       ServiceLockPath managerLockPath, String[] args) {
     boolean success = true;
@@ -363,7 +267,7 @@ public class FateCommand extends Command {
 
   @Override
   public String description() {
-    return "manage FATE transactions";
+    return "WARNING: This command is deprecated for removal";
   }
 
   @Override
@@ -371,11 +275,6 @@ public class FateCommand extends Command {
     final Options o = new Options();
 
     OptionGroup commands = new OptionGroup();
-    cancel =
-        new Option("cancel", "cancel-submitted", true, "cancel new or submitted FaTE transactions");
-    cancel.setArgName("txid");
-    cancel.setArgs(Option.UNLIMITED_VALUES);
-    cancel.setOptionalArg(false);
 
     fail = new Option("fail", "fail", true,
         "Transition FaTE transaction status to FAILED_IN_PROGRESS (requires Manager to be down)");
@@ -401,22 +300,15 @@ public class FateCommand extends Command {
     print.setArgs(Option.UNLIMITED_VALUES);
     print.setOptionalArg(true);
 
-    summary =
-        new Option("summary", "summary", true, "print a summary of FaTE transaction information");
-    summary.setArgName("--json");
-    summary.setOptionalArg(true);
-
     dump = new Option("dump", "dump", true, "dump FaTE transaction information details");
     dump.setArgName("txid");
     dump.setArgs(Option.UNLIMITED_VALUES);
     dump.setOptionalArg(true);
 
-    commands.addOption(cancel);
     commands.addOption(fail);
     commands.addOption(delete);
     commands.addOption(list);
     commands.addOption(print);
-    commands.addOption(summary);
     commands.addOption(dump);
     o.addOptionGroup(commands);
 
