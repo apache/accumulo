@@ -73,8 +73,11 @@ public interface GarbageCollectionEnvironment {
   Stream<Reference> getReferences();
 
   /**
-   * Return a list of TableIDs for which we are considering deletes. For the root table this would
-   * be the metadata table. For the metadata table, this would be the other tables in the system.
+   * Return a list of all TableIDs in the
+   * {@link org.apache.accumulo.core.metadata.schema.Ample.DataLevel} for which we are considering
+   * deletes. When operating on DataLevel.USER this will return all user table ids. When operating
+   * on DataLevel.METADATA this will return the table id for the accumulo.metadata table. When
+   * operating on DataLevel.ROOT this will return the table id for the accumulo.root table.
    *
    * @return The table ids
    */

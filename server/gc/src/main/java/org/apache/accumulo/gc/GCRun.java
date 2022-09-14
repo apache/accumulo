@@ -483,8 +483,10 @@ public class GCRun implements GarbageCollectionEnvironment {
   @Override
   public Set<TableId> getCandidateTableIDs() {
     if (level == DataLevel.ROOT) {
-      return Collections.singleton(MetadataTable.ID);
+      return Set.of(RootTable.ID);
     } else if (level == DataLevel.METADATA) {
+      return Collections.singleton(MetadataTable.ID);
+    } else if (level == DataLevel.USER) {
       Set<TableId> tableIds = new HashSet<>(getTableIDs());
       tableIds.remove(MetadataTable.ID);
       tableIds.remove(RootTable.ID);
