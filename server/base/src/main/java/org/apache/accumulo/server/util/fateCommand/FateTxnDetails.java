@@ -28,7 +28,7 @@ import org.apache.accumulo.fate.AdminUtil;
 
 public class FateTxnDetails implements Comparable<FateTxnDetails> {
   final static String TXN_HEADER =
-      "Running\ttxn_id\t\t\t\tStatus\t\tCommand\t\tStep (top)\t\tlocks held:(table id, name)\tlocks waiting:(table id, name)\n";
+      "Running\ttxn_id\t\t\t\tStatus\t\tCommand\t\tStep (top)\t\tlocks held:(table id, name)\tlocks waiting:(table id, name)";
 
   private long running;
   private String status = "?";
@@ -134,7 +134,7 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
         elapsed.toSecondsPart());
 
     return hms + "\t" + txnId + "\t" + status + "\t" + txName + "\t" + step + "\theld:"
-        + locksHeld.toString() + "\twaiting:" + locksWaiting.toString() + "\n";
+        + locksHeld.toString() + "\twaiting:" + locksWaiting.toString();
   }
 
 }
