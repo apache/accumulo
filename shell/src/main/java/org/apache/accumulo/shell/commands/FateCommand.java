@@ -267,7 +267,7 @@ public class FateCommand extends Command {
 
   @Override
   public String description() {
-    return "WARNING: This command is deprecated for removal";
+    return "manage FATE transactions (WARNING: This command is deprecated for removal)";
   }
 
   @Override
