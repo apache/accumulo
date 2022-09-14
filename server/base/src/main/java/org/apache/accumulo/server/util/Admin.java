@@ -220,7 +220,7 @@ public class Admin implements KeywordExecutable {
     @Parameter(names = "--summary", description = "Print a summary of FaTE transaction information")
     boolean summarize = false;
 
-    @Parameter(names = {"-j", "--json"}, description = "Print Operations in json")
+    @Parameter(names = {"-j", "--json"}, description = "Print transactions in json")
     boolean printJson = false;
 
     @Parameter(names = {"-s", "--states"},
