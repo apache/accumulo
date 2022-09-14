@@ -42,6 +42,7 @@ import org.apache.accumulo.core.gc.ReferenceDirectory;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.junit.jupiter.api.Test;
 
@@ -57,23 +58,14 @@ public class GarbageCollectionTest {
     ArrayList<TableId> tablesDirsToDelete = new ArrayList<>();
     TreeMap<String,Status> filesToReplicate = new TreeMap<>();
 
-    private final String tableName;
+    private final Ample.DataLevel level;
 
-    TestGCE(String tableName) {
-      this.tableName = tableName;
+    TestGCE(Ample.DataLevel level) {
+      this.level = level;
     }
 
     TestGCE() {
-      // assume metadata table if not passed in for tests
-      this.tableName = MetadataTable.NAME;
-    }
-
-    public boolean isRootTable() {
-      return this.tableName.equals(RootTable.NAME);
-    }
-
-    public boolean isMetadataTable() {
-      return this.tableName.equals(MetadataTable.NAME);
+      this.level = Ample.DataLevel.USER;
     }
 
     @Override
@@ -165,15 +157,17 @@ public class GarbageCollectionTest {
 
     @Override
     public Set<TableId> getCandidateTableIDs() {
-      if (isRootTable()) {
+      if (level == Ample.DataLevel.ROOT) {
         return Set.of(RootTable.ID);
-      } else if (isMetadataTable()) {
+      } else if (level == Ample.DataLevel.METADATA) {
         return Collections.singleton(MetadataTable.ID);
-      } else {
+      } else if (level == Ample.DataLevel.USER) {
         Set<TableId> tableIds = new HashSet<>(getTableIDs());
         tableIds.remove(MetadataTable.ID);
         tableIds.remove(RootTable.ID);
         return tableIds;
+      } else {
+        throw new IllegalArgumentException("unknown level " + level);
       }
     }
   }
@@ -192,7 +186,6 @@ public class GarbageCollectionTest {
   @Test
   public void minimalDelete() throws Exception {
     TestGCE gce = new TestGCE();
-    gce.addFileReference("!0", null, "hdfs://foo.com:6000/accumulo/tables/!0/t0/F000.rf");
 
     gce.candidates.add("hdfs://foo:6000/accumulo/tables/4/t0/F000.rf");
     gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/4/t0/F001.rf");
@@ -211,8 +204,7 @@ public class GarbageCollectionTest {
 
   @Test
   public void testBasic() throws Exception {
-    TestGCE gce = new TestGCE(MetadataTable.NAME);
-    gce.addFileReference("!0", null, "hdfs://foo.com:6000/accumulo/tables/!0/t0/F000.rf");
+    TestGCE gce = new TestGCE();
 
     gce.candidates.add("hdfs://foo:6000/accumulo/tables/4/t0/F000.rf");
     gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/4/t0/F001.rf");
@@ -261,7 +253,6 @@ public class GarbageCollectionTest {
   @Test
   public void testBasic2() throws Exception {
     TestGCE gce = new TestGCE();
-    gce.addFileReference("!0", null, "hdfs://foo.com:6000/accumulo/tables/!0/t0/F000.rf");
 
     gce.candidates.add("hdfs://foo:6000/accumulo/tables/4/t0/F000.rf");
     gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/4/t0/F001.rf");
@@ -355,7 +346,6 @@ public class GarbageCollectionTest {
   @Test
   public void emptyPathsTest() throws Exception {
     TestGCE gce = new TestGCE();
-    gce.addFileReference("!0", null, "hdfs://foo.com:6000/accumulo/tables/!0/t0/F000.rf");
 
     gce.candidates.add("hdfs://foo:6000/accumulo/tables/4//t0//F000.rf");
     gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/4//t0//F001.rf");
@@ -374,8 +364,7 @@ public class GarbageCollectionTest {
 
   @Test
   public void testRelative() throws Exception {
-    TestGCE gce = new TestGCE(MetadataTable.NAME);
-    gce.addFileReference("!0", null, "hdfs://foo.com:6000/accumulo/tables/!0/t0/F000.rf");
+    TestGCE gce = new TestGCE();
 
     gce.candidates.add("/4/t0/F000.rf");
     gce.candidates.add("/4/t0/F002.rf");
@@ -441,8 +430,6 @@ public class GarbageCollectionTest {
     gce.blips.add("/4/b-0");
     gce.blips.add("hdfs://foo.com:6000/accumulo/tables/5/b-0");
 
-    gce.addFileReference("!0", null, "hdfs://foo.com:6000/accumulo/tables/!0/t0/F000.rf");
-
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
     // Nothing should be removed because all candidates exist within a blip
@@ -472,7 +459,6 @@ public class GarbageCollectionTest {
   @Test
   public void testDirectories() throws Exception {
     TestGCE gce = new TestGCE();
-    gce.addFileReference("!0", null, "hdfs://foo.com:6000/accumulo/tables/!0/t0/F000.rf");
 
     gce.candidates.add("/4/t-0");
     gce.candidates.add("/4/t-0/F002.rf");
@@ -537,7 +523,6 @@ public class GarbageCollectionTest {
   @Test
   public void testCustomDirectories() throws Exception {
     TestGCE gce = new TestGCE();
-    gce.addFileReference("!0", null, "hdfs://foo.com:6000/accumulo/tables/!0/t0/F000.rf");
 
     gce.candidates.add("/4/t-0");
     gce.candidates.add("/4/t-0/F002.rf");
@@ -668,8 +653,6 @@ public class GarbageCollectionTest {
     gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/");
     gce.candidates.add("hdfs://foo.com:6000/user/foo/tables/a/t-0/t-1/F00.rf");
 
-    gce.addFileReference("!0", null, "hdfs://foo.com:6000/accumulo/tables/!0/t0/F000.rf");
-
     gca.collect(gce);
     System.out.println(gce.deletes);
     assertRemoved(gce);
@@ -680,7 +663,6 @@ public class GarbageCollectionTest {
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
     TestGCE gce = new TestGCE();
-    gce.addFileReference("!0", null, "hdfs://foo.com:6000/accumulo/tables/!0/t0/F000.rf");
 
     gce.candidates.add("/1636/default_tablet");
     gce.addDirReference("1636", null, "default_tablet");
@@ -699,7 +681,6 @@ public class GarbageCollectionTest {
 
     // have an indirect file reference
     gce = new TestGCE();
-    gce.addFileReference("!0", null, "hdfs://foo.com:6000/accumulo/tables/!0/t0/F000.rf");
 
     gce.addFileReference("1636", null, "../9/default_tablet/someFile");
     gce.addDirReference("1636", null, "default_tablet");
@@ -721,7 +702,6 @@ public class GarbageCollectionTest {
     assertEquals(0, blipCount);
 
     gce = new TestGCE();
-    gce.addFileReference("!0", null, "hdfs://foo.com:6000/accumulo/tables/!0/t0/F000.rf");
 
     gce.blips.add("/1636/b-0001");
     gce.candidates.add("/1636/b-0001/I0000");
@@ -730,7 +710,6 @@ public class GarbageCollectionTest {
     assertEquals(1, blipCount);
 
     gce = new TestGCE();
-    gce.addFileReference("!0", null, "hdfs://foo.com:6000/accumulo/tables/!0/t0/F000.rf");
 
     gce.blips.add("/1029/b-0001");
     gce.blips.add("/1029/b-0002");
@@ -750,7 +729,6 @@ public class GarbageCollectionTest {
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
     TestGCE gce = new TestGCE();
-    gce.addFileReference("!0", null, "hdfs://foo.com:6000/accumulo/tables/!0/t0/F000.rf");
 
     gce.tableIds.add(TableId.of("4"));
 
@@ -783,8 +761,6 @@ public class GarbageCollectionTest {
     gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/1/t-00001/A000001.rf");
     gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf");
 
-    gce.addFileReference("!0", null, "hdfs://foo.com:6000/accumulo/tables/!0/t0/F000.rf");
-
     Status status = Status.newBuilder().setClosed(true).setEnd(100).setBegin(100).build();
     gce.filesToReplicate.put("hdfs://foo.com:6000/accumulo/tables/1/t-00001/A000001.rf", status);
 
@@ -800,7 +776,6 @@ public class GarbageCollectionTest {
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
     TestGCE gce = new TestGCE();
-    gce.addFileReference("!0", null, "hdfs://foo.com:6000/accumulo/tables/!0/t0/F000.rf");
 
     gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/1/t-00001/A000001.rf");
     gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf");
@@ -825,8 +800,6 @@ public class GarbageCollectionTest {
     gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/1/t-00001/A000001.rf");
     gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf");
 
-    gce.addFileReference("!0", null, "hdfs://foo.com:6000/accumulo/tables/!0/t0/F000.rf");
-
     // We replicated all of the data, but we might still write more data to the file
     @SuppressWarnings("deprecation")
     Status status =
@@ -845,7 +818,6 @@ public class GarbageCollectionTest {
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
     TestGCE gce = new TestGCE();
-    gce.addFileReference("!0", null, "hdfs://foo.com:6000/accumulo/tables/!0/t0/F000.rf");
 
     gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/1/t-00001/A000001.rf");
     gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf");
@@ -865,8 +837,7 @@ public class GarbageCollectionTest {
   public void testMissingTableIds() throws Exception {
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
-    TestGCE gce = new TestGCE("a");
-    gce.addFileReference("!0", null, "hdfs://foo.com:6000/accumulo/tables/!0/t0/F000.rf");
+    TestGCE gce = new TestGCE(Ample.DataLevel.USER);
 
     gce.candidates.add("hdfs://foo.com:6000/user/foo/tables/a/t-0/F00.rf");
 
