@@ -31,7 +31,7 @@ import java.util.Map;
 public interface CryptoService {
 
   /**
-   * Initialize CryptoService. This is called once at Tablet Server startup.
+   * Initialize CryptoService. This should only be called once.
    */
   void init(Map<String,String> conf) throws CryptoException;
 
