@@ -49,7 +49,7 @@ public class CleanZookeeper {
             byte[] id = zk.getData(instanceNamePath);
             if (id != null && !new String(id, UTF_8).equals(context.getInstanceID().canonical())) {
               delete(zk, instanceNamePath);
-              System.out.println("Deleted instance " + instanceName);
+              System.out.println("Deleted instance: " + instanceName);
             }
           }
         } else if (!child.equals(context.getInstanceID().canonical())) {
