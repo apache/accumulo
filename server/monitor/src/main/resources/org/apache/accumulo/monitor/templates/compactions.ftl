@@ -25,7 +25,8 @@
       </div>
       <div class="row">
         <div class="col-xs-12">
-          <table id="compactionsList" class="table table-bordered table-striped table-condensed">
+          <table id="compactionsList" class="table caption-top table-bordered table-striped table-condensed">
+            <caption><span class="table-caption">Compactions</span><br /></caption>
             <thead>
               <tr>
                 <th class="firstcell">Server&nbsp;</th>

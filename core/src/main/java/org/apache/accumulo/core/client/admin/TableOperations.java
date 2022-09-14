@@ -430,12 +430,24 @@ public interface TableOperations {
 
   /**
    * Starts a full major compaction of the tablets in the range (start, end]. If the config does not
-   * specify a compaction strategy, then all files in a tablet are compacted. The compaction is
-   * performed even for tablets that have only one file.
+   * specify a compaction selector (or a deprecated strategy), then all files in a tablet are
+   * compacted. The compaction is performed even for tablets that have only one file.
    *
    * <p>
-   * Only one compact call at a time can pass iterators and/or a compaction strategy. If two threads
-   * call compaction with iterators and/or a compaction strategy, then one will fail.
+   * The following optional settings can only be set by one compact call per table at the same time.
+   *
+   * <UL>
+   * <LI>Execution hints : {@link CompactionConfig#setExecutionHints(Map)}</LI>
+   * <LI>Selector : {@link CompactionConfig#setSelector(PluginConfig)}</LI>
+   * <LI>Confgigurer : {@link CompactionConfig#setConfigurer(PluginConfig)}</LI>
+   * <LI>Iterators : {@link CompactionConfig#setIterators(List)}</LI>
+   * <LI>Compaction strategy :
+   * {@link CompactionConfig#setCompactionStrategy(CompactionStrategyConfig)}</LI>
+   * </UL>
+   *
+   * <P>
+   * If two threads call this method concurrently for the same table and set one or more of the
+   * above then one thread will fail.
    *
    * @param tableName
    *          the table to compact
