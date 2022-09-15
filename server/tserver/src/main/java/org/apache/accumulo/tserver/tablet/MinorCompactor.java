@@ -56,7 +56,8 @@ public class MinorCompactor extends FileCompactor {
   public MinorCompactor(TabletServer tabletServer, Tablet tablet, InMemoryMap imm,
       TabletFile outputFile, MinorCompactionReason mincReason, TableConfiguration tableConfig) {
     super(tabletServer.getContext(), tablet.getExtent(), Collections.emptyMap(), outputFile, true,
-        new MinCEnv(mincReason, imm.compactionIterator()), Collections.emptyList(), tableConfig);
+        new MinCEnv(mincReason, imm.compactionIterator()), Collections.emptyList(), tableConfig,
+        tableConfig.getCryptoService());
     this.tabletServer = tabletServer;
     this.mincReason = mincReason;
   }

@@ -23,6 +23,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Objects;
 
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.FileDecrypter;
@@ -46,10 +47,14 @@ public class CryptoUtils {
    * with the provided CryptoService and CryptoEnvironment.Scope.
    */
   public static FileDecrypter getFileDecrypter(CryptoService cs, CryptoEnvironment.Scope scope,
+      TableId tableId, DataInputStream in) throws IOException {
+    return cs.getFileDecrypter(getCryptoEnv(scope, tableId, in));
+  }
+
+  public static CryptoEnvironment getCryptoEnv(CryptoEnvironment.Scope scope, TableId tableId,
       DataInputStream in) throws IOException {
     byte[] decryptionParams = readParams(in);
-    CryptoEnvironment decEnv = new CryptoEnvironmentImpl(scope, decryptionParams);
-    return cs.getFileDecrypter(decEnv);
+    return new CryptoEnvironmentImpl(scope, tableId, decryptionParams);
   }
 
   /**
@@ -61,5 +66,4 @@ public class CryptoUtils {
     out.writeInt(decryptionParams.length);
     out.write(decryptionParams);
   }
-
 }

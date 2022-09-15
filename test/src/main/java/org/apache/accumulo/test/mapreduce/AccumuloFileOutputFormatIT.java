@@ -33,13 +33,13 @@ import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.rfile.RFileOperations;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
+import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -219,7 +219,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
       DefaultConfiguration acuconf = DefaultConfiguration.getInstance();
       FileSKVIterator sample = RFileOperations.getInstance().newReaderBuilder()
           .forFile(files[0].toString(), FileSystem.getLocal(conf), conf,
-              CryptoServiceFactory.newDefaultInstance())
+              NoCryptoServiceFactory.NONE)
           .withTableConfiguration(acuconf).build()
           .getSample(new SamplerConfigurationImpl(SAMPLER_CONFIG));
       assertNotNull(sample);

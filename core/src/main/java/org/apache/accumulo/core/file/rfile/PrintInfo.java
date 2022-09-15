@@ -26,8 +26,7 @@ import java.util.Map;
 import java.util.function.BiFunction;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
+import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.crypto.CryptoUtils;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -36,7 +35,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
+import org.apache.accumulo.core.file.rfile.bcfile.PrintBCInfo;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils;
+import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.NoFileEncrypter;
 import org.apache.accumulo.core.summary.SummaryReader;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
@@ -193,8 +195,9 @@ public class PrintInfo implements KeywordExecutable {
 
       printCryptoParams(path, fs);
 
-      CachableBuilder cb = new CachableBuilder().fsPath(fs, path).conf(conf)
-          .cryptoService(CryptoServiceFactory.newInstance(siteConfig, ClassloaderType.JAVA));
+      CryptoService cs = CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.TABLE,
+          siteConfig.getAllCryptoProperties());
+      CachableBuilder cb = new CachableBuilder().fsPath(fs, path).conf(conf).cryptoService(cs);
       Reader iter = new RFile.Reader(cb);
       MetricsGatherer<Map<String,ArrayList<VisibilityMetric>>> vmg = new VisMetricsGatherer();
 
@@ -207,7 +210,9 @@ public class PrintInfo implements KeywordExecutable {
       String propsPath = opts.getPropertiesPath();
       String[] mainArgs =
           propsPath == null ? new String[] {arg} : new String[] {"-props", propsPath, arg};
-      org.apache.accumulo.core.file.rfile.bcfile.PrintInfo.main(mainArgs);
+      PrintBCInfo printBCInfo = new PrintBCInfo(mainArgs);
+      printBCInfo.setCryptoService(cs);
+      printBCInfo.printMetaBlockInfo();
 
       Map<String,ArrayList<ByteSequence>> localityGroupCF = null;
 

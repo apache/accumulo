@@ -66,13 +66,13 @@ import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
@@ -1268,12 +1268,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
     String odd = new File(importDir, "odd.rf").toString();
     AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
     FileSKVWriter evenWriter = FileOperations.getInstance().newWriterBuilder()
-        .forFile(even, fs, conf, CryptoServiceFactory.newDefaultInstance())
-        .withTableConfiguration(aconf).build();
+        .forFile(even, fs, conf, NoCryptoServiceFactory.NONE).withTableConfiguration(aconf).build();
     evenWriter.startDefaultLocalityGroup();
     FileSKVWriter oddWriter = FileOperations.getInstance().newWriterBuilder()
-        .forFile(odd, fs, conf, CryptoServiceFactory.newDefaultInstance())
-        .withTableConfiguration(aconf).build();
+        .forFile(odd, fs, conf, NoCryptoServiceFactory.NONE).withTableConfiguration(aconf).build();
     oddWriter.startDefaultLocalityGroup();
     long timestamp = System.currentTimeMillis();
     Text cf = new Text("cf");

@@ -29,12 +29,16 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.crypto.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionDispatcher;
+import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.spi.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
@@ -53,6 +57,7 @@ public class TableConfiguration extends ZooBasedConfiguration {
 
   private final Deriver<ScanDispatcher> scanDispatchDeriver;
   private final Deriver<CompactionDispatcher> compactionDispatchDeriver;
+  private final Deriver<CryptoService> cryptoServiceDeriver;
 
   public TableConfiguration(ServerContext context, TableId tableId, NamespaceConfiguration parent) {
     super(log, context, TablePropKey.of(context, tableId), parent);
@@ -71,6 +76,8 @@ public class TableConfiguration extends ZooBasedConfiguration {
     scanDispatchDeriver = newDeriver(conf -> createScanDispatcher(conf, context, tableId));
     compactionDispatchDeriver =
         newDeriver(conf -> createCompactionDispatcher(conf, context, tableId));
+    cryptoServiceDeriver =
+        newDeriver(conf -> createCryptoService(conf, tableId, context.getCryptoFactory()));
   }
 
   @Override
@@ -217,5 +224,15 @@ public class TableConfiguration extends ZooBasedConfiguration {
 
   public CompactionDispatcher getCompactionDispatcher() {
     return compactionDispatchDeriver.derive();
+  }
+
+  private CryptoService createCryptoService(AccumuloConfiguration conf, TableId tableId,
+      CryptoServiceFactory factory) {
+    CryptoEnvironment env = new CryptoEnvironmentImpl(CryptoEnvironment.Scope.TABLE, tableId, null);
+    return factory.getService(env, conf.getAllCryptoProperties());
+  }
+
+  public CryptoService getCryptoService() {
+    return cryptoServiceDeriver.derive();
   }
 }
