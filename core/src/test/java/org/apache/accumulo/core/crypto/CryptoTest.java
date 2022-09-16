@@ -20,8 +20,6 @@ package org.apache.accumulo.core.crypto;
 
 import static com.google.common.collect.MoreCollectors.onlyElement;
 import static org.apache.accumulo.core.conf.Property.INSTANCE_CRYPTO_FACTORY;
-import static org.apache.accumulo.core.conf.Property.INSTANCE_CRYPTO_PREFIX;
-import static org.apache.accumulo.core.conf.Property.TABLE_CRYPTO_PREFIX;
 import static org.apache.accumulo.core.crypto.CryptoUtils.getFileDecrypter;
 import static org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope.TABLE;
 import static org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope.WAL;
@@ -74,6 +72,7 @@ import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
 import org.apache.accumulo.core.spi.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.spi.crypto.FileDecrypter;
 import org.apache.accumulo.core.spi.crypto.FileEncrypter;
+import org.apache.accumulo.core.spi.crypto.GenericCryptoServiceFactory;
 import org.apache.accumulo.core.spi.crypto.NoCryptoService;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.spi.crypto.PerTableCryptoServiceFactory;
@@ -118,22 +117,32 @@ public class CryptoTest {
     ConfigurationCopy cfg = new ConfigurationCopy(DefaultConfiguration.getInstance());
     switch (configMode) {
       case CRYPTO_TABLE_ON_DISABLED:
-        cfg.set(TABLE_CRYPTO_PREFIX.getKey() + "enabled", "false");
+        cfg.set(INSTANCE_CRYPTO_FACTORY, PerTableCryptoServiceFactory.class.getName());
+        cfg.set(PerTableCryptoServiceFactory.TABLE_SERVICE_NAME_PROP,
+            AESCryptoService.class.getName());
+        cfg.set(AESCryptoService.KEY_URI_PROPERTY, CryptoTest.keyPath(testClass));
+        cfg.set(AESCryptoService.ENCRYPT_ENABLED_PROPERTY, "false");
         break;
       case CRYPTO_TABLE_ON:
         cfg.set(INSTANCE_CRYPTO_FACTORY, PerTableCryptoServiceFactory.class.getName());
         cfg.set(PerTableCryptoServiceFactory.TABLE_SERVICE_NAME_PROP,
             AESCryptoService.class.getName());
-        cfg.set(AESCryptoService.ENCRYPT_ENABLED_PROPERTY, "true");
         cfg.set(AESCryptoService.KEY_URI_PROPERTY, CryptoTest.keyPath(testClass));
+        cfg.set(AESCryptoService.ENCRYPT_ENABLED_PROPERTY, "true");
         break;
       case CRYPTO_WAL_ON_DISABLED:
-        cfg.set(INSTANCE_CRYPTO_PREFIX.getKey() + "enabled", "false");
+        cfg.set(INSTANCE_CRYPTO_FACTORY, GenericCryptoServiceFactory.class.getName());
+        cfg.set(GenericCryptoServiceFactory.GENERAL_SERVICE_NAME_PROP,
+            AESCryptoService.class.getName());
+        cfg.set(AESCryptoService.KEY_URI_PROPERTY, CryptoTest.keyPath(testClass));
+        cfg.set(AESCryptoService.ENCRYPT_ENABLED_PROPERTY, "false");
         break;
       case CRYPTO_WAL_ON:
-        cfg.set(INSTANCE_CRYPTO_FACTORY, PerTableCryptoServiceFactory.class.getName());
-        cfg.set(PerTableCryptoServiceFactory.WAL_NAME_PROP, AESCryptoService.class.getName());
+        cfg.set(INSTANCE_CRYPTO_FACTORY, GenericCryptoServiceFactory.class.getName());
+        cfg.set(GenericCryptoServiceFactory.GENERAL_SERVICE_NAME_PROP,
+            AESCryptoService.class.getName());
         cfg.set(AESCryptoService.KEY_URI_PROPERTY, CryptoTest.keyPath(testClass));
+        cfg.set(AESCryptoService.ENCRYPT_ENABLED_PROPERTY, "true");
         break;
       case CRYPTO_OFF:
         break;
@@ -216,21 +225,23 @@ public class CryptoTest {
    */
   @Test
   public void testAESCryptoServiceWALDisabled() throws Exception {
-    AESCryptoService cs = new AESCryptoService();
-    cs.init(getAllCryptoProperties(ConfigMode.CRYPTO_WAL_ON));
+    AESCryptoService csEnabled = new AESCryptoService();
+    AESCryptoService csDisabled = new AESCryptoService();
+    csEnabled.init(getAllCryptoProperties(ConfigMode.CRYPTO_WAL_ON));
+    csDisabled.init(getAllCryptoProperties(ConfigMode.CRYPTO_WAL_ON_DISABLED));
 
     // make sure we can read encrypted
-    byte[] encryptedBytes = encrypt(cs, Scope.WAL);
+    byte[] encryptedBytes = encrypt(csEnabled, Scope.WAL);
     String stringEncryptedBytes = Arrays.toString(encryptedBytes);
     String stringifiedMarkerBytes = getStringifiedBytes(null, MARKER_STRING, MARKER_INT);
     assertNotEquals(stringEncryptedBytes, stringifiedMarkerBytes);
-    decrypt(cs, encryptedBytes, Scope.WAL);
+    decrypt(csDisabled, encryptedBytes, Scope.WAL);
 
     // make sure we don't encrypt when disabled
-    byte[] plainBytes = encrypt(cs, Scope.WAL);
+    byte[] plainBytes = encrypt(csDisabled, Scope.WAL);
     String stringPlainBytes = Arrays.toString(plainBytes);
     assertNotEquals(stringEncryptedBytes, stringPlainBytes);
-    decrypt(cs, plainBytes, Scope.WAL);
+    decrypt(csDisabled, plainBytes, Scope.WAL);
   }
 
   @Test
@@ -253,21 +264,23 @@ public class CryptoTest {
    */
   @Test
   public void testAESCryptoServiceTableDisabled() throws Exception {
-    AESCryptoService cs = new AESCryptoService();
-    cs.init(getAllCryptoProperties(ConfigMode.CRYPTO_TABLE_ON));
+    AESCryptoService csEnabled = new AESCryptoService();
+    AESCryptoService csDisabled = new AESCryptoService();
+    csEnabled.init(getAllCryptoProperties(ConfigMode.CRYPTO_TABLE_ON));
+    csDisabled.init(getAllCryptoProperties(ConfigMode.CRYPTO_TABLE_ON_DISABLED));
 
     // make sure we can read encrypted
-    byte[] encryptedBytes = encrypt(cs, TABLE);
+    byte[] encryptedBytes = encrypt(csEnabled, TABLE);
     String stringEncryptedBytes = Arrays.toString(encryptedBytes);
     String stringifiedMarkerBytes = getStringifiedBytes(null, MARKER_STRING, MARKER_INT);
     assertNotEquals(stringEncryptedBytes, stringifiedMarkerBytes);
-    decrypt(cs, encryptedBytes, TABLE);
+    decrypt(csDisabled, encryptedBytes, TABLE);
 
     // make sure we don't encrypt when disabled
-    byte[] plainBytes = encrypt(cs, TABLE);
+    byte[] plainBytes = encrypt(csDisabled, TABLE);
     String stringPlainBytes = Arrays.toString(plainBytes);
     assertNotEquals(stringEncryptedBytes, stringPlainBytes);
-    decrypt(cs, plainBytes, TABLE);
+    decrypt(csDisabled, plainBytes, TABLE);
   }
 
   @Test
@@ -385,7 +398,7 @@ public class CryptoTest {
 
     CryptoEnvironment env2 = new CryptoEnvironmentImpl(WAL);
     var cryptoProps2 = getAllCryptoProperties(ConfigMode.CRYPTO_WAL_ON);
-    droppedProperty = cryptoProps2.remove(PerTableCryptoServiceFactory.WAL_NAME_PROP);
+    droppedProperty = cryptoProps2.remove(GenericCryptoServiceFactory.GENERAL_SERVICE_NAME_PROP);
     assertNotNull(droppedProperty);
 
     assertThrows(NullPointerException.class, () -> factory.getService(env2, cryptoProps2));
