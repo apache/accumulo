@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -40,6 +41,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.gc.ReferenceDirectory;
 import org.apache.accumulo.core.gc.ReferenceFile;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -93,8 +95,10 @@ public class GarbageCollectionTest {
     }
 
     @Override
-    public Set<TableId> getTableIDs() {
-      return new HashSet<>(tableIds);
+    public Map<TableId,TableState> getTableIDs() {
+      HashMap<TableId,TableState> results = new HashMap<>();
+      tableIds.forEach((t) -> results.put(t, TableState.ONLINE));
+      return results;
     }
 
     @Override
@@ -162,9 +166,15 @@ public class GarbageCollectionTest {
       } else if (level == Ample.DataLevel.METADATA) {
         return Collections.singleton(MetadataTable.ID);
       } else if (level == Ample.DataLevel.USER) {
-        Set<TableId> tableIds = new HashSet<>(getTableIDs());
         tableIds.remove(MetadataTable.ID);
         tableIds.remove(RootTable.ID);
+        getTableIDs().forEach((k, v) -> {
+          if (v == TableState.ONLINE || v == TableState.OFFLINE) {
+            // Don't return tables that are NEW, DELETING, or in an
+            // UNKNOWN state.
+            tableIds.add(k);
+          }
+        });
         return tableIds;
       } else {
         throw new IllegalArgumentException("unknown level " + level);

@@ -18,14 +18,17 @@
  */
 package org.apache.accumulo.gc;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SCANS;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -176,20 +179,40 @@ public class GCRun implements GarbageCollectionEnvironment {
   }
 
   @Override
-  public Set<TableId> getTableIDs() {
+  public Map<TableId,TableState> getTableIDs() throws InterruptedException {
     final String tablesPath = context.getZooKeeperRoot() + Constants.ZTABLES;
     final ZooReader zr = context.getZooReader();
-    final Set<TableId> tids = new HashSet<>();
-    while (true) {
+    int retries = 1;
+    UncheckedIOException ioe = null;
+    while (retries <= 10) {
       try {
         zr.sync(tablesPath);
-        zr.getChildren(tablesPath).forEach(t -> tids.add(TableId.of(t)));
+        final Map<TableId,TableState> tids = new HashMap<>();
+        for (String table : zr.getChildren(tablesPath)) {
+          TableId tableId = TableId.of(table);
+          TableState tableState = null;
+          String statePath = context.getZooKeeperRoot() + Constants.ZTABLES + "/"
+              + tableId.canonical() + Constants.ZTABLE_STATE;
+          byte[] state = zr.getData(statePath, null, null);
+          if (state == null) {
+            tableState = TableState.UNKNOWN;
+          } else {
+            tableState = TableState.valueOf(new String(state, UTF_8));
+          }
+          tids.put(tableId, tableState);
+        }
         return tids;
-      } catch (KeeperException | InterruptedException e) {
-        log.error("Error getting tables from ZooKeeper, retrying", e);
-        UtilWaitThread.sleepUninterruptibly(1, TimeUnit.SECONDS);
+      } catch (KeeperException e) {
+        retries++;
+        if (ioe == null) {
+          ioe = new UncheckedIOException(new IOException("Error getting table ids from ZooKeeper"));
+        }
+        ioe.addSuppressed(e);
+        log.error("Error getting tables from ZooKeeper, retrying in {} seconds", retries, e);
+        UtilWaitThread.sleepUninterruptibly(retries, TimeUnit.SECONDS);
       }
     }
+    throw ioe;
   }
 
   @Override
@@ -480,19 +503,38 @@ public class GCRun implements GarbageCollectionEnvironment {
     return candidates;
   }
 
+  /**
+   * Return a set of all TableIDs in the
+   * {@link org.apache.accumulo.core.metadata.schema.Ample.DataLevel} for which we are considering
+   * deletes. When operating on DataLevel.USER this will return all user table ids in an ONLINE or
+   * OFFLINE state. When operating on DataLevel.METADATA this will return the table id for the
+   * accumulo.metadata table. When operating on DataLevel.ROOT this will return the table id for the
+   * accumulo.root table.
+   *
+   * @return The table ids
+   * @throws InterruptedException
+   *           if interrupted when calling ZooKeeper
+   */
   @Override
-  public Set<TableId> getCandidateTableIDs() {
+  public Set<TableId> getCandidateTableIDs() throws InterruptedException {
     if (level == DataLevel.ROOT) {
       return Set.of(RootTable.ID);
     } else if (level == DataLevel.METADATA) {
       return Collections.singleton(MetadataTable.ID);
     } else if (level == DataLevel.USER) {
-      Set<TableId> tableIds = new HashSet<>(getTableIDs());
+      Set<TableId> tableIds = new HashSet<>();
       tableIds.remove(MetadataTable.ID);
       tableIds.remove(RootTable.ID);
+      getTableIDs().forEach((k, v) -> {
+        if (v == TableState.ONLINE || v == TableState.OFFLINE) {
+          // Don't return tables that are NEW, DELETING, or in an
+          // UNKNOWN state.
+          tableIds.add(k);
+        }
+      });
       return tableIds;
     } else {
-      throw new RuntimeException("Unexpected Table in GC Env: " + this.level.name());
+      throw new IllegalArgumentException("Unexpected Table in GC Env: " + this.level.name());
     }
   }
 }
