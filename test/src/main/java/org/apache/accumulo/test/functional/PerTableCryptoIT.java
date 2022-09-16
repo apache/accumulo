@@ -23,14 +23,17 @@ import static org.apache.accumulo.core.spi.crypto.PerTableCryptoServiceFactory.R
 import static org.apache.accumulo.core.spi.crypto.PerTableCryptoServiceFactory.TABLE_SERVICE_NAME_PROP;
 import static org.apache.accumulo.core.spi.crypto.PerTableCryptoServiceFactory.WAL_NAME_PROP;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.cluster.standalone.StandaloneAccumuloCluster;
 import org.apache.accumulo.core.client.Accumulo;
@@ -47,8 +50,10 @@ import org.apache.accumulo.core.spi.crypto.GenericCryptoServiceFactory;
 import org.apache.accumulo.core.spi.crypto.PerTableCryptoServiceFactory;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.accumulo.tserver.logger.LogReader;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -68,6 +73,8 @@ public class PerTableCryptoIT extends AccumuloClusterHarness {
         System.getProperty("user.dir") + "/target/mini-tests/PerTableCrypto-testkeyfile";
     cfg.setProperty(INSTANCE_CRYPTO_FACTORY, PerTableCryptoServiceFactory.class.getName());
     cfg.setProperty(WAL_NAME_PROP, AESCryptoService.class.getName());
+    cfg.setProperty(GenericCryptoServiceFactory.GENERAL_SERVICE_NAME_PROP,
+        AESCryptoService.class.getName());
     cfg.setProperty(RECOVERY_NAME_PROP, AESCryptoService.class.getName());
     cfg.setProperty(AESCryptoService.KEY_URI_PROPERTY, keyPath);
 
@@ -103,6 +110,9 @@ public class PerTableCryptoIT extends AccumuloClusterHarness {
       TableId tableId0 = TableId.of(c.tableOperations().tableIdMap().get(tables[0]));
       VerifyIngest.VerifyParams params = new VerifyIngest.VerifyParams(getClientProps(), tables[0]);
       TestIngest.ingest(c, params);
+
+      checkWALEncryption();
+
       VerifyIngest.verifyIngest(c, params);
 
       // verify table data was not encrypted
@@ -142,7 +152,6 @@ public class PerTableCryptoIT extends AccumuloClusterHarness {
       String tableName = getUniqueNames(1)[0];
       Map<String,String> props = new HashMap<>();
       NewTableConfiguration tableConfig = new NewTableConfiguration();
-      // tableConfig.createOffline();
       props.put(TABLE_SERVICE_NAME_PROP, AESCryptoService.class.getName());
 
       tableConfig.setProperties(props);
@@ -185,8 +194,7 @@ public class PerTableCryptoIT extends AccumuloClusterHarness {
             args.add("-o");
             args.add(INSTANCE_CRYPTO_FACTORY + "=" + GenericCryptoServiceFactory.class.getName());
             log.info("Invoking PrintInfo with {}", args);
-            org.apache.accumulo.core.file.rfile.PrintInfo
-                .main(args.toArray(new String[args.size()]));
+            org.apache.accumulo.core.file.rfile.PrintInfo.main(args.toArray(new String[0]));
             newOut.flush();
             String stdout = baos.toString();
             if (expectEncrypt) {
@@ -199,6 +207,52 @@ public class PerTableCryptoIT extends AccumuloClusterHarness {
           }
         }
       }
+    }
+  }
+
+  private void checkWALEncryption() throws Exception {
+    Set<String> walsSeen = new HashSet<>();
+    int open = 0;
+    int attempts = 0;
+    boolean foundWal = false;
+    while (open == 0) {
+      attempts++;
+      Map<String,WalStateManager.WalState> wals = WALSunnyDayIT._getWals(getServerContext());
+      for (var entry : wals.entrySet()) {
+        if (entry.getValue() == WalStateManager.WalState.OPEN) {
+          open++;
+          walsSeen.add(entry.getKey());
+          foundWal = true;
+        } else {
+          // log CLOSED or UNREFERENCED to help debug this test
+          log.debug("The WalState for {} is {}", entry.getKey(), entry.getValue());
+        }
+      }
+
+      if (!foundWal) {
+        Thread.sleep(50);
+        if (attempts % 50 == 0)
+          log.debug("No open WALs found in {} attempts.", attempts);
+      }
+    }
+
+    assertFalse(walsSeen.isEmpty(), "Did not see any WALs");
+
+    // verify that at least one of the WALs can be read by the crypto service
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    PrintStream oldOut = System.out;
+    try (PrintStream newOut = new PrintStream(baos)) {
+      System.setOut(newOut);
+      List<String> args = new ArrayList<>(walsSeen);
+      args.add("-p");
+      args.add(getCluster().getAccumuloPropertiesPath());
+      args.add("-e");
+      new LogReader().execute(args.toArray(new String[0]));
+      newOut.flush();
+      String stdout = baos.toString();
+      assertTrue(stdout.contains(AESCryptoService.class.getName()));
+    } finally {
+      System.setOut(oldOut);
     }
   }
 }

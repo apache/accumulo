@@ -360,7 +360,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
         decryptingInput = cryptoService instanceof NoCryptoService ? input
             : new DataInputStream(decrypter.decryptStream(input));
       } else if (Arrays.equals(magicBuffer, magic3)) {
-        // Read logs files from Accumulo 1.9
+        // Read logs files from Accumulo 1.9 and throw an error if they are encrypted
         String cryptoModuleClassname = input.readUTF();
         if (!cryptoModuleClassname.equals("NullCryptoModule")) {
           throw new IllegalArgumentException(

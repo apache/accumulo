@@ -312,7 +312,7 @@ public class CryptoTest {
   }
 
   @Test
-  public void testRFileEncrypted() throws Exception {
+  public void testRFileClientEncryption() throws Exception {
     AccumuloConfiguration cryptoOnConf = getAccumuloConfig(ConfigMode.CRYPTO_TABLE_ON);
     FileSystem fs = FileSystem.getLocal(hadoopConf);
     ArrayList<Key> keys = testData();
