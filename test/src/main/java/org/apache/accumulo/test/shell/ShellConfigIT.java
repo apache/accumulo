@@ -20,7 +20,6 @@ package org.apache.accumulo.test.shell;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.test.VolumeChooserIT.PERTABLE_CHOOSER_PROP;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -108,12 +107,14 @@ public class ShellConfigIT extends AccumuloClusterHarness {
       fail("Unknown token type");
     }
 
+    assertTrue(Property.TABLE_CRYPTO_PREFIX.isExperimental());
+    assertTrue(Property.TABLE_CRYPTO_SENSITIVE_PREFIX.isExperimental());
+    assertTrue(Property.INSTANCE_CRYPTO_FACTORY.isExperimental());
     assertTrue(Property.INSTANCE_CRYPTO_PREFIX.isExperimental());
-    assertTrue(Property.INSTANCE_CRYPTO_SERVICE.isExperimental());
+    assertTrue(Property.INSTANCE_CRYPTO_SENSITIVE_PREFIX.isExperimental());
 
     String configOutput = ts.exec("config");
 
     assertTrue(configOutput.contains(PERTABLE_CHOOSER_PROP));
-    assertFalse(configOutput.contains(Property.INSTANCE_CRYPTO_SERVICE.getKey()));
   }
 }

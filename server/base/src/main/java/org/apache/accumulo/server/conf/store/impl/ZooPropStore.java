@@ -48,6 +48,8 @@ import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Ticker;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class ZooPropStore implements PropStore, PropChangeListener {
 
   private final static Logger log = LoggerFactory.getLogger(ZooPropStore.class);
@@ -87,6 +89,8 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    * @param ticker
    *          a synthetic clock used for testing. Optional, if null, one is created.
    */
+  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
+      justification = "random number not used in secure context")
   ZooPropStore(final InstanceId instanceId, final ZooReaderWriter zrw, final ReadyMonitor monitor,
       final PropStoreWatcher watcher, final Ticker ticker) {
 
@@ -117,7 +121,11 @@ public class ZooPropStore implements PropStore, PropChangeListener {
         throw new IllegalStateException("Instance may not have been initialized, root node: " + path
             + " does not exist in ZooKeeper");
       }
-    } catch (InterruptedException | KeeperException ex) {
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException(
+          "Interrupted trying to read root node " + instanceId + " from ZooKeeper", ex);
+    } catch (KeeperException ex) {
       throw new IllegalStateException("Failed to read root node " + instanceId + " from ZooKeeper",
           ex);
     }
@@ -391,4 +399,27 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   public @Nullable VersionedProperties getWithoutCaching(PropStoreKey<?> propStoreKey) {
     return cache.getWithoutCaching(propStoreKey);
   }
+
+  @Override
+  public boolean validateDataVersion(PropStoreKey<?> storeKey, long expectedVersion) {
+    try {
+      Stat stat = zrw.getStatus(storeKey.getPath());
+      log.trace("data version sync: stat returned: {} for {}", stat, storeKey);
+      if (stat == null || expectedVersion != stat.getVersion()) {
+        propStoreWatcher.signalZkChangeEvent(storeKey);
+        return false;
+      }
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException(ex);
+    } catch (KeeperException.NoNodeException ex) {
+      propStoreWatcher.signalZkChangeEvent(storeKey);
+      return false;
+    } catch (KeeperException ex) {
+      log.debug("exception occurred verifying data version for {}", storeKey);
+      return false;
+    }
+    return true;
+  }
+
 }

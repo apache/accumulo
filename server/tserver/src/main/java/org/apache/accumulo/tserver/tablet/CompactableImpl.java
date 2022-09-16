@@ -164,13 +164,13 @@ public class CompactableImpl implements Compactable {
    * This class tracks status of a tablets files for compactions for {@link CompactableImpl} owning
    * the following functionality.
    *
-   * <UL>
-   * <LI>Tracks which files are reserved for compactions
-   * <LI>Determines which files are available for compactions
-   * <LI>Tracks which files are chopped and which need to be chopped
-   * <LI>Tracks which files are selected for user and selector compactions
-   * <LI>Coordinates the file selection process
-   * </UL>
+   * <ul>
+   * <li>Tracks which files are reserved for compactions
+   * <li>Determines which files are available for compactions
+   * <li>Tracks which files are chopped and which need to be chopped
+   * <li>Tracks which files are selected for user and selector compactions
+   * <li>Coordinates the file selection process
+   * </ul>
    *
    * <p>
    * The class is structured in such a way that the above functionality can be unit tested.

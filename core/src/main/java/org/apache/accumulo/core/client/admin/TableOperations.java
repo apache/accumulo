@@ -434,16 +434,16 @@ public interface TableOperations {
    * <p>
    * The following optional settings can only be set by one compact call per table at the same time.
    *
-   * <UL>
-   * <LI>Execution hints : {@link CompactionConfig#setExecutionHints(Map)}</LI>
-   * <LI>Selector : {@link CompactionConfig#setSelector(PluginConfig)}</LI>
-   * <LI>Confgigurer : {@link CompactionConfig#setConfigurer(PluginConfig)}</LI>
-   * <LI>Iterators : {@link CompactionConfig#setIterators(List)}</LI>
-   * <LI>Compaction strategy :
-   * {@link CompactionConfig#setCompactionStrategy(CompactionStrategyConfig)}</LI>
-   * </UL>
+   * <ul>
+   * <li>Execution hints : {@link CompactionConfig#setExecutionHints(Map)}</li>
+   * <li>Selector : {@link CompactionConfig#setSelector(PluginConfig)}</li>
+   * <li>Configurer : {@link CompactionConfig#setConfigurer(PluginConfig)}</li>
+   * <li>Iterators : {@link CompactionConfig#setIterators(List)}</li>
+   * <li>Compaction strategy (deprecated) :
+   * {@code CompactionConfig.setCompactionStrategy(CompactionStrategyConfig)}</li>
+   * </ul>
    *
-   * <P>
+   * <p>
    * If two threads call this method concurrently for the same table and set one or more of the
    * above then one thread will fail.
    *

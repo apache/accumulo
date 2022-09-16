@@ -68,11 +68,10 @@ public class AESCryptoService implements CryptoService {
   private volatile boolean initialized = false;
 
   // properties required for using this service
-  private static final String CRYPTO_PREFIX = "instance.crypto.opts.";
-  private static final String KEY_URI = CRYPTO_PREFIX + "key.uri";
+  public static final String KEY_URI_PROPERTY = "general.custom.crypto.key.uri";
   // optional properties
   // defaults to true
-  private static final String ENCRYPT_ENABLED = CRYPTO_PREFIX + "enabled";
+  public static final String ENCRYPT_ENABLED_PROPERTY = "general.custom.crypto.enabled";
 
   // Hard coded NoCryptoService.VERSION - this permits the removal of NoCryptoService from the
   // core jar, allowing use of only one crypto service
@@ -119,9 +118,9 @@ public class AESCryptoService implements CryptoService {
   @Override
   public void init(Map<String,String> conf) throws CryptoException {
     ensureNotInit();
-    String keyLocation =
-        Objects.requireNonNull(conf.get(KEY_URI), "Config property " + KEY_URI + " is required.");
-    String enabledProp = conf.get(ENCRYPT_ENABLED);
+    String keyLocation = Objects.requireNonNull(conf.get(KEY_URI_PROPERTY),
+        "Config property " + KEY_URI_PROPERTY + " is required.");
+    String enabledProp = conf.get(ENCRYPT_ENABLED_PROPERTY);
     if (enabledProp != null)
       encryptEnabled = Boolean.parseBoolean(enabledProp);
 
@@ -155,7 +154,7 @@ public class AESCryptoService implements CryptoService {
         cm = new AESCBCCryptoModule(this.encryptingKek, this.keyLocation, this.keyManager);
         return cm.getEncrypter();
 
-      case RFILE:
+      case TABLE:
         cm = new AESGCMCryptoModule(this.encryptingKek, this.keyLocation, this.keyManager);
         return cm.getEncrypter();
 
@@ -168,11 +167,11 @@ public class AESCryptoService implements CryptoService {
   public FileDecrypter getFileDecrypter(CryptoEnvironment environment) {
     ensureInit();
     CryptoModule cm;
-    byte[] decryptionParams = environment.getDecryptionParams();
-    if (decryptionParams == null || checkNoCrypto(decryptionParams))
+    var decryptionParams = environment.getDecryptionParams();
+    if (decryptionParams.isEmpty() || checkNoCrypto(decryptionParams.get()))
       return new NoFileDecrypter();
 
-    ParsedCryptoParameters parsed = parseCryptoParameters(decryptionParams);
+    ParsedCryptoParameters parsed = parseCryptoParameters(decryptionParams.get());
     Key kek = loadDecryptionKek(parsed);
     Key fek = unwrapKey(parsed.getEncFek(), kek);
     switch (parsed.getCryptoServiceVersion()) {

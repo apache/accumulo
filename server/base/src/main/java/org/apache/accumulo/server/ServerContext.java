@@ -46,15 +46,14 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
+import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.singletons.SingletonReservation;
-import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.spi.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -102,9 +101,9 @@ public class ServerContext extends ClientContext {
   private final Supplier<ServerConfigurationFactory> serverConfFactory;
   private final Supplier<SystemConfiguration> systemConfig;
   private final Supplier<AuthenticationTokenSecretManager> secretManager;
-  private final Supplier<CryptoService> cryptoService;
   private final Supplier<ScheduledThreadPoolExecutor> sharedScheduledThreadPool;
   private final Supplier<AuditedSecurityOperation> securityOperation;
+  private final Supplier<CryptoServiceFactory> cryptoFactorySupplier;
 
   public ServerContext(SiteConfiguration siteConfig) {
     this(new ServerInfo(siteConfig));
@@ -125,8 +124,7 @@ public class ServerContext extends ClientContext {
         getSiteConfiguration()));
     secretManager = memoize(() -> new AuthenticationTokenSecretManager(getInstanceID(),
         getConfiguration().getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME)));
-    cryptoService = memoize(
-        () -> CryptoServiceFactory.newInstance(getConfiguration(), ClassloaderType.ACCUMULO));
+    cryptoFactorySupplier = memoize(() -> CryptoFactoryLoader.newInstance(getConfiguration()));
     sharedScheduledThreadPool = memoize(() -> ThreadPools.getServerThreadPools()
         .createGeneralScheduledExecutorService(getConfiguration()));
     securityOperation =
@@ -274,8 +272,8 @@ public class ServerContext extends ClientContext {
     return nameAllocator.get();
   }
 
-  public CryptoService getCryptoService() {
-    return cryptoService.get();
+  public CryptoServiceFactory getCryptoFactory() {
+    return cryptoFactorySupplier.get();
   }
 
   @Override

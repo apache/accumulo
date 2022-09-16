@@ -33,13 +33,14 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.PartialKey;
@@ -208,7 +209,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     }
   }
 
-  private void nextTablet() throws TableNotFoundException, AccumuloException, IOException {
+  private void nextTablet()
+      throws TableNotFoundException, AccumuloException, IOException, AccumuloSecurityException {
 
     Range nextRange;
 
@@ -273,12 +275,13 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
   private SortedKeyValueIterator<Key,Value> createIterator(KeyExtent extent,
       Collection<StoredTabletFile> absFiles)
-      throws TableNotFoundException, AccumuloException, IOException {
+      throws TableNotFoundException, AccumuloException, IOException, AccumuloSecurityException {
 
     // possible race condition here, if table is renamed
     String tableName = context.getTableName(tableId);
-    AccumuloConfiguration acuTableConf =
-        new ConfigurationCopy(context.tableOperations().getConfiguration(tableName));
+    var tableConf = context.tableOperations().getConfiguration(tableName);
+    AccumuloConfiguration tableCC = new ConfigurationCopy(tableConf);
+    var systemConf = context.instanceOperations().getSystemConfiguration();
 
     Configuration conf = context.getHadoopConf();
 
@@ -291,17 +294,16 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     SamplerConfiguration scannerSamplerConfig = options.getSamplerConfiguration();
     SamplerConfigurationImpl scannerSamplerConfigImpl =
         scannerSamplerConfig == null ? null : new SamplerConfigurationImpl(scannerSamplerConfig);
-    SamplerConfigurationImpl samplerConfImpl =
-        SamplerConfigurationImpl.newSamplerConfig(acuTableConf);
+    SamplerConfigurationImpl samplerConfImpl = SamplerConfigurationImpl.newSamplerConfig(tableCC);
 
     if (scannerSamplerConfigImpl != null && !scannerSamplerConfigImpl.equals(samplerConfImpl)) {
       throw new SampleNotPresentException();
     }
     for (TabletFile file : absFiles) {
+      var cs = CryptoFactoryLoader.getServiceForClientWithTable(systemConf, tableConf, tableId);
       FileSystem fs = VolumeConfiguration.fileSystemForPath(file.getPathStr(), conf);
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-          .forFile(file.getPathStr(), fs, conf, CryptoServiceFactory.newDefaultInstance())
-          .withTableConfiguration(acuTableConf).build();
+          .forFile(file.getPathStr(), fs, conf, cs).withTableConfiguration(tableCC).build();
       if (scannerSamplerConfigImpl != null) {
         reader = reader.getSample(scannerSamplerConfigImpl);
         if (reader == null)
@@ -312,21 +314,19 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
     MultiIterator multiIter = new MultiIterator(readers, extent);
 
-    OfflineIteratorEnvironment iterEnv =
-        new OfflineIteratorEnvironment(authorizations, acuTableConf, false,
-            samplerConfImpl == null ? null : samplerConfImpl.toSamplerConfiguration());
+    OfflineIteratorEnvironment iterEnv = new OfflineIteratorEnvironment(authorizations, tableCC,
+        false, samplerConfImpl == null ? null : samplerConfImpl.toSamplerConfiguration());
 
     byte[] defaultSecurityLabel;
     ColumnVisibility cv =
-        new ColumnVisibility(acuTableConf.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY));
+        new ColumnVisibility(tableCC.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY));
     defaultSecurityLabel = cv.getExpression();
 
-    SortedKeyValueIterator<Key,
-        Value> visFilter = SystemIteratorUtil.setupSystemScanIterators(multiIter,
-            new HashSet<>(options.fetchedColumns), authorizations, defaultSecurityLabel,
-            acuTableConf);
+    SortedKeyValueIterator<Key,Value> visFilter =
+        SystemIteratorUtil.setupSystemScanIterators(multiIter,
+            new HashSet<>(options.fetchedColumns), authorizations, defaultSecurityLabel, tableCC);
     var iteratorBuilderEnv = IteratorConfigUtil.loadIterConf(IteratorScope.scan,
-        options.serverSideIteratorList, options.serverSideIteratorOptions, acuTableConf);
+        options.serverSideIteratorList, options.serverSideIteratorOptions, tableCC);
     var iteratorBuilder = iteratorBuilderEnv.env(iterEnv).build();
     return iterEnv
         .getTopLevelIterator(IteratorConfigUtil.loadIterators(visFilter, iteratorBuilder));

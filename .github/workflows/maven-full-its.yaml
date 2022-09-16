@@ -37,6 +37,9 @@ on:
         required: true
         default: 15
 
+permissions:
+  contents: read
+
 jobs:
   # fast build to populate the local maven repository cache
   fastbuild:

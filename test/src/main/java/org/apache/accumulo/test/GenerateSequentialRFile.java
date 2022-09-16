@@ -20,11 +20,11 @@ package org.apache.accumulo.test;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
+import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -61,7 +61,7 @@ public class GenerateSequentialRFile implements Runnable {
       Path p = new Path(opts.filePath);
       final FileSystem fs = p.getFileSystem(conf);
       FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
-          .forFile(opts.filePath, fs, conf, CryptoServiceFactory.newDefaultInstance())
+          .forFile(opts.filePath, fs, conf, NoCryptoServiceFactory.NONE)
           .withTableConfiguration(DefaultConfiguration.getInstance()).build();
 
       writer.startDefaultLocalityGroup();
