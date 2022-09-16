@@ -119,7 +119,6 @@ public class VolumeIT extends ConfigurableMacBase {
   }
 
   @Test
-  @SuppressWarnings("deprecation")
   public void test() throws Exception {
     // create a table
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {

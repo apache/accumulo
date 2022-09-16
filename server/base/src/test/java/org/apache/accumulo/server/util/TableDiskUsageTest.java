@@ -16,18 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.util.tables;
+package org.apache.accumulo.server.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.admin.TableDiskUsageResult;
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
@@ -38,13 +42,14 @@ import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class MetadataTableDiskUsageTest {
+public class TableDiskUsageTest {
 
   private static final String volume1 = "hdfs://nn1/acc";
   private static final String volume2 = "hdfs://nn2/acc";
@@ -70,7 +75,7 @@ public class MetadataTableDiskUsageTest {
 
   @Test
   public void testSingleTableMultipleTablets() throws Exception {
-    final ClientContext client = EasyMock.createMock(ClientContext.class);
+    final ServerContext client = EasyMock.createMock(ServerContext.class);
     final Scanner scanner = EasyMock.createMock(Scanner.class);
     mockScan(client, scanner, 1);
 
@@ -78,25 +83,25 @@ public class MetadataTableDiskUsageTest {
     appendFileMetadata(tableEntries, getTabletFile(tableId1, tabletName1, "C0001.rf"), 1024);
     appendFileMetadata(tableEntries, getTabletFile(tableId1, tabletName1, "C0002.rf"), 1024);
     appendFileMetadata(tableEntries, getTabletFile(tableId1, tabletName2, "C0003.rf"), 2048);
-    mockTableScan(client, scanner, tableEntries, tableId1);
+    mockTableScan(scanner, tableEntries, tableId1);
 
     EasyMock.replay(client, scanner);
 
-    TableDiskUsageResult result = MetadataTableDiskUsage
-        .getDiskUsage(Set.of(getTableName(tableId1)), client, Authorizations.EMPTY);
+    Map<SortedSet<String>,Long> result = TableDiskUsage.getDiskUsage(tableSet(tableId1), client);
 
-    assertEquals(4096, result.getTableUsages().get(tableId1).get());
-    assertEquals(1, result.getSharedDiskUsages().size());
-    assertEquals(4096, result.getSharedDiskUsages().get(0).getUsage());
-    assertEquals(4096, result.getVolumeUsages().get(tableId1).get(volume1).get());
-    assertEquals(0, result.getSharedTables().size());
+    assertEquals(4096, getTotalUsage(result, tableId1));
+    assertEquals(1, result.size());
+    Map.Entry<SortedSet<String>,Long> firstResult = result.entrySet().stream().findFirst().get();
+    assertEquals(1, firstResult.getKey().size());
+    assertTrue(firstResult.getKey().contains(getTableName(tableId1)));
+    assertEquals(4096, firstResult.getValue());
 
     EasyMock.verify(client, scanner);
   }
 
   @Test
   public void testMultipleVolumes() throws Exception {
-    final ClientContext client = EasyMock.createMock(ClientContext.class);
+    final ServerContext client = EasyMock.createMock(ServerContext.class);
     final Scanner scanner = EasyMock.createMock(Scanner.class);
     mockScan(client, scanner, 1);
 
@@ -107,26 +112,24 @@ public class MetadataTableDiskUsageTest {
         2048);
     appendFileMetadata(tableEntries, getTabletFile(volume2, tableId1, tabletName2, "C0004.rf"),
         10000);
-    mockTableScan(client, scanner, tableEntries, tableId1);
+    mockTableScan(scanner, tableEntries, tableId1);
 
     EasyMock.replay(client, scanner);
 
-    TableDiskUsageResult result = MetadataTableDiskUsage
-        .getDiskUsage(Set.of(getTableName(tableId1)), client, Authorizations.EMPTY);
+    Map<SortedSet<String>,Long> result = TableDiskUsage.getDiskUsage(tableSet(tableId1), client);
 
-    assertEquals(14096, result.getTableUsages().get(tableId1).get());
-    assertEquals(1, result.getSharedDiskUsages().size());
-    assertEquals(14096, result.getSharedDiskUsages().get(0).getUsage());
-    assertEquals(2048, result.getVolumeUsages().get(tableId1).get(volume1).get());
-    assertEquals(12048, result.getVolumeUsages().get(tableId1).get(volume2).get());
-    assertEquals(0, result.getSharedTables().size());
+    assertEquals(14096, getTotalUsage(result, tableId1));
+    assertEquals(1, result.size());
+    Map.Entry<SortedSet<String>,Long> firstResult = result.entrySet().stream().findFirst().get();
+    assertEquals(1, firstResult.getKey().size());
+    assertEquals(14096, firstResult.getValue());
 
     EasyMock.verify(client, scanner);
   }
 
   @Test
   public void testMetadataTable() throws Exception {
-    final ClientContext client = EasyMock.createMock(ClientContext.class);
+    final ServerContext client = EasyMock.createMock(ServerContext.class);
     final Scanner scanner = EasyMock.createMock(Scanner.class);
 
     // Expect root table instead to be scanned
@@ -136,85 +139,83 @@ public class MetadataTableDiskUsageTest {
     Map<Key,Value> tableEntries = new HashMap<>();
     appendFileMetadata(tableEntries,
         getTabletFile(MetadataTable.ID, MetadataTable.NAME, "C0001.rf"), 1024);
-    mockTableScan(client, scanner, tableEntries, MetadataTable.ID);
+    mockTableScan(scanner, tableEntries, MetadataTable.ID);
 
     EasyMock.replay(client, scanner);
 
-    TableDiskUsageResult result = MetadataTableDiskUsage
-        .getDiskUsage(Set.of(getTableName(MetadataTable.ID)), client, Authorizations.EMPTY);
+    Map<SortedSet<String>,Long> result =
+        TableDiskUsage.getDiskUsage(tableSet(MetadataTable.ID), client);
 
-    assertEquals(1024, result.getTableUsages().get(MetadataTable.ID).get());
-    assertEquals(1, result.getSharedDiskUsages().size());
-    assertEquals(1024, result.getSharedDiskUsages().get(0).getUsage());
-    assertEquals(1024, result.getVolumeUsages().get(MetadataTable.ID).get(volume1).get());
-    assertEquals(0, result.getSharedTables().size());
+    assertEquals(1024, getTotalUsage(result, MetadataTable.ID));
+    assertEquals(1, result.size());
+    Map.Entry<SortedSet<String>,Long> firstResult = result.entrySet().stream().findFirst().get();
+    assertEquals(1024, firstResult.getValue());
 
     EasyMock.verify(client, scanner);
   }
 
   @Test
   public void testDuplicateFile() throws Exception {
-    final ClientContext client = EasyMock.createMock(ClientContext.class);
+    final ServerContext client = EasyMock.createMock(ServerContext.class);
     final Scanner scanner = EasyMock.createMock(Scanner.class);
     mockScan(client, scanner, 1);
 
     Map<Key,Value> tableEntries = new HashMap<>();
     appendFileMetadata(tableEntries, getTabletFile(tableId1, tabletName1, "C0001.rf"), 1024);
     appendFileMetadata(tableEntries, getTabletFile(tableId1, tabletName1, "C0001.rf"), 1024);
-    mockTableScan(client, scanner, tableEntries, tableId1);
+    mockTableScan(scanner, tableEntries, tableId1);
 
     EasyMock.replay(client, scanner);
 
-    TableDiskUsageResult result = MetadataTableDiskUsage
-        .getDiskUsage(Set.of(getTableName(tableId1)), client, Authorizations.EMPTY);
+    Map<SortedSet<String>,Long> result = TableDiskUsage.getDiskUsage(tableSet(tableId1), client);
 
-    assertEquals(1024, result.getTableUsages().get(tableId1).get());
-    assertEquals(1, result.getSharedDiskUsages().size());
-    assertEquals(1024, result.getSharedDiskUsages().get(0).getUsage());
-    assertEquals(1024, result.getVolumeUsages().get(tableId1).get(volume1).get());
-    assertEquals(0, result.getSharedTables().size());
+    assertEquals(1024, getTotalUsage(result, tableId1));
+    assertEquals(1, result.size());
+    Map.Entry<SortedSet<String>,Long> firstResult = result.entrySet().stream().findFirst().get();
+    assertEquals(1, firstResult.getKey().size());
+    assertTrue(firstResult.getKey().contains(getTableName(tableId1)));
+    assertEquals(1024, firstResult.getValue());
 
     EasyMock.verify(client, scanner);
   }
 
   @Test
   public void testEmptyTable() throws Exception {
-    final ClientContext client = EasyMock.createMock(ClientContext.class);
+    final ServerContext client = EasyMock.createMock(ServerContext.class);
     final Scanner scanner = EasyMock.createMock(Scanner.class);
     mockScan(client, scanner, 1);
 
     Map<Key,Value> tableEntries = new HashMap<>();
-    mockTableScan(client, scanner, tableEntries, tableId1);
+    mockTableScan(scanner, tableEntries, tableId1);
 
     EasyMock.replay(client, scanner);
 
-    TableDiskUsageResult result = MetadataTableDiskUsage
-        .getDiskUsage(Set.of(getTableName(tableId1)), client, Authorizations.EMPTY);
+    Map<SortedSet<String>,Long> result = TableDiskUsage.getDiskUsage(tableSet(tableId1), client);
 
-    assertEquals(0, result.getTableUsages().get(tableId1).get());
-    assertEquals(1, result.getSharedDiskUsages().size());
-    assertEquals(0, result.getSharedDiskUsages().get(0).getUsage());
-    assertEquals(0, result.getVolumeUsages().size());
-    assertEquals(0, result.getSharedTables().size());
+    assertEquals(0, getTotalUsage(result, tableId1));
+    assertEquals(1, result.size());
+    Map.Entry<SortedSet<String>,Long> firstResult = result.entrySet().stream().findFirst().get();
+    assertEquals(1, firstResult.getKey().size());
+    assertEquals(0, firstResult.getValue());
 
     EasyMock.verify(client, scanner);
   }
 
   @Test
   public void testMultipleTables() throws Exception {
-    final ClientContext client = EasyMock.createMock(ClientContext.class);
+    final ServerContext client = EasyMock.createMock(ServerContext.class);
     final Scanner scanner = EasyMock.createMock(Scanner.class);
     mockScan(client, scanner, 3);
 
     Map<Key,Value> tableEntries1 = new HashMap<>();
     appendFileMetadata(tableEntries1, getTabletFile(tableId1, tabletName1, "C0001.rf"), 1024);
     appendFileMetadata(tableEntries1, getTabletFile(tableId1, tabletName1, "C0002.rf"), 4096);
-    mockTableScan(client, scanner, tableEntries1, tableId1);
+    mockTableScan(scanner, tableEntries1, tableId1);
 
     Map<Key,Value> tableEntries2 = new HashMap<>();
     appendFileMetadata(tableEntries2, getTabletFile(tableId2, tabletName2, "C0003.rf"), 2048);
     appendFileMetadata(tableEntries2, getTabletFile(tableId2, tabletName2, "C0004.rf"), 3000);
-    mockTableScan(client, scanner, tableEntries2, tableId2);
+    mockTableScan(scanner, tableEntries2, tableId2);
 
     Map<Key,Value> tableEntries3 = new HashMap<>();
     // shared file
@@ -222,88 +223,48 @@ public class MetadataTableDiskUsageTest {
     appendFileMetadata(tableEntries3, getTabletFile(tableId3, tabletName3, "C0005.rf"), 84520);
     appendFileMetadata(tableEntries3, getTabletFile(tableId3, tabletName3, "C0006.rf"), 3000);
     appendFileMetadata(tableEntries3, getTabletFile(tableId3, tabletName4, "C0007.rf"), 98456);
-    mockTableScan(client, scanner, tableEntries3, tableId3);
+    mockTableScan(scanner, tableEntries3, tableId3);
 
     EasyMock.replay(client, scanner);
 
-    TableDiskUsageResult result = MetadataTableDiskUsage.getDiskUsage(
-        Set.of(getTableName(tableId1), getTableName(tableId2), getTableName(tableId3)), client,
-        Authorizations.EMPTY);
+    Map<SortedSet<String>,Long> result =
+        TableDiskUsage.getDiskUsage(tableSet(tableId1, tableId2, tableId3), client);
 
-    assertEquals(5120, result.getTableUsages().get(tableId1).get());
-    assertEquals(5048, result.getTableUsages().get(tableId2).get());
-    assertEquals(188024, result.getTableUsages().get(tableId3).get());
+    assertEquals(5120, getTotalUsage(result, tableId1));
+    assertEquals(5048, getTotalUsage(result, tableId2));
+    assertEquals(188024, getTotalUsage(result, tableId3));
 
-    assertEquals(4, result.getSharedDiskUsages().size());
-    assertEquals(Set.of(getTableName(tableId1)), result.getSharedDiskUsages().get(0).getTables());
-    assertEquals(Set.of(getTableName(tableId2)), result.getSharedDiskUsages().get(1).getTables());
-    assertEquals(Set.of(getTableName(tableId2), getTableName(tableId3)),
-        result.getSharedDiskUsages().get(2).getTables());
-    assertEquals(Set.of(getTableName(tableId3)), result.getSharedDiskUsages().get(3).getTables());
+    // Make sure all shared tables exist in map
+    assertEquals(4, result.size());
+    assertTrue(result.containsKey(tableNameSet(tableId1)));
+    assertTrue(result.containsKey(tableNameSet(tableId2)));
+    assertTrue(result.containsKey(tableNameSet(tableId2, tableId3)));
+    assertTrue(result.containsKey(tableNameSet(tableId3)));
 
     // Make sure all the shared disk usage computations are correct
-    assertEquals(5120, result.getSharedDiskUsages().get(0).getUsage());
-    assertEquals(3000, result.getSharedDiskUsages().get(1).getUsage());
-    assertEquals(2048, result.getSharedDiskUsages().get(2).getUsage());
-    assertEquals(185976, result.getSharedDiskUsages().get(3).getUsage());
-
-    // check volume usage
-    assertEquals(5120, result.getVolumeUsages().get(tableId1).get(volume1).get());
-    assertEquals(5048, result.getVolumeUsages().get(tableId2).get(volume1).get());
-    assertEquals(188024, result.getVolumeUsages().get(tableId3).get(volume1).get());
-
-    assertEquals(1, result.getSharedTables().size());
-    assertEquals(Set.of(tableId2), result.getSharedTables().get(tableId3));
+    assertEquals(5120, result.get(tableNameSet(tableId1)));
+    assertEquals(3000, result.get(tableNameSet(tableId2)));
+    assertEquals(2048, result.get(tableNameSet(tableId2, tableId3)));
+    assertEquals(185976, result.get(tableNameSet(tableId3)));
 
     EasyMock.verify(client, scanner);
   }
 
-  @Test
-  public void testSharedFileComputeSharedFalse() throws Exception {
-    testSharedFile(false);
+  private static TreeSet<String> tableNameSet(TableId... tableIds) {
+    return Set.of(tableIds).stream().map(tableId -> getTableName(tableId))
+        .collect(Collectors.toCollection(TreeSet::new));
   }
 
-  @Test
-  public void testSharedFile() throws Exception {
-    testSharedFile(true);
+  // Need to use a LinkedHashSet for predictable order due to the fact that
+  // we are using mock scanners that always return results in the same order
+  private static Set<TableId> tableSet(TableId... tableIds) {
+    return new LinkedHashSet<>(List.of(tableIds));
   }
 
-  private void testSharedFile(boolean computeShared) throws Exception {
-    final ClientContext client = EasyMock.createMock(ClientContext.class);
-    final Scanner scanner = EasyMock.createMock(Scanner.class);
-    mockScan(client, scanner, 1);
-
-    Map<Key,Value> tableEntries1 = new HashMap<>();
-    appendFileMetadata(tableEntries1, getTabletFile(tableId1, tabletName1, "C0002.rf"), 1024);
-    appendFileMetadata(tableEntries1, getTabletFile(tableId2, tabletName2, "C0003.rf"), 2048);
-    appendFileMetadata(tableEntries1, getTabletFile(tableId2, tabletName2, "C0004.rf"), 3000);
-    mockTableScan(client, scanner, tableEntries1, tableId2);
-
-    EasyMock.replay(client, scanner);
-
-    TableDiskUsageResult result = MetadataTableDiskUsage
-        .getDiskUsage(Set.of(getTableName(tableId2)), computeShared, client, Authorizations.EMPTY);
-
-    assertEquals(1, result.getTableUsages().size());
-    assertEquals(6072, result.getTableUsages().get(tableId2).get());
-    assertEquals(6072, result.getVolumeUsages().get(tableId2).get(volume1).get());
-
-    // If compute shared is true then make sure metrics have been calculated across files
-    if (computeShared) {
-      assertEquals(2, result.getSharedDiskUsages().size());
-      assertEquals(Set.of(getTableName(tableId1), getTableName(tableId2)),
-          result.getSharedDiskUsages().get(0).getTables());
-      assertEquals(Set.of(getTableName(tableId2)), result.getSharedDiskUsages().get(1).getTables());
-      assertEquals(1024, result.getSharedDiskUsages().get(0).getUsage());
-      assertEquals(5048, result.getSharedDiskUsages().get(1).getUsage());
-    } else {
-      assertEquals(0, result.getSharedDiskUsages().size());
-    }
-
-    assertEquals(1, result.getSharedTables().size());
-    assertEquals(Set.of(tableId1), result.getSharedTables().get(tableId2));
-
-    EasyMock.verify(client, scanner);
+  private static Long getTotalUsage(Map<SortedSet<String>,Long> result, TableId tableId) {
+    return result.entrySet().stream()
+        .filter(entry -> entry.getKey().contains(getTableName(tableId)))
+        .mapToLong(entry -> entry.getValue()).sum();
   }
 
   private static String getTableName(TableId tableId) {
@@ -327,15 +288,13 @@ public class MetadataTableDiskUsageTest {
     return getTabletFile(volume1, tableId, tablet, fileName);
   }
 
-  private void mockScan(ClientContext client, Scanner scanner, int times) throws Exception {
+  private void mockScan(ServerContext client, Scanner scanner, int times) throws Exception {
     EasyMock.expect(client.createScanner(MetadataTable.NAME, Authorizations.EMPTY))
         .andReturn(scanner).times(times);
     EasyMock.expect(client.getTableIdToNameMap()).andReturn(tableIdToNameMap);
   }
 
-  private void mockTableScan(ClientContext client, Scanner scanner, Map<Key,Value> tableEntries,
-      TableId tableId) throws Exception {
-    EasyMock.expect(client.getTableId(getTableName(tableId))).andReturn(tableId);
+  private void mockTableScan(Scanner scanner, Map<Key,Value> tableEntries, TableId tableId) {
     scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
     EasyMock.expectLastCall().once();
     scanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());

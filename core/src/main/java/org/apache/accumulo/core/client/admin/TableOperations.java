@@ -1076,24 +1076,8 @@ public interface TableOperations {
       throws AccumuloException, TableNotFoundException;
 
   /**
-   * Gets the number of bytes being used in the files for a set of tables
-   *
-   * @param tables
-   *          a set of tables
-   * @return a list of disk usage objects containing linked table names and sizes
-   * @since 1.6.0
-   *
-   * @deprecated since 2.1.0 use {@link #getEstimatedDiskUsage(Set, boolean, Authorizations)}
-   *             instead.
-   */
-  @Deprecated(since = "2.1.0")
-  List<DiskUsage> getDiskUsage(Set<String> tables)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
-
-  /**
-   * Gets the number of bytes being used in by the files for a set of tables. This operation will
-   * use the client to scan the metadata table to compute the size metrics for the tables.
-   * Optionally shared usage information can be computed across tables.
+   * Gets the number of bytes being used by the files for a set of tables. This operation will use
+   * scan the metadata table for file size information to compute the size metrics for the tables.
    *
    * Because the metadata table is used for computing usage and not the actual files in HDFS the
    * results will be an estimate. Older entries may exist with no file metadata (resulting in size
@@ -1104,17 +1088,13 @@ public interface TableOperations {
    * computed.
    *
    * @param tables
-   *          set of tables to compute usage across
-   * @param computeShared
-   *          whether to compute size metrics across shared files
-   * @param auths
-   *          authorizations to scan the metadata table
-   * @return The disk usage result
-   *
-   * @since 2.1.0
+   *          a set of tables
+   * @return a list of disk usage objects containing linked table names and sizes set of tables to
+   *         compute usage across
+   * @since 1.6.0
    */
-  TableDiskUsageResult getEstimatedDiskUsage(Set<String> tables, boolean computeShared,
-      Authorizations auths) throws TableNotFoundException;
+  List<DiskUsage> getDiskUsage(Set<String> tables)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
    * Test to see if the instance can load the given class as the given type. This check uses the

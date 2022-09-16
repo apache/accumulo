@@ -81,7 +81,6 @@ import org.apache.accumulo.core.client.admin.ImportConfiguration;
 import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.SummaryRetriever;
-import org.apache.accumulo.core.client.admin.TableDiskUsageResult;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
@@ -138,7 +137,6 @@ import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.core.util.tables.MetadataTableDiskUsage;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.hadoop.fs.FileStatus;
@@ -1445,7 +1443,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  @Deprecated(since = "2.1.0")
   public List<DiskUsage> getDiskUsage(Set<String> tableNames)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
@@ -1493,12 +1490,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
 
     return finalUsages;
-  }
-
-  @Override
-  public TableDiskUsageResult getEstimatedDiskUsage(Set<String> tableNames, boolean computeShared,
-      Authorizations auths) throws TableNotFoundException {
-    return MetadataTableDiskUsage.getDiskUsage(tableNames, context, auths);
   }
 
   /**

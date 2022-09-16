@@ -277,12 +277,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("createtable " + table);
     make10();
     ts.exec("flush -t " + table + " -w");
-    ts.exec("du " + table + " -v", true, " [" + table + "]", true);
+    ts.exec("du " + table, true, " [" + table + "]", true);
     ts.output.clear();
-    ts.shell.execCommand("du -h -v", false, false);
+    ts.shell.execCommand("du -h", false, false);
     String o = ts.output.get();
     // for some reason, there's a bit of fluctuation
-    assertMatches(o, ".*[1-9][0-9][0-9]\\s\\[" + table + "].*", Pattern.DOTALL);
+    assertMatches(o, ".*[1-9][0-9][0-9]\\s\\[" + table + "]\\n");
     ts.exec("deletetable -f " + table);
   }
 
@@ -1953,11 +1953,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   private static void assertMatches(String output, String pattern) {
-    assertMatches(output, pattern, 0);
-  }
-
-  private static void assertMatches(String output, String pattern, int flags) {
-    var p = Pattern.compile(pattern, flags).asMatchPredicate();
+    var p = Pattern.compile(pattern).asMatchPredicate();
     assertTrue(p.test(output), "Pattern " + pattern + " did not match output : " + output);
   }
 

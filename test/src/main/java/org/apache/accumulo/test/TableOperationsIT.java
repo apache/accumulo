@@ -94,7 +94,6 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   }
 
   @Test
-  @SuppressWarnings("deprecation")
   public void getDiskUsageErrors() throws TableExistsException, AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
     String tableName = getUniqueNames(1)[0];
@@ -102,7 +101,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     List<DiskUsage> diskUsage =
         accumuloClient.tableOperations().getDiskUsage(Collections.singleton(tableName));
     assertEquals(1, diskUsage.size());
-    assertEquals(0, (long) diskUsage.get(0).getUsage());
+    assertEquals(0, diskUsage.get(0).getUsage());
     assertEquals(tableName, diskUsage.get(0).getTables().iterator().next());
 
     accumuloClient.securityOperations().revokeTablePermission(getAdminPrincipal(), tableName,
@@ -115,30 +114,16 @@ public class TableOperationsIT extends AccumuloClusterHarness {
         () -> accumuloClient.tableOperations().getDiskUsage(Collections.singleton(tableName)));
   }
 
-  // Test disk usage is the same using both the new metadata scan and also legacy version
-  // that scans files using the HDFS iterator
   @Test
-  public void getEstimatedDiskUsage() throws TableExistsException, AccumuloException,
-      AccumuloSecurityException, TableNotFoundException {
-    getDiskUsage(tables -> accumuloClient.tableOperations()
-        .getEstimatedDiskUsage(tables, true, Authorizations.EMPTY).getSharedDiskUsages());
-  }
-
-  @Test
-  @SuppressWarnings("deprecation")
   public void getDiskUsage() throws TableExistsException, AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
-    getDiskUsage(tables -> accumuloClient.tableOperations().getDiskUsage(tables));
-  }
-
-  private void getDiskUsage(DiskUsageCalculator diskUsageCalculator) throws TableExistsException,
-      AccumuloException, AccumuloSecurityException, TableNotFoundException {
     final String[] names = getUniqueNames(2);
     String tableName = names[0];
     accumuloClient.tableOperations().create(tableName);
 
     // verify 0 disk usage
-    List<DiskUsage> diskUsages = diskUsageCalculator.calculate(Collections.singleton(tableName));
+    List<DiskUsage> diskUsages =
+        accumuloClient.tableOperations().getDiskUsage(Collections.singleton(tableName));
     assertEquals(1, diskUsages.size());
     assertEquals(1, diskUsages.get(0).getTables().size());
     assertEquals(Long.valueOf(0), diskUsages.get(0).getUsage());
@@ -155,7 +140,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     accumuloClient.tableOperations().compact(tableName, new Text("A"), new Text("z"), true, true);
 
     // verify we have usage
-    diskUsages = diskUsageCalculator.calculate(Collections.singleton(tableName));
+    diskUsages = accumuloClient.tableOperations().getDiskUsage(Collections.singleton(tableName));
     assertEquals(1, diskUsages.size());
     assertEquals(1, diskUsages.get(0).getTables().size());
     assertTrue(diskUsages.get(0).getUsage() > 0);
@@ -170,7 +155,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     Set<String> tables = new HashSet<>();
     tables.add(tableName);
     tables.add(newTable);
-    diskUsages = diskUsageCalculator.calculate(tables);
+    diskUsages = accumuloClient.tableOperations().getDiskUsage(tables);
     assertEquals(1, diskUsages.size());
     assertEquals(2, diskUsages.get(0).getTables().size());
     assertTrue(diskUsages.get(0).getUsage() > 0);
@@ -179,7 +164,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     accumuloClient.tableOperations().compact(newTable, new Text("A"), new Text("z"), true, true);
 
     // verify tables have differences
-    diskUsages = diskUsageCalculator.calculate(tables);
+    diskUsages = accumuloClient.tableOperations().getDiskUsage(tables);
     assertEquals(2, diskUsages.size());
     assertEquals(1, diskUsages.get(0).getTables().size());
     assertEquals(1, diskUsages.get(1).getTables().size());
@@ -187,11 +172,6 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     assertTrue(diskUsages.get(1).getUsage() > 0);
 
     accumuloClient.tableOperations().delete(tableName);
-  }
-
-  private interface DiskUsageCalculator {
-    List<DiskUsage> calculate(Set<String> tables) throws TableExistsException, AccumuloException,
-        AccumuloSecurityException, TableNotFoundException;
   }
 
   @Test

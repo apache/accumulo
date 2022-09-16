@@ -64,8 +64,8 @@ import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.security.SecurityOperation;
-import org.apache.accumulo.server.util.HdfsTableDiskUsage;
 import org.apache.accumulo.server.util.ServerBulkImportStatus;
+import org.apache.accumulo.server.util.TableDiskUsage;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -423,9 +423,8 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  @SuppressWarnings("deprecation")
   public List<TDiskUsage> getDiskUsage(Set<String> tables, TCredentials credentials)
-      throws TException {
+      throws ThriftTableOperationException, ThriftSecurityException, TException {
     try {
       HashSet<TableId> tableIds = new HashSet<>();
 
@@ -440,15 +439,14 @@ public class ClientServiceHandler implements ClientService.Iface {
       }
 
       // use the same set of tableIds that were validated above to avoid race conditions
-      Map<SortedSet<String>,Long> diskUsage =
-          HdfsTableDiskUsage.getDiskUsage(tableIds, context.getVolumeManager(), context);
+      Map<SortedSet<String>,Long> diskUsage = TableDiskUsage.getDiskUsage(tableIds, context);
       List<TDiskUsage> retUsages = new ArrayList<>();
       for (Map.Entry<SortedSet<String>,Long> usageItem : diskUsage.entrySet()) {
         retUsages.add(new TDiskUsage(new ArrayList<>(usageItem.getKey()), usageItem.getValue()));
       }
       return retUsages;
 
-    } catch (TableNotFoundException | IOException e) {
+    } catch (TableNotFoundException e) {
       throw new TException(e);
     }
   }

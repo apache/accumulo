@@ -21,15 +21,12 @@ package org.apache.accumulo.core.client.admin;
 import java.util.Objects;
 import java.util.SortedSet;
 
-/**
- * This class is used to track the shared disk usage between multiple tables.
- */
 public class DiskUsage {
 
-  private final SortedSet<String> tables;
-  private final Long usage;
+  protected final SortedSet<String> tables;
+  protected long usage;
 
-  public DiskUsage(SortedSet<String> tables, Long usage) {
+  public DiskUsage(SortedSet<String> tables, long usage) {
     this.tables = tables;
     this.usage = usage;
   }
@@ -38,7 +35,7 @@ public class DiskUsage {
     return tables;
   }
 
-  public Long getUsage() {
+  public long getUsage() {
     return usage;
   }
 
