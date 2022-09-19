@@ -62,10 +62,8 @@ import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
-import org.apache.accumulo.server.conf.SystemConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.conf.store.PropStore;
-import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.metadata.ServerAmpleImpl;
@@ -99,7 +97,6 @@ public class ServerContext extends ClientContext {
   private final Supplier<TableManager> tableManager;
   private final Supplier<UniqueNameAllocator> nameAllocator;
   private final Supplier<ServerConfigurationFactory> serverConfFactory;
-  private final Supplier<SystemConfiguration> systemConfig;
   private final Supplier<AuthenticationTokenSecretManager> secretManager;
   private final Supplier<ScheduledThreadPoolExecutor> sharedScheduledThreadPool;
   private final Supplier<AuditedSecurityOperation> securityOperation;
@@ -120,8 +117,6 @@ public class ServerContext extends ClientContext {
     tableManager = memoize(() -> new TableManager(this));
     nameAllocator = memoize(() -> new UniqueNameAllocator(this));
     serverConfFactory = memoize(() -> new ServerConfigurationFactory(this, getSiteConfiguration()));
-    systemConfig = memoize(() -> new SystemConfiguration(this, SystemPropKey.of(getInstanceID()),
-        getSiteConfiguration()));
     secretManager = memoize(() -> new AuthenticationTokenSecretManager(getInstanceID(),
         getConfiguration().getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME)));
     cryptoFactorySupplier = memoize(() -> CryptoFactoryLoader.newInstance(getConfiguration()));
@@ -160,7 +155,7 @@ public class ServerContext extends ClientContext {
 
   @Override
   public AccumuloConfiguration getConfiguration() {
-    return systemConfig.get();
+    return serverConfFactory.get().getSystemConfiguration();
   }
 
   public TableConfiguration getTableConfiguration(TableId id) {
