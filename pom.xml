@@ -148,7 +148,7 @@
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
     <project.build.outputTimestamp>2022-02-08T14:59:16Z</project.build.outputTimestamp>
     <rat.consoleOutput>true</rat.consoleOutput>
-    <slf4j.version>1.7.36</slf4j.version>
+    <slf4j.version>2.0.1</slf4j.version>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <surefire.excludedGroups />
     <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
@@ -1016,7 +1016,7 @@
                 <unused>org.apache.accumulo:accumulo-native:tar.gz:*</unused>
                 <!-- ignore runtime log4j dependencies at test scope -->
                 <unused>org.apache.logging.log4j:log4j-1.2-api:jar:*</unused>
-                <unused>org.apache.logging.log4j:log4j-slf4j-impl:jar:*</unused>
+                <unused>org.apache.logging.log4j:log4j-slf4j2-impl:jar:*</unused>
                 <unused>org.apache.logging.log4j:log4j-web:jar:*</unused>
                 <!-- This should be removed upon completion of migrating junit 4 to 5 -->
                 <unused>org.junit.vintage:junit-vintage-engine:jar:*</unused>
@@ -1066,6 +1066,8 @@
                     <exclude>ch.qos.logback:*</exclude>
                     <exclude>ch.qos.reload4j:*</exclude>
                     <exclude>log4j:*</exclude>
+                    <!-- exclude log4j-slf4j-impl to prefer log4j-slf4j2-impl -->
+                    <exclude>org.apache.logging.log4j:log4j-slf4j-impl</exclude>
                     <exclude>org.apache.logging.log4j:log4j-to-slf4j</exclude>
                     <exclude>org.slf4j:*</exclude>
                   </excludes>
