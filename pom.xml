@@ -120,7 +120,7 @@
     <!-- bouncycastle version for test dependencies -->
     <bouncycastle.version>1.70</bouncycastle.version>
     <!-- Curator version -->
-    <curator.version>5.2.1</curator.version>
+    <curator.version>5.3.0</curator.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
     <eclipseFormatterStyle>${project.parent.basedir}/contrib/Eclipse-Accumulo-Codestyle.xml</eclipseFormatterStyle>
     <errorprone.version>2.15.0</errorprone.version>
@@ -202,7 +202,7 @@
       <dependency>
         <groupId>org.apache.logging.log4j</groupId>
         <artifactId>log4j-bom</artifactId>
-        <version>2.18.0</version>
+        <version>2.19.0</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -231,7 +231,7 @@
         <groupId>org.glassfish.jersey</groupId>
         <artifactId>jersey-bom</artifactId>
         <!-- 3.1.0 would require jakarta.ws.rs-api 3.1.0, jakartaee 9 uses 3.0.0 -->
-        <version>3.0.4</version>
+        <version>3.0.8</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -297,7 +297,7 @@
       <dependency>
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java</artifactId>
-        <version>3.21.5</version>
+        <version>3.21.6</version>
       </dependency>
       <dependency>
         <groupId>com.lmax</groupId>
