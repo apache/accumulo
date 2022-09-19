@@ -74,6 +74,7 @@ import org.apache.accumulo.server.replication.proto.Replication;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.Code;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -193,11 +194,18 @@ public class GCRun implements GarbageCollectionEnvironment {
           TableState tableState = null;
           String statePath = context.getZooKeeperRoot() + Constants.ZTABLES + "/"
               + tableId.canonical() + Constants.ZTABLE_STATE;
-          byte[] state = zr.getData(statePath, null, null);
-          if (state == null) {
-            tableState = TableState.UNKNOWN;
-          } else {
-            tableState = TableState.valueOf(new String(state, UTF_8));
+          try {
+            byte[] state = zr.getData(statePath, null, null);
+            if (state == null) {
+              tableState = TableState.UNKNOWN;
+            } else {
+              tableState = TableState.valueOf(new String(state, UTF_8));
+            }
+          } catch (KeeperException e) {
+            if (e.code() == Code.NONODE) {
+              tableState = TableState.UNKNOWN;
+            }
+            throw e;
           }
           tids.put(tableId, tableState);
         }
