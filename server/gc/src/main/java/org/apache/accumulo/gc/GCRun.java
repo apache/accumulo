@@ -523,8 +523,6 @@ public class GCRun implements GarbageCollectionEnvironment {
       return Collections.singleton(MetadataTable.ID);
     } else if (level == DataLevel.USER) {
       Set<TableId> tableIds = new HashSet<>();
-      tableIds.remove(MetadataTable.ID);
-      tableIds.remove(RootTable.ID);
       getTableIDs().forEach((k, v) -> {
         if (v == TableState.ONLINE || v == TableState.OFFLINE) {
           // Don't return tables that are NEW, DELETING, or in an
@@ -532,6 +530,8 @@ public class GCRun implements GarbageCollectionEnvironment {
           tableIds.add(k);
         }
       });
+      tableIds.remove(MetadataTable.ID);
+      tableIds.remove(RootTable.ID);
       return tableIds;
     } else {
       throw new IllegalArgumentException("Unexpected Table in GC Env: " + this.level.name());
