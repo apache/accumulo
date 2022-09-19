@@ -309,11 +309,11 @@ function getJSONForTable(call, sessionDataVar) {
  * Performs POST call and builds console logging message if successful
  * @param {string} call REST url called
  * @param {string} callback POST callback to execute, if available
- * @param {boolean} sanitize Whether to sanitize the call 
+ * @param {boolean} shouldSanitize Whether to sanitize the call 
  */
-function doLoggedPostCall(call, callback, sanitize) {
+function doLoggedPostCall(call, callback, shouldSanitize) {
 
-  if (sanitize) {
+  if (shouldSanitize) {
     // Change plus sign to use ASCII value to send it as a URL query parameter
     call = sanitize(call);
   }
@@ -461,7 +461,7 @@ function clearLogs() {
  * @param {string} tableID Table ID
  */
 function clearTableProblems(tableID) {
-  doLoggedPostCall('/rest/problems/summary?s=' + tableID, refreshProblems, true);
+  doLoggedPostCall('/rest/problems/summary?s=' + tableID, refresh, true);
 }
 
 /**
@@ -473,7 +473,7 @@ function clearTableProblems(tableID) {
  */
 function clearDetailsProblems(table, resource, type) {
   doLoggedPostCall('/rest/problems/details?table=' + table + '&resource=' +
-    resource + '&ptype=' + type, refreshProblems, true);
+    resource + '&ptype=' + type, refresh, true);
 }
 
 /**
