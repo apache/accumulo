@@ -47,7 +47,6 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
@@ -56,6 +55,8 @@ import org.apache.accumulo.core.file.rfile.bcfile.Compression;
 import org.apache.accumulo.core.file.rfile.bcfile.CompressionAlgorithm;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils;
 import org.apache.accumulo.core.file.streams.SeekableDataInputStream;
+import org.apache.accumulo.core.spi.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.spi.crypto.GenericCryptoServiceFactory;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.data.ServerMutation;
@@ -93,7 +94,6 @@ public class SortedLogRecoveryTest extends WithTestNames {
   @BeforeEach
   public void setup() {
     context = EasyMock.createMock(ServerContext.class);
-    logSorter = new LogSorter(context, DefaultConfiguration.getInstance());
   }
 
   static class KeyValue implements Comparable<KeyValue> {
@@ -167,11 +167,14 @@ public class SortedLogRecoveryTest extends WithTestNames {
 
     final String workdir = new File(tempDir, testName()).getAbsolutePath();
     try (var fs = VolumeManagerImpl.getLocalForTesting(workdir)) {
+      CryptoServiceFactory cryptoFactory = new GenericCryptoServiceFactory();
+
       expect(context.getVolumeManager()).andReturn(fs).anyTimes();
-      expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())
-          .anyTimes();
+      expect(context.getCryptoFactory()).andReturn(cryptoFactory).anyTimes();
       expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
       replay(context);
+      logSorter = new LogSorter(context, DefaultConfiguration.getInstance());
+
       final Path workdirPath = new Path("file://" + workdir);
       fs.deleteRecursively(workdirPath);
 
@@ -1092,16 +1095,17 @@ public class SortedLogRecoveryTest extends WithTestNames {
     testConfig.set(prefix + "compress.blocksize.index", "56K");
     testConfig.set(prefix + "blocksize", "256B");
     testConfig.set(prefix + "replication", "3");
-    LogSorter sorter = new LogSorter(context, testConfig);
 
     final String workdir = new File(tempDir, testName()).getAbsolutePath();
 
     try (var vm = VolumeManagerImpl.getLocalForTesting(workdir)) {
+      CryptoServiceFactory cryptoFactory = new GenericCryptoServiceFactory();
+      expect(context.getCryptoFactory()).andReturn(cryptoFactory).anyTimes();
       expect(context.getVolumeManager()).andReturn(vm).anyTimes();
-      expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())
-          .anyTimes();
       expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
       replay(context);
+      LogSorter sorter = new LogSorter(context, testConfig);
+
       final Path workdirPath = new Path("file://" + workdir);
       vm.deleteRecursively(workdirPath);
 

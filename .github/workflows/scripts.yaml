@@ -29,6 +29,9 @@ on:
   pull_request:
     branches: [ '*' ]
 
+permissions:
+  contents: read
+
 jobs:
   shfmt:
     name: shfmt

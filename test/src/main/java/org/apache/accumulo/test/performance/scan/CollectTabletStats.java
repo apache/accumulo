@@ -41,7 +41,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Column;
@@ -67,6 +66,7 @@ import org.apache.accumulo.core.iteratorsImpl.system.VisibilityFilter;
 import org.apache.accumulo.core.metadata.MetadataServicer;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.server.ServerContext;
@@ -464,7 +464,7 @@ public class CollectTabletStats {
     for (TabletFile file : files) {
       FileSystem ns = fs.getFileSystemByPath(file.getPath());
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-          .forFile(file.getPathStr(), ns, ns.getConf(), CryptoServiceFactory.newDefaultInstance())
+          .forFile(file.getPathStr(), ns, ns.getConf(), NoCryptoServiceFactory.NONE)
           .withTableConfiguration(aconf).build();
       Range range = new Range(ke.prevEndRow(), false, ke.endRow(), true);
       reader.seek(range, columnSet, !columnSet.isEmpty());
@@ -497,7 +497,7 @@ public class CollectTabletStats {
     for (TabletFile file : files) {
       FileSystem ns = fs.getFileSystemByPath(file.getPath());
       readers.add(FileOperations.getInstance().newReaderBuilder()
-          .forFile(file.getPathStr(), ns, ns.getConf(), CryptoServiceFactory.newDefaultInstance())
+          .forFile(file.getPathStr(), ns, ns.getConf(), NoCryptoServiceFactory.NONE)
           .withTableConfiguration(context.getConfiguration()).build());
     }
 

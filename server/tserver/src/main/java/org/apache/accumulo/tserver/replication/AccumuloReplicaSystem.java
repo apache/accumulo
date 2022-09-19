@@ -50,6 +50,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.crypto.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
@@ -62,6 +63,7 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.Exec;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.singletons.SingletonReservation;
+import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -612,7 +614,9 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     Span span = TraceUtil.startSpan(this.getClass(), "getWalStream::Read WAL header");
     try (Scope scope = span.makeCurrent()) {
       span.setAttribute("file", p.toString());
-      return DfsLogger.getDecryptingStream(input, conf);
+      CryptoEnvironment env = new CryptoEnvironmentImpl(CryptoEnvironment.Scope.WAL);
+      return DfsLogger.getDecryptingStream(input,
+          context.getCryptoFactory().getService(env, conf.getAllCryptoProperties()));
     } catch (RuntimeException e) {
       TraceUtil.setException(span, e, true);
       throw e;

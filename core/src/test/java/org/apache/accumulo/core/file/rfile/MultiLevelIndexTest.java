@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
-import static org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType.JAVA;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
@@ -29,7 +28,7 @@ import java.security.SecureRandom;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
@@ -40,6 +39,7 @@ import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Reader.IndexIterator;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Writer;
 import org.apache.accumulo.core.file.rfile.RFileTest.SeekableByteArrayInputStream;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -66,8 +66,8 @@ public class MultiLevelIndexTest {
     AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     FSDataOutputStream dos = new FSDataOutputStream(baos, new FileSystem.Statistics("a"));
-    BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", hadoopConf,
-        CryptoServiceFactory.newInstance(aconf, JAVA));
+    CryptoService cs = CryptoFactoryLoader.getServiceForServer(aconf);
+    BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", hadoopConf, cs);
 
     BufferedWriter mliw = new BufferedWriter(new Writer(_cbw, maxBlockSize));
 
@@ -88,7 +88,7 @@ public class MultiLevelIndexTest {
     SeekableByteArrayInputStream bais = new SeekableByteArrayInputStream(data);
     FSDataInputStream in = new FSDataInputStream(bais);
     CachableBuilder cb = new CachableBuilder().input(in, "source-1").length(data.length)
-        .conf(hadoopConf).cryptoService(CryptoServiceFactory.newInstance(aconf, JAVA));
+        .conf(hadoopConf).cryptoService(cs);
     CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(cb);
 
     Reader reader = new Reader(_cbr, RFile.RINDEX_VER_8);
