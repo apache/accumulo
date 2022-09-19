@@ -74,7 +74,7 @@ import org.apache.accumulo.server.replication.proto.Replication;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.KeeperException.Code;
+import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -201,11 +201,8 @@ public class GCRun implements GarbageCollectionEnvironment {
             } else {
               tableState = TableState.valueOf(new String(state, UTF_8));
             }
-          } catch (KeeperException e) {
-            if (e.code() == Code.NONODE) {
-              tableState = TableState.UNKNOWN;
-            }
-            throw e;
+          } catch (NoNodeException e) {
+            tableState = TableState.UNKNOWN;
           }
           tids.put(tableId, tableState);
         }
