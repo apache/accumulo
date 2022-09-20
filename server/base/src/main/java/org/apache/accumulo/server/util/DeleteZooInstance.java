@@ -47,7 +47,7 @@ public class DeleteZooInstance {
     }
 
     if (clean) {
-      // If clean is set to true thenn a specific instance should not be set
+      // If clean is set to true then a specific instance should not be set
       if (instance != null) {
         throw new IllegalArgumentException(
             "Cannot set clean flag to true and also an instance name");
