@@ -166,8 +166,7 @@ public class GarbageCollectionTest {
       } else if (level == Ample.DataLevel.METADATA) {
         return Collections.singleton(MetadataTable.ID);
       } else if (level == Ample.DataLevel.USER) {
-        tableIds.remove(MetadataTable.ID);
-        tableIds.remove(RootTable.ID);
+        Set<TableId> tableIds = new HashSet<>();
         getTableIDs().forEach((k, v) -> {
           if (v == TableState.ONLINE || v == TableState.OFFLINE) {
             // Don't return tables that are NEW, DELETING, or in an
@@ -175,6 +174,8 @@ public class GarbageCollectionTest {
             tableIds.add(k);
           }
         });
+        tableIds.remove(MetadataTable.ID);
+        tableIds.remove(RootTable.ID);
         return tableIds;
       } else {
         throw new IllegalArgumentException("unknown level " + level);
