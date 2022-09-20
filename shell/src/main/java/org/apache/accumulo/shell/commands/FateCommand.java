@@ -19,6 +19,7 @@
 package org.apache.accumulo.shell.commands;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.fate.FateTxId.parseTidFromUserInput;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -39,7 +40,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.fate.AdminUtil;
-import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.ReadOnlyRepo;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.Repo;
@@ -55,8 +55,6 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.zookeeper.KeeperException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -69,8 +67,8 @@ import com.google.gson.JsonSerializer;
  * Manage FATE transactions
  */
 public class FateCommand extends Command {
-
-  private final static Logger LOG = LoggerFactory.getLogger(FateCommand.class);
+  private final String warning =
+      "WARNING: This command is deprecated for removal. Use 'accumulo admin'\n";
 
   // this class serializes references to interfaces with the concrete class name
   private static class InterfaceSerializer<T> implements JsonSerializer<T> {
@@ -122,14 +120,6 @@ public class FateCommand extends Command {
   private Option statusOption;
   private Option disablePaginationOpt;
 
-  private long parseTxid(String s) {
-    if (FateTxId.isFormatedTid(s)) {
-      return FateTxId.fromString(s);
-    } else {
-      return Long.parseLong(s, 16);
-    }
-  }
-
   protected String getZKRoot(ClientContext context) {
     return context.getZooKeeperRoot();
   }
@@ -150,6 +140,8 @@ public class FateCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws ParseException, KeeperException, InterruptedException, IOException, AccumuloException,
       AccumuloSecurityException {
+    Shell.log.warn(warning);
+
     ClientContext context = shellState.getContext();
     boolean failedCommand = false;
 
@@ -191,7 +183,7 @@ public class FateCommand extends Command {
     } else {
       txids = new ArrayList<>();
       for (int i = 1; i < args.length; i++) {
-        txids.add(parseTxid(args[i]));
+        txids.add(parseTidFromUserInput(args[i]));
       }
     }
 
@@ -217,7 +209,7 @@ public class FateCommand extends Command {
     if (args != null && args.length >= 1) {
       for (int i = 0; i < args.length; i++) {
         if (!args[i].isEmpty()) {
-          Long val = parseTxid(args[i]);
+          Long val = parseTidFromUserInput(args[i]);
           filterTxid.add(val);
         }
       }
@@ -267,7 +259,7 @@ public class FateCommand extends Command {
 
   @Override
   public String description() {
-    return "manage FATE transactions (WARNING: This command is deprecated for removal)";
+    return "manage FATE transactions";
   }
 
   @Override
@@ -331,6 +323,12 @@ public class FateCommand extends Command {
   public int numArgs() {
     // Arg length varies between 1 to n
     return -1;
+  }
+
+  @Override
+  public String usage() {
+    String msg = super.usage();
+    return warning + msg;
   }
 
   /**

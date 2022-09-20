@@ -20,6 +20,7 @@ package org.apache.accumulo.server.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
+import static org.apache.accumulo.fate.FateTxId.parseTidFromUserInput;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -29,6 +30,7 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.Formatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +38,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.Constants;
@@ -65,6 +68,7 @@ import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.tables.TableMap;
 import org.apache.accumulo.fate.AdminUtil;
+import org.apache.accumulo.fate.ReadOnlyStore;
 import org.apache.accumulo.fate.ReadOnlyTStore;
 import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
@@ -213,18 +217,33 @@ public class Admin implements KeywordExecutable {
   @Parameters(commandNames = "fate",
       commandDescription = "Operations performed on the Manager FaTE system.")
   static class FateOpsCommand {
-    @Parameter(names = {"-c", "--cancel"},
-        description = "<txId>{ <txId>...} Cancel new or submitted FaTE transactions")
-    List<String> txIdList = new ArrayList<>();
+    @Parameter(description = "[<txId>...]")
+    List<String> txList = new ArrayList<>();
 
-    @Parameter(names = "--summary", description = "Print a summary of FaTE transaction information")
-    boolean summarize = false;
+    @Parameter(names = {"-c", "--cancel"},
+        description = "<txId>[ <txId>...] Cancel new or submitted FaTE transactions")
+    boolean cancel;
+
+    @Parameter(names = {"-f", "--fail"},
+        description = "<txId>[ <txId>...] Transition FaTE transaction status to FAILED_IN_PROGRESS (requires Manager to be down)")
+    boolean fail;
+
+    @Parameter(names = {"-d", "--delete"},
+        description = "<txId>[ <txId>...] Delete locks associated with transactions (Requires Manager to be down)")
+    boolean delete;
+
+    @Parameter(names = {"-p", "--print", "-l", "--list"},
+        description = "[txId <txId>...] Print information about FaTE transactions. Print only the 'txId's specified or print all transactions if empty. Use -s to only print certain states.")
+    boolean print;
+
+    @Parameter(names = "--summary", description = "Print a summary of all FaTE transactions")
+    boolean summarize;
 
     @Parameter(names = {"-j", "--json"}, description = "Print transactions in json")
-    boolean printJson = false;
+    boolean printJson;
 
-    @Parameter(names = {"-s", "--states"},
-        description = "<state>{ <state>...} Get FaTE transactions that are in one of these states.")
+    @Parameter(names = {"-s", "--state"},
+        description = "<state>[ <state>...] Print transactions in the state(s) {NEW, IN_PROGRESS, FAILED_IN_PROGRESS, FAILED, SUCCESSFUL}")
     List<String> states = new ArrayList<>();
   }
 
@@ -740,12 +759,64 @@ public class Admin implements KeywordExecutable {
   private void executeFateOpsCommand(ServerContext context, FateOpsCommand fateOpsCommand)
       throws AccumuloException, AccumuloSecurityException, InterruptedException, KeeperException {
 
-    if (fateOpsCommand.summarize)
-      summarizeFateTx(context, fateOpsCommand);
+    validateFateUserInput(fateOpsCommand);
 
-    if (!fateOpsCommand.txIdList.isEmpty())
-      cancelSubmittedFateTxs(context, fateOpsCommand.txIdList);
+    AdminUtil<Admin> admin = new AdminUtil<>(true);
+    final String zkRoot = context.getZooKeeperRoot();
+    var zLockManagerPath = ServiceLock.path(zkRoot + Constants.ZMANAGER_LOCK);
+    var zTableLocksPath = ServiceLock.path(zkRoot + Constants.ZTABLE_LOCKS);
+    String fateZkPath = zkRoot + Constants.ZFATE;
+    ZooReaderWriter zk = context.getZooReaderWriter();
+    ZooStore<Admin> zs = new ZooStore<>(fateZkPath, zk);
 
+    if (fateOpsCommand.cancel) {
+      cancelSubmittedFateTxs(context, fateOpsCommand.txList);
+    } else if (fateOpsCommand.fail) {
+      for (String txid : fateOpsCommand.txList) {
+        if (!admin.prepFail(zs, zk, zLockManagerPath, txid)) {
+          System.exit(1);
+        }
+      }
+    } else if (fateOpsCommand.delete) {
+      for (String txid : fateOpsCommand.txList) {
+        if (!admin.prepDelete(zs, zk, zLockManagerPath, txid)) {
+          System.exit(1);
+        }
+        admin.deleteLocks(zk, zTableLocksPath, txid);
+      }
+    }
+
+    ReadOnlyStore<Admin> readOnlyStore = new ReadOnlyStore<>(zs);
+
+    if (fateOpsCommand.print) {
+      final Set<Long> sortedTxs = new TreeSet<>();
+      fateOpsCommand.txList.forEach(s -> sortedTxs.add(parseTidFromUserInput(s)));
+      if (!fateOpsCommand.txList.isEmpty()) {
+        EnumSet<ReadOnlyTStore.TStatus> statusFilter =
+            getCmdLineStatusFilters(fateOpsCommand.states);
+        admin.print(readOnlyStore, zk, zTableLocksPath, new Formatter(System.out), sortedTxs,
+            statusFilter);
+      } else {
+        admin.printAll(readOnlyStore, zk, zTableLocksPath);
+      }
+      // print line break at the end
+      System.out.println();
+    }
+
+    if (fateOpsCommand.summarize) {
+      summarizeFateTx(context, fateOpsCommand, admin, readOnlyStore, zTableLocksPath);
+    }
+  }
+
+  private void validateFateUserInput(FateOpsCommand cmd) {
+    if (cmd.cancel && cmd.fail || cmd.cancel && cmd.delete || cmd.fail && cmd.delete) {
+      throw new IllegalArgumentException(
+          "Can only perform one of the following at a time: cancel, fail or delete.");
+    }
+    if ((cmd.cancel || cmd.fail || cmd.delete) && cmd.txList.isEmpty()) {
+      throw new IllegalArgumentException(
+          "At least one txId required when using cancel, fail or delete");
+    }
   }
 
   private void cancelSubmittedFateTxs(ServerContext context, List<String> txList)
@@ -775,17 +846,11 @@ public class Admin implements KeywordExecutable {
     }
   }
 
-  protected void summarizeFateTx(ServerContext context, FateOpsCommand cmd)
+  private void summarizeFateTx(ServerContext context, FateOpsCommand cmd, AdminUtil<Admin> admin,
+      ReadOnlyStore<Admin> zs, ServiceLock.ServiceLockPath tableLocksPath)
       throws InterruptedException, AccumuloException, AccumuloSecurityException, KeeperException {
 
-    String zkRoot = context.getZooKeeperRoot();
-    String fateZkPath = zkRoot + Constants.ZFATE;
-
-    AdminUtil<Admin> admin = new AdminUtil<>(true);
     ZooReaderWriter zk = context.getZooReaderWriter();
-    ServiceLock.ServiceLockPath tableLocksPath = ServiceLock.path(zkRoot + Constants.ZTABLE_LOCKS);
-    ZooStore<Admin> zs = new ZooStore<>(fateZkPath, zk);
-
     var transactions = admin.getStatus(zs, zk, tableLocksPath, null, null);
 
     // build id map - relies on unique ids for tables and namespaces

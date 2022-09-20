@@ -139,7 +139,7 @@ public class FateSummaryReport {
     lines.add("Step counts:");
     stepCounts.forEach((step, count) -> lines.add(String.format("  %s: %d", step, count)));
 
-    lines.add("Fate transactions (oldest first):");
+    lines.add("\nFate transactions (oldest first):");
     lines.add("Status Filters: "
         + (statusFilterNames.isEmpty() ? "[NONE]" : statusFilterNames.toString()));
 

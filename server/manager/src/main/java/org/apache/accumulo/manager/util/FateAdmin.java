@@ -102,7 +102,7 @@ public class FateAdmin {
           admin.deleteLocks(zk, zTableLocksPath, txid);
         }
       } else if (jc.getParsedCommand().equals("print")) {
-        admin.print(new ReadOnlyStore<>(zs), zk, zTableLocksPath);
+        admin.printAll(new ReadOnlyStore<>(zs), zk, zTableLocksPath);
       }
     }
   }
