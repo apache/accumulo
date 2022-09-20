@@ -774,13 +774,13 @@ public class Admin implements KeywordExecutable {
     } else if (fateOpsCommand.fail) {
       for (String txid : fateOpsCommand.txList) {
         if (!admin.prepFail(zs, zk, zLockManagerPath, txid)) {
-          System.exit(1);
+          throw new AccumuloException("Could not fail transaction: " + txid);
         }
       }
     } else if (fateOpsCommand.delete) {
       for (String txid : fateOpsCommand.txList) {
         if (!admin.prepDelete(zs, zk, zLockManagerPath, txid)) {
-          System.exit(1);
+          throw new AccumuloException("Could not delete transaction: " + txid);
         }
         admin.deleteLocks(zk, zTableLocksPath, txid);
       }
