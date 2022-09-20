@@ -67,7 +67,7 @@ import com.google.gson.JsonSerializer;
  * Manage FATE transactions
  */
 public class FateCommand extends Command {
-  private final String warning =
+  private static final String warning =
       "WARNING: This command is deprecated for removal. Use 'accumulo admin'\n";
 
   // this class serializes references to interfaces with the concrete class name
