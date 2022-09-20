@@ -990,7 +990,7 @@ public class GarbageCollectionTest {
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
     String msg = assertThrows(RuntimeException.class,
         () -> gca.ensureAllTablesChecked(tablesBefore, tablesSeen, tablesAfter)).getMessage();
-    assertTrue(msg.equals("Saw table IDs in ZK that were not in metadata table:  [3]"));
+    assertTrue(msg.startsWith("Saw table IDs in ZK that were not in metadata table:  [3]"));
   }
 
   /**
@@ -1005,7 +1005,7 @@ public class GarbageCollectionTest {
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
     String msg = assertThrows(RuntimeException.class,
         () -> gca.ensureAllTablesChecked(tablesBefore, tablesSeen, tablesAfter)).getMessage();
-    assertTrue(msg.equals("Saw table IDs in ZK that were not in metadata table:  [3]"));
+    assertTrue(msg.startsWith("Saw table IDs in ZK that were not in metadata table:  [3]"));
 
   }
 }

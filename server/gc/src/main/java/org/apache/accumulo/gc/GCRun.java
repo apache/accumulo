@@ -25,7 +25,6 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -184,7 +183,7 @@ public class GCRun implements GarbageCollectionEnvironment {
     final String tablesPath = context.getZooKeeperRoot() + Constants.ZTABLES;
     final ZooReader zr = context.getZooReader();
     int retries = 1;
-    UncheckedIOException ioe = null;
+    IllegalStateException ioe = null;
     while (retries <= 10) {
       try {
         zr.sync(tablesPath);
@@ -210,7 +209,7 @@ public class GCRun implements GarbageCollectionEnvironment {
       } catch (KeeperException e) {
         retries++;
         if (ioe == null) {
-          ioe = new UncheckedIOException(new IOException("Error getting table ids from ZooKeeper"));
+          ioe = new IllegalStateException("Error getting table ids from ZooKeeper");
         }
         ioe.addSuppressed(e);
         log.error("Error getting tables from ZooKeeper, retrying in {} seconds", retries, e);
@@ -511,10 +510,10 @@ public class GCRun implements GarbageCollectionEnvironment {
   /**
    * Return a set of all TableIDs in the
    * {@link org.apache.accumulo.core.metadata.schema.Ample.DataLevel} for which we are considering
-   * deletes. When operating on DataLevel.USER this will return all user table ids in an ONLINE or
-   * OFFLINE state. When operating on DataLevel.METADATA this will return the table id for the
-   * accumulo.metadata table. When operating on DataLevel.ROOT this will return the table id for the
-   * accumulo.root table.
+   * deletes. When gathering candidates at DataLevel.USER this will return all user table ids in an
+   * ONLINE or OFFLINE state. When gathering candidates at DataLevel.METADATA this will return the
+   * table id for the accumulo.metadata table. When gathering candidates at DataLevel.ROOT this will
+   * return the table id for the accumulo.root table.
    *
    * @return The table ids
    * @throws InterruptedException
@@ -525,7 +524,7 @@ public class GCRun implements GarbageCollectionEnvironment {
     if (level == DataLevel.ROOT) {
       return Set.of(RootTable.ID);
     } else if (level == DataLevel.METADATA) {
-      return Collections.singleton(MetadataTable.ID);
+      return Set.of(MetadataTable.ID);
     } else if (level == DataLevel.USER) {
       Set<TableId> tableIds = new HashSet<>();
       getTableIDs().forEach((k, v) -> {
@@ -539,7 +538,7 @@ public class GCRun implements GarbageCollectionEnvironment {
       tableIds.remove(RootTable.ID);
       return tableIds;
     } else {
-      throw new IllegalArgumentException("Unexpected Table in GC Env: " + this.level.name());
+      throw new IllegalArgumentException("Unexpected level in GC Env: " + this.level.name());
     }
   }
 }

@@ -251,16 +251,13 @@ public class GarbageCollectionAlgorithm {
     tableIdsMustHaveSeen.removeAll(tableIdsSeen);
 
     // If anything is left then we missed a table and may not have removed rfiles references
-    // from the candidates list that are acutally still in use, which would
+    // from the candidates list that are actually still in use, which would
     // result in the rfiles being deleted in the next step of the GC process
     if (!tableIdsMustHaveSeen.isEmpty()) {
-      log.error("TableIDs before: " + tableIdsBefore);
-      log.error("TableIDs after : " + tableIdsAfter);
-      log.error("TableIDs seen  : " + tableIdsSeen);
-      log.error("TableIDs that should have been seen but were not: " + tableIdsMustHaveSeen);
       // maybe a scan failed?
-      throw new IllegalStateException(
-          "Saw table IDs in ZK that were not in metadata table:  " + tableIdsMustHaveSeen);
+      throw new IllegalStateException("Saw table IDs in ZK that were not in metadata table:  "
+          + tableIdsMustHaveSeen + " TableIDs before GC: " + tableIdsBefore
+          + ", TableIDs during GC: " + tableIdsSeen + ", TableIDs after GC: " + tableIdsAfter);
     }
   }
 
