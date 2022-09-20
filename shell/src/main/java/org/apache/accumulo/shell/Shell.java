@@ -111,7 +111,6 @@ import org.apache.accumulo.shell.commands.FormatterCommand;
 import org.apache.accumulo.shell.commands.GetAuthsCommand;
 import org.apache.accumulo.shell.commands.GetGroupsCommand;
 import org.apache.accumulo.shell.commands.GetSplitsCommand;
-import org.apache.accumulo.shell.commands.GetTimeTypeCommand;
 import org.apache.accumulo.shell.commands.GrantCommand;
 import org.apache.accumulo.shell.commands.GrepCommand;
 import org.apache.accumulo.shell.commands.HelpCommand;
@@ -408,7 +407,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         new ExportTableCommand(), new ImportTableCommand(), new OfflineCommand(),
         new OnlineCommand(), new RenameTableCommand(), new TablesCommand(), new NamespacesCommand(),
         new CreateNamespaceCommand(), new DeleteNamespaceCommand(), new RenameNamespaceCommand(),
-        new SummariesCommand(), new GetTimeTypeCommand()};
+        new SummariesCommand()};
     Command[] tableControlCommands = {new AddSplitsCommand(), new CompactCommand(),
         new ConstraintCommand(), new FlushCommand(), new GetGroupsCommand(), new GetSplitsCommand(),
         new MergeCommand(), new SetGroupsCommand()};

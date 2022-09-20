@@ -2019,7 +2019,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Optional<TabletMetadata> tabletMetadata = context.getAmple().readTablets().forTable(tableId)
         .fetch(TabletMetadata.ColumnType.TIME).checkConsistency().build().stream().findFirst();
     TabletMetadata timeData =
-        tabletMetadata.orElseThrow(() -> new RuntimeException("Failed to retrieve TimeType"));
+        tabletMetadata.orElseThrow(() -> new IllegalStateException("Failed to retrieve TimeType"));
     return timeData.getTime().getType();
   }
 
