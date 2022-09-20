@@ -21,7 +21,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
       <div class="container-fluid">
         <div class="navbar-header">
-          <a class="navbar-brand" id="headertitle" href="/">
+          <a class="navbar-brand" id="headertitle" style="text-decoration: none" href="/">
             <img id="accumulo-avatar" alt="accumulo" class="navbar-left" src="/resources/images/accumulo-avatar.png" />
             ${instance_name}
           </a>
