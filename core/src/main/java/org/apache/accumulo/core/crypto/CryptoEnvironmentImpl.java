@@ -18,29 +18,62 @@
  */
 package org.apache.accumulo.core.crypto;
 
+import java.util.Objects;
+import java.util.Optional;
+
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
+
+import edu.umd.cs.findbugs.annotations.Nullable;
 
 /**
  * @since 2.0
  */
 public class CryptoEnvironmentImpl implements CryptoEnvironment {
 
-  private Scope scope;
-  private byte[] decryptionParams;
+  private final Scope scope;
+  private final TableId tableId;
+  private final byte[] decryptionParams;
 
-  public CryptoEnvironmentImpl(Scope scope, byte[] decryptionParams) {
-    this.scope = scope;
+  /**
+   * Construct the crypto environment. The decryptionParams can be null.
+   */
+  public CryptoEnvironmentImpl(Scope scope, @Nullable TableId tableId,
+      @Nullable byte[] decryptionParams) {
+    this.scope = Objects.requireNonNull(scope);
+    this.tableId = tableId;
     this.decryptionParams = decryptionParams;
+  }
+
+  public CryptoEnvironmentImpl(Scope scope) {
+    this.scope = scope;
+    this.tableId = null;
+    this.decryptionParams = null;
   }
 
   @Override
   public Scope getScope() {
-    return this.scope;
+    return scope;
   }
 
   @Override
-  public byte[] getDecryptionParams() {
-    return decryptionParams;
+  public Optional<TableId> getTableId() {
+    return Optional.ofNullable(tableId);
   }
 
+  @Override
+  public Optional<byte[]> getDecryptionParams() {
+    return Optional.ofNullable(decryptionParams);
+  }
+
+  @Override
+  public String toString() {
+    String str = scope + " tableId=" + tableId + " decryptParams.length=";
+    if (decryptionParams == null) {
+      str += 0;
+    } else {
+      str += decryptionParams.length;
+    }
+    return str;
+  }
 }

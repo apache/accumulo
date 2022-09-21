@@ -163,7 +163,7 @@ public class MajorCompactionRequest implements Cloneable {
       Configuration conf = context.getHadoopConf();
       SummaryCollection fsc = SummaryReader
           .load(fs, conf, factory, file.getPath(), summarySelector, summaryCache, indexCache,
-              fileLenCache, context.getCryptoService())
+              fileLenCache, context.getTableConfiguration(extent.tableId()).getCryptoService())
           .getSummaries(Collections.singletonList(new Gatherer.RowRange(extent)));
       sc.merge(fsc, factory);
     }

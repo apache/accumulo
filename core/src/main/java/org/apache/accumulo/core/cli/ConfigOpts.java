@@ -104,7 +104,7 @@ public class ConfigOpts extends Help {
       String value;
       if (propArgs.length == 2) {
         value = propArgs[1].trim();
-      } else { // if a boolean property then it's mere existence assumes true
+      } else { // if property is boolean then its mere existence assumes true
         value = Property.isValidBooleanPropertyKey(key) ? "true" : "";
       }
       if (key.isEmpty() || value.isEmpty()) {

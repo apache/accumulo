@@ -36,11 +36,11 @@ import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
+import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
+import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -103,7 +103,8 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
           new ConfigurationCopy(Stream.concat(acuconf.stream(), userProps.entrySet().stream()));
     }
 
-    CryptoService cs = CryptoServiceFactory.newInstance(acuconf, ClassloaderType.JAVA);
+    CryptoService cs =
+        CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.TABLE, tableConfig);
 
     if (out.getOutputStream() != null) {
       FSDataOutputStream fsdo;

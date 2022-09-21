@@ -18,32 +18,13 @@
  */
 package org.apache.accumulo.core.spi.crypto;
 
-import java.util.Optional;
+import java.util.Map;
 
-import org.apache.accumulo.core.data.TableId;
+public class NoCryptoServiceFactory implements CryptoServiceFactory {
+  public static final CryptoService NONE = new NoCryptoService();
 
-/**
- * Useful information provided to the crypto implementation
- *
- * @since 2.0
- */
-public interface CryptoEnvironment {
-  /**
-   * Where in Accumulo the on-disk file encryption takes place.
-   */
-  enum Scope {
-    WAL, TABLE, RECOVERY
+  @Override
+  public CryptoService getService(CryptoEnvironment env, Map<String,String> properties) {
+    return NONE;
   }
-
-  Scope getScope();
-
-  /**
-   * If in the TABLE scope, get the tableId. Will be empty in WAL scope.
-   */
-  Optional<TableId> getTableId();
-
-  /**
-   * If decrypting files, get the params read from the file. Will be empty if encrypting.
-   */
-  Optional<byte[]> getDecryptionParams();
 }

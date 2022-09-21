@@ -51,6 +51,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -84,6 +85,7 @@ import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.SummaryRetriever;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -2067,6 +2069,16 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public ImportDestinationArguments importDirectory(String directory) {
     return new BulkImport(directory, context);
+  }
+
+  @Override
+  public TimeType getTimeType(final String tableName) throws TableNotFoundException {
+    TableId tableId = context.getTableId(tableName);
+    Optional<TabletMetadata> tabletMetadata = context.getAmple().readTablets().forTable(tableId)
+        .fetch(TabletMetadata.ColumnType.TIME).checkConsistency().build().stream().findFirst();
+    TabletMetadata timeData =
+        tabletMetadata.orElseThrow(() -> new IllegalStateException("Failed to retrieve TimeType"));
+    return timeData.getTime().getType();
   }
 
   private void prependPropertiesToExclude(Map<String,String> opts, Set<String> propsToExclude) {
