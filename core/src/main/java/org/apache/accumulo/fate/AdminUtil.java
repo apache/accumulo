@@ -406,15 +406,15 @@ public class AdminUtil<T> {
     return (filterTxid == null) || filterTxid.isEmpty() || filterTxid.contains(tid);
   }
 
-  public void print(ReadOnlyTStore<T> zs, ZooReader zk, ServiceLock.ServiceLockPath lockPath)
-      throws KeeperException, InterruptedException {
-    print(zs, zk, lockPath, new Formatter(System.out), null, null);
+  public void printAll(ReadOnlyTStore<T> zs, ZooReader zk,
+      ServiceLock.ServiceLockPath tableLocksPath) throws KeeperException, InterruptedException {
+    print(zs, zk, tableLocksPath, new Formatter(System.out), null, null);
   }
 
-  public void print(ReadOnlyTStore<T> zs, ZooReader zk, ServiceLock.ServiceLockPath lockPath,
+  public void print(ReadOnlyTStore<T> zs, ZooReader zk, ServiceLock.ServiceLockPath tableLocksPath,
       Formatter fmt, Set<Long> filterTxid, EnumSet<TStatus> filterStatus)
       throws KeeperException, InterruptedException {
-    FateStatus fateStatus = getStatus(zs, zk, lockPath, filterTxid, filterStatus);
+    FateStatus fateStatus = getStatus(zs, zk, tableLocksPath, filterTxid, filterStatus);
 
     for (TransactionStatus txStatus : fateStatus.getTransactions()) {
       fmt.format(

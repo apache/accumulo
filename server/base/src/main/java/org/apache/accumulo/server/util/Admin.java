@@ -20,6 +20,7 @@ package org.apache.accumulo.server.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
+import static org.apache.accumulo.fate.FateTxId.parseTidFromUserInput;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -28,12 +29,16 @@ import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Formatter;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.Constants;
@@ -47,7 +52,10 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
@@ -58,12 +66,20 @@ import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.util.tables.TableMap;
+import org.apache.accumulo.fate.AdminUtil;
+import org.apache.accumulo.fate.ReadOnlyStore;
+import org.apache.accumulo.fate.ReadOnlyTStore;
+import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.security.SecurityUtil;
+import org.apache.accumulo.server.util.fateCommand.FateSummaryReport;
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -198,6 +214,39 @@ public class Admin implements KeywordExecutable {
     String file;
   }
 
+  @Parameters(commandNames = "fate",
+      commandDescription = "Operations performed on the Manager FaTE system.")
+  static class FateOpsCommand {
+    @Parameter(description = "[<txId>...]")
+    List<String> txList = new ArrayList<>();
+
+    @Parameter(names = {"-c", "--cancel"},
+        description = "<txId>[ <txId>...] Cancel new or submitted FaTE transactions")
+    boolean cancel;
+
+    @Parameter(names = {"-f", "--fail"},
+        description = "<txId>[ <txId>...] Transition FaTE transaction status to FAILED_IN_PROGRESS (requires Manager to be down)")
+    boolean fail;
+
+    @Parameter(names = {"-d", "--delete"},
+        description = "<txId>[ <txId>...] Delete locks associated with transactions (Requires Manager to be down)")
+    boolean delete;
+
+    @Parameter(names = {"-p", "--print", "-l", "--list"},
+        description = "[txId <txId>...] Print information about FaTE transactions. Print only the 'txId's specified or print all transactions if empty. Use -s to only print certain states.")
+    boolean print;
+
+    @Parameter(names = "--summary", description = "Print a summary of all FaTE transactions")
+    boolean summarize;
+
+    @Parameter(names = {"-j", "--json"}, description = "Print transactions in json")
+    boolean printJson;
+
+    @Parameter(names = {"-s", "--state"},
+        description = "<state>[ <state>...] Print transactions in the state(s) {NEW, IN_PROGRESS, FAILED_IN_PROGRESS, FAILED, SUCCESSFUL}")
+    List<String> states = new ArrayList<>();
+  }
+
   public static void main(String[] args) {
     new Admin().execute(args);
   }
@@ -225,6 +274,9 @@ public class Admin implements KeywordExecutable {
     AdminOpts opts = new AdminOpts();
     JCommander cl = new JCommander(opts);
     cl.setProgramName("accumulo admin");
+
+    FateOpsCommand fateOpsCommand = new FateOpsCommand();
+    cl.addCommand("fate", fateOpsCommand);
 
     ChangeSecretCommand changeSecretCommand = new ChangeSecretCommand();
     cl.addCommand("changeSecret", changeSecretCommand);
@@ -331,6 +383,8 @@ public class Admin implements KeywordExecutable {
       } else if (cl.getParsedCommand().equals("locks")) {
         TabletServerLocks.execute(context, args.length > 2 ? args[2] : null,
             tServerLocksOpts.delete);
+      } else if (cl.getParsedCommand().equals("fate")) {
+        executeFateOpsCommand(context, fateOpsCommand);
       } else {
         everything = cl.getParsedCommand().equals("stopAll");
 
@@ -699,5 +753,154 @@ public class Admin implements KeywordExecutable {
         }
       }
     }
+  }
+
+  // Fate Operations
+  private void executeFateOpsCommand(ServerContext context, FateOpsCommand fateOpsCommand)
+      throws AccumuloException, AccumuloSecurityException, InterruptedException, KeeperException {
+
+    validateFateUserInput(fateOpsCommand);
+
+    AdminUtil<Admin> admin = new AdminUtil<>(true);
+    final String zkRoot = context.getZooKeeperRoot();
+    var zLockManagerPath = ServiceLock.path(zkRoot + Constants.ZMANAGER_LOCK);
+    var zTableLocksPath = ServiceLock.path(zkRoot + Constants.ZTABLE_LOCKS);
+    String fateZkPath = zkRoot + Constants.ZFATE;
+    ZooReaderWriter zk = context.getZooReaderWriter();
+    ZooStore<Admin> zs = new ZooStore<>(fateZkPath, zk);
+
+    if (fateOpsCommand.cancel) {
+      cancelSubmittedFateTxs(context, fateOpsCommand.txList);
+    } else if (fateOpsCommand.fail) {
+      for (String txid : fateOpsCommand.txList) {
+        if (!admin.prepFail(zs, zk, zLockManagerPath, txid)) {
+          throw new AccumuloException("Could not fail transaction: " + txid);
+        }
+      }
+    } else if (fateOpsCommand.delete) {
+      for (String txid : fateOpsCommand.txList) {
+        if (!admin.prepDelete(zs, zk, zLockManagerPath, txid)) {
+          throw new AccumuloException("Could not delete transaction: " + txid);
+        }
+        admin.deleteLocks(zk, zTableLocksPath, txid);
+      }
+    }
+
+    ReadOnlyStore<Admin> readOnlyStore = new ReadOnlyStore<>(zs);
+
+    if (fateOpsCommand.print) {
+      final Set<Long> sortedTxs = new TreeSet<>();
+      fateOpsCommand.txList.forEach(s -> sortedTxs.add(parseTidFromUserInput(s)));
+      if (!fateOpsCommand.txList.isEmpty()) {
+        EnumSet<ReadOnlyTStore.TStatus> statusFilter =
+            getCmdLineStatusFilters(fateOpsCommand.states);
+        admin.print(readOnlyStore, zk, zTableLocksPath, new Formatter(System.out), sortedTxs,
+            statusFilter);
+      } else {
+        admin.printAll(readOnlyStore, zk, zTableLocksPath);
+      }
+      // print line break at the end
+      System.out.println();
+    }
+
+    if (fateOpsCommand.summarize) {
+      summarizeFateTx(context, fateOpsCommand, admin, readOnlyStore, zTableLocksPath);
+    }
+  }
+
+  private void validateFateUserInput(FateOpsCommand cmd) {
+    if (cmd.cancel && cmd.fail || cmd.cancel && cmd.delete || cmd.fail && cmd.delete) {
+      throw new IllegalArgumentException(
+          "Can only perform one of the following at a time: cancel, fail or delete.");
+    }
+    if ((cmd.cancel || cmd.fail || cmd.delete) && cmd.txList.isEmpty()) {
+      throw new IllegalArgumentException(
+          "At least one txId required when using cancel, fail or delete");
+    }
+  }
+
+  private void cancelSubmittedFateTxs(ServerContext context, List<String> txList)
+      throws AccumuloException {
+    for (String txStr : txList) {
+      long txid = Long.parseLong(txStr, 16);
+      boolean cancelled = cancelFateOperation(context, txid);
+      if (cancelled) {
+        System.out.println("FaTE transaction " + txid + " was cancelled or already completed.");
+      } else {
+        System.out
+            .println("FaTE transaction " + txid + " was not cancelled, status may have changed.");
+      }
+    }
+  }
+
+  private boolean cancelFateOperation(ClientContext context, long txid) throws AccumuloException {
+    FateService.Client client = null;
+    try {
+      client = ThriftClientTypes.FATE.getConnectionWithRetry(context);
+      return client.cancelFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), txid);
+    } catch (Exception e) {
+      throw new AccumuloException(e);
+    } finally {
+      if (client != null)
+        ThriftUtil.close(client, context);
+    }
+  }
+
+  private void summarizeFateTx(ServerContext context, FateOpsCommand cmd, AdminUtil<Admin> admin,
+      ReadOnlyStore<Admin> zs, ServiceLock.ServiceLockPath tableLocksPath)
+      throws InterruptedException, AccumuloException, AccumuloSecurityException, KeeperException {
+
+    ZooReaderWriter zk = context.getZooReaderWriter();
+    var transactions = admin.getStatus(zs, zk, tableLocksPath, null, null);
+
+    // build id map - relies on unique ids for tables and namespaces
+    // used to look up the names of either table or namespace by id.
+    Map<TableId,String> tidToNameMap = new TableMap(context).getIdtoNameMap();
+    Map<String,String> idsToNameMap = new HashMap<>(tidToNameMap.size() * 2);
+    tidToNameMap.forEach((tid, name) -> idsToNameMap.put(tid.canonical(), "t:" + name));
+    context.namespaceOperations().namespaceIdMap().forEach((name, nsid) -> {
+      String prev = idsToNameMap.put(nsid, "ns:" + name);
+      if (prev != null) {
+        log.warn("duplicate id found for table / namespace id. table name: {}, namespace name: {}",
+            prev, name);
+      }
+    });
+
+    EnumSet<ReadOnlyTStore.TStatus> statusFilter = getCmdLineStatusFilters(cmd.states);
+
+    FateSummaryReport report = new FateSummaryReport(idsToNameMap, statusFilter);
+
+    // gather statistics
+    transactions.getTransactions().forEach(report::gatherTxnStatus);
+    if (cmd.printJson) {
+      printLines(Collections.singletonList(report.toJson()));
+    } else {
+      printLines(report.formatLines());
+    }
+  }
+
+  private void printLines(List<String> lines) {
+    for (String nextLine : lines) {
+      if (nextLine == null) {
+        continue;
+      }
+      System.out.println(nextLine);
+    }
+  }
+
+  /**
+   * If provided on the command line, get the TStatus values provided.
+   *
+   * @return a set of status filters, or an empty set if none provides
+   */
+  private EnumSet<ReadOnlyTStore.TStatus> getCmdLineStatusFilters(List<String> states) {
+    EnumSet<ReadOnlyTStore.TStatus> statusFilter = null;
+    if (!states.isEmpty()) {
+      statusFilter = EnumSet.noneOf(ReadOnlyTStore.TStatus.class);
+      for (String element : states) {
+        statusFilter.add(ReadOnlyTStore.TStatus.valueOf(element));
+      }
+    }
+    return statusFilter;
   }
 }
