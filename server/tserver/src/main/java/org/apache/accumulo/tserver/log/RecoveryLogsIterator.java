@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.SortedLogState;
@@ -149,7 +150,7 @@ public class RecoveryLogsIterator
    * Check that the first entry in the WAL is OPEN. Only need to do this once.
    */
   private void validateFirstKey(ServerContext context, FileSystem fs, List<Path> logFiles,
-      Path fullLogPath) {
+      Path fullLogPath) throws CryptoException {
     try (var scanner =
         RFile.newScanner().from(logFiles.stream().map(Path::toString).toArray(String[]::new))
             .withFileSystem(fs).withTableProperties(context.getConfiguration()).build()) {

@@ -97,7 +97,7 @@ public class AESCryptoService implements CryptoService {
       try {
         return Cipher.getInstance(KEY_WRAP_TRANSFORM);
       } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
-        throw new CryptoException("Error creating Cipher for AESWrap", e);
+        throw new IllegalArgumentException("Error creating Cipher for AESWrap", e);
       }
     }
   };
@@ -110,7 +110,7 @@ public class AESCryptoService implements CryptoService {
       try {
         return Cipher.getInstance(KEY_WRAP_TRANSFORM);
       } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
-        throw new CryptoException("Error creating Cipher for AESWrap", e);
+        throw new IllegalArgumentException("Error creating Cipher for AESWrap", e);
       }
     }
   };
@@ -143,7 +143,7 @@ public class AESCryptoService implements CryptoService {
   }
 
   @Override
-  public FileEncrypter getFileEncrypter(CryptoEnvironment environment) {
+  public FileEncrypter getFileEncrypter(CryptoEnvironment environment) throws CryptoException {
     ensureInit();
     if (!encryptEnabled) {
       return DISABLED;
@@ -164,7 +164,7 @@ public class AESCryptoService implements CryptoService {
   }
 
   @Override
-  public FileDecrypter getFileDecrypter(CryptoEnvironment environment) {
+  public FileDecrypter getFileDecrypter(CryptoEnvironment environment) throws CryptoException {
     ensureInit();
     CryptoModule cm;
     var decryptionParams = environment.getDecryptionParams();
@@ -238,7 +238,7 @@ public class AESCryptoService implements CryptoService {
   }
 
   private static byte[] createCryptoParameters(String version, Key encryptingKek,
-      String encryptingKekId, String encryptingKeyManager, Key fek) {
+      String encryptingKekId, String encryptingKeyManager, Key fek) throws CryptoException {
 
     try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream params = new DataOutputStream(baos)) {
@@ -257,7 +257,8 @@ public class AESCryptoService implements CryptoService {
     }
   }
 
-  private static ParsedCryptoParameters parseCryptoParameters(byte[] parameters) {
+  private static ParsedCryptoParameters parseCryptoParameters(byte[] parameters)
+      throws CryptoException {
     ParsedCryptoParameters parsed = new ParsedCryptoParameters();
     try (ByteArrayInputStream bais = new ByteArrayInputStream(parameters);
         DataInputStream params = new DataInputStream(bais)) {
@@ -277,7 +278,7 @@ public class AESCryptoService implements CryptoService {
     return parsed;
   }
 
-  private Key loadDecryptionKek(ParsedCryptoParameters params) {
+  private Key loadDecryptionKek(ParsedCryptoParameters params) throws CryptoException {
     Key ret = null;
     String keyTag = params.getKeyManagerVersion() + "!" + params.getKekId();
     if (this.decryptingKeys.get(keyTag) != null) {
@@ -305,9 +306,9 @@ public class AESCryptoService implements CryptoService {
    * version and preparing encrypters/decrypters for use.
    */
   private interface CryptoModule {
-    FileEncrypter getEncrypter();
+    FileEncrypter getEncrypter() throws CryptoException;
 
-    FileDecrypter getDecrypter(Key fek);
+    FileDecrypter getDecrypter(Key fek) throws CryptoException;
   }
 
   public class AESGCMCryptoModule implements CryptoModule {
@@ -331,12 +332,12 @@ public class AESCryptoService implements CryptoService {
     }
 
     @Override
-    public FileEncrypter getEncrypter() {
+    public FileEncrypter getEncrypter() throws CryptoException {
       return new AESGCMFileEncrypter();
     }
 
     @Override
-    public FileDecrypter getDecrypter(Key fek) {
+    public FileDecrypter getDecrypter(Key fek) throws CryptoException {
       return new AESGCMFileDecrypter(fek);
     }
 
@@ -348,7 +349,7 @@ public class AESCryptoService implements CryptoService {
       private final Cipher cipher;
       private final byte[] decryptionParameters;
 
-      AESGCMFileEncrypter() {
+      AESGCMFileEncrypter() throws CryptoException {
         try {
           cipher = Cipher.getInstance(transformation);
         } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
@@ -427,7 +428,7 @@ public class AESCryptoService implements CryptoService {
       private final Cipher cipher;
       private final Key fek;
 
-      AESGCMFileDecrypter(Key fek) {
+      AESGCMFileDecrypter(Key fek) throws CryptoException {
         try {
           cipher = Cipher.getInstance(transformation);
         } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
@@ -475,12 +476,12 @@ public class AESCryptoService implements CryptoService {
     }
 
     @Override
-    public FileEncrypter getEncrypter() {
+    public FileEncrypter getEncrypter() throws CryptoException {
       return new AESCBCFileEncrypter();
     }
 
     @Override
-    public FileDecrypter getDecrypter(Key fek) {
+    public FileDecrypter getDecrypter(Key fek) throws CryptoException {
       return new AESCBCFileDecrypter(fek);
     }
 
@@ -491,7 +492,7 @@ public class AESCryptoService implements CryptoService {
       private final byte[] initVector = new byte[IV_LENGTH_IN_BYTES];
       private final byte[] decryptionParameters;
 
-      AESCBCFileEncrypter() {
+      AESCBCFileEncrypter() throws CryptoException {
         try {
           cipher = Cipher.getInstance(transformation);
         } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
@@ -532,7 +533,7 @@ public class AESCryptoService implements CryptoService {
       private final Cipher cipher;
       private final Key fek;
 
-      AESCBCFileDecrypter(Key fek) {
+      AESCBCFileDecrypter(Key fek) throws CryptoException {
         try {
           cipher = Cipher.getInstance(transformation);
         } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
@@ -568,7 +569,7 @@ public class AESCryptoService implements CryptoService {
     return new SecretKeySpec(bytes, "AES");
   }
 
-  public static Key unwrapKey(byte[] fek, Key kek) {
+  public static Key unwrapKey(byte[] fek, Key kek) throws CryptoException {
     try {
       final Cipher c = KEY_UNWRAP_CIPHER.get();
       c.init(Cipher.UNWRAP_MODE, kek);
@@ -578,7 +579,7 @@ public class AESCryptoService implements CryptoService {
     }
   }
 
-  public static byte[] wrapKey(Key fek, Key kek) {
+  public static byte[] wrapKey(Key fek, Key kek) throws CryptoException {
     try {
       final Cipher c = KEY_WRAP_CIPHER.get();
       c.init(Cipher.WRAP_MODE, kek);
@@ -589,7 +590,7 @@ public class AESCryptoService implements CryptoService {
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "keyId specified by admin")
-  public static Key loadKekFromUri(String keyId) {
+  public static Key loadKekFromUri(String keyId) throws CryptoException {
     try {
       final java.net.URI uri = new URI(keyId);
       return new SecretKeySpec(Files.readAllBytes(Paths.get(uri.getPath())), "AES");

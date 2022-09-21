@@ -38,6 +38,7 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionDispatcher;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
 import org.apache.accumulo.core.spi.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.server.ServerContext;
@@ -76,8 +77,13 @@ public class TableConfiguration extends ZooBasedConfiguration {
     scanDispatchDeriver = newDeriver(conf -> createScanDispatcher(conf, context, tableId));
     compactionDispatchDeriver =
         newDeriver(conf -> createCompactionDispatcher(conf, context, tableId));
-    cryptoServiceDeriver =
-        newDeriver(conf -> createCryptoService(conf, tableId, context.getCryptoFactory()));
+    cryptoServiceDeriver = newDeriver(conf -> {
+      try {
+        return createCryptoService(conf, tableId, context.getCryptoFactory());
+      } catch (CryptoException e) {
+        throw new IllegalArgumentException("Error creating CryptoService", e);
+      }
+    });
   }
 
   @Override
@@ -227,7 +233,7 @@ public class TableConfiguration extends ZooBasedConfiguration {
   }
 
   private CryptoService createCryptoService(AccumuloConfiguration conf, TableId tableId,
-      CryptoServiceFactory factory) {
+      CryptoServiceFactory factory) throws CryptoException {
     CryptoEnvironment env = new CryptoEnvironmentImpl(CryptoEnvironment.Scope.TABLE, tableId, null);
     return factory.getService(env, conf.getAllCryptoProperties());
   }

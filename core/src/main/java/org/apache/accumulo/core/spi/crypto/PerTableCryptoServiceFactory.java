@@ -22,10 +22,12 @@ import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.core.conf.Property.GENERAL_ARBITRARY_PROP_PREFIX;
 import static org.apache.accumulo.core.conf.Property.TABLE_CRYPTO_PREFIX;
 
+import java.io.UncheckedIOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,12 +48,24 @@ public class PerTableCryptoServiceFactory implements CryptoServiceFactory {
   private static final TableId REC_FAKE_ID = TableId.of("RECOVERY_CryptoService_FAKE_ID");
 
   @Override
-  public CryptoService getService(CryptoEnvironment environment, Map<String,String> props) {
+  public CryptoService getService(CryptoEnvironment environment, Map<String,String> props)
+      throws CryptoException {
     if (environment.getScope() == CryptoEnvironment.Scope.WAL) {
-      return cryptoServiceMap.computeIfAbsent(WAL_FAKE_ID, (id) -> getWALServiceInitialized(props));
+      return cryptoServiceMap.computeIfAbsent(WAL_FAKE_ID, (id) -> {
+        try {
+          return getWALServiceInitialized(props);
+        } catch (CryptoException e) {
+          throw new UncheckedIOException("Error creating WAL crypto service", e);
+        }
+      });
     } else if (environment.getScope() == CryptoEnvironment.Scope.RECOVERY) {
-      return cryptoServiceMap.computeIfAbsent(REC_FAKE_ID,
-          (id) -> getRecoveryServiceInitialized(props));
+      return cryptoServiceMap.computeIfAbsent(REC_FAKE_ID, (id) -> {
+        try {
+          return getRecoveryServiceInitialized(props);
+        } catch (CryptoException e) {
+          throw new UncheckedIOException("Error creating RECOVERY crypto service", e);
+        }
+      });
     } else {
       if (environment.getTableId().isEmpty()) {
         log.debug("No tableId present in crypto env: " + environment);
@@ -62,14 +76,19 @@ public class PerTableCryptoServiceFactory implements CryptoServiceFactory {
         return NoCryptoServiceFactory.NONE;
       }
       if (environment.getScope() == CryptoEnvironment.Scope.TABLE) {
-        return cryptoServiceMap.computeIfAbsent(tableId,
-            (id) -> getTableServiceInitialized(tableId, props));
+        return cryptoServiceMap.computeIfAbsent(tableId, (id) -> {
+          try {
+            return getTableServiceInitialized(tableId, props);
+          } catch (CryptoException e) {
+            throw new UncheckedIOException("Error creating TABLE crypto service", e);
+          }
+        });
       }
     }
     throw new IllegalStateException("Invalid config for crypto " + environment + " " + props);
   }
 
-  private CryptoService getWALServiceInitialized(Map<String,String> props) {
+  private CryptoService getWALServiceInitialized(Map<String,String> props) throws CryptoException {
     String name = requireNonNull(props.get(WAL_NAME_PROP),
         "The property " + WAL_NAME_PROP + " is required for encrypting WALs.");
     log.debug("New CryptoService for WAL scope {}={}", WAL_NAME_PROP, name);
@@ -78,7 +97,8 @@ public class PerTableCryptoServiceFactory implements CryptoServiceFactory {
     return cs;
   }
 
-  private CryptoService getRecoveryServiceInitialized(Map<String,String> props) {
+  private CryptoService getRecoveryServiceInitialized(Map<String,String> props)
+      throws CryptoException {
     String name = requireNonNull(props.get(RECOVERY_NAME_PROP),
         "The property " + RECOVERY_NAME_PROP + " is required for encrypting during recovery.");
     log.debug("New CryptoService for Recovery scope {}={}", RECOVERY_NAME_PROP, name);
@@ -87,7 +107,8 @@ public class PerTableCryptoServiceFactory implements CryptoServiceFactory {
     return cs;
   }
 
-  private CryptoService getTableServiceInitialized(TableId tableId, Map<String,String> props) {
+  private CryptoService getTableServiceInitialized(TableId tableId, Map<String,String> props)
+      throws CryptoException {
     String name = requireNonNull(props.get(TABLE_SERVICE_NAME_PROP),
         "The property " + TABLE_SERVICE_NAME_PROP + " is required for encrypting tables.");
     log.debug("New CryptoService for TABLE({}) {}={}", tableId, TABLE_SERVICE_NAME_PROP, name);

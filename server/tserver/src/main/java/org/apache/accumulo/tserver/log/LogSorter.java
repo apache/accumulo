@@ -41,6 +41,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
@@ -214,7 +215,7 @@ public class LogSorter {
   private final double walBlockSize;
   private final CryptoService cryptoService;
 
-  public LogSorter(ServerContext context, AccumuloConfiguration conf) {
+  public LogSorter(ServerContext context, AccumuloConfiguration conf) throws CryptoException {
     this.context = context;
     this.sortedLogConf = extractSortedLogConfig(conf);
     @SuppressWarnings("deprecation")

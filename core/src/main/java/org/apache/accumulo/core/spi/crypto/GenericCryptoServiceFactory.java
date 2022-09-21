@@ -23,6 +23,8 @@ import static org.apache.accumulo.core.conf.Property.TABLE_CRYPTO_PREFIX;
 
 import java.util.Map;
 
+import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
+
 /**
  * Factory that will load a crypto service configured, first checking
  * {@link #GENERAL_SERVICE_NAME_PROP} and then {@link #TABLE_SERVICE_NAME_PROP}. Useful for general
@@ -34,7 +36,8 @@ public class GenericCryptoServiceFactory implements CryptoServiceFactory {
   public static final String TABLE_SERVICE_NAME_PROP = TABLE_CRYPTO_PREFIX + "service";
 
   @Override
-  public CryptoService getService(CryptoEnvironment environment, Map<String,String> properties) {
+  public CryptoService getService(CryptoEnvironment environment, Map<String,String> properties)
+      throws CryptoException {
     if (properties == null || properties.isEmpty()) {
       return NoCryptoServiceFactory.NONE;
     }

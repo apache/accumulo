@@ -21,6 +21,7 @@ package org.apache.accumulo.core.spi.crypto;
 import java.util.Map;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
+import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
 
 /**
  * A Factory that returns a CryptoService based on the environment and configuration.
@@ -36,10 +37,12 @@ public interface CryptoServiceFactory {
    *          CryptoEnvironment containing a variety of information
    * @param properties
    *          configuration
-   *
    * @return CryptoService based on the environment and configuration
+   * @throws CryptoException
+   *           error initializing crypto service
    */
-  CryptoService getService(CryptoEnvironment environment, Map<String,String> properties);
+  CryptoService getService(CryptoEnvironment environment, Map<String,String> properties)
+      throws CryptoException;
 
   /**
    * Loads a crypto service based on the name provided.

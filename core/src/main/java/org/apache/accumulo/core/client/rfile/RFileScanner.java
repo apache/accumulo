@@ -68,6 +68,7 @@ import org.apache.accumulo.core.spi.cache.CacheEntry;
 import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.io.Text;
@@ -182,7 +183,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
     }
   }
 
-  RFileScanner(Opts opts) {
+  RFileScanner(Opts opts) throws CryptoException {
     if (!opts.auths.equals(Authorizations.EMPTY) && !opts.useSystemIterators) {
       throw new IllegalArgumentException(
           "Set authorizations and specified not to use system iterators");

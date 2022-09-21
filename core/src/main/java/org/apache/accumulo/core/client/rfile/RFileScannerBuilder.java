@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.rfile.RFile.ScannerFSOptions;
 import org.apache.accumulo.core.client.rfile.RFile.ScannerOptions;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -102,7 +103,7 @@ class RFileScannerBuilder implements RFile.InputArguments, RFile.ScannerFSOption
   }
 
   @Override
-  public Scanner build() {
+  public Scanner build() throws CryptoException {
     return new RFileScanner(opts);
   }
 

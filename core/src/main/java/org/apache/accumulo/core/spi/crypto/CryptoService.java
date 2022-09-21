@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.spi.crypto;
 
+import java.io.IOException;
 import java.util.Map;
 
 /**
@@ -39,18 +40,18 @@ public interface CryptoService {
    * Initialize the FileEncrypter for the environment and return. This will get called once per
    * R-File or Write Ahead Log. FileEncrypter implementation must be thread safe.
    */
-  FileEncrypter getFileEncrypter(CryptoEnvironment environment);
+  FileEncrypter getFileEncrypter(CryptoEnvironment environment) throws CryptoException;
 
   /**
    * Initialize the FileDecrypter for the environment and return. This will get called once per
    * R-File or Write Ahead Log. FileDecrypter implementation must be thread safe.
    */
-  FileDecrypter getFileDecrypter(CryptoEnvironment environment);
+  FileDecrypter getFileDecrypter(CryptoEnvironment environment) throws CryptoException;
 
   /**
-   * Runtime Crypto exception
+   * Signifies an exception in the Accumulo crypto codepath
    */
-  class CryptoException extends RuntimeException {
+  class CryptoException extends IOException {
 
     private static final long serialVersionUID = -7588781060677839664L;
 

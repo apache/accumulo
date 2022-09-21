@@ -30,6 +30,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
 import org.apache.accumulo.core.spi.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.spi.crypto.GenericCryptoServiceFactory;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
@@ -60,7 +61,8 @@ public class CryptoFactoryLoader {
    * configuration. Creates a new Factory from the configuration and gets the CryptoService from
    * that Factory.
    */
-  public static CryptoService getServiceForServer(AccumuloConfiguration conf) {
+  public static CryptoService getServiceForServer(AccumuloConfiguration conf)
+      throws CryptoException {
     var env = new CryptoEnvironmentImpl(TABLE, null, null);
     CryptoServiceFactory factory = newInstance(conf);
     var allCryptoProperties = conf.getAllCryptoProperties();
@@ -73,7 +75,7 @@ public class CryptoFactoryLoader {
    * GenericCryptoServiceFactory is used for loading the CryptoService.
    */
   public static CryptoService getServiceForClient(CryptoEnvironment.Scope scope,
-      Map<String,String> properties) {
+      Map<String,String> properties) throws CryptoException {
     var factory = loadCryptoFactory(JAVA, GenericCryptoServiceFactory.class.getName());
     CryptoEnvironment env = new CryptoEnvironmentImpl(scope, null, null);
     return factory.getService(env, properties);
@@ -83,7 +85,7 @@ public class CryptoFactoryLoader {
    * For use by client code, in a Table context.
    */
   public static CryptoService getServiceForClientWithTable(Map<String,String> systemConfig,
-      Map<String,String> tableProps, TableId tableId) {
+      Map<String,String> tableProps, TableId tableId) throws CryptoException {
     String factoryKey = Property.INSTANCE_CRYPTO_FACTORY.getKey();
     String clazzName = systemConfig.get(factoryKey);
     if (clazzName == null || clazzName.trim().isEmpty())

@@ -428,7 +428,7 @@ public class CryptoTest {
 
   @Test
   public void testAESKeyUtilsWrapAndUnwrap()
-      throws NoSuchAlgorithmException, NoSuchProviderException {
+      throws CryptoException, NoSuchAlgorithmException, NoSuchProviderException {
     java.security.Key kek = AESCryptoService.generateKey(random, 16);
     java.security.Key fek = AESCryptoService.generateKey(random, 16);
     byte[] wrapped = AESCryptoService.wrapKey(fek, kek);
@@ -439,7 +439,7 @@ public class CryptoTest {
 
   @Test
   public void testAESKeyUtilsFailUnwrapWithWrongKEK()
-      throws NoSuchAlgorithmException, NoSuchProviderException {
+      throws CryptoException, NoSuchAlgorithmException, NoSuchProviderException {
     java.security.Key kek = AESCryptoService.generateKey(random, 16);
     java.security.Key fek = AESCryptoService.generateKey(random, 16);
     byte[] wrongBytes = kek.getEncoded();
@@ -473,7 +473,7 @@ public class CryptoTest {
   }
 
   @Test
-  public void testPerTableFactory() {
+  public void testPerTableFactory() throws CryptoException {
     PerTableCryptoServiceFactory factory = new PerTableCryptoServiceFactory();
     CryptoEnvironment env = new CryptoEnvironmentImpl(TABLE, TableId.of("5"), null);
     HashMap<String,String> props = new HashMap<>();

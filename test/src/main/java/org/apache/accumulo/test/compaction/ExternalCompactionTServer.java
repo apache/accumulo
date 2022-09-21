@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.tserver.TabletClientHandler;
@@ -26,7 +27,7 @@ import org.apache.accumulo.tserver.WriteTracker;
 
 public class ExternalCompactionTServer extends TabletServer {
 
-  ExternalCompactionTServer(ServerOpts opts, String[] args) {
+  ExternalCompactionTServer(ServerOpts opts, String[] args) throws CryptoException {
     super(opts, args);
   }
 
