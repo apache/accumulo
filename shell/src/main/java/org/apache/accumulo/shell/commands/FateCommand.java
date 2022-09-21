@@ -111,11 +111,13 @@ public class FateCommand extends Command {
     }
   }
 
+  private Option cancel;
   private Option delete;
   private Option dump;
   private Option fail;
   private Option list;
   private Option print;
+  private Option summary;
   private Option secretOption;
   private Option statusOption;
   private Option disablePaginationOpt;
@@ -154,7 +156,12 @@ public class FateCommand extends Command {
     ZooReaderWriter zk = getZooReaderWriter(context, cl.getOptionValue(secretOption.getOpt()));
     ZooStore<FateCommand> zs = getZooStore(fatePath, zk);
 
-    if (cl.hasOption(fail.getOpt())) {
+    if (cl.hasOption(cancel.getOpt())) {
+      String[] txids = cl.getOptionValues(cancel.getOpt());
+      validateArgs(txids);
+      System.out.println(
+          "Option not available. Use 'accumulo admin fate -c " + String.join(" ", txids) + "'");
+    } else if (cl.hasOption(fail.getOpt())) {
       String[] txids = cl.getOptionValues(fail.getOpt());
       validateArgs(txids);
       failedCommand = failTx(admin, zs, zk, managerLockPath, txids);
@@ -166,6 +173,8 @@ public class FateCommand extends Command {
       printTx(shellState, admin, zs, zk, tableLocksPath, cl.getOptionValues(list.getOpt()), cl);
     } else if (cl.hasOption(print.getOpt())) {
       printTx(shellState, admin, zs, zk, tableLocksPath, cl.getOptionValues(print.getOpt()), cl);
+    } else if (cl.hasOption(summary.getOpt())) {
+      System.out.println("Option not available. Use 'accumulo admin fate --summary'");
     } else if (cl.hasOption(dump.getOpt())) {
       String output = dumpTx(zs, cl.getOptionValues(dump.getOpt()));
       System.out.println(output);
@@ -267,6 +276,11 @@ public class FateCommand extends Command {
     final Options o = new Options();
 
     OptionGroup commands = new OptionGroup();
+    cancel =
+        new Option("cancel", "cancel-submitted", true, "cancel new or submitted FaTE transactions");
+    cancel.setArgName("txid");
+    cancel.setArgs(Option.UNLIMITED_VALUES);
+    cancel.setOptionalArg(false);
 
     fail = new Option("fail", "fail", true,
         "Transition FaTE transaction status to FAILED_IN_PROGRESS (requires Manager to be down)");
@@ -292,15 +306,22 @@ public class FateCommand extends Command {
     print.setArgs(Option.UNLIMITED_VALUES);
     print.setOptionalArg(true);
 
+    summary =
+        new Option("summary", "summary", true, "print a summary of FaTE transaction information");
+    summary.setArgName("--json");
+    summary.setOptionalArg(true);
+
     dump = new Option("dump", "dump", true, "dump FaTE transaction information details");
     dump.setArgName("txid");
     dump.setArgs(Option.UNLIMITED_VALUES);
     dump.setOptionalArg(true);
 
+    commands.addOption(cancel);
     commands.addOption(fail);
     commands.addOption(delete);
     commands.addOption(list);
     commands.addOption(print);
+    commands.addOption(summary);
     commands.addOption(dump);
     o.addOptionGroup(commands);
 
