@@ -199,10 +199,18 @@ public class Admin implements KeywordExecutable {
     String delete = null;
   }
 
-  @Parameters(commandDescription = "Deletes instance name or id from zookeeper.")
+  @Parameters(
+      commandDescription = "Deletes specific instance name or id from zookeeper or cleans up all old instances.")
   static class DeleteZooInstanceCommand {
     @Parameter(names = {"-i", "--instance"}, description = "the instance name or id to delete")
     String instance;
+    @Parameter(names = {"-c", "--clean"},
+        description = "Cleans Zookeeper by deleting all old instances. This will not delete the instance pointed to by the local accumulo.properties file")
+    boolean clean = false;
+    @Parameter(names = {"--password"},
+        description = "The system secret, if different than instance.secret in accumulo.properties",
+        password = true)
+    String auth;
   }
 
   @Parameters(commandDescription = "Restore Zookeeper data from a file.")
@@ -284,8 +292,8 @@ public class Admin implements KeywordExecutable {
     CheckTabletsCommand checkTabletsCommand = new CheckTabletsCommand();
     cl.addCommand("checkTablets", checkTabletsCommand);
 
-    DeleteZooInstanceCommand deleteZooInstanceOpts = new DeleteZooInstanceCommand();
-    cl.addCommand("deleteZooInstance", deleteZooInstanceOpts);
+    DeleteZooInstanceCommand deleteZooInstOpts = new DeleteZooInstanceCommand();
+    cl.addCommand("deleteZooInstance", deleteZooInstOpts);
 
     DumpConfigCommand dumpConfigCommand = new DumpConfigCommand();
     cl.addCommand("dumpConfig", dumpConfigCommand);
@@ -377,7 +385,8 @@ public class Admin implements KeywordExecutable {
       } else if (cl.getParsedCommand().equals("changeSecret")) {
         ChangeSecret.execute(context, conf);
       } else if (cl.getParsedCommand().equals("deleteZooInstance")) {
-        DeleteZooInstance.execute(deleteZooInstanceOpts.instance);
+        DeleteZooInstance.execute(context, deleteZooInstOpts.clean, deleteZooInstOpts.instance,
+            deleteZooInstOpts.auth);
       } else if (cl.getParsedCommand().equals("restoreZoo")) {
         RestoreZookeeper.execute(conf, restoreZooOpts.file, restoreZooOpts.overwrite);
       } else if (cl.getParsedCommand().equals("locks")) {
