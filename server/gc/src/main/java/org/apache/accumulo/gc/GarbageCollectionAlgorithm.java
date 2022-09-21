@@ -237,6 +237,9 @@ public class GarbageCollectionAlgorithm {
     tableIdsMustHaveSeen.retainAll(tableIdsAfter);
 
     if (tableIdsMustHaveSeen.isEmpty() && !tableIdsSeen.isEmpty()) {
+      // This exception will end up terminating the current GC loop iteration
+      // in SimpleGarbageCollector.run and will be logged. SimpleGarbageCollector
+      // will start the loop again.
       throw new RuntimeException("Garbage collection will not proceed because "
           + "table ids were seen in the metadata table and none were seen Zookeeper. "
           + "This can have two causes. First, total number of tables going to/from "

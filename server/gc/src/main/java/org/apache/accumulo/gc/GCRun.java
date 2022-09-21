@@ -194,7 +194,7 @@ public class GCRun implements GarbageCollectionEnvironment {
           String statePath = context.getZooKeeperRoot() + Constants.ZTABLES + "/"
               + tableId.canonical() + Constants.ZTABLE_STATE;
           try {
-            byte[] state = zr.getData(statePath, null, null);
+            byte[] state = zr.getData(statePath);
             if (state == null) {
               tableState = TableState.UNKNOWN;
             } else {
