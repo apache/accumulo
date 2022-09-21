@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.conf;
 
+import static com.google.common.base.Suppliers.memoize;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
@@ -26,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -54,6 +56,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class ServerConfigurationFactory extends ServerConfiguration {
   private final static Logger log = LoggerFactory.getLogger(ServerConfigurationFactory.class);
 
+  private final Supplier<SystemConfiguration> systemConfig;
   private final Map<TableId,NamespaceConfiguration> tableParentConfigs = new ConcurrentHashMap<>();
   private final Map<TableId,TableConfiguration> tableConfigs = new ConcurrentHashMap<>();
   private final Map<NamespaceId,NamespaceConfiguration> namespaceConfigs =
@@ -70,6 +73,8 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   public ServerConfigurationFactory(ServerContext context, SiteConfiguration siteConfig) {
     this.context = context;
     this.siteConfig = siteConfig;
+    this.systemConfig = memoize(() -> new SystemConfiguration(context,
+        SystemPropKey.of(context.getInstanceID()), siteConfig));
 
     refresher = new ConfigRefreshRunner();
     Runtime.getRuntime()
@@ -90,7 +95,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
 
   @Override
   public AccumuloConfiguration getSystemConfiguration() {
-    return context.getConfiguration();
+    return systemConfig.get();
   }
 
   @Override

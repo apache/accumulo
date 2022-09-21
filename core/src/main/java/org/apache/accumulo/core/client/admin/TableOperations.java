@@ -1213,4 +1213,17 @@ public interface TableOperations {
       throws AccumuloException, TableNotFoundException {
     throw new UnsupportedOperationException();
   }
+
+  /**
+   * Return the TimeType for the given table
+   *
+   * @param tableName
+   *          The name of table to query
+   * @return the TimeType of the supplied table, representing either Logical or Milliseconds
+   * @since 2.1.0
+   */
+  default TimeType getTimeType(String tableName) throws TableNotFoundException {
+    throw new UnsupportedOperationException();
+  }
+
 }
