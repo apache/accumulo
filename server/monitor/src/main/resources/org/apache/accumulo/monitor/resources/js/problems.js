@@ -59,7 +59,7 @@ $(document).ready(function () {
         "type": "html",
         "render": function (data, type, row, meta) {
           if (type === 'display') data = '<a href="javascript:clearTableProblemsTable(\'' +
-            row.tableID + '\');">clear ALL ' + row.tableName + ' problems</a>';
+            row.tableID + '\');">clear ALL problems with table ' + row.tableName + '</a>';
           return data;
         }
       }
