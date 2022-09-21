@@ -183,7 +183,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
     }
   }
 
-  RFileScanner(Opts opts) throws CryptoException {
+  RFileScanner(Opts opts) {
     if (!opts.auths.equals(Authorizations.EMPTY) && !opts.useSystemIterators) {
       throw new IllegalArgumentException(
           "Set authorizations and specified not to use system iterators");
@@ -224,8 +224,12 @@ class RFileScanner extends ScannerOptions implements Scanner {
     if (this.dataCache == null) {
       this.dataCache = new NoopCache();
     }
-    this.cryptoService =
-        CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.TABLE, opts.tableConfig);
+    try {
+      this.cryptoService =
+          CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.TABLE, opts.tableConfig);
+    } catch (CryptoException e) {
+      throw new IllegalStateException("Error creating crypto service", e);
+    }
   }
 
   @Override

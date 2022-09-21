@@ -36,7 +36,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 
@@ -198,7 +197,7 @@ public class RFile {
     /**
      * @return a Scanner over RFile using the specified options.
      */
-    Scanner build() throws CryptoException;
+    Scanner build();
   }
 
   /**

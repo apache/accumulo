@@ -51,7 +51,7 @@ public interface CryptoService {
   /**
    * Signifies an exception in the Accumulo crypto codepath
    */
-  class CryptoException extends IOException {
+  public static class CryptoException extends IOException {
 
     private static final long serialVersionUID = -7588781060677839664L;
 
