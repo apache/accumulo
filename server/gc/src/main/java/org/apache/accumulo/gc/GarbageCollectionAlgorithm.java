@@ -23,6 +23,7 @@ import static java.util.function.Predicate.not;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -44,6 +45,7 @@ import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
 
@@ -134,11 +136,14 @@ public class GarbageCollectionAlgorithm {
   }
 
   private void removeCandidatesInUse(GarbageCollectionEnvironment gce,
-      SortedMap<String,String> candidateMap) {
-    var refStream = gce.getReferences();
-    Iterator<Reference> iter = refStream.iterator();
+      SortedMap<String,String> candidateMap) throws InterruptedException {
+
+    Set<TableId> tableIdsBefore = gce.getCandidateTableIDs();
+    Set<TableId> tableIdsSeen = new HashSet<>();
+    Iterator<Reference> iter = gce.getReferences().iterator();
     while (iter.hasNext()) {
       Reference ref = iter.next();
+      tableIdsSeen.add(ref.getTableId());
 
       if (ref.isDirectory()) {
         var dirReference = (ReferenceDirectory) ref;
@@ -172,6 +177,9 @@ public class GarbageCollectionAlgorithm {
           log.debug("Candidate was still in use: {}", relativePath);
       }
     }
+    Set<TableId> tableIdsAfter = gce.getCandidateTableIDs();
+    ensureAllTablesChecked(Collections.unmodifiableSet(tableIdsBefore),
+        Collections.unmodifiableSet(tableIdsSeen), Collections.unmodifiableSet(tableIdsAfter));
   }
 
   private long removeBlipCandidates(GarbageCollectionEnvironment gce,
@@ -216,6 +224,46 @@ public class GarbageCollectionAlgorithm {
     return blipCount;
   }
 
+  @VisibleForTesting
+  /**
+   * Double check no tables were missed during GC
+   */
+  protected void ensureAllTablesChecked(Set<TableId> tableIdsBefore, Set<TableId> tableIdsSeen,
+      Set<TableId> tableIdsAfter) {
+
+    // if a table was added or deleted during this run, it is acceptable to not
+    // have seen those tables ids when scanning the metadata table. So get the intersection
+    final Set<TableId> tableIdsMustHaveSeen = new HashSet<>(tableIdsBefore);
+    tableIdsMustHaveSeen.retainAll(tableIdsAfter);
+
+    if (tableIdsMustHaveSeen.isEmpty() && !tableIdsSeen.isEmpty()) {
+      // This exception will end up terminating the current GC loop iteration
+      // in SimpleGarbageCollector.run and will be logged. SimpleGarbageCollector
+      // will start the loop again.
+      throw new RuntimeException("Garbage collection will not proceed because "
+          + "table ids were seen in the metadata table and none were seen Zookeeper. "
+          + "This can have two causes. First, total number of tables going to/from "
+          + "zero during a GC cycle will cause this. Second, it could be caused by "
+          + "corruption of the metadata table and/or Zookeeper. Only the second cause "
+          + "is problematic, but there is no way to distinguish between the two causes "
+          + "so this GC cycle will not proceed. The first cause should be transient "
+          + "and one would not expect to see this message repeated in subsequent GC cycles.");
+    }
+
+    // From that intersection, remove all the table ids that were seen.
+    tableIdsMustHaveSeen.removeAll(tableIdsSeen);
+
+    // If anything is left then we missed a table and may not have removed rfiles references
+    // from the candidates list that are actually still in use, which would
+    // result in the rfiles being deleted in the next step of the GC process
+    if (!tableIdsMustHaveSeen.isEmpty()) {
+      // maybe a scan failed?
+      throw new IllegalStateException("Saw table IDs in ZK that were not in metadata table:  "
+          + tableIdsMustHaveSeen + " TableIDs before GC: " + tableIdsBefore
+          + ", TableIDs during GC: " + tableIdsSeen + ", TableIDs after GC: " + tableIdsAfter);
+    }
+  }
+
   protected void confirmDeletesFromReplication(GarbageCollectionEnvironment gce,
       SortedMap<String,String> candidateMap) {
     var replicationNeededIterator = gce.getReplicationNeededIterator();
@@ -255,7 +303,7 @@ public class GarbageCollectionAlgorithm {
   }
 
   private void cleanUpDeletedTableDirs(GarbageCollectionEnvironment gce,
-      SortedMap<String,String> candidateMap) throws IOException {
+      SortedMap<String,String> candidateMap) throws InterruptedException, IOException {
     HashSet<TableId> tableIdsWithDeletes = new HashSet<>();
 
     // find the table ids that had dirs deleted
@@ -268,7 +316,7 @@ public class GarbageCollectionAlgorithm {
       }
     }
 
-    Set<TableId> tableIdsInZookeeper = gce.getTableIDs();
+    Set<TableId> tableIdsInZookeeper = gce.getTableIDs().keySet();
 
     tableIdsWithDeletes.removeAll(tableIdsInZookeeper);
 
@@ -280,7 +328,7 @@ public class GarbageCollectionAlgorithm {
   }
 
   private long confirmDeletesTrace(GarbageCollectionEnvironment gce,
-      SortedMap<String,String> candidateMap) throws TableNotFoundException {
+      SortedMap<String,String> candidateMap) throws InterruptedException, TableNotFoundException {
     long blips = 0;
     Span confirmDeletesSpan = TraceUtil.startSpan(this.getClass(), "confirmDeletes");
     try (Scope scope = confirmDeletesSpan.makeCurrent()) {
@@ -297,7 +345,8 @@ public class GarbageCollectionAlgorithm {
   }
 
   private void deleteConfirmedCandidates(GarbageCollectionEnvironment gce,
-      SortedMap<String,String> candidateMap) throws IOException, TableNotFoundException {
+      SortedMap<String,String> candidateMap)
+      throws InterruptedException, IOException, TableNotFoundException {
     Span deleteSpan = TraceUtil.startSpan(this.getClass(), "deleteFiles");
     try (Scope deleteScope = deleteSpan.makeCurrent()) {
       gce.deleteConfirmedCandidates(candidateMap);
@@ -311,7 +360,8 @@ public class GarbageCollectionAlgorithm {
     cleanUpDeletedTableDirs(gce, candidateMap);
   }
 
-  public long collect(GarbageCollectionEnvironment gce) throws TableNotFoundException, IOException {
+  public long collect(GarbageCollectionEnvironment gce)
+      throws InterruptedException, TableNotFoundException, IOException {
 
     Iterator<String> candidatesIter = gce.getCandidates();
     long totalBlips = 0;
@@ -336,7 +386,7 @@ public class GarbageCollectionAlgorithm {
    * Given a sub-list of possible deletion candidates, process and remove valid deletion candidates.
    */
   private long deleteBatch(GarbageCollectionEnvironment gce, List<String> currentBatch)
-      throws TableNotFoundException, IOException {
+      throws InterruptedException, TableNotFoundException, IOException {
 
     long origSize = currentBatch.size();
     gce.incrementCandidatesStat(origSize);
