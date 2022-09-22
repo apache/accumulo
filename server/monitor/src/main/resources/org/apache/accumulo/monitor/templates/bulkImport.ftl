@@ -25,8 +25,8 @@
       </div>
       <div class="row">
         <div class="col-xs-12">
-          <table id="bulkListTable" class="table table-bordered table-striped table-condensed">
-            <caption><span class="table-caption">Bulk Imports</span><br/></caption>
+          <table id="bulkListTable" class="table caption-top table-bordered table-striped table-condensed">
+            <caption><span class="table-caption">Bulk Imports</span><br /></caption>
             <thead>
               <tr>
                 <th>Directory&nbsp;</th>
@@ -38,11 +38,11 @@
           </table>
         </div>
       </div>
-      </br></br>
+      <br /><br />
       <div class="row">
         <div class="col-xs-12">
-          <table id="bulkPerServerTable" class="table table-bordered table-striped table-condensed">
-            <caption><span class="table-caption">Per TabletServer</span><br/></caption>
+          <table id="bulkPerServerTable" class="table caption-top table-bordered table-striped table-condensed">
+            <caption><span class="table-caption">Per TabletServer</span><br /></caption>
             <thead>
               <tr>
                 <th>Server</th>
@@ -52,4 +52,4 @@
             </thead>
             <tbody></tbody>
           </table>
-      </div>
+        </div>

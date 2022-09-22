@@ -19,17 +19,16 @@
 package org.apache.accumulo.core.clientImpl;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.data.TabletId;
-import org.apache.accumulo.core.spi.scan.ScanServerSelector.ScanAttempt;
+import org.apache.accumulo.core.spi.scan.ScanServerAttempt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Collections2;
-import com.google.common.collect.Maps;
 
 /**
  * This class is used to track scan attempts for the ScanServerSelector. Its designed to accept
@@ -38,18 +37,18 @@ import com.google.common.collect.Maps;
  * Snapshots are useful for ensuring that authors of ScanServerSelector plugins do not have to
  * consider strange concurrency issues when writing a plugin.
  */
-public class ScanAttemptsImpl {
+public class ScanServerAttemptsImpl {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ScanAttemptsImpl.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ScanServerAttemptsImpl.class);
 
-  static class ScanAttemptImpl implements ScanAttempt {
+  static class ScanServerAttemptImpl implements ScanServerAttempt {
 
     private final String server;
     private final long time;
     private final Result result;
     private volatile long mutationCount = Long.MAX_VALUE;
 
-    ScanAttemptImpl(Result result, String server, long time) {
+    ScanServerAttemptImpl(Result result, String server, long time) {
       this.result = result;
       this.server = Objects.requireNonNull(server);
       this.time = time;
@@ -79,12 +78,13 @@ public class ScanAttemptsImpl {
     }
   }
 
-  private Map<TabletId,Collection<ScanAttemptImpl>> attempts = new ConcurrentHashMap<>();
+  private final Map<TabletId,Collection<ScanServerAttemptImpl>> attempts =
+      new ConcurrentHashMap<>();
   private long mutationCounter = 0;
 
-  private void add(TabletId tablet, ScanAttempt.Result result, String server, long endTime) {
+  private void add(TabletId tablet, ScanServerAttempt.Result result, String server, long endTime) {
 
-    ScanAttemptImpl sa = new ScanAttemptImpl(result, server, endTime);
+    ScanServerAttemptImpl sa = new ScanServerAttemptImpl(result, server, endTime);
 
     attempts.computeIfAbsent(tablet, k -> ConcurrentHashMap.newKeySet()).add(sa);
 
@@ -96,31 +96,50 @@ public class ScanAttemptsImpl {
 
   }
 
-  public static interface ScanAttemptReporter {
-    void report(ScanAttempt.Result result);
+  public interface ScanAttemptReporter {
+    void report(ScanServerAttempt.Result result);
   }
 
   ScanAttemptReporter createReporter(String server, TabletId tablet) {
     return new ScanAttemptReporter() {
       @Override
-      public void report(ScanAttempt.Result result) {
+      public void report(ScanServerAttempt.Result result) {
         LOG.trace("Received result: {}", result);
         add(tablet, result, server, System.currentTimeMillis());
       }
     };
   }
 
-  Map<TabletId,Collection<ScanAttemptImpl>> snapshot() {
-    // allows only seeing scan attempt objs that were added before this call
+  /**
+   * Creates and returns a snapshot of {@link ScanServerAttempt} objects that were added before this
+   * call
+   *
+   * @return TabletIds mapped to a collection of {@link ScanServerAttempt} objects associated with
+   *         that TabletId
+   */
+  Map<TabletId,Collection<ScanServerAttemptImpl>> snapshot() {
 
-    long snapMC;
-    synchronized (ScanAttemptsImpl.this) {
-      snapMC = mutationCounter;
+    final long mutationCounterSnapshot;
+    synchronized (ScanServerAttemptsImpl.this) {
+      mutationCounterSnapshot = mutationCounter;
     }
-    var tmp = Maps.transformValues(attempts, tabletAttemptList -> Collections2
-        .filter(tabletAttemptList, sai -> sai.getMutationCount() < snapMC));
 
-    return Maps.filterEntries(tmp, entry -> !entry.getValue().isEmpty());
+    Map<TabletId,Collection<ScanServerAttemptImpl>> result = new ConcurrentHashMap<>();
 
+    attempts.forEach((tabletId, scanAttempts) -> {
+
+      // filter out ScanServerScanAttempt objects that were added after this call
+      List<ScanServerAttemptImpl> filteredScanAttempts = scanAttempts.stream()
+          .filter(scanAttempt -> scanAttempt.getMutationCount() < mutationCounterSnapshot)
+          .collect(Collectors.toList());
+
+      // only add an entry to the map if there are ScanServerScanAttempt objects for the current
+      // TabletId
+      if (!filteredScanAttempts.isEmpty())
+        result.put(tabletId, filteredScanAttempts);
+
+    });
+
+    return result;
   }
 }

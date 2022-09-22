@@ -48,8 +48,6 @@ import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoEnvironmentImpl;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.crypto.CryptoUtils;
 import org.apache.accumulo.core.crypto.streams.NoFlushOutputStream;
 import org.apache.accumulo.core.data.Mutation;
@@ -342,7 +340,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
    *           if the header cannot be fully read (can happen if the tserver died before finishing)
    */
   public static DataInputStream getDecryptingStream(FSDataInputStream input,
-      AccumuloConfiguration conf) throws LogHeaderIncompleteException, IOException {
+      CryptoService cryptoService) throws LogHeaderIncompleteException, IOException {
     DataInputStream decryptingInput;
 
     byte[] magic4 = DfsLogger.LOG_FILE_HEADER_V4.getBytes(UTF_8);
@@ -356,14 +354,13 @@ public class DfsLogger implements Comparable<DfsLogger> {
     try {
       input.readFully(magicBuffer);
       if (Arrays.equals(magicBuffer, magic4)) {
-        CryptoService cryptoService =
-            CryptoServiceFactory.newInstance(conf, ClassloaderType.ACCUMULO);
-        FileDecrypter decrypter = CryptoUtils.getFileDecrypter(cryptoService, Scope.WAL, input);
+        FileDecrypter decrypter =
+            CryptoUtils.getFileDecrypter(cryptoService, Scope.WAL, null, input);
         log.debug("Using {} for decrypting WAL", cryptoService.getClass().getSimpleName());
         decryptingInput = cryptoService instanceof NoCryptoService ? input
             : new DataInputStream(decrypter.decryptStream(input));
       } else if (Arrays.equals(magicBuffer, magic3)) {
-        // Read logs files from Accumulo 1.9
+        // Read logs files from Accumulo 1.9 and throw an error if they are encrypted
         String cryptoModuleClassname = input.readUTF();
         if (!cryptoModuleClassname.equals("NullCryptoModule")) {
           throw new IllegalArgumentException(
@@ -426,12 +423,13 @@ public class DfsLogger implements Comparable<DfsLogger> {
       }
 
       // Initialize the log file with a header and its encryption
-      CryptoService cryptoService = context.getCryptoService();
+      CryptoEnvironment env = new CryptoEnvironmentImpl(Scope.WAL);
+      CryptoService cryptoService = context.getCryptoFactory().getService(env,
+          conf.getConfiguration().getAllCryptoProperties());
       logFile.write(LOG_FILE_HEADER_V4.getBytes(UTF_8));
 
       log.debug("Using {} for encrypting WAL {}", cryptoService.getClass().getSimpleName(),
           filename);
-      CryptoEnvironment env = new CryptoEnvironmentImpl(Scope.WAL, null);
       FileEncrypter encrypter = cryptoService.getFileEncrypter(env);
       byte[] cryptoParams = encrypter.getDecryptionParameters();
       CryptoUtils.writeParams(cryptoParams, logFile);

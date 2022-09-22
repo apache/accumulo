@@ -47,21 +47,21 @@ import org.apache.hadoop.io.Text;
  * <p>
  * This interface seeks to satisfy the following goals.
  *
- * <UL>
- * <LI>Provide a single entry point for all reading and writing of Accumulo Metadata.
- * <LI>The root tablet persists its data in Zookeeper. Metadata tablets persist their data in root
+ * <ul>
+ * <li>Provide a single entry point for all reading and writing of Accumulo Metadata.
+ * <li>The root tablet persists its data in Zookeeper. Metadata tablets persist their data in root
  * tablet. All other tablets persist their data in the metadata table. This interface abstracts how
  * and where information for a tablet is actually persisted.
- * <LI>Before the creation of this interface, many concurrent metadata table updates resulted in
+ * <li>Before the creation of this interface, many concurrent metadata table updates resulted in
  * separate synchronous RPCs. The design of this interface allows batching of metadata table updates
  * within a tablet server for cluster wide efficiencies. Batching is not required by
  * implementations, but the design of the interface makes it possible.
- * <LI>Make code that updates Accumulo persistent metadata more concise. Before this interface
+ * <li>Make code that updates Accumulo persistent metadata more concise. Before this interface
  * existed, there was a lot of redundant and verbose code for updating metadata.
- * <LI>Reduce specialized code for the root tablet. Currently there is specialized code to manage
+ * <li>Reduce specialized code for the root tablet. Currently there is specialized code to manage
  * the root tablets files that is different from all other tablets. This interface is the beginning
  * of an effort to remove this specialized code. See #936
- * </UL>
+ * </ul>
  */
 public interface Ample {
 

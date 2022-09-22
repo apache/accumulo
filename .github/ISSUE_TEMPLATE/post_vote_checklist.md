@@ -30,6 +30,7 @@ assignees: ''
   - [ ] Add `LTM: true` to the release notes front-matter for LTM releases
   - [ ] Navigation
   - [ ] Downloads page
+  - [ ] If LTM release, update previous LTM release entry on downloads page and release notes with an EOL date 1 year from the current release date
   - [ ] DOAP file
   - [ ] Add manual/examples/javadoc (build javadoc from tag with `mvn clean package -DskipTests javadoc:aggregate -Paggregate-javadocs`)
   - [ ] If javadoc is built with Java 11, [patch it](https://github.com/apache/accumulo/blob/main/contrib/javadoc11.patch)

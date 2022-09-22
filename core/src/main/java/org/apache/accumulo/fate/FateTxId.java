@@ -59,4 +59,12 @@ public class FateTxId {
     return FastFormat.toHexString(PREFIX, tid, SUFFIX);
   }
 
+  public static long parseTidFromUserInput(String s) {
+    if (isFormatedTid(s)) {
+      return fromString(s);
+    } else {
+      return Long.parseLong(s, 16);
+    }
+  }
+
 }

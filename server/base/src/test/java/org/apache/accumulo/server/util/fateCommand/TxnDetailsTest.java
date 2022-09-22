@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.shell.commands.fateCommand;
+package org.apache.accumulo.server.util.fateCommand;
 
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
@@ -52,7 +52,7 @@ class TxnDetailsTest {
     expect(status1.getTimeCreated()).andReturn(now - TimeUnit.DAYS.toMillis(1)).anyTimes();
     expect(status1.getStatus()).andReturn(ReadOnlyTStore.TStatus.IN_PROGRESS).anyTimes();
     expect(status1.getTop()).andReturn("step1").anyTimes();
-    expect(status1.getRepoTarget()).andReturn("command1").anyTimes();
+    expect(status1.getTxName()).andReturn("runningTx1").anyTimes();
     expect(status1.getTxid()).andReturn("abcdabcd").anyTimes();
     expect(status1.getHeldLocks()).andReturn(List.of()).anyTimes();
     expect(status1.getWaitingLocks()).andReturn(List.of()).anyTimes();
@@ -61,7 +61,7 @@ class TxnDetailsTest {
     expect(status2.getTimeCreated()).andReturn(now - TimeUnit.DAYS.toMillis(7)).anyTimes();
     expect(status2.getStatus()).andReturn(ReadOnlyTStore.TStatus.IN_PROGRESS).anyTimes();
     expect(status2.getTop()).andReturn("step2").anyTimes();
-    expect(status2.getRepoTarget()).andReturn("command2").anyTimes();
+    expect(status2.getTxName()).andReturn("runningTx2").anyTimes();
     expect(status2.getTxid()).andReturn("123456789").anyTimes();
     expect(status2.getHeldLocks()).andReturn(List.of()).anyTimes();
     expect(status2.getWaitingLocks()).andReturn(List.of()).anyTimes();
@@ -95,7 +95,7 @@ class TxnDetailsTest {
     expect(status1.getTimeCreated()).andReturn(now - TimeUnit.DAYS.toMillis(1)).anyTimes();
     expect(status1.getStatus()).andReturn(ReadOnlyTStore.TStatus.IN_PROGRESS).anyTimes();
     expect(status1.getTop()).andReturn("step1").anyTimes();
-    expect(status1.getRepoTarget()).andReturn("command1").anyTimes();
+    expect(status1.getTxName()).andReturn("runningTx").anyTimes();
     expect(status1.getTxid()).andReturn("abcdabcd").anyTimes();
     // incomplete lock info (W unknown ns id, no table))
     expect(status1.getHeldLocks()).andReturn(List.of("R:1", "R:2", "W:a")).anyTimes();

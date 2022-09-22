@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.shell.commands.fateCommand;
+package org.apache.accumulo.server.util.fateCommand;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -28,11 +28,11 @@ import org.apache.accumulo.fate.AdminUtil;
 
 public class FateTxnDetails implements Comparable<FateTxnDetails> {
   final static String TXN_HEADER =
-      "Running\ttxn_id\t\t\t\tStatus\t\tCommand\t\tStep (top)\t\tlocks held:(table id, name)\tlocks waiting:(table id, name)\n";
+      "Running\ttxn_id\t\t\t\tStatus\t\tCommand\t\tStep (top)\t\tlocks held:(table id, name)\tlocks waiting:(table id, name)";
 
   private long running;
   private String status = "?";
-  private String command = "?";
+  private String txName = "?";
   private String step = "?";
   private String txnId = "?";
   private List<String> locksHeld = List.of();
@@ -71,8 +71,8 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
     if (txnStatus.getTop() != null) {
       step = txnStatus.getTop();
     }
-    if (txnStatus.getRepoTarget() != null) {
-      command = txnStatus.getRepoTarget();
+    if (txnStatus.getTxName() != null) {
+      txName = txnStatus.getTxName();
     }
     if (txnStatus.getTxid() != null) {
       txnId = txnStatus.getTxid();
@@ -93,6 +93,10 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
       }
     }
     return formattedLocks;
+  }
+
+  public String getTxnId() {
+    return txnId;
   }
 
   /**
@@ -133,8 +137,8 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
     String hms = String.format("%d:%02d:%02d", elapsed.toHours(), elapsed.toMinutesPart(),
         elapsed.toSecondsPart());
 
-    return hms + "\t" + txnId + "\t" + status + "\t" + command + "\t" + step + "\theld:"
-        + locksHeld.toString() + "\twaiting:" + locksWaiting.toString() + "\n";
+    return hms + "\t" + txnId + "\t" + status + "\t" + txName + "\t" + step + "\theld:"
+        + locksHeld.toString() + "\twaiting:" + locksWaiting.toString();
   }
 
 }

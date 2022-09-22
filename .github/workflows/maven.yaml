@@ -29,6 +29,9 @@ on:
   pull_request:
     branches: [ '*' ]
 
+permissions:
+  contents: read
+
 jobs:
   # fast build to populate the local maven repository cache
   fastbuild:

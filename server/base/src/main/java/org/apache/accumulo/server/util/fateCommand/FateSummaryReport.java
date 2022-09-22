@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.shell.commands.fateCommand;
+package org.apache.accumulo.server.util.fateCommand;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -72,8 +72,8 @@ public class FateSummaryReport {
     }
     String top = txnStatus.getTop();
     stepCounts.merge(Objects.requireNonNullElse(top, "?"), 1, Integer::sum);
-    String debug = txnStatus.getRepoTarget();
-    cmdCounts.merge(Objects.requireNonNullElse(debug, "?"), 1, Integer::sum);
+    String runningRepo = txnStatus.getTxName();
+    cmdCounts.merge(Objects.requireNonNullElse(runningRepo, "?"), 1, Integer::sum);
 
     // filter status if provided.
     if (!statusFilterNames.isEmpty() && !statusFilterNames.contains(txnStatus.getStatus().name())) {
@@ -130,20 +130,20 @@ public class FateSummaryReport {
     lines.add(String.format("Report Time: %s",
         fmt.format(Instant.ofEpochMilli(reportTime).truncatedTo(ChronoUnit.SECONDS))));
 
-    lines.add("Status counts:\n\n");
-    statusCounts.forEach((status, count) -> lines.add(String.format("  %s: %d\n", status, count)));
+    lines.add("Status counts:");
+    statusCounts.forEach((status, count) -> lines.add(String.format("  %s: %d", status, count)));
 
-    lines.add("\nCommand counts:\n\n");
-    cmdCounts.forEach((cmd, count) -> lines.add(String.format("  %s: %d\n", cmd, count)));
+    lines.add("Command counts:");
+    cmdCounts.forEach((cmd, count) -> lines.add(String.format("  %s: %d", cmd, count)));
 
-    lines.add("\nStep counts:\n\n");
-    stepCounts.forEach((step, count) -> lines.add(String.format("  %s: %d\n", step, count)));
+    lines.add("Step counts:");
+    stepCounts.forEach((step, count) -> lines.add(String.format("  %s: %d", step, count)));
 
-    lines.add("\nFate transactions (oldest first):\n\n");
+    lines.add("\nFate transactions (oldest first):");
     lines.add("Status Filters: "
         + (statusFilterNames.isEmpty() ? "[NONE]" : statusFilterNames.toString()));
 
-    lines.add("\n" + FateTxnDetails.TXN_HEADER);
+    lines.add(FateTxnDetails.TXN_HEADER);
     fateDetails.forEach(txnDetails -> lines.add(txnDetails.toString()));
 
     return lines;

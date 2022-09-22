@@ -28,16 +28,12 @@ import java.util.Stack;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
-import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.zookeeper.KeeperException;
 import org.xml.sax.Attributes;
 import org.xml.sax.helpers.DefaultHandler;
-
-import com.beust.jcommander.Parameter;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -108,16 +104,9 @@ public class RestoreZookeeper {
     }
   }
 
-  static class Opts extends Help {
-    @Parameter(names = "--overwrite")
-    boolean overwrite = false;
-    @Parameter(names = "--file")
-    String file;
-  }
-
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who provided input")
-  public static void restoreZookeeper(final AccumuloConfiguration conf, final String file,
+  public static void execute(final AccumuloConfiguration conf, final String file,
       final boolean overwrite) throws Exception {
     var zoo = new ZooReaderWriter(conf);
 
@@ -135,9 +124,4 @@ public class RestoreZookeeper {
     in.close();
   }
 
-  public static void main(String[] args) throws Exception {
-    Opts opts = new Opts();
-    opts.parseArgs(RestoreZookeeper.class.getName(), args);
-    restoreZookeeper(SiteConfiguration.auto(), opts.file, opts.overwrite);
-  }
 }

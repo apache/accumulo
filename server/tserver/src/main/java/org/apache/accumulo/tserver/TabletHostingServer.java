@@ -21,6 +21,7 @@ package org.apache.accumulo.tserver;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
+import org.apache.accumulo.core.spi.scan.ScanServerInfo;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.server.GarbageCollectionLogger;
@@ -32,8 +33,8 @@ import org.apache.accumulo.tserver.session.SessionManager;
 import org.apache.accumulo.tserver.tablet.Tablet;
 
 /**
- * This interface exist to support passing a {@link TabletServer} or {@link ScanServer} to a method
- * that can take either.
+ * This interface exist to support passing a {@link TabletServer} or {@link ScanServerInfo} to a
+ * method that can take either.
  */
 public interface TabletHostingServer {
 

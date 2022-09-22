@@ -123,6 +123,7 @@ public class Constants {
   public static final String EXPORT_TABLE_CONFIG_FILE = "table_config.txt";
   public static final String EXPORT_FILE = "exportMetadata.zip";
   public static final String EXPORT_INFO_FILE = "accumulo_export_info.txt";
+  public static final String IMPORT_MAPPINGS_FILE = "mappings.txt";
 
   public static final String HDFS_TABLES_DIR = "/tables";
 
