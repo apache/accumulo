@@ -8,7 +8,7 @@
     "License"); you may not use this file except in compliance
     with the License.  You may obtain a copy of the License at
 
-      http://www.apache.org/licenses/LICENSE-2.0
+      https://www.apache.org/licenses/LICENSE-2.0
 
     Unless required by applicable law or agreed to in writing,
     software distributed under the License is distributed on an
@@ -25,7 +25,8 @@
       </div>
       <div class="row">
         <div class="col-xs-12">
-          <table id="compactionsList" class="table table-bordered table-striped table-condensed">
+          <table id="compactionsList" class="table caption-top table-bordered table-striped table-condensed">
+            <caption><span class="table-caption">Compactions</span><br /></caption>
             <thead>
               <tr>
                 <th class="firstcell">Server&nbsp;</th>

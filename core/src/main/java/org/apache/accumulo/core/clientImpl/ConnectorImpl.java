@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -40,6 +40,7 @@ import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
@@ -66,11 +67,11 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
     // server jar
     final String tokenClassName = context.getCredentials().getToken().getClass().getName();
     if (!SYSTEM_TOKEN_NAME.equals(tokenClassName)) {
-      ServerClient.executeVoid(context, iface -> {
-        if (!iface.authenticate(TraceUtil.traceInfo(), context.rpcCreds()))
-          throw new AccumuloSecurityException("Authentication failed, access denied",
-              SecurityErrorCode.BAD_CREDENTIALS);
-      });
+      if (!ThriftClientTypes.CLIENT.execute(context,
+          client -> client.authenticate(TraceUtil.traceInfo(), context.rpcCreds()))) {
+        throw new AccumuloSecurityException("Authentication failed, access denied",
+            SecurityErrorCode.BAD_CREDENTIALS);
+      }
     }
   }
 

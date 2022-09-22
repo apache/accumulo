@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -29,10 +29,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -117,20 +115,15 @@ public class FileSystemMonitor {
 
     // Create a task to check each mount periodically to see if its state has changed.
     for (Mount mount : mounts) {
-      ThreadPools.watchCriticalScheduledTask(
-          ThreadPools.createGeneralScheduledExecutorService(conf).scheduleWithFixedDelay(
-              Threads.createNamedRunnable(mount.mountPoint + "filesystem monitor", () -> {
-                try {
-                  checkMount(mount);
-                } catch (final Exception e) {
-                  Halt.halt(-42, new Runnable() {
-                    @Override
-                    public void run() {
-                      log.error("Exception while checking mount points, halting process", e);
-                    }
-                  });
-                }
-              }), period, period, TimeUnit.MILLISECONDS));
+      ThreadPools.watchCriticalFixedDelay(conf, period,
+          Threads.createNamedRunnable(mount.mountPoint + "filesystem monitor", () -> {
+            try {
+              checkMount(mount);
+            } catch (final Exception e) {
+              Halt.halt(-42,
+                  () -> log.error("Exception while checking mount points, halting process", e));
+            }
+          }));
     }
 
   }
@@ -147,18 +140,16 @@ public class FileSystemMonitor {
       throw new Exception("Filesystem " + mount.mountPoint + " switched to read only");
   }
 
-  public static void start(AccumuloConfiguration conf, Property prop) {
-    if (conf.getBoolean(prop)) {
-      if (new File(PROC_MOUNTS).exists()) {
-        try {
-          new FileSystemMonitor(PROC_MOUNTS, 60000, conf);
-          log.info("Filesystem monitor started");
-        } catch (IOException e) {
-          log.error("Failed to initialize file system monitor", e);
-        }
-      } else {
-        log.info("Not monitoring filesystems, " + PROC_MOUNTS + " does not exists");
+  public static void start(AccumuloConfiguration conf) {
+    if (new File(PROC_MOUNTS).exists()) {
+      try {
+        new FileSystemMonitor(PROC_MOUNTS, 60000, conf);
+        log.info("Filesystem monitor started");
+      } catch (IOException e) {
+        log.error("Failed to initialize file system monitor", e);
       }
+    } else {
+      log.info("Not monitoring filesystems, " + PROC_MOUNTS + " does not exists");
     }
   }
 }

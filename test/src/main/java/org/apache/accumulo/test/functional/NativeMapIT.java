@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,14 +19,15 @@
 package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.apache.accumulo.harness.AccumuloITBase.random;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -44,15 +45,14 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.accumulo.tserver.NativeMap;
 import org.apache.accumulo.tserver.memory.NativeMapLoader;
 import org.apache.hadoop.io.Text;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
-@Category(SunnyDayTests.class)
+@Tag(SUNNY_DAY)
 public class NativeMapIT {
 
   private Key newKey(int r) {
@@ -78,7 +78,7 @@ public class NativeMapIT {
         + "/accumulo-native-" + Constants.VERSION);
   }
 
-  @BeforeClass
+  @BeforeAll
   public static void setUp() {
     NativeMapLoader.loadForTest(List.of(nativeMapLocation()), () -> fail("Can't load native maps"));
   }

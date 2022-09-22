@@ -8,7 +8,7 @@
 # "License"); you may not use this file except in compliance
 # with the License.  You may obtain a copy of the License at
 #
-#   http://www.apache.org/licenses/LICENSE-2.0
+#   https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing,
 # software distributed under the License is distributed on an
@@ -19,17 +19,17 @@
 #
 
 if [ -z "$JAVA_HOME" ]; then
-   echo "JAVA_HOME is not set. Java is required to proceed"
-   exit 1
+  echo "JAVA_HOME is not set. Java is required to proceed"
+  exit 1
 fi
 mkdir -p target/generated-sources/HelloWorld/test
-sed "s/%%/Hello World\!/" < src/test/java/test/HelloWorldTemplate > target/generated-sources/HelloWorld/test/HelloWorld.java
-$JAVA_HOME/bin/javac target/generated-sources/HelloWorld/test/HelloWorld.java -d target/generated-sources/HelloWorld
-$JAVA_HOME/bin/jar -cf target/test-classes/HelloWorld.jar -C target/generated-sources/HelloWorld test/HelloWorld.class
+sed "s/%%/Hello World\!/" <src/test/java/test/HelloWorldTemplate >target/generated-sources/HelloWorld/test/HelloWorld.java
+"$JAVA_HOME"/bin/javac target/generated-sources/HelloWorld/test/HelloWorld.java -d target/generated-sources/HelloWorld
+"$JAVA_HOME"/bin/jar -cf target/test-classes/HelloWorld.jar -C target/generated-sources/HelloWorld test/HelloWorld.class
 rm -r target/generated-sources/HelloWorld/test
 
 mkdir -p target/generated-sources/HalloWelt/test
-sed "s/%%/Hallo Welt/" < src/test/java/test/HelloWorldTemplate > target/generated-sources/HalloWelt/test/HelloWorld.java
-$JAVA_HOME/bin/javac target/generated-sources/HalloWelt/test/HelloWorld.java -d target/generated-sources/HalloWelt
-$JAVA_HOME/bin/jar -cf target/test-classes/HelloWorld2.jar -C target/generated-sources/HalloWelt test/HelloWorld.class
+sed "s/%%/Hallo Welt/" <src/test/java/test/HelloWorldTemplate >target/generated-sources/HalloWelt/test/HelloWorld.java
+"$JAVA_HOME"/bin/javac target/generated-sources/HalloWelt/test/HelloWorld.java -d target/generated-sources/HalloWelt
+"$JAVA_HOME"/bin/jar -cf target/test-classes/HelloWorld2.jar -C target/generated-sources/HalloWelt test/HelloWorld.class
 rm -r target/generated-sources/HalloWelt/test

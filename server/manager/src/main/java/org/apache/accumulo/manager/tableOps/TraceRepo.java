@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -45,7 +45,7 @@ public class TraceRepo implements Repo {
 
   @Override
   public long isReady(long tid, Manager environment) throws Exception {
-    Span span = TraceUtil.startFateSpan(repo.getClass(), repo.getDescription(), tinfo);
+    Span span = TraceUtil.startFateSpan(repo.getClass(), repo.getName(), tinfo);
     try (Scope scope = span.makeCurrent()) {
       return repo.isReady(tid, environment);
     } catch (Exception e) {
@@ -58,7 +58,7 @@ public class TraceRepo implements Repo {
 
   @Override
   public Repo call(long tid, Manager environment) throws Exception {
-    Span span = TraceUtil.startFateSpan(repo.getClass(), repo.getDescription(), tinfo);
+    Span span = TraceUtil.startFateSpan(repo.getClass(), repo.getName(), tinfo);
     try (Scope scope = span.makeCurrent()) {
       Repo result = repo.call(tid, environment);
       if (result == null)
@@ -74,7 +74,7 @@ public class TraceRepo implements Repo {
 
   @Override
   public void undo(long tid, Manager environment) throws Exception {
-    Span span = TraceUtil.startFateSpan(repo.getClass(), repo.getDescription(), tinfo);
+    Span span = TraceUtil.startFateSpan(repo.getClass(), repo.getName(), tinfo);
     try (Scope scope = span.makeCurrent()) {
       repo.undo(tid, environment);
     } catch (Exception e) {
@@ -86,8 +86,8 @@ public class TraceRepo implements Repo {
   }
 
   @Override
-  public String getDescription() {
-    return repo.getDescription();
+  public String getName() {
+    return repo.getName();
   }
 
   @Override

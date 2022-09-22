@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -164,13 +164,13 @@ public class CompactableImpl implements Compactable {
    * This class tracks status of a tablets files for compactions for {@link CompactableImpl} owning
    * the following functionality.
    *
-   * <UL>
-   * <LI>Tracks which files are reserved for compactions
-   * <LI>Determines which files are available for compactions
-   * <LI>Tracks which files are chopped and which need to be chopped
-   * <LI>Tracks which files are selected for user and selector compactions
-   * <LI>Coordinates the file selection process
-   * </UL>
+   * <ul>
+   * <li>Tracks which files are reserved for compactions
+   * <li>Determines which files are available for compactions
+   * <li>Tracks which files are chopped and which need to be chopped
+   * <li>Tracks which files are selected for user and selector compactions
+   * <li>Coordinates the file selection process
+   * </ul>
    *
    * <p>
    * The class is structured in such a way that the above functionality can be unit tested.
@@ -1064,7 +1064,7 @@ public class CompactableImpl implements Compactable {
 
   @SuppressWarnings("removal")
   private boolean isCompactionStratConfigured() {
-    return tablet.getTableConfiguration().isPropertySet(Property.TABLE_COMPACTION_STRATEGY, true);
+    return tablet.getTableConfiguration().isPropertySet(Property.TABLE_COMPACTION_STRATEGY);
   }
 
   @Override
@@ -1105,23 +1105,23 @@ public class CompactableImpl implements Compactable {
   }
 
   class CompactionCheck {
-    private final Supplier<Boolean> memoizedCheck;
+    private final Supplier<Boolean> expensiveCheck;
+    private final Supplier<Boolean> inexpensiveCheck;
 
     public CompactionCheck(CompactionServiceId service, CompactionKind kind, Long compactionId) {
-      this.memoizedCheck = Suppliers.memoizeWithExpiration(() -> {
-        if (closed)
+      this.expensiveCheck = Suppliers.memoizeWithExpiration(() -> {
+        return service.equals(getConfiguredService(kind));
+      }, 3, TimeUnit.SECONDS);
+      this.inexpensiveCheck = Suppliers.memoizeWithExpiration(() -> {
+        if (closed
+            || (kind == CompactionKind.USER && lastSeenCompactionCancelId.get() >= compactionId))
           return false;
-        if (!service.equals(getConfiguredService(kind)))
-          return false;
-        if (kind == CompactionKind.USER && lastSeenCompactionCancelId.get() >= compactionId)
-          return false;
-
         return true;
-      }, 100, TimeUnit.MILLISECONDS);
+      }, 50, TimeUnit.MILLISECONDS);
     }
 
     public boolean isCompactionEnabled() {
-      return memoizedCheck.get();
+      return inexpensiveCheck.get() && expensiveCheck.get();
     }
   }
 

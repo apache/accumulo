@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,10 +18,11 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -39,21 +40,19 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import com.google.common.collect.Iterators;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class CreateAndUseIT extends AccumuloClusterHarness {
 
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
-  }
-
   private static NewTableConfiguration ntc;
 
-  @BeforeClass
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
+  }
+
+  @BeforeAll
   public static void createData() {
     SortedSet<Text> splits = new TreeSet<>();
 
@@ -93,7 +92,7 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
 
           ei++;
         }
-        assertEquals("Did not see expected number of rows", 257, ei);
+        assertEquals(257, ei, "Did not see expected number of rows");
       }
     }
   }
@@ -132,9 +131,7 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
 
       try (BatchScanner bs = client.createBatchScanner(table3)) {
         bs.setRanges(ranges);
-        Iterator<Entry<Key,Value>> iter = bs.iterator();
-        int count = Iterators.size(iter);
-        assertEquals("Did not expect to find any entries", 0, count);
+        assertTrue(bs.stream().findAny().isEmpty(), "Did not expect to find any entries");
       }
     }
   }

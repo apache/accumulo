@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -45,6 +45,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -91,8 +92,8 @@ class LoadFiles extends ManagerRepo {
 
   private static synchronized ExecutorService getThreadPool(Manager manager) {
     if (threadPool == null) {
-      threadPool = ThreadPools.createExecutorService(manager.getConfiguration(),
-          Property.MANAGER_BULK_THREADPOOL_SIZE, true);
+      threadPool = ThreadPools.getServerThreadPools().createExecutorService(
+          manager.getConfiguration(), Property.MANAGER_BULK_THREADPOOL_SIZE, true);
     }
     return threadPool;
   }
@@ -166,7 +167,8 @@ class LoadFiles extends ManagerRepo {
               long timeInMillis =
                   manager.getConfiguration().getTimeInMillis(Property.MANAGER_BULK_TIMEOUT);
               server = servers[random.nextInt(servers.length)].getHostAndPort();
-              client = ThriftUtil.getTServerClient(server, manager.getContext(), timeInMillis);
+              client = ThriftUtil.getClient(ThriftClientTypes.CLIENT, server, manager.getContext(),
+                  timeInMillis);
               List<String> attempt1 = Collections.singletonList(file);
               log.debug("Asking " + server + " to bulk import " + file);
               List<String> fail =

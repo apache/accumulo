@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -20,7 +20,6 @@ package org.apache.accumulo.manager.tableOps.tableImport;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.Namespaces;
@@ -33,8 +32,9 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.util.TablePropUtil;
+import org.apache.accumulo.server.util.PropUtil;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
@@ -88,13 +88,15 @@ class ImportPopulateZookeeper extends ManagerRepo {
     }
 
     VolumeManager volMan = env.getVolumeManager();
-    for (Entry<String,String> entry : getExportedProps(volMan).entrySet())
-      if (!TablePropUtil.setTableProperty(env.getContext(), tableInfo.tableId, entry.getKey(),
-          entry.getValue())) {
-        throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
-            tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-            "Invalid table property " + entry.getKey());
-      }
+
+    try {
+      PropUtil.setProperties(env.getContext(), TablePropKey.of(env.getContext(), tableInfo.tableId),
+          getExportedProps(volMan));
+    } catch (IllegalStateException ex) {
+      throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
+          tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+          "failed to set table properties");
+    }
 
     return new CreateImportDir(tableInfo);
   }

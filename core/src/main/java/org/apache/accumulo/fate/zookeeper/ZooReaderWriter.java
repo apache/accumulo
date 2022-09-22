@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -24,8 +24,8 @@ import static java.util.Objects.requireNonNull;
 import java.util.List;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.zookeeper.CreateMode;
@@ -40,7 +40,7 @@ public class ZooReaderWriter extends ZooReader {
     byte[] mutate(byte[] currentValue) throws AcceptableThriftTableOperationException;
   }
 
-  public ZooReaderWriter(SiteConfiguration conf) {
+  public ZooReaderWriter(AccumuloConfiguration conf) {
     this(conf.get(Property.INSTANCE_ZK_HOST),
         (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT),
         conf.get(Property.INSTANCE_SECRET));
@@ -132,6 +132,33 @@ public class ZooReaderWriter extends ZooReader {
         // then, the node can be deleted, causing setData() to fail with NONODE;
         // if that happens, the following code ensures we retry
         e -> e.code() == Code.NONODE && policy == NodeExistsPolicy.OVERWRITE);
+  }
+
+  /**
+   * Overwrite a persistent node if the data version matches.
+   *
+   * @param zPath
+   *          the zookeeper path
+   * @param data
+   *          the byte array data
+   * @param expectedVersion
+   *          the expected data version of the zookeeper node.
+   * @return true if the data was set, false if the version does not match expected.
+   * @throws KeeperException
+   *           if a KeeperException occurs (no node most likely)
+   * @throws InterruptedException
+   *           if the zookeeper write is interrupted.
+   */
+  public boolean overwritePersistentData(String zPath, byte[] data, final int expectedVersion)
+      throws KeeperException, InterruptedException {
+    return retryLoop(zk -> {
+      try {
+        zk.setData(zPath, data, expectedVersion);
+        return true;
+      } catch (KeeperException.BadVersionException ex) {
+        return false;
+      }
+    });
   }
 
   /**
@@ -242,15 +269,28 @@ public class ZooReaderWriter extends ZooReader {
    * Delete the specified node, and ignore NONODE exceptions.
    */
   public void delete(String path) throws KeeperException, InterruptedException {
-    retryLoop(zk -> {
-      try {
-        zk.delete(path, -1);
-      } catch (KeeperException e) {
-        // ignore the case where the node doesn't exist
-        if (e.code() != Code.NONODE) {
-          throw e;
-        }
+    try {
+      deleteStrict(path, -1);
+    } catch (KeeperException e) {
+      if (e.code() != Code.NONODE) {
+        throw e;
       }
+    }
+  }
+
+  /**
+   * Delete the specified node if the version matches the provided version. All underlying
+   * exceptions are thrown back to the caller.
+   *
+   * @param path
+   *          the path of the ZooKeeper node.
+   * @param version
+   *          the expected version of the ZooKeeper node.
+   */
+  public void deleteStrict(final String path, final int version)
+      throws KeeperException, InterruptedException {
+    retryLoop(zk -> {
+      zk.delete(path, version);
       return null;
     });
   }

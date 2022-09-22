@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -23,8 +23,8 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 
@@ -34,9 +34,9 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * This test is not thread-safe.
@@ -48,7 +48,7 @@ public class InitializeTest {
   private ZooReaderWriter zoo;
   private InitialConfiguration initConfig;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     conf = new Configuration(false);
     fs = createMock(VolumeManager.class);
@@ -62,7 +62,7 @@ public class InitializeTest {
     zoo = createMock(ZooReaderWriter.class);
   }
 
-  @After
+  @AfterEach
   public void tearDown() {
     verify(sconf, zoo, fs);
   }

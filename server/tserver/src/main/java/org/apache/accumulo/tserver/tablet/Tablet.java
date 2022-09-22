@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,7 +19,6 @@
 package org.apache.accumulo.tserver.tablet;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
@@ -56,7 +55,6 @@ import org.apache.accumulo.core.clientImpl.UserCompactionUtils;
 import org.apache.accumulo.core.conf.AccumuloConfiguration.Deriver;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.Violations;
-import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -66,8 +64,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.YieldCallback;
-import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -84,21 +80,17 @@ import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
+import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanDispatch;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.ShutdownUtil;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionStats;
-import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.fs.TooManyFilesException;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.fs.VolumeUtil.TabletFiles;
@@ -124,6 +116,7 @@ import org.apache.accumulo.tserver.compactions.Compactable;
 import org.apache.accumulo.tserver.constraints.ConstraintChecker;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
+import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
@@ -144,17 +137,12 @@ import io.opentelemetry.context.Scope;
 /**
  * Provide access to a single row range in a living TabletServer.
  */
-public class Tablet {
+public class Tablet extends TabletBase {
   private static final Logger log = LoggerFactory.getLogger(Tablet.class);
 
-  private static final byte[] EMPTY_BYTES = new byte[0];
-
   private final TabletServer tabletServer;
-  private final ServerContext context;
-  private final KeyExtent extent;
   private final TabletResourceManager tabletResources;
   private final DatafileManager datafileManager;
-  private final TableConfiguration tableConfiguration;
   private final String dirName;
 
   private final TabletMemory tabletMemory;
@@ -168,11 +156,10 @@ public class Tablet {
 
   private final AtomicLong dataSourceDeletions = new AtomicLong(0);
 
+  @Override
   public long getDataSourceDeletions() {
     return dataSourceDeletions.get();
   }
-
-  private final Set<ScanDataSource> activeScans = new HashSet<>();
 
   private enum CloseState {
     OPEN, CLOSING, CLOSED, COMPLETE
@@ -182,8 +169,8 @@ public class Tablet {
 
   private boolean updatingFlushID = false;
 
-  private long lastFlushID = -1;
-  private long lastCompactID = -1;
+  private AtomicLong lastFlushID = new AtomicLong(-1);
+  private AtomicLong lastCompactID = new AtomicLong(-1);
 
   private static class CompactionWaitInfo {
     long flushID = -1;
@@ -212,12 +199,8 @@ public class Tablet {
    * Counts are maintained in this object and reported out with the Micrometer metrics via
    * TabletServerMetricsUtil
    */
-  private long lookupCount = 0;
-  private long queryResultCount = 0;
-  private long queryResultBytes = 0;
   private long ingestCount = 0;
   private long ingestBytes = 0;
-  private final AtomicLong scannedCount = new AtomicLong(0);
 
   /**
    * Rates are calculated here in the Tablet for use in the Monitor but we do not emit them as
@@ -228,8 +211,6 @@ public class Tablet {
   private final Rate ingestRate = new Rate(0.95);
   private final Rate ingestByteRate = new Rate(0.95);
   private final Rate scannedRate = new Rate(0.95);
-
-  private final Deriver<byte[]> defaultSecurityLabel;
 
   private long lastMinorCompactionFinishTime = 0;
   private long lastMapFileImportTime = 0;
@@ -303,26 +284,17 @@ public class Tablet {
       final TabletResourceManager trm, TabletData data)
       throws IOException, IllegalArgumentException {
 
+    super(tabletServer, extent);
+
     this.tabletServer = tabletServer;
-    this.context = tabletServer.getContext();
-    this.extent = extent;
     this.tabletResources = trm;
     this.lastLocation = data.getLastLocation();
-    this.lastFlushID = data.getFlushID();
-    this.lastCompactID = data.getCompactID();
+    this.lastFlushID.set(data.getFlushID());
+    this.lastCompactID.set(data.getCompactID());
     this.splitCreationTime = data.getSplitTime();
     this.tabletTime = TabletTime.getInstance(data.getTime());
     this.persistedTime = tabletTime.getTime();
     this.logId = tabletServer.createLogId();
-
-    TableConfiguration tblConf = tabletServer.getTableConfiguration(extent);
-    if (tblConf == null) {
-      tabletServer.getContext().clearTableListCache();
-      tblConf = tabletServer.getTableConfiguration(extent);
-      requireNonNull(tblConf, "Could not get table configuration for " + extent.tableId());
-    }
-
-    this.tableConfiguration = tblConf;
 
     // translate any volume changes
     @SuppressWarnings("deprecation")
@@ -343,14 +315,6 @@ public class Tablet {
     final SortedMap<StoredTabletFile,DataFileValue> datafiles = tabletPaths.datafiles;
 
     constraintChecker = tableConfiguration.newDeriver(ConstraintChecker::new);
-
-    if (extent.isMeta()) {
-      defaultSecurityLabel = () -> EMPTY_BYTES;
-    } else {
-      defaultSecurityLabel = tableConfiguration.newDeriver(
-          conf -> new ColumnVisibility(conf.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY))
-              .getExpression());
-    }
 
     tabletMemory = new TabletMemory(this);
 
@@ -446,10 +410,6 @@ public class Tablet {
         data.getExternalCompactions());
   }
 
-  public ServerContext getContext() {
-    return context;
-  }
-
   private void removeOldTemporaryFiles(
       Map<ExternalCompactionId,ExternalCompactionMetadata> externalCompactions) {
     // remove any temporary files created by a previous tablet server
@@ -481,152 +441,6 @@ public class Tablet {
     }
   }
 
-  private LookupResult lookup(SortedKeyValueIterator<Key,Value> mmfi, List<Range> ranges,
-      List<KVEntry> results, ScanParameters scanParams, long maxResultsSize) throws IOException {
-
-    LookupResult lookupResult = new LookupResult();
-
-    boolean exceededMemoryUsage = false;
-    boolean tabletClosed = false;
-
-    Set<ByteSequence> cfset = null;
-    if (!scanParams.getColumnSet().isEmpty()) {
-      cfset = LocalityGroupUtil.families(scanParams.getColumnSet());
-    }
-
-    long batchTimeOut = scanParams.getBatchTimeOut();
-
-    long timeToRun = TimeUnit.MILLISECONDS.toNanos(batchTimeOut);
-    long startNanos = System.nanoTime();
-
-    if (batchTimeOut <= 0 || batchTimeOut == Long.MAX_VALUE) {
-      batchTimeOut = 0;
-    }
-
-    // determine if the iterator supported yielding
-    YieldCallback<Key> yield = new YieldCallback<>();
-    mmfi.enableYielding(yield);
-    boolean yielded = false;
-
-    for (Range range : ranges) {
-
-      boolean timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) > timeToRun;
-
-      if (exceededMemoryUsage || tabletClosed || timesUp || yielded) {
-        lookupResult.unfinishedRanges.add(range);
-        continue;
-      }
-
-      int entriesAdded = 0;
-
-      try {
-        if (cfset != null) {
-          mmfi.seek(range, cfset, true);
-        } else {
-          mmfi.seek(range, Set.of(), false);
-        }
-
-        while (mmfi.hasTop()) {
-          if (yield.hasYielded()) {
-            throw new IOException("Coding error: hasTop returned true but has yielded at "
-                + yield.getPositionAndReset());
-          }
-          Key key = mmfi.getTopKey();
-
-          KVEntry kve = new KVEntry(key, mmfi.getTopValue());
-          results.add(kve);
-          entriesAdded++;
-          lookupResult.bytesAdded += kve.estimateMemoryUsed();
-          lookupResult.dataSize += kve.numBytes();
-
-          exceededMemoryUsage = lookupResult.bytesAdded > maxResultsSize;
-
-          timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) > timeToRun;
-
-          if (exceededMemoryUsage || timesUp) {
-            addUnfinishedRange(lookupResult, range, key);
-            break;
-          }
-
-          mmfi.next();
-        }
-
-        if (yield.hasYielded()) {
-          yielded = true;
-          Key yieldPosition = yield.getPositionAndReset();
-          if (!range.contains(yieldPosition)) {
-            throw new IOException("Underlying iterator yielded to a position outside of its range: "
-                + yieldPosition + " not in " + range);
-          }
-          if (!results.isEmpty()
-              && yieldPosition.compareTo(results.get(results.size() - 1).getKey()) <= 0) {
-            throw new IOException("Underlying iterator yielded to a position"
-                + " that does not follow the last key returned: " + yieldPosition + " <= "
-                + results.get(results.size() - 1).getKey());
-          }
-          addUnfinishedRange(lookupResult, range, yieldPosition);
-
-          log.debug("Scan yield detected at position " + yieldPosition);
-          getTabletServer().getScanMetrics().addYield(1);
-        }
-      } catch (TooManyFilesException tmfe) {
-        // treat this as a closed tablet, and let the client retry
-        log.warn("Tablet {} has too many files, batch lookup can not run", getExtent());
-        handleTabletClosedDuringScan(results, lookupResult, exceededMemoryUsage, range,
-            entriesAdded);
-        tabletClosed = true;
-      } catch (IOException ioe) {
-        if (ShutdownUtil.isShutdownInProgress()) {
-          // assume HDFS shutdown hook caused this exception
-          log.debug("IOException while shutdown in progress", ioe);
-          handleTabletClosedDuringScan(results, lookupResult, exceededMemoryUsage, range,
-              entriesAdded);
-          tabletClosed = true;
-        } else {
-          throw ioe;
-        }
-      } catch (IterationInterruptedException iie) {
-        if (isClosed()) {
-          handleTabletClosedDuringScan(results, lookupResult, exceededMemoryUsage, range,
-              entriesAdded);
-          tabletClosed = true;
-        } else {
-          throw iie;
-        }
-      } catch (TabletClosedException tce) {
-        handleTabletClosedDuringScan(results, lookupResult, exceededMemoryUsage, range,
-            entriesAdded);
-        tabletClosed = true;
-      }
-
-    }
-
-    return lookupResult;
-  }
-
-  private void handleTabletClosedDuringScan(List<KVEntry> results, LookupResult lookupResult,
-      boolean exceededMemoryUsage, Range range, int entriesAdded) {
-    if (exceededMemoryUsage) {
-      throw new IllegalStateException(
-          "Tablet " + extent + "should not exceed memory usage or close, not both");
-    }
-
-    if (entriesAdded > 0) {
-      addUnfinishedRange(lookupResult, range, results.get(results.size() - 1).getKey());
-    } else {
-      lookupResult.unfinishedRanges.add(range);
-    }
-
-    lookupResult.closed = true;
-  }
-
-  private void addUnfinishedRange(LookupResult lookupResult, Range range, Key key) {
-    if (range.getEndKey() == null || key.compareTo(range.getEndKey()) < 0) {
-      Range nlur = new Range(new Key(key), false, range.getEndKey(), range.isEndKeyInclusive());
-      lookupResult.unfinishedRanges.add(nlur);
-    }
-  }
-
   public void checkConditions(ConditionChecker checker, Authorizations authorizations,
       AtomicBoolean iFlag) throws IOException {
 
@@ -634,7 +448,7 @@ public class Tablet {
         null, false, null, -1, null);
     scanParams.setScanDispatch(ScanDispatch.builder().build());
 
-    ScanDataSource dataSource = new ScanDataSource(this, scanParams, false, iFlag);
+    ScanDataSource dataSource = createDataSource(scanParams, false, iFlag);
 
     try {
       SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
@@ -647,149 +461,6 @@ public class Tablet {
       // to return mapfiles, even when exception is thrown
       dataSource.close(false);
     }
-  }
-
-  public LookupResult lookup(List<Range> ranges, List<KVEntry> results, ScanParameters scanParams,
-      long maxResultSize, AtomicBoolean interruptFlag) throws IOException {
-
-    if (ranges.isEmpty()) {
-      return new LookupResult();
-    }
-
-    ranges = Range.mergeOverlapping(ranges);
-    if (ranges.size() > 1) {
-      Collections.sort(ranges);
-    }
-
-    Range tabletRange = extent.toDataRange();
-    for (Range range : ranges) {
-      // do a test to see if this range falls within the tablet, if it does not
-      // then clip will throw an exception
-      tabletRange.clip(range);
-    }
-
-    ScanDataSource dataSource = new ScanDataSource(this, scanParams, true, interruptFlag);
-
-    LookupResult result = null;
-
-    try {
-      SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
-      lookupCount++;
-      result = lookup(iter, ranges, results, scanParams, maxResultSize);
-      return result;
-    } catch (IOException ioe) {
-      dataSource.close(true);
-      throw ioe;
-    } finally {
-      // code in finally block because always want
-      // to return mapfiles, even when exception is thrown
-      dataSource.close(false);
-
-      synchronized (this) {
-        queryResultCount += results.size();
-        if (result != null) {
-          queryResultBytes += result.dataSize;
-        }
-      }
-    }
-  }
-
-  Batch nextBatch(SortedKeyValueIterator<Key,Value> iter, Range range, ScanParameters scanParams)
-      throws IOException {
-
-    // log.info("In nextBatch..");
-
-    long batchTimeOut = scanParams.getBatchTimeOut();
-
-    long timeToRun = TimeUnit.MILLISECONDS.toNanos(batchTimeOut);
-    long startNanos = System.nanoTime();
-
-    if (batchTimeOut == Long.MAX_VALUE || batchTimeOut <= 0) {
-      batchTimeOut = 0;
-    }
-    List<KVEntry> results = new ArrayList<>();
-    Key key = null;
-
-    Value value;
-    long resultSize = 0L;
-    long resultBytes = 0L;
-
-    long maxResultsSize = tableConfiguration.getAsBytes(Property.TABLE_SCAN_MAXMEM);
-
-    Key continueKey = null;
-    boolean skipContinueKey = false;
-
-    YieldCallback<Key> yield = new YieldCallback<>();
-
-    // we cannot yield if we are in isolation mode
-    if (!scanParams.isIsolated()) {
-      iter.enableYielding(yield);
-    }
-
-    if (scanParams.getColumnSet().isEmpty()) {
-      iter.seek(range, Set.of(), false);
-    } else {
-      iter.seek(range, LocalityGroupUtil.families(scanParams.getColumnSet()), true);
-    }
-
-    while (iter.hasTop()) {
-      if (yield.hasYielded()) {
-        throw new IOException(
-            "Coding error: hasTop returned true but has yielded at " + yield.getPositionAndReset());
-      }
-      value = iter.getTopValue();
-      key = iter.getTopKey();
-
-      KVEntry kvEntry = new KVEntry(key, value); // copies key and value
-      results.add(kvEntry);
-      resultSize += kvEntry.estimateMemoryUsed();
-      resultBytes += kvEntry.numBytes();
-
-      boolean timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) >= timeToRun;
-
-      if (resultSize >= maxResultsSize || results.size() >= scanParams.getMaxEntries() || timesUp) {
-        continueKey = new Key(key);
-        skipContinueKey = true;
-        break;
-      }
-
-      iter.next();
-    }
-
-    if (yield.hasYielded()) {
-      continueKey = new Key(yield.getPositionAndReset());
-      skipContinueKey = true;
-      if (!range.contains(continueKey)) {
-        throw new IOException("Underlying iterator yielded to a position outside of its range: "
-            + continueKey + " not in " + range);
-      }
-      if (!results.isEmpty()
-          && continueKey.compareTo(results.get(results.size() - 1).getKey()) <= 0) {
-        throw new IOException(
-            "Underlying iterator yielded to a position that does not follow the last key returned: "
-                + continueKey + " <= " + results.get(results.size() - 1).getKey());
-      }
-
-      log.debug("Scan yield detected at position " + continueKey);
-      getTabletServer().getScanMetrics().addYield(1);
-    } else if (!iter.hasTop()) {
-      // end of tablet has been reached
-      continueKey = null;
-      if (results.isEmpty()) {
-        results = null;
-      }
-    }
-
-    return new Batch(skipContinueKey, results, continueKey, resultBytes);
-  }
-
-  public Scanner createScanner(Range range, ScanParameters scanParams,
-      AtomicBoolean interruptFlag) {
-    // do a test to see if this range falls within the tablet, if it does not
-    // then clip will throw an exception
-    extent.toDataRange().clip(range);
-
-    return new Scanner(this, range, scanParams, interruptFlag);
   }
 
   DataFileValue minorCompact(InMemoryMap memTable, TabletFile tmpDatafile, TabletFile newDatafile,
@@ -879,7 +550,7 @@ public class Tablet {
           return;
         }
 
-        if (lastFlushID >= tableFlushID) {
+        if (lastFlushID.get() >= tableFlushID) {
           return;
         }
 
@@ -889,7 +560,7 @@ public class Tablet {
         }
 
         if (getTabletMemory().getMemTable().getNumEntries() == 0) {
-          lastFlushID = tableFlushID;
+          lastFlushID.set(tableFlushID);
           updatingFlushID = true;
           updateMetadata = true;
         } else {
@@ -1216,6 +887,7 @@ public class Tablet {
    * Closes the mapfiles associated with a Tablet. If saveState is true, a minor compaction is
    * performed.
    */
+  @Override
   public void close(boolean saveState) throws IOException {
     initiateClose(saveState);
     completeClose(saveState, true);
@@ -1402,7 +1074,7 @@ public class Tablet {
       }
 
       tabletMeta.getFlushId().ifPresent(flushId -> {
-        if (flushId != lastFlushID) {
+        if (flushId != lastFlushID.get()) {
           String msg = "Closed tablet " + extent + " lastFlushID is inconsistent with metadata : "
               + flushId + " != " + lastFlushID;
           log.error(msg);
@@ -1411,7 +1083,7 @@ public class Tablet {
       });
 
       tabletMeta.getCompactId().ifPresent(compactId -> {
-        if (compactId != lastCompactID) {
+        if (compactId != lastCompactID.get()) {
           String msg = "Closed tablet " + extent + " lastCompactID is inconsistent with metadata : "
               + compactId + " != " + lastCompactID;
           log.error(msg);
@@ -1419,7 +1091,11 @@ public class Tablet {
         }
       });
 
-      compareToDataInMemory(tabletMeta);
+      if (!tabletMeta.getFilesMap().equals(getDatafileManager().getDatafileSizes())) {
+        String msg = "Data files in " + extent + " differ from in-memory data "
+            + tabletMeta.getFilesMap() + " " + getDatafileManager().getDatafileSizes();
+        log.error(msg);
+      }
     } catch (Exception e) {
       String msg = "Failed to do close consistency check for tablet " + extent;
       log.error(msg, e);
@@ -1435,23 +1111,61 @@ public class Tablet {
     }
   }
 
-  private void compareToDataInMemory(TabletMetadata tabletMetadata) {
-    if (!tabletMetadata.getFilesMap().equals(getDatafileManager().getDatafileSizes())) {
-      String msg = "Data files in " + extent + " differ from in-memory data "
-          + tabletMetadata.getFilesMap() + " " + getDatafileManager().getDatafileSizes();
-      log.error(msg);
-    }
-  }
+  /**
+   * Checks that tablet metadata from the metadata table matches what this tablet has in memory. The
+   * caller of this method must acquire the updateCounter parameter before acquiring the
+   * tabletMetadata.
+   *
+   * @param updateCounter
+   *          used to check for conucurrent updates in which case this check is a no-op. See
+   *          {@link #getUpdateCount()}
+   * @param tabletMetadata
+   *          the metadata for this tablet that was acquired from the metadata table.
+   */
+  public synchronized void compareTabletInfo(MetadataUpdateCount updateCounter,
+      TabletMetadata tabletMetadata) {
 
-  public synchronized void compareTabletInfo(Long updateCounter, TabletMetadata tabletMetadata) {
+    // verify the given counter is for this tablet, if this check fail it indicates a bug in the
+    // calling code
+    Preconditions.checkArgument(updateCounter.getExtent().equals(getExtent()),
+        "Counter had unexpected extent %s != %s", updateCounter.getExtent(), getExtent());
+
+    // verify the given tablet metadata is for this tablet, if this check fail it indicates a bug in
+    // the calling code
+    Preconditions.checkArgument(tabletMetadata.getExtent().equals(getExtent()),
+        "Tablet metadata had unexpected extent %s != %s", tabletMetadata.getExtent(), getExtent());
+
+    // All of the log messages in this method have the AMCC acronym which means Accumulo Metadata
+    // Consistency Check. AMCC was added to the log messages to make grep/search for all log
+    // message from this method easy to find.
+
     if (isClosed() || isClosing()) {
+      log.trace("AMCC Tablet {} was closed, so skipping check", tabletMetadata.getExtent());
       return;
     }
-    // if the counter didn't change, compare metadata to what is in memory
-    if (updateCounter == this.getUpdateCount()) {
-      this.compareToDataInMemory(tabletMetadata);
+
+    var dataFileSizes = getDatafileManager().getDatafileSizes();
+
+    if (!tabletMetadata.getFilesMap().equals(dataFileSizes)) {
+      // The counters are modified outside of locks before and after tablet metadata operations and
+      // data file updates so, it's very important to acquire the 2nd counts after doing the
+      // equality check above. If the counts are the same (as the ones acquired before reading
+      // metadata table) after the equality check above then we know the tablet did not do any
+      // metadata updates while we were reading metadata and then comparing.
+      var latestCount = this.getUpdateCount();
+      if (updateCounter.overlapsUpdate() || !updateCounter.equals(latestCount)) {
+        log.trace(
+            "AMCC Tablet {} may have been updating its metadata while it was being read for "
+                + "check, so skipping check {} {}",
+            tabletMetadata.getExtent(), updateCounter, latestCount);
+      } else {
+        log.error("Data files in {} differ from in-memory data {} {} {} {}", extent,
+            tabletMetadata.getFilesMap(), dataFileSizes, updateCounter, latestCount);
+      }
+    } else {
+      log.trace("AMCC Tablet {} files in memory are same as in metadata table {}",
+          tabletMetadata.getExtent(), updateCounter);
     }
-    // if counter did change, don't compare metadata and try again later
   }
 
   /**
@@ -1490,8 +1204,8 @@ public class Tablet {
 
     try {
       // we should make .25 below configurable
-      keys = FileUtil.findMidPoint(context, chooseTabletDir(), extent.prevEndRow(), extent.endRow(),
-          files, .25);
+      keys = FileUtil.findMidPoint(context, tableConfiguration, chooseTabletDir(),
+          extent.prevEndRow(), extent.endRow(), files, .25, true);
     } catch (IOException e) {
       log.error("Failed to find midpoint {}", e.getMessage());
       return null;
@@ -1508,7 +1222,7 @@ public class Tablet {
 
       Text lastRow;
       if (extent.endRow() == null) {
-        Key lastKey = (Key) FileUtil.findLastKey(context, files);
+        Key lastKey = (Key) FileUtil.findLastKey(context, tableConfiguration, files);
         lastRow = lastKey.getRow();
       } else {
         lastRow = extent.endRow();
@@ -1630,10 +1344,6 @@ public class Tablet {
     return findSplitRow(getDatafileManager().getFiles()) != null;
   }
 
-  public KeyExtent getExtent() {
-    return extent;
-  }
-
   synchronized void computeNumEntries() {
     Collection<DataFileValue> vals = getDatafileManager().getDatafileSizes().values();
 
@@ -1662,6 +1372,7 @@ public class Tablet {
     return closeState == CloseState.CLOSING;
   }
 
+  @Override
   public boolean isClosed() {
     // Assign to a local var to avoid race conditions since closeState is volatile and two
     // comparisons are done.
@@ -1725,8 +1436,8 @@ public class Tablet {
     // this info is used for optimization... it is ok if map files are missing
     // from the set... can still query and insert into the tablet while this
     // map file operation is happening
-    Map<TabletFile,FileUtil.FileInfo> firstAndLastRows =
-        FileUtil.tryToGetFirstAndLastRows(context, getDatafileManager().getFiles());
+    Map<TabletFile,FileUtil.FileInfo> firstAndLastRows = FileUtil.tryToGetFirstAndLastRows(context,
+        tableConfiguration, getDatafileManager().getFiles());
 
     synchronized (this) {
       // java needs tuples ...
@@ -1739,8 +1450,9 @@ public class Tablet {
         splitPoint = findSplitRow(getDatafileManager().getFiles());
       } else {
         Text tsp = new Text(sp);
-        splitPoint = new SplitRowSpec(FileUtil.estimatePercentageLTE(context, chooseTabletDir(),
-            extent.prevEndRow(), extent.endRow(), getDatafileManager().getFiles(), tsp), tsp);
+        var ratio = FileUtil.estimatePercentageLTE(context, tableConfiguration, chooseTabletDir(),
+            extent.prevEndRow(), extent.endRow(), getDatafileManager().getFiles(), tsp);
+        splitPoint = new SplitRowSpec(ratio, tsp);
       }
 
       if (splitPoint == null || splitPoint.row == null) {
@@ -1780,17 +1492,17 @@ public class Tablet {
       MetadataTableUtil.splitTablet(high, extent.prevEndRow(), splitRatio,
           getTabletServer().getContext(), getTabletServer().getLock(), ecids);
       ManagerMetadataUtil.addNewTablet(getTabletServer().getContext(), low, lowDirectoryName,
-          getTabletServer().getTabletSession(), lowDatafileSizes, bulkImported, time, lastFlushID,
-          lastCompactID, getTabletServer().getLock());
+          getTabletServer().getTabletSession(), lowDatafileSizes, bulkImported, time,
+          lastFlushID.get(), lastCompactID.get(), getTabletServer().getLock());
       MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove,
           getTabletServer().getContext(), getTabletServer().getLock());
 
       TabletLogger.split(extent, low, high, getTabletServer().getTabletSession());
 
-      newTablets.put(high, new TabletData(dirName, highDatafileSizes, time, lastFlushID,
-          lastCompactID, lastLocation, bulkImported));
-      newTablets.put(low, new TabletData(lowDirectoryName, lowDatafileSizes, time, lastFlushID,
-          lastCompactID, lastLocation, bulkImported));
+      newTablets.put(high, new TabletData(dirName, highDatafileSizes, time, lastFlushID.get(),
+          lastCompactID.get(), lastLocation, bulkImported));
+      newTablets.put(low, new TabletData(lowDirectoryName, lowDatafileSizes, time,
+          lastFlushID.get(), lastCompactID.get(), lastLocation, bulkImported));
 
       long t2 = System.currentTimeMillis();
 
@@ -1801,8 +1513,14 @@ public class Tablet {
     }
   }
 
+  @Override
   public SortedMap<StoredTabletFile,DataFileValue> getDatafiles() {
     return getDatafileManager().getDatafileSizes();
+  }
+
+  @Override
+  public void addToYieldMetric(int i) {
+    getTabletServer().getScanMetrics().addYield(i);
   }
 
   public double queryRate() {
@@ -1826,7 +1544,7 @@ public class Tablet {
   }
 
   public long totalQueriesResults() {
-    return this.queryResultCount;
+    return this.queryResultCount.get();
   }
 
   public long totalIngest() {
@@ -1838,7 +1556,7 @@ public class Tablet {
   }
 
   public long totalQueryResultsBytes() {
-    return this.queryResultBytes;
+    return this.queryResultBytes.get();
   }
 
   public long totalScannedCount() {
@@ -1846,16 +1564,16 @@ public class Tablet {
   }
 
   public long totalLookupCount() {
-    return this.lookupCount;
+    return this.lookupCount.get();
   }
 
   // synchronized?
   public void updateRates(long now) {
-    queryRate.update(now, queryResultCount);
-    queryByteRate.update(now, queryResultBytes);
+    queryRate.update(now, this.queryResultCount.get());
+    queryByteRate.update(now, this.queryResultBytes.get());
     ingestRate.update(now, ingestCount);
     ingestByteRate.update(now, ingestBytes);
-    scannedRate.update(now, scannedCount.get());
+    scannedRate.update(now, this.scannedCount.get());
   }
 
   public long getSplitCreationTime() {
@@ -1988,9 +1706,9 @@ public class Tablet {
 
     // grab this outside of tablet lock.
     @SuppressWarnings("deprecation")
-    int maxLogs = tableConfiguration
-        .getCount(tableConfiguration.resolve(Property.TSERV_WAL_MAX_REFERENCED, tableConfiguration
-            .resolve(Property.TSERV_WALOG_MAX_REFERENCED, Property.TABLE_MINC_LOGS_MAX)));
+    Property prop = tableConfiguration.resolve(Property.TSERV_WAL_MAX_REFERENCED,
+        Property.TSERV_WALOG_MAX_REFERENCED, Property.TABLE_MINC_LOGS_MAX);
+    int maxLogs = tableConfiguration.getCount(prop);
 
     String reason = null;
     synchronized (this) {
@@ -2164,19 +1882,19 @@ public class Tablet {
   public void compactAll(long compactionId, CompactionConfig compactionConfig) {
 
     synchronized (this) {
-      if (lastCompactID >= compactionId) {
+      if (lastCompactID.get() >= compactionId) {
         return;
       }
 
       if (isMinorCompactionRunning()) {
         // want to wait for running minc to finish before starting majc, see ACCUMULO-3041
         if (compactionWaitInfo.compactionID == compactionId) {
-          if (lastFlushID == compactionWaitInfo.flushID) {
+          if (lastFlushID.get() == compactionWaitInfo.flushID) {
             return;
           }
         } else {
           compactionWaitInfo.compactionID = compactionId;
-          compactionWaitInfo.flushID = lastFlushID;
+          compactionWaitInfo.flushID = lastFlushID.get();
           return;
         }
       }
@@ -2190,10 +1908,6 @@ public class Tablet {
     compactable.initiateUserCompaction(compactionId, compactionConfig);
   }
 
-  public TableConfiguration getTableConfiguration() {
-    return tableConfiguration;
-  }
-
   public Durability getDurability() {
     return DurabilityImpl.fromString(getTableConfiguration().get(Property.TABLE_DURABILITY));
   }
@@ -2204,11 +1918,6 @@ public class Tablet {
 
   public long incrementDataSourceDeletions() {
     return dataSourceDeletions.incrementAndGet();
-  }
-
-  public synchronized void updateQueryStats(int size, long numBytes) {
-    queryResultCount += size;
-    queryResultBytes += numBytes;
   }
 
   public void updateTimer(Operation operation, long queued, long start, long count,
@@ -2256,15 +1965,31 @@ public class Tablet {
 
   }
 
+  @Override
   TabletResourceManager getTabletResources() {
     return tabletResources;
+  }
+
+  @Override
+  public TabletServerScanMetrics getScanMetrics() {
+    return getTabletServer().getScanMetrics();
   }
 
   DatafileManager getDatafileManager() {
     return datafileManager;
   }
 
-  public synchronized long getUpdateCount() {
+  @Override
+  public Pair<Long,Map<TabletFile,DataFileValue>> reserveFilesForScan() {
+    return getDatafileManager().reserveFilesForScan();
+  }
+
+  @Override
+  public void returnFilesForScan(long scanId) {
+    getDatafileManager().returnFilesForScan(scanId);
+  }
+
+  public MetadataUpdateCount getUpdateCount() {
     return getDatafileManager().getUpdateCount();
   }
 
@@ -2272,19 +1997,25 @@ public class Tablet {
     return tabletMemory;
   }
 
-  public long getAndUpdateTime() {
-    return tabletTime.getAndUpdateTime();
+  @Override
+  public List<InMemoryMap.MemoryIterator> getMemIterators(SamplerConfigurationImpl samplerConfig) {
+    return getTabletMemory().getIterators(samplerConfig);
   }
 
-  public byte[] getDefaultSecurityLabels() {
-    return defaultSecurityLabel.derive();
+  @Override
+  public void returnMemIterators(List<InMemoryMap.MemoryIterator> iters) {
+    getTabletMemory().returnIterators(iters);
+  }
+
+  public long getAndUpdateTime() {
+    return tabletTime.getAndUpdateTime();
   }
 
   public void flushComplete(long flushId) {
     lastLocation = null;
     dataSourceDeletions.incrementAndGet();
     tabletMemory.finishedMinC();
-    lastFlushID = flushId;
+    lastFlushID.set(flushId);
     computeNumEntries();
   }
 
@@ -2294,18 +2025,9 @@ public class Tablet {
     return result;
   }
 
-  public synchronized void addActiveScans(ScanDataSource scanDataSource) {
-    activeScans.add(scanDataSource);
-  }
-
-  public int removeScan(ScanDataSource scanDataSource) {
-    activeScans.remove(scanDataSource);
-    return activeScans.size();
-  }
-
   public synchronized void setLastCompactionID(Long compactionId) {
     if (compactionId != null) {
-      this.lastCompactID = compactionId;
+      this.lastCompactID.set(compactionId);
     }
   }
 
@@ -2323,10 +2045,6 @@ public class Tablet {
 
   public TabletStats getTabletStats() {
     return timer.getTabletStats();
-  }
-
-  public AtomicLong getScannedCounter() {
-    return scannedCount;
   }
 
   private static String createTabletDirectoryName(ServerContext context, Text endRow) {

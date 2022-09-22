@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -40,7 +40,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
@@ -51,6 +50,7 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
+import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -79,8 +79,8 @@ public class BloomFilterLayer {
     }
 
     if (maxLoadThreads > 0) {
-      loadThreadPool =
-          ThreadPools.createThreadPool(0, maxLoadThreads, 60, SECONDS, "bloom-loader", false);
+      loadThreadPool = ThreadPools.getServerThreadPools().createThreadPool(0, maxLoadThreads, 60,
+          SECONDS, "bloom-loader", false);
     }
 
     return loadThreadPool;
@@ -280,8 +280,8 @@ public class BloomFilterLayer {
     }
 
     /**
-     * Prevent potential CRLF injection into logs from read in user data See
-     * https://find-sec-bugs.github.io/bugs.htm#CRLF_INJECTION_LOGS
+     * Prevent potential CRLF injection into logs from read in user data. See the
+     * <a href="https://find-sec-bugs.github.io/bugs.htm#CRLF_INJECTION_LOGS">bug description</a>
      */
     private String sanitize(String msg) {
       return msg.replaceAll("[\r\n]", "");
@@ -467,8 +467,8 @@ public class BloomFilterLayer {
     String suffix = FileOperations.getNewFileExtension(acuconf);
     String fname = "/tmp/test." + suffix;
     FileSKVWriter bmfw = FileOperations.getInstance().newWriterBuilder()
-        .forFile(fname, fs, conf, CryptoServiceFactory.newDefaultInstance())
-        .withTableConfiguration(acuconf).build();
+        .forFile(fname, fs, conf, NoCryptoServiceFactory.NONE).withTableConfiguration(acuconf)
+        .build();
 
     long t1 = System.currentTimeMillis();
 
@@ -490,8 +490,8 @@ public class BloomFilterLayer {
 
     t1 = System.currentTimeMillis();
     FileSKVIterator bmfr = FileOperations.getInstance().newReaderBuilder()
-        .forFile(fname, fs, conf, CryptoServiceFactory.newDefaultInstance())
-        .withTableConfiguration(acuconf).build();
+        .forFile(fname, fs, conf, NoCryptoServiceFactory.NONE).withTableConfiguration(acuconf)
+        .build();
     t2 = System.currentTimeMillis();
     out.println("Opened " + fname + " in " + (t2 - t1));
 

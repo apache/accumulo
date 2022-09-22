@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -40,11 +40,11 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.tserver.TabletServer;
+import org.apache.accumulo.tserver.TabletHostingServer;
 import org.apache.accumulo.tserver.session.MultiScanSession;
 import org.apache.accumulo.tserver.tablet.KVEntry;
-import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.Tablet.LookupResult;
+import org.apache.accumulo.tserver.tablet.TabletBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +54,7 @@ public class LookupTask extends ScanTask<MultiScanResult> {
 
   private final long scanID;
 
-  public LookupTask(TabletServer server, long scanID) {
+  public LookupTask(TabletHostingServer server, long scanID) {
     super(server);
     this.scanID = scanID;
   }
@@ -68,10 +68,12 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       if (isCancelled() || session == null)
         return;
 
+      if (!transitionToRunning())
+        return;
+
       TableConfiguration acuTableConf = server.getTableConfiguration(session.threadPoolExtent);
       long maxResultsSize = acuTableConf.getAsBytes(Property.TABLE_SCAN_MAXMEM);
 
-      runState.set(ScanRunState.RUNNING);
       Thread.currentThread().setName("Client: " + session.client + " User: " + session.getUser()
           + " Start: " + session.startTime + " Table: ");
 
@@ -83,6 +85,7 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       List<KVEntry> results = new ArrayList<>();
       Map<KeyExtent,List<Range>> failures = new HashMap<>();
       List<KeyExtent> fullScans = new ArrayList<>();
+      LookupResult lookupResult = null;
       KeyExtent partScan = null;
       Key partNextKey = null;
       boolean partNextKeyInclusive = false;
@@ -93,19 +96,20 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       while (iter.hasNext() && bytesAdded < maxResultsSize
           && (System.currentTimeMillis() - startTime) < maxScanTime) {
         Entry<KeyExtent,List<Range>> entry = iter.next();
-
+        KeyExtent extent = entry.getKey();
+        List<Range> ranges = entry.getValue();
         iter.remove();
 
         // check that tablet server is serving requested tablet
-        Tablet tablet = server.getOnlineTablet(entry.getKey());
+        TabletBase tablet = session.getTabletResolver().getTablet(extent);
+
         if (tablet == null) {
-          failures.put(entry.getKey(), entry.getValue());
+          failures.put(extent, ranges);
           continue;
         }
         Thread.currentThread().setName("Client: " + session.client + " User: " + session.getUser()
-            + " Start: " + session.startTime + " Tablet: " + entry.getKey());
+            + " Start: " + session.startTime + " Tablet: " + extent);
 
-        LookupResult lookupResult;
         try {
 
           // do the following check to avoid a race condition
@@ -114,8 +118,14 @@ public class LookupTask extends ScanTask<MultiScanResult> {
           if (isCancelled())
             interruptFlag.set(true);
 
-          lookupResult = tablet.lookup(entry.getValue(), results, session.scanParams,
+          // Create new List here to collect the results from this Tablet.lookup() call
+          // Ensures that the yield code in Tablet can only compare a yield position
+          // to the results from that call
+          List<KVEntry> tabletResults = new ArrayList<>();
+          lookupResult = tablet.lookup(ranges, tabletResults, session.scanParams,
               maxResultsSize - bytesAdded, interruptFlag);
+          // Add results from this Tablet.lookup() to the accumulated results
+          results.addAll(tabletResults);
 
           // if the tablet was closed it it possible that the
           // interrupt flag was set.... do not want it set for
@@ -124,24 +134,31 @@ public class LookupTask extends ScanTask<MultiScanResult> {
           interruptFlag.set(false);
 
         } catch (IOException e) {
-          log.warn("lookup failed for tablet " + entry.getKey(), e);
+          log.warn("lookup failed for tablet " + extent, e);
           throw new RuntimeException(e);
         }
 
         bytesAdded += lookupResult.bytesAdded;
 
         if (lookupResult.unfinishedRanges.isEmpty()) {
-          fullScans.add(entry.getKey());
+          fullScans.add(extent);
         } else {
           if (lookupResult.closed) {
-            failures.put(entry.getKey(), lookupResult.unfinishedRanges);
+            failures.put(extent, lookupResult.unfinishedRanges);
           } else {
-            session.queries.put(entry.getKey(), lookupResult.unfinishedRanges);
-            partScan = entry.getKey();
+            partScan = extent;
             partNextKey = lookupResult.unfinishedRanges.get(0).getStartKey();
             partNextKeyInclusive = lookupResult.unfinishedRanges.get(0).isStartKeyInclusive();
+            // Stop this LookupTask. The client side will continue the scan and a
+            // new LookupTask will be created
+            break;
           }
         }
+      }
+      // add unfinished ranges back to session.queries so that we return more=true
+      // when the MultiScanResult is created and returned
+      if (partScan != null) {
+        session.queries.put(partScan, lookupResult.unfinishedRanges);
       }
 
       long finishTime = System.currentTimeMillis();

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -33,8 +33,7 @@ import com.google.common.base.Preconditions;
  */
 public class CloneConfigurationImpl implements CloneConfiguration, CloneConfiguration.Builder {
 
-  // The purpose of this is to allow building an immutable CloneConfiguration object without
-  // creating
+  // This boolean allows building an immutable CloneConfiguration object without creating
   // separate Builder and CloneConfiguration objects. This is done to reduce object creation and
   // copying. This could easily be changed to two objects without changing the interfaces.
   private boolean built = false;
@@ -62,14 +61,14 @@ public class CloneConfigurationImpl implements CloneConfiguration, CloneConfigur
   @Override
   public Map<String,String> getPropertiesToSet() {
     Preconditions.checkState(built);
-    return (propertiesToSet == null ? Collections.<String,String>emptyMap()
+    return (propertiesToSet == null ? Collections.emptyMap()
         : Collections.unmodifiableMap(propertiesToSet));
   }
 
   @Override
   public Set<String> getPropertiesToExclude() {
     Preconditions.checkState(built);
-    return (propertiesToExclude == null ? Collections.<String>emptySet()
+    return (propertiesToExclude == null ? Collections.emptySet()
         : Collections.unmodifiableSet(propertiesToExclude));
   }
 

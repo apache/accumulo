@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -39,6 +39,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
@@ -49,6 +50,7 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.tserver.ScanServer;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
@@ -71,6 +73,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   Process monitor = null;
   Process coordinatorProcess = null;
   final List<Process> tabletServerProcesses = new ArrayList<>();
+  final List<Process> scanServerProcesses = new ArrayList<>();
   final List<Process> compactorProcesses = new ArrayList<>();
 
   public MiniAccumuloClusterControl(MiniAccumuloClusterImpl cluster) {
@@ -134,8 +137,8 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     if (coordinatorHost.isEmpty()) {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }
-    CompactionCoordinatorService.Client client = ThriftUtil.getClient(
-        new CompactionCoordinatorService.Client.Factory(), coordinatorHost.get(), context);
+    CompactionCoordinatorService.Client client =
+        ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.get(), context);
     try {
       return client.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
     } finally {
@@ -224,6 +227,16 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       case MONITOR:
         if (monitor == null) {
           monitor = cluster._exec(Monitor.class, server, configOverrides).getProcess();
+        }
+        break;
+      case SCAN_SERVER:
+        synchronized (scanServerProcesses) {
+          int count = 0;
+          for (int i = scanServerProcesses.size();
+              count < limit && i < cluster.getConfig().getNumScanServers(); i++, ++count) {
+            scanServerProcesses
+                .add(cluster._exec(ScanServer.class, server, configOverrides).getProcess());
+          }
         }
         break;
       case COMPACTION_COORDINATOR:
@@ -318,6 +331,23 @@ public class MiniAccumuloClusterControl implements ClusterControl {
             Thread.currentThread().interrupt();
           } finally {
             monitor = null;
+          }
+        }
+        break;
+      case SCAN_SERVER:
+        synchronized (scanServerProcesses) {
+          try {
+            for (Process sserver : scanServerProcesses) {
+              try {
+                cluster.stopProcessWithTimeout(sserver, 30, TimeUnit.SECONDS);
+              } catch (ExecutionException | TimeoutException e) {
+                log.warn("ScanServer did not fully stop after 30 seconds", e);
+              } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+              }
+            }
+          } finally {
+            scanServerProcesses.clear();
           }
         }
         break;
@@ -425,6 +455,22 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           }
           gcProcess = null;
           found = true;
+        }
+        break;
+      case SCAN_SERVER:
+        synchronized (scanServerProcesses) {
+          for (Process sserver : scanServerProcesses) {
+            if (procRef.getProcess().equals(sserver)) {
+              scanServerProcesses.remove(sserver);
+              try {
+                cluster.stopProcessWithTimeout(sserver, 30, TimeUnit.SECONDS);
+              } catch (ExecutionException | TimeoutException e) {
+                log.warn("ScanServer did not fully stop after 30 seconds", e);
+              }
+              found = true;
+              break;
+            }
+          }
         }
         break;
       case COMPACTION_COORDINATOR:

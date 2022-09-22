@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -41,7 +41,6 @@ import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -52,6 +51,7 @@ import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
@@ -270,7 +270,7 @@ public class TestIngest {
       ClientContext cc = (ClientContext) accumuloClient;
       writer = FileOperations.getInstance().newWriterBuilder()
           .forFile(params.outputFile + "." + RFile.EXTENSION, fs, cc.getHadoopConf(),
-              CryptoServiceFactory.newDefaultInstance())
+              NoCryptoServiceFactory.NONE)
           .withTableConfiguration(DefaultConfiguration.getInstance()).build();
       writer.startDefaultLocalityGroup();
     } else {

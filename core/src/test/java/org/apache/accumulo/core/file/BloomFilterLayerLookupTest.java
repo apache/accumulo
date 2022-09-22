@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -31,13 +31,13 @@ import org.apache.accumulo.core.WithTestNames;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.keyfunctor.ColumnFamilyFunctor;
 import org.apache.accumulo.core.file.rfile.RFile;
+import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
@@ -81,8 +81,8 @@ public class BloomFilterLayerLookupTest extends WithTestNames {
     String suffix = FileOperations.getNewFileExtension(acuconf);
     String fname = new File(tempDir, testName() + "." + suffix).getAbsolutePath();
     FileSKVWriter bmfw = FileOperations.getInstance().newWriterBuilder()
-        .forFile(fname, fs, conf, CryptoServiceFactory.newDefaultInstance())
-        .withTableConfiguration(acuconf).build();
+        .forFile(fname, fs, conf, NoCryptoServiceFactory.NONE).withTableConfiguration(acuconf)
+        .build();
 
     // write data to file
     long t1 = System.currentTimeMillis();
@@ -99,8 +99,8 @@ public class BloomFilterLayerLookupTest extends WithTestNames {
 
     t1 = System.currentTimeMillis();
     FileSKVIterator bmfr = FileOperations.getInstance().newReaderBuilder()
-        .forFile(fname, fs, conf, CryptoServiceFactory.newDefaultInstance())
-        .withTableConfiguration(acuconf).build();
+        .forFile(fname, fs, conf, NoCryptoServiceFactory.NONE).withTableConfiguration(acuconf)
+        .build();
     t2 = System.currentTimeMillis();
     log.debug("Opened {} in {}", fname, (t2 - t1));
 

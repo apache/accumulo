@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -39,7 +39,7 @@ public class ClassLoaderUtil {
   public static synchronized void initContextFactory(AccumuloConfiguration conf) {
     if (FACTORY == null) {
       LOG.debug("Creating {}", ContextClassLoaderFactory.class.getName());
-      String factoryName = conf.get(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY.getKey());
+      String factoryName = conf.get(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY);
       if (factoryName == null || factoryName.isEmpty()) {
         // load the default implementation
         LOG.info("Using default {}, which is subject to change in a future release",

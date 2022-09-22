@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -192,7 +192,7 @@ public class ZooKeeperInstance implements Instance {
     ClientInfo info = new ClientInfoImpl(properties, token);
     AccumuloConfiguration serverConf = ClientConfConverter.toAccumuloConf(properties);
     return new org.apache.accumulo.core.clientImpl.ConnectorImpl(
-        new ClientContext(SingletonReservation.noop(), info, serverConf));
+        new ClientContext(SingletonReservation.noop(), info, serverConf, null));
   }
 
   @Override

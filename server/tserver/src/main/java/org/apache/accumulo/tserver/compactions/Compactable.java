@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -62,11 +62,12 @@ public interface Compactable {
         Set<StoredTabletFile> candidates, Collection<CompactionJob> running,
         Map<String,String> executionHints) {
 
-      this.allFiles = Collections.unmodifiableSet(allFiles.entrySet().stream()
+      this.allFiles = allFiles.entrySet().stream()
           .map(entry -> new CompactableFileImpl(entry.getKey(), entry.getValue()))
-          .collect(Collectors.toSet()));
-      this.candidates = Collections.unmodifiableSet(candidates.stream()
-          .map(stf -> new CompactableFileImpl(stf, allFiles.get(stf))).collect(Collectors.toSet()));
+          .collect(Collectors.toUnmodifiableSet());
+      this.candidates =
+          candidates.stream().map(stf -> new CompactableFileImpl(stf, allFiles.get(stf)))
+              .collect(Collectors.toUnmodifiableSet());
 
       this.compacting = Set.copyOf(running);
 

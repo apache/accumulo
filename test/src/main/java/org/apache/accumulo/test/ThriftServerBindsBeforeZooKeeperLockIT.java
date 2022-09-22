@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -17,6 +17,8 @@
  * under the License.
  */
 package org.apache.accumulo.test;
+
+import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -40,10 +42,9 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.util.PortUtils;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,7 +54,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * Test class that verifies "HA-capable" servers put up their thrift servers before acquiring their
  * ZK lock.
  */
-@Category({MiniClusterOnlyTests.class})
+@Tag(MINI_CLUSTER_ONLY)
 public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarness {
   private static final Logger LOG =
       LoggerFactory.getLogger(ThriftServerBindsBeforeZooKeeperLockIT.class);

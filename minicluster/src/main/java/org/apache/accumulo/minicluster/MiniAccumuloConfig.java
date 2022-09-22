@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -61,6 +61,18 @@ public class MiniAccumuloConfig {
    */
   public MiniAccumuloConfig setNumTservers(int numTservers) {
     impl.setNumTservers(numTservers);
+    return this;
+  }
+
+  /**
+   * Calling this method is optional. If not set, it defaults to zero.
+   *
+   * @param numScanServers
+   *          the number of scan servers that mini accumulo cluster should start
+   * @since 2.1.0
+   */
+  public MiniAccumuloConfig setNumScanServers(int numScanServers) {
+    impl.setNumScanServers(numScanServers);
     return this;
   }
 

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.test.shell;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -122,24 +122,24 @@ public class MockShell {
     shellLog.debug("Shell Output: '{}'", output.get());
     if (shell.getExitCode() != 0) {
       String errorMsg = callback.getErrorMessage();
-      assertEquals(errorMsg, 0, shell.getExitCode());
+      assertEquals(0, shell.getExitCode(), errorMsg);
     }
 
     if (!s.isEmpty())
-      assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent,
-          output.get().contains(s));
+      assertEquals(stringPresent, output.get().contains(s),
+          s + " present in " + output.get() + " was not " + stringPresent);
   }
 
   void assertBadExit(String s, boolean stringPresent, ErrorMessageCallback callback) {
     shellLog.debug(output.get());
     if (shell.getExitCode() == 0) {
       String errorMsg = callback.getErrorMessage();
-      assertTrue(errorMsg, shell.getExitCode() > 0);
+      assertTrue(shell.getExitCode() > 0, errorMsg);
     }
 
     if (!s.isEmpty())
-      assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent,
-          output.get().contains(s));
+      assertEquals(stringPresent, output.get().contains(s),
+          s + " present in " + output.get() + " was not " + stringPresent);
     shell.resetExitCode();
   }
 

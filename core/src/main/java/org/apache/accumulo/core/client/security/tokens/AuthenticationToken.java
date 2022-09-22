@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -94,16 +94,13 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
      * @see #serialize(AuthenticationToken)
      */
     public static AuthenticationToken deserialize(String tokenClassName, byte[] tokenBytes) {
-      Class<? extends AuthenticationToken> tokenType = null;
       try {
         @SuppressWarnings("unchecked")
-        Class<? extends AuthenticationToken> tmpTokenType =
-            (Class<? extends AuthenticationToken>) Class.forName(tokenClassName);
-        tokenType = tmpTokenType;
+        var tokenType = (Class<? extends AuthenticationToken>) Class.forName(tokenClassName);
+        return deserialize(tokenType, tokenBytes);
       } catch (ClassNotFoundException e) {
         throw new IllegalArgumentException("Class not available " + tokenClassName, e);
       }
-      return deserialize(tokenType, tokenBytes);
     }
 
     /**

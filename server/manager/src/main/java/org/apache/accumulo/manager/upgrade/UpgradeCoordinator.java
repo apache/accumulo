@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -174,8 +174,9 @@ public class UpgradeCoordinator {
         "Not currently in a suitable state to do metadata upgrade %s", status);
 
     if (currentVersion < AccumuloDataVersion.get()) {
-      return ThreadPools.createThreadPool(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS,
-          "UpgradeMetadataThreads", new SynchronousQueue<>(), false).submit(() -> {
+      return ThreadPools.getServerThreadPools().createThreadPool(0, Integer.MAX_VALUE, 60L,
+          TimeUnit.SECONDS, "UpgradeMetadataThreads", new SynchronousQueue<>(), false)
+          .submit(() -> {
             try {
               for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
                 log.info("Upgrading Root from data version {}", v);

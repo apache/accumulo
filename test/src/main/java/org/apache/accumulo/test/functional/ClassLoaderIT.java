@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,17 +19,15 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
+import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.Iterator;
-import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -37,35 +35,32 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
-@Category(MiniClusterOnlyTests.class)
+@Tag(MINI_CLUSTER_ONLY)
 public class ClassLoaderIT extends AccumuloClusterHarness {
 
   private static final long ZOOKEEPER_PROPAGATION_TIME = 10_000;
 
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 2 * 60;
-  }
-
   private String rootPath;
 
-  @Before
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
+  }
+
+  @BeforeEach
   public void checkCluster() {
     assumeTrue(getClusterType() == ClusterType.MINI);
     MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) getCluster();
@@ -118,11 +113,8 @@ public class ClassLoaderIT extends AccumuloClusterHarness {
 
   private void scanCheck(AccumuloClient c, String tableName, String expected) throws Exception {
     try (Scanner bs = c.createScanner(tableName, Authorizations.EMPTY)) {
-      Iterator<Entry<Key,Value>> iterator = bs.iterator();
-      assertTrue(iterator.hasNext());
-      Entry<Key,Value> next = iterator.next();
-      assertFalse(iterator.hasNext());
-      assertEquals(expected, next.getValue().toString());
+      String actual = getOnlyElement(bs).getValue().toString();
+      assertEquals(expected, actual);
     }
   }
 

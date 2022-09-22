@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -162,8 +162,8 @@ public class ReplicationMetrics implements MetricsProducer {
     maxReplicationThreads = registry.gauge(METRICS_REPLICATION_THREADS, MetricsUtil.getCommonTags(),
         new AtomicInteger(0));
 
-    ScheduledExecutorService scheduler =
-        ThreadPools.createScheduledExecutorService(1, "replicationMetricsPoller", false);
+    ScheduledExecutorService scheduler = ThreadPools.getServerThreadPools()
+        .createScheduledExecutorService(1, "replicationMetricsPoller", false);
     Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdownNow));
     long minimumRefreshDelay = TimeUnit.SECONDS.toMillis(5);
     ScheduledFuture<?> future = scheduler.scheduleAtFixedRate(this::update, minimumRefreshDelay,

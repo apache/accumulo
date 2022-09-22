@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -41,8 +41,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
+import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -155,7 +154,7 @@ public class MultiThreadedRFileTest {
       Path path = new Path("file://" + rfile);
       dos = fs.create(path, true);
       BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", conf,
-          CryptoServiceFactory.newInstance(accumuloConfiguration, ClassloaderType.JAVA));
+          CryptoFactoryLoader.getServiceForServer(accumuloConfiguration));
       SamplerConfigurationImpl samplerConfig =
           SamplerConfigurationImpl.newSamplerConfig(accumuloConfiguration);
       Sampler sampler = null;
@@ -186,7 +185,7 @@ public class MultiThreadedRFileTest {
 
       // the caches used to obfuscate the multithreaded issues
       CachableBuilder b = new CachableBuilder().fsPath(fs, path).conf(conf)
-          .cryptoService(CryptoServiceFactory.newInstance(defaultConf, ClassloaderType.JAVA));
+          .cryptoService(CryptoFactoryLoader.getServiceForServer(defaultConf));
       reader = new RFile.Reader(new CachableBlockFile.Reader(b));
       iter = new ColumnFamilySkippingIterator(reader);
 
@@ -233,8 +232,8 @@ public class MultiThreadedRFileTest {
       // now start up multiple RFile deepcopies
       int maxThreads = 10;
       String name = "MultiThreadedRFileTestThread";
-      ThreadPoolExecutor pool = ThreadPools.createThreadPool(maxThreads + 1, maxThreads + 1, 5 * 60,
-          SECONDS, name, false);
+      ThreadPoolExecutor pool = ThreadPools.getServerThreadPools().createThreadPool(maxThreads + 1,
+          maxThreads + 1, 5 * 60, SECONDS, name, false);
       try {
         Runnable runnable = () -> {
           try {

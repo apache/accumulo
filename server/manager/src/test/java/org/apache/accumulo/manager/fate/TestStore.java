@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -54,6 +54,17 @@ public class TestStore extends ZooStore {
       throw new IllegalStateException(); // zoo store would wait, but do not expect test to reserve
                                          // twice... if test change, then change this
     reserved.add(tid);
+  }
+
+  @Override
+  public boolean tryReserve(long tid) {
+    synchronized (this) {
+      if (!reserved.contains(tid)) {
+        reserve(tid);
+        return true;
+      }
+      return false;
+    }
   }
 
   @Override

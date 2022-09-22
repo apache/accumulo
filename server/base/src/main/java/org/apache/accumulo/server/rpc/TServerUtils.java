@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -311,25 +311,22 @@ public class TServerUtils {
   public static ThreadPoolExecutor createSelfResizingThreadPool(final String serverName,
       final int executorThreads, long threadTimeOut, final AccumuloConfiguration conf,
       long timeBetweenThreadChecks) {
-    final ThreadPoolExecutor pool = ThreadPools.createFixedThreadPool(executorThreads,
-        threadTimeOut, TimeUnit.MILLISECONDS, serverName + "-ClientPool", true);
+    final ThreadPoolExecutor pool = ThreadPools.getServerThreadPools().createFixedThreadPool(
+        executorThreads, threadTimeOut, TimeUnit.MILLISECONDS, serverName + "-ClientPool", true);
     // periodically adjust the number of threads we need by checking how busy our threads are
-    ThreadPools.watchCriticalScheduledTask(
-        ThreadPools.createGeneralScheduledExecutorService(conf).scheduleWithFixedDelay(() -> {
-          // there is a minor race condition between sampling the current state of the thread pool
-          // and
-          // adjusting it
-          // however, this isn't really an issue, since it adjusts periodically anyway
-          if (pool.getCorePoolSize() <= pool.getActiveCount()) {
-            int larger = pool.getCorePoolSize() + Math.min(pool.getQueue().size(), 2);
-            ThreadPools.resizePool(pool, () -> larger, serverName + "-ClientPool");
-          } else {
-            if (pool.getCorePoolSize() > pool.getActiveCount() + 3) {
-              int smaller = Math.max(executorThreads, pool.getCorePoolSize() - 1);
-              ThreadPools.resizePool(pool, () -> smaller, serverName + "-ClientPool");
-            }
-          }
-        }, timeBetweenThreadChecks, timeBetweenThreadChecks, TimeUnit.MILLISECONDS));
+    ThreadPools.watchCriticalFixedDelay(conf, timeBetweenThreadChecks, () -> {
+      // there is a minor race condition between sampling the current state of the thread pool
+      // and adjusting it however, this isn't really an issue, since it adjusts periodically
+      if (pool.getCorePoolSize() <= pool.getActiveCount()) {
+        int larger = pool.getCorePoolSize() + Math.min(pool.getQueue().size(), 2);
+        ThreadPools.resizePool(pool, () -> larger, serverName + "-ClientPool");
+      } else {
+        if (pool.getCorePoolSize() > pool.getActiveCount() + 3) {
+          int smaller = Math.max(executorThreads, pool.getCorePoolSize() - 1);
+          ThreadPools.resizePool(pool, () -> smaller, serverName + "-ClientPool");
+        }
+      }
+    });
     return pool;
   }
 
@@ -530,6 +527,7 @@ public class TServerUtils {
       serverUser = UserGroupInformation.getLoginUser();
     } catch (IOException e) {
       transport.close();
+      ThriftUtil.checkIOExceptionCause(e);
       throw new TTransportException(e);
     }
 
@@ -578,15 +576,19 @@ public class TServerUtils {
       ThriftServerType serverType, TProcessor processor, String serverName, String threadName,
       int numThreads, long threadTimeOut, long timeBetweenThreadChecks, long maxMessageSize,
       SslConnectionParams sslParams, SaslServerConnectionParams saslParams,
-      long serverSocketTimeout, HostAndPort... addresses) throws TTransportException {
+      long serverSocketTimeout, HostAndPort... addresses) {
 
     if (serverType == ThriftServerType.SASL) {
       processor = updateSaslProcessor(serverType, processor);
     }
 
-    return startTServer(serverType, new TimedProcessor(conf, processor, serverName, threadName),
-        serverName, threadName, numThreads, threadTimeOut, conf, timeBetweenThreadChecks,
-        maxMessageSize, sslParams, saslParams, serverSocketTimeout, addresses);
+    try {
+      return startTServer(serverType, new TimedProcessor(conf, processor, serverName, threadName),
+          serverName, threadName, numThreads, threadTimeOut, conf, timeBetweenThreadChecks,
+          maxMessageSize, sslParams, saslParams, serverSocketTimeout, addresses);
+    } catch (TTransportException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   /**

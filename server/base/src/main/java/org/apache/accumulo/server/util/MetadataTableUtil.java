@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -62,11 +62,11 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
-import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -95,7 +95,7 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.gc.GcVolumeUtil;
+import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -372,13 +372,13 @@ public class MetadataTableUtil {
           Key key = cell.getKey();
 
           if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-            String ref = TabletFileUtil.validate(key.getColumnQualifierData().toString());
-            bw.addMutation(ample.createDeleteMutation(ref));
+            StoredTabletFile stf = new StoredTabletFile(key.getColumnQualifierData().toString());
+            bw.addMutation(
+                ample.createDeleteMutation(new ReferenceFile(tableId, stf.getMetaUpdateDelete())));
           }
 
           if (ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-            String uri =
-                GcVolumeUtil.getDeleteTabletOnAllVolumesUri(tableId, cell.getValue().toString());
+            var uri = new AllVolumesDirectory(tableId, cell.getValue().toString());
             bw.addMutation(ample.createDeleteMutation(uri));
           }
         }
@@ -690,8 +690,7 @@ public class MetadataTableUtil {
     m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
 
     // new KeyExtent is only added to force update to write to the metadata table, not the root
-    // table
-    // because bulk loads aren't supported to the metadata table
+    // table because bulk loads aren't supported to the metadata table
     update(context, m, new KeyExtent(TableId.of("anythingNotMetadata"), null, null));
   }
 

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -287,19 +287,20 @@ public class CompressionAlgorithm extends Configured {
    */
   private CompressionCodec createNewCodec(final String codecClazzProp, final String defaultClazz,
       final int bufferSize, final String bufferSizeConfigOpt) {
-    String extClazz = null;
+    String clazz = defaultClazz;
     if (codecClazzProp != null) {
-      extClazz =
-          (getConf().get(codecClazzProp) == null ? System.getProperty(codecClazzProp) : null);
+      clazz = System.getProperty(codecClazzProp, getConf().get(codecClazzProp, defaultClazz));
     }
-    String clazz = (extClazz != null) ? extClazz : defaultClazz;
     try {
       LOG.info("Trying to load codec class {}", clazz);
       Configuration config = new Configuration(getConf());
       updateBuffer(config, bufferSizeConfigOpt, bufferSize);
       return (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), config);
     } catch (ClassNotFoundException e) {
-      // This is okay.
+      LOG.debug(
+          "ClassNotFoundException creating codec class {} for {}. Enable trace logging for stacktrace.",
+          clazz, codecClazzProp);
+      LOG.trace("Unable to load codec class due to ", e);
     }
     return null;
   }

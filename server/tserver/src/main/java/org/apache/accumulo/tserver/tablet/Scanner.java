@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 public class Scanner {
   private static final Logger log = LoggerFactory.getLogger(Scanner.class);
 
-  private final Tablet tablet;
+  private final TabletBase tablet;
   private final ScanParameters scanParams;
   private Range range;
   private SortedKeyValueIterator<Key,Value> isolatedIter;
@@ -55,7 +55,7 @@ public class Scanner {
 
   private AtomicBoolean interruptFlag;
 
-  Scanner(Tablet tablet, Range range, ScanParameters scanParams, AtomicBoolean interruptFlag) {
+  Scanner(TabletBase tablet, Range range, ScanParameters scanParams, AtomicBoolean interruptFlag) {
     this.tablet = tablet;
     this.range = range;
     this.scanParams = scanParams;
@@ -87,10 +87,10 @@ public class Scanner {
 
       if (scanParams.isIsolated()) {
         if (isolatedDataSource == null)
-          isolatedDataSource = new ScanDataSource(tablet, scanParams, true, interruptFlag);
+          isolatedDataSource = tablet.createDataSource(scanParams, true, interruptFlag);
         dataSource = isolatedDataSource;
       } else {
-        dataSource = new ScanDataSource(tablet, scanParams, true, interruptFlag);
+        dataSource = tablet.createDataSource(scanParams, true, interruptFlag);
       }
 
       SortedKeyValueIterator<Key,Value> iter;

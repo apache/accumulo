@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -20,12 +20,12 @@ package org.apache.accumulo.test.shell;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.test.VolumeChooserIT.PERTABLE_CHOOSER_PROP;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
+import java.time.Duration;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -37,20 +37,20 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.harness.conf.StandaloneAccumuloClusterConfiguration;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.test.FairVolumeChooser;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ShellConfigIT extends AccumuloClusterHarness {
 
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 30;
-  }
-
   private String origPropValue;
 
-  @Before
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofSeconds(30);
+  }
+
+  @BeforeEach
   public void checkProperty() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       // TABLE_VOLUME_CHOOSER is a valid property that can be updated in ZK, whereas the crypto
@@ -64,7 +64,7 @@ public class ShellConfigIT extends AccumuloClusterHarness {
     }
   }
 
-  @After
+  @AfterEach
   public void resetProperty() throws Exception {
     if (origPropValue != null) {
       try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
@@ -107,12 +107,14 @@ public class ShellConfigIT extends AccumuloClusterHarness {
       fail("Unknown token type");
     }
 
+    assertTrue(Property.TABLE_CRYPTO_PREFIX.isExperimental());
+    assertTrue(Property.TABLE_CRYPTO_SENSITIVE_PREFIX.isExperimental());
+    assertTrue(Property.INSTANCE_CRYPTO_FACTORY.isExperimental());
     assertTrue(Property.INSTANCE_CRYPTO_PREFIX.isExperimental());
-    assertTrue(Property.INSTANCE_CRYPTO_SERVICE.isExperimental());
+    assertTrue(Property.INSTANCE_CRYPTO_SENSITIVE_PREFIX.isExperimental());
 
     String configOutput = ts.exec("config");
 
     assertTrue(configOutput.contains(PERTABLE_CHOOSER_PROP));
-    assertFalse(configOutput.contains(Property.INSTANCE_CRYPTO_SERVICE.getKey()));
   }
 }

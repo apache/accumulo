@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,11 +18,11 @@
  */
 package org.apache.accumulo.manager.tableOps.create;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.SortedSet;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -46,7 +46,6 @@ import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
 
 class PopulateMetadata extends ManagerRepo {
 
@@ -81,7 +80,8 @@ class PopulateMetadata extends ManagerRepo {
       BatchWriter bw) throws MutationsRejectedException {
     Text prevSplit = null;
     Value dirValue;
-    for (Text split : Iterables.concat(splits, Collections.singleton(null))) {
+    Iterable<Text> iter = () -> Stream.concat(splits.stream(), Stream.of((Text) null)).iterator();
+    for (Text split : iter) {
       Mutation mut =
           TabletColumnFamily.createPrevRowMutation(new KeyExtent(tableId, split, prevSplit));
       dirValue = (split == null) ? new Value(ServerColumnFamily.DEFAULT_TABLET_DIR_NAME)

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -38,6 +38,7 @@ import org.apache.accumulo.core.file.blockfile.cache.impl.SizeConstants;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.CacheEntry;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -101,8 +102,8 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
   private final EvictionThread evictionThread;
 
   /** Statistics thread schedule pool (for heavy debugging, could remove) */
-  private final ScheduledExecutorService scheduleThreadPool =
-      ThreadPools.createScheduledExecutorService(1, "LRUBlockCacheStats", true);
+  private final ScheduledExecutorService scheduleThreadPool = ThreadPools.getServerThreadPools()
+      .createScheduledExecutorService(1, "LRUBlockCacheStats", true);
 
   /** Current size of cache */
   private final AtomicLong size;
@@ -134,7 +135,6 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
   @SuppressFBWarnings(value = "SC_START_IN_CTOR",
       justification = "bad practice to start threads in constructor; probably needs rewrite")
   public LruBlockCache(final LruBlockCacheConfiguration conf) {
-    super();
     this.conf = conf;
 
     int mapInitialSize = (int) Math.ceil(1.2 * conf.getMaxSize() / conf.getBlockSize());
@@ -514,13 +514,12 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
    * <p>
    * Thread is triggered into action by {@link LruBlockCache#runEviction()}
    */
-  private static class EvictionThread extends Thread {
+  private static class EvictionThread extends AccumuloDaemonThread {
     private WeakReference<LruBlockCache> cache;
     private boolean running = false;
 
     public EvictionThread(LruBlockCache cache) {
       super("LruBlockCache.EvictionThread");
-      setDaemon(true);
       this.cache = new WeakReference<>(cache);
     }
 
@@ -556,12 +555,11 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
   /*
    * Statistics thread. Periodically prints the cache statistics to the log.
    */
-  private static class StatisticsThread extends Thread {
+  private static class StatisticsThread extends AccumuloDaemonThread {
     LruBlockCache lru;
 
     public StatisticsThread(LruBlockCache lru) {
       super("LruBlockCache.StatisticsThread");
-      setDaemon(true);
       this.lru = lru;
     }
 

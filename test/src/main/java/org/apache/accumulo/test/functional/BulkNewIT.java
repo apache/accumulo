@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -21,9 +21,9 @@ package org.apache.accumulo.test.functional;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -32,6 +32,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -52,7 +53,6 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.LoadPlan;
 import org.apache.accumulo.core.data.LoadPlan.RangeType;
@@ -64,6 +64,7 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.MemoryUnit;
@@ -76,10 +77,10 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.Text;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -90,12 +91,17 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  */
 public class BulkNewIT extends SharedMiniClusterBase {
 
-  @BeforeClass
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
+  }
+
+  @BeforeAll
   public static void setup() throws Exception {
     SharedMiniClusterBase.startMiniClusterWithConfig(new Callback());
   }
 
-  @AfterClass
+  @AfterAll
   public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
   }
@@ -110,17 +116,12 @@ public class BulkNewIT extends SharedMiniClusterBase {
     }
   }
 
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
-  }
-
   private String tableName;
   private AccumuloConfiguration aconf;
   private FileSystem fs;
   private String rootPath;
 
-  @Before
+  @BeforeEach
   public void setupBulkTest() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       tableName = getUniqueNames(1)[0];
@@ -215,16 +216,16 @@ public class BulkNewIT extends SharedMiniClusterBase {
       // test max tablets hit while inspecting bulk files
       var thrown = assertThrows(RuntimeException.class, () -> testBulkFileMax(false));
       var c = thrown.getCause();
-      assertTrue("Wrong exception: " + c, c instanceof ExecutionException);
-      assertTrue("Wrong exception: " + c.getCause(),
-          c.getCause() instanceof IllegalArgumentException);
+      assertTrue(c instanceof ExecutionException, "Wrong exception: " + c);
+      assertTrue(c.getCause() instanceof IllegalArgumentException,
+          "Wrong exception: " + c.getCause());
       var msg = c.getCause().getMessage();
-      assertTrue("Bad File not in exception: " + msg, msg.contains("bad-file.rf"));
+      assertTrue(msg.contains("bad-file.rf"), "Bad File not in exception: " + msg);
 
       // test max tablets hit using load plan on the server side
       c = assertThrows(AccumuloException.class, () -> testBulkFileMax(true));
       msg = c.getMessage();
-      assertTrue("Bad File not in exception: " + msg, msg.contains("bad-file.rf"));
+      assertTrue(msg.contains("bad-file.rf"), "Bad File not in exception: " + msg);
     }
   }
 
@@ -568,7 +569,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
     FileSystem fs = getCluster().getFileSystem();
     String filename = file + RFile.EXTENSION;
     try (FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
-        .forFile(filename, fs, fs.getConf(), CryptoServiceFactory.newDefaultInstance())
+        .forFile(filename, fs, fs.getConf(), NoCryptoServiceFactory.NONE)
         .withTableConfiguration(aconf).build()) {
       writer.startDefaultLocalityGroup();
       for (int i = s; i <= e; i++) {

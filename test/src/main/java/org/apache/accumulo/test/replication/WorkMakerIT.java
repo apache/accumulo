@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.test.replication;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -46,13 +46,13 @@ import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterables;
 
-@Ignore("Replication ITs are not stable and not currently maintained")
+@Disabled("Replication ITs are not stable and not currently maintained")
 @Deprecated
 public class WorkMakerIT extends ConfigurableMacBase {
 
@@ -82,7 +82,7 @@ public class WorkMakerIT extends ConfigurableMacBase {
 
   }
 
-  @Before
+  @BeforeEach
   public void setupInstance() throws Exception {
     client = Accumulo.newClient().from(getClientProperties()).build();
     ReplicationTable.setOnline(client);
@@ -94,7 +94,7 @@ public class WorkMakerIT extends ConfigurableMacBase {
 
   @Test
   public void singleUnitSingleTarget() throws Exception {
-    String table = testName.getMethodName();
+    String table = testName();
     client.tableOperations().create(table);
     TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(table));
     String file = "hdfs://localhost:8020/accumulo/wal/123456-1234-1234-12345678";
@@ -127,7 +127,7 @@ public class WorkMakerIT extends ConfigurableMacBase {
     try (Scanner s = ReplicationTable.getScanner(client)) {
       WorkSection.limit(s);
 
-      Entry<Key,Value> workEntry = Iterables.getOnlyElement(s);
+      Entry<Key,Value> workEntry = getOnlyElement(s);
       Key workKey = workEntry.getKey();
       ReplicationTarget actual = ReplicationTarget.from(workKey.getColumnQualifier());
 
@@ -140,7 +140,7 @@ public class WorkMakerIT extends ConfigurableMacBase {
 
   @Test
   public void singleUnitMultipleTargets() throws Exception {
-    String table = testName.getMethodName();
+    String table = testName();
     client.tableOperations().create(table);
 
     TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(table));
@@ -186,17 +186,17 @@ public class WorkMakerIT extends ConfigurableMacBase {
       }
 
       for (ReplicationTarget expected : expectedTargets) {
-        assertTrue("Did not find expected target: " + expected, actualTargets.contains(expected));
+        assertTrue(actualTargets.contains(expected), "Did not find expected target: " + expected);
         actualTargets.remove(expected);
       }
 
-      assertTrue("Found extra replication work entries: " + actualTargets, actualTargets.isEmpty());
+      assertTrue(actualTargets.isEmpty(), "Found extra replication work entries: " + actualTargets);
     }
   }
 
   @Test
   public void dontCreateWorkForEntriesWithNothingToReplicate() throws Exception {
-    String table = testName.getMethodName();
+    String table = testName();
     client.tableOperations().create(table);
     String tableId = client.tableOperations().tableIdMap().get(table);
     String file = "hdfs://localhost:8020/accumulo/wal/123456-1234-1234-12345678";

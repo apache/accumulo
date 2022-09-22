@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,40 +18,38 @@
  */
 package org.apache.accumulo.test.iterator;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.AgeOffFilter;
-import org.apache.accumulo.iteratortest.IteratorTestCaseFinder;
+import org.apache.accumulo.iteratortest.IteratorTestBase;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
-import org.apache.accumulo.iteratortest.junit4.BaseJUnit4IteratorTest;
-import org.apache.accumulo.iteratortest.testcases.IteratorTestCase;
-import org.junit.runners.Parameterized.Parameters;
+import org.apache.accumulo.iteratortest.IteratorTestParameters;
 
 /**
  * Iterator test harness tests for AgeOffFilter
  */
-public class AgeOffFilterTest extends BaseJUnit4IteratorTest {
+public class AgeOffFilterTest extends IteratorTestBase {
+
   private static final long NOW = 12345678; // arbitrary base time
   private static final long TTL = 30_000; // 30 seconds
 
-  @Parameters
-  public static Object[][] parameters() {
-    var opts = createOpts();
-    var input = createInputData(opts);
-    var output = createOutputData(input);
-    assertEquals(15, input.getInput().size());
-    assertEquals(10, output.getOutput().size());
+  private static final TreeMap<Key,Value> INPUT_DATA = createInputData();
+  private static final TreeMap<Key,Value> OUTPUT_DATA = createOutputData();
 
-    var tests = IteratorTestCaseFinder.findAllTestCases();
-    return BaseJUnit4IteratorTest.createParameters(input, output, tests);
+  @Override
+  protected Stream<IteratorTestParameters> parameters() {
+    var input = new IteratorTestInput(AgeOffFilter.class, createOpts(), new Range(), INPUT_DATA);
+    var expectedOutput = new IteratorTestOutput(OUTPUT_DATA);
+    return builtinTestCases().map(test -> test.toParameters(input, expectedOutput));
   }
 
   // set up the iterator
@@ -64,7 +62,7 @@ public class AgeOffFilterTest extends BaseJUnit4IteratorTest {
 
   // create data with timestamps greater than, equal to, and less than NOW
   // the ones that would be dropped are ones that are older than NOW - TTL
-  private static IteratorTestInput createInputData(Map<String,String> opts) {
+  private static TreeMap<Key,Value> createInputData() {
     TreeMap<Key,Value> data = new TreeMap<>();
     final Value value = new Value("a");
 
@@ -84,20 +82,16 @@ public class AgeOffFilterTest extends BaseJUnit4IteratorTest {
     data.put(new Key("a", "a", "c", NOW - 32_000), value); // Will drop
     data.put(new Key("a", "a", "d", NOW - 32_000), value);
 
-    return new IteratorTestInput(AgeOffFilter.class, opts, new Range(), data);
+    assertEquals(15, data.size());
+    return data;
   }
 
   // create expected output data
   // data should include all input data except those older than the time at NOW - TTL
-  private static IteratorTestOutput createOutputData(IteratorTestInput input) {
-    var data = new TreeMap<Key,Value>(input.getInput());
+  private static TreeMap<Key,Value> createOutputData() {
+    TreeMap<Key,Value> data = new TreeMap<>(INPUT_DATA);
     data.entrySet().removeIf(e -> e.getKey().getTimestamp() < NOW - TTL);
-    return new IteratorTestOutput(data);
+    assertEquals(10, data.size());
+    return data;
   }
-
-  public AgeOffFilterTest(IteratorTestInput input, IteratorTestOutput expectedOutput,
-      IteratorTestCase testCase) {
-    super(input, expectedOutput, testCase);
-  }
-
 }

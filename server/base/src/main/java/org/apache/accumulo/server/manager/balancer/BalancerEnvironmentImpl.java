@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -38,6 +38,7 @@ import org.apache.accumulo.core.manager.balancer.TabletStatisticsImpl;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.spi.balancer.data.TabletStatistics;
@@ -84,8 +85,7 @@ public class BalancerEnvironmentImpl extends ServiceEnvironmentImpl implements B
       TableId tableId) throws AccumuloException, AccumuloSecurityException {
     log.debug("Scanning tablet server {} for table {}", tabletServerId, tableId);
     try {
-      TabletClientService.Client client = ThriftUtil.getClient(
-          new TabletClientService.Client.Factory(),
+      TabletClientService.Client client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER,
           HostAndPort.fromParts(tabletServerId.getHost(), tabletServerId.getPort()), getContext());
       try {
         return client

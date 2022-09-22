@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,57 +18,34 @@
  */
 package org.apache.accumulo.server.security;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Predicate;
-
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.security.UserImpersonation.AlwaysTrueSet;
 import org.apache.accumulo.server.security.UserImpersonation.UsersWithHosts;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.base.Joiner;
 
 public class UserImpersonationTest {
 
-  private ConfigurationCopy cc;
-  private AccumuloConfiguration conf;
+  private ConfigurationCopy conf;
 
-  @Before
+  @BeforeEach
   public void setup() {
-    cc = new ConfigurationCopy(new HashMap<>());
-    conf = new AccumuloConfiguration() {
-      DefaultConfiguration defaultConfig = DefaultConfiguration.getInstance();
-
-      @Override
-      public String get(Property property) {
-        String value = cc.get(property);
-        if (null == value) {
-          return defaultConfig.get(property);
-        }
-        return value;
-      }
-
-      @Override
-      public void getProperties(Map<String,String> props, Predicate<String> filter) {
-        cc.getProperties(props, filter);
-      }
-    };
+    conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
   }
 
   private void setValidHosts(String... hosts) {
-    cc.set(Property.INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION.getKey(),
+    conf.set(Property.INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION.getKey(),
         Joiner.on(';').join(hosts));
   }
 
@@ -83,7 +60,7 @@ public class UserImpersonationTest {
       }
       sb.append(remoteToAllowedUsers[v - 1]).append(":").append(remoteToAllowedUsers[v]);
     }
-    cc.set(Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION, sb.toString());
+    conf.set(Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION, sb.toString());
   }
 
   @Test
@@ -126,7 +103,7 @@ public class UserImpersonationTest {
     UserImpersonation impersonation = new UserImpersonation(conf);
 
     UsersWithHosts uwh = impersonation.get(server);
-    assertNull("Impersonation config should be drive by user element, not host", uwh);
+    assertNull(uwh, "Impersonation config should be drive by user element, not host");
   }
 
   @Test
@@ -279,8 +256,8 @@ public class UserImpersonationTest {
   @Test
   public void testSingleUser() {
     final String server = "server/hostname@EXAMPLE.COM", client = "client@EXAMPLE.COM";
-    cc.set(Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION, server + ":" + client);
-    cc.set(Property.INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION, "*");
+    conf.set(Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION, server + ":" + client);
+    conf.set(Property.INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION, "*");
     UserImpersonation impersonation = new UserImpersonation(conf);
 
     UsersWithHosts uwh = impersonation.get(server);

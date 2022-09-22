@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -23,12 +23,18 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
+import static org.apache.accumulo.core.util.threads.ThreadPools.watchCriticalFixedDelay;
+import static org.apache.accumulo.core.util.threads.ThreadPools.watchCriticalScheduledTask;
+import static org.apache.accumulo.core.util.threads.ThreadPools.watchNonCriticalScheduledTask;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
 import java.security.SecureRandom;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -56,6 +62,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Durability;
@@ -66,6 +73,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.Compacting;
@@ -76,12 +84,10 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsUtil;
-import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processor;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ComparablePair;
 import org.apache.accumulo.core.util.Halt;
@@ -106,6 +112,7 @@ import org.apache.accumulo.server.GarbageCollectionLogger;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.TabletLevel;
+import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.compaction.CompactionWatcher;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
@@ -115,21 +122,18 @@ import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.manager.recovery.RecoveryPath;
 import org.apache.accumulo.server.rpc.ServerAddress;
-import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
 import org.apache.accumulo.server.rpc.TServerUtils;
-import org.apache.accumulo.server.rpc.ThriftServerType;
-import org.apache.accumulo.server.security.AuditedSecurityOperation;
+import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.SecurityUtil;
-import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
 import org.apache.accumulo.server.security.delegation.ZooAuthenticationKeyWatcher;
 import org.apache.accumulo.server.util.FileSystemMonitor;
 import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.time.RelativeTime;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
+import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
 import org.apache.accumulo.tserver.TabletStatsKeeper.Operation;
-import org.apache.accumulo.tserver.compactions.Compactable;
 import org.apache.accumulo.tserver.compactions.CompactionManager;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.LogSorter;
@@ -147,6 +151,7 @@ import org.apache.accumulo.tserver.session.Session;
 import org.apache.accumulo.tserver.session.SessionManager;
 import org.apache.accumulo.tserver.tablet.BulkImportCacheCleaner;
 import org.apache.accumulo.tserver.tablet.CommitSession;
+import org.apache.accumulo.tserver.tablet.MetadataUpdateCount;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletData;
 import org.apache.commons.collections4.map.LRUMap;
@@ -163,7 +168,10 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterators;
 
-public class TabletServer extends AbstractServer {
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
+
+public class TabletServer extends AbstractServer implements TabletHostingServer {
 
   private static final SecureRandom random = new SecureRandom();
   private static final Logger log = LoggerFactory.getLogger(TabletServer.class);
@@ -181,6 +189,7 @@ public class TabletServer extends AbstractServer {
   TabletServerMinCMetrics mincMetrics;
   CompactionExecutorsMetrics ceMetrics;
 
+  @Override
   public TabletServerScanMetrics getScanMetrics() {
     return scanMetrics;
   }
@@ -239,7 +248,6 @@ public class TabletServer extends AbstractServer {
   protected TabletServer(ServerOpts opts, String[] args) {
     super("tserver", opts, args);
     context = super.getContext();
-    context.setupCrypto();
     this.managerLockCache = new ZooCache(context.getZooReader(), null);
     final AccumuloConfiguration aconf = getConfiguration();
     log.info("Version " + Constants.VERSION);
@@ -286,24 +294,21 @@ public class TabletServer extends AbstractServer {
               }
             }
           }), logBusyTabletsDelay, logBusyTabletsDelay, TimeUnit.MILLISECONDS);
-      ThreadPools.watchNonCriticalScheduledTask(future);
+      watchNonCriticalScheduledTask(future);
     }
 
     ScheduledFuture<?> future = context.getScheduledExecutor()
-        .scheduleWithFixedDelay(Threads.createNamedRunnable("TabletRateUpdater", new Runnable() {
-          @Override
-          public void run() {
-            long now = System.currentTimeMillis();
-            for (Tablet tablet : getOnlineTablets().values()) {
-              try {
-                tablet.updateRates(now);
-              } catch (Exception ex) {
-                log.error("Error updating rates for {}", tablet.getExtent(), ex);
-              }
+        .scheduleWithFixedDelay(Threads.createNamedRunnable("TabletRateUpdater", () -> {
+          long now = System.currentTimeMillis();
+          for (Tablet tablet : getOnlineTablets().values()) {
+            try {
+              tablet.updateRates(now);
+            } catch (Exception ex) {
+              log.error("Error updating rates for {}", tablet.getExtent(), ex);
             }
           }
         }), 5, 5, TimeUnit.SECONDS);
-    ThreadPools.watchNonCriticalScheduledTask(future);
+    watchNonCriticalScheduledTask(future);
 
     @SuppressWarnings("deprecation")
     final long walMaxSize =
@@ -348,16 +353,13 @@ public class TabletServer extends AbstractServer {
 
     logger = new TabletServerLogger(this, walMaxSize, syncCounter, flushCounter,
         walCreationRetryFactory, walWritingRetryFactory, walMaxAge);
-    this.resourceManager = new TabletServerResourceManager(context);
-    this.security = AuditedSecurityOperation.getInstance(context);
+    this.resourceManager = new TabletServerResourceManager(context, this);
+    this.security = context.getSecurityOperation();
 
-    ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
+    watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
         TabletLocator::clearLocators, jitter(), jitter(), TimeUnit.MILLISECONDS));
     walMarker = new WalStateManager(context);
 
-    // Create the secret manager
-    context.setSecretManager(new AuthenticationTokenSecretManager(context.getInstanceID(),
-        aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME)));
     if (aconf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       log.info("SASL is enabled, creating ZooKeeper watcher for AuthenticationKeys");
       // Watcher to notice new AuthenticationKeys which enable delegation tokens
@@ -388,7 +390,9 @@ public class TabletServer extends AbstractServer {
 
   private final AtomicLong totalQueuedMutationSize = new AtomicLong(0);
   private final ReentrantLock recoveryLock = new ReentrantLock(true);
-  private ThriftClientHandler clientHandler;
+  private ClientServiceHandler clientHandler;
+  private TabletClientHandler thriftClientHandler;
+  private ThriftScanClientHandler scanClientHandler;
   private final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
   private CompactionManager compactionManager;
 
@@ -417,6 +421,7 @@ public class TabletServer extends AbstractServer {
     return totalQueuedMutationSize.addAndGet(additionalMutationSize);
   }
 
+  @Override
   public Session getSession(long sessionId) {
     return sessionManager.getSession(sessionId);
   }
@@ -438,10 +443,10 @@ public class TabletServer extends AbstractServer {
           sleepUninterruptibly(getConfiguration().getTimeInMillis(Property.TSERV_MAJC_DELAY),
               TimeUnit.MILLISECONDS);
 
-          List<DfsLogger> closedCopy;
+          final List<DfsLogger> closedCopy;
 
           synchronized (closedLogs) {
-            closedCopy = copyClosedLogs(closedLogs);
+            closedCopy = List.copyOf(closedLogs);
           }
 
           // bail early now if we're shutting down
@@ -572,16 +577,25 @@ public class TabletServer extends AbstractServer {
         return null;
       }
       // log.info("Listener API to manager has been opened");
-      return ThriftUtil.getClient(new ManagerClientService.Client.Factory(), address, getContext());
+      return ThriftUtil.getClient(ThriftClientTypes.MANAGER, address, getContext());
     } catch (Exception e) {
       log.warn("Issue with managerConnection (" + address + ") " + e, e);
     }
     return null;
   }
 
+  protected ClientServiceHandler newClientHandler(TransactionWatcher watcher) {
+    return new ClientServiceHandler(context, watcher);
+  }
+
   // exists to be overridden in tests
-  protected ThriftClientHandler getThriftClientHandler() {
-    return new ThriftClientHandler(this);
+  protected TabletClientHandler newTabletClientHandler(TransactionWatcher watcher,
+      WriteTracker writeTracker) {
+    return new TabletClientHandler(this, watcher, writeTracker);
+  }
+
+  protected ThriftScanClientHandler newThriftScanClientHandler(WriteTracker writeTracker) {
+    return new ThriftScanClientHandler(this, writeTracker);
   }
 
   private void returnManagerConnection(ManagerClientService.Client client) {
@@ -590,16 +604,14 @@ public class TabletServer extends AbstractServer {
 
   private HostAndPort startTabletClientService() throws UnknownHostException {
     // start listening for client connection last
-    clientHandler = getThriftClientHandler();
-    Iface rpcProxy = TraceUtil.wrapService(clientHandler);
-    final Processor<Iface> processor;
-    if (getContext().getThriftServerType() == ThriftServerType.SASL) {
-      Iface tcredProxy = TCredentialsUpdatingWrapper.service(rpcProxy, ThriftClientHandler.class,
-          getConfiguration());
-      processor = new Processor<>(tcredProxy);
-    } else {
-      processor = new Processor<>(rpcProxy);
-    }
+    TransactionWatcher watcher = new TransactionWatcher(context);
+    WriteTracker writeTracker = new WriteTracker();
+    clientHandler = newClientHandler(watcher);
+    thriftClientHandler = newTabletClientHandler(watcher, writeTracker);
+    scanClientHandler = newThriftScanClientHandler(writeTracker);
+
+    TProcessor processor = ThriftProcessorTypes.getTabletServerTProcessor(clientHandler,
+        thriftClientHandler, scanClientHandler, getContext());
     HostAndPort address = startServer(getConfiguration(), clientAddress.getHost(), processor);
     log.info("address = {}", address);
     return address;
@@ -609,11 +621,7 @@ public class TabletServer extends AbstractServer {
   private void startReplicationService() throws UnknownHostException {
     final var handler =
         new org.apache.accumulo.tserver.replication.ReplicationServicerHandler(this);
-    ReplicationServicer.Iface rpcProxy = TraceUtil.wrapService(handler);
-    ReplicationServicer.Iface repl =
-        TCredentialsUpdatingWrapper.service(rpcProxy, handler.getClass(), getConfiguration());
-    ReplicationServicer.Processor<ReplicationServicer.Iface> processor =
-        new ReplicationServicer.Processor<>(repl);
+    var processor = ThriftProcessorTypes.getReplicationClientTProcessor(handler, getContext());
     Property maxMessageSizeProperty =
         getConfiguration().get(Property.TSERV_MAX_MESSAGE_SIZE) != null
             ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE;
@@ -637,8 +645,19 @@ public class TabletServer extends AbstractServer {
     }
   }
 
+  @Override
   public ServiceLock getLock() {
     return tabletServerLock;
+  }
+
+  @Override
+  public ZooCache getManagerLockCache() {
+    return managerLockCache;
+  }
+
+  @Override
+  public GarbageCollectionLogger getGcLogger() {
+    return gcLogger;
   }
 
   private void announceExistence() {
@@ -735,16 +754,11 @@ public class TabletServer extends AbstractServer {
     }
 
     try {
-      clientAddress = startTabletClientService();
-    } catch (UnknownHostException e1) {
-      throw new RuntimeException("Failed to start the tablet client service", e1);
-    }
-    announceExistence();
-
-    try {
       MetricsUtil.initializeMetrics(context.getConfiguration(), this.applicationName,
           clientAddress);
-    } catch (Exception e1) {
+    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+        | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
+        | SecurityException e1) {
       log.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
 
@@ -755,14 +769,17 @@ public class TabletServer extends AbstractServer {
     ceMetrics = new CompactionExecutorsMetrics();
     MetricsUtil.initializeProducers(metrics, updateMetrics, scanMetrics, mincMetrics, ceMetrics);
 
-    this.compactionManager = new CompactionManager(new Iterable<Compactable>() {
-      @Override
-      public Iterator<Compactable> iterator() {
-        return Iterators.transform(onlineTablets.snapshot().values().iterator(),
-            Tablet::asCompactable);
-      }
-    }, getContext(), ceMetrics);
+    this.compactionManager = new CompactionManager(() -> Iterators
+        .transform(onlineTablets.snapshot().values().iterator(), Tablet::asCompactable),
+        getContext(), ceMetrics);
     compactionManager.start();
+
+    try {
+      clientAddress = startTabletClientService();
+    } catch (UnknownHostException e1) {
+      throw new RuntimeException("Failed to start the tablet client service", e1);
+    }
+    announceExistence();
 
     try {
       walMarker.initWalMarker(getTabletSession());
@@ -771,8 +788,8 @@ public class TabletServer extends AbstractServer {
       throw new RuntimeException(e);
     }
 
-    ThreadPoolExecutor distWorkQThreadPool =
-        ThreadPools.createExecutorService(getConfiguration(), Property.TSERV_WORKQ_THREADS, true);
+    ThreadPoolExecutor distWorkQThreadPool = ThreadPools.getServerThreadPools()
+        .createExecutorService(getConfiguration(), Property.TSERV_WORKQ_THREADS, true);
 
     bulkFailedCopyQ =
         new DistributedWorkQueue(getContext().getZooKeeperRoot() + Constants.ZBULK_FAILED_COPYQ,
@@ -802,38 +819,46 @@ public class TabletServer extends AbstractServer {
         }
       }
     }, 0, 5, TimeUnit.SECONDS);
-    ThreadPools.watchNonCriticalScheduledTask(future);
+    watchNonCriticalScheduledTask(future);
 
-    int tabletCheckFrequency = 30 + random.nextInt(31); // random 30-60 minute delay
+    long tabletCheckFrequency = aconf.getTimeInMillis(Property.TSERV_HEALTH_CHECK_FREQ);
     // Periodically check that metadata of tablets matches what is held in memory
-    ThreadPools.watchCriticalScheduledTask(
-        ThreadPools.createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(() -> {
-          final SortedMap<KeyExtent,Tablet> onlineTabletsSnapshot = onlineTablets.snapshot();
+    watchCriticalFixedDelay(aconf, tabletCheckFrequency, () -> {
+      final SortedMap<KeyExtent,Tablet> onlineTabletsSnapshot = onlineTablets.snapshot();
 
-          Map<KeyExtent,Long> updateCounts = new HashMap<>();
+      Map<KeyExtent,MetadataUpdateCount> updateCounts = new HashMap<>();
 
-          // gather updateCounts for each tablet
-          onlineTabletsSnapshot.forEach((ke, tablet) -> {
-            updateCounts.put(ke, tablet.getUpdateCount());
-          });
+      // gather updateCounts for each tablet before reading tablet metadata
+      onlineTabletsSnapshot.forEach((ke, tablet) -> {
+        updateCounts.put(ke, tablet.getUpdateCount());
+      });
 
-          // gather metadata for all tablets readTablets()
-          try (TabletsMetadata tabletsMetadata =
-              getContext().getAmple().readTablets().forTablets(onlineTabletsSnapshot.keySet())
-                  .fetch(FILES, LOGS, ECOMP, PREV_ROW).build()) {
+      Instant start = Instant.now();
+      Duration duration;
+      Span mdScanSpan = TraceUtil.startSpan(this.getClass(), "metadataScan");
+      try (Scope scope = mdScanSpan.makeCurrent()) {
+        // gather metadata for all tablets readTablets()
+        try (TabletsMetadata tabletsMetadata =
+            getContext().getAmple().readTablets().forTablets(onlineTabletsSnapshot.keySet())
+                .fetch(FILES, LOGS, ECOMP, PREV_ROW).build()) {
+          mdScanSpan.end();
+          duration = Duration.between(start, Instant.now());
+          log.debug("Metadata scan took {}ms for {} tablets read.", duration.toMillis(),
+              onlineTabletsSnapshot.keySet().size());
 
-            // for each tablet, compare its metadata to what is held in memory
-            tabletsMetadata.forEach(tabletMetadata -> {
-              KeyExtent extent = tabletMetadata.getExtent();
-              Tablet tablet = onlineTabletsSnapshot.get(extent);
-              Long counter = updateCounts.get(extent);
-              tablet.compareTabletInfo(counter, tabletMetadata);
-            });
+          // for each tablet, compare its metadata to what is held in memory
+          for (var tabletMetadata : tabletsMetadata) {
+            KeyExtent extent = tabletMetadata.getExtent();
+            Tablet tablet = onlineTabletsSnapshot.get(extent);
+            MetadataUpdateCount counter = updateCounts.get(extent);
+            tablet.compareTabletInfo(counter, tabletMetadata);
           }
-        }, tabletCheckFrequency, tabletCheckFrequency, TimeUnit.MINUTES));
+        }
+      }
+    });
 
     final long CLEANUP_BULK_LOADED_CACHE_MILLIS = TimeUnit.MINUTES.toMillis(15);
-    ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
+    watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
         new BulkImportCacheCleaner(this), CLEANUP_BULK_LOADED_CACHE_MILLIS,
         CLEANUP_BULK_LOADED_CACHE_MILLIS, TimeUnit.MILLISECONDS));
 
@@ -951,7 +976,7 @@ public class TabletServer extends AbstractServer {
     }
 
     // Start the pool to handle outgoing replications
-    final ThreadPoolExecutor replicationThreadPool = ThreadPools
+    final ThreadPoolExecutor replicationThreadPool = ThreadPools.getServerThreadPools()
         .createExecutorService(getConfiguration(), Property.REPLICATION_WORKER_THREADS, false);
     replWorker.setExecutor(replicationThreadPool);
     replWorker.run();
@@ -962,7 +987,7 @@ public class TabletServer extends AbstractServer {
     };
     ScheduledFuture<?> future = context.getScheduledExecutor()
         .scheduleWithFixedDelay(replicationWorkThreadPoolResizer, 10, 30, TimeUnit.SECONDS);
-    ThreadPools.watchNonCriticalScheduledTask(future);
+    watchNonCriticalScheduledTask(future);
   }
 
   public String getClientAddressString() {
@@ -1023,13 +1048,18 @@ public class TabletServer extends AbstractServer {
 
     final AccumuloConfiguration aconf = getConfiguration();
 
-    FileSystemMonitor.start(aconf, Property.TSERV_MONITOR_FS);
+    @SuppressWarnings("removal")
+    Property TSERV_MONITOR_FS = Property.TSERV_MONITOR_FS;
+    if (aconf.getBoolean(TSERV_MONITOR_FS)) {
+      log.warn("{} is deprecated and marked for removal.", TSERV_MONITOR_FS.getKey());
+      FileSystemMonitor.start(aconf);
+    }
 
     Runnable gcDebugTask = () -> gcLogger.logGCInfo(getConfiguration());
 
     ScheduledFuture<?> future = context.getScheduledExecutor().scheduleWithFixedDelay(gcDebugTask,
         0, TIME_BETWEEN_GC_CHECKS, TimeUnit.MILLISECONDS);
-    ThreadPools.watchNonCriticalScheduledTask(future);
+    watchNonCriticalScheduledTask(future);
   }
 
   public TabletServerStatus getStats(Map<TableId,MapCounter<ScanRunState>> scanCounts) {
@@ -1182,6 +1212,7 @@ public class TabletServer extends AbstractServer {
     return logId;
   }
 
+  @Override
   public TableConfiguration getTableConfiguration(KeyExtent extent) {
     return getContext().getTableConfiguration(extent.tableId());
   }
@@ -1205,8 +1236,19 @@ public class TabletServer extends AbstractServer {
     return onlineTablets.snapshot();
   }
 
+  @Override
   public Tablet getOnlineTablet(KeyExtent extent) {
     return onlineTablets.snapshot().get(extent);
+  }
+
+  @Override
+  public SessionManager getSessionManager() {
+    return sessionManager;
+  }
+
+  @Override
+  public TabletServerResourceManager getResourceManager() {
+    return resourceManager;
   }
 
   public VolumeManager getVolumeManager() {
@@ -1241,12 +1283,7 @@ public class TabletServer extends AbstractServer {
   // is used because its very import to know the order in which WALs were closed when deciding if a
   // WAL is eligible for removal. Maintaining the order that logs were used in is currently a simple
   // task because there is only one active log at a time.
-  LinkedHashSet<DfsLogger> closedLogs = new LinkedHashSet<>();
-
-  @VisibleForTesting
-  interface ReferencedRemover {
-    void removeInUse(Set<DfsLogger> candidates);
-  }
+  final LinkedHashSet<DfsLogger> closedLogs = new LinkedHashSet<>();
 
   /**
    * For a closed WAL to be eligible for removal it must be unreferenced AND all closed WALs older
@@ -1255,10 +1292,10 @@ public class TabletServer extends AbstractServer {
    */
   @VisibleForTesting
   static Set<DfsLogger> findOldestUnreferencedWals(List<DfsLogger> closedLogs,
-      ReferencedRemover referencedRemover) {
+      Consumer<Set<DfsLogger>> referencedRemover) {
     LinkedHashSet<DfsLogger> unreferenced = new LinkedHashSet<>(closedLogs);
 
-    referencedRemover.removeInUse(unreferenced);
+    referencedRemover.accept(unreferenced);
 
     Iterator<DfsLogger> closedIter = closedLogs.iterator();
     Iterator<DfsLogger> unrefIter = unreferenced.iterator();
@@ -1279,25 +1316,15 @@ public class TabletServer extends AbstractServer {
     return eligible;
   }
 
-  @VisibleForTesting
-  static List<DfsLogger> copyClosedLogs(LinkedHashSet<DfsLogger> closedLogs) {
-    List<DfsLogger> closedCopy = new ArrayList<>(closedLogs.size());
-    for (DfsLogger dfsLogger : closedLogs) {
-      // very important this copy maintains same order ..
-      closedCopy.add(dfsLogger);
-    }
-    return Collections.unmodifiableList(closedCopy);
-  }
-
   private void markUnusedWALs() {
 
     List<DfsLogger> closedCopy;
 
     synchronized (closedLogs) {
-      closedCopy = copyClosedLogs(closedLogs);
+      closedCopy = List.copyOf(closedLogs);
     }
 
-    ReferencedRemover refRemover = candidates -> {
+    Consumer<Set<DfsLogger>> refRemover = candidates -> {
       for (Tablet tablet : getOnlineTablets().values()) {
         tablet.removeInUseLogs(candidates);
         if (candidates.isEmpty()) {
@@ -1356,4 +1383,10 @@ public class TabletServer extends AbstractServer {
   public CompactionManager getCompactionManager() {
     return compactionManager;
   }
+
+  @Override
+  public BlockCacheConfiguration getBlockCacheConfiguration(AccumuloConfiguration acuConf) {
+    return BlockCacheConfiguration.forTabletServer(acuConf);
+  }
+
 }

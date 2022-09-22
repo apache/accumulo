@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -173,8 +173,8 @@ public class ProblemsResource {
   }
 
   /**
-   * Prevent potential CRLF injection into logs from read in user data. See
-   * https://find-sec-bugs.github.io/bugs.htm#CRLF_INJECTION_LOGS
+   * Prevent potential CRLF injection into logs from read in user data. See the
+   * <a href="https://find-sec-bugs.github.io/bugs.htm#CRLF_INJECTION_LOGS">bug description</a>
    */
   private String sanitize(String msg) {
     return msg.replaceAll("[\r\n]", "");

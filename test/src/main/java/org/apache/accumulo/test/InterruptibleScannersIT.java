@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,8 +19,9 @@
 package org.apache.accumulo.test;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.time.Duration;
 import java.util.ArrayList;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -33,7 +34,7 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterators;
 
@@ -41,8 +42,8 @@ import com.google.common.collect.Iterators;
 public class InterruptibleScannersIT extends AccumuloClusterHarness {
 
   @Override
-  public int defaultTimeoutSeconds() {
-    return 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
   }
 
   @Override
@@ -90,8 +91,8 @@ public class InterruptibleScannersIT extends AccumuloClusterHarness {
         thread.start();
         try {
           // Use the scanner, expect problems
-          assertThrows("Scan should not succeed", RuntimeException.class,
-              () -> Iterators.size(scanner.iterator()));
+          assertThrows(RuntimeException.class, () -> Iterators.size(scanner.iterator()),
+              "Scan should not succeed");
         } finally {
           thread.join();
         }

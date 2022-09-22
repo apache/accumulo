@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -34,7 +34,7 @@ public class ThriftScannerTest {
 
   @Test
   public void testPauseIncrease() throws Exception {
-    long newPause = ThriftScanner.pause(5L, 5000L);
+    long newPause = ThriftScanner.pause(5L, 5000L, false);
     assertTrue(withinTenPercent(10L, newPause),
         "New pause should be within [9,11], but was " + newPause);
   }
@@ -42,7 +42,7 @@ public class ThriftScannerTest {
   @Test
   public void testMaxPause() throws Exception {
     long maxPause = 1L;
-    long nextPause = ThriftScanner.pause(5L, maxPause);
+    long nextPause = ThriftScanner.pause(5L, maxPause, false);
     assertTrue(withinTenPercent(maxPause, nextPause),
         "New pause should be within [0,2], but was " + nextPause);
   }

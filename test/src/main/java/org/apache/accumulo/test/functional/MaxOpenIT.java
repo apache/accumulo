@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,9 +40,9 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestIngest.IngestParams;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * A functional test that exercises hitting the max open file limit on a tablet server. This test
@@ -49,6 +50,11 @@ import org.junit.Test;
  */
 @SuppressWarnings("removal")
 public class MaxOpenIT extends AccumuloClusterHarness {
+
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(3);
+  }
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -59,14 +65,9 @@ public class MaxOpenIT extends AccumuloClusterHarness {
     cfg.setSiteConfig(conf);
   }
 
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 3 * 60;
-  }
-
   private String scanMaxOpenFiles, majcConcurrent, majcThreadMaxOpen;
 
-  @Before
+  @BeforeEach
   public void alterConfig() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       InstanceOperations iops = client.instanceOperations();
@@ -77,7 +78,7 @@ public class MaxOpenIT extends AccumuloClusterHarness {
     }
   }
 
-  @After
+  @AfterEach
   public void restoreConfig() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       InstanceOperations iops = client.instanceOperations();

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -38,6 +38,7 @@ import org.apache.accumulo.fate.FateTransactionStatus;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.FateZooStore;
 import org.apache.accumulo.fate.StackOverflowException;
+import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -184,7 +185,7 @@ public class ZooStore extends FateZooStore implements TStore {
           }
         }
       }
-    } catch (Exception e) {
+    } catch (InterruptedException | KeeperException e) {
       throw new RuntimeException(e);
     }
   }
@@ -194,9 +195,57 @@ public class ZooStore extends FateZooStore implements TStore {
     super.reserve(tid);
   }
 
+  /**
+   * Attempt to reserve transaction
+   *
+   * @param tid
+   *          transaction id
+   * @return true if reserved by this call, false if already reserved
+   */
+  @Override
+  public boolean tryReserve(long tid) {
+    synchronized (this) {
+      if (!reserved.contains(tid)) {
+        reserve(tid);
+        return true;
+      }
+      return false;
+    }
+  }
+
   @Override
   public void unreserve(long tid) {
     super.unreserve(tid);
+  /**
+   * Attempt to reserve transaction
+   *
+   * @param tid
+   *          transaction id
+   * @return true if reserved by this call, false if already reserved
+   */
+  @Override
+  public boolean tryReserve(long tid) {
+    synchronized (this) {
+      if (!reserved.contains(tid)) {
+        reserve(tid);
+        return true;
+      }
+      return false;
+    }
+  }
+
+  private void unreserve(long tid) {
+    synchronized (this) {
+      if (!reserved.remove(tid))
+        throw new IllegalStateException(
+            "Tried to unreserve id that was not reserved " + FateTxId.formatTid(tid));
+
+      // do not want this unreserve to unesc wake up threads in reserve()... this leads to infinite
+      // loop when tx is stuck in NEW...
+      // only do this when something external has called reserve(tid)...
+      if (reservationsWaiting > 0)
+        this.notifyAll();
+    }
   }
 
   @Override
@@ -234,7 +283,9 @@ public class ZooStore extends FateZooStore implements TStore {
         }
 
         byte[] ser = zk.getData(txpath + "/" + top);
-        return (Repo) deserialize(ser);
+        @SuppressWarnings("unchecked")
+        var deserialized = (Repo) deserialize(ser);
+        return deserialized;
       } catch (KeeperException.NoNodeException ex) {
         log.debug("zookeeper error reading " + txpath + ": " + ex, ex);
         sleepUninterruptibly(100, MILLISECONDS);
@@ -350,12 +401,12 @@ public class ZooStore extends FateZooStore implements TStore {
   }
 
   @Override
-  public void setProperty(long tid, String prop, Serializable so) {
+  public void setTransactionInfo(long tid, Fate.TxInfo txInfo, Serializable so) {
     verifyReserved(tid);
 
     try {
       if (so instanceof String) {
-        zk.putPersistentData(getTXPath(tid) + "/prop_" + prop, ("S " + so).getBytes(UTF_8),
+        zk.putPersistentData(getTXPath(tid) + "/" + txInfo, ("S " + so).getBytes(UTF_8),
             NodeExistsPolicy.OVERWRITE);
       } else {
         byte[] sera = serialize(so);
@@ -363,10 +414,33 @@ public class ZooStore extends FateZooStore implements TStore {
         System.arraycopy(sera, 0, data, 2, sera.length);
         data[0] = 'O';
         data[1] = ' ';
-        zk.putPersistentData(getTXPath(tid) + "/prop_" + prop, data, NodeExistsPolicy.OVERWRITE);
+        zk.putPersistentData(getTXPath(tid) + "/" + txInfo, data, NodeExistsPolicy.OVERWRITE);
       }
     } catch (Exception e2) {
       throw new RuntimeException(e2);
+    }
+  }
+
+  @Override
+  public Serializable getTransactionInfo(long tid, Fate.TxInfo txInfo) {
+    verifyReserved(tid);
+
+    try {
+      byte[] data = zk.getData(getTXPath(tid) + "/" + txInfo);
+
+      if (data[0] == 'O') {
+        byte[] sera = new byte[data.length - 2];
+        System.arraycopy(data, 2, sera, 0, sera.length);
+        return (Serializable) deserialize(sera);
+      } else if (data[0] == 'S') {
+        return new String(data, 2, data.length - 2, UTF_8);
+      } else {
+        throw new IllegalStateException("Bad node data " + txInfo);
+      }
+    } catch (NoNodeException nne) {
+      return null;
+    } catch (Exception e) {
+      throw new RuntimeException(e);
     }
   }
 

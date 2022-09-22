@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,11 +19,12 @@
 package org.apache.accumulo.test;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -35,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
@@ -49,7 +51,9 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DiskUsage;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -63,9 +67,9 @@ import org.apache.accumulo.test.functional.BadIterator;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Sets;
 
@@ -75,16 +79,16 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   private static final int MAX_TABLE_NAME_LEN = 1024;
 
   @Override
-  public int defaultTimeoutSeconds() {
-    return 90;
+  protected Duration defaultTimeout() {
+    return Duration.ofSeconds(90);
   }
 
-  @Before
+  @BeforeEach
   public void setup() {
     accumuloClient = Accumulo.newClient().from(getClientProps()).build();
   }
 
-  @After
+  @AfterEach
   public void checkForDanglingFateLocks() {
     if (getClusterType() == ClusterType.MINI) {
       FunctionalTestUtils.assertNoDanglingFateLocks(getCluster());
@@ -251,11 +255,11 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     Collection<Text> clonedSplits = tops.listSplits(clonedTable);
     Set<Text> expectedSplits = Sets.newHashSet(new Text("b"), new Text("c"), new Text("d"));
     for (Text clonedSplit : clonedSplits) {
-      assertTrue("Encountered unexpected split on the cloned table: " + clonedSplit,
-          expectedSplits.remove(clonedSplit));
+      assertTrue(expectedSplits.remove(clonedSplit),
+          "Encountered unexpected split on the cloned table: " + clonedSplit);
     }
-    assertTrue("Did not find all expected splits on the cloned table: " + expectedSplits,
-        expectedSplits.isEmpty());
+    assertTrue(expectedSplits.isEmpty(),
+        "Did not find all expected splits on the cloned table: " + expectedSplits);
   }
 
   /** Compare only the row, column family and column qualifier. */
@@ -286,9 +290,70 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       Map<Key,Value> actual = new TreeMap<>();
       for (Map.Entry<Key,Value> entry : scanner)
         actual.put(entry.getKey(), entry.getValue());
-      assertTrue("Should be empty. Actual is " + actual, actual.isEmpty());
+      assertTrue(actual.isEmpty(), "Should be empty. Actual is " + actual);
       accumuloClient.tableOperations().delete(tableName);
     }
+  }
+
+  @Test
+  public void getTimeTypeTest() throws TableNotFoundException, AccumuloException,
+      TableExistsException, AccumuloSecurityException {
+    String[] tableNames = getUniqueNames(5);
+
+    // Create table with default MILLIS TimeType
+    // By default, tables are created with the default MILLIS TimeType.
+    accumuloClient.tableOperations().create(tableNames[0]);
+    TimeType timeType = accumuloClient.tableOperations().getTimeType(tableNames[0]);
+    assertEquals(TimeType.MILLIS, timeType);
+
+    // Create table, explicitly setting TimeType to MILLIS
+    NewTableConfiguration ntc = new NewTableConfiguration();
+    ntc.setTimeType(TimeType.MILLIS);
+    accumuloClient.tableOperations().create(tableNames[1], ntc);
+    timeType = accumuloClient.tableOperations().getTimeType(tableNames[1]);
+    assertEquals(TimeType.MILLIS, timeType);
+
+    // Create table with LOGICAL TimeType.
+    ntc = new NewTableConfiguration();
+    ntc.setTimeType(TimeType.LOGICAL);
+    accumuloClient.tableOperations().create(tableNames[2], ntc);
+    timeType = accumuloClient.tableOperations().getTimeType(tableNames[2]);
+    assertEquals(TimeType.LOGICAL, timeType);
+
+    // Create some split points
+    SortedSet<Text> splits = new TreeSet<>();
+    splits.add(new Text("F"));
+    splits.add(new Text("M"));
+    splits.add(new Text("S"));
+
+    // Create table with MILLIS TimeType. Use splits to create multiple tablets
+    ntc = new NewTableConfiguration();
+    ntc.withSplits(splits);
+    accumuloClient.tableOperations().create(tableNames[3], ntc);
+    timeType = accumuloClient.tableOperations().getTimeType(tableNames[3]);
+    assertEquals(TimeType.MILLIS, timeType);
+
+    // Create table with LOGICAL TimeType. Use splits to create multiple tablets
+    ntc = new NewTableConfiguration();
+    ntc.setTimeType(TimeType.LOGICAL).withSplits(splits);
+    accumuloClient.tableOperations().create(tableNames[4], ntc);
+    timeType = accumuloClient.tableOperations().getTimeType(tableNames[4]);
+    assertEquals(TimeType.LOGICAL, timeType);
+
+    // check system tables
+    timeType = accumuloClient.tableOperations().getTimeType("accumulo.metadata");
+    assertEquals(TimeType.LOGICAL, timeType);
+
+    timeType = accumuloClient.tableOperations().getTimeType("accumulo.replication");
+    assertEquals(TimeType.LOGICAL, timeType);
+
+    timeType = accumuloClient.tableOperations().getTimeType("accumulo.root");
+    assertEquals(TimeType.LOGICAL, timeType);
+
+    // test non-existent table
+    assertThrows(TableNotFoundException.class,
+        () -> accumuloClient.tableOperations().getTimeType("notatable"),
+        "specified table does not exist");
   }
 
 }

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import java.time.Duration;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
@@ -31,14 +32,14 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 // ACCUMULO-3692
 public class BalanceWithOfflineTableIT extends ConfigurableMacBase {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 120;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
   }
 
   @Override
@@ -77,12 +78,13 @@ public class BalanceWithOfflineTableIT extends ConfigurableMacBase {
 
       log.info("Waiting for balance");
 
-      ExecutorService pool = ThreadPools.createFixedThreadPool(1, "waitForBalance", false);
+      ExecutorService pool =
+          ThreadPools.getServerThreadPools().createFixedThreadPool(1, "waitForBalance", false);
       Future<Boolean> wait = pool.submit(() -> {
         c.instanceOperations().waitForBalance();
         return true;
       });
-      wait.get((2 * defaultTimeoutSeconds()) / 3, TimeUnit.SECONDS);
+      wait.get((2L * defaultTimeout().toSeconds()) / 3, TimeUnit.SECONDS);
       log.info("Balance succeeded with an offline table");
     }
   }

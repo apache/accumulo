@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -34,7 +34,7 @@ import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
@@ -51,9 +51,9 @@ import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -68,13 +68,9 @@ class FileSystemInitializer {
 
   // config only for root table
   private final InitialConfiguration initConfig;
-  private final ZooReaderWriter zoo;
-  private final String zkRoot;
 
   FileSystemInitializer(InitialConfiguration initConfig, ZooReaderWriter zoo, InstanceId uuid) {
     this.initConfig = initConfig;
-    this.zoo = zoo;
-    this.zkRoot = Constants.ZROOT + "/" + uuid;
   }
 
   private static class Tablet {
@@ -96,7 +92,7 @@ class FileSystemInitializer {
       ServerContext context) throws IOException, InterruptedException, KeeperException {
     SiteConfiguration siteConfig = initConfig.getSiteConf();
     // initialize initial system tables config in zookeeper
-    initSystemTablesConfig();
+    initSystemTablesConfig(context);
 
     Text splitPoint = MetadataSchema.TabletsSection.getRange().getEndKey().getRow();
 
@@ -160,20 +156,23 @@ class FileSystemInitializer {
     }
   }
 
-  private void initSystemTablesConfig() throws IOException, InterruptedException, KeeperException {
-    setTableProperties(RootTable.ID, initConfig.getRootTableConf());
-    setTableProperties(RootTable.ID, initConfig.getRootMetaConf());
-    setTableProperties(MetadataTable.ID, initConfig.getRootMetaConf());
-    setTableProperties(MetadataTable.ID, initConfig.getMetaTableConf());
-    setTableProperties(REPL_TABLE_ID, initConfig.getReplTableConf());
+  private void initSystemTablesConfig(final ServerContext context)
+      throws IOException, InterruptedException, KeeperException {
+    setTableProperties(context, RootTable.ID, initConfig.getRootTableConf());
+    setTableProperties(context, RootTable.ID, initConfig.getRootMetaConf());
+    setTableProperties(context, MetadataTable.ID, initConfig.getRootMetaConf());
+    setTableProperties(context, MetadataTable.ID, initConfig.getMetaTableConf());
+    setTableProperties(context, REPL_TABLE_ID, initConfig.getReplTableConf());
   }
 
-  private void setTableProperties(TableId tableId, HashMap<String,String> props)
-      throws IOException, InterruptedException, KeeperException {
-    for (Map.Entry<String,String> entry : props.entrySet()) {
-      if (!TablePropUtil.setTableProperty(zoo, zkRoot, tableId, entry.getKey(), entry.getValue())) {
-        throw new IOException("Cannot create per-table property " + entry.getKey());
-      }
+  private void setTableProperties(final ServerContext context, TableId tableId,
+      HashMap<String,String> props) {
+    var propStore = context.getPropStore();
+    TablePropKey tablePropKey = TablePropKey.of(context, tableId);
+    if (propStore.exists(tablePropKey)) {
+      propStore.putAll(tablePropKey, props);
+    } else {
+      propStore.create(tablePropKey, props);
     }
   }
 
@@ -186,8 +185,7 @@ class FileSystemInitializer {
     }
     FileSystem fs = volmanager.getFileSystemByPath(new Path(fileName));
 
-    CryptoService cs =
-        CryptoServiceFactory.newInstance(conf, CryptoServiceFactory.ClassloaderType.ACCUMULO);
+    CryptoService cs = CryptoFactoryLoader.getServiceForServer(conf);
 
     FileSKVWriter tabletWriter = FileOperations.getInstance().newWriterBuilder()
         .forFile(fileName, fs, fs.getConf(), cs).withTableConfiguration(conf).build();

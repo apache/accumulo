@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,14 +18,15 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.time.Duration;
 import java.util.Collections;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Fake the "tablet stops talking but holds its lock" problem we see when hard drives and NFS fail.
@@ -34,13 +35,13 @@ import org.junit.Test;
 public class LateLastContactIT extends ConfigurableMacBase {
 
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setSiteConfig(Collections.singletonMap(Property.GENERAL_RPC_TIMEOUT.getKey(), "2s"));
+  protected Duration defaultTimeout() {
+    return Duration.ofSeconds(90);
   }
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 90;
+  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    cfg.setSiteConfig(Collections.singletonMap(Property.GENERAL_RPC_TIMEOUT.getKey(), "2s"));
   }
 
   @Test

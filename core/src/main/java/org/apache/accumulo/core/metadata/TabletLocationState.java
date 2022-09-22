@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,11 +18,14 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -35,16 +38,18 @@ import org.apache.hadoop.io.Text;
 public class TabletLocationState {
 
   public static class BadLocationStateException extends Exception {
-    private static final long serialVersionUID = 1L;
-    private Text metadataTableEntry;
+    private static final long serialVersionUID = 2L;
+
+    // store as byte array because Text isn't Serializable
+    private final byte[] metadataTableEntry;
 
     public BadLocationStateException(String msg, Text row) {
       super(msg);
-      this.metadataTableEntry = row;
+      this.metadataTableEntry = TextUtil.getBytes(requireNonNull(row));
     }
 
     public Text getEncodedEndRow() {
-      return metadataTableEntry;
+      return new Text(metadataTableEntry);
     }
   }
 

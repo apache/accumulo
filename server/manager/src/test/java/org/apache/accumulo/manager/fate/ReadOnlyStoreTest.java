@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,15 +18,15 @@
  */
 package org.apache.accumulo.manager.fate;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.util.Collections;
 import java.util.EnumSet;
 
 import org.apache.accumulo.fate.FateTransactionStatus;
 import org.easymock.EasyMock;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Make sure read only decorate passes read methods.
@@ -36,7 +36,7 @@ public class ReadOnlyStoreTest {
   @Test
   public void everythingPassesThrough() throws Exception {
     Repo repo = EasyMock.createMock(Repo.class);
-    EasyMock.expect(repo.getDescription()).andReturn("description");
+    EasyMock.expect(repo.getName()).andReturn("description");
     EasyMock.expect(repo.isReady(0xdeadbeefL, null)).andReturn(0x0L);
 
     ZooStore mock = EasyMock.createNiceMock(ZooStore.class);
@@ -49,7 +49,8 @@ public class ReadOnlyStoreTest {
     EasyMock
         .expect(mock.waitForStatusChange(0xdeadbeefL, EnumSet.allOf(FateTransactionStatus.class)))
         .andReturn(FateTransactionStatus.UNKNOWN);
-    EasyMock.expect(mock.getProperty(0xdeadbeefL, "com.example.anyproperty")).andReturn("property");
+    EasyMock.expect(mock.getTransactionInfo(0xdeadbeefL, Fate.TxInfo.RETURN_VALUE))
+        .andReturn("txInfo");
     EasyMock.expect(mock.list()).andReturn(Collections.emptyList());
 
     EasyMock.replay(repo);
@@ -60,14 +61,14 @@ public class ReadOnlyStoreTest {
     store.reserve(0xdeadbeefL);
     ReadOnlyRepo top = store.top(0xdeadbeefL);
     assertFalse(top instanceof Repo);
-    assertEquals("description", top.getDescription());
+    assertEquals("description", top.getName());
     assertEquals(0x0L, top.isReady(0xdeadbeefL, null));
     assertEquals(FateTransactionStatus.UNKNOWN, store.getStatus(0xdeadbeefL));
     store.unreserve(0xdeadbeefL, 30);
 
     assertEquals(FateTransactionStatus.UNKNOWN,
         store.waitForStatusChange(0xdeadbeefL, EnumSet.allOf(FateTransactionStatus.class)));
-    assertEquals("property", store.getProperty(0xdeadbeefL, "com.example.anyproperty"));
+    assertEquals("txInfo", store.getTransactionInfo(0xdeadbeefL, Fate.TxInfo.RETURN_VALUE));
     assertEquals(Collections.<Long>emptyList(), store.list());
 
     EasyMock.verify(repo);

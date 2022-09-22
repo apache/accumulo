@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -160,6 +160,11 @@ public class AgeOffStore implements TStore {
   }
 
   @Override
+  public boolean tryReserve(long tid) {
+    return store.tryReserve(tid);
+  }
+
+  @Override
   public void unreserve(long tid, long deferTime) {
     store.unreserve(tid, deferTime);
   }
@@ -210,13 +215,13 @@ public class AgeOffStore implements TStore {
   }
 
   @Override
-  public void setProperty(long tid, String prop, Serializable val) {
-    store.setProperty(tid, prop, val);
+  public void setTransactionInfo(long tid, Fate.TxInfo txInfo, Serializable val) {
+    store.setTransactionInfo(tid, txInfo, val);
   }
 
   @Override
-  public Serializable getProperty(long tid, String prop) {
-    return store.getProperty(tid, prop);
+  public Serializable getTransactionInfo(long tid, Fate.TxInfo txInfo) {
+    return store.getTransactionInfo(tid, txInfo);
   }
 
   @Override

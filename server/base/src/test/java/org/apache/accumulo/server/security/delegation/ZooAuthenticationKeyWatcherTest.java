@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -24,10 +24,10 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.reset;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -46,9 +46,9 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ZooAuthenticationKeyWatcherTest {
 
@@ -57,7 +57,7 @@ public class ZooAuthenticationKeyWatcherTest {
   private static final int KEY_LENGTH = 64;
   private static KeyGenerator keyGen;
 
-  @BeforeClass
+  @BeforeAll
   public static void setupKeyGenerator() throws Exception {
     // From org.apache.hadoop.security.token.SecretManager
     keyGen = KeyGenerator.getInstance(DEFAULT_HMAC_ALGORITHM);
@@ -71,7 +71,7 @@ public class ZooAuthenticationKeyWatcherTest {
   private AuthenticationTokenSecretManager secretManager;
   private ZooAuthenticationKeyWatcher keyWatcher;
 
-  @Before
+  @BeforeEach
   public void setupMocks() {
     zk = createMock(ZooReader.class);
     instanceId = InstanceId.of(UUID.randomUUID());
@@ -296,9 +296,9 @@ public class ZooAuthenticationKeyWatcherTest {
     verify(zk);
 
     // We should have no auth keys when we're disconnected
-    assertEquals("Secret manager should be empty after a disconnect", 0,
-        secretManager.getKeys().size());
-    assertNull("Current key should be null", secretManager.getCurrentKey());
+    assertEquals(0, secretManager.getKeys().size(),
+        "Secret manager should be empty after a disconnect");
+    assertNull(secretManager.getCurrentKey(), "Current key should be null");
 
     reset(zk);
 
@@ -340,9 +340,9 @@ public class ZooAuthenticationKeyWatcherTest {
     verify(zk);
 
     // We should have no auth keys after initializing things
-    assertEquals("Secret manager should be empty after a disconnect", 0,
-        secretManager.getKeys().size());
-    assertNull("Current key should be null", secretManager.getCurrentKey());
+    assertEquals(0, secretManager.getKeys().size(),
+        "Secret manager should be empty after a disconnect");
+    assertNull(secretManager.getCurrentKey(), "Current key should be null");
   }
 
   private byte[] serialize(AuthenticationKey key) throws IOException {

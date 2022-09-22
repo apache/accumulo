@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -56,7 +56,8 @@ public class MinorCompactor extends FileCompactor {
   public MinorCompactor(TabletServer tabletServer, Tablet tablet, InMemoryMap imm,
       TabletFile outputFile, MinorCompactionReason mincReason, TableConfiguration tableConfig) {
     super(tabletServer.getContext(), tablet.getExtent(), Collections.emptyMap(), outputFile, true,
-        new MinCEnv(mincReason, imm.compactionIterator()), Collections.emptyList(), tableConfig);
+        new MinCEnv(mincReason, imm.compactionIterator()), Collections.emptyList(), tableConfig,
+        tableConfig.getCryptoService());
     this.tabletServer = tabletServer;
     this.mincReason = mincReason;
   }

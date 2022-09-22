@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import static com.google.common.base.Preconditions.checkState;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_COLUMN;
@@ -80,7 +81,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
 /**
@@ -184,8 +184,9 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         for (AutoCloseable closable : closables) {
           closable.close();
         }
-      }, Iterables.filter(Iterables.concat(iterables),
-          tabletMetadata -> extentsToFetch.contains(tabletMetadata.getExtent())));
+      }, () -> iterables.stream().flatMap(i -> StreamSupport.stream(i.spliterator(), false))
+          .filter(tabletMetadata -> extentsToFetch.contains(tabletMetadata.getExtent()))
+          .iterator());
 
     }
 
@@ -512,8 +513,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
       case IMMEDIATE:
         ZooReader zooReader = ctx.getZooReader();
         try {
-          return RootTabletMetadata.fromJson(zooReader.getData(zkRoot + RootTable.ZROOT_TABLET))
-              .convertToTabletMetadata();
+          byte[] bytes = zooReader.getData(zkRoot + RootTable.ZROOT_TABLET);
+          return new RootTabletMetadata(new String(bytes, UTF_8)).toTabletMetadata();
         } catch (InterruptedException | KeeperException e) {
           throw new RuntimeException(e);
         }
@@ -523,8 +524,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
   }
 
   public static TabletMetadata getRootMetadata(String zkRoot, ZooCache zc) {
-    return RootTabletMetadata.fromJson(zc.get(zkRoot + RootTable.ZROOT_TABLET))
-        .convertToTabletMetadata();
+    byte[] jsonBytes = zc.get(zkRoot + RootTable.ZROOT_TABLET);
+    return new RootTabletMetadata(new String(jsonBytes, UTF_8)).toTabletMetadata();
   }
 
   private final AutoCloseable closeable;

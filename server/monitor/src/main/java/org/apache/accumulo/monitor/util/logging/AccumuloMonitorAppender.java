@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -26,10 +26,8 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
-import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
@@ -125,8 +123,7 @@ public class AccumuloMonitorAppender extends AbstractAppender {
         var req = HttpRequest.newBuilder(uri).POST(BodyPublishers.ofString(jsonEvent, UTF_8))
             .setHeader("Content-Type", "application/json").build();
         @SuppressWarnings("unused")
-        CompletableFuture<HttpResponse<Void>> future =
-            httpClient.sendAsync(req, BodyHandlers.discarding());
+        var future = httpClient.sendAsync(req, BodyHandlers.discarding());
       } catch (final Exception e) {
         error("Unable to send HTTP in appender [" + getName() + "]", event, e);
       }

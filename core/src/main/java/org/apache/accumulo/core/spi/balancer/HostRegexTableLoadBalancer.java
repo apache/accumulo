@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -63,7 +63,6 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
 /**
@@ -467,14 +466,14 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
       if (migrations.size() >= myConf.maxOutstandingMigrations) {
         LOG.warn("Not balancing tables due to {} outstanding migrations", migrations.size());
         if (LOG.isTraceEnabled()) {
-          LOG.trace("Sample up to 10 outstanding migrations: {}", Iterables.limit(migrations, 10));
+          LOG.trace("Sample up to 10 outstanding migrations: {}", limitTen(migrations));
         }
         return minBalanceTime;
       }
 
       LOG.debug("Current outstanding migrations of {} being applied", migrations.size());
       if (LOG.isTraceEnabled()) {
-        LOG.trace("Sample up to 10 outstanding migrations: {}", Iterables.limit(migrations, 10));
+        LOG.trace("Sample up to 10 outstanding migrations: {}", limitTen(migrations));
       }
       migrationsFromLastPass.keySet().retainAll(migrations);
       SortedMap<TabletServerId,TServerStatusImpl> currentCopy = new TreeMap<>();
@@ -514,7 +513,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
       } else if (tableToTimeSinceNoMigrations.containsKey(tableId)) {
         if ((now - tableToTimeSinceNoMigrations.get(tableId)) > HOURS.toMillis(1)) {
           LOG.warn("We have been consistently producing migrations for {}: {}", tableName,
-              Iterables.limit(newMigrations, 10));
+              limitTen(newMigrations));
         }
       } else {
         tableToTimeSinceNoMigrations.put(tableId, now);
@@ -564,6 +563,12 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
       }
     }
     return newInfo;
+  }
+
+  // helper to prepare log messages
+  private static String limitTen(Collection<?> iterable) {
+    return iterable.stream().limit(10).map(String::valueOf)
+        .collect(Collectors.joining(", ", "[", "]"));
   }
 
 }

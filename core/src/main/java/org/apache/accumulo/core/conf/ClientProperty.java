@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -35,6 +35,7 @@ import org.apache.accumulo.core.client.security.tokens.CredentialProviderToken;
 import org.apache.accumulo.core.client.security.tokens.DelegationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.spi.scan.ConfigurableScanServerSelector;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -91,6 +92,13 @@ public enum ClientProperty {
   SCANNER_BATCH_SIZE("scanner.batch.size", "1000", PropertyType.COUNT,
       "Number of key/value pairs that will be fetched at time from tablet server", "2.0.0", false),
 
+  SCAN_SERVER_SELECTOR("scan.server.selector.impl", ConfigurableScanServerSelector.class.getName(),
+      PropertyType.CLASSNAME, "Class used by client to find Scan Servers", "2.1.0", false),
+
+  SCAN_SERVER_SELECTOR_OPTS_PREFIX("scan.server.selector.opts.", "", PropertyType.PREFIX,
+      "Properties in this category are related to the configuration of the scan.server.selector.impl class",
+      "2.1.0", false),
+
   // BatchScanner
   BATCH_SCANNER_NUM_QUERY_THREADS("batch.scanner.num.query.threads", "3", PropertyType.COUNT,
       "Number of concurrent query threads to spawn for querying", "2.0.0", false),
@@ -121,6 +129,11 @@ public enum ClientProperty {
       "SASL quality of protection. Valid values are 'auth', 'auth-int', and 'auth-conf'"),
   SASL_KERBEROS_SERVER_PRIMARY("sasl.kerberos.server.primary", "accumulo",
       "Kerberos principal/primary that Accumulo servers use to login"),
+
+  // RPC
+  RPC_TRANSPORT_IDLE_TIMEOUT("rpc.transport.idle.timeout", "3s", PropertyType.TIMEDURATION,
+      "The maximum duration to leave idle transports open in the client's transport pool", "2.1.0",
+      false),
 
   // Trace
   @Deprecated(since = "2.1.0", forRemoval = true)
@@ -340,6 +353,8 @@ public enum ClientProperty {
   /**
    * @throws IllegalArgumentException
    *           if Properties does not contain all required
+   * @throws NullPointerException
+   *           if {@code properties == null}
    */
   public static void validate(Properties properties) {
     validate(properties, true);

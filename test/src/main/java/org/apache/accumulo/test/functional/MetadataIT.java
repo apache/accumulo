@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -23,13 +23,15 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -57,21 +59,18 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
-
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
+import org.junit.jupiter.api.Test;
 
 public class MetadataIT extends AccumuloClusterHarness {
 
   @Override
-  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setNumTservers(1);
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
   }
 
   @Override
-  public int defaultTimeoutSeconds() {
-    return 2 * 60;
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    cfg.setNumTservers(1);
   }
 
   @Test
@@ -128,7 +127,7 @@ public class MetadataIT extends AccumuloClusterHarness {
       c.tableOperations().merge(MetadataTable.NAME, null, null);
       try (Scanner s = c.createScanner(RootTable.NAME, Authorizations.EMPTY)) {
         s.setRange(DeletesSection.getRange());
-        while (Iterators.size(s.iterator()) == 0) {
+        while (s.stream().findAny().isEmpty()) {
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         }
         assertEquals(0, c.tableOperations().listSplits(MetadataTable.NAME).size());
@@ -143,26 +142,15 @@ public class MetadataIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableName);
 
       // batch scan regular metadata table
-      int count = 0;
       try (BatchScanner s = c.createBatchScanner(MetadataTable.NAME)) {
         s.setRanges(Collections.singleton(new Range()));
-        for (Entry<Key,Value> e : s) {
-          if (e != null)
-            count++;
-        }
+        assertTrue(s.stream().anyMatch(Objects::nonNull));
       }
-
-      assertTrue(count > 0);
 
       // batch scan root metadata table
       try (BatchScanner s = c.createBatchScanner(RootTable.NAME)) {
         s.setRanges(Collections.singleton(new Range()));
-        count = 0;
-        for (Entry<Key,Value> e : s) {
-          if (e != null)
-            count++;
-        }
-        assertTrue(count > 0);
+        assertTrue(s.stream().anyMatch(Objects::nonNull));
       }
     }
   }
@@ -189,8 +177,8 @@ public class MetadataIT extends AccumuloClusterHarness {
       TabletsMetadata tablets = cc.getAmple().readTablets().forTable(TableId.of("1"))
           .overlapping(startRow, endRow).fetch(FILES, LOCATION, LAST, PREV_ROW).build();
 
-      TabletMetadata tabletMetadata0 = Iterables.get(tablets, 0);
-      TabletMetadata tabletMetadata1 = Iterables.get(tablets, 1);
+      TabletMetadata tabletMetadata0 = tablets.stream().findFirst().get();
+      TabletMetadata tabletMetadata1 = tablets.stream().skip(1).findFirst().get();
 
       String infoTabletId0 = tabletMetadata0.getTableId().toString();
       String infoExtent0 = tabletMetadata0.getExtent().toString();

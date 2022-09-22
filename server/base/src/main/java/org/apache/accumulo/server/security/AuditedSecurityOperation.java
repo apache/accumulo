@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -62,14 +62,6 @@ public class AuditedSecurityOperation extends SecurityOperation {
   public AuditedSecurityOperation(ServerContext context, Authorizor author, Authenticator authent,
       PermissionHandler pm) {
     super(context, author, authent, pm);
-  }
-
-  public static synchronized SecurityOperation getInstance(ServerContext context) {
-    if (instance == null) {
-      instance = new AuditedSecurityOperation(context, getAuthorizor(context),
-          getAuthenticator(context), getPermHandler(context));
-    }
-    return instance;
   }
 
   private String getTableName(TableId tableId) {
@@ -272,7 +264,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
 
   public static final String CAN_DELETE_TABLE_AUDIT_TEMPLATE =
-      "action: deleteTable; targetTable: %s;";
+      "action: deleteTable; targetTable: %s:%s";
 
   @Override
   public boolean canDeleteTable(TCredentials c, TableId tableId, NamespaceId namespaceId)
@@ -690,7 +682,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
 
   public static final String CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE =
-      "action: %s; targetTable: %s;";
+      "action: %s; targetTable: %s:%s";
 
   @Override
   public boolean canOnlineOfflineTable(TCredentials credentials, TableId tableId, FateOperation op,

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -42,6 +42,7 @@ import com.google.common.base.Preconditions;
 public class ZooKeeperTestingServer implements AutoCloseable {
 
   private static final Logger log = LoggerFactory.getLogger(ZooKeeperTestingServer.class);
+  public static final String SECRET = "secret";
 
   private TestingServer zkServer;
   private final ZooKeeper zoo;
@@ -101,7 +102,7 @@ public class ZooKeeperTestingServer implements AutoCloseable {
   }
 
   public ZooReaderWriter getZooReaderWriter() {
-    return new ZooReader(getConn(), 30000).asWriter("secret");
+    return new ZooReader(getConn(), 30000).asWriter(SECRET);
   }
 
   public String getConn() {

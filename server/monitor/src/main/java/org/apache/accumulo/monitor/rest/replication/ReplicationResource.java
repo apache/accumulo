@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -147,6 +147,12 @@ public class ReplicationResource {
           allConfiguredTargets.add(target);
         }
       });
+    }
+
+    // Ensure replication table is online before attempting to create BatchScanner
+    if (!ReplicationTable.isOnline(client)) {
+      log.debug("Replication page requested, but replication table is offline");
+      return Collections.emptyList();
     }
 
     // Read over the queued work

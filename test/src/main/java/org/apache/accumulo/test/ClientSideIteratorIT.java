@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,16 +41,16 @@ import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ClientSideIteratorIT extends AccumuloClusterHarness {
   private List<Key> resultSet1;
   private List<Key> resultSet2;
   private List<Key> resultSet3;
 
-  @Before
+  @BeforeEach
   public void setupData() {
     resultSet1 = new ArrayList<>();
     resultSet1.add(new Key("row1", "colf", "colq", 4L));
@@ -77,13 +77,13 @@ public class ClientSideIteratorIT extends AccumuloClusterHarness {
   private AccumuloClient client;
   private String tableName;
 
-  @Before
+  @BeforeEach
   public void setupInstance() {
     client = Accumulo.newClient().from(getClientProps()).build();
     tableName = getUniqueNames(1)[0];
   }
 
-  @After
+  @AfterEach
   public void closeClient() {
     client.close();
   }

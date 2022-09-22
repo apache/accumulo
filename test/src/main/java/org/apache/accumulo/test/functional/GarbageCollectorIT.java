@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,16 +19,15 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.UncheckedIOException;
+import java.time.Duration;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
@@ -41,7 +40,9 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
@@ -69,7 +70,7 @@ import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterators;
 
@@ -77,8 +78,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   private static final String OUR_SECRET = "itsreallysecret";
 
   @Override
-  public int defaultTimeoutSeconds() {
-    return 5 * 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(5);
   }
 
   @Override
@@ -123,23 +124,35 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       c.tableOperations().setProperty(table, Property.TABLE_SPLIT_THRESHOLD.getKey(), "5K");
       VerifyParams params = new VerifyParams(getClientProperties(), table, 10_000);
       params.cols = 1;
+      log.info("Ingesting files to {}", table);
       TestIngest.ingest(c, cluster.getFileSystem(), params);
+      log.info("Compacting the table {}", table);
       c.tableOperations().compact(table, null, null, true, true);
-      int before = countFiles();
+      String pathString = cluster.getConfig().getDir() + "/accumulo/tables/1/*/*.rf";
+      log.info("Counting files in path: {}", pathString);
+
+      int before = countFiles(pathString);
+      log.info("Counted {} files in path: {}", before, pathString);
+
       while (true) {
         sleepUninterruptibly(1, TimeUnit.SECONDS);
-        int more = countFiles();
+        int more = countFiles(pathString);
         if (more <= before)
           break;
         before = more;
       }
 
       // restart GC
+      log.info("Restarting GC...");
       getCluster().start();
       sleepUninterruptibly(15, TimeUnit.SECONDS);
-      int after = countFiles();
+      log.info("Again Counting files in path: {}", pathString);
+
+      int after = countFiles(pathString);
+      log.info("Counted {} files in path: {}", after, pathString);
+
       VerifyIngest.verifyIngest(c, params);
-      assertTrue(after < before);
+      assertTrue(after < before, "After count " + after + " was not less than " + before);
     }
   }
 
@@ -186,7 +199,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       cluster.start();
       // did it recover?
       try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-        Iterators.size(scanner.iterator());
+        scanner.forEach((k, v) -> {});
       }
     }
   }
@@ -241,14 +254,11 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       }
 
       try (Scanner scanner = c.createScanner(table, Authorizations.EMPTY)) {
-        Iterator<Entry<Key,Value>> iter = scanner.iterator();
-        assertTrue(iter.hasNext());
-        Entry<Key,Value> entry = iter.next();
+        Entry<Key,Value> entry = getOnlyElement(scanner);
         assertEquals("r1", entry.getKey().getRow().toString());
         assertEquals("cf1", entry.getKey().getColumnFamily().toString());
         assertEquals("cq1", entry.getKey().getColumnQualifier().toString());
         assertEquals("v1", entry.getValue().toString());
-        assertFalse(iter.hasNext());
       }
     }
   }
@@ -275,14 +285,14 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
 
           String gcLoc = new String(zk.getData(lockPath));
 
-          assertTrue("Found unexpected data in zookeeper for GC location: " + gcLoc,
-              gcLoc.startsWith(Service.GC_CLIENT.name()));
+          assertTrue(gcLoc.startsWith(Service.GC_CLIENT.name()),
+              "Found unexpected data in zookeeper for GC location: " + gcLoc);
           int loc = gcLoc.indexOf(ServerServices.SEPARATOR_CHAR);
-          assertNotEquals("Could not find split point of GC location for: " + gcLoc, -1, loc);
+          assertNotEquals(-1, loc, "Could not find split point of GC location for: " + gcLoc);
           String addr = gcLoc.substring(loc + 1);
 
           int addrSplit = addr.indexOf(':');
-          assertNotEquals("Could not find split of GC host:port for: " + addr, -1, addrSplit);
+          assertNotEquals(-1, addrSplit, "Could not find split of GC host:port for: " + addr);
 
           String host = addr.substring(0, addrSplit), port = addr.substring(addrSplit + 1);
           // We shouldn't have the "bindall" address in zk
@@ -299,8 +309,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     }
   }
 
-  private int countFiles() throws Exception {
-    Path path = new Path(cluster.getConfig().getDir() + "/accumulo/tables/1/*/*.rf");
+  private int countFiles(String pathStr) throws Exception {
+    Path path = new Path(pathStr);
     return Iterators.size(Arrays.asList(cluster.getFileSystem().globStatus(path)).iterator());
   }
 
@@ -312,7 +322,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       for (int i = 0; i < 100000; ++i) {
         String longpath = "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee"
             + "ffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj";
-        Mutation delFlag = ample.createDeleteMutation(String.format("file:/%020d/%s", i, longpath));
+        var path = String.format("file:/%020d/%s", i, longpath);
+        Mutation delFlag = ample.createDeleteMutation(new ReferenceFile(TableId.of("1"), path));
         bw.addMutation(delFlag);
       }
     }

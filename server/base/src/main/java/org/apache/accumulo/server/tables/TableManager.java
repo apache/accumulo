@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -24,7 +24,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
@@ -40,7 +39,10 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.util.TablePropUtil;
+import org.apache.accumulo.server.conf.store.NamespacePropKey;
+import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.TablePropKey;
+import org.apache.accumulo.server.util.PropUtil;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -62,11 +64,11 @@ public class TableManager {
   private final String zkRoot;
   private final InstanceId instanceID;
   private final ZooReaderWriter zoo;
-  private ZooCache zooStateCache;
+  private final ZooCache zooStateCache;
 
-  public static void prepareNewNamespaceState(ZooReaderWriter zoo, InstanceId instanceId,
-      NamespaceId namespaceId, String namespace, NodeExistsPolicy existsPolicy)
-      throws KeeperException, InterruptedException {
+  public static void prepareNewNamespaceState(ZooReaderWriter zoo, final PropStore propStore,
+      InstanceId instanceId, NamespaceId namespaceId, String namespace,
+      NodeExistsPolicy existsPolicy) throws KeeperException, InterruptedException {
     log.debug("Creating ZooKeeper entries for new namespace {} (ID: {})", namespace, namespaceId);
     String zPath = Constants.ZROOT + "/" + instanceId + Constants.ZNAMESPACES + "/" + namespaceId;
 
@@ -74,11 +76,24 @@ public class TableManager {
     zoo.putPersistentData(zPath + Constants.ZNAMESPACE_NAME, namespace.getBytes(UTF_8),
         existsPolicy);
     zoo.putPersistentData(zPath + Constants.ZNAMESPACE_CONF, new byte[0], existsPolicy);
+
+    var propKey = NamespacePropKey.of(instanceId, namespaceId);
+    if (!propStore.exists(propKey)) {
+      propStore.create(propKey, Map.of());
+    }
   }
 
-  public static void prepareNewTableState(ZooReaderWriter zoo, InstanceId instanceId,
-      TableId tableId, NamespaceId namespaceId, String tableName, TableState state,
-      NodeExistsPolicy existsPolicy) throws KeeperException, InterruptedException {
+  public static void prepareNewNamespaceState(final ServerContext context, NamespaceId namespaceId,
+      String namespace, NodeExistsPolicy existsPolicy)
+      throws KeeperException, InterruptedException {
+    prepareNewNamespaceState(context.getZooReaderWriter(), context.getPropStore(),
+        context.getInstanceID(), namespaceId, namespace, existsPolicy);
+  }
+
+  public static void prepareNewTableState(ZooReaderWriter zoo, PropStore propStore,
+      InstanceId instanceId, TableId tableId, NamespaceId namespaceId, String tableName,
+      TableState state, NodeExistsPolicy existsPolicy)
+      throws KeeperException, InterruptedException {
     // state gets created last
     log.debug("Creating ZooKeeper entries for new table {} (ID: {}) in namespace (ID: {})",
         tableName, tableId, namespaceId);
@@ -96,6 +111,17 @@ public class TableManager {
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_COMPACT_CANCEL_ID, ZERO_BYTE, existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_STATE, state.name().getBytes(UTF_8),
         existsPolicy);
+    var propKey = TablePropKey.of(instanceId, tableId);
+    if (!propStore.exists(propKey)) {
+      propStore.create(propKey, Map.of());
+    }
+  }
+
+  public static void prepareNewTableState(final ServerContext context, TableId tableId,
+      NamespaceId namespaceId, String tableName, TableState state, NodeExistsPolicy existsPolicy)
+      throws KeeperException, InterruptedException {
+    prepareNewTableState(context.getZooReaderWriter(), context.getPropStore(),
+        context.getInstanceID(), tableId, namespaceId, tableName, state, existsPolicy);
   }
 
   public TableManager(ServerContext context) {
@@ -183,16 +209,16 @@ public class TableManager {
 
   public void addTable(TableId tableId, NamespaceId namespaceId, String tableName)
       throws KeeperException, InterruptedException, NamespaceNotFoundException {
-    prepareNewTableState(zoo, instanceID, tableId, namespaceId, tableName, TableState.NEW,
-        NodeExistsPolicy.OVERWRITE);
+    prepareNewTableState(zoo, context.getPropStore(), instanceID, tableId, namespaceId, tableName,
+        TableState.NEW, NodeExistsPolicy.OVERWRITE);
     updateTableStateCache(tableId);
   }
 
   public void cloneTable(TableId srcTableId, TableId tableId, String tableName,
       NamespaceId namespaceId, Map<String,String> propertiesToSet, Set<String> propertiesToExclude)
       throws KeeperException, InterruptedException {
-    prepareNewTableState(zoo, instanceID, tableId, namespaceId, tableName, TableState.NEW,
-        NodeExistsPolicy.OVERWRITE);
+    prepareNewTableState(zoo, context.getPropStore(), instanceID, tableId, namespaceId, tableName,
+        TableState.NEW, NodeExistsPolicy.OVERWRITE);
 
     String srcTablePath = Constants.ZROOT + "/" + instanceID + Constants.ZTABLES + "/" + srcTableId
         + Constants.ZTABLE_CONF;
@@ -200,12 +226,8 @@ public class TableManager {
         + Constants.ZTABLE_CONF;
     zoo.recursiveCopyPersistentOverwrite(srcTablePath, newTablePath);
 
-    for (Entry<String,String> entry : propertiesToSet.entrySet())
-      TablePropUtil.setTableProperty(context, tableId, entry.getKey(), entry.getValue());
-
-    for (String prop : propertiesToExclude)
-      zoo.recursiveDelete(Constants.ZROOT + "/" + instanceID + Constants.ZTABLES + "/" + tableId
-          + Constants.ZTABLE_CONF + "/" + prop, NodeMissingPolicy.SKIP);
+    PropUtil.setProperties(context, TablePropKey.of(context, tableId), propertiesToSet);
+    PropUtil.removeProperties(context, TablePropKey.of(context, tableId), propertiesToExclude);
 
     updateTableStateCache(tableId);
   }
@@ -258,7 +280,7 @@ public class TableManager {
           if (zPath != null && zPath.equals(tablesPrefix)) {
             updateTableStateCache();
           } else {
-            log.warn("Unexpected path {}", zPath);
+            log.warn("Unexpected path {} in {}", zPath, event);
           }
           break;
         case NodeCreated:
@@ -281,7 +303,7 @@ public class TableManager {
         case None:
           switch (event.getState()) {
             case Expired:
-              log.trace("Session expired {}", event);
+              log.trace("Session expired; {}", event);
               synchronized (observers) {
                 for (TableObserver to : observers)
                   to.sessionExpired();

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -66,6 +66,7 @@ import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.dataImpl.thrift.TMutation;
 import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -202,8 +203,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
   public TabletServerBatchWriter(ClientContext context, BatchWriterConfig config) {
     this.context = context;
-    this.executor =
-        ThreadPools.createGeneralScheduledExecutorService(this.context.getConfiguration());
+    this.executor = context.threadPools()
+        .createGeneralScheduledExecutorService(this.context.getConfiguration());
     this.failedMutations = new FailedMutations();
     this.maxMem = config.getMaxMemory();
     this.maxLatency = config.getMaxLatency(MILLISECONDS) <= 0 ? Long.MAX_VALUE
@@ -655,11 +656,11 @@ public class TabletServerBatchWriter implements AutoCloseable {
     public MutationWriter(int numSendThreads) {
       serversMutations = new HashMap<>();
       queued = new HashSet<>();
-      sendThreadPool =
-          ThreadPools.createFixedThreadPool(numSendThreads, this.getClass().getName(), false);
+      sendThreadPool = context.threadPools().createFixedThreadPool(numSendThreads,
+          this.getClass().getName(), false);
       locators = new HashMap<>();
-      binningThreadPool =
-          ThreadPools.createFixedThreadPool(1, "BinMutations", new SynchronousQueue<>(), false);
+      binningThreadPool = context.threadPools().createFixedThreadPool(1, "BinMutations",
+          new SynchronousQueue<>(), false);
       binningThreadPool.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
@@ -815,8 +816,6 @@ public class TabletServerBatchWriter implements AutoCloseable {
             send(tsmuts);
             tsmuts = getMutationsToSend(location);
           }
-
-          return;
         } catch (Exception t) {
           updateUnknownErrors(
               "Failed to send tablet server " + location + " its batch : " + t.getMessage(), t);
@@ -917,9 +916,10 @@ public class TabletServerBatchWriter implements AutoCloseable {
         final TabletClientService.Iface client;
 
         if (timeoutTracker.getTimeOut() < context.getClientTimeoutInMillis())
-          client = ThriftUtil.getTServerClient(parsedServer, context, timeoutTracker.getTimeOut());
+          client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedServer, context,
+              timeoutTracker.getTimeOut());
         else
-          client = ThriftUtil.getTServerClient(parsedServer, context);
+          client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedServer, context);
 
         try {
           MutationSet allFailures = new MutationSet();

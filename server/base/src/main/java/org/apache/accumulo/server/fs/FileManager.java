@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -303,10 +303,11 @@ public class FileManager {
         Path path = new Path(file);
         FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
         // log.debug("Opening "+file + " path " + path);
+        var tableConf = context.getTableConfiguration(tablet.tableId());
         FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-            .forFile(path.toString(), ns, ns.getConf(), context.getCryptoService())
-            .withTableConfiguration(context.getTableConfiguration(tablet.tableId()))
-            .withCacheProvider(cacheProvider).withFileLenCache(fileLenCache).build();
+            .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
+            .withTableConfiguration(tableConf).withCacheProvider(cacheProvider)
+            .withFileLenCache(fileLenCache).build();
         readersReserved.put(reader, file);
       } catch (Exception e) {
 

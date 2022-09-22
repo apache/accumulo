@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -20,6 +20,13 @@ package org.apache.accumulo.manager.fate;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.FAILED;
+import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.FAILED_IN_PROGRESS;
+import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.IN_PROGRESS;
+import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.NEW;
+import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.SUBMITTED;
+import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.SUCCESSFUL;
+import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.UNKNOWN;
 
 import java.io.IOException;
 import java.util.EnumSet;
@@ -30,6 +37,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
+import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.ShutdownUtil;
@@ -40,6 +48,7 @@ import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.StackOverflowException;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.manager.Manager;
+import org.apache.thrift.TApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,11 +56,6 @@ import org.slf4j.LoggerFactory;
  * Fault tolerant executor
  */
 public class Fate {
-
-  private static final String DEBUG_PROP = "debug";
-  private static final String AUTO_CLEAN_PROP = "autoClean";
-  private static final String EXCEPTION_PROP = "exception";
-  private static final String RETURN_PROP = "return";
 
   private static final Logger log = LoggerFactory.getLogger(Fate.class);
   private final Logger runnerLog = LoggerFactory.getLogger(TransactionRunner.class);
@@ -61,11 +65,13 @@ public class Fate {
   private ScheduledThreadPoolExecutor fatePoolWatcher;
   private ExecutorService executor;
 
-  private static final EnumSet<FateTransactionStatus> FINISHED_STATES =
-      EnumSet.of(FateTransactionStatus.FAILED, FateTransactionStatus.SUCCESSFUL,
-          FateTransactionStatus.UNKNOWN);
+  private static final EnumSet<FateTransactionStatus> FINISHED_STATES = EnumSet.of(FAILED, SUCCESSFUL, UNKNOWN);
 
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
+
+  public enum TxInfo {
+    TX_NAME, AUTO_CLEAN, EXCEPTION, RETURN_VALUE
+  }
 
   private class TransactionRunner implements Runnable {
 
@@ -107,7 +113,7 @@ public class Fate {
               // transaction is finished
               String ret = prevOp.getReturn();
               if (ret != null)
-                store.setProperty(tid, RETURN_PROP, ret);
+                store.setTransactionInfo(tid, TxInfo.RETURN_VALUE, ret);
               store.setStatus(tid, FateTransactionStatus.SUCCESSFUL);
               doCleanUp(tid);
             } else {
@@ -176,15 +182,17 @@ public class Fate {
 
     private void transitionToFailed(long tid, Exception e) {
       String tidStr = FateTxId.formatTid(tid);
-      final String msg = "Failed to execute Repo, " + tidStr;
+      final String msg = "Failed to execute Repo " + tidStr;
       // Certain FATE ops that throw exceptions don't need to be propagated up to the Monitor
       // as a warning. They're a normal, handled failure condition.
       if (e instanceof AcceptableException) {
-        log.debug(msg, e.getCause());
+        var tableOpEx = (AcceptableThriftTableOperationException) e;
+        log.debug(msg + " for {}({}) {}", tableOpEx.getTableName(), tableOpEx.getTableId(),
+            tableOpEx.getDescription());
       } else {
         log.warn(msg, e);
       }
-      store.setProperty(tid, EXCEPTION_PROP, e);
+      store.setTransactionInfo(tid, TxInfo.EXCEPTION, e);
       store.setStatus(tid, FateTransactionStatus.FAILED_IN_PROGRESS);
       log.info("Updated status for Repo with {} to FAILED_IN_PROGRESS", tidStr);
     }
@@ -202,7 +210,7 @@ public class Fate {
     }
 
     private void doCleanUp(long tid) {
-      Boolean autoClean = (Boolean) store.getProperty(tid, AUTO_CLEAN_PROP);
+      Boolean autoClean = (Boolean) store.getTransactionInfo(tid, TxInfo.AUTO_CLEAN);
       if (autoClean != null && autoClean) {
         store.delete(tid);
       } else {
@@ -241,9 +249,10 @@ public class Fate {
    * Launches the specified number of worker threads.
    */
   public void startTransactionRunners(AccumuloConfiguration conf) {
-    final ThreadPoolExecutor pool =
-        ThreadPools.createExecutorService(conf, Property.MANAGER_FATE_THREADPOOL_SIZE, true);
-    fatePoolWatcher = ThreadPools.createGeneralScheduledExecutorService(conf);
+    final ThreadPoolExecutor pool = ThreadPools.getServerThreadPools().createExecutorService(conf,
+        Property.MANAGER_FATE_THREADPOOL_SIZE, true);
+    fatePoolWatcher =
+        ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(conf);
     ThreadPools.watchCriticalScheduledTask(fatePoolWatcher.schedule(() -> {
       // resize the pool if the property changed
       ThreadPools.resizePool(pool, conf, Property.MANAGER_FATE_THREADPOOL_SIZE);
@@ -277,7 +286,8 @@ public class Fate {
 
   // start work in the transaction.. it is safe to call this
   // multiple times for a transaction... but it will only seed once
-  public void seedTransaction(long tid, Repo repo, boolean autoCleanUp, String goalMessage) {
+  public void seedTransaction(String txName, long tid, Repo repo, boolean autoCleanUp,
+      String goalMessage) {
     store.reserve(tid);
     try {
       if (store.getStatus(tid) == FateTransactionStatus.NEW) {
@@ -292,9 +302,9 @@ public class Fate {
         }
 
         if (autoCleanUp)
-          store.setProperty(tid, AUTO_CLEAN_PROP, autoCleanUp);
+          store.setTransactionInfo(tid, TxInfo.AUTO_CLEAN, autoCleanUp);
 
-        store.setProperty(tid, DEBUG_PROP, repo.getDescription());
+        store.setTransactionInfo(tid, TxInfo.TX_NAME, txName);
 
         store.setStatus(tid, FateTransactionStatus.SUBMITTED);
       }
@@ -307,6 +317,44 @@ public class Fate {
   // check on the transaction
   public FateTransactionStatus waitForCompletion(long tid) {
     return store.waitForStatusChange(tid, FINISHED_STATES);
+  }
+
+  /**
+   * Attempts to cancel a running Fate transaction
+   *
+   * @param tid
+   *          transaction id
+   * @return true if transaction transitioned to a failed state or already in a completed state,
+   *         false otherwise
+   */
+  public boolean cancel(long tid) {
+    String tidStr = FateTxId.formatTid(tid);
+    for (int retries = 0; retries < 5; retries++) {
+      if (store.tryReserve(tid)) {
+        try {
+          TStatus status = store.getStatus(tid);
+          log.info("status is: {}", status);
+          if (status == NEW || status == SUBMITTED) {
+            store.setTransactionInfo(tid, TxInfo.EXCEPTION, new TApplicationException(
+                TApplicationException.INTERNAL_ERROR, "Fate transaction cancelled by user"));
+            store.setStatus(tid, FAILED_IN_PROGRESS);
+            log.info("Updated status for {} to FAILED_IN_PROGRESS because it was cancelled by user",
+                tidStr);
+            return true;
+          } else {
+            log.info("{} cancelled by user but already in progress or finished state", tidStr);
+            return false;
+          }
+        } finally {
+          store.unreserve(tid, 0);
+        }
+      } else {
+        // reserved, lets retry.
+        UtilWaitThread.sleep(500);
+      }
+    }
+    log.info("Unable to reserve transaction {} to cancel it", tid);
+    return false;
   }
 
   // resource cleanup
@@ -339,7 +387,7 @@ public class Fate {
       if (store.getStatus(tid) != FateTransactionStatus.SUCCESSFUL)
         throw new IllegalStateException("Tried to get exception when transaction "
             + FateTxId.formatTid(tid) + " not in successful state");
-      return (String) store.getProperty(tid, RETURN_PROP);
+      return (String) store.getTransactionInfo(tid, TxInfo.RETURN_VALUE);
     } finally {
       store.unreserve(tid, 0);
     }
@@ -352,7 +400,7 @@ public class Fate {
       if (store.getStatus(tid) != FateTransactionStatus.FAILED)
         throw new IllegalStateException("Tried to get exception when transaction "
             + FateTxId.formatTid(tid) + " not in failed state");
-      return (Exception) store.getProperty(tid, EXCEPTION_PROP);
+      return (Exception) store.getTransactionInfo(tid, TxInfo.EXCEPTION);
     } finally {
       store.unreserve(tid, 0);
     }

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,11 +18,16 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import java.util.Properties;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.junit.jupiter.api.Test;
 
 public class ClientConfConverterTest {
@@ -43,5 +48,20 @@ public class ClientConfConverterTest {
 
     Properties after = ClientConfConverter.toProperties(ClientConfConverter.toClientConf(before));
     assertEquals(before, after);
+  }
+
+  // this test ensures a general property can be set and used by a client
+  @Test
+  public void testGeneralPropsWorkAsClientProperties() {
+    Property prop = Property.GENERAL_RPC_TIMEOUT;
+    Properties fromUser = new Properties();
+    fromUser.setProperty(prop.getKey(), "5s");
+    AccumuloConfiguration converted = ClientConfConverter.toAccumuloConf(fromUser);
+
+    // verify that converting client props actually picked up and overrode the default
+    assertNotEquals(converted.getTimeInMillis(prop),
+        DefaultConfiguration.getInstance().getTimeInMillis(prop));
+    // verify that it was set to the expected value set in the client props
+    assertEquals(SECONDS.toMillis(5), converted.getTimeInMillis(prop));
   }
 }

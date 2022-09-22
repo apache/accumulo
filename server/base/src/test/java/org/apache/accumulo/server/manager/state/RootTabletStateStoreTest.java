@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,10 +19,11 @@
 package org.apache.accumulo.server.manager.state;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.fail;
+import static org.apache.accumulo.server.init.ZooKeeperInitializer.getInitialRootTabletJson;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Collections;
 import java.util.List;
@@ -41,7 +42,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.metadata.TabletMutatorBase;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.base.Preconditions;
 
@@ -49,14 +50,14 @@ public class RootTabletStateStoreTest {
 
   private static class TestAmple implements Ample {
 
-    private String json = new String(
-        RootTabletMetadata.getInitialJson("dir", "hdfs://nn/acc/tables/some/dir/0000.rf"), UTF_8);
+    private String json =
+        new String(getInitialRootTabletJson("dir", "hdfs://nn/acc/tables/some/dir/0000.rf"), UTF_8);
 
     @Override
     public TabletMetadata readTablet(KeyExtent extent, ReadConsistency rc,
         ColumnType... colsToFetch) {
       Preconditions.checkArgument(extent.equals(RootTable.EXTENT));
-      return RootTabletMetadata.fromJson(json).convertToTabletMetadata();
+      return new RootTabletMetadata(json).toTabletMetadata();
     }
 
     @Override
@@ -73,10 +74,8 @@ public class RootTabletStateStoreTest {
         public void mutate() {
           Mutation m = getMutation();
 
-          RootTabletMetadata rtm = RootTabletMetadata.fromJson(json);
-
+          var rtm = new RootTabletMetadata(json);
           rtm.update(m);
-
           json = rtm.toJson();
         }
       };

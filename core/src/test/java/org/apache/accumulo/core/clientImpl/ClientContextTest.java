@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -53,7 +53,7 @@ public class ClientContextTest {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "provided keystoreUrl path isn't user provided")
   @BeforeAll
-  public static void setUpBeforeClass() {
+  public static void setUpBeforeAll() {
     URL keystoreUrl = ClientContextTest.class.getResource(keystoreName);
     assertNotNull(keystoreUrl, "Could not find " + keystoreName);
     keystore = new File(keystoreUrl.getFile());

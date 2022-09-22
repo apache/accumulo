@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -43,6 +43,7 @@ import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.ActionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
@@ -184,7 +185,7 @@ public class TabletServerResource {
     try {
       ClientContext context = monitor.getContext();
       TabletClientService.Client client =
-          ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
+          ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, address, context);
       try {
         for (String tableId : mmi.tableMap.keySet()) {
           tsStats.addAll(client.getTabletStats(TraceUtil.traceInfo(), context.rpcCreds(), tableId));
@@ -243,8 +244,8 @@ public class TabletServerResource {
   @GET
   public ServerStats getServerStats() {
 
-    final int concurrentScans = monitor.getContext().getConfiguration().getScanExecutors().stream()
-        .mapToInt(sec -> sec.maxThreads).sum();
+    final int concurrentScans = monitor.getContext().getConfiguration().getScanExecutors(false)
+        .stream().mapToInt(sec -> sec.maxThreads).sum();
 
     ServerStats stats = new ServerStats();
 

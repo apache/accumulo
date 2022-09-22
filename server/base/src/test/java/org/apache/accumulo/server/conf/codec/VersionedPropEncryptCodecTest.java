@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.server.conf.codec;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -33,7 +33,7 @@ import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -112,11 +112,12 @@ public class VersionedPropEncryptCodecTest {
 
     log.debug("Encoded: {}", encodedBytes);
 
-    VersionedProperties decodedProps = encoder.fromBytes(encodedBytes);
+    // store would increment version on write
+    VersionedProperties decodedProps = encoder.fromBytes(aVersion + 1, encodedBytes);
 
     log.debug("Decoded: {}", decodedProps.print(true));
 
-    assertEquals(vProps.getProperties(), decodedProps.getProperties());
+    assertEquals(vProps.asMap(), decodedProps.asMap());
 
     // validate that the expected node version matches original version.
     assertEquals(aVersion, vProps.getDataVersion());
@@ -124,14 +125,10 @@ public class VersionedPropEncryptCodecTest {
     // validate encoded version incremented.
     assertEquals(aVersion + 1, decodedProps.getDataVersion());
 
-    assertEquals("encoded version should be 1 up", aVersion + 1, decodedProps.getDataVersion());
-    assertEquals("version written should be the source next version", vProps.getNextVersion(),
-        decodedProps.getDataVersion());
-    assertEquals("the next version in decoded should be +2", aVersion + 2,
-        decodedProps.getNextVersion());
+    assertEquals(aVersion + 1, decodedProps.getDataVersion(), "encoded version should be 1 up");
 
-    assertTrue("timestamp should be now or earlier",
-        vProps.getTimestamp().compareTo(Instant.now()) <= 0);
+    assertTrue(vProps.getTimestamp().compareTo(Instant.now()) <= 0,
+        "timestamp should be now or earlier");
 
   }
 
@@ -163,11 +160,12 @@ public class VersionedPropEncryptCodecTest {
 
     log.debug("len: {}, bytes: {}", encodedBytes.length, encodedBytes);
 
-    VersionedProperties decodedProps = encoder1.fromBytes(encodedBytes);
+    // store would increment version on write
+    VersionedProperties decodedProps = encoder1.fromBytes(aVersion + 1, encodedBytes);
 
     log.debug("Decoded: {}", decodedProps.print(true));
 
-    assertEquals(vProps.getProperties(), decodedProps.getProperties());
+    assertEquals(vProps.asMap(), decodedProps.asMap());
 
     // validate that the expected node version matches original version.
     assertEquals(aVersion, vProps.getDataVersion());
@@ -175,14 +173,10 @@ public class VersionedPropEncryptCodecTest {
     // validate encoded version incremented.
     assertEquals(aVersion + 1, decodedProps.getDataVersion());
 
-    assertEquals("encoded version should be 1 up", aVersion + 1, decodedProps.getDataVersion());
-    assertEquals("version written should be the source next version", vProps.getNextVersion(),
-        decodedProps.getDataVersion());
-    assertEquals("the next version in decoded should be +2", aVersion + 2,
-        decodedProps.getNextVersion());
+    assertEquals(aVersion + 1, decodedProps.getDataVersion(), "encoded version should be 1 up");
 
-    assertTrue("timestamp should be now or earlier",
-        vProps.getTimestamp().compareTo(Instant.now()) <= 0);
+    assertTrue(vProps.getTimestamp().compareTo(Instant.now()) <= 0,
+        "timestamp should be now or earlier");
 
   }
 
@@ -210,17 +204,17 @@ public class VersionedPropEncryptCodecTest {
     log.debug("Encoded: {}", encodedBytes1);
     log.debug("Encoded: {}", encodedBytes2);
 
-    VersionedProperties from2 = codec1.fromBytes(encodedBytes2);
-    VersionedProperties from1 = codec2.fromBytes(encodedBytes1);
+    VersionedProperties from2 = codec1.fromBytes(0, encodedBytes2);
+    VersionedProperties from1 = codec2.fromBytes(0, encodedBytes1);
 
-    assertEquals(from1.getProperties(), from2.getProperties());
+    assertEquals(from1.asMap(), from2.asMap());
 
     VersionedPropCodec codec3 = VersionedPropEncryptCodec.codec(false,
         new VersionedPropEncryptCodec.GCMCipherParams(pass, salt));
 
-    VersionedProperties from3 = codec3.fromBytes(encodedBytes1);
+    VersionedProperties from3 = codec3.fromBytes(0, encodedBytes1);
     assertEquals(from1.getDataVersion(), from3.getDataVersion());
-    assertEquals(from1.getProperties(), from3.getProperties());
+    assertEquals(from1.asMap(), from3.asMap());
 
     assertNotEquals(encodedBytes1, encodedBytes2);
 

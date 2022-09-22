@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -105,16 +105,16 @@ public interface ReadOnlyTStore {
   FateTransactionStatus waitForStatusChange(long tid, EnumSet<FateTransactionStatus> expected);
 
   /**
-   * Retrieve a transaction-specific property.
+   * Retrieve transaction-specific information.
    *
    * Caller must have already reserved tid.
    *
    * @param tid
    *          transaction id, previously reserved.
-   * @param prop
-   *          name of property to retrieve.
+   * @param txInfo
+   *          name of attribute of a transaction to retrieve.
    */
-  Serializable getProperty(long tid, String prop);
+  Serializable getTransactionInfo(long tid, Fate.TxInfo txInfo);
 
   /**
    * list all transaction ids in store.

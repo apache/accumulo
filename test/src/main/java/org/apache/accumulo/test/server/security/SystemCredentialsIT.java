@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.test.server.security;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.util.Map.Entry;
+import java.time.Duration;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -32,22 +32,20 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SystemCredentialsIT extends ConfigurableMacBase {
 
   private static final int SCAN_FAILED = 7, AUTHENICATION_FAILED = 8;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
   }
 
   @Test
@@ -85,9 +83,7 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
           .as(creds.getPrincipal(), creds.getToken()).build()) {
         client.securityOperations().authenticateUser(creds.getPrincipal(), creds.getToken());
         try (Scanner scan = client.createScanner(RootTable.NAME, Authorizations.EMPTY)) {
-          for (Entry<Key,Value> e : scan) {
-            e.hashCode();
-          }
+          scan.forEach((k, v) -> {});
         } catch (RuntimeException e) {
           e.printStackTrace(System.err);
           System.exit(SCAN_FAILED);

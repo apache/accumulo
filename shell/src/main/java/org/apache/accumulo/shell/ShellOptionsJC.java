@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -32,7 +32,9 @@ import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.hadoop.security.UserGroupInformation;
 
 import com.beust.jcommander.DynamicParameter;
+import com.beust.jcommander.IParameterValidator;
 import com.beust.jcommander.Parameter;
+import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.converters.FileConverter;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -110,8 +112,9 @@ public class ShellOptionsJC {
   private String zooKeeperHosts;
 
   @Parameter(names = "--auth-timeout",
-      description = "minutes the shell can be idle without re-entering a password")
-  private int authTimeout = 60; // TODO Add validator for positive number
+      description = "minutes the shell can be idle without re-entering a password",
+      validateWith = PositiveInteger.class)
+  private int authTimeout = 60;
 
   @Parameter(names = "--disable-auth-timeout",
       description = "disables requiring the user to re-type a password after being idle")
@@ -234,6 +237,22 @@ public class ShellOptionsJC {
       props.setProperty(ClientProperty.INSTANCE_NAME.getKey(), zooKeeperInstanceName);
     }
     return props;
+  }
+
+  static class PositiveInteger implements IParameterValidator {
+    @Override
+    public void validate(String name, String value) throws ParameterException {
+      int n = -1;
+      try {
+        n = Integer.parseInt(value);
+      } catch (NumberFormatException e) {
+        // ignore, will be handled below
+      }
+      if (n < 0) {
+        throw new ParameterException(
+            "Parameter " + name + " should be a positive integer (was " + value + ")");
+      }
+    }
   }
 
 }

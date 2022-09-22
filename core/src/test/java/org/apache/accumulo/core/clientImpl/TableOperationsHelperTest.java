@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -39,6 +39,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.DiskUsage;
+import org.apache.accumulo.core.client.admin.ImportConfiguration;
 import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.SummaryRetriever;
@@ -201,7 +202,7 @@ public class TableOperationsHelperTest {
     }
 
     @Override
-    public void importTable(String tableName, Set<String> exportDir) {}
+    public void importTable(String tableName, Set<String> exportDir, ImportConfiguration ic) {}
 
     @Override
     public void exportTable(String tableName, String exportDir) {}

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,10 +18,11 @@
  */
 package org.apache.accumulo.test.metrics;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +33,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -41,9 +43,9 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.metrics.TestStatsDSink.Metric;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import io.micrometer.core.instrument.MeterRegistry;
 
@@ -51,12 +53,17 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
 
   private static TestStatsDSink sink;
 
-  @BeforeClass
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
+  }
+
+  @BeforeAll
   public static void before() throws Exception {
     sink = new TestStatsDSink();
   }
 
-  @AfterClass
+  @AfterAll
   public static void after() throws Exception {
     sink.close();
   }
@@ -76,11 +83,6 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     cfg.setSystemProperties(sysProps);
   }
 
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
-  }
-
   @Test
   public void confirmMetricsPublished() throws Exception {
 
@@ -88,8 +90,10 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     cluster.stop();
 
     Set<String> unexpectedMetrics = Set.of(METRICS_SCAN_YIELDS, METRICS_UPDATE_ERRORS,
-        METRICS_REPLICATION_QUEUE, METRICS_COMPACTOR_MAJC_STUCK);
-    Set<String> flakyMetrics = Set.of(METRICS_GC_WAL_ERRORS, METRICS_FATE_TYPE_IN_PROGRESS);
+        METRICS_REPLICATION_QUEUE, METRICS_COMPACTOR_MAJC_STUCK, METRICS_SCAN_BUSY_TIMEOUT);
+    Set<String> flakyMetrics = Set.of(METRICS_GC_WAL_ERRORS, METRICS_FATE_TYPE_IN_PROGRESS,
+        METRICS_PROPSTORE_EVICTION_COUNT, METRICS_PROPSTORE_REFRESH_COUNT,
+        METRICS_PROPSTORE_REFRESH_LOAD_COUNT, METRICS_PROPSTORE_ZK_ERROR_COUNT);
 
     Map<String,String> expectedMetricNames = this.getMetricFields();
     flakyMetrics.forEach(expectedMetricNames::remove); // might not see these
@@ -118,8 +122,8 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
             }
           });
     }
-    assertTrue("Did not see all expected metric names, missing: " + expectedMetricNames.values(),
-        expectedMetricNames.isEmpty());
+    assertTrue(expectedMetricNames.isEmpty(),
+        "Did not see all expected metric names, missing: " + expectedMetricNames.values());
   }
 
   private void doWorkToGenerateMetrics() throws Exception {
@@ -139,6 +143,9 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
         writer.addMutation(m);
       }
       client.tableOperations().compact(tableName, new CompactionConfig());
+      try (Scanner scanner = client.createScanner(tableName)) {
+        scanner.forEach((k, v) -> {});
+      }
       client.tableOperations().delete(tableName);
       while (client.tableOperations().exists(tableName)) {
         Thread.sleep(1000);

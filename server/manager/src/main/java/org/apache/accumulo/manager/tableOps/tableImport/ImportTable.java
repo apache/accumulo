@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -52,24 +52,24 @@ import org.slf4j.LoggerFactory;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
- * Serialization updated for supporting multiple volumes in import table from 1L to 2L See:
- * https://github.com/apache/accumulo/issues/1053 https://github.com/apache/accumulo/pull/1060
- * https://github.com/apache/accumulo/issues/1576
+ * Serialization updated for supporting multiple volumes in import table from 1L to 2L.
  */
 public class ImportTable extends ManagerRepo {
   private static final Logger log = LoggerFactory.getLogger(ImportTable.class);
 
   private static final long serialVersionUID = 2L;
 
-  private ImportedTableInfo tableInfo;
+  private final ImportedTableInfo tableInfo;
 
-  public ImportTable(String user, String tableName, Set<String> exportDirs,
-      NamespaceId namespaceId) {
+  public ImportTable(String user, String tableName, Set<String> exportDirs, NamespaceId namespaceId,
+      boolean keepMappings, boolean onlineTable) {
     tableInfo = new ImportedTableInfo();
     tableInfo.tableName = tableName;
     tableInfo.user = user;
     tableInfo.namespaceId = namespaceId;
     tableInfo.directories = parseExportDir(exportDirs);
+    tableInfo.keepMappings = keepMappings;
+    tableInfo.onlineTable = onlineTable;
   }
 
   @Override

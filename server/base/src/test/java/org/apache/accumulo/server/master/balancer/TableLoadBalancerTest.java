@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -21,7 +21,7 @@ package org.apache.accumulo.server.master.balancer;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -49,7 +49,7 @@ import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @Deprecated(since = "2.1.0")
 public class TableLoadBalancerTest {

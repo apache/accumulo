@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,13 +18,14 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.net.URL;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
+import java.time.Duration;
 import java.util.Map;
 
 import javax.net.ssl.HostnameVerifier;
@@ -43,8 +44,8 @@ import org.apache.accumulo.core.util.MonitorUtil;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -52,7 +53,13 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * Check SSL for the Monitor
  */
 public class MonitorSslIT extends ConfigurableMacBase {
-  @BeforeClass
+
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(6);
+  }
+
+  @BeforeAll
   public static void initHttps() throws NoSuchAlgorithmException, KeyManagementException {
     SSLContext ctx = SSLContext.getInstance("TLSv1.2");
     TrustManager[] tm = {new TestTrustManager()};
@@ -86,14 +93,9 @@ public class MonitorSslIT extends ConfigurableMacBase {
   }
 
   @Override
-  public int defaultTimeoutSeconds() {
-    return 6 * 60;
-  }
-
-  @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     super.configure(cfg, hadoopCoreSite);
-    File baseDir = createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName());
+    File baseDir = createTestDir(this.getClass().getName() + "_" + this.testName());
     configureForSsl(cfg, getSslDir(baseDir));
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.MONITOR_SSL_KEYSTORE.getKey(),

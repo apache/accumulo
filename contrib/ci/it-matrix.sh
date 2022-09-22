@@ -8,7 +8,7 @@
 # "License"); you may not use this file except in compliance
 # with the License.  You may obtain a copy of the License at
 #
-#   http://www.apache.org/licenses/LICENSE-2.0
+#   https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing,
 # software distributed under the License is distributed on an
@@ -31,8 +31,7 @@ echo -n '::set-output name=matrix::{"profile":['
 for x in $(find "$gitRootDir" -name '*IT.java' -exec basename '{}' .java \; | sort -u | xargs -n "$testsPerJob" | tr ' ' ','); do
   [[ $count -gt 0 ]] && echo -n ','
   echo -n "{\"name\":\"task_$count\",\"its\":\"$x\"}"
-  ((count=count+1))
+  ((count = count + 1))
 done
 echo ']}'
 echo "Finished creating matrix ($count tasks)"
-

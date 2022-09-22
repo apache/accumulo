@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import java.time.Duration;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -31,7 +32,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,8 +40,8 @@ public class LogicalTimeIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(LogicalTimeIT.class);
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
   }
 
   @Test

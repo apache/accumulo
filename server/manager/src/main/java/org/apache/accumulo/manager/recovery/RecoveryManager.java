@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -73,7 +73,8 @@ public class RecoveryManager {
         CacheBuilder.newBuilder().expireAfterWrite(timeToCacheExistsInMillis, TimeUnit.MILLISECONDS)
             .maximumWeight(10_000_000).weigher((path, exist) -> path.toString().length()).build();
 
-    executor = ThreadPools.createScheduledExecutorService(4, "Walog sort starter", false);
+    executor = ThreadPools.getServerThreadPools().createScheduledExecutorService(4,
+        "Walog sort starter", false);
     zooCache = new ZooCache(manager.getContext().getZooReader(), null);
     try {
       List<String> workIDs =

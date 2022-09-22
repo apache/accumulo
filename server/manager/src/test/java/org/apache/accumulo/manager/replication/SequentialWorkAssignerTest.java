@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -22,7 +22,7 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -38,8 +38,8 @@ import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 @Deprecated
 public class SequentialWorkAssignerTest {
@@ -47,7 +47,7 @@ public class SequentialWorkAssignerTest {
   private AccumuloClient client;
   private SequentialWorkAssigner assigner;
 
-  @Before
+  @BeforeEach
   public void init() {
     AccumuloConfiguration conf = createMock(AccumuloConfiguration.class);
     client = createMock(AccumuloClient.class);
@@ -84,14 +84,15 @@ public class SequentialWorkAssignerTest {
     // file1 replicated
     expect(zooCache.get(ZooUtil.getRoot(iid) + ReplicationConstants.ZOO_WORK_QUEUE + "/"
         + DistributedWorkQueueWorkAssignerHelper.getQueueKey("file1",
-            new ReplicationTarget("cluster1", "1", TableId.of("1"))))).andReturn(null);
+            new ReplicationTarget("cluster1", "1", TableId.of("1")))))
+        .andReturn(null);
     // file2 still needs to replicate
     expect(
         zooCache
             .get(ZooUtil.getRoot(iid) + ReplicationConstants.ZOO_WORK_QUEUE + "/"
                 + DistributedWorkQueueWorkAssignerHelper.getQueueKey("file2",
                     new ReplicationTarget("cluster1", "2", TableId.of("2")))))
-                        .andReturn(new byte[0]);
+        .andReturn(new byte[0]);
 
     replay(workQueue, zooCache, opts, client);
 

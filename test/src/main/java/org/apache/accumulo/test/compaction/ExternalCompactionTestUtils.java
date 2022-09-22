@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,9 +18,8 @@
  */
 package org.apache.accumulo.test.compaction;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -60,6 +59,7 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -173,8 +173,8 @@ public class ExternalCompactionTestUtils {
     try (Scanner scanner = client.createScanner(table1)) {
       int count = 0;
       for (Entry<Key,Value> entry : scanner) {
-        assertTrue(String.format("%s %s %d != 0", entry.getValue(), "%", modulus),
-            Integer.parseInt(entry.getValue().toString()) % modulus == 0);
+        assertEquals(0, Integer.parseInt(entry.getValue().toString()) % modulus,
+            String.format("%s %s %d != 0", entry.getValue(), "%", modulus));
         count++;
       }
 
@@ -233,7 +233,7 @@ public class ExternalCompactionTestUtils {
     cfg.setProperty(Property.COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL, "3s");
     cfg.setProperty(Property.COMPACTION_COORDINATOR_THRIFTCLIENT_PORTSEARCH, "true");
     cfg.setProperty(Property.COMPACTOR_PORTSEARCH, "true");
-    cfg.setProperty(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE, "10");
+    cfg.setProperty(Property.GENERAL_THREADPOOL_SIZE, "10");
     cfg.setProperty(Property.MANAGER_FATE_THREADPOOL_SIZE, "10");
     // use raw local file system so walogs sync and flush will work
     coreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
@@ -246,8 +246,8 @@ public class ExternalCompactionTestUtils {
     if (coordinatorHost.isEmpty()) {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }
-    CompactionCoordinatorService.Client client = ThriftUtil.getClient(
-        new CompactionCoordinatorService.Client.Factory(), coordinatorHost.get(), context);
+    CompactionCoordinatorService.Client client =
+        ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.get(), context);
     try {
       TExternalCompactionList running =
           client.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
@@ -264,8 +264,8 @@ public class ExternalCompactionTestUtils {
     if (coordinatorHost.isEmpty()) {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }
-    CompactionCoordinatorService.Client client = ThriftUtil.getClient(
-        new CompactionCoordinatorService.Client.Factory(), coordinatorHost.get(), context);
+    CompactionCoordinatorService.Client client =
+        ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.get(), context);
     try {
       TExternalCompactionList completed =
           client.getCompletedCompactions(TraceUtil.traceInfo(), context.rpcCreds());

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -311,22 +311,19 @@ public class ServiceLock implements Watcher {
         @Override
         public void process(WatchedEvent event) {
           if (LOG.isTraceEnabled()) {
-            LOG.trace("[{}] Processing event:", vmLockPrefix);
-            LOG.trace("- type  {}", event.getType());
-            LOG.trace("- path  {}", event.getPath());
-            LOG.trace("- state {}", event.getState());
+            LOG.trace("[{}] Processing {}", vmLockPrefix, event);
           }
           boolean renew = true;
           if (event.getType() == EventType.NodeDeleted && event.getPath().equals(nodeToWatch)) {
-            LOG.debug("[{}] Detected deletion of prior node {}, attempting to acquire lock",
-                vmLockPrefix, nodeToWatch);
+            LOG.debug("[{}] Detected deletion of prior node {}, attempting to acquire lock; {}",
+                vmLockPrefix, nodeToWatch, event);
             synchronized (ServiceLock.this) {
               try {
                 if (createdNodeName != null) {
                   determineLockOwnership(createdEphemeralNode, lw);
                 } else if (LOG.isDebugEnabled()) {
-                  LOG.debug("[{}] While waiting for another lock {}, {} was deleted", vmLockPrefix,
-                      nodeToWatch, createdEphemeralNode);
+                  LOG.debug("[{}] While waiting for another lock {}, {} was deleted; {}",
+                      vmLockPrefix, nodeToWatch, createdEphemeralNode, event);
                 }
               } catch (Exception e) {
                 if (lockNodeName == null) {
@@ -342,8 +339,9 @@ public class ServiceLock implements Watcher {
               || event.getState() == KeeperState.Disconnected) {
             synchronized (ServiceLock.this) {
               if (lockNodeName == null) {
-                LOG.info("Zookeeper Session expired / disconnected");
-                lw.failedToAcquireLock(new Exception("Zookeeper Session expired / disconnected"));
+                LOG.info("Zookeeper Session expired / disconnected; {}", event);
+                lw.failedToAcquireLock(
+                    new Exception("Zookeeper Session expired / disconnected; " + event));
               }
             }
             renew = false;
@@ -361,7 +359,8 @@ public class ServiceLock implements Watcher {
                 LOG.debug("[{}] Renewed watch on prior node  {}", vmLockPrefix, nodeToWatch);
               }
             } catch (KeeperException | InterruptedException e) {
-              lw.failedToAcquireLock(new Exception("Failed to renew watch on other manager node"));
+              lw.failedToAcquireLock(
+                  new Exception("Failed to renew watch on other manager node", e));
             }
           }
         }
@@ -466,16 +465,16 @@ public class ServiceLock implements Watcher {
           synchronized (ServiceLock.this) {
             if (lockNodeName != null && event.getType() == EventType.NodeDeleted
                 && event.getPath().equals(path + "/" + lockNodeName)) {
-              LOG.debug("[{}] {} was deleted", vmLockPrefix, lockNodeName);
+              LOG.debug("[{}] {} was deleted; {}", vmLockPrefix, lockNodeName, event);
               lostLock(LockLossReason.LOCK_DELETED);
             } else if (createdNodeName != null && event.getType() == EventType.NodeDeleted
                 && event.getPath().equals(path + "/" + createdNodeName)) {
-              LOG.debug("[{}] {} was deleted", vmLockPrefix, createdNodeName);
+              LOG.debug("[{}] {} was deleted; {}", vmLockPrefix, createdNodeName, event);
               failedToAcquireLock();
             } else if (event.getState() != KeeperState.Disconnected
                 && event.getState() != KeeperState.Expired
                 && (lockNodeName != null || createdNodeName != null)) {
-              LOG.debug("Unexpected event watching lock node {} {}", event, pathForWatcher);
+              LOG.debug("Unexpected event watching lock node {}; {}", pathForWatcher, event);
               try {
                 Stat stat2 = zooKeeper.exists(pathForWatcher, this);
                 if (stat2 == null) {
@@ -491,7 +490,7 @@ public class ServiceLock implements Watcher {
                 }
               } catch (Exception e) {
                 lockWatcher.unableToMonitorLockNode(e);
-                LOG.error("Failed to stat lock node: {} ", pathForWatcher, e);
+                LOG.error("Failed to stat lock node: {}; {}", pathForWatcher, event, e);
               }
             }
 
@@ -603,7 +602,7 @@ public class ServiceLock implements Watcher {
   @Override
   public synchronized void process(WatchedEvent event) {
     if (LOG.isDebugEnabled()) {
-      LOG.debug("event {} {} {}", event.getPath(), event.getType(), event.getState());
+      LOG.debug("{}", event);
     }
 
     watchingParent = false;

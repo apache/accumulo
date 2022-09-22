@@ -9,7 +9,7 @@
     "License"); you may not use this file except in compliance
     with the License.  You may obtain a copy of the License at
 
-      http://www.apache.org/licenses/LICENSE-2.0
+      https://www.apache.org/licenses/LICENSE-2.0
 
     Unless required by applicable law or agreed to in writing,
     software distributed under the License is distributed on an
@@ -36,6 +36,10 @@
     <dependency>
       <groupId>com.beust</groupId>
       <artifactId>jcommander</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.github.ben-manes.caffeine</groupId>
+      <artifactId>caffeine</artifactId>
     </dependency>
     <dependency>
       <groupId>com.google.auto.service</groupId>
@@ -195,8 +199,12 @@
       <artifactId>jline</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.junit.vintage</groupId>
-      <artifactId>junit-vintage-engine</artifactId>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-engine</artifactId>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -214,7 +222,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-slf4j-impl</artifactId>
+      <artifactId>log4j-slf4j2-impl</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -234,9 +242,6 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-failsafe-plugin</artifactId>
           <configuration>
-            <additionalClasspathElements>
-              <item>src/main/unpackaged-classpath-files/</item>
-            </additionalClasspathElements>
             <testSourceDirectory>${project.basedir}/src/main/java/</testSourceDirectory>
             <testClassesDirectory>${project.build.directory}/classes/</testClassesDirectory>
             <systemPropertyVariables>
@@ -251,9 +256,6 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <configuration>
-            <additionalClasspathElements>
-              <item>src/main/unpackaged-classpath-files/</item>
-            </additionalClasspathElements>
             <systemPropertyVariables>
               <org.apache.accumulo.test.functional.useCredProviderForIT>${useCredProviderForIT}</org.apache.accumulo.test.functional.useCredProviderForIT>
               <org.apache.accumulo.test.functional.useSslForIT>${useSslForIT}</org.apache.accumulo.test.functional.useSslForIT>
@@ -279,6 +281,20 @@
               <arguments>
                 <argument>-c</argument>
                 <argument>! find src/test/java -name '*IT.java' -exec echo '[ERROR] {} should be in src/main/java' \; | grep 'src/test/java'</argument>
+              </arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>check-for-misplaced-UTs</id>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <phase>validate</phase>
+            <configuration>
+              <executable>bash</executable>
+              <arguments>
+                <argument>-c</argument>
+                <argument>! find src/main/java -name '*Test.java' -exec echo '[ERROR] {} should be in src/test/java' \; | grep 'src/main/java'</argument>
               </arguments>
             </configuration>
           </execution>

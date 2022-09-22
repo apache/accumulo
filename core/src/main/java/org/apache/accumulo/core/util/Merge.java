@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -33,6 +33,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -225,8 +226,11 @@ public class Merge {
     try {
       Text start = sizes.get(0).extent.prevEndRow();
       Text end = sizes.get(numToMerge - 1).extent.endRow();
-      message("Merging %d tablets from (%s to %s]", numToMerge, start == null ? "-inf" : start,
-          end == null ? "+inf" : end);
+      message("Merging %d tablets from (%s to %s]", numToMerge,
+          start == null ? "-inf"
+              : Key.toPrintableString(start.getBytes(), 0, start.getLength(), start.getLength()),
+          end == null ? "+inf"
+              : Key.toPrintableString(end.getBytes(), 0, end.getLength(), end.getLength()));
       client.tableOperations().merge(table, start, end);
     } catch (Exception ex) {
       throw new MergeException(ex);

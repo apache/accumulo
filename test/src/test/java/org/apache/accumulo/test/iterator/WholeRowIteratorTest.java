@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,39 +19,38 @@
 package org.apache.accumulo.test.iterator;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
-import org.apache.accumulo.iteratortest.IteratorTestCaseFinder;
+import org.apache.accumulo.iteratortest.IteratorTestBase;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
-import org.apache.accumulo.iteratortest.junit4.BaseJUnit4IteratorTest;
-import org.apache.accumulo.iteratortest.testcases.IteratorTestCase;
+import org.apache.accumulo.iteratortest.IteratorTestParameters;
 import org.apache.hadoop.io.Text;
-import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Framework tests for {@link WholeRowIterator}.
  */
-public class WholeRowIteratorTest extends BaseJUnit4IteratorTest {
-
-  @Parameters
-  public static Object[][] parameters() {
-    IteratorTestInput input = getIteratorInput();
-    IteratorTestOutput output = getIteratorOutput();
-    List<IteratorTestCase> tests = IteratorTestCaseFinder.findAllTestCases();
-    return BaseJUnit4IteratorTest.createParameters(input, output, tests);
-  }
+public class WholeRowIteratorTest extends IteratorTestBase {
 
   private static final TreeMap<Key,Value> INPUT_DATA = createInputData();
   private static final TreeMap<Key,Value> OUTPUT_DATA = createOutputData();
+
+  @Override
+  protected Stream<IteratorTestParameters> parameters() {
+    var input = new IteratorTestInput(WholeRowIterator.class, Map.of(), new Range(), INPUT_DATA);
+    var expectedOutput = new IteratorTestOutput(OUTPUT_DATA);
+    return builtinTestCases().map(test -> test.toParameters(input, expectedOutput));
+  }
 
   private static TreeMap<Key,Value> createInputData() {
     TreeMap<Key,Value> data = new TreeMap<>();
@@ -110,7 +109,7 @@ public class WholeRowIteratorTest extends BaseJUnit4IteratorTest {
           Value encoded = WholeRowIterator.encodeRow(keys, values);
           data.put(new Key(row), encoded);
         } catch (IOException e) {
-          throw new RuntimeException(e);
+          throw new UncheckedIOException(e);
         }
 
         // Empty the aggregated k-v's
@@ -130,25 +129,10 @@ public class WholeRowIteratorTest extends BaseJUnit4IteratorTest {
         Value encoded = WholeRowIterator.encodeRow(keys, values);
         data.put(new Key(row), encoded);
       } catch (IOException e) {
-        throw new RuntimeException(e);
+        throw new UncheckedIOException(e);
       }
     }
 
     return data;
   }
-
-  private static IteratorTestInput getIteratorInput() {
-    return new IteratorTestInput(WholeRowIterator.class, Collections.emptyMap(), new Range(),
-        INPUT_DATA);
-  }
-
-  private static IteratorTestOutput getIteratorOutput() {
-    return new IteratorTestOutput(OUTPUT_DATA);
-  }
-
-  public WholeRowIteratorTest(IteratorTestInput input, IteratorTestOutput expectedOutput,
-      IteratorTestCase testCase) {
-    super(input, expectedOutput, testCase);
-  }
-
 }

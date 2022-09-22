@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -41,6 +41,7 @@ import org.apache.accumulo.core.spi.file.rfile.compression.Snappy;
 import org.apache.accumulo.core.spi.file.rfile.compression.ZStandard;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.SnappyCodec;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -299,6 +300,45 @@ public class CompressionTest {
               al + " resulted in a failed call to getcodec within the thread pool");
         }
       }
+    }
+  }
+
+  @Test
+  public void testHadoopCodecOverride() {
+    Configuration conf = new Configuration(false);
+    conf.set(new ZStandard().getCodecClassNameProperty(), DummyCodec.class.getName());
+    CompressionAlgorithm algo = Compression.getCompressionAlgorithmByName("zstd");
+    algo.setConf(conf);
+    CompressionCodec dummyCodec = algo.createNewCodec(4096);
+    assertEquals(DummyCodec.class, dummyCodec.getClass(), "Hadoop override DummyCodec not loaded");
+  }
+
+  @Test
+  public void testSystemPropertyCodecOverride() {
+    System.setProperty(new Lz4().getCodecClassNameProperty(), DummyCodec.class.getName());
+    try {
+      CompressionAlgorithm algo = Compression.getCompressionAlgorithmByName("lz4");
+      CompressionCodec dummyCodec = algo.createNewCodec(4096);
+      assertEquals(DummyCodec.class, dummyCodec.getClass(),
+          "Hadoop override DummyCodec not loaded");
+    } finally {
+      System.clearProperty(new Lz4().getCodecClassNameProperty());
+    }
+  }
+
+  @Test
+  public void testSystemPropertyOverridesConf() {
+    System.setProperty(new Snappy().getCodecClassNameProperty(), DummyCodec.class.getName());
+    try {
+      Configuration conf = new Configuration(false);
+      conf.set(new Snappy().getCodecClassNameProperty(), SnappyCodec.class.getName());
+      CompressionAlgorithm algo = Compression.getCompressionAlgorithmByName("snappy");
+      algo.setConf(conf);
+      CompressionCodec dummyCodec = algo.createNewCodec(4096);
+      assertEquals(DummyCodec.class, dummyCodec.getClass(),
+          "Hadoop override DummyCodec not loaded");
+    } finally {
+      System.clearProperty(new Snappy().getCodecClassNameProperty());
     }
   }
 

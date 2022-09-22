@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,103 +18,112 @@
  */
 package org.apache.accumulo.server.conf;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.endsWith;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
+import static org.easymock.EasyMock.verify;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import java.util.Map;
+import java.util.UUID;
+
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
-import org.apache.accumulo.server.MockServerContext;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.server.ServerContext;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.apache.accumulo.server.conf.codec.VersionedProperties;
+import org.apache.accumulo.server.conf.store.NamespacePropKey;
+import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.SystemPropKey;
+import org.apache.accumulo.server.conf.store.TablePropKey;
+import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ServerConfigurationFactoryTest {
   private static final String ZK_HOST = "localhost";
-  private static final int ZK_TIMEOUT = 120000;
-  private static final InstanceId IID = InstanceId.of("iid");
+  private static final int ZK_TIMEOUT = 120_000;
+  private static final InstanceId IID = InstanceId.of(UUID.randomUUID());
+  private static final TableId TID = TableId.of("TABLE");
+  private static final NamespaceId NSID = NamespaceId.of("NAMESPACE");
+  private static final SiteConfiguration siteConfig = SiteConfiguration.empty().build();
 
-  // use the same mock ZooCacheFactory and ZooCache for all tests
-  private static ZooCacheFactory zcf;
-  private static ZooCache zc;
-  private static SiteConfiguration siteConfig = SiteConfiguration.auto();
-
-  @BeforeClass
-  public static void setUpClass() {
-    zcf = createMock(ZooCacheFactory.class);
-    zc = createMock(ZooCache.class);
-    expect(zcf.getNewZooCache(eq(ZK_HOST), eq(ZK_TIMEOUT))).andReturn(zc).anyTimes();
-    expect(zcf.getZooCache(ZK_HOST, ZK_TIMEOUT)).andReturn(zc).anyTimes();
-    replay(zcf);
-
-    expect(zc.getChildren(anyObject(String.class))).andReturn(null).anyTimes();
-    // CheckServerConfig looks at timeout
-    expect(zc.get(endsWith("timeout"))).andReturn(("" + ZK_TIMEOUT + "ms").getBytes(UTF_8));
-    replay(zc);
-  }
-
+  private PropStore propStore;
   private ServerContext context;
+  private SystemConfiguration sysConfig;
   private ServerConfigurationFactory scf;
 
-  @Before
+  @BeforeEach
   public void setUp() {
-    context = MockServerContext.getWithZK(IID, ZK_HOST, ZK_TIMEOUT);
+    propStore = createMock(ZooPropStore.class);
+    expect(propStore.get(eq(SystemPropKey.of(IID)))).andReturn(new VersionedProperties(Map.of()))
+        .anyTimes();
+    expect(propStore.get(eq(TablePropKey.of(IID, TID))))
+        .andReturn(new VersionedProperties(Map.of())).anyTimes();
+    expect(propStore.get(eq(NamespacePropKey.of(IID, NSID))))
+        .andReturn(new VersionedProperties(Map.of())).anyTimes();
+
+    propStore.registerAsListener(anyObject(), anyObject());
+    expectLastCall().anyTimes();
+
+    sysConfig = createMock(SystemConfiguration.class);
+    sysConfig.getProperties(anyObject(), anyObject());
+    expectLastCall().anyTimes();
+
+    context = createMock(ServerContext.class);
+    expect(context.getZooKeeperRoot()).andReturn("/accumulo/" + IID).anyTimes();
+    expect(context.getInstanceID()).andReturn(IID).anyTimes();
+    expect(context.getZooKeepers()).andReturn(ZK_HOST).anyTimes();
+    expect(context.getZooKeepersSessionTimeOut()).andReturn(ZK_TIMEOUT).anyTimes();
+    expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
+    expect(context.tableNodeExists(TID)).andReturn(true).anyTimes();
+    expect(context.getPropStore()).andReturn(propStore).anyTimes();
+    expect(context.getConfiguration()).andReturn(sysConfig).anyTimes();
+    scf = new ServerConfigurationFactory(context, siteConfig) {
+      @Override
+      public NamespaceConfiguration getNamespaceConfigurationForTable(TableId tableId) {
+        if (tableId.equals(TID)) {
+          return getNamespaceConfiguration(NSID);
+        }
+        throw new UnsupportedOperationException();
+      }
+    };
+
+    replay(propStore, context, sysConfig);
   }
 
-  @After
-  public void tearDown() {
-    ServerConfigurationFactory.clearCachedConfigurations();
-  }
-
-  private void ready() {
-    replay(context);
-    scf = new ServerConfigurationFactory(context, siteConfig);
-    scf.setZooCacheFactory(zcf);
+  @AfterEach
+  public void verifyMocks() {
+    verify(propStore, context, sysConfig);
   }
 
   @Test
-  public void testGetDefaultConfiguration() {
-    ready();
-    DefaultConfiguration c = scf.getDefaultConfiguration();
-    assertNotNull(c);
+  public void testGetters() {
+    assertSame(DefaultConfiguration.getInstance(), scf.getDefaultConfiguration());
+    assertSame(siteConfig, scf.getSiteConfiguration());
+    assertNotNull(scf.getSystemConfiguration());
   }
-
-  @Test
-  public void testGetSiteConfiguration() {
-    ready();
-    var c = scf.getSiteConfiguration();
-    assertNotNull(c);
-  }
-
-  @Test
-  public void testGetConfiguration() {
-    ready();
-    AccumuloConfiguration c = scf.getSystemConfiguration();
-    assertNotNull(c);
-  }
-
-  private static final NamespaceId NSID = NamespaceId.of("NAMESPACE");
 
   @Test
   public void testGetNamespaceConfiguration() {
-    ready();
-    NamespaceConfiguration c = scf.getNamespaceConfiguration(NSID);
-    assertEquals(NSID, c.getNamespaceId());
-    assertSame(c, scf.getNamespaceConfiguration(NSID));
+    NamespaceConfiguration namespaceConfigSingleton = scf.getNamespaceConfiguration(NSID);
+    assertEquals(NSID, namespaceConfigSingleton.getNamespaceId());
+    assertSame(namespaceConfigSingleton, scf.getNamespaceConfiguration(NSID));
+  }
+
+  @Test
+  public void testGetTableConfiguration() {
+    TableConfiguration tableConfigSingleton = scf.getTableConfiguration(TID);
+    assertEquals(TID, tableConfigSingleton.getTableId());
+    assertSame(tableConfigSingleton, scf.getTableConfiguration(TID));
   }
 
 }

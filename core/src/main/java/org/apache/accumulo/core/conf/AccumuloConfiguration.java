@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -17,6 +17,10 @@
  * under the License.
  */
 package org.apache.accumulo.core.conf;
+
+import static org.apache.accumulo.core.conf.Property.GENERAL_ARBITRARY_PROP_PREFIX;
+import static org.apache.accumulo.core.conf.Property.INSTANCE_CRYPTO_PREFIX;
+import static org.apache.accumulo.core.conf.Property.TABLE_CRYPTO_PREFIX;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -35,7 +39,10 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.conf.PropertyType.PortRange;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
@@ -61,7 +68,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   private volatile EnumMap<Property,PrefixProps> cachedPrefixProps = new EnumMap<>(Property.class);
-  private Lock prefixCacheUpdateLock = new ReentrantLock();
+  private final Lock prefixCacheUpdateLock = new ReentrantLock();
 
   private static final Logger log = LoggerFactory.getLogger(AccumuloConfiguration.class);
 
@@ -69,17 +76,22 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * Gets a property value from this configuration.
    *
    * <p>
-   * Note: this is inefficient, but convenient on occasion. For retrieving multiple properties, use
-   * {@link #getProperties(Map, Predicate)} with a custom filter.
+   * Note: this is inefficient for values that are not a {@link Property}. For retrieving multiple
+   * properties, use {@link #getProperties(Map, Predicate)} with a custom filter.
    *
    * @param property
    *          property to get
    * @return property value
    */
   public String get(String property) {
-    Map<String,String> propMap = new HashMap<>(1);
-    getProperties(propMap, key -> Objects.equals(property, key));
-    return propMap.get(property);
+    Property p = Property.getPropertyByKey(property);
+    if (p != null) {
+      return get(p);
+    } else {
+      Map<String,String> propMap = new HashMap<>(1);
+      getProperties(propMap, key -> Objects.equals(property, key));
+      return propMap.get(property);
+    }
   }
 
   /**
@@ -92,14 +104,28 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   public abstract String get(Property property);
 
   /**
-   * Given a property and a deprecated property determine which one to use base on which one is set.
+   * Given a property that is not deprecated and an ordered list of deprecated properties, determine
+   * which one to use based on which is set by the user in the configuration. If the non-deprecated
+   * property is set, use that. Otherwise, use the first deprecated property that is set. If no
+   * deprecated properties are set, use the non-deprecated property by default, even though it is
+   * not set (since it is not set, it will resolve to its default value). Since the deprecated
+   * properties are checked in order, newer properties should be on the left, replacing older
+   * properties on the right, so if a newer property is set, it will be selected over any older
+   * property that may also be set.
    */
-  public Property resolve(Property property, Property deprecatedProperty) {
-    if (isPropertySet(property, true) || !isPropertySet(deprecatedProperty, true)) {
-      return property;
-    } else {
-      return deprecatedProperty;
+  public Property resolve(Property property, Property... deprecated) {
+    if (property.isDeprecated()) {
+      throw new IllegalArgumentException("Unexpected deprecated " + property.name());
     }
+    for (Property p : deprecated) {
+      if (!p.isDeprecated()) {
+        var notDeprecated = Stream.of(deprecated).filter(Predicate.not(Property::isDeprecated))
+            .map(Property::name).collect(Collectors.toList());
+        throw new IllegalArgumentException("Unexpected non-deprecated " + notDeprecated);
+      }
+    }
+    return isPropertySet(property) ? property
+        : Stream.of(deprecated).filter(this::isPropertySet).findFirst().orElse(property);
   }
 
   /**
@@ -160,7 +186,9 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
 
     PrefixProps prefixProps = cachedPrefixProps.get(property);
 
-    if (prefixProps == null || prefixProps.updateCount != getUpdateCount()) {
+    long currentCount = getUpdateCount();
+
+    if (prefixProps == null || prefixProps.updateCount != currentCount) {
       prefixCacheUpdateLock.lock();
       try {
         // Very important that update count is read before getting properties. Also only read it
@@ -205,6 +233,14 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     });
 
     return builder.build();
+  }
+
+  public Map<String,String> getAllCryptoProperties() {
+    Map<String,String> allProps = new HashMap<>();
+    allProps.putAll(getAllPropertiesWithPrefix(INSTANCE_CRYPTO_PREFIX));
+    allProps.putAll(getAllPropertiesWithPrefix(GENERAL_ARBITRARY_PROP_PREFIX));
+    allProps.putAll(getAllPropertiesWithPrefix(TABLE_CRYPTO_PREFIX));
+    return allProps;
   }
 
   /**
@@ -378,62 +414,73 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     public final OptionalInt priority;
     public final Optional<String> prioritizerClass;
     public final Map<String,String> prioritizerOpts;
+    public final boolean isScanServer;
 
     public ScanExecutorConfig(String name, int maxThreads, OptionalInt priority,
-        Optional<String> comparatorFactory, Map<String,String> comparatorFactoryOpts) {
+        Optional<String> comparatorFactory, Map<String,String> comparatorFactoryOpts,
+        boolean isScanServer) {
       this.name = name;
       this.maxThreads = maxThreads;
       this.priority = priority;
       this.prioritizerClass = comparatorFactory;
       this.prioritizerOpts = comparatorFactoryOpts;
+      this.isScanServer = isScanServer;
     }
 
     /**
      * Re-reads the max threads from the configuration that created this class
      */
     public int getCurrentMaxThreads() {
-      Integer depThreads = getDeprecatedScanThreads(name);
+      Integer depThreads = getDeprecatedScanThreads(name, isScanServer);
       if (depThreads != null) {
         return depThreads;
       }
 
-      String prop = Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey() + name + "." + SCAN_EXEC_THREADS;
-      String val = getAllPropertiesWithPrefix(Property.TSERV_SCAN_EXECUTORS_PREFIX).get(prop);
-      return Integer.parseInt(val);
+      if (isScanServer) {
+        String prop =
+            Property.SSERV_SCAN_EXECUTORS_PREFIX.getKey() + name + "." + SCAN_EXEC_THREADS;
+        String val = getAllPropertiesWithPrefix(Property.SSERV_SCAN_EXECUTORS_PREFIX).get(prop);
+        return Integer.parseInt(val);
+      } else {
+        String prop =
+            Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey() + name + "." + SCAN_EXEC_THREADS;
+        String val = getAllPropertiesWithPrefix(Property.TSERV_SCAN_EXECUTORS_PREFIX).get(prop);
+        return Integer.parseInt(val);
+      }
     }
   }
 
-  public boolean isPropertySet(Property prop, boolean cacheAndWatch) {
-    throw new UnsupportedOperationException();
-  }
+  public abstract boolean isPropertySet(Property prop);
 
   // deprecation property warning could get spammy in tserver so only warn once
   boolean depPropWarned = false;
 
   @SuppressWarnings("deprecation")
-  Integer getDeprecatedScanThreads(String name) {
+  Integer getDeprecatedScanThreads(String name, boolean isScanServer) {
 
     Property prop;
     Property deprecatedProp;
 
     if (name.equals(SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME)) {
-      prop = Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS;
+      prop = isScanServer ? Property.SSERV_SCAN_EXECUTORS_DEFAULT_THREADS
+          : Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS;
       deprecatedProp = Property.TSERV_READ_AHEAD_MAXCONCURRENT;
     } else if (name.equals("meta")) {
-      prop = Property.TSERV_SCAN_EXECUTORS_META_THREADS;
+      prop = isScanServer ? Property.SSERV_SCAN_EXECUTORS_META_THREADS
+          : Property.TSERV_SCAN_EXECUTORS_META_THREADS;
       deprecatedProp = Property.TSERV_METADATA_READ_AHEAD_MAXCONCURRENT;
     } else {
       return null;
     }
 
-    if (!isPropertySet(prop, true) && isPropertySet(deprecatedProp, true)) {
+    if (!isPropertySet(prop) && isPropertySet(deprecatedProp)) {
       if (!depPropWarned) {
         depPropWarned = true;
         log.warn("Property {} is deprecated, use {} instead.", deprecatedProp.getKey(),
             prop.getKey());
       }
       return Integer.valueOf(get(deprecatedProp));
-    } else if (isPropertySet(prop, true) && isPropertySet(deprecatedProp, true) && !depPropWarned) {
+    } else if (isPropertySet(prop) && isPropertySet(deprecatedProp) && !depPropWarned) {
       depPropWarned = true;
       log.warn("Deprecated property {} ignored because {} is set", deprecatedProp.getKey(),
           prop.getKey());
@@ -531,17 +578,18 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   private static final String SCAN_EXEC_PRIORITIZER = "prioritizer";
   private static final String SCAN_EXEC_PRIORITIZER_OPTS = "prioritizer.opts.";
 
-  public Collection<ScanExecutorConfig> getScanExecutors() {
+  public Collection<ScanExecutorConfig> getScanExecutors(boolean isScanServer) {
+
+    Property prefix =
+        isScanServer ? Property.SSERV_SCAN_EXECUTORS_PREFIX : Property.TSERV_SCAN_EXECUTORS_PREFIX;
 
     Map<String,Map<String,String>> propsByName = new HashMap<>();
 
     List<ScanExecutorConfig> scanResources = new ArrayList<>();
 
-    for (Entry<String,String> entry : getAllPropertiesWithPrefix(
-        Property.TSERV_SCAN_EXECUTORS_PREFIX).entrySet()) {
+    for (Entry<String,String> entry : getAllPropertiesWithPrefix(prefix).entrySet()) {
 
-      String suffix =
-          entry.getKey().substring(Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey().length());
+      String suffix = entry.getKey().substring(prefix.getKey().length());
       String[] tokens = suffix.split("\\.", 2);
       String name = tokens[0];
 
@@ -560,7 +608,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
         String val = subEntry.getValue();
 
         if (opt.equals(SCAN_EXEC_THREADS)) {
-          Integer depThreads = getDeprecatedScanThreads(name);
+          Integer depThreads = getDeprecatedScanThreads(name, isScanServer);
           if (depThreads == null) {
             threads = Integer.parseInt(val);
           } else {
@@ -586,7 +634,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
 
       scanResources.add(new ScanExecutorConfig(name, threads,
           prio == null ? OptionalInt.empty() : OptionalInt.of(prio),
-          Optional.ofNullable(prioritizerClass), prioritizerOpts));
+          Optional.ofNullable(prioritizerClass), prioritizerOpts, isScanServer));
     }
 
     return scanResources;
@@ -597,4 +645,17 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * this configuration.
    */
   public void invalidateCache() {}
+
+  /**
+   * get a parent configuration or null if it does not exist.
+   *
+   * @since 2.1.0
+   */
+  public AccumuloConfiguration getParent() {
+    return null;
+  }
+
+  public Stream<Entry<String,String>> stream() {
+    return StreamSupport.stream(this.spliterator(), false);
+  }
 }

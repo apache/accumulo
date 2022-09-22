@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -24,10 +24,10 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -51,6 +51,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
@@ -58,13 +59,13 @@ import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.gc.GcVolumeUtil;
+import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,23 +73,32 @@ public class Upgrader9to10Test {
   private static Logger log = LoggerFactory.getLogger(Upgrader9to10Test.class);
 
   private static final String VOL_PROP = "hdfs://nn1:8020/accumulo";
+  private static final TableId tableId5a = TableId.of("5a");
 
   @Test
   public void testSwitchRelativeDeletes() {
     Path resolved = Upgrader9to10.resolveRelativeDelete("/5a/t-0005", VOL_PROP);
     assertEquals(new Path(VOL_PROP + "/tables/5a/t-0005"), resolved);
-    assertEquals(GcVolumeUtil.getDeleteTabletOnAllVolumesUri(TableId.of("5a"), "t-0005"),
-        Upgrader9to10.switchToAllVolumes(resolved));
+    var allVolumesDir = new AllVolumesDirectory(tableId5a, "t-0005");
+    var ref1 = Upgrader9to10.switchToAllVolumes(resolved);
+    compareReferences(allVolumesDir, ref1);
 
     resolved = Upgrader9to10.resolveRelativeDelete("/5a/" + BULK_PREFIX + "0005", VOL_PROP);
     assertEquals(new Path(VOL_PROP + "/tables/5a/" + BULK_PREFIX + "0005"), resolved);
-    assertEquals(VOL_PROP + "/tables/5a/" + BULK_PREFIX + "0005",
-        Upgrader9to10.switchToAllVolumes(resolved));
+    ref1 = new ReferenceFile(tableId5a, VOL_PROP + "/tables/5a/" + BULK_PREFIX + "0005");
+    var ref2 = Upgrader9to10.switchToAllVolumes(resolved);
+    compareReferences(ref1, ref2);
 
     resolved = Upgrader9to10.resolveRelativeDelete("/5a/t-0005/F0009.rf", VOL_PROP);
     assertEquals(new Path(VOL_PROP + "/tables/5a/t-0005/F0009.rf"), resolved);
-    assertEquals(VOL_PROP + "/tables/5a/t-0005/F0009.rf",
-        Upgrader9to10.switchToAllVolumes(resolved));
+    ref1 = new ReferenceFile(tableId5a, VOL_PROP + "/tables/5a/t-0005/F0009.rf");
+    ref2 = Upgrader9to10.switchToAllVolumes(resolved);
+    compareReferences(ref1, ref2);
+  }
+
+  private void compareReferences(ReferenceFile ref1, ReferenceFile ref2) {
+    assertEquals(ref1.getMetadataEntry(), ref2.getMetadataEntry());
+    assertEquals(ref1.tableId, ref2.tableId);
   }
 
   @Test
@@ -107,18 +117,22 @@ public class Upgrader9to10Test {
   public void testSwitchAllVolumes() {
     Path resolved = Upgrader9to10
         .resolveRelativeDelete("hdfs://localhost:9000/accumulo/tables/5a/t-0005", VOL_PROP);
-    assertEquals(GcVolumeUtil.getDeleteTabletOnAllVolumesUri(TableId.of("5a"), "t-0005"),
-        Upgrader9to10.switchToAllVolumes(resolved));
+    var allVolumesDir = new AllVolumesDirectory(tableId5a, "t-0005");
+    var ref1 = Upgrader9to10.switchToAllVolumes(resolved);
+    compareReferences(allVolumesDir, ref1);
 
     resolved = Upgrader9to10.resolveRelativeDelete(
         "hdfs://localhost:9000/accumulo/tables/5a/" + BULK_PREFIX + "0005", VOL_PROP);
-    assertEquals("hdfs://localhost:9000/accumulo/tables/5a/" + BULK_PREFIX + "0005",
-        Upgrader9to10.switchToAllVolumes(resolved));
+    ref1 = new ReferenceFile(tableId5a,
+        "hdfs://localhost:9000/accumulo/tables/5a/" + BULK_PREFIX + "0005");
+    var ref2 = Upgrader9to10.switchToAllVolumes(resolved);
+    compareReferences(ref1, ref2);
 
     resolved = Upgrader9to10.resolveRelativeDelete(
         "hdfs://localhost:9000/accumulo/tables/5a/t-0005/C0009.rf", VOL_PROP);
-    assertEquals("hdfs://localhost:9000/accumulo/tables/5a/t-0005/C0009.rf",
-        Upgrader9to10.switchToAllVolumes(resolved));
+    ref1 = new ReferenceFile(tableId5a, "hdfs://localhost:9000/accumulo/tables/5a/t-0005/C0009.rf");
+    ref2 = Upgrader9to10.switchToAllVolumes(resolved);
+    compareReferences(ref1, ref2);
   }
 
   @Test
@@ -194,8 +208,8 @@ public class Upgrader9to10Test {
     List<Mutation> results = new ArrayList<>();
 
     setupMocks(c, fs, map, results);
-    assertFalse("Invalid Relative path check",
-        Upgrader9to10.checkForRelativePaths(c, fs, tableName, volumeUpgrade));
+    assertFalse(Upgrader9to10.checkForRelativePaths(c, fs, tableName, volumeUpgrade),
+        "Invalid Relative path check");
     assertTrue(results.isEmpty());
   }
 
@@ -333,7 +347,7 @@ public class Upgrader9to10Test {
       }
     }
 
-    assertEquals("Replacements should have update for every delete", deleteCount, updateCount);
+    assertEquals(deleteCount, updateCount, "Replacements should have update for every delete");
   }
 
   @Test

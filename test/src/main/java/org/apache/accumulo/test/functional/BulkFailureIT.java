@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -57,6 +57,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -75,7 +76,7 @@ import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class BulkFailureIT extends AccumuloClusterHarness {
 
@@ -308,7 +309,8 @@ public class BulkFailureIT extends AccumuloClusterHarness {
         .fromString(locator.locateTablet(context, new Text(""), false, true).tablet_location);
 
     long timeInMillis = context.getConfiguration().getTimeInMillis(Property.TSERV_BULK_TIMEOUT);
-    TabletClientService.Iface client = ThriftUtil.getTServerClient(location, context, timeInMillis);
+    TabletClientService.Iface client =
+        ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, location, context, timeInMillis);
     return client;
   }
 }

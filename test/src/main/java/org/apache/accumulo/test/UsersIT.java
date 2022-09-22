@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Set;
 
@@ -32,7 +32,7 @@ import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class UsersIT extends AccumuloClusterHarness {
 
@@ -54,14 +54,14 @@ public class UsersIT extends AccumuloClusterHarness {
       }
 
       final PasswordToken badToken = new PasswordToken("better_fail");
-      var ase = assertThrows("Creating a user that already exists should throw an exception",
-          AccumuloSecurityException.class,
-          () -> securityOperations.createLocalUser(user0Principal, badToken));
-      assertSame("Expected USER_EXISTS error", SecurityErrorCode.USER_EXISTS,
-          ase.getSecurityErrorCode());
+      var ase = assertThrows(AccumuloSecurityException.class,
+          () -> securityOperations.createLocalUser(user0Principal, badToken),
+          "Creating a user that already exists should throw an exception");
+      assertSame(SecurityErrorCode.USER_EXISTS, ase.getSecurityErrorCode(),
+          "Expected USER_EXISTS error");
       String msg = ase.getMessage();
-      assertTrue("Error message didn't contain principal: '" + msg + "'",
-          msg.contains(user0Principal));
+      assertTrue(msg.contains(user0Principal),
+          "Error message didn't contain principal: '" + msg + "'");
     }
   }
 

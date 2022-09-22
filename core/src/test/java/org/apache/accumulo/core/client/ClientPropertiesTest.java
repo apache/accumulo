@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -42,7 +42,7 @@ public class ClientPropertiesTest {
     ClientProperty.validate(props1);
 
     Properties props2 =
-        Accumulo.newClientProperties().from(props1).as("user2", Paths.get("/path2")).build();
+        Accumulo.newClientProperties().from(props1).as("user2", Paths.get("./path2")).build();
 
     // verify props1 is unchanged
     assertEquals("inst1", ClientProperty.INSTANCE_NAME.getValue(props1));
@@ -56,7 +56,7 @@ public class ClientPropertiesTest {
     assertEquals("zoo1", ClientProperty.INSTANCE_ZOOKEEPERS.getValue(props2));
     assertEquals("user2", ClientProperty.AUTH_PRINCIPAL.getValue(props2));
     assertEquals("kerberos", ClientProperty.AUTH_TYPE.getValue(props2));
-    assertEquals("/path2", ClientProperty.AUTH_TOKEN.getValue(props2));
+    assertEquals("./path2", ClientProperty.AUTH_TOKEN.getValue(props2));
 
     props2.remove(ClientProperty.AUTH_PRINCIPAL.getKey());
     var e = assertThrows(IllegalArgumentException.class, () -> ClientProperty.validate(props2));

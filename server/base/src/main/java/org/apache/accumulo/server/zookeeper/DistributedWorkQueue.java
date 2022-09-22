@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -201,15 +201,16 @@ public class DistributedWorkQueue {
               try {
                 lookForWork(processor, zoo.getChildren(path, this));
               } catch (KeeperException e) {
-                log.error("Failed to look for work", e);
+                log.error("Failed to look for work at path {}; {}", path, event, e);
               } catch (InterruptedException e) {
-                log.info("Interrupted looking for work", e);
+                log.info("Interrupted looking for work at path {}; {}", path, event, e);
               }
             else
-              log.info("Unexpected path for NodeChildrenChanged event {}", event.getPath());
+              log.info("Unexpected path for NodeChildrenChanged event watching path {}; {}", path,
+                  event);
             break;
           default:
-            log.info("Got unexpected zookeeper event: {} for {}", event.getType(), path);
+            log.info("Unexpected event watching path {}; {}", path, event);
             break;
         }
       }
@@ -270,7 +271,7 @@ public class DistributedWorkQueue {
             }
             break;
           default:
-            log.info("Got unexpected zookeeper event: {} for {}", event.getType(), path);
+            log.info("Got unexpected zookeeper event for path {}: {}", path, event);
             break;
         }
       }

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -21,6 +21,10 @@ package org.apache.accumulo.fate.zookeeper;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.math.BigInteger;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,6 +36,7 @@ import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooDefs.Perms;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
+import org.apache.zookeeper.data.Stat;
 
 public class ZooUtil {
 
@@ -42,6 +47,10 @@ public class ZooUtil {
   public enum NodeMissingPolicy {
     SKIP, CREATE, FAIL
   }
+
+  // used for zookeeper stat print formatting
+  private static final DateTimeFormatter fmt =
+      DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss 'UTC' yyyy");
 
   public static class LockID {
     public long eid;
@@ -122,6 +131,35 @@ public class ZooUtil {
       }
       throw e;
     }
+  }
+
+  /**
+   * For debug: print the ZooKeeper Stat with value labels for a more user friendly string. The
+   * format matches the zookeeper cli stat command.
+   *
+   * @param stat
+   *          Zookeeper Stat structure
+   * @return a formatted string.
+   */
+  public static String printStat(final Stat stat) {
+
+    if (stat == null) {
+      return "null";
+    }
+
+    return "\ncZxid = " + String.format("0x%x", stat.getCzxid()) + "\nctime = "
+        + getFmtTime(stat.getCtime()) + "\nmZxid = " + String.format("0x%x", stat.getMzxid())
+        + "\nmtime = " + getFmtTime(stat.getMtime()) + "\npZxid = "
+        + String.format("0x%x", stat.getPzxid()) + "\ncversion = " + stat.getCversion()
+        + "\ndataVersion = " + stat.getVersion() + "\naclVersion = " + stat.getAversion()
+        + "\nephemeralOwner = " + String.format("0x%x", stat.getEphemeralOwner())
+        + "\ndataLength = " + stat.getDataLength() + "\nnumChildren = " + stat.getNumChildren();
+  }
+
+  private static String getFmtTime(final long epoch) {
+    OffsetDateTime timestamp =
+        OffsetDateTime.ofInstant(Instant.ofEpochMilli(epoch), ZoneOffset.UTC);
+    return fmt.format(timestamp);
   }
 
   public static void digestAuth(ZooKeeper zoo, String secret) {

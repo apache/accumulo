@@ -8,7 +8,7 @@
     "License"); you may not use this file except in compliance
     with the License.  You may obtain a copy of the License at
 
-      http://www.apache.org/licenses/LICENSE-2.0
+      https://www.apache.org/licenses/LICENSE-2.0
 
     Unless required by applicable law or agreed to in writing,
     software distributed under the License is distributed on an
@@ -30,32 +30,35 @@
           <div class="panel panel-primary">
             <div class="panel-heading">Compaction&nbsp;Coordinator&nbsp;running&nbsp;on:&nbsp;<span id="ccHostname" title="The hostname of the compaction coordinator server"></span></div>
             <div class="panel-body">
-                Queues&nbsp;<span id="ccNumQueues" class="badge" title="Number of queues configured">0</span></span>&nbsp;&nbsp;&nbsp;&nbsp;
-                Compactors&nbsp;<span id="ccNumCompactors" class="badge" title="Number of compactors running">0</span>&nbsp;&nbsp;&nbsp;&nbsp;
-                Last&nbsp;Contact&nbsp;<span id="ccLastContact" class="badge" title="Last time data was fetched. Server fetches on refresh, at most every minute."></span>
+              Queues&nbsp;<span id="ccNumQueues" class="badge" title="Number of queues configured">0</span></span>&nbsp;&nbsp;&nbsp;&nbsp;
+              Compactors&nbsp;<span id="ccNumCompactors" class="badge" title="Number of compactors running">0</span>&nbsp;&nbsp;&nbsp;&nbsp;
+              Last&nbsp;Contact&nbsp;<span id="ccLastContact" class="badge" title="Last time data was fetched. Server fetches on refresh, at most every minute."></span>
             </div>
           </div>
         </div>
       </div>
       <div class="row">
-      <div class="col-xs-12">
-        <table id="compactorsTable" class="table table-bordered table-striped table-condensed">
-          <caption><span class="table-caption">Compactors</span>
-          <a href="javascript:refreshCompactors();"><span class="glyphicon glyphicon-refresh"/></a></caption>
-          <thead>
-            <tr>
-              <th class="firstcell" title="The hostname the compactor is running on.">Server</th>
-              <th title="The name of the queue this compactor is assigned.">Queue</th>
-              <th class="duration" title="Last time data was fetched. Server fetches on refresh, at most every minute.">Last Contact</th>
-            </tr>
-          </thead>
-        </table>
-      </div>
-      <div class="row">
+        <div class="col-xs-12">
+          <table id="compactorsTable" class="table caption-top table-bordered table-striped table-condensed">
+            <caption><span class="table-caption">Compactors</span>
+              <a href="javascript:refreshCompactors();"><span class="glyphicon glyphicon-refresh" /></a>
+            </caption>
+            <thead>
+              <tr>
+                <th class="firstcell" title="The hostname the compactor is running on.">Server</th>
+                <th title="The name of the queue this compactor is assigned.">Queue</th>
+                <th class="duration" title="Last time data was fetched. Server fetches on refresh, at most every minute.">Last Contact</th>
+              </tr>
+            </thead>
+          </table>
+        </div>
+        <br />
+        <div class="row">
           <div class="col-xs-12">
-            <table id="runningTable" class="table table-bordered table-striped table-condensed">
+            <table id="runningTable" class="table caption-top table-bordered table-striped table-condensed">
               <caption><span class="table-caption">Running Compactions</span>
-              <a href="javascript:refreshRunning();"><span class="glyphicon glyphicon-refresh"/></a></caption>
+                <a href="javascript:refreshRunning();"><span class="glyphicon glyphicon-refresh" /></a>
+              </caption>
               <thead>
                 <tr>
                   <th class="firstcell" title="The hostname the compactor is running on.">Server Hostname</th>
@@ -73,8 +76,8 @@
               <tbody></tbody>
             </table>
           </div>
+        </div>
       </div>
-    </div>
    <#else>
     <div id="ccBanner"><div class="alert alert-danger" role="alert">Compaction Coordinator Not Running</div></div>
   </#if>

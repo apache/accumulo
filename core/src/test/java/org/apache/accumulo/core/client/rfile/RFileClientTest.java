@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.client.rfile;
 
+import static com.google.common.collect.MoreCollectors.onlyElement;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -52,7 +53,6 @@ import org.apache.accumulo.core.client.summary.summarizers.FamilySummarizer;
 import org.apache.accumulo.core.client.summary.summarizers.VisibilitySummarizer;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -63,6 +63,7 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
@@ -521,10 +522,8 @@ public class RFileClientTest {
 
     random.ints(100, 0, 10_000).forEach(r -> {
       scanner.setRange(new Range(rowStr(r)));
-      Iterator<Entry<Key,Value>> iter = scanner.iterator();
-      assertTrue(iter.hasNext());
-      assertEquals(rowStr(r), iter.next().getKey().getRow().toString());
-      assertFalse(iter.hasNext());
+      String actual = scanner.stream().collect(onlyElement()).getKey().getRow().toString();
+      assertEquals(rowStr(r), actual);
     });
 
     scanner.close();
@@ -813,7 +812,7 @@ public class RFileClientTest {
 
   private Reader getReader(LocalFileSystem localFs, String testFile) throws IOException {
     return (Reader) FileOperations.getInstance().newReaderBuilder()
-        .forFile(testFile, localFs, localFs.getConf(), CryptoServiceFactory.newDefaultInstance())
+        .forFile(testFile, localFs, localFs.getConf(), NoCryptoServiceFactory.NONE)
         .withTableConfiguration(DefaultConfiguration.getInstance()).build();
   }
 

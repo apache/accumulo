@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -31,16 +31,16 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.iteratortest.IteratorTestCase;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
-import org.apache.accumulo.iteratortest.IteratorTestUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Test case that verifies that copies do not impact one another.
  */
-public class IsolatedDeepCopiesTestCase extends OutputVerifyingTestCase {
+public class IsolatedDeepCopiesTestCase implements IteratorTestCase {
   private static final Logger log = LoggerFactory.getLogger(IsolatedDeepCopiesTestCase.class);
 
   private static final SecureRandom random = new SecureRandom();

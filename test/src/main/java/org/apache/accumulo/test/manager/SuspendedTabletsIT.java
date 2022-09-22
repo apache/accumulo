@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,11 +19,12 @@
 package org.apache.accumulo.test.manager;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.net.UnknownHostException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -47,7 +48,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ManagerClient;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
@@ -57,6 +57,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.balancer.HostRegexTableLoadBalancer;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -67,10 +68,10 @@ import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,8 +89,8 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
   private ProcessReference metadataTserverProcess;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 5 * 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(5);
   }
 
   @Override
@@ -106,7 +107,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
   }
 
   @Override
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     super.setUp();
 
@@ -140,7 +141,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     // metadata table. Save its process reference off so we can exclude it later when
     // killing tablet servers.
     Collection<ProcessReference> procs = getCluster().getProcesses().get(ServerType.TABLET_SERVER);
-    assertEquals("Expected a single tserver process", 1, procs.size());
+    assertEquals(1, procs.size(), "Expected a single tserver process");
     metadataTserverProcess = procs.iterator().next();
 
     // Update the number of tservers and start the new tservers.
@@ -158,9 +159,9 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       List<ProcessReference> procs = getCluster().getProcesses().get(ServerType.TABLET_SERVER)
           .stream().filter(p -> !metadataTserverProcess.equals(p)).collect(Collectors.toList());
       Collections.shuffle(procs, random);
-      assertEquals("Not enough tservers exist", TSERVERS - 1, procs.size());
-      assertTrue("Attempting to kill more tservers (" + count + ") than exist in the cluster ("
-          + procs.size() + ")", procs.size() >= count);
+      assertEquals(TSERVERS - 1, procs.size(), "Not enough tservers exist");
+      assertTrue(procs.size() >= count, "Attempting to kill more tservers (" + count
+          + ") than exist in the cluster (" + procs.size() + ")");
 
       for (int i = 0; i < count; ++i) {
         ProcessReference pr = procs.get(i);
@@ -194,18 +195,18 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       }
 
       // remove servers with metadata on them from the list of servers to be shutdown
-      assertEquals("Expecting a single tServer in metadataServerSet", 1, metadataServerSet.size());
+      assertEquals(1, metadataServerSet.size(), "Expecting a single tServer in metadataServerSet");
       tserverSet.removeAll(metadataServerSet);
 
-      assertEquals("Expecting " + (TSERVERS - 1) + " tServers in shutdown-list", TSERVERS - 1,
-          tserverSet.size());
+      assertEquals(TSERVERS - 1, tserverSet.size(),
+          "Expecting " + (TSERVERS - 1) + " tServers in shutdown-list");
 
       List<TServerInstance> tserversList = new ArrayList<>(tserverSet);
       Collections.shuffle(tserversList, random);
 
       for (int i1 = 0; i1 < count; ++i1) {
         final String tserverName = tserversList.get(i1).getHostPortSession();
-        ManagerClient.executeVoid(ctx, client -> {
+        ThriftClientTypes.MANAGER.executeVoid(ctx, client -> {
           log.info("Sending shutdown command to {} via ManagerClientService", tserverName);
           client.shutdownTabletServer(null, ctx.rpcCreds(), tserverName, false);
         });
@@ -332,13 +333,13 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
   private static final AtomicInteger threadCounter = new AtomicInteger(0);
 
-  @BeforeClass
+  @BeforeAll
   public static void init() {
     THREAD_POOL = Executors.newCachedThreadPool(
         r -> new Thread(r, "Scanning deadline thread #" + threadCounter.incrementAndGet()));
   }
 
-  @AfterClass
+  @AfterAll
   public static void cleanup() {
     THREAD_POOL.shutdownNow();
   }

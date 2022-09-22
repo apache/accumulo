@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,9 +18,10 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -40,24 +41,24 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ta
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
-
-import com.google.common.collect.Iterators;
+import org.junit.jupiter.api.Test;
 
 public class WaitForBalanceIT extends ConfigurableMacBase {
 
   private static final int NUM_SPLITS = 50;
 
   @Override
-  public int defaultTimeoutSeconds() {
-    return 120;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
   }
 
   @Test
   public void test() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       // ensure the metadata table is online
-      Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
+      try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+        scanner.forEach((k, v) -> {});
+      }
       c.instanceOperations().waitForBalance();
       assertTrue(isBalanced(c));
       final String tableName = getUniqueNames(1)[0];

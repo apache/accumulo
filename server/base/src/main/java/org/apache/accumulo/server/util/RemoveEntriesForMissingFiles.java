@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -37,7 +37,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.TabletFileUtil;
+import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
@@ -121,7 +121,8 @@ public class RemoveEntriesForMissingFiles {
 
     Map<Path,Path> cache = new LRUMap<>(100000);
     Set<Path> processing = new HashSet<>();
-    ExecutorService threadPool = ThreadPools.createFixedThreadPool(16, "CheckFileTasks", false);
+    ExecutorService threadPool =
+        ThreadPools.getServerThreadPools().createFixedThreadPool(16, "CheckFileTasks", false);
 
     System.out.printf("Scanning : %s %s\n", tableName, range);
 
@@ -143,7 +144,7 @@ public class RemoveEntriesForMissingFiles {
 
       count++;
       Key key = entry.getKey();
-      Path map = new Path(TabletFileUtil.validate(key.getColumnQualifierData().toString()));
+      Path map = new Path(ValidationUtil.validate(key.getColumnQualifierData().toString()));
 
       synchronized (processing) {
         while (processing.size() >= 64 || processing.contains(map))

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -33,6 +33,7 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.security.SecurityUtil;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
@@ -41,14 +42,26 @@ import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 
-public class ZooZap {
+@AutoService(KeywordExecutable.class)
+public class ZooZap implements KeywordExecutable {
   private static final Logger log = LoggerFactory.getLogger(ZooZap.class);
 
   private static void message(String msg, Opts opts) {
     if (opts.verbose) {
       System.out.println(msg);
     }
+  }
+
+  @Override
+  public String keyword() {
+    return "zoo-zap";
+  }
+
+  @Override
+  public String description() {
+    return "Utility for zapping Zookeeper locks";
   }
 
   static class Opts extends Help {
@@ -65,13 +78,20 @@ public class ZooZap {
     boolean zapCoordinators = false;
     @Parameter(names = "-compactors", description = "remove compactor locks")
     boolean zapCompactors = false;
+    @Parameter(names = "-sservers", description = "remove scan server locks")
+    boolean zapScanServers = false;
     @Parameter(names = "-verbose", description = "print out messages about progress")
     boolean verbose = false;
   }
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws Exception {
+    new ZooZap().execute(args);
+  }
+
+  @Override
+  public void execute(String[] args) throws Exception {
     Opts opts = new Opts();
-    opts.parseArgs(ZooZap.class.getName(), args);
+    opts.parseArgs(keyword(), args);
 
     if (!opts.zapMaster && !opts.zapManager && !opts.zapTservers) {
       new JCommander(opts).usage();
@@ -98,7 +118,7 @@ public class ZooZap {
 
         try {
           zapDirectory(zoo, managerLockPath, opts);
-        } catch (Exception e) {
+        } catch (KeeperException | InterruptedException e) {
           e.printStackTrace();
         }
       }
@@ -121,7 +141,7 @@ public class ZooZap {
               }
             }
           }
-        } catch (Exception e) {
+        } catch (KeeperException | InterruptedException e) {
           log.error("{}", e.getMessage(), e);
         }
       }
@@ -138,8 +158,10 @@ public class ZooZap {
       if (opts.zapCoordinators) {
         final String coordinatorPath = Constants.ZROOT + "/" + iid + Constants.ZCOORDINATOR_LOCK;
         try {
-          zapDirectory(zoo, coordinatorPath, opts);
-        } catch (Exception e) {
+          if (zoo.exists(coordinatorPath)) {
+            zapDirectory(zoo, coordinatorPath, opts);
+          }
+        } catch (KeeperException | InterruptedException e) {
           log.error("Error deleting coordinator from zookeeper, {}", e.getMessage(), e);
         }
       }
@@ -147,15 +169,36 @@ public class ZooZap {
       if (opts.zapCompactors) {
         String compactorsBasepath = Constants.ZROOT + "/" + iid + Constants.ZCOMPACTORS;
         try {
-          List<String> queues = zoo.getChildren(compactorsBasepath);
-          for (String queue : queues) {
-            message("Deleting " + compactorsBasepath + "/" + queue + " from zookeeper", opts);
-            zoo.recursiveDelete(compactorsBasepath + "/" + queue, NodeMissingPolicy.SKIP);
+          if (zoo.exists(compactorsBasepath)) {
+            List<String> queues = zoo.getChildren(compactorsBasepath);
+            for (String queue : queues) {
+              message("Deleting " + compactorsBasepath + "/" + queue + " from zookeeper", opts);
+              zoo.recursiveDelete(compactorsBasepath + "/" + queue, NodeMissingPolicy.SKIP);
+            }
           }
-        } catch (Exception e) {
+        } catch (KeeperException | InterruptedException e) {
           log.error("Error deleting compactors from zookeeper, {}", e.getMessage(), e);
         }
 
+      }
+
+      if (opts.zapScanServers) {
+        String sserversPath = Constants.ZROOT + "/" + iid + Constants.ZSSERVERS;
+        try {
+          if (zoo.exists(sserversPath)) {
+            List<String> children = zoo.getChildren(sserversPath);
+            for (String child : children) {
+              message("Deleting " + sserversPath + "/" + child + " from zookeeper", opts);
+
+              var zLockPath = ServiceLock.path(sserversPath + "/" + child);
+              if (!zoo.getChildren(zLockPath.toString()).isEmpty()) {
+                ServiceLock.deleteLock(zoo, zLockPath);
+              }
+            }
+          }
+        } catch (KeeperException | InterruptedException e) {
+          log.error("{}", e.getMessage(), e);
+        }
       }
 
     } finally {

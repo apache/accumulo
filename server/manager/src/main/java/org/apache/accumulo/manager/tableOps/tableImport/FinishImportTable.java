@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -17,6 +17,8 @@
  * under the License.
  */
 package org.apache.accumulo.manager.tableOps.tableImport;
+
+import static org.apache.accumulo.core.Constants.IMPORT_MAPPINGS_FILE;
 
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.manager.Manager;
@@ -39,11 +41,14 @@ class FinishImportTable extends ManagerRepo {
   @Override
   public Repo call(long tid, Manager env) throws Exception {
 
-    for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
-      env.getVolumeManager().deleteRecursively(new Path(dm.importDir, "mappings.txt"));
+    if (!tableInfo.keepMappings) {
+      for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
+        env.getVolumeManager().deleteRecursively(new Path(dm.importDir, IMPORT_MAPPINGS_FILE));
+      }
     }
 
-    env.getTableManager().transitionTableState(tableInfo.tableId, TableState.ONLINE);
+    if (tableInfo.onlineTable)
+      env.getTableManager().transitionTableState(tableInfo.tableId, TableState.ONLINE);
 
     Utils.unreserveNamespace(env, tableInfo.namespaceId, tid, false);
     Utils.unreserveTable(env, tableInfo.tableId, tid, true);

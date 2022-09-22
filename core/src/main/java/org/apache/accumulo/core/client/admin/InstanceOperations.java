@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -20,6 +20,7 @@ package org.apache.accumulo.core.client.admin;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -84,6 +85,13 @@ public interface InstanceOperations {
    * @since 2.1.0
    */
   List<String> getManagerLocations();
+
+  /**
+   * Returns the locations of the active scan servers
+   *
+   * @return A set of currently active scan servers.
+   */
+  Set<String> getScanServers();
 
   /**
    * List the currently active tablet servers participating in the accumulo instance

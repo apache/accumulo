@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -115,9 +115,9 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
         range = new Range(results.lastKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME),
             true, new Key(stopRow).followingKey(PartialKey.ROW), false);
         encodedResults.clear();
-        more = ThriftScanner.getBatchFromServer(context, range, src.tablet_extent,
-            src.tablet_location, encodedResults, locCols, serverSideIteratorList,
-            serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, 0L, null);
+        ThriftScanner.getBatchFromServer(context, range, src.tablet_extent, src.tablet_location,
+            encodedResults, locCols, serverSideIteratorList, serverSideIteratorOptions,
+            Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, 0L, null);
 
         decodeRows(encodedResults, results);
       }

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.tserver;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -28,10 +28,9 @@ import java.util.Set;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.tserver.TabletServer.ReferencedRemover;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.DfsLogger.ServerResources;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Sets;
 
@@ -62,24 +61,10 @@ public class WalRemovalOrderTest {
     return logSet;
   }
 
-  private static class TestRefRemover implements ReferencedRemover {
-    Set<DfsLogger> inUseLogs;
-
-    TestRefRemover(Set<DfsLogger> inUseLogs) {
-      this.inUseLogs = inUseLogs;
-    }
-
-    @Override
-    public void removeInUse(Set<DfsLogger> candidates) {
-      candidates.removeAll(inUseLogs);
-    }
-  }
-
   private static void runTest(LinkedHashSet<DfsLogger> closedLogs, Set<DfsLogger> inUseLogs,
       Set<DfsLogger> expected) {
-    List<DfsLogger> copy = TabletServer.copyClosedLogs(closedLogs);
-    Set<DfsLogger> eligible =
-        TabletServer.findOldestUnreferencedWals(copy, new TestRefRemover(inUseLogs));
+    Set<DfsLogger> eligible = TabletServer.findOldestUnreferencedWals(List.copyOf(closedLogs),
+        candidates -> candidates.removeAll(inUseLogs));
     assertEquals(expected, eligible);
   }
 

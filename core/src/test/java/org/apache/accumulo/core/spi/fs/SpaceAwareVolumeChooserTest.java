@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -21,7 +21,6 @@ package org.apache.accumulo.core.spi.fs;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.io.IOException;
 import java.util.Set;
 
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
@@ -62,7 +61,7 @@ public class SpaceAwareVolumeChooserTest {
   }
 
   private void testSpecificSetup(long percentage1, long percentage2, String cacheDuration,
-      int timesToCallPreferredVolumeChooser, boolean anyTimes) throws IOException {
+      int timesToCallPreferredVolumeChooser, boolean anyTimes) {
     int max = iterations + 1;
     int min = 1;
     int updatePropertyMax = timesToCallPreferredVolumeChooser + iterations;
@@ -99,75 +98,75 @@ public class SpaceAwareVolumeChooserTest {
   }
 
   @Test
-  public void testEvenWeightsWithCaching() throws IOException {
+  public void testEvenWeightsWithCaching() {
 
     testSpecificSetup(10L, 10L, null, iterations, false);
 
     makeChoices();
 
-    assertEquals(iterations / 2, vol1Count, iterations / 10);
-    assertEquals(iterations / 2, vol2Count, iterations / 10);
+    assertEquals(iterations / 2.0, vol1Count, iterations / 10.0);
+    assertEquals(iterations / 2.0, vol2Count, iterations / 10.0);
 
   }
 
   @Test
-  public void testEvenWeightsNoCaching() throws IOException {
+  public void testEvenWeightsNoCaching() {
 
     testSpecificSetup(10L, 10L, "0", iterations, true);
 
     makeChoices();
 
-    assertEquals(iterations / 2, vol1Count, iterations / 10);
-    assertEquals(iterations / 2, vol2Count, iterations / 10);
+    assertEquals(iterations / 2.0, vol1Count, iterations / 10.0);
+    assertEquals(iterations / 2.0, vol2Count, iterations / 10.0);
 
   }
 
   @Test
-  public void testNoFreeSpace() throws IOException {
+  public void testNoFreeSpace() {
     testSpecificSetup(0L, 0L, null, 1, false);
     assertThrows(UncheckedExecutionException.class, this::makeChoices);
   }
 
   @Test
-  public void testNinetyTen() throws IOException {
+  public void testNinetyTen() {
 
     testSpecificSetup(90L, 10L, null, iterations, false);
 
     makeChoices();
 
-    assertEquals(iterations * .9, vol1Count, iterations / 10);
-    assertEquals(iterations * .1, vol2Count, iterations / 10);
+    assertEquals(iterations * .9, vol1Count, iterations / 10.0);
+    assertEquals(iterations * .1, vol2Count, iterations / 10.0);
 
   }
 
   @Test
-  public void testTenNinety() throws IOException {
+  public void testTenNinety() {
 
     testSpecificSetup(10L, 90L, null, iterations, false);
 
     makeChoices();
 
-    assertEquals(iterations * .1, vol1Count, iterations / 10);
-    assertEquals(iterations * .9, vol2Count, iterations / 10);
+    assertEquals(iterations * .1, vol1Count, iterations / 10.0);
+    assertEquals(iterations * .9, vol2Count, iterations / 10.0);
 
   }
 
   @Test
-  public void testWithNoCaching() throws IOException {
+  public void testWithNoCaching() {
 
     testSpecificSetup(10L, 90L, "0", iterations, true);
 
     makeChoices();
 
-    assertEquals(iterations * .1, vol1Count, iterations / 10);
-    assertEquals(iterations * .9, vol2Count, iterations / 10);
+    assertEquals(iterations * .1, vol1Count, iterations / 10.0);
+    assertEquals(iterations * .9, vol2Count, iterations / 10.0);
 
   }
 
   private void makeChoices() {
     SpaceAwareVolumeChooser chooser = new SpaceAwareVolumeChooser() {
       @Override
-      protected double getFreeSpace(String uri) throws IOException {
+      protected double getFreeSpace(String uri) {
         if (uri.equals(volumeOne))
           return free1;
         if (uri.equals(volumeTwo))

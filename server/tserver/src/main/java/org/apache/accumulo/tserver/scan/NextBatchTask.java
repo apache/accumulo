@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -24,10 +24,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.server.fs.TooManyFilesException;
-import org.apache.accumulo.tserver.TabletServer;
+import org.apache.accumulo.tserver.TabletHostingServer;
 import org.apache.accumulo.tserver.session.SingleScanSession;
 import org.apache.accumulo.tserver.tablet.ScanBatch;
-import org.apache.accumulo.tserver.tablet.Tablet;
+import org.apache.accumulo.tserver.tablet.TabletBase;
 import org.apache.accumulo.tserver.tablet.TabletClosedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +38,7 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
 
   private final long scanID;
 
-  public NextBatchTask(TabletServer server, long scanID, AtomicBoolean interruptFlag) {
+  public NextBatchTask(TabletHostingServer server, long scanID, AtomicBoolean interruptFlag) {
     super(server);
     this.scanID = scanID;
     this.interruptFlag = interruptFlag;
@@ -57,13 +57,14 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
       if (isCancelled() || scanSession == null)
         return;
 
-      runState.set(ScanRunState.RUNNING);
+      if (!transitionToRunning())
+        return;
 
       Thread.currentThread()
           .setName("User: " + scanSession.getUser() + " Start: " + scanSession.startTime
               + " Client: " + scanSession.client + " Tablet: " + scanSession.extent);
 
-      Tablet tablet = server.getOnlineTablet(scanSession.extent);
+      TabletBase tablet = scanSession.getTabletResolver().getTablet(scanSession.extent);
 
       if (tablet == null) {
         addResult(new org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException(

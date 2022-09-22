@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,8 +18,9 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
+import java.time.Duration;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.cluster.ClusterControl;
@@ -39,21 +40,19 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.Test;
-
-import com.google.common.collect.Iterators;
+import org.junit.jupiter.api.Test;
 
 // Accumulo3010
 public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterHarness {
 
   @Override
-  public boolean canRunTest(ClusterType type) {
-    return type == ClusterType.MINI;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(3);
   }
 
   @Override
-  public int defaultTimeoutSeconds() {
-    return 180;
+  public boolean canRunTest(ClusterType type) {
+    return type == ClusterType.MINI;
   }
 
   @Override
@@ -91,7 +90,9 @@ public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterHarness {
       // recover
       control.startAllServers(ServerType.TABLET_SERVER);
       // ensure the table is readable
-      Iterators.size(c.createScanner(tableName, Authorizations.EMPTY).iterator());
+      try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
+        scanner.forEach((k, v) -> {});
+      }
 
       // ensure that the recovery was not a merging minor compaction
       try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {

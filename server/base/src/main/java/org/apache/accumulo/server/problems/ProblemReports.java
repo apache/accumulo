@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -66,8 +66,8 @@ public class ProblemReports implements Iterable<ProblemReport> {
    * processed because the whole system is in a really bad state (like HDFS is down) and everything
    * is reporting lots of problems, but problem reports can not be processed
    */
-  private ExecutorService reportExecutor = ThreadPools.createThreadPool(0, 1, 60, TimeUnit.SECONDS,
-      "acu-problem-reporter", new LinkedBlockingQueue<>(500), false);
+  private ExecutorService reportExecutor = ThreadPools.getServerThreadPools().createThreadPool(0, 1,
+      60, TimeUnit.SECONDS, "acu-problem-reporter", new LinkedBlockingQueue<>(500), false);
 
   private final ServerContext context;
 

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -21,6 +21,7 @@ package org.apache.accumulo.core.util.threads;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.Iterator;
 import java.util.List;
 import java.util.OptionalInt;
@@ -65,8 +66,18 @@ public class ThreadPools {
   // the number of seconds before we allow a thread to terminate with non-use.
   public static final long DEFAULT_TIMEOUT_MILLISECS = 180000L;
 
+  private static final ThreadPools SERVER_INSTANCE = new ThreadPools(Threads.UEH);
+
+  public static final ThreadPools getServerThreadPools() {
+    return SERVER_INSTANCE;
+  }
+
+  public static final ThreadPools getClientThreadPools(UncaughtExceptionHandler ueh) {
+    return new ThreadPools(ueh);
+  }
+
   private static final ThreadPoolExecutor SCHEDULED_FUTURE_CHECKER_POOL =
-      createFixedThreadPool(1, "Scheduled Future Checker", false);
+      getServerThreadPools().createFixedThreadPool(1, "Scheduled Future Checker", false);
 
   private static final ConcurrentLinkedQueue<ScheduledFuture<?>> CRITICAL_RUNNING_TASKS =
       new ConcurrentLinkedQueue<>();
@@ -155,6 +166,13 @@ public class ThreadPools {
     CRITICAL_RUNNING_TASKS.add(future);
   }
 
+  public static void watchCriticalFixedDelay(AccumuloConfiguration aconf, long intervalMillis,
+      Runnable runnable) {
+    ScheduledFuture<?> future = getServerThreadPools().createGeneralScheduledExecutorService(aconf)
+        .scheduleWithFixedDelay(runnable, intervalMillis, intervalMillis, TimeUnit.MILLISECONDS);
+    CRITICAL_RUNNING_TASKS.add(future);
+  }
+
   public static void watchNonCriticalScheduledTask(ScheduledFuture<?> future) {
     NON_CRITICAL_RUNNING_TASKS.add(future);
   }
@@ -216,6 +234,12 @@ public class ThreadPools {
     resizePool(pool, () -> conf.getCount(p), p.getKey());
   }
 
+  private final UncaughtExceptionHandler handler;
+
+  private ThreadPools(UncaughtExceptionHandler ueh) {
+    handler = ueh;
+  }
+
   /**
    * Create a thread pool based on a thread pool related property
    *
@@ -235,12 +259,15 @@ public class ThreadPools {
    *           if property is not handled
    */
   @SuppressWarnings("deprecation")
-  public static ThreadPoolExecutor createExecutorService(final AccumuloConfiguration conf,
+  public ThreadPoolExecutor createExecutorService(final AccumuloConfiguration conf,
       final Property p, boolean emitThreadPoolMetrics) {
 
     switch (p) {
       case GENERAL_SIMPLETIMER_THREADPOOL_SIZE:
         return createScheduledExecutorService(conf.getCount(p), "SimpleTimer",
+            emitThreadPoolMetrics);
+      case GENERAL_THREADPOOL_SIZE:
+        return createScheduledExecutorService(conf.getCount(p), "GeneralExecutor",
             emitThreadPoolMetrics);
       case MANAGER_BULK_THREADPOOL_SIZE:
         return createFixedThreadPool(conf.getCount(p),
@@ -304,7 +331,7 @@ public class ThreadPools {
    *          over long time periods.
    * @return ThreadPoolExecutor
    */
-  public static ThreadPoolExecutor createFixedThreadPool(int numThreads, final String name,
+  public ThreadPoolExecutor createFixedThreadPool(int numThreads, final String name,
       boolean emitThreadPoolMetrics) {
     return createFixedThreadPool(numThreads, DEFAULT_TIMEOUT_MILLISECS, MILLISECONDS, name,
         emitThreadPoolMetrics);
@@ -328,7 +355,7 @@ public class ThreadPools {
    *          over long time periods.
    * @return ThreadPoolExecutor
    */
-  public static ThreadPoolExecutor createFixedThreadPool(int numThreads, final String name,
+  public ThreadPoolExecutor createFixedThreadPool(int numThreads, final String name,
       BlockingQueue<Runnable> queue, boolean emitThreadPoolMetrics) {
     return createThreadPool(numThreads, numThreads, DEFAULT_TIMEOUT_MILLISECS, MILLISECONDS, name,
         queue, emitThreadPoolMetrics);
@@ -354,8 +381,8 @@ public class ThreadPools {
    *          over long time periods.
    * @return ThreadPoolExecutor
    */
-  public static ThreadPoolExecutor createFixedThreadPool(int numThreads, long timeOut,
-      TimeUnit units, final String name, boolean emitThreadPoolMetrics) {
+  public ThreadPoolExecutor createFixedThreadPool(int numThreads, long timeOut, TimeUnit units,
+      final String name, boolean emitThreadPoolMetrics) {
     return createThreadPool(numThreads, numThreads, timeOut, units, name, emitThreadPoolMetrics);
   }
 
@@ -381,7 +408,7 @@ public class ThreadPools {
    *          over long time periods.
    * @return ThreadPoolExecutor
    */
-  public static ThreadPoolExecutor createThreadPool(int coreThreads, int maxThreads, long timeOut,
+  public ThreadPoolExecutor createThreadPool(int coreThreads, int maxThreads, long timeOut,
       TimeUnit units, final String name, boolean emitThreadPoolMetrics) {
     return createThreadPool(coreThreads, maxThreads, timeOut, units, name,
         new LinkedBlockingQueue<>(), emitThreadPoolMetrics);
@@ -411,7 +438,7 @@ public class ThreadPools {
    *          over long time periods.
    * @return ThreadPoolExecutor
    */
-  public static ThreadPoolExecutor createThreadPool(int coreThreads, int maxThreads, long timeOut,
+  public ThreadPoolExecutor createThreadPool(int coreThreads, int maxThreads, long timeOut,
       TimeUnit units, final String name, BlockingQueue<Runnable> queue,
       boolean emitThreadPoolMetrics) {
     return createThreadPool(coreThreads, maxThreads, timeOut, units, name, queue,
@@ -444,11 +471,14 @@ public class ThreadPools {
    *          over long time periods.
    * @return ThreadPoolExecutor
    */
-  public static ThreadPoolExecutor createThreadPool(int coreThreads, int maxThreads, long timeOut,
+  public ThreadPoolExecutor createThreadPool(int coreThreads, int maxThreads, long timeOut,
       TimeUnit units, final String name, BlockingQueue<Runnable> queue, OptionalInt priority,
       boolean emitThreadPoolMetrics) {
+    LOG.debug(
+        "Creating ThreadPoolExecutor for {} with {} core threads and {} max threads {} {} timeout",
+        name, coreThreads, maxThreads, timeOut, units);
     var result = new ThreadPoolExecutor(coreThreads, maxThreads, timeOut, units, queue,
-        new NamedThreadFactory(name, priority)) {
+        new NamedThreadFactory(name, priority, handler)) {
 
       @Override
       public void execute(Runnable arg0) {
@@ -488,10 +518,12 @@ public class ThreadPools {
    * If you need the server-side shared ScheduledThreadPoolExecutor, then use
    * ServerContext.getScheduledExecutor()
    */
-  public static ScheduledThreadPoolExecutor
+  public ScheduledThreadPoolExecutor
       createGeneralScheduledExecutorService(AccumuloConfiguration conf) {
-    return (ScheduledThreadPoolExecutor) createExecutorService(conf,
-        Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE, true);
+    @SuppressWarnings("deprecation")
+    Property oldProp = Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE;
+    Property prop = conf.resolve(Property.GENERAL_THREADPOOL_SIZE, oldProp);
+    return (ScheduledThreadPoolExecutor) createExecutorService(conf, prop, true);
   }
 
   /**
@@ -510,58 +542,60 @@ public class ThreadPools {
    *          over long time periods.
    * @return ScheduledThreadPoolExecutor
    */
-  public static ScheduledThreadPoolExecutor createScheduledExecutorService(int numThreads,
+  public ScheduledThreadPoolExecutor createScheduledExecutorService(int numThreads,
       final String name, boolean emitThreadPoolMetrics) {
-    var result = new ScheduledThreadPoolExecutor(numThreads, new NamedThreadFactory(name)) {
+    LOG.debug("Creating ScheduledThreadPoolExecutor for {} with {} threads", name, numThreads);
+    var result =
+        new ScheduledThreadPoolExecutor(numThreads, new NamedThreadFactory(name, handler)) {
 
-      @Override
-      public void execute(Runnable command) {
-        super.execute(TraceUtil.wrap(command));
-      }
+          @Override
+          public void execute(Runnable command) {
+            super.execute(TraceUtil.wrap(command));
+          }
 
-      @Override
-      public <V> ScheduledFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
-        return super.schedule(TraceUtil.wrap(callable), delay, unit);
-      }
+          @Override
+          public <V> ScheduledFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
+            return super.schedule(TraceUtil.wrap(callable), delay, unit);
+          }
 
-      @Override
-      public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
-        return super.schedule(TraceUtil.wrap(command), delay, unit);
-      }
+          @Override
+          public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
+            return super.schedule(TraceUtil.wrap(command), delay, unit);
+          }
 
-      @Override
-      public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay,
-          long period, TimeUnit unit) {
-        return super.scheduleAtFixedRate(TraceUtil.wrap(command), initialDelay, period, unit);
-      }
+          @Override
+          public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay,
+              long period, TimeUnit unit) {
+            return super.scheduleAtFixedRate(TraceUtil.wrap(command), initialDelay, period, unit);
+          }
 
-      @Override
-      public ScheduledFuture<?> scheduleWithFixedDelay(Runnable command, long initialDelay,
-          long delay, TimeUnit unit) {
-        return super.scheduleWithFixedDelay(TraceUtil.wrap(command), initialDelay, delay, unit);
-      }
+          @Override
+          public ScheduledFuture<?> scheduleWithFixedDelay(Runnable command, long initialDelay,
+              long delay, TimeUnit unit) {
+            return super.scheduleWithFixedDelay(TraceUtil.wrap(command), initialDelay, delay, unit);
+          }
 
-      @Override
-      public <T> Future<T> submit(Callable<T> task) {
-        return super.submit(TraceUtil.wrap(task));
-      }
+          @Override
+          public <T> Future<T> submit(Callable<T> task) {
+            return super.submit(TraceUtil.wrap(task));
+          }
 
-      @Override
-      public <T> Future<T> submit(Runnable task, T result) {
-        return super.submit(TraceUtil.wrap(task), result);
-      }
+          @Override
+          public <T> Future<T> submit(Runnable task, T result) {
+            return super.submit(TraceUtil.wrap(task), result);
+          }
 
-      @Override
-      public Future<?> submit(Runnable task) {
-        return super.submit(TraceUtil.wrap(task));
-      }
+          @Override
+          public Future<?> submit(Runnable task) {
+            return super.submit(TraceUtil.wrap(task));
+          }
 
-      @Override
-      public boolean remove(Runnable task) {
-        return super.remove(TraceUtil.wrap(task));
-      }
+          @Override
+          public boolean remove(Runnable task) {
+            return super.remove(TraceUtil.wrap(task));
+          }
 
-    };
+        };
     if (emitThreadPoolMetrics) {
       MetricsUtil.addExecutorServiceMetrics(result, name);
     }

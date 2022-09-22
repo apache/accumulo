@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -28,6 +28,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.fate.ReadOnlyStore;
 import org.apache.accumulo.fate.FateTransactionStatus;
 import org.apache.accumulo.manager.fate.ReadOnlyTStore;
 import org.apache.accumulo.manager.fate.ZooStore;
@@ -72,7 +73,8 @@ public class FateMetrics implements MetricsProducer {
     this.refreshDelay = Math.max(DEFAULT_MIN_REFRESH_DELAY, minimumRefreshDelay);
 
     try {
-      this.zooStore = new ZooStore(fateRootPath, context.getZooReaderWriter());
+      this.zooStore =
+          new ReadOnlyStore<>(new ZooStore(fateRootPath, context.getZooReaderWriter()));
     } catch (KeeperException ex) {
       throw new IllegalStateException(
           "FATE Metrics - Failed to create zoo store - metrics unavailable", ex);
@@ -121,9 +123,8 @@ public class FateMetrics implements MetricsProducer {
       }
     }
 
-    metricValues.getOpTypeCounters().forEach((name, count) -> {
-      Metrics.gauge(METRICS_FATE_TYPE_IN_PROGRESS, Tags.of(OP_TYPE_TAG, name), count);
-    });
+    metricValues.getOpTypeCounters().forEach((name, count) -> Metrics
+        .gauge(METRICS_FATE_TYPE_IN_PROGRESS, Tags.of(OP_TYPE_TAG, name), count));
   }
 
   @Override
@@ -153,8 +154,8 @@ public class FateMetrics implements MetricsProducer {
     update();
 
     // get fate status is read only operation - no reason to be nice on shutdown.
-    ScheduledExecutorService scheduler =
-        ThreadPools.createScheduledExecutorService(1, "fateMetricsPoller", false);
+    ScheduledExecutorService scheduler = ThreadPools.getServerThreadPools()
+        .createScheduledExecutorService(1, "fateMetricsPoller", false);
     Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdownNow));
 
     ScheduledFuture<?> future = scheduler.scheduleAtFixedRate(() -> {

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.server.security;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -32,24 +32,19 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.security.SystemCredentials.SystemToken;
 import org.apache.commons.codec.digest.Crypt;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class SystemCredentialsTest {
 
-  @Rule
-  public TestName test = new TestName();
-
-  private static SiteConfiguration siteConfig = SiteConfiguration.auto();
+  private static SiteConfiguration siteConfig = SiteConfiguration.empty().build();
   private InstanceId instanceId =
       InstanceId.of(UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0}));
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "input not from a user")
-  @BeforeClass
+  @BeforeAll
   public static void setUp() throws IOException {
     File testInstanceId =
         new File(new File(new File(new File("target"), "instanceTest"), Constants.INSTANCE_ID_DIR),

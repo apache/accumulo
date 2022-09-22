@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -20,8 +20,9 @@ package org.apache.accumulo.test;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.time.Duration;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -44,11 +45,14 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
-
-import com.google.common.collect.Iterators;
+import org.junit.jupiter.api.Test;
 
 public class SplitRecoveryIT extends AccumuloClusterHarness {
+
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
+  }
 
   private Mutation m(String row) {
     Mutation result = new Mutation(row);
@@ -61,13 +65,8 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
     try (Scanner scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       scanner.setRange(new Range(new Text(tableId + ";"), new Text(tableId + "<")));
       scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
-      return Iterators.size(scanner.iterator()) == 0;
+      return scanner.stream().findAny().isEmpty();
     }
-  }
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 60;
   }
 
   @Test

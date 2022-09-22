@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -144,9 +144,19 @@ service FateService {
     2:client.ThriftNotActiveServiceException tnase
   )
 
+  // cancel a fate operation
+  bool cancelFateOperation(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+    3:i64 opid
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
+  )
+  
 }
 
-service ManagerClientService extends FateService {
+service ManagerClientService {
 
   // table management methods
   i64 initiateFlush(

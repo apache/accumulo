@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -21,7 +21,7 @@ package org.apache.accumulo.core.spi.crypto;
 import java.util.Map;
 
 /**
- * Self contained cryptographic service. All on disk encryption and decryption will take place
+ * A self-contained cryptographic service. All on disk encryption and decryption will take place
  * through this interface. Each implementation must implement a {@link FileEncrypter} for encryption
  * and a {@link FileDecrypter} for decryption.
  *
@@ -31,7 +31,7 @@ import java.util.Map;
 public interface CryptoService {
 
   /**
-   * Initialize CryptoService. This is called once at Tablet Server startup.
+   * Initialize CryptoService. This should only be called once.
    */
   void init(Map<String,String> conf) throws CryptoException;
 
@@ -54,9 +54,7 @@ public interface CryptoService {
 
     private static final long serialVersionUID = -7588781060677839664L;
 
-    public CryptoException() {
-      super();
-    }
+    public CryptoException() {}
 
     public CryptoException(String message) {
       super(message);

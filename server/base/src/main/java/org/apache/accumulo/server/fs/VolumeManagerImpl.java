@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -304,7 +304,8 @@ public class VolumeManagerImpl implements VolumeManager {
   public void bulkRename(Map<Path,Path> oldToNewPathMap, int poolSize, String poolName,
       String transactionId) throws IOException {
     List<Future<Void>> results = new ArrayList<>();
-    ExecutorService workerPool = ThreadPools.createFixedThreadPool(poolSize, poolName, false);
+    ExecutorService workerPool =
+        ThreadPools.getServerThreadPools().createFixedThreadPool(poolSize, poolName, false);
     oldToNewPathMap.forEach((oldPath, newPath) -> results.add(workerPool.submit(() -> {
       boolean success;
       try {

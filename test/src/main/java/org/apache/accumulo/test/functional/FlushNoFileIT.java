@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,10 +18,11 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Map;
@@ -46,7 +47,7 @@ import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterables;
 
@@ -56,8 +57,8 @@ import com.google.common.collect.Iterables;
 public class FlushNoFileIT extends AccumuloClusterHarness {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
   }
 
   @Test
@@ -99,10 +100,10 @@ public class FlushNoFileIT extends AccumuloClusterHarness {
       FunctionalTestUtils.checkRFiles(c, tableName, 3, 3, 0, 0);
 
       long secondFlushId = FunctionalTestUtils.checkFlushId((ClientContext) c, tableId, flushId);
-      assertTrue("Flush ID did not change", secondFlushId > flushId);
+      assertTrue(secondFlushId > flushId, "Flush ID did not change");
 
       try (Scanner scanner = c.createScanner(tableName)) {
-        assertEquals("Expected 0 Entries in table", 0, Iterables.size(scanner));
+        assertEquals(0, Iterables.size(scanner), "Expected 0 Entries in table");
       }
     }
   }

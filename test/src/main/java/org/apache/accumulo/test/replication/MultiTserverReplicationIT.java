@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,9 +19,9 @@
 package org.apache.accumulo.test.replication;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -40,14 +40,14 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 
-@Ignore("Replication ITs are not stable and not currently maintained")
+@Disabled("Replication ITs are not stable and not currently maintained")
 @Deprecated
 public class MultiTserverReplicationIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(MultiTserverReplicationIT.class);
@@ -91,8 +91,8 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
       }
 
       // Each tserver should also have equal replication services running internally
-      assertEquals("Expected an equal number of replication servicers and tservers",
-          tserverHost.size(), replicationServices.size());
+      assertEquals(tserverHost.size(), replicationServices.size(),
+          "Expected an equal number of replication servicers and tservers");
     }
   }
 
@@ -113,7 +113,7 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
       assertEquals(1, context.getManagerLocations().size());
 
       // Get the manager thrift service addr
-      String managerAddr = Iterables.getOnlyElement(context.getManagerLocations());
+      String managerAddr = getOnlyElement(context.getManagerLocations());
 
       // Get the manager replication coordinator addr
       String replCoordAddr =

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,9 +19,11 @@
 package org.apache.accumulo.core.conf;
 
 import java.lang.annotation.Annotation;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
@@ -38,8 +40,6 @@ import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
-import org.apache.accumulo.core.util.interpret.DefaultScanInterpreter;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
@@ -185,12 +185,12 @@ public enum Property {
   INSTANCE_CRYPTO_SENSITIVE_PREFIX("instance.crypto.opts.sensitive.", null, PropertyType.PREFIX,
       "Sensitive properties related to on-disk file encryption.", "2.0.0"),
   @Experimental
-  INSTANCE_CRYPTO_SERVICE("instance.crypto.service",
-      "org.apache.accumulo.core.spi.crypto.NoCryptoService", PropertyType.CLASSNAME,
-      "The class which executes on-disk file encryption. The default does nothing. To enable "
+  INSTANCE_CRYPTO_FACTORY("instance.crypto.opts.factory",
+      "org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory", PropertyType.CLASSNAME,
+      "The class which provides crypto services for on-disk file encryption. The default does nothing. To enable "
           + "encryption, replace this classname with an implementation of the"
-          + "org.apache.accumulo.core.spi.crypto.CryptoService interface.",
-      "2.0.0"),
+          + "org.apache.accumulo.core.spi.crypto.CryptoFactory interface.",
+      "X.X.X"),
 
   // general properties
   GENERAL_PREFIX("general.", null, PropertyType.PREFIX,
@@ -243,6 +243,10 @@ public enum Property {
   GENERAL_OPENTELEMETRY_ENABLED("general.opentelemetry.enabled", "false", PropertyType.BOOLEAN,
       "Enables tracing functionality using OpenTelemetry (assuming OpenTelemetry is configured).",
       "2.1.0"),
+  GENERAL_THREADPOOL_SIZE("general.server.threadpool.size", "1", PropertyType.COUNT,
+      "The number of threads to use for server-internal scheduled tasks", "2.1.0"),
+  @Deprecated(since = "2.1.0")
+  @ReplacedBy(property = GENERAL_THREADPOOL_SIZE)
   GENERAL_SIMPLETIMER_THREADPOOL_SIZE("general.server.simpletimer.threadpool.size", "1",
       PropertyType.COUNT, "The number of threads to use for server-internal scheduled tasks",
       "1.7.0"),
@@ -390,6 +394,74 @@ public enum Property {
           + "indefinitely. Default is 0 to block indefinitely. Only valid when tserver available "
           + "threshold is set greater than 0. Added with version 1.10",
       "1.10.0"),
+  // properties that are specific to scan server behavior
+  @Experimental
+  SSERV_PREFIX("sserver.", null, PropertyType.PREFIX,
+      "Properties in this category affect the behavior of the scan servers", "2.1.0"),
+  @Experimental
+  SSERV_DATACACHE_SIZE("sserver.cache.data.size", "10%", PropertyType.MEMORY,
+      "Specifies the size of the cache for RFile data blocks on each scan server.", "2.1.0"),
+  @Experimental
+  SSERV_INDEXCACHE_SIZE("sserver.cache.index.size", "25%", PropertyType.MEMORY,
+      "Specifies the size of the cache for RFile index blocks on each scan server.", "2.1.0"),
+  @Experimental
+  SSERV_SUMMARYCACHE_SIZE("sserver.cache.summary.size", "10%", PropertyType.MEMORY,
+      "Specifies the size of the cache for summary data on each scan server.", "2.1.0"),
+  @Experimental
+  SSERV_DEFAULT_BLOCKSIZE("sserver.default.blocksize", "1M", PropertyType.BYTES,
+      "Specifies a default blocksize for the scan server caches", "2.1.0"),
+  @Experimental
+  SSERV_CACHED_TABLET_METADATA_EXPIRATION("sserver.cache.metadata.expiration", "5m",
+      PropertyType.TIMEDURATION, "The time after which cached tablet metadata will be refreshed.",
+      "2.1.0"),
+  @Experimental
+  SSERV_PORTSEARCH("sserver.port.search", "true", PropertyType.BOOLEAN,
+      "if the ports above are in use, search higher ports until one is available", "2.1.0"),
+  @Experimental
+  SSERV_CLIENTPORT("sserver.port.client", "9996", PropertyType.PORT,
+      "The port used for handling client connections on the tablet servers", "2.1.0"),
+  @Experimental
+  SSERV_MAX_MESSAGE_SIZE("sserver.server.message.size.max", "1G", PropertyType.BYTES,
+      "The maximum size of a message that can be sent to a scan server.", "2.1.0"),
+  @Experimental
+  SSERV_MINTHREADS("sserver.server.threads.minimum", "2", PropertyType.COUNT,
+      "The minimum number of threads to use to handle incoming requests.", "2.1.0"),
+  @Experimental
+  SSERV_MINTHREADS_TIMEOUT("sserver.server.threads.timeout", "0s", PropertyType.TIMEDURATION,
+      "The time after which incoming request threads terminate with no work available.  Zero (0) will keep the threads alive indefinitely.",
+      "2.1.0"),
+  @Experimental
+  SSERV_SCAN_EXECUTORS_PREFIX("sserver.scan.executors.", null, PropertyType.PREFIX,
+      "Prefix for defining executors to service scans. See "
+          + "[scan executors]({% durl administration/scan-executors %}) for an overview of why and"
+          + " how to use this property. For each executor the number of threads, thread priority, "
+          + "and an optional prioritizer can be configured. To configure a new executor, set "
+          + "`sserver.scan.executors.<name>.threads=<number>`.  Optionally, can also set "
+          + "`sserver.scan.executors.<name>.priority=<number 1 to 10>`, "
+          + "`sserver.scan.executors.<name>.prioritizer=<class name>`, and "
+          + "`sserver.scan.executors.<name>.prioritizer.opts.<key>=<value>`",
+      "2.1.0"),
+  @Experimental
+  SSERV_SCAN_EXECUTORS_DEFAULT_THREADS("sserver.scan.executors.default.threads", "16",
+      PropertyType.COUNT, "The number of threads for the scan executor that tables use by default.",
+      "2.1.0"),
+  SSERV_SCAN_EXECUTORS_DEFAULT_PRIORITIZER("sserver.scan.executors.default.prioritizer", "",
+      PropertyType.STRING,
+      "Prioritizer for the default scan executor.  Defaults to none which "
+          + "results in FIFO priority.  Set to a class that implements "
+          + ScanPrioritizer.class.getName() + " to configure one.",
+      "2.1.0"),
+  @Experimental
+  SSERV_SCAN_EXECUTORS_META_THREADS("sserver.scan.executors.meta.threads", "8", PropertyType.COUNT,
+      "The number of threads for the metadata table scan executor.", "2.1.0"),
+  @Experimental
+  SSERVER_SCAN_REFERENCE_EXPIRATION_TIME("sserver.scan.reference.expiration", "5m",
+      PropertyType.TIMEDURATION,
+      "The amount of time a scan reference is unused before its deleted from metadata table ",
+      "2.1.0"),
+  @Experimental
+  SSERV_THREADCHECK("sserver.server.threadcheck.time", "1s", PropertyType.TIMEDURATION,
+      "The time between adjustments of the thrift server thread pool.", "2.1.0"),
   // properties that are specific to tablet server behavior
   TSERV_PREFIX("tserver.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the tablet servers", "1.3.5"),
@@ -537,6 +609,10 @@ public enum Property {
       "2.0.0"),
   TSERV_SCAN_EXECUTORS_META_THREADS("tserver.scan.executors.meta.threads", "8", PropertyType.COUNT,
       "The number of threads for the metadata table scan executor.", "2.0.0"),
+  TSERV_SCAN_RESULTS_MAX_TIMEOUT("tserver.scan.results.max.timeout", "1s",
+      PropertyType.TIMEDURATION,
+      "Max time for the thrift client handler to wait for scan results before timing out.",
+      "2.1.0"),
   TSERV_MIGRATE_MAXCONCURRENT("tserver.migrations.concurrent.max", "1", PropertyType.COUNT,
       "The maximum number of concurrent tablet migrations for a tablet server", "1.3.5"),
   TSERV_MAJC_DELAY("tserver.compaction.major.delay", "30s", PropertyType.TIMEDURATION,
@@ -627,6 +703,7 @@ public enum Property {
       "The number of concurrent threads that will load bloom filters in the background. "
           + "Setting this to zero will make bloom filters load in the foreground.",
       "1.3.5"),
+  @Deprecated(since = "2.1.0", forRemoval = true)
   TSERV_MONITOR_FS("tserver.monitor.fs", "false", PropertyType.BOOLEAN,
       "When enabled the tserver will monitor file systems and kill itself when"
           + " one switches from rw to ro. This is usually and indication that Linux has"
@@ -656,6 +733,8 @@ public enum Property {
       "1.4.0"),
   TSERV_BULK_TIMEOUT("tserver.bulk.timeout", "5m", PropertyType.TIMEDURATION,
       "The time to wait for a tablet server to process a bulk import request.", "1.4.3"),
+  TSERV_HEALTH_CHECK_FREQ("tserver.health.check.interval", "30m", PropertyType.TIMEDURATION,
+      "The time between tablet server health checks.", "2.1.0"),
   TSERV_MINTHREADS("tserver.server.threads.minimum", "20", PropertyType.COUNT,
       "The minimum number of threads to use to handle incoming requests.", "1.4.0"),
   TSERV_MINTHREADS_TIMEOUT("tserver.server.threads.timeout", "0s", PropertyType.TIMEDURATION,
@@ -946,6 +1025,14 @@ public enum Property {
   TABLE_COMPACTION_STRATEGY_PREFIX("table.majc.compaction.strategy.opts.", null,
       PropertyType.PREFIX,
       "Properties in this category are used to configure the compaction strategy.", "1.6.0"),
+  // Crypto-related properties
+  @Experimental
+  TABLE_CRYPTO_PREFIX("table.crypto.opts.", null, PropertyType.PREFIX,
+      "Properties related to on-disk file encryption.", "X.X.X"),
+  @Experimental
+  @Sensitive
+  TABLE_CRYPTO_SENSITIVE_PREFIX("table.crypto.opts.sensitive.", null, PropertyType.PREFIX,
+      "Sensitive properties related to on-disk file encryption.", "X.X.X"),
   TABLE_SCAN_DISPATCHER("table.scan.dispatcher", SimpleScanDispatcher.class.getName(),
       PropertyType.CLASSNAME,
       "This class is used to dynamically dispatch scans to configured scan executors.  Configured "
@@ -1102,8 +1189,12 @@ public enum Property {
       "1.3.5"),
   TABLE_FORMATTER_CLASS("table.formatter", DefaultFormatter.class.getName(), PropertyType.STRING,
       "The Formatter class to apply on results in the shell", "1.4.0"),
-  TABLE_INTERPRETER_CLASS("table.interepreter", DefaultScanInterpreter.class.getName(),
-      PropertyType.STRING, "The ScanInterpreter class to apply on scan arguments in the shell",
+  @Deprecated(since = "2.1.0")
+  TABLE_INTERPRETER_CLASS("table.interepreter",
+      org.apache.accumulo.core.util.interpret.DefaultScanInterpreter.class.getName(),
+      PropertyType.STRING,
+      "The ScanInterpreter class to apply on scan arguments in the shell. "
+          + "Note that this property is deprecated and will be removed in a future version.",
       "1.5.0"),
   TABLE_CLASSLOADER_CONTEXT("table.class.loader.context", "", PropertyType.STRING,
       "The context to use for loading per-table resources, such as iterators"
@@ -1544,21 +1635,17 @@ public enum Property {
         hasAnnotation(Sensitive.class) || hasPrefixWithAnnotation(getKey(), Sensitive.class);
     isDeprecated =
         hasAnnotation(Deprecated.class) || hasPrefixWithAnnotation(getKey(), Deprecated.class);
-    if (hasAnnotation(Deprecated.class)) {
-      Deprecated dep = getAnnotation(Deprecated.class);
-      if (dep != null) {
-        deprecatedSince = dep.since();
-      }
+    Deprecated dep = getAnnotation(Deprecated.class);
+    if (dep != null) {
+      deprecatedSince = dep.since();
     }
     isExperimental =
         hasAnnotation(Experimental.class) || hasPrefixWithAnnotation(getKey(), Experimental.class);
     isReplaced =
         hasAnnotation(ReplacedBy.class) || hasPrefixWithAnnotation(getKey(), ReplacedBy.class);
-    if (hasAnnotation(ReplacedBy.class)) {
-      ReplacedBy rb = getAnnotation(ReplacedBy.class);
-      if (rb != null) {
-        replacedBy = rb.property();
-      }
+    ReplacedBy rb = getAnnotation(ReplacedBy.class);
+    if (rb != null) {
+      replacedBy = rb.property();
     }
     annotationsComputed = true;
   }
@@ -1575,75 +1662,34 @@ public enum Property {
     Property prop = propertiesByKey.get(key);
     if (prop != null) {
       return prop.isSensitive();
-    } else {
-      for (String prefix : validPrefixes) {
-        if (key.startsWith(prefix)) {
-          if (propertiesByKey.get(prefix).isSensitive()) {
-            return true;
-          }
-        }
-      }
     }
-    return false;
+    return validPrefixes.stream().filter(key::startsWith).map(propertiesByKey::get)
+        .anyMatch(Property::isSensitive);
   }
 
   private <T extends Annotation> boolean hasAnnotation(Class<T> annotationType) {
-    Logger log = LoggerFactory.getLogger(getClass());
-    try {
-      for (Annotation a : getClass().getField(name()).getAnnotations()) {
-        if (annotationType.isInstance(a)) {
-          return true;
-        }
-      }
-    } catch (SecurityException | NoSuchFieldException e) {
-      log.error("{}", e.getMessage(), e);
-    }
-    return false;
+    return getAnnotation(annotationType) != null;
   }
 
   private <T extends Annotation> T getAnnotation(Class<T> annotationType) {
-    Logger log = LoggerFactory.getLogger(getClass());
     try {
-      for (Annotation a : getClass().getField(name()).getAnnotations()) {
-        if (annotationType.isInstance(a)) {
-          @SuppressWarnings("unchecked")
-          T uncheckedA = (T) a;
-          return uncheckedA;
-        }
-      }
+      return getClass().getField(name()).getAnnotation(annotationType);
     } catch (SecurityException | NoSuchFieldException e) {
-      log.error("{}", e.getMessage(), e);
+      LoggerFactory.getLogger(getClass()).error("{}", e.getMessage(), e);
     }
     return null;
   }
 
   private static <T extends Annotation> boolean hasPrefixWithAnnotation(String key,
       Class<T> annotationType) {
-    for (String prefix : validPrefixes) {
-      if (key.startsWith(prefix)) {
-        if (propertiesByKey.get(prefix).hasAnnotation(annotationType)) {
-          return true;
-        }
-      }
-    }
-
-    return false;
+    Predicate<Property> hasIt = prop -> prop.hasAnnotation(annotationType);
+    return validPrefixes.stream().filter(key::startsWith).map(propertiesByKey::get).anyMatch(hasIt);
   }
 
   private static final HashSet<String> validTableProperties = new HashSet<>();
   private static final HashSet<String> validProperties = new HashSet<>();
   private static final HashSet<String> validPrefixes = new HashSet<>();
   private static final HashMap<String,Property> propertiesByKey = new HashMap<>();
-
-  private static boolean isKeyValidlyPrefixed(String key) {
-    for (String prefix : validPrefixes) {
-      if (key.startsWith(prefix)) {
-        return true;
-      }
-    }
-
-    return false;
-  }
 
   /**
    * Checks if the given property and value are valid. A property is valid if the property key is
@@ -1670,7 +1716,8 @@ public enum Property {
    * @return true if key is valid (recognized, or has a recognized prefix)
    */
   public static boolean isValidPropertyKey(String key) {
-    return validProperties.contains(key) || isKeyValidlyPrefixed(key);
+    return validProperties.contains(key) || validPrefixes.stream().anyMatch(key::startsWith);
+
   }
 
   /**
@@ -1707,10 +1754,11 @@ public enum Property {
             || key.startsWith(TABLE_SCAN_DISPATCHER_OPTS.getKey())
             || key.startsWith(TABLE_COMPACTION_DISPATCHER_OPTS.getKey())
             || key.startsWith(TABLE_COMPACTION_CONFIGURER_OPTS.getKey())
-            || key.startsWith(TABLE_COMPACTION_SELECTOR_OPTS.getKey())));
+            || key.startsWith(TABLE_COMPACTION_SELECTOR_OPTS.getKey()))
+        || key.startsWith(TABLE_CRYPTO_PREFIX.getKey()));
   }
 
-  private static final EnumSet<Property> fixedProperties = EnumSet.of(
+  public static final EnumSet<Property> fixedProperties = EnumSet.of(
       // port options
       GC_PORT, MANAGER_CLIENTPORT, TSERV_CLIENTPORT,
 
@@ -1822,24 +1870,24 @@ public enum Property {
     // Precomputing information here avoids :
     // * Computing it each time a method is called
     // * Using synch to compute the first time a method is called
-    for (Property p : Property.values()) {
-      propertiesByKey.put(p.getKey(), p);
-      if (p.getType().equals(PropertyType.PREFIX)) {
-        validPrefixes.add(p.getKey());
-      } else {
-        validProperties.add(p.getKey());
-      }
-      // exclude prefix types (prevents setting a prefix type like table.custom or
-      // table.constraint, directly, since they aren't valid properties on their own)
-      if (!p.getType().equals(PropertyType.PREFIX)
-          && p.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
-        validTableProperties.add(p.getKey());
-      }
-    }
+    Predicate<Property> isPrefix = p -> p.getType() == PropertyType.PREFIX;
+    Arrays.stream(Property.values())
+        // record all properties by key
+        .peek(p -> propertiesByKey.put(p.getKey(), p))
+        // save all the prefix properties
+        .peek(p -> {
+          if (isPrefix.test(p))
+            validPrefixes.add(p.getKey());
+        })
+        // only use the keys for the non-prefix properties from here on
+        .filter(isPrefix.negate()).map(Property::getKey)
+        // everything left is a valid property
+        .peek(validProperties::add)
+        // but some are also valid table properties
+        .filter(k -> k.startsWith(Property.TABLE_PREFIX.getKey()))
+        .forEach(validTableProperties::add);
 
     // order is very important here the following code relies on the maps and sets populated above
-    for (Property p : Property.values()) {
-      p.precomputeAnnotations();
-    }
+    Arrays.stream(Property.values()).forEach(Property::precomputeAnnotations);
   }
 }

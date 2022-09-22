@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -52,14 +52,15 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.core.metadata.TabletState;
@@ -75,13 +76,14 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ta
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
+import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.apache.accumulo.manager.Manager.TabletGoalState;
 import org.apache.accumulo.manager.state.MergeStats;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.state.TableStats;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.gc.GcVolumeUtil;
+import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
@@ -100,7 +102,7 @@ import org.apache.thrift.TException;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterators;
 
-abstract class TabletGroupWatcher extends Thread {
+abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   // Constants used to make sure assignment logging isn't excessive in quantity or size
 
   private final Manager manager;
@@ -110,11 +112,10 @@ abstract class TabletGroupWatcher extends Thread {
   private SortedSet<TServerInstance> lastScanServers = Collections.emptySortedSet();
 
   TabletGroupWatcher(Manager manager, TabletStateStore store, TabletGroupWatcher dependentWatcher) {
+    super("Watching " + store.name());
     this.manager = manager;
     this.store = store;
     this.dependentWatcher = dependentWatcher;
-    setName("Watching " + store.name());
-    setDaemon(true);
   }
 
   /** Should this {@code TabletGroupWatcher} suspend tablets? */
@@ -635,14 +636,15 @@ abstract class TabletGroupWatcher extends Thread {
       ServerColumnFamily.TIME_COLUMN.fetch(scanner);
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
-      Set<String> datafiles = new TreeSet<>();
+      Set<ReferenceFile> datafilesAndDirs = new TreeSet<>();
       for (Entry<Key,Value> entry : scanner) {
         Key key = entry.getKey();
         if (key.compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
-          datafiles.add(TabletFileUtil.validate(key.getColumnQualifierData().toString()));
-          if (datafiles.size() > 1000) {
-            ample.putGcFileAndDirCandidates(extent.tableId(), datafiles);
-            datafiles.clear();
+          var stf = new StoredTabletFile(key.getColumnQualifierData().toString());
+          datafilesAndDirs.add(new ReferenceFile(stf.getTableId(), stf.getMetaUpdateDelete()));
+          if (datafilesAndDirs.size() > 1000) {
+            ample.putGcFileAndDirCandidates(extent.tableId(), datafilesAndDirs);
+            datafilesAndDirs.clear();
           }
         } else if (ServerColumnFamily.TIME_COLUMN.hasColumns(key)) {
           metadataTime = MetadataTime.parse(entry.getValue().toString());
@@ -650,16 +652,16 @@ abstract class TabletGroupWatcher extends Thread {
           throw new IllegalStateException(
               "Tablet " + key.getRow() + " is assigned during a merge!");
         } else if (ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-          String path = GcVolumeUtil.getDeleteTabletOnAllVolumesUri(extent.tableId(),
-              entry.getValue().toString());
-          datafiles.add(path);
-          if (datafiles.size() > 1000) {
-            ample.putGcFileAndDirCandidates(extent.tableId(), datafiles);
-            datafiles.clear();
+          var allVolumesDirectory =
+              new AllVolumesDirectory(extent.tableId(), entry.getValue().toString());
+          datafilesAndDirs.add(allVolumesDirectory);
+          if (datafilesAndDirs.size() > 1000) {
+            ample.putGcFileAndDirCandidates(extent.tableId(), datafilesAndDirs);
+            datafilesAndDirs.clear();
           }
         }
       }
-      ample.putGcFileAndDirCandidates(extent.tableId(), datafiles);
+      ample.putGcFileAndDirCandidates(extent.tableId(), datafilesAndDirs);
       BatchWriter bw = client.createBatchWriter(targetSystemTable);
       try {
         deleteTablets(info, deleteRange, bw, client);
@@ -736,9 +738,8 @@ abstract class TabletGroupWatcher extends Thread {
           maxLogicalTime =
               TabletTime.maxMetadataTime(maxLogicalTime, MetadataTime.parse(value.toString()));
         } else if (ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-          String uri =
-              GcVolumeUtil.getDeleteTabletOnAllVolumesUri(range.tableId(), value.toString());
-          bw.addMutation(manager.getContext().getAmple().createDeleteMutation(uri));
+          var allVolumesDir = new AllVolumesDirectory(range.tableId(), value.toString());
+          bw.addMutation(manager.getContext().getAmple().createDeleteMutation(allVolumesDir));
         }
       }
 
@@ -762,8 +763,7 @@ abstract class TabletGroupWatcher extends Thread {
         ServerColumnFamily.TIME_COLUMN.put(m, new Value(maxLogicalTime.encode()));
 
       // delete any entries for external compactions
-      extCompIds.stream()
-          .forEach(ecid -> m.putDelete(ExternalCompactionColumnFamily.STR_NAME, ecid));
+      extCompIds.forEach(ecid -> m.putDelete(ExternalCompactionColumnFamily.STR_NAME, ecid));
 
       if (!m.getUpdates().isEmpty()) {
         bw.addMutation(m);

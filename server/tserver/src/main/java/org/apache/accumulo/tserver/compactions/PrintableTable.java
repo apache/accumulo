@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.tserver.compactions;
 
-import java.util.Arrays;
+import java.util.stream.Stream;
 
 public class PrintableTable {
   private String[] columns;
@@ -33,7 +33,7 @@ public class PrintableTable {
 
   @Override
   public String toString() {
-    int widestRow = Arrays.asList(rows).stream().mapToInt(String::length).max().getAsInt();
+    int widestRow = Stream.of(rows).mapToInt(String::length).max().getAsInt();
 
     StringBuilder sb = new StringBuilder();
 

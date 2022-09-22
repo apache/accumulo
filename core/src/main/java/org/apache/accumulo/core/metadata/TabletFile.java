@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,13 +18,15 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import static org.apache.accumulo.core.Constants.HDFS_TABLES_DIR;
+
 import java.util.Objects;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
@@ -40,12 +42,12 @@ import com.google.common.base.Preconditions;
  */
 public class TabletFile implements Comparable<TabletFile> {
   // parts of an absolute URI, like "hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf"
-  private final String volume; // hdfs://1.2.3.4/accumulo
-  private final TableId tableId; // 2a
-  private final String tabletDir; // t-0003
+  private final TabletDirectory tabletDir; // hdfs://1.2.3.4/accumulo/tables/2a/t-0003
   private final String fileName; // C0004.rf
   protected final Path metaPath;
   private final String normalizedPath;
+
+  private static final Logger log = LoggerFactory.getLogger(TabletFile.class);
 
   /**
    * Construct new tablet file using a Path. Used in the case where we had to use Path object to
@@ -54,41 +56,39 @@ public class TabletFile implements Comparable<TabletFile> {
   public TabletFile(Path metaPath) {
     this.metaPath = Objects.requireNonNull(metaPath);
     String errorMsg = "Missing or invalid part of tablet file metadata entry: " + metaPath;
+    log.trace("Parsing TabletFile from {}", metaPath);
 
     // use Path object to step backwards from the filename through all the parts
     this.fileName = metaPath.getName();
-    ServerColumnFamily.validateDirCol(fileName);
+    ValidationUtil.validateFileName(fileName);
 
     Path tabletDirPath = Objects.requireNonNull(metaPath.getParent(), errorMsg);
-    this.tabletDir = tabletDirPath.getName();
-    ServerColumnFamily.validateDirCol(tabletDir);
 
     Path tableIdPath = Objects.requireNonNull(tabletDirPath.getParent(), errorMsg);
-    this.tableId = TableId.of(tableIdPath.getName());
-    ServerColumnFamily.validateDirCol(tableId.canonical());
+    var id = tableIdPath.getName();
 
     Path tablePath = Objects.requireNonNull(tableIdPath.getParent(), errorMsg);
     String tpString = "/" + tablePath.getName();
-    Preconditions.checkArgument(tpString.equals(Constants.HDFS_TABLES_DIR), errorMsg);
+    Preconditions.checkArgument(tpString.equals(HDFS_TABLES_DIR), errorMsg);
 
     Path volumePath = Objects.requireNonNull(tablePath.getParent(), errorMsg);
     Preconditions.checkArgument(volumePath.toUri().getScheme() != null, errorMsg);
-    this.volume = volumePath.toString();
+    var volume = volumePath.toString();
 
-    this.normalizedPath = volume + Constants.HDFS_TABLES_DIR + "/" + tableId.canonical() + "/"
-        + tabletDir + "/" + fileName;
+    this.tabletDir = new TabletDirectory(volume, TableId.of(id), tabletDirPath.getName());
+    this.normalizedPath = tabletDir.getNormalizedPath() + "/" + fileName;
   }
 
   public String getVolume() {
-    return volume;
+    return tabletDir.getVolume();
   }
 
   public TableId getTableId() {
-    return tableId;
+    return tabletDir.getTableId();
   }
 
   public String getTabletDir() {
-    return tabletDir;
+    return tabletDir.getTabletDir();
   }
 
   public String getFileName() {

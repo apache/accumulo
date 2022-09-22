@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import java.time.Duration;
 import java.util.Map;
 
 import org.apache.accumulo.cluster.ClusterControl;
@@ -32,9 +33,14 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ManagerFailoverIT extends AccumuloClusterHarness {
+
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofSeconds(90);
+  }
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -42,11 +48,6 @@ public class ManagerFailoverIT extends AccumuloClusterHarness {
     siteConfig.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "15s");
     cfg.setSiteConfig(siteConfig);
     cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "15s");
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 90;
   }
 
   @Test

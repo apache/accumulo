@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -17,6 +17,10 @@
  * under the License.
  */
 package org.apache.accumulo.core.spi.crypto;
+
+import java.util.Optional;
+
+import org.apache.accumulo.core.data.TableId;
 
 /**
  * Useful information provided to the crypto implementation
@@ -28,10 +32,18 @@ public interface CryptoEnvironment {
    * Where in Accumulo the on-disk file encryption takes place.
    */
   enum Scope {
-    WAL, RFILE
+    WAL, TABLE, RECOVERY
   }
 
   Scope getScope();
 
-  byte[] getDecryptionParams();
+  /**
+   * If in the TABLE scope, get the tableId. Will be empty in WAL scope.
+   */
+  Optional<TableId> getTableId();
+
+  /**
+   * If decrypting files, get the params read from the file. Will be empty if encrypting.
+   */
+  Optional<byte[]> getDecryptionParams();
 }

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.accumulo.manager.fate;
 
 import static org.apache.accumulo.fate.FateTxId.formatTid;
@@ -26,6 +25,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.function.Function;
 
+import org.apache.accumulo.fate.Fate;
 import org.apache.accumulo.core.logging.Logging;
 import org.apache.accumulo.fate.FateTransactionStatus;
 import org.apache.accumulo.fate.StackOverflowException;
@@ -62,6 +62,11 @@ public class FateLogger {
       }
 
       @Override
+      public boolean tryReserve(long tid) {
+        return store.tryReserve(tid);
+      }
+
+      @Override
       public void unreserve(long tid, long deferTime) {
         store.unreserve(tid, deferTime);
       }
@@ -83,8 +88,8 @@ public class FateLogger {
       }
 
       @Override
-      public Serializable getProperty(long tid, String prop) {
-        return store.getProperty(tid, prop);
+      public Serializable getTransactionInfo(long tid, Fate.TxInfo txInfo) {
+        return store.getTransactionInfo(tid, txInfo);
       }
 
       @Override
@@ -101,7 +106,7 @@ public class FateLogger {
       public long create() {
         long tid = store.create();
         if (storeLog.isTraceEnabled())
-          storeLog.trace("created {}", formatTid(tid));
+          storeLog.trace("{} created fate transaction", formatTid(tid));
         return tid;
       }
 
@@ -114,35 +119,35 @@ public class FateLogger {
       public void push(long tid, Repo repo) throws StackOverflowException {
         store.push(tid, repo);
         if (storeLog.isTraceEnabled())
-          storeLog.trace("pushed {} {}", formatTid(tid), toLogString.apply(repo));
+          storeLog.trace("{} pushed {}", formatTid(tid), toLogString.apply(repo));
       }
 
       @Override
       public void pop(long tid) {
         store.pop(tid);
         if (storeLog.isTraceEnabled())
-          storeLog.trace("popped {}", formatTid(tid));
+          storeLog.trace("{} popped", formatTid(tid));
       }
 
       @Override
       public void setStatus(long tid, FateTransactionStatus status) {
         store.setStatus(tid, status);
         if (storeLog.isTraceEnabled())
-          storeLog.trace("setStatus {} {}", formatTid(tid), status);
+          storeLog.trace("{} setStatus to {}", formatTid(tid), status);
       }
 
       @Override
-      public void setProperty(long tid, String prop, Serializable val) {
-        store.setProperty(tid, prop, val);
+      public void setTransactionInfo(long tid, Fate.TxInfo txInfo, Serializable val) {
+        store.setTransactionInfo(tid, txInfo, val);
         if (storeLog.isTraceEnabled())
-          storeLog.trace("setProperty {} {} {}", formatTid(tid), prop, val);
+          storeLog.trace("{} setting {} to {}", formatTid(tid), txInfo, val);
       }
 
       @Override
       public void delete(long tid) {
         store.delete(tid);
         if (storeLog.isTraceEnabled())
-          storeLog.trace("deleted {}", formatTid(tid));
+          storeLog.trace("{} deleted fate transaction", formatTid(tid));
       }
     };
   }

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,11 +18,12 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -49,7 +50,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.spi.fs.PerTableVolumeChooser;
+import org.apache.accumulo.core.spi.fs.DelegatingChooser;
 import org.apache.accumulo.core.spi.fs.PreferredVolumeChooser;
 import org.apache.accumulo.core.spi.fs.RandomVolumeChooser;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope;
@@ -59,7 +60,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class VolumeChooserIT extends ConfigurableMacBase {
 
@@ -88,8 +89,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
   private String systemPreferredVolumes;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 120;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
   }
 
   @Override
@@ -99,10 +100,10 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     namespace1 = "ns_" + getUniqueNames(2)[0];
     namespace2 = "ns_" + getUniqueNames(2)[1];
 
-    // Set the general volume chooser to the PerTableVolumeChooser so that different choosers can be
+    // Set the general volume chooser to the DelegatingChooser so that different choosers can be
     // specified
     Map<String,String> siteConfig = new HashMap<>();
-    siteConfig.put(Property.GENERAL_VOLUME_CHOOSER.getKey(), PerTableVolumeChooser.class.getName());
+    siteConfig.put(Property.GENERAL_VOLUME_CHOOSER.getKey(), DelegatingChooser.class.getName());
     // if a table doesn't have a volume chooser, use the preferred volume chooser
     siteConfig.put(PERTABLE_CHOOSER_PROP, PreferredVolumeChooser.class.getName());
 
@@ -156,8 +157,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
       int i = 0;
       for (Entry<Key,Value> entry : scanner) {
-        assertEquals("Data read is not data written", alpha_rows[i++],
-            entry.getKey().getRow().toString());
+        assertEquals(alpha_rows[i++], entry.getKey().getRow().toString(),
+            "Data read is not data written");
       }
     }
   }
@@ -193,16 +194,14 @@ public class VolumeChooserIT extends ConfigurableMacBase {
             inVolume = true;
           }
         }
-        assertTrue(
-            "Data not written to the correct volumes.  " + entry.getKey().getColumnQualifier(),
-            inVolume);
+        assertTrue(inVolume,
+            "Data not written to the correct volumes.  " + entry.getKey().getColumnQualifier());
         fileCount++;
       }
     }
-    assertEquals(
-        "Did not see all the volumes. volumes: " + volumes + " volumes seen: " + volumesSeen,
-        volumes.size(), volumesSeen.size());
-    assertEquals("Wrong number of files", 26, fileCount);
+    assertEquals(volumes.size(), volumesSeen.size(),
+        "Did not see all the volumes. volumes: " + volumes + " volumes seen: " + volumesSeen);
+    assertEquals(26, fileCount, "Wrong number of files");
   }
 
   public static void verifyNoVolumes(AccumuloClient accumuloClient, Range tableRange)
@@ -258,9 +257,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
             volumesSeen.add(volume);
           inVolume = true;
         }
-        assertTrue(
-            "Data not written to the correct volumes.  " + entry.getKey().getColumnQualifier(),
-            inVolume);
+        assertTrue(inVolume,
+            "Data not written to the correct volumes.  " + entry.getKey().getColumnQualifier());
       }
     }
   }

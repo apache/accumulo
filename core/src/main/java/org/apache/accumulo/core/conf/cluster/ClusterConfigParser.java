@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -27,8 +27,9 @@ import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.StringUtils;
 import org.yaml.snakeyaml.Yaml;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -75,12 +76,16 @@ public class ClusterConfigParser {
       @SuppressWarnings("unchecked")
       Map<String,Object> map = (Map<String,Object>) value;
       map.forEach((k, v) -> flatten(parent + key, k, v, results));
+    } else if (value instanceof Number) {
+      results.put(parent + key, value.toString());
+      return;
     } else {
       throw new RuntimeException("Unhandled object type: " + value.getClass());
     }
   }
 
   public static void outputShellVariables(Map<String,String> config, PrintStream out) {
+
     for (String section : SECTIONS) {
       if (config.containsKey(section)) {
         out.printf(PROPERTY_FORMAT, section.toUpperCase() + "_HOSTS", config.get(section));
@@ -95,19 +100,38 @@ public class ClusterConfigParser {
     if (config.containsKey("compaction.coordinator")) {
       out.printf(PROPERTY_FORMAT, "COORDINATOR_HOSTS", config.get("compaction.coordinator"));
     }
-    if (config.containsKey("compaction.compactor.queue")) {
-      out.printf(PROPERTY_FORMAT, "COMPACTION_QUEUES", config.get("compaction.compactor.queue"));
-    }
-    String queues = config.get("compaction.compactor.queue");
-    if (StringUtils.isNotEmpty(queues)) {
-      String[] q = queues.split(" ");
-      for (int i = 0; i < q.length; i++) {
-        if (config.containsKey("compaction.compactor." + q[i])) {
-          out.printf(PROPERTY_FORMAT, "COMPACTOR_HOSTS_" + q[i],
-              config.get("compaction.compactor." + q[i]));
-        }
+
+    String compactorPrefix = "compaction.compactor.";
+    Set<String> compactorQueues =
+        config.keySet().stream().filter(k -> k.startsWith(compactorPrefix))
+            .map(k -> k.substring(compactorPrefix.length())).collect(Collectors.toSet());
+
+    if (!compactorQueues.isEmpty()) {
+      out.printf(PROPERTY_FORMAT, "COMPACTION_QUEUES",
+          compactorQueues.stream().collect(Collectors.joining(" ")));
+      for (String queue : compactorQueues) {
+        out.printf(PROPERTY_FORMAT, "COMPACTOR_HOSTS_" + queue,
+            config.get("compaction.compactor." + queue));
       }
     }
+
+    String sserverPrefix = "sserver.";
+    Set<String> sserverGroups = config.keySet().stream().filter(k -> k.startsWith(sserverPrefix))
+        .map(k -> k.substring(sserverPrefix.length())).collect(Collectors.toSet());
+
+    if (!sserverGroups.isEmpty()) {
+      out.printf(PROPERTY_FORMAT, "SSERVER_GROUPS",
+          sserverGroups.stream().collect(Collectors.joining(" ")));
+      sserverGroups.forEach(ssg -> out.printf(PROPERTY_FORMAT, "SSERVER_HOSTS_" + ssg,
+          config.get(sserverPrefix + ssg)));
+    }
+
+    String numTservers = config.getOrDefault("tservers_per_host", "1");
+    out.print("NUM_TSERVERS=\"${NUM_TSERVERS:=" + numTservers + "}\"\n");
+
+    String numSservers = config.getOrDefault("sservers_per_host", "1");
+    out.print("NUM_SSERVERS=\"${NUM_SSERVERS:=" + numSservers + "}\"\n");
+
     out.flush();
   }
 

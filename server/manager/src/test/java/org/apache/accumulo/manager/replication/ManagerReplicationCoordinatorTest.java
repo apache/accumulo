@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -22,8 +22,8 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Collections;
 import java.util.TreeSet;
@@ -36,7 +36,7 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @Deprecated
 public class ManagerReplicationCoordinatorTest {
@@ -52,6 +52,7 @@ public class ManagerReplicationCoordinatorTest {
     expect(context.getInstanceID()).andReturn(InstanceId.of("1234")).anyTimes();
     expect(context.getZooReader()).andReturn(null).anyTimes();
     expect(context.getZooReaderWriter()).andReturn(null).anyTimes();
+    expect(context.getSecurityOperation()).andReturn(null).anyTimes();
     expect(manager.getContext()).andReturn(context);
     expect(manager.getInstanceID()).andReturn(InstanceId.of("1234"));
     replay(manager, context, reader);
@@ -70,6 +71,7 @@ public class ManagerReplicationCoordinatorTest {
     expect(context.getInstanceID()).andReturn(InstanceId.of("1234")).anyTimes();
     expect(context.getZooReader()).andReturn(null).anyTimes();
     expect(context.getZooReaderWriter()).andReturn(null).anyTimes();
+    expect(context.getSecurityOperation()).andReturn(null).anyTimes();
     ZooReader reader = createMock(ZooReader.class);
     expect(manager.getContext()).andReturn(context);
     expect(manager.getInstanceID()).andReturn(InstanceId.of("1234"));
@@ -89,6 +91,7 @@ public class ManagerReplicationCoordinatorTest {
     expect(context.getInstanceID()).andReturn(InstanceId.of("1234")).anyTimes();
     expect(context.getZooReader()).andReturn(null).anyTimes();
     expect(context.getZooReaderWriter()).andReturn(null).anyTimes();
+    expect(context.getSecurityOperation()).andReturn(null).anyTimes();
     expect(manager.getInstanceID()).andReturn(InstanceId.of("1234")).anyTimes();
     expect(manager.getContext()).andReturn(context).anyTimes();
     replay(manager, context, reader);

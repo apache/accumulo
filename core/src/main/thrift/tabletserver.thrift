@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -39,6 +39,8 @@ exception TSampleNotPresentException {
 }
 
 exception NoSuchScanIDException {}
+
+exception ScanServerBusyException {}
 
 exception ConstraintViolationException {
   1:list<data.TConstraintViolationSummary> violationSummaries
@@ -196,7 +198,7 @@ struct TCompactionStats{
   3:i64 fileSize;
 }
 
-service TabletClientService extends client.ClientService {
+service TabletScanClientService {
 
   // scan a range of keys
   data.InitialScan startScan(
@@ -217,21 +219,25 @@ service TabletClientService extends client.ClientService {
     // name of the classloader context
     15:string classLoaderContext
     16:map<string, string> executionHints
+    17:i64 busyTimeout
   ) throws (
     1:client.ThriftSecurityException sec
     2:NotServingTabletException nste
     3:TooManyFilesException tmfe
     4:TSampleNotPresentException tsnpe
+    5:ScanServerBusyException ssbe
   )
 
   data.ScanResult continueScan(
     2:trace.TInfo tinfo
     1:data.ScanID scanID
+    3:i64 busyTimeout
   ) throws (
     1:NoSuchScanIDException nssi
     2:NotServingTabletException nste
     3:TooManyFilesException tmfe
     4:TSampleNotPresentException tsnpe
+    5:ScanServerBusyException ssbe
   )
 
   oneway void closeScan(
@@ -254,17 +260,21 @@ service TabletClientService extends client.ClientService {
     // name of the classloader context
     11:string classLoaderContext
     12:map<string, string> executionHints
+    13:i64 busyTimeout
   ) throws (
     1:client.ThriftSecurityException sec
     2:TSampleNotPresentException tsnpe
+    3:ScanServerBusyException ssbe
   )
 
   data.MultiScanResult continueMultiScan(
     2:trace.TInfo tinfo
     1:data.ScanID scanID
+    3:i64 busyTimeout
   ) throws (
     1:NoSuchScanIDException nssi
     2:TSampleNotPresentException tsnpe
+    3:ScanServerBusyException ssbe
   )
 
   void closeMultiScan(
@@ -273,6 +283,17 @@ service TabletClientService extends client.ClientService {
   ) throws (
     1:NoSuchScanIDException nssi
   )
+
+  list<ActiveScan> getActiveScans(
+    2:trace.TInfo tinfo
+    1:security.TCredentials credentials
+  ) throws (
+    1:client.ThriftSecurityException sec
+  )
+
+}
+
+service TabletClientService {
 
   //the following calls support a batch update to multiple tablets on a tablet server
   data.UpdateID startUpdate(
@@ -454,13 +475,6 @@ service TabletClientService extends client.ClientService {
     2:string lock
   )
 
-  list<ActiveScan> getActiveScans(
-    2:trace.TInfo tinfo
-    1:security.TCredentials credentials
-  ) throws (
-    1:client.ThriftSecurityException sec
-  )
-
   list<ActiveCompaction> getActiveCompactions(
     2:trace.TInfo tinfo
     1:security.TCredentials credentials
@@ -547,7 +561,7 @@ service TabletClientService extends client.ClientService {
     3:string externalCompactionId
     4:data.TKeyExtent extent
   )
-  
+
 }
 
 typedef i32 TabletID

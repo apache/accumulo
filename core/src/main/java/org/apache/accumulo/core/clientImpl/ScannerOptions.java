@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -64,6 +64,8 @@ public class ScannerOptions implements ScannerBase {
   protected String classLoaderContext = null;
 
   protected Map<String,String> executionHints = Collections.emptyMap();
+
+  private ConsistencyLevel consistencyLevel = ConsistencyLevel.IMMEDIATE;
 
   protected ScannerOptions() {}
 
@@ -182,6 +184,8 @@ public class ScannerOptions implements ScannerBase {
 
         // its an immutable map, so can avoid copy here
         dst.executionHints = src.executionHints;
+
+        dst.consistencyLevel = src.consistencyLevel;
       }
     }
   }
@@ -271,6 +275,16 @@ public class ScannerOptions implements ScannerBase {
   @Override
   public synchronized void setExecutionHints(Map<String,String> hints) {
     this.executionHints = Map.copyOf(Objects.requireNonNull(hints));
+  }
+
+  @Override
+  public ConsistencyLevel getConsistencyLevel() {
+    return consistencyLevel;
+  }
+
+  @Override
+  public void setConsistencyLevel(ConsistencyLevel level) {
+    this.consistencyLevel = Objects.requireNonNull(level);
   }
 
 }

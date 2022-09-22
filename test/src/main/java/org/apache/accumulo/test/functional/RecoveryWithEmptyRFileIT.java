@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,16 +18,16 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -39,7 +39,7 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,8 +60,8 @@ public class RecoveryWithEmptyRFileIT extends ConfigurableMacBase {
   private static final int COLS = 1;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 2 * 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
   }
 
   @Override
@@ -74,11 +74,10 @@ public class RecoveryWithEmptyRFileIT extends ConfigurableMacBase {
     log.info("Ingest some data, verify it was stored properly, replace an"
         + " underlying rfile with an empty one and verify we can scan.");
     Properties props = getClientProperties();
-    ClientInfo info = ClientInfo.from(props);
     try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
       String tableName = getUniqueNames(1)[0];
-      ReadWriteIT.ingest(client, info, ROWS, COLS, 50, 0, tableName);
-      ReadWriteIT.verify(client, info, ROWS, COLS, 50, 0, tableName);
+      ReadWriteIT.ingest(client, ROWS, COLS, 50, 0, tableName);
+      ReadWriteIT.verify(client, ROWS, COLS, 50, 0, tableName);
 
       client.tableOperations().flush(tableName, null, null, true);
       client.tableOperations().offline(tableName, true);

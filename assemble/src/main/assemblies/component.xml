@@ -9,7 +9,7 @@
     "License"); you may not use this file except in compliance
     with the License.  You may obtain a copy of the License at
 
-      http://www.apache.org/licenses/LICENSE-2.0
+      https://www.apache.org/licenses/LICENSE-2.0
 
     Unless required by applicable law or agreed to in writing,
     software distributed under the License is distributed on an
@@ -20,7 +20,7 @@
 
 -->
 <component xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/component/1.1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/component/1.1.2 http://maven.apache.org/xsd/component-1.1.2.xsd">
+  xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/component/1.1.2 https://maven.apache.org/xsd/component-1.1.2.xsd">
   <dependencySets>
     <dependencySet>
       <outputDirectory>lib</outputDirectory>
@@ -49,10 +49,10 @@
         <include>commons-io:commons-io</include>
         <include>commons-logging:commons-logging</include>
         <include>com.sun.istack:istack-commons-runtime</include>
+        <include>io.micrometer:micrometer-core</include>
         <include>io.opentelemetry:opentelemetry-api</include>
         <include>io.opentelemetry:opentelemetry-context</include>
         <include>io.opentelemetry:opentelemetry-semconv</include>
-        <include>io.micrometer:micrometer-core</include>
         <include>jakarta.activation:jakarta.activation-api</include>
         <include>jakarta.annotation:jakarta.annotation-api</include>
         <include>jakarta.el:jakarta.el-api</include>
@@ -74,7 +74,7 @@
         <include>org.apache.logging.log4j:log4j-core</include>
         <include>org.apache.logging.log4j:log4j-jcl</include>
         <include>org.apache.logging.log4j:log4j-jul</include>
-        <include>org.apache.logging.log4j:log4j-slf4j-impl</include>
+        <include>org.apache.logging.log4j:log4j-slf4j2-impl</include>
         <include>org.apache.logging.log4j:log4j-web</include>
         <include>org.apache.thrift:libthrift</include>
         <include>org.eclipse.jetty:jetty-http</include>
@@ -90,6 +90,7 @@
         <include>org.glassfish:jakarta.el</include>
         <include>org.glassfish.jaxb:jaxb-core</include>
         <include>org.glassfish.jaxb:jaxb-runtime</include>
+        <include>org.glassfish.jaxb:txw2</include>
         <include>org.glassfish.jersey.containers:jersey-container-jetty-http</include>
         <include>org.glassfish.jersey.containers:jersey-container-servlet-core</include>
         <include>org.glassfish.jersey.containers:jersey-container-servlet</include>

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,17 +19,16 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
@@ -45,8 +44,8 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -68,6 +67,11 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class HalfDeadTServerIT extends ConfigurableMacBase {
 
   @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
+  }
+
+  @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     // configure only one tserver from mini; mini won't less us configure 0, so instead, we will
     // start only 1, and kill it to start our own in the desired simulation environment
@@ -77,16 +81,11 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
     cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.FALSE.toString());
   }
 
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
-  }
-
   private static final AtomicBoolean sharedLibBuilt = new AtomicBoolean(false);
 
   @SuppressFBWarnings(value = "COMMAND_INJECTION",
       justification = "command executed is not from user input")
-  @BeforeClass
+  @BeforeAll
   public static void buildSharedLib() throws IOException, InterruptedException {
     String root = System.getProperty("user.dir");
     String source = root + "/src/test/c/fake_disk_failure.c";
@@ -156,7 +155,7 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
   @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "COMMAND_INJECTION"},
       justification = "path provided by test; command args provided by test")
   public String test(int seconds, boolean expectTserverDied) throws Exception {
-    assumeTrue("Shared library did not build", sharedLibBuilt.get());
+    assumeTrue(sharedLibBuilt.get(), "Shared library did not build");
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       while (client.instanceOperations().getTabletServers().isEmpty()) {
         // wait until the tserver that we need to kill is running
@@ -169,11 +168,9 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
       String classpath = System.getProperty("java.class.path");
       classpath = new File(cluster.getConfig().getDir(), "conf") + File.pathSeparator + classpath;
       String className = TabletServer.class.getName();
-      ArrayList<String> argList = new ArrayList<>();
-      argList.addAll(Arrays.asList(javaBin, "-cp", classpath));
-      argList.addAll(Arrays.asList(Main.class.getName(), className));
-      ProcessBuilder builder = new ProcessBuilder(argList);
+      ProcessBuilder builder = new ProcessBuilder(javaBin, Main.class.getName(), className);
       Map<String,String> env = builder.environment();
+      env.put("CLASSPATH", classpath);
       env.put("ACCUMULO_HOME", cluster.getConfig().getDir().getAbsolutePath());
       env.put("ACCUMULO_LOG_DIR", cluster.getConfig().getLogDir().getAbsolutePath());
       String trickFilename = cluster.getConfig().getLogDir().getAbsolutePath() + "/TRICK_FILE";

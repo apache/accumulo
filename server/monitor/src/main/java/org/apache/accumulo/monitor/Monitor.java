@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -46,7 +46,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import jakarta.inject.Singleton;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.ManagerClient;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
@@ -59,9 +58,11 @@ import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
+import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -180,6 +181,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
           + "'accumulo compaction-coordinator'.";
 
   private EmbeddedWebServer server;
+  private int livePort = 0;
 
   private ServiceLock monitorLock;
 
@@ -267,9 +269,9 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     // Otherwise, we'll never release the lock by unsetting 'fetching' in the the finally block
     try {
       while (retry) {
-        ManagerClientService.Iface client = null;
+        ManagerClientService.Client client = null;
         try {
-          client = ManagerClient.getConnection(context);
+          client = ThriftClientTypes.MANAGER.getConnection(context);
           if (client != null) {
             mmi = client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
             retry = false;
@@ -283,7 +285,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
           log.info("Error fetching stats: ", e);
         } finally {
           if (client != null) {
-            ManagerClient.close(client, context);
+            ThriftUtil.close(client, context);
           }
         }
         if (mmi == null) {
@@ -427,7 +429,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0)), UTF_8))
             .getAddress(Service.GC_CLIENT);
         GCMonitorService.Client client =
-            ThriftUtil.getClient(new GCMonitorService.Client.Factory(), address, context);
+            ThriftUtil.getClient(ThriftClientTypes.GC, address, context);
         try {
           result = client.getStatus(TraceUtil.traceInfo(), context.rpcCreds());
         } finally {
@@ -446,12 +448,13 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     int[] ports = getConfiguration().getPort(Property.MONITOR_PORT);
     for (int port : ports) {
       try {
-        log.debug("Creating monitor on port {}", port);
+        log.debug("Trying monitor on port {}", port);
         server = new EmbeddedWebServer(this, port);
         server.addServlet(getDefaultServlet(), "/resources/*");
         server.addServlet(getRestServlet(), "/rest/*");
         server.addServlet(getViewServlet(), "/*");
         server.start();
+        livePort = port;
         break;
       } catch (Exception ex) {
         log.error("Unable to start embedded web server", ex);
@@ -460,6 +463,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     if (!server.isRunning()) {
       throw new RuntimeException(
           "Unable to start embedded web server on ports: " + Arrays.toString(ports));
+    } else {
+      log.debug("Monitor started on port {}", livePort);
     }
 
     try {
@@ -590,7 +595,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }
   }
 
-  private final Map<HostAndPort,ScanStats> allScans = new HashMap<>();
+  private final Map<HostAndPort,ScanStats> tserverScans = new HashMap<>();
+  private final Map<HostAndPort,ScanStats> sserverScans = new HashMap<>();
   private final Map<HostAndPort,CompactionStats> allCompactions = new HashMap<>();
   private final RecentLogs recentLogs = new RecentLogs();
   private final ExternalCompactionInfo ecInfo = new ExternalCompactionInfo();
@@ -606,10 +612,18 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
    */
   public synchronized Map<HostAndPort,ScanStats> getScans() {
     if (System.nanoTime() - scansFetchedNanos > fetchTimeNanos) {
-      log.info("User initiated fetch of Active Scans");
+      log.info("User initiated fetch of Active TabletServer Scans");
       fetchScans();
     }
-    return Map.copyOf(allScans);
+    return Map.copyOf(tserverScans);
+  }
+
+  public synchronized Map<HostAndPort,ScanStats> getScanServerScans() {
+    if (System.nanoTime() - scansFetchedNanos > fetchTimeNanos) {
+      log.info("User initiated fetch of Active ScanServer Scans");
+      fetchScans();
+    }
+    return Map.copyOf(sserverScans);
   }
 
   /**
@@ -675,8 +689,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private CompactionCoordinatorService.Client getCoordinator(HostAndPort address) {
     if (coordinatorClient == null) {
       try {
-        coordinatorClient = ThriftUtil.getClient(new CompactionCoordinatorService.Client.Factory(),
-            address, getContext());
+        coordinatorClient =
+            ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, address, getContext());
       } catch (Exception e) {
         log.error("Unable to get Compaction coordinator at {}", address);
         throw new IllegalStateException(coordinatorMissingMsg, e);
@@ -689,11 +703,11 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     ServerContext context = getContext();
     for (String server : context.instanceOperations().getTabletServers()) {
       final HostAndPort parsedServer = HostAndPort.fromString(server);
-      Client tserver = null;
+      TabletScanClientService.Client tserver = null;
       try {
-        tserver = ThriftUtil.getTServerClient(parsedServer, context);
+        tserver = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, context);
         List<ActiveScan> scans = tserver.getActiveScans(null, context.rpcCreds());
-        allScans.put(parsedServer, new ScanStats(scans));
+        tserverScans.put(parsedServer, new ScanStats(scans));
         scansFetchedNanos = System.nanoTime();
       } catch (Exception ex) {
         log.error("Failed to get active scans from {}", server, ex);
@@ -702,13 +716,38 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       }
     }
     // Age off old scan information
-    Iterator<Entry<HostAndPort,ScanStats>> entryIter = allScans.entrySet().iterator();
+    Iterator<Entry<HostAndPort,ScanStats>> tserverIter = tserverScans.entrySet().iterator();
     // clock time used for fetched for date friendly display
     long now = System.currentTimeMillis();
-    while (entryIter.hasNext()) {
-      Entry<HostAndPort,ScanStats> entry = entryIter.next();
+    while (tserverIter.hasNext()) {
+      Entry<HostAndPort,ScanStats> entry = tserverIter.next();
       if (now - entry.getValue().fetched > ageOffEntriesMillis) {
-        entryIter.remove();
+        tserverIter.remove();
+      }
+    }
+    // Scan Servers
+    for (String server : context.instanceOperations().getScanServers()) {
+      final HostAndPort parsedServer = HostAndPort.fromString(server);
+      TabletScanClientService.Client sserver = null;
+      try {
+        sserver = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, context);
+        List<ActiveScan> scans = sserver.getActiveScans(null, context.rpcCreds());
+        sserverScans.put(parsedServer, new ScanStats(scans));
+        scansFetchedNanos = System.nanoTime();
+      } catch (Exception ex) {
+        log.error("Failed to get active scans from {}", server, ex);
+      } finally {
+        ThriftUtil.returnClient(sserver, context);
+      }
+    }
+    // Age off old scan information
+    Iterator<Entry<HostAndPort,ScanStats>> sserverIter = sserverScans.entrySet().iterator();
+    // clock time used for fetched for date friendly display
+    now = System.currentTimeMillis();
+    while (sserverIter.hasNext()) {
+      Entry<HostAndPort,ScanStats> entry = sserverIter.next();
+      if (now - entry.getValue().fetched > ageOffEntriesMillis) {
+        sserverIter.remove();
       }
     }
   }
@@ -719,7 +758,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       final HostAndPort parsedServer = HostAndPort.fromString(server);
       Client tserver = null;
       try {
-        tserver = ThriftUtil.getTServerClient(parsedServer, context);
+        tserver = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedServer, context);
         var compacts = tserver.getActiveCompactions(null, context.rpcCreds());
         allCompactions.put(parsedServer, new CompactionStats(compacts));
         compactsFetchedNanos = System.nanoTime();
@@ -965,5 +1004,9 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
   public Optional<HostAndPort> getCoordinatorHost() {
     return coordinatorHost;
+  }
+
+  public int getLivePort() {
+    return livePort;
   }
 }

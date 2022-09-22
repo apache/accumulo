@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -41,9 +41,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.IterConfigUtil;
-import org.apache.accumulo.core.conf.IterLoad;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Column;
@@ -55,8 +52,10 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnQualifierFilter;
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
@@ -67,6 +66,7 @@ import org.apache.accumulo.core.iteratorsImpl.system.VisibilityFilter;
 import org.apache.accumulo.core.metadata.MetadataServicer;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.server.ServerContext;
@@ -102,6 +102,8 @@ public class CollectTabletStats {
     @Parameter(names = "--columns", description = "comma separated list of columns")
     String columns;
   }
+
+  static class TestEnvironment implements IteratorEnvironment {}
 
   public static void main(String[] args) throws Exception {
 
@@ -445,8 +447,9 @@ public class CollectTabletStats {
         VisibilityFilter.wrap(colFilter, authorizations, defaultLabels);
 
     if (useTableIterators) {
-      IterLoad il = IterConfigUtil.loadIterConf(IteratorScope.scan, ssiList, ssio, conf);
-      return IterConfigUtil.loadIterators(visFilter, il.useAccumuloClassLoader(true));
+      var ibEnv = IteratorConfigUtil.loadIterConf(IteratorScope.scan, ssiList, ssio, conf);
+      var iteratorBuilder = ibEnv.env(new TestEnvironment()).useClassLoader("test").build();
+      return IteratorConfigUtil.loadIterators(visFilter, iteratorBuilder);
     }
     return visFilter;
   }
@@ -461,7 +464,7 @@ public class CollectTabletStats {
     for (TabletFile file : files) {
       FileSystem ns = fs.getFileSystemByPath(file.getPath());
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-          .forFile(file.getPathStr(), ns, ns.getConf(), CryptoServiceFactory.newDefaultInstance())
+          .forFile(file.getPathStr(), ns, ns.getConf(), NoCryptoServiceFactory.NONE)
           .withTableConfiguration(aconf).build();
       Range range = new Range(ke.prevEndRow(), false, ke.endRow(), true);
       reader.seek(range, columnSet, !columnSet.isEmpty());
@@ -494,7 +497,7 @@ public class CollectTabletStats {
     for (TabletFile file : files) {
       FileSystem ns = fs.getFileSystemByPath(file.getPath());
       readers.add(FileOperations.getInstance().newReaderBuilder()
-          .forFile(file.getPathStr(), ns, ns.getConf(), CryptoServiceFactory.newDefaultInstance())
+          .forFile(file.getPathStr(), ns, ns.getConf(), NoCryptoServiceFactory.NONE)
           .withTableConfiguration(context.getConfiguration()).build());
     }
 

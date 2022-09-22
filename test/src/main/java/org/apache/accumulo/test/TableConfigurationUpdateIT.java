@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,9 +18,10 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -40,7 +41,7 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,8 +49,8 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(TableConfigurationUpdateIT.class);
 
   @Override
-  public int defaultTimeoutSeconds() {
-    return 120;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
   }
 
   @Test
@@ -60,8 +61,8 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
       String table = getUniqueNames(1)[0];
       client.tableOperations().create(table);
 
-      final NamespaceConfiguration defaultConf = new NamespaceConfiguration(Namespace.DEFAULT.id(),
-          context, DefaultConfiguration.getInstance());
+      final NamespaceConfiguration defaultConf = new NamespaceConfiguration(context,
+          Namespace.DEFAULT.id(), DefaultConfiguration.getInstance());
 
       // Cache invalidates 25% of the time
       int randomMax = 4;
@@ -69,8 +70,8 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
       int numThreads = 2;
       // Number of iterations per thread
       int iterations = 100000;
-      AccumuloConfiguration tableConf =
-          new TableConfiguration(context, TableId.of(table), defaultConf);
+      TableId tid = TableId.of(client.tableOperations().tableIdMap().get(table));
+      AccumuloConfiguration tableConf = new TableConfiguration(context, tid, defaultConf);
 
       long start = System.currentTimeMillis();
       ExecutorService svc = Executors.newFixedThreadPool(numThreads);

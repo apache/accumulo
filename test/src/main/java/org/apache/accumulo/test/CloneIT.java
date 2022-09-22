@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
 import java.util.Map.Entry;
@@ -43,7 +43,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CloneIT extends AccumuloClusterHarness {
 
@@ -265,17 +265,17 @@ public class CloneIT extends AccumuloClusterHarness {
 
       try (BatchWriter bw1 = client.createBatchWriter(tableName);
           BatchWriter bw2 = client.createBatchWriter(tableName)) {
-        bw1.addMutation(createTablet("0", "m", null, "/d1", filePrefix + "/d1/file1"));
-        bw1.addMutation(createTablet("0", null, "m", "/d2", filePrefix + "/d2/file2"));
+        bw1.addMutation(createTablet("0", "m", null, "/d1", filePrefix + "/d1/file1.rf"));
+        bw1.addMutation(createTablet("0", null, "m", "/d2", filePrefix + "/d2/file2.rf"));
 
         bw1.flush();
 
         MetadataTableUtil.initializeClone(tableName, TableId.of("0"), TableId.of("1"), client, bw2);
 
-        bw1.addMutation(createTablet("0", "f", null, "/d1", filePrefix + "/d1/file3"));
-        bw1.addMutation(createTablet("0", "m", "f", "/d3", filePrefix + "/d1/file1"));
-        bw1.addMutation(createTablet("0", "s", "m", "/d2", filePrefix + "/d2/file2"));
-        bw1.addMutation(createTablet("0", null, "s", "/d4", filePrefix + "/d2/file2"));
+        bw1.addMutation(createTablet("0", "f", null, "/d1", filePrefix + "/d1/file3.rf"));
+        bw1.addMutation(createTablet("0", "m", "f", "/d3", filePrefix + "/d1/file1.rf"));
+        bw1.addMutation(createTablet("0", "s", "m", "/d2", filePrefix + "/d2/file2.rf"));
+        bw1.addMutation(createTablet("0", null, "s", "/d4", filePrefix + "/d2/file2.rf"));
 
         bw1.flush();
 
@@ -299,8 +299,8 @@ public class CloneIT extends AccumuloClusterHarness {
       }
       assertEquals(2, count);
       assertEquals(2, files.size());
-      assertTrue(files.contains(filePrefix + "/d1/file1"));
-      assertTrue(files.contains(filePrefix + "/d2/file2"));
+      assertTrue(files.contains(filePrefix + "/d1/file1.rf"));
+      assertTrue(files.contains(filePrefix + "/d2/file2.rf"));
     }
   }
 
@@ -314,22 +314,22 @@ public class CloneIT extends AccumuloClusterHarness {
 
       try (BatchWriter bw1 = client.createBatchWriter(tableName);
           BatchWriter bw2 = client.createBatchWriter(tableName)) {
-        bw1.addMutation(createTablet("0", "m", null, "/d1", filePrefix + "/d1/file1"));
-        bw1.addMutation(createTablet("0", null, "m", "/d2", filePrefix + "/d2/file2"));
+        bw1.addMutation(createTablet("0", "m", null, "/d1", filePrefix + "/d1/file1.rf"));
+        bw1.addMutation(createTablet("0", null, "m", "/d2", filePrefix + "/d2/file2.rf"));
 
         bw1.flush();
 
         MetadataTableUtil.initializeClone(tableName, TableId.of("0"), TableId.of("1"), client, bw2);
 
-        bw1.addMutation(deleteTablet("0", "m", null, filePrefix + "/d1/file1"));
-        bw1.addMutation(deleteTablet("0", null, "m", filePrefix + "/d2/file2"));
+        bw1.addMutation(deleteTablet("0", "m", null, filePrefix + "/d1/file1.rf"));
+        bw1.addMutation(deleteTablet("0", null, "m", filePrefix + "/d2/file2.rf"));
 
         bw1.flush();
 
-        bw1.addMutation(createTablet("0", "f", null, "/d1", filePrefix + "/d1/file3"));
-        bw1.addMutation(createTablet("0", "m", "f", "/d3", filePrefix + "/d1/file1"));
-        bw1.addMutation(createTablet("0", "s", "m", "/d2", filePrefix + "/d2/file3"));
-        bw1.addMutation(createTablet("0", null, "s", "/d4", filePrefix + "/d4/file3"));
+        bw1.addMutation(createTablet("0", "f", null, "/d1", filePrefix + "/d1/file3.rf"));
+        bw1.addMutation(createTablet("0", "m", "f", "/d3", filePrefix + "/d1/file1.rf"));
+        bw1.addMutation(createTablet("0", "s", "m", "/d2", filePrefix + "/d2/file3.rf"));
+        bw1.addMutation(createTablet("0", null, "s", "/d4", filePrefix + "/d4/file3.rf"));
 
         bw1.flush();
 
@@ -338,11 +338,11 @@ public class CloneIT extends AccumuloClusterHarness {
 
         assertEquals(1, rc);
 
-        bw1.addMutation(deleteTablet("0", "m", "f", filePrefix + "/d1/file1"));
+        bw1.addMutation(deleteTablet("0", "m", "f", filePrefix + "/d1/file1.rf"));
 
         bw1.flush();
 
-        bw1.addMutation(createTablet("0", "m", "f", "/d3", filePrefix + "/d1/file3"));
+        bw1.addMutation(createTablet("0", "m", "f", "/d3", filePrefix + "/d1/file3.rf"));
 
         bw1.flush();
 
@@ -364,9 +364,9 @@ public class CloneIT extends AccumuloClusterHarness {
       }
       assertEquals(3, count);
       assertEquals(3, files.size());
-      assertTrue(files.contains("hdfs://nn:8000/accumulo/tables/0/d1/file1"));
-      assertTrue(files.contains("hdfs://nn:8000/accumulo/tables/0/d2/file3"));
-      assertTrue(files.contains("hdfs://nn:8000/accumulo/tables/0/d4/file3"));
+      assertTrue(files.contains("hdfs://nn:8000/accumulo/tables/0/d1/file1.rf"));
+      assertTrue(files.contains("hdfs://nn:8000/accumulo/tables/0/d2/file3.rf"));
+      assertTrue(files.contains("hdfs://nn:8000/accumulo/tables/0/d4/file3.rf"));
     }
   }
 
@@ -380,16 +380,16 @@ public class CloneIT extends AccumuloClusterHarness {
 
       try (BatchWriter bw1 = client.createBatchWriter(tableName);
           BatchWriter bw2 = client.createBatchWriter(tableName)) {
-        bw1.addMutation(createTablet("0", "m", null, "/d1", filePrefix + "/d1/file1"));
-        bw1.addMutation(createTablet("0", null, "m", "/d2", filePrefix + "/d2/file2"));
+        bw1.addMutation(createTablet("0", "m", null, "/d1", filePrefix + "/d1/file1.rf"));
+        bw1.addMutation(createTablet("0", null, "m", "/d2", filePrefix + "/d2/file2.rf"));
 
         bw1.flush();
 
         MetadataTableUtil.initializeClone(tableName, TableId.of("0"), TableId.of("1"), client, bw2);
 
-        bw1.addMutation(deleteTablet("0", "m", null, filePrefix + "/d1/file1"));
-        Mutation mut = createTablet("0", null, null, "/d2", filePrefix + "/d2/file2");
-        mut.put(DataFileColumnFamily.NAME.toString(), filePrefix + "/d1/file1",
+        bw1.addMutation(deleteTablet("0", "m", null, filePrefix + "/d1/file1.rf"));
+        Mutation mut = createTablet("0", null, null, "/d2", filePrefix + "/d2/file2.rf");
+        mut.put(DataFileColumnFamily.NAME.toString(), filePrefix + "/d1/file1.rf",
             new DataFileValue(10, 200).encodeAsString());
         bw1.addMutation(mut);
 

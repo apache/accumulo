@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -52,7 +52,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
 public class SessionManager {
@@ -65,8 +64,10 @@ public class SessionManager {
   private final List<Session> idleSessions = new ArrayList<>();
   private final Long expiredSessionMarker = (long) -1;
   private final AccumuloConfiguration aconf;
+  private final ServerContext ctx;
 
   public SessionManager(ServerContext context) {
+    this.ctx = context;
     this.aconf = context.getConfiguration();
     maxUpdateIdle = aconf.getTimeInMillis(Property.TSERV_UPDATE_SESSION_MAXIDLE);
     maxIdle = aconf.getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
@@ -279,8 +280,8 @@ public class SessionManager {
         }
       };
 
-      ScheduledFuture<?> future = ThreadPools.createGeneralScheduledExecutorService(aconf)
-          .schedule(r, delay, TimeUnit.MILLISECONDS);
+      ScheduledFuture<?> future =
+          ctx.getScheduledExecutor().schedule(r, delay, TimeUnit.MILLISECONDS);
       ThreadPools.watchNonCriticalScheduledTask(future);
     }
   }
@@ -299,11 +300,10 @@ public class SessionManager {
       }
     }
 
-    for (Entry<Long,Session> entry : Iterables.concat(sessions.entrySet(), copiedIdleSessions)) {
+    List.of(sessions.entrySet(), copiedIdleSessions).forEach(set -> set.forEach(entry -> {
 
       Session session = entry.getValue();
-      @SuppressWarnings("rawtypes")
-      ScanTask nbt = null;
+      ScanTask<?> nbt = null;
       TableId tableID = null;
 
       if (session instanceof SingleScanSession) {
@@ -316,22 +316,13 @@ public class SessionManager {
         tableID = mss.threadPoolExtent.tableId();
       }
 
-      if (nbt == null)
-        continue;
-
-      ScanRunState srs = nbt.getScanRunState();
-
-      if (srs == ScanRunState.FINISHED)
-        continue;
-
-      MapCounter<ScanRunState> stateCounts = counts.get(tableID);
-      if (stateCounts == null) {
-        stateCounts = new MapCounter<>();
-        counts.put(tableID, stateCounts);
+      if (nbt != null) {
+        ScanRunState srs = nbt.getScanRunState();
+        if (srs != ScanRunState.FINISHED) {
+          counts.computeIfAbsent(tableID, unusedKey -> new MapCounter<>()).increment(srs, 1);
+        }
       }
-
-      stateCounts.increment(srs, 1);
-    }
+    }));
 
     return counts;
   }
@@ -351,7 +342,7 @@ public class SessionManager {
       }
     }
 
-    for (Entry<Long,Session> entry : Iterables.concat(sessions.entrySet(), copiedIdleSessions)) {
+    List.of(sessions.entrySet(), copiedIdleSessions).forEach(s -> s.forEach(entry -> {
       Session session = entry.getValue();
       if (session instanceof SingleScanSession) {
         SingleScanSession ss = (SingleScanSession) session;
@@ -420,7 +411,7 @@ public class SessionManager {
             params.getSsiList(), params.getSsio(), params.getAuthorizations().getAuthorizationsBB(),
             params.getClassLoaderContext()));
       }
-    }
+    }));
 
     return activeScans;
   }

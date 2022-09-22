@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,8 +19,8 @@
 package org.apache.accumulo.server.rpc;
 
 import static org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier.createTAuthIdentifier;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -35,9 +35,9 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.rpc.SaslDigestCallbackHandler;
 import org.apache.accumulo.server.security.delegation.AuthenticationKey;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class SaslDigestCallbackHandlerTest {
 
@@ -56,7 +56,7 @@ public class SaslDigestCallbackHandlerTest {
   private static final int KEY_LENGTH = 64;
   private static KeyGenerator keyGen;
 
-  @BeforeClass
+  @BeforeAll
   public static void setupKeyGenerator() throws Exception {
     // From org.apache.hadoop.security.token.SecretManager
     keyGen = KeyGenerator.getInstance(DEFAULT_HMAC_ALGORITHM);
@@ -66,7 +66,7 @@ public class SaslDigestCallbackHandlerTest {
   private SaslTestDigestCallbackHandler handler;
   private DelegationTokenConfig cfg;
 
-  @Before
+  @BeforeEach
   public void setup() {
     handler = new SaslTestDigestCallbackHandler();
     cfg = new DelegationTokenConfig();

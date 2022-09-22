@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -36,7 +36,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.cleaner.CleanerUtil;
-import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,7 +71,7 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
     this.tableName = tableName;
     this.numThreads = numQueryThreads;
 
-    queryThreadPool = ThreadPools.createFixedThreadPool(numQueryThreads,
+    queryThreadPool = context.threadPools().createFixedThreadPool(numQueryThreads,
         "batch scanner " + batchReaderInstance + "-", false);
     // Call shutdown on this thread pool in case the caller does not call close().
     cleanable = CleanerUtil.shutdownThreadPoolExecutor(queryThreadPool, closed, log);

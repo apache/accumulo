@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,12 +18,14 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
+import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.FileNotFoundException;
+import java.time.Duration;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.client.Accumulo;
@@ -40,20 +42,17 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Iterators;
-
-@Category(MiniClusterOnlyTests.class)
+@Tag(MINI_CLUSTER_ONLY)
 public class TableIT extends AccumuloClusterHarness {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 2 * 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
   }
 
   @Test
@@ -77,12 +76,12 @@ public class TableIT extends AccumuloClusterHarness {
       try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
         s.setRange(new KeyExtent(id, null, null).toMetaRange());
         s.fetchColumnFamily(DataFileColumnFamily.NAME);
-        assertTrue(Iterators.size(s.iterator()) > 0);
+        assertTrue(s.stream().findAny().isPresent());
 
         FileSystem fs = getCluster().getFileSystem();
         assertTrue(fs.listStatus(new Path(rootPath + "/accumulo/tables/" + id)).length > 0);
         to.delete(tableName);
-        assertEquals(0, Iterators.size(s.iterator()));
+        assertTrue(s.stream().findAny().isEmpty());
 
         try {
           assertEquals(0, fs.listStatus(new Path(rootPath + "/accumulo/tables/" + id)).length);

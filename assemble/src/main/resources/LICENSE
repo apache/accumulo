@@ -690,6 +690,8 @@ to the terms and conditions of the following licenses.
     Copyright (c) 2018 Oracle and/or its affiliates. All rights reserved.
 * org.glassfish.jaxb:jaxb-runtime
     Copyright (c) 2018 Oracle and/or its affiliates. All rights reserved.
+* org.glassfish.jaxb:txw2
+    Copyright (c) 2018 Oracle and/or its affiliates. All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions

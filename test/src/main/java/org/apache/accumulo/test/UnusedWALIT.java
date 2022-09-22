@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,8 +18,9 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.UUID;
@@ -44,15 +45,18 @@ import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.Test;
-
-import com.google.common.collect.Iterators;
+import org.junit.jupiter.api.Test;
 
 // When reviewing the changes for ACCUMULO-3423, kturner suggested
 // "tablets will now have log references that contain no data,
 // so it may be marked with 3 WALs, the first with data, the 2nd without, a 3rd with data.
 // It would be useful to have an IT that will test this situation.
 public class UnusedWALIT extends ConfigurableMacBase {
+
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
+  }
 
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -63,11 +67,6 @@ public class UnusedWALIT extends ConfigurableMacBase {
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
     hadoopCoreSite.set("fs.namenode.fs-limits.min-block-size", Long.toString(logSize));
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
   }
 
   @Test
@@ -105,7 +104,9 @@ public class UnusedWALIT extends ConfigurableMacBase {
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
 
       // wait for the metadata table to be online
-      Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
+      try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+        scanner.forEach((k, v) -> {});
+      }
 
       // check our two sets of data in different logs
       scanSomeData(c, lilTable, 0, 1, 0, 1);

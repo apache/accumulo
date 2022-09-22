@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -16,12 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 /* basic screen style for all pages */
 body {
   font-family: verdana, arial, sans-serif;
   font-size: 10pt;
-  padding-top:50px; /* For fixed top navbar */
 }
 
 #banner {
@@ -116,6 +114,11 @@ hr {
 table {
   font-size: 9pt;
 }
+
+.table-bordered th,
+.table-bordered td {
+    border: 1px solid #ddd !important;
+ }
 
 /*
 The following is to avoid a problem with the flot
@@ -282,6 +285,48 @@ pre.logevent {
   background-color: #cef4b5;
 }
 
+.label {
+  display: inline;
+  padding: 0.2em 0.6em 0.3em;
+  font-size: 75%;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: baseline;
+  border-radius: 0.25em;
+}
+
+.label-success {
+  background-color: #5cb85c;
+}
+.label-success[href]:hover,
+.label-success[href]:focus {
+  background-color: #449d44;
+}
+.label-info {
+  background-color: #5bc0de;
+}
+.label-info[href]:hover,
+.label-info[href]:focus {
+  background-color: #31b0d5;
+}
+.label-warning {
+  background-color: #f0ad4e;
+}
+.label-warning[href]:hover,
+.label-warning[href]:focus {
+  background-color: #ec971f;
+}
+.label-danger {
+  background-color: #d9534f;
+}
+.label-danger[href]:hover,
+.label-danger[href]:focus {
+  background-color: #c9302c;
+}
+
 .icon-dot {
   display: inline-block;
   min-width: 1em;
@@ -292,6 +337,8 @@ pre.logevent {
   text-align: center;
   border-radius: 1em;
 }
+
+
 
 .smalltext {
   font-size: 0.8em;
@@ -394,8 +441,27 @@ pre.logevent {
 }
 
 .dropdown-menu {
-  right: 0;
   left: unset;
+}
+
+.active  {
+  color: #fff;
+  text-decoration: none;
+  background-color: #337ab7;
+  outline: 0;
+}
+
+
+.btn-white-font {
+  color: #fff;
+  background-color: #0dcaf0;
+  border-color: #0dcaf0;
+}
+
+.btn-white-font:hover {
+  color: #fff;
+  background-color: #0dcaf0;
+  border-color: #0dcaf0;
 }
 
 .axis path, .axis line
@@ -427,4 +493,9 @@ pre.logevent {
 /* gently lighten the bootstrap text color for the navbar */
 .navbar-inverse .navbar-brand, .navbar-inverse .navbar-nav > li > a {
   color: #d3d3d3;
+}
+
+/* will keep navbar buttons highlighted when dropdown menu is displayed */
+.nav-link.dropdown-toggle.show, .nav-link.show{
+    background: #6c757d;
 }

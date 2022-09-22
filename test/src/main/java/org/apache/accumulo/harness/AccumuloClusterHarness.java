@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -20,7 +20,8 @@ package org.apache.accumulo.harness;
 
 import static com.google.common.base.Preconditions.checkState;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assume.assumeTrue;
+import static org.apache.accumulo.harness.AccumuloITBase.STANDALONE_CAPABLE_CLUSTER;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.IOException;
 import java.util.Properties;
@@ -42,15 +43,14 @@ import org.apache.accumulo.harness.conf.AccumuloClusterPropertyConfiguration;
 import org.apache.accumulo.harness.conf.StandaloneAccumuloClusterConfiguration;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.categories.StandaloneCapableClusterTests;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,7 +60,7 @@ import org.slf4j.LoggerFactory;
  * advanced ITs that do crazy things. For more typical, expected behavior of a cluster see
  * {@link SharedMiniClusterBase}. This instance can be MAC or a standalone instance.
  */
-@Category(StandaloneCapableClusterTests.class)
+@Tag(STANDALONE_CAPABLE_CLUSTER)
 public abstract class AccumuloClusterHarness extends AccumuloITBase
     implements MiniClusterConfigurationCallback, ClusterUsers {
   private static final Logger log = LoggerFactory.getLogger(AccumuloClusterHarness.class);
@@ -81,7 +81,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
   protected static AccumuloClusterPropertyConfiguration clusterConf;
   protected static TestingKdc krb;
 
-  @BeforeClass
+  @BeforeAll
   public static void setUpHarness() throws Exception {
     clusterConf = AccumuloClusterPropertyConfiguration.get();
     type = clusterConf.getClusterType();
@@ -96,7 +96,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
     initialized = true;
   }
 
-  @AfterClass
+  @AfterAll
   public static void tearDownHarness() {
     if (krb != null) {
       krb.stop();
@@ -110,7 +110,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
     return krb;
   }
 
-  @Before
+  @BeforeEach
   public void setupCluster() throws Exception {
     // Before we try to instantiate the cluster, check to see if the test even wants to run against
     // this type of cluster
@@ -200,7 +200,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
     }
   }
 
-  @After
+  @AfterEach
   public void teardownCluster() throws Exception {
     if (cluster != null) {
       if (type.isDynamic()) {
@@ -288,8 +288,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
           return krb.getClientPrincipal(offset);
         } else {
           // Come up with a mostly unique name
-          String principal =
-              getClass().getSimpleName() + "_" + testName.getMethodName() + "_" + offset;
+          String principal = getClass().getSimpleName() + "_" + testName() + "_" + offset;
           // Username and password are the same
           return new ClusterUser(principal, principal);
         }

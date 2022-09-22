@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -23,10 +23,9 @@ import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,28 +38,28 @@ import java.util.Objects;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.spi.crypto.GenericCryptoServiceFactory;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.log.SortedLogState;
+import org.apache.accumulo.tserver.WithTestNames;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
-public class RecoveryLogsIteratorTest {
+public class RecoveryLogsIteratorTest extends WithTestNames {
 
   private VolumeManager fs;
   private File workDir;
@@ -68,27 +67,25 @@ public class RecoveryLogsIteratorTest {
   static ServerContext context;
   static LogSorter logSorter;
 
-  @Rule
-  public TemporaryFolder tempFolder =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File tempDir;
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     context = createMock(ServerContext.class);
-    logSorter = new LogSorter(context, DefaultConfiguration.getInstance());
 
-    workDir = tempFolder.newFolder();
+    workDir = new File(tempDir, testName());
     String path = workDir.getAbsolutePath();
-    assertTrue(workDir.delete());
     fs = VolumeManagerImpl.getLocalForTesting(path);
+    expect(context.getCryptoFactory()).andReturn(new GenericCryptoServiceFactory()).anyTimes();
     expect(context.getVolumeManager()).andReturn(fs).anyTimes();
-    expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())
-        .anyTimes();
     expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
     replay(context);
+
+    logSorter = new LogSorter(context, DefaultConfiguration.getInstance());
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws Exception {
     fs.close();
   }
@@ -138,8 +135,8 @@ public class RecoveryLogsIteratorTest {
     try (RecoveryLogsIterator rli = new RecoveryLogsIterator(context, dirs, null, null, false)) {
       while (rli.hasNext()) {
         Entry<LogFileKey,LogFileValue> entry = rli.next();
-        assertEquals("TabletId does not match", 1, entry.getKey().tabletId);
-        assertEquals("Event does not match", DEFINE_TABLET, entry.getKey().event);
+        assertEquals(1, entry.getKey().tabletId, "TabletId does not match");
+        assertEquals(DEFINE_TABLET, entry.getKey().event, "Event does not match");
       }
     }
   }
@@ -161,8 +158,9 @@ public class RecoveryLogsIteratorTest {
 
     createRecoveryDir(logs, dirs, false);
 
-    assertThrows("Finish marker should not be found", IOException.class,
-        () -> new RecoveryLogsIterator(context, dirs, null, null, false));
+    assertThrows(IOException.class,
+        () -> new RecoveryLogsIterator(context, dirs, null, null, false),
+        "Finish marker should not be found");
   }
 
   @Test
@@ -170,9 +168,10 @@ public class RecoveryLogsIteratorTest {
     String destPath = workDir + "/test.rf";
     fs.create(new Path(destPath));
 
-    assertThrows("Finish marker should not be found for a single file.", IOException.class,
-        () -> new RecoveryLogsIterator(context, Collections.singletonList(new Path(destPath)), null,
-            null, false));
+    assertThrows(
+        IOException.class, () -> new RecoveryLogsIterator(context,
+            Collections.singletonList(new Path(destPath)), null, null, false),
+        "Finish marker should not be found for a single file.");
   }
 
   @Test
@@ -192,9 +191,9 @@ public class RecoveryLogsIteratorTest {
 
     createRecoveryDir(logs, dirs, true);
 
-    assertThrows("First log entry is not OPEN so exception should be thrown.",
-        IllegalStateException.class,
-        () -> new RecoveryLogsIterator(context, dirs, null, null, true));
+    assertThrows(IllegalStateException.class,
+        () -> new RecoveryLogsIterator(context, dirs, null, null, true),
+        "First log entry is not OPEN so exception should be thrown.");
   }
 
   @Test

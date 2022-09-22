@@ -8,7 +8,7 @@
     "License"); you may not use this file except in compliance
     with the License.  You may obtain a copy of the License at
 
-      http://www.apache.org/licenses/LICENSE-2.0
+      https://www.apache.org/licenses/LICENSE-2.0
 
     Unless required by applicable law or agreed to in writing,
     software distributed under the License is distributed on an
@@ -18,10 +18,15 @@
     under the License.
 
 -->
-      <div><h3>${title}</h3></div>
-      <div id="gcBanner"><div class="alert alert-danger" role="alert">Collector is Unavailable</div></div>
       <div>
-        <table id="gcActivity" class="table table-bordered table-striped table-condensed">
+        <h3>${title}</h3>
+      </div>
+      <div id="gcBanner">
+        <div class="alert alert-danger" role="alert">Collector is Unavailable</div>
+      </div>
+      <div>
+        <table id="gcActivity" class="table caption-top table-bordered table-striped table-condensed">
+          <caption><span class="table-caption">Garbage Collector Activities</span><br /></caption>
           <thead>
             <tr>
               <th class="firstcell">Activity&nbsp;</th>

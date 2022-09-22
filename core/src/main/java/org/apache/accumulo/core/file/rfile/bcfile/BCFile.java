@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -325,7 +325,7 @@ public final class BCFile {
       metaIndex = new MetaIndex();
       fsOutputBuffer = new BytesWritable();
       Magic.write(this.out);
-      this.cryptoEnvironment = new CryptoEnvironmentImpl(Scope.RFILE, null);
+      this.cryptoEnvironment = new CryptoEnvironmentImpl(Scope.TABLE, null, null);
       this.encrypter = cryptoService.getFileEncrypter(this.cryptoEnvironment);
     }
 
@@ -641,7 +641,7 @@ public final class BCFile {
         // read crypto parameters and get decrypter
         this.in.seek(offsetCryptoParameters);
         decryptionParams = CryptoUtils.readParams(this.in);
-        cryptoEnvironment = new CryptoEnvironmentImpl(Scope.RFILE, decryptionParams);
+        cryptoEnvironment = new CryptoEnvironmentImpl(Scope.TABLE, null, decryptionParams);
         this.decrypter = cryptoService.getFileDecrypter(cryptoEnvironment);
       }
 
@@ -665,7 +665,7 @@ public final class BCFile {
       dataIndex = new DataIndex(dis);
 
       decryptionParams = CryptoUtils.readParams(dis);
-      CryptoEnvironmentImpl env = new CryptoEnvironmentImpl(Scope.RFILE, decryptionParams);
+      CryptoEnvironmentImpl env = new CryptoEnvironmentImpl(Scope.TABLE, null, decryptionParams);
       this.decrypter = cryptoService.getFileDecrypter(env);
     }
 

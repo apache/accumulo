@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -20,21 +20,23 @@ package org.apache.accumulo.test.shell;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeFalse;
-import static org.junit.Assume.assumeTrue;
+import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.reflect.Constructor;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -62,20 +64,18 @@ import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
-import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.accumulo.test.compaction.TestCompactionStrategy;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.conf.Configuration;
@@ -84,23 +84,21 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.tools.DistCp;
 import org.jline.terminal.Terminal;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@Category({MiniClusterOnlyTests.class, SunnyDayTests.class})
+@Tag(MINI_CLUSTER_ONLY)
+@Tag(SUNNY_DAY)
 public class ShellServerIT extends SharedMiniClusterBase {
 
   @SuppressWarnings("removal")
@@ -113,9 +111,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   private static String rootPath;
 
-  @Rule
-  public TestName name = new TestName();
-
   private static class ShellServerITConfigCallback implements MiniClusterConfigurationCallback {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
@@ -127,7 +122,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
     }
   }
 
-  @BeforeClass
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
+  }
+
+  @BeforeAll
   public static void setupMiniCluster() throws Exception {
     SharedMiniClusterBase.startMiniClusterWithConfig(new ShellServerITConfigCallback());
     rootPath = getMiniClusterDir().getAbsolutePath();
@@ -140,26 +140,21 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   }
 
-  @Before
+  @BeforeEach
   public void setupShell() throws Exception {
     ts = new MockShell(getPrincipal(), getRootPassword(),
         getCluster().getConfig().getInstanceName(), getCluster().getConfig().getZooKeepers(),
         getCluster().getConfig().getClientPropsFile());
   }
 
-  @AfterClass
-  public static void tearDownAfterClass() {
+  @AfterAll
+  public static void tearDownAfterAll() {
     SharedMiniClusterBase.stopMiniCluster();
   }
 
-  @After
+  @AfterEach
   public void tearDownShell() {
     ts.shell.shutdown();
-  }
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 60;
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
@@ -178,7 +173,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     String exportUri = "file://" + exportDir;
     String localTmp = "file://" + new File(rootPath, "ShellServerIT.tmp");
     ts.exec("exporttable -t " + table + " " + exportUri, true);
-    DistCp cp = newDistCp(new Configuration(false));
+    DistCp cp = new DistCp(new Configuration(false), null);
     String import_ = "file://" + new File(rootPath, "ShellServerIT.import");
     ClientInfo info = ClientInfo.from(getCluster().getClientProperties());
     if (info.saslEnabled()) {
@@ -210,35 +205,16 @@ public class ShellServerIT extends SharedMiniClusterBase {
       }
     } else {
       String[] distCpArgs = {"-f", exportUri + "/distcp.txt", import_};
-      assertEquals("Failed to run distcp: " + Arrays.toString(distCpArgs), 0, cp.run(distCpArgs));
+      assertEquals(0, cp.run(distCpArgs), "Failed to run distcp: " + Arrays.toString(distCpArgs));
     }
     ts.exec("importtable " + table2 + " " + import_, true);
+    Thread.sleep(100);
     ts.exec("config -t " + table2 + " -np", true, "345M", true);
     ts.exec("getsplits -t " + table2, true, "row5", true);
     ts.exec("constraint --list -t " + table2, true, "VisibilityConstraint=2", true);
     ts.exec("online " + table, true);
     ts.exec("deletetable -f " + table, true);
     ts.exec("deletetable -f " + table2, true);
-  }
-
-  private DistCp newDistCp(Configuration conf) {
-    try {
-      @SuppressWarnings("unchecked")
-      Constructor<DistCp>[] constructors = (Constructor<DistCp>[]) DistCp.class.getConstructors();
-      for (Constructor<DistCp> constructor : constructors) {
-        Class<?>[] parameterTypes = constructor.getParameterTypes();
-        if (parameterTypes.length > 0 && parameterTypes[0].equals(Configuration.class)) {
-          if (parameterTypes.length == 1) {
-            return constructor.newInstance(conf);
-          } else if (parameterTypes.length == 2) {
-            return constructor.newInstance(conf, null);
-          }
-        }
-      }
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-    throw new RuntimeException("Unexpected constructors for DistCp");
   }
 
   @Test
@@ -540,8 +516,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     long now = System.currentTimeMillis();
     ts.exec("sleep 0.2", true);
     long diff = System.currentTimeMillis() - now;
-    assertTrue("Diff was actually " + diff, diff >= 200);
-    assertTrue("Diff was actually " + diff, diff < 600);
+    assertTrue(diff >= 200, "Diff was actually " + diff);
+    assertTrue(diff < 600, "Diff was actually " + diff);
   }
 
   @Test
@@ -572,7 +548,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
         sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
       }
     }
-    assertTrue("Could not successfully see updated authoriations", passed);
+    assertTrue(passed, "Could not successfully see updated authoriations");
     ts.exec("insert a b c d -l foo");
     ts.exec("scan", true, "[foo]");
     ts.exec("scan -s bar", true, "[foo]", false);
@@ -581,11 +557,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void getAuths() throws Exception {
-    assumeFalse("test skipped for kerberos", getToken() instanceof KerberosToken);
+    assumeFalse(getToken() instanceof KerberosToken, "test skipped for kerberos");
 
     // create two users with different auths
     for (int i = 1; i <= 2; i++) {
-      String userName = name.getMethodName() + "user" + i;
+      String userName = testName() + "user" + i;
       String password = "password" + i;
       String auths = "auth" + i + "A,auth" + i + "B";
       ts.exec("createuser " + userName, true);
@@ -713,13 +689,13 @@ public class ShellServerIT extends SharedMiniClusterBase {
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       accumuloClient.tableOperations().getConfiguration(table).forEach((key, value) -> {
         if (key.equals("table.custom.description"))
-          assertEquals("Initial property was not set correctly", "description", value);
+          assertEquals("description", value, "Initial property was not set correctly");
 
         if (key.equals("table.custom.testProp"))
-          assertEquals("Initial property was not set correctly", "testProp", value);
+          assertEquals("testProp", value, "Initial property was not set correctly");
 
         if (key.equals(Property.TABLE_SPLIT_THRESHOLD.getKey()))
-          assertEquals("Initial property was not set correctly", "10K", value);
+          assertEquals("10K", value, "Initial property was not set correctly");
       });
     }
     ts.exec("deletetable -f " + table);
@@ -752,7 +728,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     List<String> oldFiles = getFiles(tableId);
 
     // at this point there are 4 files in the default tablet
-    assertEquals("Files that were found: " + oldFiles, 4, oldFiles.size());
+    assertEquals(4, oldFiles.size(), "Files that were found: " + oldFiles);
 
     // compact some data:
     ts.exec("compact -b g -e z -w");
@@ -1026,11 +1002,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
       log.info("More than 3 files were found, compacting before proceeding");
       ts.exec("compact -w -t " + table);
       files = getFiles(tableId);
-      assertEquals("Expected to only find 3 files after compaction: " + files, 3, files.size());
+      assertEquals(3, files.size(), "Expected to only find 3 files after compaction: " + files);
     }
 
     assertNotNull(files);
-    assertEquals("Found the following files: " + files, 3, files.size());
+    assertEquals(3, files.size(), "Found the following files: " + files);
     ts.exec("deleterows -t " + table + " -b row5 -e row7");
     assertEquals(2, countFiles(tableId));
     ts.exec("deletetable -f " + table);
@@ -1289,12 +1265,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
     String odd = new File(importDir, "odd.rf").toString();
     AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
     FileSKVWriter evenWriter = FileOperations.getInstance().newWriterBuilder()
-        .forFile(even, fs, conf, CryptoServiceFactory.newDefaultInstance())
-        .withTableConfiguration(aconf).build();
+        .forFile(even, fs, conf, NoCryptoServiceFactory.NONE).withTableConfiguration(aconf).build();
     evenWriter.startDefaultLocalityGroup();
     FileSKVWriter oddWriter = FileOperations.getInstance().newWriterBuilder()
-        .forFile(odd, fs, conf, CryptoServiceFactory.newDefaultInstance())
-        .withTableConfiguration(aconf).build();
+        .forFile(odd, fs, conf, NoCryptoServiceFactory.NONE).withTableConfiguration(aconf).build();
     oddWriter.startDefaultLocalityGroup();
     long timestamp = System.currentTimeMillis();
     Text cf = new Text("cf");
@@ -1460,7 +1434,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
       SlowIterator.setSleepTime(cfg, 500);
       s.addScanIterator(cfg);
 
-      Thread thread = new Thread(() -> Iterators.size(s.iterator()));
+      Thread thread = new Thread(() -> {
+        s.forEach((k, v) -> {});
+      });
       thread.start();
 
       List<String> scans = new ArrayList<>();
@@ -1482,7 +1458,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       }
       thread.join();
 
-      assertFalse("Could not find any active scans over table " + table, scans.isEmpty());
+      assertFalse(scans.isEmpty(), "Could not find any active scans over table " + table);
 
       for (String scan : scans) {
         if (!scan.contains("RUNNING")) {
@@ -1490,8 +1466,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
           continue;
         }
         String[] parts = scan.split("\\|");
-        assertEquals("Expected 14 colums, but found " + parts.length + " instead for '"
-            + Arrays.toString(parts) + "'", 14, parts.length);
+        assertEquals(14, parts.length, "Expected 14 colums, but found " + parts.length
+            + " instead for '" + Arrays.toString(parts) + "'");
         String tserver = parts[0].trim();
         // TODO: any way to tell if the client address is accurate? could be local IP, host,
         // loopback...?
@@ -1510,20 +1486,22 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void testPerTableClasspathLegacyJar() throws Exception {
+    final String table = getUniqueNames(1)[0];
     File fooConstraintJar =
         initJar("/org/apache/accumulo/test/FooConstraint.jar", "FooContraint", rootPath);
-    verifyPerTableClasspath(fooConstraintJar);
+    verifyPerTableClasspath(table, fooConstraintJar);
   }
 
   @Test
   public void testPerTableClasspath_2_1_Jar() throws Exception {
+    final String table = getUniqueNames(1)[0];
     File fooConstraintJar =
         initJar("/org/apache/accumulo/test/FooConstraint_2_1.jar", "FooConstraint_2_1", rootPath);
-    verifyPerTableClasspath(fooConstraintJar);
+    verifyPerTableClasspath(table, fooConstraintJar);
   }
 
-  public void verifyPerTableClasspath(final File fooConstraintJar) throws IOException {
-    final String table = getUniqueNames(1)[0];
+  public void verifyPerTableClasspath(final String table, final File fooConstraintJar)
+      throws IOException {
 
     File fooFilterJar = initJar("/org/apache/accumulo/test/FooFilter.jar", "FooFilter", rootPath);
 
@@ -1534,7 +1512,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("config -t " + table + " -s " + Property.TABLE_CLASSLOADER_CONTEXT.getKey() + "=cx1",
         true);
 
-    sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
+    sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
 
     // We can't use the setiter command as Filter implements OptionDescriber which
     // forces us to enter more input that I don't know how to input
@@ -1542,9 +1520,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("config -t " + table + " -s " + Property.TABLE_ITERATOR_PREFIX.getKey()
         + "scan.foo=10,org.apache.accumulo.test.FooFilter");
 
+    sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
+
     ts.exec("insert foo f q v", true);
 
-    sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+    sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
 
     ts.exec("scan -np", true, "foo", false);
 
@@ -1639,6 +1619,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("namespaces", true, ns_2, false);
     ts.exec("tables", true, ns_2 + "." + tableName, false);
 
+    Thread.sleep(250);
+
     // put constraints on a namespace
     ts.exec("constraint -ns " + ns_4
         + " -a org.apache.accumulo.test.constraints.NumericValueConstraint", true);
@@ -1649,7 +1631,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("constraint -l", true, "NumericValueConstraint", true);
     ts.exec("insert r cf cq abc", false);
     ts.exec("constraint -ns " + ns_4 + " -d 1");
-    ts.exec("sleep 1");
+    ts.exec("sleep 3");
     ts.exec("insert r cf cq abc", true);
   }
 
@@ -1691,8 +1673,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void scansWithClassLoaderContext() throws IOException {
 
-    assertThrows("ValueReversingIterator already on the classpath", ClassNotFoundException.class,
-        () -> Class.forName(VALUE_REVERSING_ITERATOR));
+    assertThrows(ClassNotFoundException.class, () -> Class.forName(VALUE_REVERSING_ITERATOR),
+        "ValueReversingIterator already on the classpath");
 
     final String tableName = getUniqueNames(1)[0];
 
@@ -1969,12 +1951,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   private static void assertMatches(String output, String pattern) {
     var p = Pattern.compile(pattern).asMatchPredicate();
-    assertTrue("Pattern " + pattern + " did not match output : " + output, p.test(output));
+    assertTrue(p.test(output), "Pattern " + pattern + " did not match output : " + output);
   }
 
   private static void assertNotContains(String output, String subsequence) {
-    assertFalse("Expected '" + subsequence + "' would not occur in output : " + output,
-        output.contains(subsequence));
+    assertFalse(output.contains(subsequence),
+        "Expected '" + subsequence + "' would not occur in output : " + output);
   }
 
   @Test
@@ -2099,4 +2081,60 @@ public class ShellServerIT extends SharedMiniClusterBase {
     // check that there are two files, with none having extra summary info
     assertMatches(output, "(?sm).*^.*total[:]2[,]\\s+missing[:]0[,]\\s+extra[:]0.*$.*");
   }
+
+  @Test
+  public void testFateCommandWithSlowCompaction() throws Exception {
+    final String table = getUniqueNames(1)[0];
+
+    String orgProps = System.getProperty("accumulo.properties");
+
+    System.setProperty("accumulo.properties",
+        "file://" + getCluster().getConfig().getAccumuloPropsFile().getCanonicalPath());
+    // compact
+    ts.exec("createtable " + table);
+
+    // setup SlowIterator to sleep for 10 seconds
+    ts.exec("config -t " + table
+        + " -s table.iterator.majc.slow=1,org.apache.accumulo.test.functional.SlowIterator");
+    ts.exec("config -t " + table + " -s table.iterator.majc.slow.opt.sleepTime=10000");
+
+    // make two files
+    ts.exec("insert a1 b c v_a1");
+    ts.exec("insert a2 b c v_a2");
+    ts.exec("flush -w");
+    ts.exec("insert x1 b c v_x1");
+    ts.exec("insert x2 b c v_x2");
+    ts.exec("flush -w");
+
+    // no transactions running
+    ts.exec("fate -print", true, "0 transactions", true);
+
+    // merge two files into one
+    ts.exec("compact -t " + table);
+    Thread.sleep(1_000);
+    // start 2nd transaction
+    ts.exec("compact -t " + table);
+    Thread.sleep(3_000);
+
+    // 2 compactions should be running so parse the output to get one of the transaction ids
+    log.info("Calling fate print for table = {}", table);
+    String result = ts.exec("fate -print", true, "txid:", true);
+    String[] resultParts = result.split("txid: ");
+    String[] parts = resultParts[1].split(" ");
+    String txid = parts[0];
+    // test filters
+    ts.exec("fate -print -t IN_PROGRESS", true, "2 transactions", true);
+    ts.exec("fate -print " + txid + " -t IN_PROGRESS", true, "1 transactions", true);
+    ts.exec("fate -print " + txid + " -t FAILED", true, "0 transactions", true);
+    ts.exec("fate -print -t NEW", true, "0 transactions", true);
+    ts.exec("fate -print 1234", true, "0 transactions", true);
+    ts.exec("fate -print FATE[aaa] 1 2 3", true, "0 transactions", true);
+
+    ts.exec("deletetable -f " + table);
+
+    if (orgProps != null) {
+      System.setProperty("accumulo.properties", orgProps);
+    }
+  }
+
 }
