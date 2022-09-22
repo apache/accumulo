@@ -19,11 +19,15 @@
 package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -76,21 +80,76 @@ public class FateSummaryIT extends ConfigurableMacBase {
 
       ReadWriteIT.ingest(client, 10, 10, 10, 0, table);
       client.tableOperations().flush(table);
-      client.tableOperations().compact(table, null, null, false, false);
 
-      ProcessInfo p =
-          getCluster().exec(Admin.class, "fate", "--summary", "-j", "-s", "IN_PROGRESS");
+      // validate blank report, compactions have not started yet
+      ProcessInfo p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-s", "NEW", "-s",
+          "IN_PROGRESS", "-s", "FAILED");
       assertEquals(0, p.getProcess().waitFor());
       String result = p.readStdOut();
       result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
       FateSummaryReport report = FateSummaryReport.fromJson(result);
-      // validate blank report
       assertNotNull(report);
       assertNotEquals(0, report.getReportTime());
-      assertEquals(Set.of("IN_PROGRESS"), report.getStatusFilterNames());
-      assertEquals(1, report.getStatusCounts().get("IN_PROGRESS"));
-      assertEquals(1, report.getStepCounts().get("CompactionDriver"));
-      assertEquals(1, report.getCmdCounts().get("TABLE_COMPACT"));
+      Set<String> expected = new HashSet<>();
+      expected.add("FAILED");
+      expected.add("IN_PROGRESS");
+      expected.add("NEW");
+      assertEquals(expected, report.getStatusFilterNames());
+      assertEquals(Map.of(), report.getStatusCounts());
+      assertEquals(Map.of(), report.getStepCounts());
+      assertEquals(Map.of(), report.getCmdCounts());
+
+      // create Fate transactions
+      client.tableOperations().compact(table, null, null, false, false);
+      client.tableOperations().compact(table, null, null, false, false);
+
+      // validate no filters
+      p = getCluster().exec(Admin.class, "fate", "--summary", "-j");
+      assertEquals(0, p.getProcess().waitFor());
+      result = p.readStdOut();
+      result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+      report = FateSummaryReport.fromJson(result);
+      assertNotNull(report);
+      assertNotEquals(0, report.getReportTime());
+      assertEquals(Set.of(), report.getStatusFilterNames());
+      assertFalse(report.getStatusCounts().isEmpty());
+      assertFalse(report.getStepCounts().isEmpty());
+      assertFalse(report.getCmdCounts().isEmpty());
+      assertEquals(2, report.getFateDetails().size());
+      ArrayList<String> txns = new ArrayList<>();
+      report.getFateDetails().forEach((d) -> {
+        txns.add(d.getTxnId());
+      });
+      assertEquals(2, txns.size());
+
+      // validate tx ids
+      p = getCluster().exec(Admin.class, "fate", txns.get(0), txns.get(1), "--summary", "-j");
+      assertEquals(0, p.getProcess().waitFor());
+      result = p.readStdOut();
+      result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+      report = FateSummaryReport.fromJson(result);
+      assertNotNull(report);
+      assertNotEquals(0, report.getReportTime());
+      assertEquals(Set.of(), report.getStatusFilterNames());
+      assertFalse(report.getStatusCounts().isEmpty());
+      assertFalse(report.getStepCounts().isEmpty());
+      assertFalse(report.getCmdCounts().isEmpty());
+      assertEquals(2, report.getFateDetails().size());
+
+      // validate filter by including only FAILED transactions, should be none
+      p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-s", "FAILED");
+      assertEquals(0, p.getProcess().waitFor());
+      result = p.readStdOut();
+      result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+      report = FateSummaryReport.fromJson(result);
+      assertNotNull(report);
+      assertNotEquals(0, report.getReportTime());
+      assertEquals(Set.of("FAILED"), report.getStatusFilterNames());
+      assertFalse(report.getStatusCounts().isEmpty());
+      assertFalse(report.getStepCounts().isEmpty());
+      assertFalse(report.getCmdCounts().isEmpty());
+      assertEquals(0, report.getFateDetails().size());
+
     }
   }
 
