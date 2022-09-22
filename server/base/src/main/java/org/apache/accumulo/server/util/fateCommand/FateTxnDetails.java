@@ -95,6 +95,10 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
     return formattedLocks;
   }
 
+  public String getTxnId() {
+    return txnId;
+  }
+
   /**
    * Sort by running time in reverse (oldest txn first). txid is unique as used to break times and
    * so that compareTo remains consistent with hashCode and equals methods.
