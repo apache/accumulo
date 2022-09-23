@@ -18,12 +18,6 @@
  */
 package org.apache.accumulo.core.data;
 
-import static org.apache.accumulo.core.data.PartialKey.ROW;
-import static org.apache.accumulo.core.data.PartialKey.ROW_COLFAM;
-import static org.apache.accumulo.core.data.PartialKey.ROW_COLFAM_COLQUAL;
-import static org.apache.accumulo.core.data.PartialKey.ROW_COLFAM_COLQUAL_COLVIS;
-import static org.apache.accumulo.core.data.PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME;
-import static org.apache.accumulo.core.data.PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL;
 import static org.apache.accumulo.core.util.ByteBufferUtil.toBytes;
 
 import java.io.DataInput;
