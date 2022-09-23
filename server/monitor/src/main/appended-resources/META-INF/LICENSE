@@ -6,12 +6,12 @@ The Apache Accumulo project contains subcomponents with separate
 copyright notices and license terms. Your use of these is subject
 to the terms and conditions of the following licenses.
 
-## JQuery 3.2.1 (https://jquery.com/)
+## JQuery 3.6.1 (https://jquery.com/)
 
 Files:
 * server/monitor/src/main/resources/org/apache/accumulo/monitor/resources/external/jquery/*
 
-    jQuery JavaScript Library v3.2.1
+    jQuery JavaScript Library v3.6.1
     https://jquery.com/
 
     Includes Sizzle.js
@@ -21,7 +21,7 @@ Files:
     Released under the MIT license
     https://jquery.org/license
 
-    Date: 2017-03-20T18:59Z
+    Date: 2022-08-26T17:52Z
 
     Text of the MIT License:
 
@@ -46,7 +46,7 @@ Files:
     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
     OTHER DEALINGS IN THE SOFTWARE.
 
-## Flot 4.2.1 (https://github.com/flot/flot)
+## Flot 4.2.3 (https://github.com/flot/flot)
 
 Files:
 * server/monitor/src/main/resources/org/apache/accumulo/monitor/resources/external/flot/*
