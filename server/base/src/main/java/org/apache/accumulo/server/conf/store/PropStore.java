@@ -77,8 +77,8 @@ public interface PropStore {
   void putAll(PropStoreKey<?> propStoreKey, Map<String,String> props);
 
   /**
-   * Replaces all current properties with map provided If a property is not included in the new map,
-   * the property will not be set.
+   * Replaces all current properties with map provided. If a property is not included in the new
+   * map, the property will not be set.
    *
    * @param propStoreKey
    *          the prop cache key

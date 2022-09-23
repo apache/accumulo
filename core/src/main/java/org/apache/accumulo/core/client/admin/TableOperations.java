@@ -684,8 +684,7 @@ public interface TableOperations {
    * Gets per-table properties of a table. This operation is asynchronous and eventually consistent.
    * It is not guaranteed that all tablets in a table will return the same values. Within a few
    * seconds without another change, all tablets in a table should be consistent. The clone table
-   * feature can be used if consistency is required. This new method returns a Map instead of an
-   * Iterable.
+   * feature can be used if consistency is required.
    *
    * @param tableName
    *          the name of the table
