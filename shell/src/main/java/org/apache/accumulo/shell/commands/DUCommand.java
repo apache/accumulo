@@ -46,7 +46,7 @@ import org.apache.commons.cli.Options;
  * and other actions in the cluster can impact the estimated size such as flushes, tablet splits,
  * compactions, etc.
  *
- * For the most accurate information a compaction should first be run on the set of tables being
+ * For more accurate information a compaction should first be run on the set of tables being
  * computed.
  */
 public class DUCommand extends Command {
