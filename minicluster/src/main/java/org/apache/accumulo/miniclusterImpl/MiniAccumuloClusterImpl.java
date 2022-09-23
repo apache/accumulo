@@ -46,12 +46,14 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -99,6 +101,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.ZooKeeper.States;
@@ -663,7 +666,17 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         if (zk.getState() == States.CONNECTED) {
           ZooUtil.digestAuth(zk, secret);
           try {
-            zk.sync("/", null, null);
+            final AtomicInteger rc = new AtomicInteger();
+            final CountDownLatch waiter = new CountDownLatch(1);
+            zk.sync("/", (code, arg1, arg2) -> {
+              rc.set(code);
+              waiter.countDown();
+            }, null);
+            waiter.await();
+            Code code = Code.get(rc.get());
+            if (code != Code.OK) {
+              throw KeeperException.create(code);
+            }
             String instanceNamePath =
                 Constants.ZROOT + Constants.ZINSTANCES + "/" + config.getInstanceName();
             byte[] bytes = zk.getData(instanceNamePath, null, null);

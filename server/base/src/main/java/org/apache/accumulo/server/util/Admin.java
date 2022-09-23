@@ -251,7 +251,7 @@ public class Admin implements KeywordExecutable {
     boolean printJson;
 
     @Parameter(names = {"-s", "--state"},
-        description = "<state>[ <state>...] Print transactions in the state(s) {NEW, IN_PROGRESS, FAILED_IN_PROGRESS, FAILED, SUCCESSFUL}")
+        description = "<state>[ -s <state>...] Print transactions in the state(s) {NEW, IN_PROGRESS, FAILED_IN_PROGRESS, FAILED, SUCCESSFUL}")
     List<String> states = new ArrayList<>();
   }
 

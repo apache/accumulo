@@ -30,6 +30,7 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.gc.Reference;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -73,11 +74,26 @@ public interface GarbageCollectionEnvironment {
   Stream<Reference> getReferences();
 
   /**
-   * Return the set of tableIDs for the given instance this GarbageCollector is running over
+   * Return a set of all TableIDs that should be seen in {@link #getReferences()} at the current
+   * time. Immediately after this method returns the information it produced may be out of date
+   * relative to {@link #getReferences()}. See also the javadoc for
+   * ({@link GCRun#getCandidateTableIDs()}.
+   *
+   * @return set of table ids
+   * @throws InterruptedException
+   *           if interrupted when calling ZooKeeper
+   */
+  Set<TableId> getCandidateTableIDs() throws InterruptedException;
+
+  /**
+   * Return the map of tableIDs and TableStates for the given instance this GarbageCollector is
+   * running over
    *
    * @return The valueSet for the table name to table id map.
+   * @throws InterruptedException
+   *           if interrupted when calling ZooKeeper
    */
-  Set<TableId> getTableIDs();
+  Map<TableId,TableState> getTableIDs() throws InterruptedException;
 
   /**
    * Delete the given files from the provided {@link Map} of relative path to absolute path for each

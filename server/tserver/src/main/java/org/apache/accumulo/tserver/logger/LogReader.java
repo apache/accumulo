@@ -22,7 +22,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.DataInputStream;
 import java.io.EOFException;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -31,13 +33,15 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.accumulo.core.cli.Help;
-import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
+import org.apache.accumulo.core.crypto.CryptoUtils;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
+import org.apache.accumulo.core.spi.crypto.NoFileEncrypter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.start.spi.KeywordExecutable;
@@ -60,7 +64,10 @@ public class LogReader implements KeywordExecutable {
 
   private static final Logger log = LoggerFactory.getLogger(LogReader.class);
 
-  static class Opts extends Help {
+  static class Opts extends ConfigOpts {
+    @Parameter(names = "-e",
+        description = "Don't read full log and print only encryption information")
+    boolean printOnlyEncryptionInfo = false;
     @Parameter(names = "-r", description = "print only mutations associated with the given row")
     String row;
     @Parameter(names = "-m", description = "limit the number of mutations printed per row")
@@ -68,7 +75,7 @@ public class LogReader implements KeywordExecutable {
     @Parameter(names = "-t",
         description = "print only mutations that fall within the given key extent")
     String extent;
-    @Parameter(names = "-p", description = "search for a row that matches the given regex")
+    @Parameter(names = "--regex", description = "search for a row that matches the given regex")
     String regexp;
     @Parameter(description = "<logfile> { <logfile> ... }")
     List<String> files = new ArrayList<>();
@@ -105,7 +112,7 @@ public class LogReader implements KeywordExecutable {
       System.exit(1);
     }
 
-    var siteConfig = SiteConfiguration.auto();
+    var siteConfig = opts.getSiteConfiguration();
     ServerContext context = new ServerContext(siteConfig);
     try (VolumeManager fs = context.getVolumeManager()) {
       var walCryptoService = CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.WAL,
@@ -141,6 +148,13 @@ public class LogReader implements KeywordExecutable {
             continue;
           }
 
+          if (opts.printOnlyEncryptionInfo) {
+            try (final FSDataInputStream fsinput = fs.open(path)) {
+              printCryptoParams(fsinput, path);
+            }
+            continue;
+          }
+
           try (final FSDataInputStream fsinput = fs.open(path);
               DataInputStream input = DfsLogger.getDecryptingStream(fsinput, walCryptoService)) {
             while (true) {
@@ -154,7 +168,8 @@ public class LogReader implements KeywordExecutable {
             }
           } catch (LogHeaderIncompleteException e) {
             log.warn("Could not read header for {} . Ignoring...", path);
-            continue;
+          } finally {
+            log.info("Done reading {}", path);
           }
         } else {
           // read the log entries in a sorted RFile. This has to be a directory that contains the
@@ -169,6 +184,45 @@ public class LogReader implements KeywordExecutable {
           }
         }
       }
+    }
+  }
+
+  private void printCryptoParams(FSDataInputStream input, Path path) {
+    byte[] magic4 = DfsLogger.LOG_FILE_HEADER_V4.getBytes(UTF_8);
+    byte[] magic3 = DfsLogger.LOG_FILE_HEADER_V3.getBytes(UTF_8);
+    byte[] noCryptoBytes = new NoFileEncrypter().getDecryptionParameters();
+
+    if (magic4.length != magic3.length)
+      throw new AssertionError("Always expect log file headers to be same length : " + magic4.length
+          + " != " + magic3.length);
+
+    byte[] magicBuffer = new byte[magic4.length];
+    try {
+      input.readFully(magicBuffer);
+      if (Arrays.equals(magicBuffer, magic4)) {
+        byte[] cryptoParams = CryptoUtils.readParams(input);
+        if (Arrays.equals(noCryptoBytes, cryptoParams)) {
+          System.out.println("No on disk encryption detected.");
+        } else {
+          System.out.println("Encrypted with Params: "
+              + Key.toPrintableString(cryptoParams, 0, cryptoParams.length, cryptoParams.length));
+        }
+      } else if (Arrays.equals(magicBuffer, magic3)) {
+        // Read logs files from Accumulo 1.9 and throw an error if they are encrypted
+        String cryptoModuleClassname = input.readUTF();
+        if (!cryptoModuleClassname.equals("NullCryptoModule")) {
+          throw new IllegalArgumentException(
+              "Old encryption modules not supported at this time.  Unsupported module : "
+                  + cryptoModuleClassname);
+        }
+      } else {
+        throw new IllegalArgumentException(
+            "Unsupported write ahead log version " + new String(magicBuffer));
+      }
+    } catch (EOFException e) {
+      log.warn("Could not read header for {} . Ignoring...", path);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 

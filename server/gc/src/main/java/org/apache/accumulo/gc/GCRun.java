@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.gc;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SCANS;
@@ -26,6 +27,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -49,9 +51,11 @@ import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.gc.ReferenceDirectory;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -59,6 +63,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
+import org.apache.accumulo.fate.util.UtilWaitThread;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeUtil;
@@ -66,6 +72,8 @@ import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.server.replication.proto.Replication;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -171,8 +179,44 @@ public class GCRun implements GarbageCollectionEnvironment {
   }
 
   @Override
-  public Set<TableId> getTableIDs() {
-    return context.getTableIdToNameMap().keySet();
+  public Map<TableId,TableState> getTableIDs() throws InterruptedException {
+    final String tablesPath = context.getZooKeeperRoot() + Constants.ZTABLES;
+    final ZooReader zr = context.getZooReader();
+    int retries = 1;
+    IllegalStateException ioe = null;
+    while (retries <= 10) {
+      try {
+        zr.sync(tablesPath);
+        final Map<TableId,TableState> tids = new HashMap<>();
+        for (String table : zr.getChildren(tablesPath)) {
+          TableId tableId = TableId.of(table);
+          TableState tableState = null;
+          String statePath = context.getZooKeeperRoot() + Constants.ZTABLES + "/"
+              + tableId.canonical() + Constants.ZTABLE_STATE;
+          try {
+            byte[] state = zr.getData(statePath);
+            if (state == null) {
+              tableState = TableState.UNKNOWN;
+            } else {
+              tableState = TableState.valueOf(new String(state, UTF_8));
+            }
+          } catch (NoNodeException e) {
+            tableState = TableState.UNKNOWN;
+          }
+          tids.put(tableId, tableState);
+        }
+        return tids;
+      } catch (KeeperException e) {
+        retries++;
+        if (ioe == null) {
+          ioe = new IllegalStateException("Error getting table ids from ZooKeeper");
+        }
+        ioe.addSuppressed(e);
+        log.error("Error getting tables from ZooKeeper, retrying in {} seconds", retries, e);
+        UtilWaitThread.sleepUninterruptibly(retries, TimeUnit.SECONDS);
+      }
+    }
+    throw ioe;
   }
 
   @Override
@@ -461,5 +505,40 @@ public class GCRun implements GarbageCollectionEnvironment {
 
   public long getCandidatesStat() {
     return candidates;
+  }
+
+  /**
+   * Return a set of all TableIDs in the
+   * {@link org.apache.accumulo.core.metadata.schema.Ample.DataLevel} for which we are considering
+   * deletes. When gathering candidates at DataLevel.USER this will return all user table ids in an
+   * ONLINE or OFFLINE state. When gathering candidates at DataLevel.METADATA this will return the
+   * table id for the accumulo.metadata table. When gathering candidates at DataLevel.ROOT this will
+   * return the table id for the accumulo.root table.
+   *
+   * @return The table ids
+   * @throws InterruptedException
+   *           if interrupted when calling ZooKeeper
+   */
+  @Override
+  public Set<TableId> getCandidateTableIDs() throws InterruptedException {
+    if (level == DataLevel.ROOT) {
+      return Set.of(RootTable.ID);
+    } else if (level == DataLevel.METADATA) {
+      return Set.of(MetadataTable.ID);
+    } else if (level == DataLevel.USER) {
+      Set<TableId> tableIds = new HashSet<>();
+      getTableIDs().forEach((k, v) -> {
+        if (v == TableState.ONLINE || v == TableState.OFFLINE) {
+          // Don't return tables that are NEW, DELETING, or in an
+          // UNKNOWN state.
+          tableIds.add(k);
+        }
+      });
+      tableIds.remove(MetadataTable.ID);
+      tableIds.remove(RootTable.ID);
+      return tableIds;
+    } else {
+      throw new IllegalArgumentException("Unexpected level in GC Env: " + this.level.name());
+    }
   }
 }
