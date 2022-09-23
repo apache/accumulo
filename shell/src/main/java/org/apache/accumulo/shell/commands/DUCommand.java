@@ -107,13 +107,13 @@ public class DUCommand extends Command {
 
   @Override
   public String description() {
-    return "Prints how much estimated space, in bytes, is used by files referenced by a "
+    return "Prints estimated space, in bytes, used by files referenced by a "
         + "table or tables.  When multiple tables are specified it prints how much space, in "
         + "bytes, are used by files shared between tables, if any. Because the metadata table "
         + "is used for the file size information and not the actual files in HDFS the results "
         + "will be an estimate. Older entries may exist with no file metadata (resulting in size 0) and "
         + "other actions in the cluster can impact the estimated size such as flushes, tablet splits, "
-        + "compactions, etc. For the most accurate information a compaction should first be run on the "
+        + "compactions, etc. For more accurate information a compaction should first be run on all of the files for the "
         + "set of tables being computed.";
   }
 

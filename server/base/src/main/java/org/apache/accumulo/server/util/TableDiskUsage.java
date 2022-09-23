@@ -75,8 +75,8 @@ import io.opentelemetry.context.Scope;
  * and other actions in the cluster can impact the estimated size such as flushes, tablet splits,
  * compactions, etc.
  *
- * For the most accurate information a compaction should first be run on the set of tables being
- * computed.
+ * For more accurate information a compaction should first be run on all files for the set of tables
+ * being computed.
  */
 public class TableDiskUsage {
 

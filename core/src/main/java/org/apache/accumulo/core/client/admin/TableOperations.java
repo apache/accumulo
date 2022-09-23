@@ -1076,16 +1076,16 @@ public interface TableOperations {
       throws AccumuloException, TableNotFoundException;
 
   /**
-   * Gets the number of bytes being used by the files for a set of tables. This operation will use
-   * scan the metadata table for file size information to compute the size metrics for the tables.
+   * Gets the number of bytes being used by the files for a set of tables. This operation will scan
+   * the metadata table for file size information to compute the size metrics for the tables.
    *
    * Because the metadata table is used for computing usage and not the actual files in HDFS the
    * results will be an estimate. Older entries may exist with no file metadata (resulting in size
    * 0) and other actions in the cluster can impact the estimated size such as flushes, tablet
    * splits, compactions, etc.
    *
-   * For the most accurate information a compaction should first be run on the set of tables being
-   * computed.
+   * For more accurate information a compaction should first be run on all files for the set of
+   * tables being computed.
    *
    * @param tables
    *          a set of tables
