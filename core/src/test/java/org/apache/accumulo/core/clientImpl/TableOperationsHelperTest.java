@@ -142,7 +142,6 @@ public class TableOperationsHelperTest {
         throws IllegalArgumentException, ConcurrentModificationException {
       settings.putIfAbsent(tableName, new TreeMap<>());
       mapMutator.accept(settings.get(tableName));
-      // Optional.ofNullable(settings.get(tableName)).ifPresent(mapMutator);
     }
 
     @Override
