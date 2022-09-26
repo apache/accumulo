@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.TreeSet;
+import java.util.SortedSet;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -439,15 +439,14 @@ public class ClientServiceHandler implements ClientService.Iface {
       }
 
       // use the same set of tableIds that were validated above to avoid race conditions
-      Map<TreeSet<String>,Long> diskUsage =
-          TableDiskUsage.getDiskUsage(tableIds, context.getVolumeManager(), context);
+      Map<SortedSet<String>,Long> diskUsage = TableDiskUsage.getDiskUsage(tableIds, context);
       List<TDiskUsage> retUsages = new ArrayList<>();
-      for (Map.Entry<TreeSet<String>,Long> usageItem : diskUsage.entrySet()) {
+      for (Map.Entry<SortedSet<String>,Long> usageItem : diskUsage.entrySet()) {
         retUsages.add(new TDiskUsage(new ArrayList<>(usageItem.getKey()), usageItem.getValue()));
       }
       return retUsages;
 
-    } catch (TableNotFoundException | IOException e) {
+    } catch (TableNotFoundException e) {
       throw new TException(e);
     }
   }
