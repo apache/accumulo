@@ -29,7 +29,7 @@
 #   INCLUDED_MODULES should be an array that includes other Maven modules with src/main/thrift directories
 #   Use INCLUDED_MODULES=(-) in calling scripts that require no other modules
 # ========================================================================================================================
-[[ -z $REQUIRED_THRIFT_VERSION ]] && REQUIRED_THRIFT_VERSION='0.16.0'
+[[ -z $REQUIRED_THRIFT_VERSION ]] && REQUIRED_THRIFT_VERSION='0.17.0'
 [[ -z $INCLUDED_MODULES ]] && INCLUDED_MODULES=()
 [[ -z $BASE_OUTPUT_PACKAGE ]] && BASE_OUTPUT_PACKAGE='org.apache.accumulo.core'
 [[ -z $PACKAGES_TO_GENERATE ]] && PACKAGES_TO_GENERATE=(gc master manager tabletserver securityImpl clientImpl dataImpl replication trace compaction)
