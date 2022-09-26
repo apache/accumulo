@@ -21,6 +21,7 @@ package org.apache.accumulo.fate.zookeeper;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.math.BigInteger;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -36,7 +37,9 @@ import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooDefs.Perms;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
+import org.apache.zookeeper.data.Id;
 import org.apache.zookeeper.data.Stat;
+import org.apache.zookeeper.server.auth.DigestAuthenticationProvider;
 
 public class ZooUtil {
 
@@ -160,6 +163,21 @@ public class ZooUtil {
     OffsetDateTime timestamp =
         OffsetDateTime.ofInstant(Instant.ofEpochMilli(epoch), ZoneOffset.UTC);
     return fmt.format(timestamp);
+  }
+
+  /**
+   * Get the ZooKeeper digest based on the instance secret that is used within ZooKeeper for
+   * authentication. This method is primary intended to be used to valid ZooKeeper ACLs. Use
+   * {@link #digestAuth(ZooKeeper, String)} to add authorizations to ZooKeeper.
+   */
+  public static Id getZkAuthId(final String secret) {
+    try {
+      final String scheme = "digest";
+      String auth = DigestAuthenticationProvider.generateDigest("accumulo:" + secret);
+      return new Id(scheme, auth);
+    } catch (NoSuchAlgorithmException ex) {
+      throw new IllegalArgumentException("Could not generate ZooKeeper digest string", ex);
+    }
   }
 
   public static void digestAuth(ZooKeeper zoo, String secret) {
