@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 
@@ -43,6 +44,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TDiskUsage;
+import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -319,12 +321,38 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
+  public Map<String,String> getSystemProperties(TInfo tinfo, TCredentials credentials) {
+    return context.getPropStore().get(SystemPropKey.of(context)).asMap();
+  }
+
+  @Override
+  public TVersionedProperties getVersionedSystemProperties(TInfo tinfo, TCredentials credentials) {
+    return Optional.of(context.getPropStore().get(SystemPropKey.of(context)))
+        .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap())).get();
+  }
+
+  @Override
   public Map<String,String> getTableConfiguration(TInfo tinfo, TCredentials credentials,
       String tableName) throws TException, ThriftTableOperationException {
     TableId tableId = checkTableId(context, tableName, null);
     context.getPropStore().getCache().remove(TablePropKey.of(context, tableId));
     AccumuloConfiguration config = context.getTableConfiguration(tableId);
     return conf(credentials, config);
+  }
+
+  @Override
+  public Map<String,String> getTableProperties(TInfo tinfo, TCredentials credentials,
+      String tableName) throws TException {
+    final TableId tableId = checkTableId(context, tableName, null);
+    return context.getPropStore().get(TablePropKey.of(context, tableId)).asMap();
+  }
+
+  @Override
+  public TVersionedProperties getVersionedTableProperties(TInfo tinfo, TCredentials credentials,
+      String tableName) throws TException {
+    final TableId tableId = checkTableId(context, tableName, null);
+    return Optional.of(context.getPropStore().get(TablePropKey.of(context, tableId)))
+        .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap())).get();
   }
 
   @Override
@@ -465,6 +493,35 @@ public class ClientServiceHandler implements ClientService.Iface {
     context.getPropStore().getCache().remove(NamespacePropKey.of(context, namespaceId));
     AccumuloConfiguration config = context.getNamespaceConfiguration(namespaceId);
     return conf(credentials, config);
+  }
+
+  @Override
+  public Map<String,String> getNamespaceProperties(TInfo tinfo, TCredentials credentials, String ns)
+      throws TException {
+    NamespaceId namespaceId;
+    try {
+      namespaceId = Namespaces.getNamespaceId(context, ns);
+      return context.getPropStore().get(NamespacePropKey.of(context, namespaceId)).asMap();
+    } catch (NamespaceNotFoundException e) {
+      String why = "Could not find namespace while getting configuration.";
+      throw new ThriftTableOperationException(null, ns, null,
+          TableOperationExceptionType.NAMESPACE_NOTFOUND, why);
+    }
+  }
+
+  @Override
+  public TVersionedProperties getVersionedNamespaceProperties(TInfo tinfo, TCredentials credentials,
+      String ns) throws TException {
+    NamespaceId namespaceId;
+    try {
+      namespaceId = Namespaces.getNamespaceId(context, ns);
+      return Optional.of(context.getPropStore().get(NamespacePropKey.of(context, namespaceId)))
+          .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap())).get();
+    } catch (NamespaceNotFoundException e) {
+      String why = "Could not find namespace while getting configuration.";
+      throw new ThriftTableOperationException(null, ns, null,
+          TableOperationExceptionType.NAMESPACE_NOTFOUND, why);
+    }
   }
 
   public List<BulkImportStatus> getBulkLoadStatus() {

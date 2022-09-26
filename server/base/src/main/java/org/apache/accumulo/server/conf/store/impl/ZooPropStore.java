@@ -22,6 +22,7 @@ import static java.util.Objects.requireNonNullElseGet;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.ConcurrentModificationException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiFunction;
@@ -255,6 +256,12 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   }
 
   @Override
+  public void replaceAll(@NonNull PropStoreKey<?> propStoreKey, long version,
+      @NonNull Map<String,String> props) {
+    mutateVersionedProps(propStoreKey, VersionedProperties::replaceAll, version, props);
+  }
+
+  @Override
   public void removeProperties(@NonNull PropStoreKey<?> propStoreKey,
       @NonNull Collection<String> keys) {
     if (keys.isEmpty()) {
@@ -312,6 +319,54 @@ public class ZooPropStore implements PropStore, PropChangeListener {
       }
       throw new IllegalStateException(
           "failed to remove properties to zooKeeper for " + propStoreKey, ex);
+    }
+  }
+
+  private <T> void mutateVersionedProps(PropStoreKey<?> propStoreKey,
+      BiFunction<VersionedProperties,T,VersionedProperties> action, long existingVersion,
+      T changes) {
+
+    log.trace("mutateVersionedProps called for: {}", propStoreKey);
+
+    try {
+      // Grab the current properties
+      VersionedProperties vProps = cache.getWithoutCaching(propStoreKey);
+      if (vProps == null) {
+        vProps = readPropsFromZk(propStoreKey);
+      }
+
+      // Compare the version of the current properties in the cache/ZK and the passed in version to
+      // see if the versions match
+      // If the versions do not match then we want to throw an error. This check here allows us to
+      // avoid
+      // an extra call to zookeeper if the versions don't match
+      if (vProps.getDataVersion() != existingVersion) {
+        throw new ConcurrentModificationException("Failed to modify properties to zooKeeper for "
+            + propStoreKey + ", properties changed since reading.", null);
+      }
+
+      final VersionedProperties updates = action.apply(vProps, changes);
+
+      // We checked the version earlier but this could still fail if another update was made
+      // and hadn't propagated yet to update the cache during the time that updates were applied
+      // after reading
+      // Zookeeper will return false if the versions do not match, so we should throw an error to
+      // let the caller
+      // know the version supplied is no longer the latest
+      if (!zrw.overwritePersistentData(propStoreKey.getPath(), codec.toBytes(updates),
+          (int) updates.getDataVersion())) {
+        throw new ConcurrentModificationException("Failed to modify properties to zooKeeper for "
+            + propStoreKey + ", properties changed since reading.", null);
+      }
+    } catch (IllegalArgumentException | IOException ex) {
+      throw new IllegalStateException(
+          "Codec failed to decode / encode properties for " + propStoreKey, ex);
+    } catch (InterruptedException | KeeperException ex) {
+      if (ex instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
+      throw new IllegalStateException(
+          "failed to modify properties to zooKeeper for " + propStoreKey, ex);
     }
   }
 

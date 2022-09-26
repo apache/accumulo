@@ -18,12 +18,15 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.data.InstanceId;
 
 public interface InstanceOperations {
@@ -49,6 +52,27 @@ public interface InstanceOperations {
       throws AccumuloException, AccumuloSecurityException;
 
   /**
+   * Modify system properties using a Consumer that accepts a mutable map containing the current
+   * system property overrides stored in ZooKeeper. If the supplied Consumer alters the map without
+   * throwing an Exception, then the resulting map will atomically replace the current system
+   * property overrides in ZooKeeper. Only properties which can be stored in ZooKeeper will be
+   * accepted.
+   *
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission
+   * @throws IllegalArgumentException
+   *           if the Consumer alters the map by adding properties that cannot be stored in
+   *           ZooKeeper
+   * @throws ConcurrentModificationException
+   *           without altering the stored properties if the server reports that the properties have
+   *           been changed by another process
+   */
+  void modifyProperties(Consumer<Map<String,String>> mapMutator) throws AccumuloException,
+      AccumuloSecurityException, IllegalArgumentException, ConcurrentModificationException;
+
+  /**
    * Removes a system property from zookeeper. Changes can be seen using
    * {@link #getSystemConfiguration()}
    *
@@ -69,6 +93,14 @@ public interface InstanceOperations {
    *         set in an accumulo.properties file, the default value for each property will be used.
    */
   Map<String,String> getSystemConfiguration() throws AccumuloException, AccumuloSecurityException;
+
+  /**
+   * Retrieve the configured System properties from zookeeper
+   *
+   * @return {@link TVersionedProperties} containing a map of system properties set in zookeeper
+   *         that can be changed as well as the version of those properties.
+   */
+  TVersionedProperties getSystemProperties() throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Retrieve the site configuration (that is set in the server configuration file).
