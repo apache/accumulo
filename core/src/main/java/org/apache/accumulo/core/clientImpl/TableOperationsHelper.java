@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -56,10 +57,12 @@ public abstract class TableOperationsHelper implements TableOperations {
     for (IteratorScope scope : scopes) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
           scope.name().toLowerCase(), setting.getName());
-      for (Entry<String,String> prop : setting.getOptions().entrySet()) {
-        this.setProperty(tableName, root + ".opt." + prop.getKey(), prop.getValue());
-      }
-      this.setProperty(tableName, root, setting.getPriority() + "," + setting.getIteratorClass());
+
+      Map<String,String> propsToAdd = setting.getOptions().entrySet().stream()
+          .collect(Collectors.toMap(prop -> root + ".opt." + prop.getKey(), Entry::getValue));
+      propsToAdd.put(root, setting.getPriority() + "," + setting.getIteratorClass());
+
+      this.modifyProperties(tableName, props -> props.putAll(propsToAdd));
     }
   }
 
@@ -72,10 +75,10 @@ public abstract class TableOperationsHelper implements TableOperations {
     for (IteratorScope scope : scopes) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
           scope.name().toLowerCase(), name);
-      for (Entry<String,String> property : copy.entrySet()) {
-        if (property.getKey().equals(root) || property.getKey().startsWith(root + ".opt."))
-          this.removeProperty(tableName, property.getKey());
-      }
+      this.modifyProperties(tableName,
+          properties -> copy.keySet().stream()
+              .filter(prop -> prop.equals(root) || prop.startsWith(root + ".opt."))
+              .forEach(properties::remove));
     }
   }
 
