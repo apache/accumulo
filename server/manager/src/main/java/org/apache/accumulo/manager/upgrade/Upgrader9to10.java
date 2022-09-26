@@ -151,7 +151,7 @@ public class Upgrader9to10 implements Upgrader {
     final String rootPath = context.getZooKeeperRoot();
 
     final Id zkDigest =
-        ZooUtil.getZkAuthId(context.getConfiguration().get(Property.INSTANCE_SECRET));
+        ZooUtil.getZkDigestAuthId(context.getConfiguration().get(Property.INSTANCE_SECRET));
     final List<ACL> privateWithAuth = new ArrayList<>();
     privateWithAuth.add(new ACL(ZooDefs.Perms.ALL, zkDigest));
     final List<ACL> publicWithAuth = new ArrayList<>(privateWithAuth);

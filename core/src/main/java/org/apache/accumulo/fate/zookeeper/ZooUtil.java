@@ -167,10 +167,10 @@ public class ZooUtil {
 
   /**
    * Get the ZooKeeper digest based on the instance secret that is used within ZooKeeper for
-   * authentication. This method is primary intended to be used to valid ZooKeeper ACLs. Use
+   * authentication. This method is primary intended to be used to validate ZooKeeper ACLs. Use
    * {@link #digestAuth(ZooKeeper, String)} to add authorizations to ZooKeeper.
    */
-  public static Id getZkAuthId(final String secret) {
+  public static Id getZkDigestAuthId(final String secret) {
     try {
       final String scheme = "digest";
       String auth = DigestAuthenticationProvider.generateDigest("accumulo:" + secret);
