@@ -20,7 +20,6 @@ package org.apache.accumulo.core.client.admin;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.ConcurrentModificationException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -611,19 +610,21 @@ public interface TableOperations {
    * table properties. If the supplied Consumer alters the map without throwing an Exception, then
    * the resulting map will atomically replace the current table properties.
    *
+   * @param mapMutator
+   *          This consumer should modify the passed in map to contain the desired keys and values.
+   *          It should be safe for Accumulo to call this consumer multiple times, this may be done
+   *          automatically when certain retryable errors happen. The consumer should probably avoid
+   *          accessing the Accumulo client as that could lead to undefined behavior.
+   *
    * @throws AccumuloException
    *           if a general error occurs
    * @throws AccumuloSecurityException
    *           if the user does not have permission
    * @throws IllegalArgumentException
    *           if the Consumer alters the map by adding properties that cannot be stored
-   * @throws ConcurrentModificationException
-   *           without altering the stored properties if the server reports that the properties have
-   *           been changed by another process
    */
   void modifyProperties(String tableName, Consumer<Map<String,String>> mapMutator)
-      throws AccumuloException, AccumuloSecurityException, IllegalArgumentException,
-      ConcurrentModificationException;
+      throws AccumuloException, AccumuloSecurityException, IllegalArgumentException;
 
   /**
    * Removes a property from a table. This operation is asynchronous and eventually consistent. Not

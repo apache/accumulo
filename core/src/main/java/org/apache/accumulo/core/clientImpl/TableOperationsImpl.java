@@ -1010,13 +1010,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  @Override
-  public void modifyProperties(String tableName, final Consumer<Map<String,String>> mapMutator)
-      throws AccumuloException, AccumuloSecurityException, IllegalArgumentException,
-      ConcurrentModificationException {
-    EXISTING_TABLE_NAME.validate(tableName);
-    checkArgument(mapMutator != null, "mapMutator is null");
-
+  private void tryToModifyProperties(String tableName,
+      final Consumer<Map<String,String>> mapMutator) throws AccumuloException,
+      AccumuloSecurityException, IllegalArgumentException, ConcurrentModificationException {
     final TVersionedProperties vProperties =
         ThriftClientTypes.CLIENT.execute(context, client -> client
             .getVersionedTableProperties(TraceUtil.traceInfo(), context.rpcCreds(), tableName));
@@ -1032,6 +1028,30 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
     } catch (TableNotFoundException e) {
       throw new AccumuloException(e);
+    }
+  }
+
+  @Override
+  public void modifyProperties(String tableName, final Consumer<Map<String,String>> mapMutator)
+      throws AccumuloException, AccumuloSecurityException, IllegalArgumentException {
+    EXISTING_TABLE_NAME.validate(tableName);
+    checkArgument(mapMutator != null, "mapMutator is null");
+
+    Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
+        .incrementBy(100, MILLISECONDS).maxWait(30, SECONDS).backOffFactor(1.5)
+        .logInterval(3, MINUTES).createRetry();
+
+    while (true) {
+      try {
+        tryToModifyProperties(tableName, mapMutator);
+        break;
+      } catch (ConcurrentModificationException cme) {
+        try {
+          retry.waitForNextAttempt();
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
+      }
     }
   }
 
