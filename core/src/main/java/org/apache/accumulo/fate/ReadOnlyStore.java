@@ -72,7 +72,9 @@ public class ReadOnlyStore<T> implements ReadOnlyTStore<T> {
      *          may not be null
      */
     public ReadOnlyRepoWrapper(Repo<X> repo) {
-      requireNonNull(repo);
+      if (repo == null) {
+        repo = new DummyReo<>();
+      }
       this.repo = repo;
     }
 
@@ -120,5 +122,34 @@ public class ReadOnlyStore<T> implements ReadOnlyTStore<T> {
   @Override
   public long timeCreated(long tid) {
     return store.timeCreated(tid);
+  }
+
+  static class DummyReo<X> implements Repo<X> {
+    private static final long serialVersionUID = 1;
+
+    @Override
+    public long isReady(long tid, X environment) throws Exception {
+      return 0;
+    }
+
+    @Override
+    public String getName() {
+      return "";
+    }
+
+    @Override
+    public Repo<X> call(long tid, X environment) throws Exception {
+      return null;
+    }
+
+    @Override
+    public void undo(long tid, X environment) throws Exception {
+      // empty
+    }
+
+    @Override
+    public String getReturn() {
+      return "";
+    }
   }
 }
