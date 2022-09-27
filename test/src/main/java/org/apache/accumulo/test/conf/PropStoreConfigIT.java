@@ -356,6 +356,11 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
     assertEquals(originalBloomSize, config.get(Property.TABLE_BLOOM_SIZE.getKey()));
   }
 
+  /*
+   * Test concurrently modifying properties in many threads with each thread making many
+   * modifications. The modifications build on each other and the test is written in such a way that
+   * if any single modification is lost it can be detected.
+   */
   @Test
   public void concurrentTablePropsModificationTest() throws Exception {
     String table = getUniqueNames(1)[0];
@@ -364,8 +369,10 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
 
       ExecutorService executor = Executors.newFixedThreadPool(4);
 
+      final int iterations = 151;
+
       Callable<Void> task1 = () -> {
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < iterations; i++) {
           client.tableOperations().modifyProperties(table, tableProps -> {
             int A = Integer.parseInt(tableProps.getOrDefault("table.custom.A", "0"));
             int B = Integer.parseInt(tableProps.getOrDefault("table.custom.B", "0"));
@@ -382,7 +389,7 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
       };
 
       Callable<Void> task2 = () -> {
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < iterations; i++) {
           client.tableOperations().modifyProperties(table, tableProps -> {
             int B = Integer.parseInt(tableProps.getOrDefault("table.custom.B", "0"));
             int C = Integer.parseInt(tableProps.getOrDefault("table.custom.C", "0"));
@@ -395,7 +402,7 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
       };
 
       Callable<Void> task3 = () -> {
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < iterations; i++) {
           client.tableOperations().modifyProperties(table, tableProps -> {
             int B = Integer.parseInt(tableProps.getOrDefault("table.custom.B", "0"));
 
@@ -406,7 +413,7 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
       };
 
       Callable<Void> task4 = () -> {
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < iterations; i++) {
           client.tableOperations().modifyProperties(table, tableProps -> {
             int E = Integer.parseInt(tableProps.getOrDefault("table.custom.E", "0"));
             tableProps.put("table.custom.E", E + 19 + "");
@@ -425,11 +432,11 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
 
       // determine the expected sum for all the additions done by the separate threads for each
       // property
-      expected.put("table.custom.A", 100 * 2 + "");
-      expected.put("table.custom.B", 100 * 3 + 100 * 11 + 100 * 17 + "");
-      expected.put("table.custom.C", 100 * 5 + 100 * 13 + "");
-      expected.put("table.custom.D", 100 * 7 + "");
-      expected.put("table.custom.E", 100 * 19 + "");
+      expected.put("table.custom.A", iterations * 2 + "");
+      expected.put("table.custom.B", iterations * (3 + 11 + 17) + "");
+      expected.put("table.custom.C", iterations * (5 + 13) + "");
+      expected.put("table.custom.D", iterations * 7 + "");
+      expected.put("table.custom.E", iterations * 19 + "");
 
       assertTrue(Wait.waitFor(() -> {
         var tableProps = new HashMap<>(client.tableOperations().getTableProperties(table));

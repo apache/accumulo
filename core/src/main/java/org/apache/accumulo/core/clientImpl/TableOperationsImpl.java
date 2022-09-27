@@ -1037,9 +1037,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     EXISTING_TABLE_NAME.validate(tableName);
     checkArgument(mapMutator != null, "mapMutator is null");
 
-    Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
-        .incrementBy(100, MILLISECONDS).maxWait(30, SECONDS).backOffFactor(1.5)
-        .logInterval(3, MINUTES).createRetry();
+    Retry retry =
+        Retry.builder().infiniteRetries().retryAfter(25, MILLISECONDS).incrementBy(25, MILLISECONDS)
+            .maxWait(30, SECONDS).backOffFactor(1.5).logInterval(3, MINUTES).createRetry();
 
     while (true) {
       try {
