@@ -107,7 +107,7 @@ public class TabletMetadata {
   private OptionalLong compact = OptionalLong.empty();
   private Double splitRatio = null;
   private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
-  public boolean chopped = false;
+  private boolean chopped = false;
 
   public enum LocationType {
     CURRENT, FUTURE, LAST
@@ -129,6 +129,7 @@ public class TabletMetadata {
     COMPACT_ID,
     SPLIT_RATIO,
     SUSPEND,
+    CHOPPED,
     ECOMP
   }
 
@@ -265,6 +266,11 @@ public class TabletMetadata {
   public Double getSplitRatio() {
     ensureFetched(ColumnType.SPLIT_RATIO);
     return splitRatio;
+  }
+
+  public boolean hasChopped() {
+    ensureFetched(ColumnType.CHOPPED);
+    return chopped;
   }
 
   public SortedMap<Key,Value> getKeyValues() {
