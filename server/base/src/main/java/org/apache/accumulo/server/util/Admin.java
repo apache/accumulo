@@ -68,7 +68,6 @@ import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.tables.TableMap;
 import org.apache.accumulo.fate.AdminUtil;
-import org.apache.accumulo.fate.ReadOnlyStore;
 import org.apache.accumulo.fate.ReadOnlyTStore;
 import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
@@ -795,25 +794,22 @@ public class Admin implements KeywordExecutable {
       }
     }
 
-    ReadOnlyStore<Admin> readOnlyStore = new ReadOnlyStore<>(zs);
-
     if (fateOpsCommand.print) {
       final Set<Long> sortedTxs = new TreeSet<>();
       fateOpsCommand.txList.forEach(s -> sortedTxs.add(parseTidFromUserInput(s)));
       if (!fateOpsCommand.txList.isEmpty()) {
         EnumSet<ReadOnlyTStore.TStatus> statusFilter =
             getCmdLineStatusFilters(fateOpsCommand.states);
-        admin.print(readOnlyStore, zk, zTableLocksPath, new Formatter(System.out), sortedTxs,
-            statusFilter);
+        admin.print(zs, zk, zTableLocksPath, new Formatter(System.out), sortedTxs, statusFilter);
       } else {
-        admin.printAll(readOnlyStore, zk, zTableLocksPath);
+        admin.printAll(zs, zk, zTableLocksPath);
       }
       // print line break at the end
       System.out.println();
     }
 
     if (fateOpsCommand.summarize) {
-      summarizeFateTx(context, fateOpsCommand, admin, readOnlyStore, zTableLocksPath);
+      summarizeFateTx(context, fateOpsCommand, admin, zs, zTableLocksPath);
     }
   }
 
@@ -856,7 +852,7 @@ public class Admin implements KeywordExecutable {
   }
 
   private void summarizeFateTx(ServerContext context, FateOpsCommand cmd, AdminUtil<Admin> admin,
-      ReadOnlyStore<Admin> zs, ServiceLock.ServiceLockPath tableLocksPath)
+      ReadOnlyTStore<Admin> zs, ServiceLock.ServiceLockPath tableLocksPath)
       throws InterruptedException, AccumuloException, AccumuloSecurityException, KeeperException {
 
     ZooReaderWriter zk = context.getZooReaderWriter();
