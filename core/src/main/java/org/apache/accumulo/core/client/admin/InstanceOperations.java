@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.client.admin;
 
-import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -58,6 +57,12 @@ public interface InstanceOperations {
    * property overrides in ZooKeeper. Only properties which can be stored in ZooKeeper will be
    * accepted.
    *
+   * @param mapMutator
+   *          This consumer should modify the passed in map to contain the desired keys and values.
+   *          It should be safe for Accumulo to call this consumer multiple times, this may be done
+   *          automatically when certain retryable errors happen. The consumer should probably avoid
+   *          accessing the Accumulo client as that could lead to undefined behavior.
+   *
    * @throws AccumuloException
    *           if a general error occurs
    * @throws AccumuloSecurityException
@@ -65,12 +70,10 @@ public interface InstanceOperations {
    * @throws IllegalArgumentException
    *           if the Consumer alters the map by adding properties that cannot be stored in
    *           ZooKeeper
-   * @throws ConcurrentModificationException
-   *           without altering the stored properties if the server reports that the properties have
-   *           been changed by another process
+   * @since 2.1.0
    */
-  void modifyProperties(Consumer<Map<String,String>> mapMutator) throws AccumuloException,
-      AccumuloSecurityException, IllegalArgumentException, ConcurrentModificationException;
+  void modifyProperties(Consumer<Map<String,String>> mapMutator)
+      throws AccumuloException, AccumuloSecurityException, IllegalArgumentException;
 
   /**
    * Removes a system property from zookeeper. Changes can be seen using

@@ -20,20 +20,11 @@ package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.accumulo.core.util.Validators.EXISTING_NAMESPACE_NAME;
-import static org.apache.accumulo.core.util.Validators.NEW_NAMESPACE_NAME;
+import static java.util.concurrent.TimeUnit.*;
+import static org.apache.accumulo.core.util.Validators.*;
 
 import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.TreeMap;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -60,6 +51,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.OpTimer;
+import org.apache.accumulo.fate.util.Retry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -197,12 +189,9 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     checkLocalityGroups(namespace, property);
   }
 
-  @Override
-  public void modifyProperties(final String namespace,
+  private void tryToModifyProperties(final String namespace,
       final Consumer<Map<String,String>> mapMutator)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
-    EXISTING_NAMESPACE_NAME.validate(namespace);
-    checkArgument(mapMutator != null, "mapMutator is null");
 
     final TVersionedProperties vProperties =
         ThriftClientTypes.CLIENT.execute(context, client -> client
@@ -224,6 +213,34 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
         throw (NamespaceNotFoundException) e.getCause();
       else
         throw new AccumuloException(e);
+    }
+  }
+
+  public void modifyProperties(final String namespace,
+      final Consumer<Map<String,String>> mapMutator)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
+    EXISTING_NAMESPACE_NAME.validate(namespace);
+    checkArgument(mapMutator != null, "mapMutator is null");
+
+    Retry retry =
+        Retry.builder().infiniteRetries().retryAfter(25, MILLISECONDS).incrementBy(25, MILLISECONDS)
+            .maxWait(30, SECONDS).backOffFactor(1.5).logInterval(3, MINUTES).createRetry();
+
+    while (true) {
+      try {
+        tryToModifyProperties(namespace, mapMutator);
+        break;
+      } catch (ConcurrentModificationException cme) {
+        try {
+          retry.logRetry(log, "Unable to modify namespace properties for " + namespace
+              + " because of concurrent modification");
+          retry.waitForNextAttempt();
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
+      } finally {
+        retry.useRetry();
+      }
     }
   }
 

@@ -622,6 +622,7 @@ public interface TableOperations {
    *           if the user does not have permission
    * @throws IllegalArgumentException
    *           if the Consumer alters the map by adding properties that cannot be stored
+   * @since 2.1.0
    */
   void modifyProperties(String tableName, Consumer<Map<String,String>> mapMutator)
       throws AccumuloException, AccumuloSecurityException, IllegalArgumentException;

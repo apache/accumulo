@@ -170,6 +170,14 @@ public interface NamespaceOperations {
   void setProperty(String namespace, String property, String value)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
 
+  /**
+   * @param mapMutator
+   *          This consumer should modify the passed in map to contain the desired keys and values.
+   *          It should be safe for Accumulo to call this consumer multiple times, this may be done
+   *          automatically when certain retryable errors happen. The consumer should probably avoid
+   *          accessing the Accumulo client as that could lead to undefined behavior.
+   * @since 2.1.0
+   */
   void modifyProperties(String namespace, Consumer<Map<String,String>> mapMutator)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
 

@@ -37,7 +37,7 @@ import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -356,98 +356,167 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
     assertEquals(originalBloomSize, config.get(Property.TABLE_BLOOM_SIZE.getKey()));
   }
 
-  /*
-   * Test concurrently modifying properties in many threads with each thread making many
-   * modifications. The modifications build on each other and the test is written in such a way that
-   * if any single modification is lost it can be detected.
-   */
+  interface PropertyShim {
+    void modifyProperties(Consumer<Map<String,String>> modifier) throws Exception;
+
+    Map<String,String> getProperties() throws Exception;
+  }
+
   @Test
   public void concurrentTablePropsModificationTest() throws Exception {
     String table = getUniqueNames(1)[0];
     try (var client = Accumulo.newClient().from(getClientProps()).build()) {
       client.tableOperations().create(table);
 
-      ExecutorService executor = Executors.newFixedThreadPool(4);
+      var propShim = new PropertyShim() {
 
-      final int iterations = 151;
-
-      Callable<Void> task1 = () -> {
-        for (int i = 0; i < iterations; i++) {
-          client.tableOperations().modifyProperties(table, tableProps -> {
-            int A = Integer.parseInt(tableProps.getOrDefault("table.custom.A", "0"));
-            int B = Integer.parseInt(tableProps.getOrDefault("table.custom.B", "0"));
-            int C = Integer.parseInt(tableProps.getOrDefault("table.custom.C", "0"));
-            int D = Integer.parseInt(tableProps.getOrDefault("table.custom.D", "0"));
-
-            tableProps.put("table.custom.A", A + 2 + "");
-            tableProps.put("table.custom.B", B + 3 + "");
-            tableProps.put("table.custom.C", C + 5 + "");
-            tableProps.put("table.custom.D", D + 7 + "");
-          });
+        @Override
+        public void modifyProperties(Consumer<Map<String,String>> modifier) throws Exception {
+          client.tableOperations().modifyProperties(table, modifier);
         }
-        return null;
+
+        @Override
+        public Map<String,String> getProperties() throws Exception {
+          return client.tableOperations().getTableProperties(table);
+        }
       };
 
-      Callable<Void> task2 = () -> {
-        for (int i = 0; i < iterations; i++) {
-          client.tableOperations().modifyProperties(table, tableProps -> {
-            int B = Integer.parseInt(tableProps.getOrDefault("table.custom.B", "0"));
-            int C = Integer.parseInt(tableProps.getOrDefault("table.custom.C", "0"));
-
-            tableProps.put("table.custom.B", B + 11 + "");
-            tableProps.put("table.custom.C", C + 13 + "");
-          });
-        }
-        return null;
-      };
-
-      Callable<Void> task3 = () -> {
-        for (int i = 0; i < iterations; i++) {
-          client.tableOperations().modifyProperties(table, tableProps -> {
-            int B = Integer.parseInt(tableProps.getOrDefault("table.custom.B", "0"));
-
-            tableProps.put("table.custom.B", B + 17 + "");
-          });
-        }
-        return null;
-      };
-
-      Callable<Void> task4 = () -> {
-        for (int i = 0; i < iterations; i++) {
-          client.tableOperations().modifyProperties(table, tableProps -> {
-            int E = Integer.parseInt(tableProps.getOrDefault("table.custom.E", "0"));
-            tableProps.put("table.custom.E", E + 19 + "");
-          });
-        }
-        return null;
-      };
-
-      // run all of the above task concurrently
-      for (Future<Void> future : executor.invokeAll(List.of(task1, task2, task3, task4))) {
-        // see if there were any exceptions in the background thread and wait for it to finish
-        future.get();
-      }
-
-      Map<String,String> expected = new HashMap<>();
-
-      // determine the expected sum for all the additions done by the separate threads for each
-      // property
-      expected.put("table.custom.A", iterations * 2 + "");
-      expected.put("table.custom.B", iterations * (3 + 11 + 17) + "");
-      expected.put("table.custom.C", iterations * (5 + 13) + "");
-      expected.put("table.custom.D", iterations * 7 + "");
-      expected.put("table.custom.E", iterations * 19 + "");
-
-      assertTrue(Wait.waitFor(() -> {
-        var tableProps = new HashMap<>(client.tableOperations().getTableProperties(table));
-        tableProps.keySet().removeIf(key -> !key.matches("table[.]custom[.][ABCDEF]"));
-        boolean equal = expected.equals(tableProps);
-        if (!equal) {
-          log.info(
-              "Waiting for properties to converge. Actual:" + tableProps + " Expected:" + expected);
-        }
-        return equal;
-      }));
+      runConcurrentPropsModificationTest(propShim, client);
     }
+  }
+
+  @Test
+  public void concurrentNamespacePropsModificationTest() throws Exception {
+    String namespace = getUniqueNames(1)[0];
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.namespaceOperations().create(namespace);
+
+      var propShim = new PropertyShim() {
+
+        @Override
+        public void modifyProperties(Consumer<Map<String,String>> modifier) throws Exception {
+          client.namespaceOperations().modifyProperties(namespace, modifier);
+        }
+
+        @Override
+        public Map<String,String> getProperties() throws Exception {
+          return client.namespaceOperations().getNamespaceProperties(namespace);
+        }
+      };
+
+      runConcurrentPropsModificationTest(propShim, client);
+    }
+  }
+
+  @Test
+  public void concurrentInstancePropsModificationTest() throws Exception {
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      var propShim = new PropertyShim() {
+
+        @Override
+        public void modifyProperties(Consumer<Map<String,String>> modifier) throws Exception {
+          client.instanceOperations().modifyProperties(modifier);
+        }
+
+        @Override
+        public Map<String,String> getProperties() throws Exception {
+          return client.instanceOperations().getSystemConfiguration();
+        }
+      };
+
+      runConcurrentPropsModificationTest(propShim, client);
+    }
+  }
+
+  /*
+   * Test concurrently modifying properties in many threads with each thread making many
+   * modifications. The modifications build on each other and the test is written in such a way that
+   * if any single modification is lost it can be detected.
+   */
+  private static void runConcurrentPropsModificationTest(PropertyShim propShim,
+      AccumuloClient client) throws Exception {
+    ExecutorService executor = Executors.newFixedThreadPool(4);
+
+    final int iterations = 151;
+
+    Callable<Void> task1 = () -> {
+      for (int i = 0; i < iterations; i++) {
+        propShim.modifyProperties(tableProps -> {
+          int A = Integer.parseInt(tableProps.getOrDefault("table.custom.A", "0"));
+          int B = Integer.parseInt(tableProps.getOrDefault("table.custom.B", "0"));
+          int C = Integer.parseInt(tableProps.getOrDefault("table.custom.C", "0"));
+          int D = Integer.parseInt(tableProps.getOrDefault("table.custom.D", "0"));
+
+          tableProps.put("table.custom.A", A + 2 + "");
+          tableProps.put("table.custom.B", B + 3 + "");
+          tableProps.put("table.custom.C", C + 5 + "");
+          tableProps.put("table.custom.D", D + 7 + "");
+        });
+      }
+      return null;
+    };
+
+    Callable<Void> task2 = () -> {
+      for (int i = 0; i < iterations; i++) {
+        propShim.modifyProperties(tableProps -> {
+          int B = Integer.parseInt(tableProps.getOrDefault("table.custom.B", "0"));
+          int C = Integer.parseInt(tableProps.getOrDefault("table.custom.C", "0"));
+
+          tableProps.put("table.custom.B", B + 11 + "");
+          tableProps.put("table.custom.C", C + 13 + "");
+        });
+      }
+      return null;
+    };
+
+    Callable<Void> task3 = () -> {
+      for (int i = 0; i < iterations; i++) {
+        propShim.modifyProperties(tableProps -> {
+          int B = Integer.parseInt(tableProps.getOrDefault("table.custom.B", "0"));
+
+          tableProps.put("table.custom.B", B + 17 + "");
+        });
+      }
+      return null;
+    };
+
+    Callable<Void> task4 = () -> {
+      for (int i = 0; i < iterations; i++) {
+        propShim.modifyProperties(tableProps -> {
+          int E = Integer.parseInt(tableProps.getOrDefault("table.custom.E", "0"));
+          tableProps.put("table.custom.E", E + 19 + "");
+        });
+      }
+      return null;
+    };
+
+    // run all of the above task concurrently
+    for (Future<Void> future : executor.invokeAll(List.of(task1, task2, task3, task4))) {
+      // see if there were any exceptions in the background thread and wait for it to finish
+      future.get();
+    }
+
+    Map<String,String> expected = new HashMap<>();
+
+    // determine the expected sum for all the additions done by the separate threads for each
+    // property
+    expected.put("table.custom.A", iterations * 2 + "");
+    expected.put("table.custom.B", iterations * (3 + 11 + 17) + "");
+    expected.put("table.custom.C", iterations * (5 + 13) + "");
+    expected.put("table.custom.D", iterations * 7 + "");
+    expected.put("table.custom.E", iterations * 19 + "");
+
+    assertTrue(Wait.waitFor(() -> {
+      var tableProps = new HashMap<>(propShim.getProperties());
+      tableProps.keySet().removeIf(key -> !key.matches("table[.]custom[.][ABCDEF]"));
+      boolean equal = expected.equals(tableProps);
+      if (!equal) {
+        log.info(
+            "Waiting for properties to converge. Actual:" + tableProps + " Expected:" + expected);
+      }
+      return equal;
+    }));
+
+    executor.shutdown();
   }
 }

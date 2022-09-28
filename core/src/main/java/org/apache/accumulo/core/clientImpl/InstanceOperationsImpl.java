@@ -20,6 +20,7 @@ package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.*;
 import static java.util.stream.Collectors.toList;
 import static org.apache.accumulo.core.rpc.ThriftUtil.createClient;
 import static org.apache.accumulo.core.rpc.ThriftUtil.createTransport;
@@ -60,6 +61,7 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
+import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
@@ -93,10 +95,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
     checkLocalityGroups(property);
   }
 
-  @Override
-  public void modifyProperties(final Consumer<Map<String,String>> mapMutator)
-      throws AccumuloException, AccumuloSecurityException, IllegalArgumentException,
-      ConcurrentModificationException {
+  private void tryToModifyProperties(final Consumer<Map<String,String>> mapMutator)
+      throws AccumuloException, AccumuloSecurityException, IllegalArgumentException {
     checkArgument(mapMutator != null, "mapMutator is null");
 
     final TVersionedProperties vProperties = getSystemProperties();
@@ -118,6 +118,32 @@ public class InstanceOperationsImpl implements InstanceOperations {
     // Send to server
     ThriftClientTypes.MANAGER.executeVoid(context, client -> client
         .modifySystemProperties(TraceUtil.traceInfo(), context.rpcCreds(), vProperties));
+  }
+
+  @Override
+  public void modifyProperties(final Consumer<Map<String,String>> mapMutator)
+      throws AccumuloException, AccumuloSecurityException, IllegalArgumentException {
+
+    Retry retry =
+        Retry.builder().infiniteRetries().retryAfter(25, MILLISECONDS).incrementBy(25, MILLISECONDS)
+            .maxWait(30, SECONDS).backOffFactor(1.5).logInterval(3, MINUTES).createRetry();
+
+    while (true) {
+      try {
+        tryToModifyProperties(mapMutator);
+        break;
+      } catch (ConcurrentModificationException cme) {
+        try {
+          retry.logRetry(LoggerFactory.getLogger(InstanceOperationsImpl.class),
+              "Unable to modify instance properties for because of concurrent modification");
+          retry.waitForNextAttempt();
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
+      } finally {
+        retry.useRetry();
+      }
+    }
   }
 
   @Override
