@@ -1047,10 +1047,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
         break;
       } catch (ConcurrentModificationException cme) {
         try {
+          retry.logRetry(log, "Unable to modify table properties for " + tableName
+              + " because of concurrent modification");
           retry.waitForNextAttempt();
         } catch (InterruptedException e) {
           throw new RuntimeException(e);
         }
+      } finally {
+        retry.useRetry();
       }
     }
   }
