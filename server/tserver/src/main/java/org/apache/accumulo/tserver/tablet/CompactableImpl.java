@@ -439,8 +439,11 @@ public class CompactableImpl implements Compactable {
                 Set<StoredTabletFile> candidates = new HashSet<>(selectedFiles);
                 candidates.removeAll(allCompactingFiles);
                 candidates = Collections.unmodifiableSet(candidates);
-                Preconditions.checkState(currFiles.containsAll(candidates),
-                    "selected files not in all files %s %s", candidates, currFiles);
+                // verify that candidates are still around and fail quietly if not
+                if (!currFiles.containsAll(candidates)) {
+                  log.debug("Selected files not in all files {} {}", candidates, currFiles);
+                  return Set.of();
+                }
                 return candidates;
               } else {
                 return Set.of();
