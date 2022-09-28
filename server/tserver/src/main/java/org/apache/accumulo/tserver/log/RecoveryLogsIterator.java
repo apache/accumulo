@@ -21,16 +21,21 @@ package org.apache.accumulo.tserver.log;
 import java.io.IOException;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.rfile.RFile;
+import org.apache.accumulo.core.crypto.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.file.FileOperations;
+import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.iterators.IteratorAdapter;
+import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.SortedLogState;
@@ -53,7 +58,7 @@ public class RecoveryLogsIterator
 
   private static final Logger LOG = LoggerFactory.getLogger(RecoveryLogsIterator.class);
 
-  private final List<Scanner> scanners;
+  private final List<FileSKVIterator> fileIters;
   private final Iterator<Entry<Key,Value>> iter;
 
   /**
@@ -63,7 +68,7 @@ public class RecoveryLogsIterator
       LogFileKey end, boolean checkFirstKey) throws IOException {
 
     List<Iterator<Entry<Key,Value>>> iterators = new ArrayList<>(recoveryLogDirs.size());
-    scanners = new ArrayList<>();
+    fileIters = new ArrayList<>();
     Range range = start == null ? null : LogFileKey.toRange(start, end);
     var vm = context.getVolumeManager();
 
@@ -77,20 +82,26 @@ public class RecoveryLogsIterator
         validateFirstKey(context, fs, logFiles, logDir);
       }
 
-      for (Path log : logFiles) {
-        var scanner = RFile.newScanner().from(log.toString()).withFileSystem(fs)
-            .withTableProperties(context.getConfiguration()).build();
+      CryptoEnvironment env = new CryptoEnvironmentImpl(CryptoEnvironment.Scope.RECOVERY);
+      CryptoService cryptoService = context.getCryptoFactory().getService(env,
+          context.getConfiguration().getAllCryptoProperties());
 
-        scanner.setRange(range);
-        Iterator<Entry<Key,Value>> scanIter = scanner.iterator();
+      for (Path log : logFiles) {
+        FileSKVIterator fileIter = FileOperations.getInstance().newReaderBuilder()
+            .forFile(log.toString(), fs, fs.getConf(), cryptoService)
+            .withTableConfiguration(context.getConfiguration()).seekToBeginning().build();
+        if (range != null) {
+          fileIter.seek(range, Collections.emptySet(), false);
+        }
+        Iterator<Entry<Key,Value>> scanIter = new IteratorAdapter(fileIter);
 
         if (scanIter.hasNext()) {
           LOG.debug("Write ahead log {} has data in range {} {}", log.getName(), start, end);
           iterators.add(scanIter);
-          scanners.add(scanner);
+          fileIters.add(fileIter);
         } else {
           LOG.debug("Write ahead log {} has no data in range {} {}", log.getName(), start, end);
-          scanner.close();
+          fileIter.close();
         }
       }
     }
@@ -115,8 +126,10 @@ public class RecoveryLogsIterator
   }
 
   @Override
-  public void close() {
-    scanners.forEach(ScannerBase::close);
+  public void close() throws IOException {
+    for (FileSKVIterator fskv : fileIters) {
+      fskv.close();
+    }
   }
 
   /**
