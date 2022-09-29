@@ -95,13 +95,10 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       // check the time so that the read ahead thread is not monopolized
       while (iter.hasNext() && bytesAdded < maxResultsSize
           && (System.currentTimeMillis() - startTime) < maxScanTime) {
-        final KeyExtent extent;
-        final List<Range> ranges;
-        {
-          final Entry<KeyExtent,List<Range>> entry = iter.next();
-          extent = entry.getKey();
-          ranges = entry.getValue();
-        }
+
+        final Entry<KeyExtent,List<Range>> entry = iter.next();
+        final KeyExtent extent = entry.getKey();
+        final List<Range> ranges = entry.getValue();
 
         iter.remove();
 

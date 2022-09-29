@@ -229,7 +229,7 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
       if (columnFamilies instanceof Set<?>) {
         cfSet = (Set<ByteSequence>) columnFamilies;
       } else {
-        cfSet = new HashSet<>(columnFamilies);
+        cfSet = Set.copyOf(columnFamilies);
       }
     }
     return cfSet;

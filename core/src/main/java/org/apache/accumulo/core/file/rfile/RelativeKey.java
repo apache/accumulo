@@ -118,11 +118,11 @@ public class RelativeKey implements Writable {
       fieldsSame |= DELETED;
   }
 
-  private int getCommonPrefixLen(ByteSequence prevKeyScratch, ByteSequence keyScratch, byte rowSame,
-      byte commonPrefix) {
+  private int getCommonPrefixLen(ByteSequence prevKeyScratch, ByteSequence keyScratch,
+      byte fieldBit, byte commonPrefix) {
     int commonPrefixLen = getCommonPrefix(prevKeyScratch, keyScratch);
     if (commonPrefixLen == -1) {
-      fieldsSame |= rowSame;
+      fieldsSame |= fieldBit;
     } else if (commonPrefixLen > 1) {
       fieldsPrefixed |= commonPrefix;
     }
@@ -188,9 +188,9 @@ public class RelativeKey implements Writable {
     this.prevKey = this.key;
   }
 
-  private byte[] getData(DataInput in, byte same, byte commonPrefix, Supplier<ByteSequence> data)
-      throws IOException {
-    if ((fieldsSame & same) == same) {
+  private byte[] getData(DataInput in, byte fieldBit, byte commonPrefix,
+      Supplier<ByteSequence> data) throws IOException {
+    if ((fieldsSame & fieldBit) == fieldBit) {
       return data.get().toArray();
     } else if ((fieldsPrefixed & commonPrefix) == commonPrefix) {
       return readPrefix(in, data.get());
