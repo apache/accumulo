@@ -26,7 +26,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.crypto.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -60,6 +59,7 @@ public class RecoveryLogsIterator
 
   private final List<FileSKVIterator> fileIters;
   private final Iterator<Entry<Key,Value>> iter;
+  private final CryptoEnvironment env = new CryptoEnvironmentImpl(CryptoEnvironment.Scope.RECOVERY);
 
   /**
    * Scans the files in each recoveryLogDir over the range [start,end].
@@ -72,19 +72,18 @@ public class RecoveryLogsIterator
     Range range = start == null ? null : LogFileKey.toRange(start, end);
     var vm = context.getVolumeManager();
 
+    final CryptoService cryptoService = context.getCryptoFactory().getService(env,
+        context.getConfiguration().getAllCryptoProperties());
+
     for (Path logDir : recoveryLogDirs) {
       LOG.debug("Opening recovery log dir {}", logDir.getName());
       List<Path> logFiles = getFiles(vm, logDir);
       var fs = vm.getFileSystemByPath(logDir);
 
       // only check the first key once to prevent extra iterator creation and seeking
-      if (checkFirstKey) {
-        validateFirstKey(context, fs, logFiles, logDir);
+      if (checkFirstKey && !logFiles.isEmpty()) {
+        validateFirstKey(context, cryptoService, fs, logFiles, logDir);
       }
-
-      CryptoEnvironment env = new CryptoEnvironmentImpl(CryptoEnvironment.Scope.RECOVERY);
-      CryptoService cryptoService = context.getCryptoFactory().getService(env,
-          context.getConfiguration().getAllCryptoProperties());
 
       for (Path log : logFiles) {
         FileSKVIterator fileIter = FileOperations.getInstance().newReaderBuilder()
@@ -161,12 +160,13 @@ public class RecoveryLogsIterator
   /**
    * Check that the first entry in the WAL is OPEN. Only need to do this once.
    */
-  private void validateFirstKey(ServerContext context, FileSystem fs, List<Path> logFiles,
-      Path fullLogPath) {
-    try (var scanner =
-        RFile.newScanner().from(logFiles.stream().map(Path::toString).toArray(String[]::new))
-            .withFileSystem(fs).withTableProperties(context.getConfiguration()).build()) {
-      Iterator<Entry<Key,Value>> iterator = scanner.iterator();
+  private void validateFirstKey(ServerContext context, CryptoService cs, FileSystem fs,
+      List<Path> logFiles, Path fullLogPath) throws IOException {
+    try (FileSKVIterator fileIter = FileOperations.getInstance().newReaderBuilder()
+        .forFile(logFiles.get(0).toString(), fs, fs.getConf(), cs)
+        .withTableConfiguration(context.getConfiguration()).seekToBeginning().build()) {
+      Iterator<Entry<Key,Value>> iterator = new IteratorAdapter(fileIter);
+
       if (iterator.hasNext()) {
         Key firstKey = iterator.next().getKey();
         LogFileKey key = LogFileKey.fromKey(firstKey);
