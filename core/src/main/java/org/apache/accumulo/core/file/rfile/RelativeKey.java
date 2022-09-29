@@ -171,10 +171,10 @@ public class RelativeKey implements Writable {
     final byte[] row, cf, cq, cv;
     final long ts;
 
-    row = getData(in, ROW_SAME, ROW_COMMON_PREFIX, () -> prevKey.getRowData());
-    cf = getData(in, CF_SAME, CF_COMMON_PREFIX, () -> prevKey.getColumnFamilyData());
-    cq = getData(in, CQ_SAME, CQ_COMMON_PREFIX, () -> prevKey.getColumnQualifierData());
-    cv = getData(in, CV_SAME, CV_COMMON_PREFIX, () -> prevKey.getColumnVisibilityData());
+    row = getData(in, ROW_SAME, ROW_COMMON_PREFIX, prevKey::getRowData);
+    cf = getData(in, CF_SAME, CF_COMMON_PREFIX, prevKey::getColumnFamilyData);
+    cq = getData(in, CQ_SAME, CQ_COMMON_PREFIX, prevKey::getColumnQualifierData);
+    cv = getData(in, CV_SAME, CV_COMMON_PREFIX, prevKey::getColumnVisibilityData);
 
     if ((fieldsSame & TS_SAME) == TS_SAME) {
       ts = prevKey.getTimestamp();
