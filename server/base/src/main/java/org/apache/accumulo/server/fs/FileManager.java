@@ -504,20 +504,13 @@ public class FileManager {
 
       ArrayList<InterruptibleIterator> iters = new ArrayList<>();
 
-      boolean sawTimeSet = false;
-      for (DataFileValue dfv : files.values()) {
-        if (dfv.isTimeSet()) {
-          sawTimeSet = true;
-          break;
-        }
-      }
+      boolean sawTimeSet = files.values().stream().anyMatch(DataFileValue::isTimeSet);
 
       for (Entry<FileSKVIterator,String> entry : newlyReservedReaders.entrySet()) {
-        FileSKVIterator reader = entry.getKey();
+        FileSKVIterator source = entry.getKey();
         String filename = entry.getValue();
         InterruptibleIterator iter;
 
-        FileSKVIterator source = reader;
         if (samplerConfig != null) {
           source = source.getSample(samplerConfig);
           if (source == null) {
@@ -525,16 +518,8 @@ public class FileManager {
           }
         }
 
-        if (detachable) {
-          FileDataSource fds = new FileDataSource(filename, source);
-          dataSources.add(fds);
-          SourceSwitchingIterator ssi = new SourceSwitchingIterator(fds);
-          iter = new ProblemReportingIterator(context, tablet.tableId(), filename,
-              continueOnFailure, ssi);
-        } else {
-          iter = new ProblemReportingIterator(context, tablet.tableId(), filename,
-              continueOnFailure, source);
-        }
+        iter = new ProblemReportingIterator(context, tablet.tableId(), filename, continueOnFailure,
+            detachable ? getSsi(filename, source) : source);
 
         if (sawTimeSet) {
           // constructing FileRef is expensive so avoid if not needed
@@ -548,6 +533,12 @@ public class FileManager {
       }
 
       return iters;
+    }
+
+    private SourceSwitchingIterator getSsi(String filename, FileSKVIterator source) {
+      FileDataSource fds = new FileDataSource(filename, source);
+      dataSources.add(fds);
+      return new SourceSwitchingIterator(fds);
     }
 
     public synchronized void detach() {

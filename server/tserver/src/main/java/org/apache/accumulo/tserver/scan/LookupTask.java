@@ -95,9 +95,11 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       // check the time so that the read ahead thread is not monopolized
       while (iter.hasNext() && bytesAdded < maxResultsSize
           && (System.currentTimeMillis() - startTime) < maxScanTime) {
-        Entry<KeyExtent,List<Range>> entry = iter.next();
-        KeyExtent extent = entry.getKey();
-        List<Range> ranges = entry.getValue();
+
+        final Entry<KeyExtent,List<Range>> entry = iter.next();
+        final KeyExtent extent = entry.getKey();
+        final List<Range> ranges = entry.getValue();
+
         iter.remove();
 
         // check that tablet server is serving requested tablet
@@ -112,9 +114,8 @@ public class LookupTask extends ScanTask<MultiScanResult> {
 
         try {
 
-          // do the following check to avoid a race condition
-          // between setting false below and the task being
-          // canceled
+          // do the following check to avoid a race condition between setting false below and the
+          // task being canceled
           if (isCancelled())
             interruptFlag.set(true);
 
@@ -127,10 +128,8 @@ public class LookupTask extends ScanTask<MultiScanResult> {
           // Add results from this Tablet.lookup() to the accumulated results
           results.addAll(tabletResults);
 
-          // if the tablet was closed it it possible that the
-          // interrupt flag was set.... do not want it set for
-          // the next
-          // lookup
+          // if the tablet was closed, it is possible that the interrupt flag was set.... do not
+          // want it set for the next lookup
           interruptFlag.set(false);
 
         } catch (IOException e) {
@@ -164,29 +163,12 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       long finishTime = System.currentTimeMillis();
       session.totalLookupTime += (finishTime - startTime);
       session.numEntries += results.size();
+      boolean queriesIsEmpty = !session.queries.isEmpty();
 
-      // convert everything to thrift before adding result
-      List<TKeyValue> retResults = new ArrayList<>();
-      for (KVEntry entry : results)
-        retResults
-            .add(new TKeyValue(entry.getKey().toThrift(), ByteBuffer.wrap(entry.getValue().get())));
-      // @formatter:off
-      Map<TKeyExtent,List<TRange>> retFailures = failures.entrySet().stream().collect(Collectors.toMap(
-                      entry -> entry.getKey().toThrift(),
-                      entry -> entry.getValue().stream().map(Range::toThrift).collect(Collectors.toList())
-      ));
-      // @formatter:on
-      List<TKeyExtent> retFullScans =
-          fullScans.stream().map(KeyExtent::toThrift).collect(Collectors.toList());
-      TKeyExtent retPartScan = null;
-      TKey retPartNextKey = null;
-      if (partScan != null) {
-        retPartScan = partScan.toThrift();
-        retPartNextKey = partNextKey.toThrift();
-      }
       // add results to queue
-      addResult(new MultiScanResult(retResults, retFailures, retFullScans, retPartScan,
-          retPartNextKey, partNextKeyInclusive, !session.queries.isEmpty()));
+      MultiScanResult multiScanResult = getMultiScanResult(results, partScan, failures, fullScans,
+          partNextKey, partNextKeyInclusive, queriesIsEmpty);
+      addResult(multiScanResult);
     } catch (IterationInterruptedException iie) {
       if (!isCancelled()) {
         log.warn("Iteration interrupted, when scan not cancelled", iie);
@@ -201,5 +183,35 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       Thread.currentThread().setName(oldThreadName);
       runState.set(ScanRunState.FINISHED);
     }
+  }
+
+  private MultiScanResult getMultiScanResult(List<KVEntry> results, KeyExtent partScan,
+      Map<KeyExtent,List<Range>> failures, List<KeyExtent> fullScans, Key partNextKey,
+      boolean partNextKeyInclusive, boolean queriesIsEmpty) {
+
+    // convert everything to thrift before adding result
+    List<TKeyValue> retResults = results.stream().map(
+        entry -> new TKeyValue(entry.getKey().toThrift(), ByteBuffer.wrap(entry.getValue().get())))
+        .collect(Collectors.toList());
+
+    // @formatter:off
+    Map<TKeyExtent,List<TRange>> retFailures = failures.entrySet().stream().collect(Collectors.toMap(
+            entry -> entry.getKey().toThrift(),
+            entry -> entry.getValue().stream().map(Range::toThrift).collect(Collectors.toList())
+    ));
+    // @formatter:on
+
+    List<TKeyExtent> retFullScans =
+        fullScans.stream().map(KeyExtent::toThrift).collect(Collectors.toList());
+
+    TKeyExtent retPartScan = null;
+    TKey retPartNextKey = null;
+    if (partScan != null) {
+      retPartScan = partScan.toThrift();
+      retPartNextKey = partNextKey.toThrift();
+    }
+
+    return new MultiScanResult(retResults, retFailures, retFullScans, retPartScan, retPartNextKey,
+        partNextKeyInclusive, queriesIsEmpty);
   }
 }
