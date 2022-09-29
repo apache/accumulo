@@ -57,6 +57,52 @@ public interface InstanceOperations {
    * property overrides in ZooKeeper. Only properties which can be stored in ZooKeeper will be
    * accepted.
    *
+   * <P>
+   * This new API offers two distinct advantages over the older {@link #setProperty(String, String)}
+   * API. The older API offered the ability to unconditionally set a single property. This new API
+   * offers the following.
+   * </P>
+   *
+   * <UL>
+   * <LI>Ability to unconditionally set multiple properties atomically. If five properties are
+   * mutated by this API, then eventually all of the servers will see those changes all at once.
+   * This is really important for configuring something like a scan iterator that requires setting
+   * multiple properties.</LI>
+   * <LI>Ability to conditionally set multiple properties atomically. With this new API a snapshot
+   * of the current instance configuration is passed in to the mapMutator. Code can inspect the
+   * current config and decide what if any changes it would like to make. If the config changes
+   * while mapMutator is doing inspection and modification, then those actions will be ignored and
+   * it will be called again with the latest snapshot of the config.</LI>
+   * </UL>
+   *
+   * <P>
+   * Below is an example of using this API to conditionally set some instance properties. If while
+   * trying to set the compaction planner properties another process modifies the manager balancer
+   * properties, then it would automatically retry and call the lambda again with the latest
+   * snapshot of instance properties.
+   *
+   * <pre>
+   *         {@code
+   *             AccumuloClient client = getClient();
+   *             client.instanceOperations().modifyProperties(currProps -> {
+   *               var planner = currProps.get("tserver.compaction.major.service.default.planner");
+   *               //This code will only change the compaction planner if its currently set to default settings.
+   *               //The endsWith() function was used to make the example short, would be better to use equals().
+   *               if(planner != null && planner.endsWith("DefaultCompactionPlanner") {
+   *                 // tservers will eventually see these compaction planner changes and when they do they will see all of the changes at once
+   *                 currProps.keySet().removeIf(
+   *                    prop -> prop.startsWith("tserver.compaction.major.service.default.planner.opts."));
+   *                 currProps.put("tserver.compaction.major.service.default.planner","MyPlannerClassName");
+   *                 currProps.put("tserver.compaction.major.service.default.planner.opts.myOpt1","val1");
+   *                 currProps.put("tserver.compaction.major.service.default.planner.opts.myOpt2","val2");
+   *                }
+   *             });
+   *           }
+   *         }
+   * </pre>
+   * </P>
+   *
+   *
    * @param mapMutator
    *          This consumer should modify the passed in map to contain the desired keys and values.
    *          It should be safe for Accumulo to call this consumer multiple times, this may be done
