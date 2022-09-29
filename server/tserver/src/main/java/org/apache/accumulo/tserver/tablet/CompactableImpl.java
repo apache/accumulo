@@ -445,8 +445,11 @@ public class CompactableImpl implements Compactable {
         case RESERVED: {
           if (selectKind == kind) {
             Set<StoredTabletFile> candidates = Sets.difference(selectedFiles, allCompactingFiles);
-            Preconditions.checkState(currFiles.containsAll(candidates),
-                "selected files not in all files %s %s", candidates, currFiles);
+            // verify that candidates are still around and fail quietly if not
+            if (!currFiles.containsAll(candidates)) {
+              log.debug("Selected files not in all files {} {}", candidates, currFiles);
+              return Set.of();
+            }
             // must create a copy because the sets passed to Sets.difference could change after this
             // method returns
             return Set.copyOf(candidates);

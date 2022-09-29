@@ -24,9 +24,9 @@ import java.util.SortedSet;
 public class DiskUsage {
 
   protected final SortedSet<String> tables;
-  protected Long usage;
+  protected long usage;
 
-  public DiskUsage(SortedSet<String> tables, Long usage) {
+  public DiskUsage(SortedSet<String> tables, long usage) {
     this.tables = tables;
     this.usage = usage;
   }
@@ -35,7 +35,7 @@ public class DiskUsage {
     return tables;
   }
 
-  public Long getUsage() {
+  public long getUsage() {
     return usage;
   }
 

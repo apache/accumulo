@@ -54,6 +54,7 @@ import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -106,6 +107,7 @@ public class TabletMetadata {
   private OptionalLong compact = OptionalLong.empty();
   private Double splitRatio = null;
   private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
+  private boolean chopped = false;
 
   public enum LocationType {
     CURRENT, FUTURE, LAST
@@ -127,6 +129,7 @@ public class TabletMetadata {
     COMPACT_ID,
     SPLIT_RATIO,
     SUSPEND,
+    CHOPPED,
     ECOMP
   }
 
@@ -265,6 +268,11 @@ public class TabletMetadata {
     return splitRatio;
   }
 
+  public boolean hasChopped() {
+    ensureFetched(ColumnType.CHOPPED);
+    return chopped;
+  }
+
   public SortedMap<Key,Value> getKeyValues() {
     Preconditions.checkState(keyValues != null, "Requested key values when it was not saved");
     return keyValues;
@@ -398,6 +406,9 @@ public class TabletMetadata {
         case ExternalCompactionColumnFamily.STR_NAME:
           extCompBuilder.put(ExternalCompactionId.of(qual),
               ExternalCompactionMetadata.fromJson(val));
+          break;
+        case ChoppedColumnFamily.STR_NAME:
+          te.chopped = true;
           break;
         default:
           throw new IllegalStateException("Unexpected family " + fam);

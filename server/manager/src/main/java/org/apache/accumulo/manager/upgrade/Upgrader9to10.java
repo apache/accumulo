@@ -69,6 +69,7 @@ import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
+import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
@@ -93,6 +94,7 @@ import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
+import org.apache.zookeeper.data.Id;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -147,6 +149,14 @@ public class Upgrader9to10 implements Upgrader {
     final ZooReaderWriter zrw = context.getZooReaderWriter();
     final ZooKeeper zk = zrw.getZooKeeper();
     final String rootPath = context.getZooKeeperRoot();
+
+    final Id zkDigest =
+        ZooUtil.getZkDigestAuthId(context.getConfiguration().get(Property.INSTANCE_SECRET));
+    final List<ACL> privateWithAuth = new ArrayList<>();
+    privateWithAuth.add(new ACL(ZooDefs.Perms.ALL, zkDigest));
+    final List<ACL> publicWithAuth = new ArrayList<>(privateWithAuth);
+    publicWithAuth.add(new ACL(ZooDefs.Perms.READ, ZooDefs.Ids.ANYONE_ID_UNSAFE));
+
     try {
       ZKUtil.visitSubTreeDFS(zk, rootPath, false, (rc, path, ctx, name) -> {
         try {
@@ -155,7 +165,7 @@ public class Upgrader9to10 implements Upgrader {
 
           if (((path.equals(Constants.ZROOT) || path.equals(Constants.ZROOT + Constants.ZINSTANCES))
               && !acls.equals(ZooDefs.Ids.OPEN_ACL_UNSAFE))
-              || (!ZooUtil.PRIVATE.equals(acls) && !ZooUtil.PUBLIC.equals(acls))) {
+              || (!privateWithAuth.equals(acls) && !publicWithAuth.equals(acls))) {
             log.error("ZNode at {} has unexpected ACL: {}", path, acls);
             aclErrorOccurred.set(true);
           } else {
@@ -430,7 +440,7 @@ public class Upgrader9to10 implements Upgrader {
         var tableConf = context.getTableConfiguration(RootTable.ID);
         long maxTime = -1;
         try (FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-            .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
+            .forFile(path.toString(), ns, ns.getConf(), NoCryptoServiceFactory.NONE)
             .withTableConfiguration(tableConf).seekToBeginning().build()) {
           while (reader.hasTop()) {
             maxTime = Math.max(maxTime, reader.getTopKey().getTimestamp());

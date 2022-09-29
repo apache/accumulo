@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -46,6 +47,7 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -196,6 +198,36 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   }
 
   @Override
+  public void modifyProperties(final String namespace,
+      final Consumer<Map<String,String>> mapMutator)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
+    EXISTING_NAMESPACE_NAME.validate(namespace);
+    checkArgument(mapMutator != null, "mapMutator is null");
+
+    final TVersionedProperties vProperties =
+        ThriftClientTypes.CLIENT.execute(context, client -> client
+            .getVersionedNamespaceProperties(TraceUtil.traceInfo(), context.rpcCreds(), namespace));
+    mapMutator.accept(vProperties.getProperties());
+
+    try {
+      // Send to server
+      ThriftClientTypes.MANAGER.executeVoidTableCommand(context,
+          client -> client.modifyNamespaceProperties(TraceUtil.traceInfo(), context.rpcCreds(),
+              namespace, vProperties));
+
+      for (String property : vProperties.getProperties().keySet()) {
+        checkLocalityGroups(namespace, property);
+      }
+
+    } catch (TableNotFoundException e) {
+      if (e.getCause() instanceof NamespaceNotFoundException)
+        throw (NamespaceNotFoundException) e.getCause();
+      else
+        throw new AccumuloException(e);
+    }
+  }
+
+  @Override
   public void removeProperty(final String namespace, final String property)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
     EXISTING_NAMESPACE_NAME.validate(namespace);
@@ -220,6 +252,29 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     try {
       return ThriftClientTypes.CLIENT.execute(context, client -> client
           .getNamespaceConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), namespace));
+    } catch (AccumuloException e) {
+      Throwable t = e.getCause();
+      if (t instanceof ThriftTableOperationException) {
+        ThriftTableOperationException ttoe = (ThriftTableOperationException) t;
+        if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND) {
+          throw new NamespaceNotFoundException(ttoe);
+        }
+        throw e;
+      }
+      throw e;
+    } catch (Exception e) {
+      throw new AccumuloException(e);
+    }
+  }
+
+  @Override
+  public Map<String,String> getNamespaceProperties(String namespace)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
+    EXISTING_NAMESPACE_NAME.validate(namespace);
+
+    try {
+      return ThriftClientTypes.CLIENT.execute(context, client -> client
+          .getNamespaceProperties(TraceUtil.traceInfo(), context.rpcCreds(), namespace));
     } catch (AccumuloException e) {
       Throwable t = e.getCause();
       if (t instanceof ThriftTableOperationException) {

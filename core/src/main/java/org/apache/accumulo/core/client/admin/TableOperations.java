@@ -20,6 +20,7 @@ package org.apache.accumulo.core.client.admin;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.ConcurrentModificationException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +28,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.concurrent.Executor;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -605,6 +607,25 @@ public interface TableOperations {
       throws AccumuloException, AccumuloSecurityException;
 
   /**
+   * Modify table properties using a Consumer that accepts a mutable map containing the current
+   * table properties. If the supplied Consumer alters the map without throwing an Exception, then
+   * the resulting map will atomically replace the current table properties.
+   *
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission
+   * @throws IllegalArgumentException
+   *           if the Consumer alters the map by adding properties that cannot be stored
+   * @throws ConcurrentModificationException
+   *           without altering the stored properties if the server reports that the properties have
+   *           been changed by another process
+   */
+  void modifyProperties(String tableName, Consumer<Map<String,String>> mapMutator)
+      throws AccumuloException, AccumuloSecurityException, IllegalArgumentException,
+      ConcurrentModificationException;
+
+  /**
    * Removes a property from a table. This operation is asynchronous and eventually consistent. Not
    * all tablets in a table will acknowledge this altered value immediately nor at the same time.
    * Within a few seconds without another change, all tablets in a table should see the altered
@@ -657,6 +678,23 @@ public interface TableOperations {
    * @since 2.1.0
    */
   Map<String,String> getConfiguration(String tableName)
+      throws AccumuloException, TableNotFoundException;
+
+  /**
+   * Gets per-table properties of a table. This operation is asynchronous and eventually consistent.
+   * It is not guaranteed that all tablets in a table will return the same values. Within a few
+   * seconds without another change, all tablets in a table should be consistent. The clone table
+   * feature can be used if consistency is required.
+   *
+   * @param tableName
+   *          the name of the table
+   * @return per-table properties visible by this table. Note that recently changed properties may
+   *         not be visible immediately.
+   * @throws TableNotFoundException
+   *           if the table does not exist
+   * @since 2.1.0
+   */
+  Map<String,String> getTableProperties(String tableName)
       throws AccumuloException, TableNotFoundException;
 
   /**
@@ -1076,11 +1114,21 @@ public interface TableOperations {
       throws AccumuloException, TableNotFoundException;
 
   /**
-   * Gets the number of bytes being used in the files for a set of tables
+   * Gets the number of bytes being used by the files for a set of tables. This operation will scan
+   * the metadata table for file size information to compute the size metrics for the tables.
+   *
+   * Because the metadata table is used for computing usage and not the actual files in HDFS the
+   * results will be an estimate. Older entries may exist with no file metadata (resulting in size
+   * 0) and other actions in the cluster can impact the estimated size such as flushes, tablet
+   * splits, compactions, etc.
+   *
+   * For more accurate information a compaction should first be run on all files for the set of
+   * tables being computed.
    *
    * @param tables
    *          a set of tables
-   * @return a list of disk usage objects containing linked table names and sizes
+   * @return a list of disk usage objects containing linked table names and sizes set of tables to
+   *         compute usage across
    * @since 1.6.0
    */
   List<DiskUsage> getDiskUsage(Set<String> tables)
