@@ -447,7 +447,9 @@ public class CompactableImpl implements Compactable {
             Set<StoredTabletFile> candidates = Sets.difference(selectedFiles, allCompactingFiles);
             Preconditions.checkState(currFiles.containsAll(candidates),
                 "selected files not in all files %s %s", candidates, currFiles);
-            return Collections.unmodifiableSet(candidates);
+            // must create a copy because the sets passed to Sets.difference could change after this
+            // method returns
+            return Set.copyOf(candidates);
           } else {
             return Set.of();
           }
@@ -461,7 +463,9 @@ public class CompactableImpl implements Compactable {
       switch (selectStatus) {
         case NOT_ACTIVE:
         case CANCELED: {
-          return Collections.unmodifiableSet(Sets.difference(currFiles, allCompactingFiles));
+          // must create a copy because the sets passed to Sets.difference could change after this
+          // method returns
+          return Set.copyOf(Sets.difference(currFiles, allCompactingFiles));
         }
         case NEW:
         case SELECTING:
