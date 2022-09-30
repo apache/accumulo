@@ -158,7 +158,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public Map<String,String> getSystemProperties()
+  public Map<String,String> getStoredProperties()
       throws AccumuloException, AccumuloSecurityException {
     return getVersionedSystemProperties().getProperties();
   }
