@@ -230,30 +230,33 @@ public class Manager extends AbstractServer
     return getManagerState() != ManagerState.STOP;
   }
 
+  /**
+   * Retrieve the Fate object, blocking until it is ready. This could cause problems if Fate
+   * operations are attempted to be used prior to the Manager being ready for them. If these
+   * operations are triggered by a client side request from a tserver or client, it should be safe
+   * to wait to handle those until Fate is ready, but if it occurs during an upgrade, or some other
+   * time in the Manager before Fate is started, that may result in a deadlock and will need to be
+   * fixed.
+   *
+   * @return the Fate object, only after the fate components are running and ready
+   */
   Fate<Manager> fate() {
-    // check if it's ready and return right away if it is
-    if (fateReadyLatch.getCount() == 0) {
-      return fateRef.get();
+    // if it's not ready, then wait for it to be ready, but with some informative logging
+    if (fateReadyLatch.getCount() != 0) {
+      String msgPrefix = "Unexpected use of fate in thread " + Thread.currentThread().getName()
+          + " at time " + System.currentTimeMillis();
+      // include stack trace so we know where it's coming from, in case we need to troubleshoot it
+      log.warn("{} blocked until fate starts", msgPrefix,
+          new IllegalStateException("Attempted fate action before fate was started; "
+              + "if this doesn't make progress, please report it as a bug to the developers"));
+      try {
+        fateReadyLatch.await();
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new IllegalStateException("Thread was interrupted; cannot proceed");
+      }
+      log.debug("{} no longer blocked", msgPrefix);
     }
-
-    // it's not ready yet
-
-    // create informative warning
-    String msgPrefix = "Unexpected use of fate in thread " + Thread.currentThread().getName()
-        + " at time " + System.currentTimeMillis();
-    log.warn("{} blocked until fate starts", msgPrefix,
-        new IllegalStateException("Attempted fate action before fate was started; "
-            + "if this doesn't make progress, please report it as a bug to the developers"));
-
-    try {
-      fateReadyLatch.await();
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException("Thread was interrupted; cannot proceed");
-    }
-
-    // report at debug when the issue is resolved
-    log.debug("{} no longer blocked", msgPrefix);
     return fateRef.get();
   }
 
