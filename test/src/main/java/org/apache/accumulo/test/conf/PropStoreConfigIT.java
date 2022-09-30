@@ -35,6 +35,8 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -193,7 +195,7 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
     try (var client = Accumulo.newClient().from(getClientProps()).build()) {
       // Grab original default config
       Map<String,String> config = client.instanceOperations().getSystemConfiguration();
-      Map<String,String> properties = client.instanceOperations().getStoredProperties();
+      Map<String,String> properties = getStoredConfiguration();
 
       // should be empty to start
       assertEquals(0, properties.size());
@@ -208,11 +210,10 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
       });
 
       // Verify system properties added
-      assertTrue(Wait.waitFor(() -> client.instanceOperations().getStoredProperties().size() > 0,
-          5000, 500));
+      assertTrue(Wait.waitFor(() -> getStoredConfiguration().size() > 0, 5000, 500));
 
       // verify properties updated
-      properties = client.instanceOperations().getStoredProperties();
+      properties = getStoredConfiguration();
       assertEquals("9998", properties.get(Property.TSERV_CLIENTPORT.getKey()));
       assertEquals("35%", properties.get(Property.TSERV_MAXMEM.getKey()));
 
@@ -225,8 +226,7 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
       // should be restored
       client.instanceOperations().modifyProperties(Map::clear);
 
-      assertTrue(Wait.waitFor(() -> client.instanceOperations().getStoredProperties().size() == 0,
-          5000, 500));
+      assertTrue(Wait.waitFor(() -> getStoredConfiguration().size() == 0, 5000, 500));
 
       // verify default system config restored
       config = client.instanceOperations().getSystemConfiguration();
@@ -345,5 +345,13 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
     config = fullConfig.get();
     assertEquals(originalBloomEnabled, config.get(Property.TABLE_BLOOM_ENABLED.getKey()));
     assertEquals(originalBloomSize, config.get(Property.TABLE_BLOOM_SIZE.getKey()));
+  }
+
+  private Map<String,String> getStoredConfiguration() throws Exception {
+    ServerContext ctx = getCluster().getServerContext();
+    return ThriftClientTypes.CLIENT
+        .execute(ctx,
+            client -> client.getVersionedSystemProperties(TraceUtil.traceInfo(), ctx.rpcCreds()))
+        .getProperties();
   }
 }
