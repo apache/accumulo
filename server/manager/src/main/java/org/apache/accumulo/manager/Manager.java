@@ -247,7 +247,7 @@ public class Manager extends AbstractServer
           + " at time " + System.currentTimeMillis();
       // include stack trace so we know where it's coming from, in case we need to troubleshoot it
       log.warn("{} blocked until fate starts", msgPrefix,
-          new IllegalStateException("Attempted fate action before fate was started; "
+          "Attempted fate action before manager finished starting up; "
               + "if this doesn't make progress, please report it as a bug to the developers"));
       try {
         fateReadyLatch.await();
