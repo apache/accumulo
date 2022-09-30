@@ -39,6 +39,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -99,7 +100,6 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.fate.AgeOffStore;
 import org.apache.accumulo.fate.Fate;
 import org.apache.accumulo.fate.util.Retry;
-import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
@@ -208,7 +208,11 @@ public class Manager extends AbstractServer
 
   private ManagerState state = ManagerState.INITIAL;
 
-  private final AtomicReference<Fate<Manager>> fateReady = new AtomicReference<>(null);
+  // fateReadyLatch and fateRef go together; when this latch is ready, then the fate reference
+  // should already have been set; still need to use atomic reference or volatile for fateRef, so no
+  // thread's cached view shows that fateRef is still null after the latch is ready
+  private final CountDownLatch fateReadyLatch = new CountDownLatch(1);
+  private final AtomicReference<Fate<Manager>> fateRef = new AtomicReference<>(null);
 
   volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus = emptySortedMap();
   volatile SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancer = emptySortedMap();
@@ -227,14 +231,12 @@ public class Manager extends AbstractServer
   }
 
   Fate<Manager> fate() {
-    Fate<Manager> fate = fateReady.get();
-    if (fate != null) {
-      // it's ready, just return it
-      return fate;
+    // check if it's ready and return right away if it is
+    if (fateReadyLatch.getCount() == 0) {
+      return fateRef.get();
     }
 
     // it's not ready yet
-    long retryTime = 500; // millis
 
     // create informative warning
     String msgPrefix = "Unexpected use of fate in thread " + Thread.currentThread().getName()
@@ -242,17 +244,17 @@ public class Manager extends AbstractServer
     log.warn("{} blocked until fate starts", msgPrefix,
         new IllegalStateException("Attempted fate action before fate was started; "
             + "if this doesn't make progress, please report it as a bug to the developers"));
-    UtilWaitThread.sleep(retryTime);
 
-    // retry, logging retries at trace level
-    while ((fate = fateReady.get()) == null) {
-      log.trace("{} still blocked", msgPrefix);
-      UtilWaitThread.sleep(retryTime);
+    try {
+      fateReadyLatch.await();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Thread was interrupted; cannot proceed");
     }
 
     // report at debug when the issue is resolved
     log.debug("{} no longer blocked", msgPrefix);
-    return fate;
+    return fateRef.get();
   }
 
   static final boolean X = true;
@@ -294,7 +296,7 @@ public class Manager extends AbstractServer
     }
 
     if (oldState != newState && (newState == ManagerState.NORMAL)) {
-      if (fateReady.get() == null) {
+      if (fateReadyLatch.getCount() > 0) {
         throw new IllegalStateException("Access to Fate should not have been"
             + " initialized prior to the Manager finishing upgrades. Please save"
             + " all logs and file a bug.");
@@ -1177,7 +1179,8 @@ public class Manager extends AbstractServer
 
       Fate<Manager> f = new Fate<>(this, store, TraceRepo::toLogString);
       f.startTransactionRunners(getConfiguration());
-      fateReady.set(f);
+      fateRef.set(f);
+      fateReadyLatch.countDown();
 
       ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
           .scheduleWithFixedDelay(store::ageOff, 63000, 63000, TimeUnit.MILLISECONDS));
