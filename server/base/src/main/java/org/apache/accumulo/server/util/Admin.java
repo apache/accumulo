@@ -225,23 +225,23 @@ public class Admin implements KeywordExecutable {
   @Parameters(commandNames = "fate",
       commandDescription = "Operations performed on the Manager FaTE system.")
   static class FateOpsCommand {
-    @Parameter(description = "[<txId> <txId>...]")
+    @Parameter(description = "[<txId>...]")
     List<String> txList = new ArrayList<>();
 
     @Parameter(names = {"-c", "--cancel"},
-        description = "<txId>[ <txId>...] Cancel new or submitted FaTE transactions")
+        description = "<txId>... Cancel new or submitted FaTE transactions")
     boolean cancel;
 
     @Parameter(names = {"-f", "--fail"},
-        description = "<txId>[ <txId>...] Transition FaTE transaction status to FAILED_IN_PROGRESS (requires Manager to be down)")
+        description = "<txId>... Transition FaTE transaction status to FAILED_IN_PROGRESS (requires Manager to be down)")
     boolean fail;
 
     @Parameter(names = {"-d", "--delete"},
-        description = "<txId>[ <txId>...] Delete locks associated with transactions (Requires Manager to be down)")
+        description = "<txId>... Delete locks associated with transactions (Requires Manager to be down)")
     boolean delete;
 
     @Parameter(names = {"-p", "--print", "-print", "-l", "--list", "-list"},
-        description = "[<txId> <txId>...] Print information about FaTE transactions. Print only the 'txId's specified or print all transactions if empty. Use -s to only print certain states.")
+        description = "[<txId>...] Print information about FaTE transactions. Print only the 'txId's specified or print all transactions if empty. Use -s to only print certain states.")
     boolean print;
 
     @Parameter(names = "--summary", description = "Print a summary of all FaTE transactions")
@@ -251,7 +251,7 @@ public class Admin implements KeywordExecutable {
     boolean printJson;
 
     @Parameter(names = {"-s", "--state"},
-        description = "<state>[ -s <state>...] Print transactions in the state(s) {NEW, IN_PROGRESS, FAILED_IN_PROGRESS, FAILED, SUCCESSFUL}")
+        description = "<state>... Print transactions in the state(s) {NEW, IN_PROGRESS, FAILED_IN_PROGRESS, FAILED, SUCCESSFUL}")
     List<String> states = new ArrayList<>();
   }
 
