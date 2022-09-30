@@ -193,6 +193,10 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
     try (var client = Accumulo.newClient().from(getClientProps()).build()) {
       // Grab original default config
       Map<String,String> config = client.instanceOperations().getSystemConfiguration();
+      Map<String,String> properties = client.instanceOperations().getSystemProperties();
+
+      // should be empty to start
+      assertEquals(0, properties.size());
 
       final String originalClientPort = config.get(Property.TSERV_CLIENTPORT.getKey());
       final String originalMaxMem = config.get(Property.TSERV_MAXMEM.getKey());
@@ -204,8 +208,13 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
       });
 
       // Verify system properties added
-      assertTrue(Wait.waitFor(() -> client.instanceOperations().getSystemConfiguration().size() > 0,
+      assertTrue(Wait.waitFor(() -> client.instanceOperations().getSystemProperties().size() > 0,
           5000, 500));
+
+      // verify properties updated
+      properties = client.instanceOperations().getSystemProperties();
+      assertEquals("9998", properties.get(Property.TSERV_CLIENTPORT.getKey()));
+      assertEquals("35%", properties.get(Property.TSERV_MAXMEM.getKey()));
 
       // verify properties updated in config as well
       config = client.instanceOperations().getSystemConfiguration();
@@ -216,8 +225,8 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
       // should be restored
       client.instanceOperations().modifyProperties(Map::clear);
 
-      assertTrue(Wait.waitFor(
-          () -> client.instanceOperations().getSystemConfiguration().size() == 0, 5000, 500));
+      assertTrue(Wait.waitFor(() -> client.instanceOperations().getSystemProperties().size() == 0,
+          5000, 500));
 
       // verify default system config restored
       config = client.instanceOperations().getSystemConfiguration();
