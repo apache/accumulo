@@ -99,6 +99,7 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.fate.AgeOffStore;
 import org.apache.accumulo.fate.Fate;
 import org.apache.accumulo.fate.util.Retry;
+import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
@@ -207,7 +208,7 @@ public class Manager extends AbstractServer
 
   private ManagerState state = ManagerState.INITIAL;
 
-  Fate<Manager> fate;
+  private final AtomicReference<Fate<Manager>> fateReady = new AtomicReference<>(null);
 
   volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus = emptySortedMap();
   volatile SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancer = emptySortedMap();
@@ -223,6 +224,35 @@ public class Manager extends AbstractServer
 
   public boolean stillManager() {
     return getManagerState() != ManagerState.STOP;
+  }
+
+  Fate<Manager> fate() {
+    Fate<Manager> fate = fateReady.get();
+    if (fate != null) {
+      // it's ready, just return it
+      return fate;
+    }
+
+    // it's not ready yet
+    long retryTime = 500; // millis
+
+    // create informative warning
+    String msgPrefix = "Unexpected use of fate in thread " + Thread.currentThread().getName()
+        + " at time " + System.currentTimeMillis();
+    log.warn("{} blocked until fate starts", msgPrefix,
+        new IllegalStateException("Attempted fate action before fate was started; "
+            + "if this doesn't make progress, please report it as a bug to the developers"));
+    UtilWaitThread.sleep(retryTime);
+
+    // retry, logging retries at trace level
+    while ((fate = fateReady.get()) == null) {
+      log.trace("{} still blocked", msgPrefix);
+      UtilWaitThread.sleep(retryTime);
+    }
+
+    // report at debug when the issue is resolved
+    log.debug("{} no longer blocked", msgPrefix);
+    return fate;
   }
 
   static final boolean X = true;
@@ -264,7 +294,7 @@ public class Manager extends AbstractServer
     }
 
     if (oldState != newState && (newState == ManagerState.NORMAL)) {
-      if (fate != null) {
+      if (fateReady.get() == null) {
         throw new IllegalStateException("Access to Fate should not have been"
             + " initialized prior to the Manager finishing upgrades. Please save"
             + " all logs and file a bug.");
@@ -1145,8 +1175,9 @@ public class Manager extends AbstractServer
                   context.getZooReaderWriter()),
               TimeUnit.HOURS.toMillis(8), System::currentTimeMillis);
 
-      fate = new Fate<>(this, store, TraceRepo::toLogString);
-      fate.startTransactionRunners(getConfiguration());
+      Fate<Manager> f = new Fate<>(this, store, TraceRepo::toLogString);
+      f.startTransactionRunners(getConfiguration());
+      fateReady.set(f);
 
       ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
           .scheduleWithFixedDelay(store::ageOff, 63000, 63000, TimeUnit.MILLISECONDS));
@@ -1223,7 +1254,7 @@ public class Manager extends AbstractServer
       sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
     }
     log.info("Shutting down fate.");
-    fate.shutdown();
+    fate().shutdown();
 
     final long deadline = System.currentTimeMillis() + MAX_CLEANUP_WAIT_TIME;
     try {
