@@ -94,6 +94,15 @@ public interface InstanceOperations {
   Map<String,String> getSystemConfiguration() throws AccumuloException, AccumuloSecurityException;
 
   /**
+   * Retrieves the configured System properties from zookeeper. This method is different from
+   * {@link #getSystemConfiguration()} as it will only return the configured properties in zookeeper
+   * and not properties from accumulo.properties or defaults.
+   *
+   * @return a map of system properties set in zookeeper
+   */
+  Map<String,String> getSystemProperties() throws AccumuloException, AccumuloSecurityException;
+
+  /**
    * Retrieve the site configuration (that is set in the server configuration file).
    *
    * @return A map of system properties set in accumulo.properties on some server. If nothing is set
