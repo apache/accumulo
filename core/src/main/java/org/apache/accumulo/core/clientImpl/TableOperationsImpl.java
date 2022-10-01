@@ -56,7 +56,9 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -1010,7 +1012,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  private void tryToModifyProperties(String tableName,
+  private Map<String,String> tryToModifyProperties(String tableName,
       final Consumer<Map<String,String>> mapMutator) throws AccumuloException,
       AccumuloSecurityException, IllegalArgumentException, ConcurrentModificationException {
     final TVersionedProperties vProperties =
@@ -1026,13 +1028,16 @@ public class TableOperationsImpl extends TableOperationsHelper {
       for (String property : vProperties.getProperties().keySet()) {
         checkLocalityGroups(tableName, property);
       }
+
+      return vProperties.getProperties();
     } catch (TableNotFoundException e) {
       throw new AccumuloException(e);
     }
   }
 
   @Override
-  public void modifyProperties(String tableName, final Consumer<Map<String,String>> mapMutator)
+  public CompletableFuture<Map<String,String>> modifyProperties(String tableName,
+      final Consumer<Map<String,String>> mapMutator, Executor executor)
       throws AccumuloException, AccumuloSecurityException, IllegalArgumentException {
     EXISTING_TABLE_NAME.validate(tableName);
     checkArgument(mapMutator != null, "mapMutator is null");
@@ -1041,22 +1046,25 @@ public class TableOperationsImpl extends TableOperationsHelper {
         Retry.builder().infiniteRetries().retryAfter(25, MILLISECONDS).incrementBy(25, MILLISECONDS)
             .maxWait(30, SECONDS).backOffFactor(1.5).logInterval(3, MINUTES).createRetry();
 
-    while (true) {
-      try {
-        tryToModifyProperties(tableName, mapMutator);
-        break;
-      } catch (ConcurrentModificationException cme) {
+    return CompletableFuture.supplyAsync(() -> {
+      while (true) {
         try {
-          retry.logRetry(log, "Unable to modify table properties for " + tableName
-              + " because of concurrent modification");
-          retry.waitForNextAttempt();
-        } catch (InterruptedException e) {
+          return tryToModifyProperties(tableName, mapMutator);
+        } catch (ConcurrentModificationException cme) {
+          try {
+            retry.logRetry(log, "Unable to modify table properties for " + tableName
+                + " because of concurrent modification");
+            retry.waitForNextAttempt();
+          } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+          }
+        } catch (Exception e) {
           throw new RuntimeException(e);
+        } finally {
+          retry.useRetry();
         }
-      } finally {
-        retry.useRetry();
       }
-    }
+    }, executor);
   }
 
   private void setPropertyNoChecks(final String tableName, final String property,

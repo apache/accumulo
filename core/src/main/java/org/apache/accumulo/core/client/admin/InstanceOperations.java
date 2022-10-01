@@ -18,9 +18,11 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -118,8 +120,9 @@ public interface InstanceOperations {
    *           ZooKeeper
    * @since 2.1.0
    */
-  void modifyProperties(Consumer<Map<String,String>> mapMutator)
-      throws AccumuloException, AccumuloSecurityException, IllegalArgumentException;
+  Map<String,String> modifyProperties(Consumer<Map<String,String>> mapMutator, Duration timeout)
+      throws AccumuloException, AccumuloSecurityException, IllegalArgumentException,
+      TimeoutException;
 
   /**
    * Removes a system property from zookeeper. Changes can be seen using

@@ -22,6 +22,7 @@ import java.util.EnumSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedSet;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -178,7 +179,8 @@ public interface NamespaceOperations {
    *          accessing the Accumulo client as that could lead to undefined behavior.
    * @since 2.1.0
    */
-  void modifyProperties(String namespace, Consumer<Map<String,String>> mapMutator)
+  CompletableFuture<Map<String,String>> modifyPropertiesAsync(String namespace,
+      Consumer<Map<String,String>> mapMutator)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
 
   /**

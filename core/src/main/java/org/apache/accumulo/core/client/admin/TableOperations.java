@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -624,7 +625,8 @@ public interface TableOperations {
    *           if the Consumer alters the map by adding properties that cannot be stored
    * @since 2.1.0
    */
-  void modifyProperties(String tableName, Consumer<Map<String,String>> mapMutator)
+  CompletableFuture<Map<String,String>> modifyProperties(String tableName,
+      Consumer<Map<String,String>> mapMutator, Executor executor)
       throws AccumuloException, AccumuloSecurityException, IllegalArgumentException;
 
   /**

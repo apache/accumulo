@@ -34,6 +34,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -140,9 +142,11 @@ public class TableOperationsHelperTest {
     }
 
     @Override
-    public void modifyProperties(String tableName, Consumer<Map<String,String>> mapMutator)
+    public CompletableFuture<Map<String,String>> modifyProperties(String tableName,
+        Consumer<Map<String,String>> mapMutator, Executor executor)
         throws IllegalArgumentException, ConcurrentModificationException {
       Optional.ofNullable(settings.get(tableName)).ifPresent(map -> mapMutator.accept(map));
+      return CompletableFuture.completedFuture(settings.get(tableName));
     }
 
     @Override
