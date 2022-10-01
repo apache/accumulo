@@ -56,12 +56,12 @@ public class DeleteZooInstance {
     } else {
       // If all old is false then we require a specific instance
       Objects.requireNonNull(instance, "Instance name must not be null");
-      removeInstance(zk, instance);
+      removeInstance(context, zk, instance);
     }
   }
 
-  private static void removeInstance(final ZooReaderWriter zk, final String instance)
-      throws InterruptedException, KeeperException {
+  private static void removeInstance(ServerContext context, final ZooReaderWriter zk,
+      final String instance) throws InterruptedException, KeeperException {
     // try instance name:
     Set<String> instances = new HashSet<>(getInstances(zk));
     Set<String> uuids = new HashSet<>(zk.getChildren(Constants.ZROOT));
@@ -69,16 +69,25 @@ public class DeleteZooInstance {
     if (instances.contains(instance)) {
       String path = getInstancePath(instance);
       byte[] data = zk.getData(path);
-      deleteRetry(zk, path);
-      deleteRetry(zk, getRootChildPath(new String(data, UTF_8)));
-      System.out.println("Deleted instance: " + instance);
+      if (data != null) {
+        final String instanceId = new String(data, UTF_8);
+        if (checkCurrentInstance(context, instance, instanceId)) {
+          deleteRetry(zk, path);
+          deleteRetry(zk, getRootChildPath(instanceId));
+          System.out.println("Deleted instance: " + instance);
+        }
+      }
     } else if (uuids.contains(instance)) {
       // look for the real instance name
       for (String zkInstance : instances) {
         String path = getInstancePath(zkInstance);
         byte[] data = zk.getData(path);
-        if (instance.equals(new String(data, UTF_8))) {
-          deleteRetry(zk, path);
+        if (data != null) {
+          final String instanceId = new String(data, UTF_8);
+          if (instance.equals(instanceId) && checkCurrentInstance(context, instance, instanceId)) {
+            deleteRetry(zk, path);
+            System.out.println("Deleted instance: " + instance);
+          }
         }
       }
       deleteRetry(zk, getRootChildPath(instance));
@@ -101,6 +110,19 @@ public class DeleteZooInstance {
         deleteRetry(zk, getRootChildPath(child));
       }
     }
+  }
+
+  private static boolean checkCurrentInstance(ServerContext context, String instanceName,
+      String instanceId) {
+    if (instanceId.equals(context.getInstanceID().canonical())) {
+      String prompt = String.valueOf(
+          System.console().readLine("Warning: This is the current instance, are you sure? Y/n: "));
+      if (prompt == null || !prompt.equals("Y")) {
+        System.out.println("Instance deletion of '" + instanceName + "' cancelled.");
+        return false;
+      }
+    }
+    return true;
   }
 
   private static String getRootChildPath(String child) {
