@@ -241,21 +241,25 @@ public class Manager extends AbstractServer
    * @return the Fate object, only after the fate components are running and ready
    */
   Fate<Manager> fate() {
-    // if it's not ready, then wait for it to be ready, but with some informative logging
-    if (fateReadyLatch.getCount() != 0) {
-      String msgPrefix = "Unexpected use of fate in thread " + Thread.currentThread().getName()
-          + " at time " + System.currentTimeMillis();
-      // include stack trace so we know where it's coming from, in case we need to troubleshoot it
-      log.warn("{} blocked until fate starts", msgPrefix,
-          new IllegalStateException("Attempted fate action before manager finished starting up; "
-              + "if this doesn't make progress, please report it as a bug to the developers"));
-      try {
-        fateReadyLatch.await();
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new IllegalStateException("Thread was interrupted; cannot proceed");
+    try {
+      // block up to 30 seconds until it's ready; if it's still not ready, introduce some logging
+      if (!fateReadyLatch.await(30, TimeUnit.SECONDS)) {
+        String msgPrefix = "Unexpected use of fate in thread " + Thread.currentThread().getName()
+            + " at time " + System.currentTimeMillis();
+        // include stack trace so we know where it's coming from, in case we need to troubleshoot it
+        log.warn("{} blocked until fate starts", msgPrefix,
+            new IllegalStateException("Attempted fate action before manager finished starting up; "
+                + "if this doesn't make progress, please report it as a bug to the developers"));
+        int minutes = 0;
+        while (!fateReadyLatch.await(5, TimeUnit.MINUTES)) {
+          minutes += 5;
+          log.warn("{} still blocked after {} minutes; this is getting weird", msgPrefix, minutes);
+        }
+        log.debug("{} no longer blocked", msgPrefix);
       }
-      log.debug("{} no longer blocked", msgPrefix);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Thread was interrupted; cannot proceed");
     }
     return fateRef.get();
   }
