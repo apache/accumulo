@@ -79,6 +79,7 @@ public interface InstanceOperations {
    * trying to set the compaction planner properties another process modifies the manager balancer
    * properties, then it would automatically retry and call the lambda again with the latest
    * snapshot of instance properties.
+   * </P>
    *
    * <pre>
    *         {@code
@@ -107,8 +108,6 @@ public interface InstanceOperations {
    *           }
    *         }
    * </pre>
-   * </P>
-   *
    *
    * @param mapMutator
    *          This consumer should modify the passed snapshot of instance properties to contain the
