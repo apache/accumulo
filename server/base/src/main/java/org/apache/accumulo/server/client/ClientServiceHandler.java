@@ -293,6 +293,7 @@ public class ClientServiceHandler implements ClientService.Iface {
 
   private Map<String,String> conf(TCredentials credentials, AccumuloConfiguration conf)
       throws TException {
+    security.authenticateUser(credentials, credentials);
     conf.invalidateCache();
 
     Map<String,String> result = new HashMap<>();
@@ -307,11 +308,6 @@ public class ClientServiceHandler implements ClientService.Iface {
   @Override
   public Map<String,String> getConfiguration(TInfo tinfo, TCredentials credentials,
       ConfigurationType type) throws TException {
-    if (!security.hasSystemPermission(credentials, credentials.getPrincipal(),
-        SystemPermission.SYSTEM)) {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
-    }
     switch (type) {
       case CURRENT:
         context.getPropStore().getCache().remove(SystemPropKey.of(context));
@@ -325,70 +321,38 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public Map<String,String> getSystemProperties(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException {
-    if (security.hasSystemPermission(credentials, credentials.getPrincipal(),
-        SystemPermission.SYSTEM)) {
-      return context.getPropStore().get(SystemPropKey.of(context)).asMap();
-    } else {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
-    }
+  public Map<String,String> getSystemProperties(TInfo tinfo, TCredentials credentials) {
+    return context.getPropStore().get(SystemPropKey.of(context)).asMap();
   }
 
   @Override
-  public TVersionedProperties getVersionedSystemProperties(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException {
-    if (security.hasSystemPermission(credentials, credentials.getPrincipal(),
-        SystemPermission.SYSTEM)) {
-      return Optional.of(context.getPropStore().get(SystemPropKey.of(context)))
-          .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap())).get();
-    } else {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
-    }
+  public TVersionedProperties getVersionedSystemProperties(TInfo tinfo, TCredentials credentials) {
+    return Optional.of(context.getPropStore().get(SystemPropKey.of(context)))
+        .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap())).get();
   }
 
   @Override
   public Map<String,String> getTableConfiguration(TInfo tinfo, TCredentials credentials,
       String tableName) throws TException, ThriftTableOperationException {
     TableId tableId = checkTableId(context, tableName, null);
-    if (security.hasTablePermission(credentials, credentials.getPrincipal(), tableId,
-        TablePermission.READ)) {
-      context.getPropStore().getCache().remove(TablePropKey.of(context, tableId));
-      AccumuloConfiguration config = context.getTableConfiguration(tableId);
-      return conf(credentials, config);
-    } else {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
-    }
+    context.getPropStore().getCache().remove(TablePropKey.of(context, tableId));
+    AccumuloConfiguration config = context.getTableConfiguration(tableId);
+    return conf(credentials, config);
   }
 
   @Override
   public Map<String,String> getTableProperties(TInfo tinfo, TCredentials credentials,
       String tableName) throws TException {
     final TableId tableId = checkTableId(context, tableName, null);
-    if (security.hasTablePermission(credentials, credentials.getPrincipal(), tableId,
-        TablePermission.READ)) {
-      return context.getPropStore().get(TablePropKey.of(context, tableId)).asMap();
-    } else {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
-    }
+    return context.getPropStore().get(TablePropKey.of(context, tableId)).asMap();
   }
 
   @Override
   public TVersionedProperties getVersionedTableProperties(TInfo tinfo, TCredentials credentials,
       String tableName) throws TException {
     final TableId tableId = checkTableId(context, tableName, null);
-    if (security.hasTablePermission(credentials, credentials.getPrincipal(), tableId,
-        TablePermission.READ)) {
-      return Optional.of(context.getPropStore().get(TablePropKey.of(context, tableId)))
-          .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap())).get();
-    } else {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
-    }
+    return Optional.of(context.getPropStore().get(TablePropKey.of(context, tableId)))
+        .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap())).get();
   }
 
   @Override
@@ -526,15 +490,9 @@ public class ClientServiceHandler implements ClientService.Iface {
       throw new ThriftTableOperationException(null, ns, null,
           TableOperationExceptionType.NAMESPACE_NOTFOUND, why);
     }
-    if (security.hasNamespacePermission(credentials, credentials.getPrincipal(), namespaceId,
-        NamespacePermission.READ)) {
-      context.getPropStore().getCache().remove(NamespacePropKey.of(context, namespaceId));
-      AccumuloConfiguration config = context.getNamespaceConfiguration(namespaceId);
-      return conf(credentials, config);
-    } else {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
-    }
+    context.getPropStore().getCache().remove(NamespacePropKey.of(context, namespaceId));
+    AccumuloConfiguration config = context.getNamespaceConfiguration(namespaceId);
+    return conf(credentials, config);
   }
 
   @Override
@@ -543,13 +501,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     NamespaceId namespaceId;
     try {
       namespaceId = Namespaces.getNamespaceId(context, ns);
-      if (security.hasNamespacePermission(credentials, credentials.getPrincipal(), namespaceId,
-          NamespacePermission.READ)) {
-        return context.getPropStore().get(NamespacePropKey.of(context, namespaceId)).asMap();
-      } else {
-        throw new ThriftSecurityException(credentials.getPrincipal(),
-            SecurityErrorCode.PERMISSION_DENIED);
-      }
+      return context.getPropStore().get(NamespacePropKey.of(context, namespaceId)).asMap();
     } catch (NamespaceNotFoundException e) {
       String why = "Could not find namespace while getting configuration.";
       throw new ThriftTableOperationException(null, ns, null,
@@ -563,14 +515,8 @@ public class ClientServiceHandler implements ClientService.Iface {
     NamespaceId namespaceId;
     try {
       namespaceId = Namespaces.getNamespaceId(context, ns);
-      if (security.hasNamespacePermission(credentials, credentials.getPrincipal(), namespaceId,
-          NamespacePermission.READ)) {
-        return Optional.of(context.getPropStore().get(NamespacePropKey.of(context, namespaceId)))
-            .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap())).get();
-      } else {
-        throw new ThriftSecurityException(credentials.getPrincipal(),
-            SecurityErrorCode.PERMISSION_DENIED);
-      }
+      return Optional.of(context.getPropStore().get(NamespacePropKey.of(context, namespaceId)))
+          .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap())).get();
     } catch (NamespaceNotFoundException e) {
       String why = "Could not find namespace while getting configuration.";
       throw new ThriftTableOperationException(null, ns, null,
@@ -581,5 +527,4 @@ public class ClientServiceHandler implements ClientService.Iface {
   public List<BulkImportStatus> getBulkLoadStatus() {
     return bulkImportStatus.getBulkLoadStatus();
   }
-
 }
