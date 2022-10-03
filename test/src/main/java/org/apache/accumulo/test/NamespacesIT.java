@@ -755,6 +755,7 @@ public class NamespacesIT extends SharedMiniClusterBase {
 
       loginAs(root);
       c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.ALTER_TABLE);
+      c.securityOperations().grantTablePermission(u1, t3, TablePermission.READ);
       loginAs(user1);
       user1Con.tableOperations().setProperty(t3, Property.TABLE_FILE_MAX.getKey(), "42");
       user1Con.tableOperations().modifyProperties(t3,
@@ -772,6 +773,7 @@ public class NamespacesIT extends SharedMiniClusterBase {
 
       loginAs(root);
       c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.ALTER_NAMESPACE);
+      c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.READ);
       loginAs(user1);
       user1Con.namespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "42");
       user1Con.namespaceOperations().modifyProperties(n1, properties -> {
