@@ -52,7 +52,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
-import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,7 +64,7 @@ import io.opentelemetry.context.Scope;
 /**
  * This utility class will scan the Accumulo Metadata table to compute the disk usage for a table or
  * table(s) by using the size value stored in columns that contain the column family
- * {@link MetadataSchema.TabletsSection.DataFileColumnFamily}.
+ * {@link org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily}.
  *
  * This class will also track shared files to computed shared usage across all tables that are
  * provided as part of the Set of tables when getting disk usage.
@@ -342,7 +341,6 @@ public class TableDiskUsage {
     Span span = TraceUtil.startSpan(TableDiskUsage.class, "main");
     try (Scope scope = span.makeCurrent()) {
       try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
-        VolumeManager fs = opts.getServerContext().getVolumeManager();
         org.apache.accumulo.server.util.TableDiskUsage.printDiskUsage(opts.tables, client, false);
       } finally {
         span.end();

@@ -148,7 +148,7 @@
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
     <project.build.outputTimestamp>2022-02-08T14:59:16Z</project.build.outputTimestamp>
     <rat.consoleOutput>true</rat.consoleOutput>
-    <slf4j.version>2.0.1</slf4j.version>
+    <slf4j.version>2.0.3</slf4j.version>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <surefire.excludedGroups />
     <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
@@ -157,7 +157,7 @@
     <surefire.reuseForks>true</surefire.reuseForks>
     <surefire.version>3.0.0-M6</surefire.version>
     <!-- Thrift version -->
-    <thrift.version>0.16.0</thrift.version>
+    <thrift.version>0.17.0</thrift.version>
     <unitTestMemSize>-Xmx1G</unitTestMemSize>
     <!-- ZooKeeper version -->
     <zookeeper.version>3.8.0</zookeeper.version>
