@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.Executors;
 
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.Accumulo;
@@ -205,7 +204,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
           loginAs(testUser);
           test_user_client.tableOperations().modifyProperties(tableName, properties -> {
             properties.put(Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
-          }, Executors.newCachedThreadPool()).join();
+          });
           throw new IllegalStateException("Should NOT be able to set a table property");
         } catch (AccumuloSecurityException e) {
           loginAs(rootUser);
@@ -220,7 +219,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
         // add check on modify properties
         root_client.tableOperations().modifyProperties(tableName, properties -> {
           properties.put(Property.TABLE_BLOOM_SIZE.getKey(), "2048576");
-        }, Executors.newCachedThreadPool()).join();
+        });
         try {
           loginAs(testUser);
           test_user_client.tableOperations().removeProperty(tableName,
@@ -375,9 +374,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
         try {
           loginAs(testUser);
           // Verify modifyProperties also checks permissions
-          test_user_client.namespaceOperations().modifyPropertiesAsync(namespace, properties -> {
+          test_user_client.namespaceOperations().modifyProperties(namespace, properties -> {
             properties.put(Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
-          }).join();
+          });
           throw new IllegalStateException("Should NOT be able to set a namespace property");
         } catch (AccumuloSecurityException e) {
           loginAs(rootUser);
@@ -390,9 +389,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
         root_client.namespaceOperations().setProperty(namespace,
             Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
         // add check on modify properties
-        root_client.namespaceOperations().modifyPropertiesAsync(namespace, properties -> {
+        root_client.namespaceOperations().modifyProperties(namespace, properties -> {
           properties.put(Property.TABLE_BLOOM_SIZE.getKey(), "2048576");
-        }).join();
+        });
         try {
           loginAs(testUser);
           test_user_client.namespaceOperations().removeProperty(namespace,

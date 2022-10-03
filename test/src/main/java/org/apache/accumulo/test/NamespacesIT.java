@@ -39,7 +39,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cluster.ClusterUser;
@@ -332,14 +331,14 @@ public class NamespacesIT extends SharedMiniClusterBase {
     String k3 = Property.TABLE_FILE_BLOCK_SIZE.getKey();
     String v3 = "52";
     String table_v3 = "73";
-    c.namespaceOperations().modifyPropertiesAsync(namespace, properties -> {
+    c.namespaceOperations().modifyProperties(namespace, properties -> {
       properties.remove(k2);
       properties.put(k3, v3);
-    }).join();
+    });
     c.tableOperations().modifyProperties(t2, properties -> {
       properties.remove(k2);
       properties.put(k3, table_v3);
-    }, Executors.newCachedThreadPool()).join();
+    });
     assertTrue(checkNamespaceHasProp(namespace, k3, v3));
     assertTrue(checkTableHasProp(t1, k3, v3));
     assertTrue(checkTableHasProp(t2, k3, table_v3));
@@ -751,21 +750,15 @@ public class NamespacesIT extends SharedMiniClusterBase {
       assertSecurityException(SecurityErrorCode.PERMISSION_DENIED,
           () -> user1Con.tableOperations().setProperty(t3, Property.TABLE_FILE_MAX.getKey(), "42"));
       assertSecurityException(SecurityErrorCode.PERMISSION_DENIED,
-          () -> user1Con.tableOperations()
-              .modifyProperties(t3,
-                  properties -> properties.put(Property.TABLE_FILE_MAX.getKey(), "55"),
-                  Executors.newCachedThreadPool())
-              .join());
+          () -> user1Con.tableOperations().modifyProperties(t3,
+              properties -> properties.put(Property.TABLE_FILE_MAX.getKey(), "55")));
 
       loginAs(root);
       c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.ALTER_TABLE);
       loginAs(user1);
       user1Con.tableOperations().setProperty(t3, Property.TABLE_FILE_MAX.getKey(), "42");
-      user1Con.tableOperations()
-          .modifyProperties(t3,
-              properties -> properties.put(Property.TABLE_FILE_MAX.getKey(), "43"),
-              Executors.newCachedThreadPool())
-          .join();
+      user1Con.tableOperations().modifyProperties(t3,
+          properties -> properties.put(Property.TABLE_FILE_MAX.getKey(), "43"));
       user1Con.tableOperations().removeProperty(t3, Property.TABLE_FILE_MAX.getKey());
       loginAs(root);
       c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.ALTER_TABLE);
@@ -774,16 +767,16 @@ public class NamespacesIT extends SharedMiniClusterBase {
       assertSecurityException(SecurityErrorCode.PERMISSION_DENIED, () -> user1Con
           .namespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "55"));
       assertSecurityException(SecurityErrorCode.PERMISSION_DENIED,
-          () -> user1Con.namespaceOperations().modifyPropertiesAsync(n1,
-              properties -> properties.put(Property.TABLE_FILE_MAX.getKey(), "55")).join());
+          () -> user1Con.namespaceOperations().modifyProperties(n1,
+              properties -> properties.put(Property.TABLE_FILE_MAX.getKey(), "55")));
 
       loginAs(root);
       c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.ALTER_NAMESPACE);
       loginAs(user1);
       user1Con.namespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "42");
-      user1Con.namespaceOperations().modifyPropertiesAsync(n1, properties -> {
+      user1Con.namespaceOperations().modifyProperties(n1, properties -> {
         properties.put(Property.TABLE_FILE_MAX.getKey(), "43");
-      }).join();
+      });
       user1Con.namespaceOperations().removeProperty(n1, Property.TABLE_FILE_MAX.getKey());
       loginAs(root);
       c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.ALTER_NAMESPACE);

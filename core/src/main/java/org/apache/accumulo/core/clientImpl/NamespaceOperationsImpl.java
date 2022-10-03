@@ -25,8 +25,6 @@ import static org.apache.accumulo.core.util.Validators.*;
 
 import java.nio.ByteBuffer;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -191,7 +189,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     checkLocalityGroups(namespace, property);
   }
 
-  private Map<String,String> tryToModifyProperties(final String namespace,
+  private void tryToModifyProperties(final String namespace,
       final Consumer<Map<String,String>> mapMutator)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
 
@@ -210,7 +208,6 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
         checkLocalityGroups(namespace, property);
       }
 
-      return vProperties.getProperties();
     } catch (TableNotFoundException e) {
       if (e.getCause() instanceof NamespaceNotFoundException)
         throw (NamespaceNotFoundException) e.getCause();
@@ -219,38 +216,32 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     }
   }
 
-  @Override
-  public CompletableFuture<Map<String,String>> modifyPropertiesAsync(final String namespace,
+  public void modifyProperties(final String namespace,
       final Consumer<Map<String,String>> mapMutator)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
     EXISTING_NAMESPACE_NAME.validate(namespace);
     checkArgument(mapMutator != null, "mapMutator is null");
 
-    var executor = Executors.newCachedThreadPool();
-
     Retry retry =
         Retry.builder().infiniteRetries().retryAfter(25, MILLISECONDS).incrementBy(25, MILLISECONDS)
             .maxWait(30, SECONDS).backOffFactor(1.5).logInterval(3, MINUTES).createRetry();
 
-    return CompletableFuture.supplyAsync(() -> {
-      while (true) {
+    while (true) {
+      try {
+        tryToModifyProperties(namespace, mapMutator);
+        break;
+      } catch (ConcurrentModificationException cme) {
         try {
-          return tryToModifyProperties(namespace, mapMutator);
-        } catch (ConcurrentModificationException cme) {
-          try {
-            retry.logRetry(log, "Unable to modify namespace properties for " + namespace
-                + " because of concurrent modification");
-            retry.waitForNextAttempt();
-          } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-          }
-        } catch (Exception e) {
+          retry.logRetry(log, "Unable to modify namespace properties for " + namespace
+              + " because of concurrent modification");
+          retry.waitForNextAttempt();
+        } catch (InterruptedException e) {
           throw new RuntimeException(e);
-        } finally {
-          retry.useRetry();
         }
+      } finally {
+        retry.useRetry();
       }
-    }, executor);
+    }
   }
 
   @Override

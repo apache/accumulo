@@ -27,7 +27,6 @@ import static org.apache.accumulo.core.rpc.ThriftUtil.createTransport;
 import static org.apache.accumulo.core.rpc.ThriftUtil.getClient;
 import static org.apache.accumulo.core.rpc.ThriftUtil.returnClient;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
@@ -38,7 +37,6 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.Constants;
@@ -69,8 +67,6 @@ import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
-
 /**
  * Provides a class for administering the accumulo instance
  */
@@ -99,7 +95,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     checkLocalityGroups(property);
   }
 
-  private Map<String,String> tryToModifyProperties(final Consumer<Map<String,String>> mapMutator)
+  private void tryToModifyProperties(final Consumer<Map<String,String>> mapMutator)
       throws AccumuloException, AccumuloSecurityException, IllegalArgumentException {
     checkArgument(mapMutator != null, "mapMutator is null");
 
@@ -122,28 +118,20 @@ public class InstanceOperationsImpl implements InstanceOperations {
     // Send to server
     ThriftClientTypes.MANAGER.executeVoid(context, client -> client
         .modifySystemProperties(TraceUtil.traceInfo(), context.rpcCreds(), vProperties));
-
-    return vProperties.getProperties();
   }
 
   @Override
-  public Map<String,String> modifyProperties(final Consumer<Map<String,String>> mapMutator,
-      Duration timeout) throws AccumuloException, AccumuloSecurityException,
-      IllegalArgumentException, TimeoutException {
-
-    Preconditions.checkArgument(timeout.compareTo(Duration.ZERO) > 0);
+  public void modifyProperties(final Consumer<Map<String,String>> mapMutator)
+      throws AccumuloException, AccumuloSecurityException, IllegalArgumentException {
 
     Retry retry =
         Retry.builder().infiniteRetries().retryAfter(25, MILLISECONDS).incrementBy(25, MILLISECONDS)
             .maxWait(30, SECONDS).backOffFactor(1.5).logInterval(3, MINUTES).createRetry();
 
-    var origTimeout = timeout;
-
-    while (timeout.compareTo(Duration.ZERO) > 0) {
-      long t1 = System.nanoTime();
+    while (true) {
       try {
-        // TODO would need to push timeout down into this code because it may retry forever if there are problems communicating with manager
-        return tryToModifyProperties(mapMutator);
+        tryToModifyProperties(mapMutator);
+        break;
       } catch (ConcurrentModificationException cme) {
         try {
           retry.logRetry(LoggerFactory.getLogger(InstanceOperationsImpl.class),
@@ -155,12 +143,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       } finally {
         retry.useRetry();
       }
-      long t2 = System.nanoTime();
-      timeout = timeout.minusNanos(t2 - t1);
     }
-
-    throw new TimeoutException("Failed to modify properties in " + origTimeout + " using "
-        + retry.retriesCompleted() + " retries");
   }
 
   @Override

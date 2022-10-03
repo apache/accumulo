@@ -27,15 +27,16 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import com.google.common.collect.Maps;
 import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.conf.Property;
@@ -211,7 +212,7 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
       client.instanceOperations().modifyProperties(original -> {
         original.put(Property.TSERV_CLIENTPORT.getKey(), "9998");
         original.put(Property.TSERV_MAXMEM.getKey(), "35%");
-      }, Duration.ofMinutes(1));
+      });
 
       // Verify system properties added
       assertTrue(Wait.waitFor(
@@ -230,7 +231,7 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
 
       // Verify removal by sending empty map - only removes props that were set in previous values
       // should be restored
-      client.instanceOperations().modifyProperties(Map::clear, Duration.ofMinutes(1));
+      client.instanceOperations().modifyProperties(Map::clear);
 
       assertTrue(Wait.waitFor(
           () -> client.instanceOperations().getSystemProperties().getProperties().size() == 0, 5000,
@@ -268,8 +269,7 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
       }, mapMutator -> {
         try {
           // Modify props on table
-          client.tableOperations()
-              .modifyProperties(table, mapMutator, Executors.newCachedThreadPool()).join();
+          client.tableOperations().modifyProperties(table, mapMutator);
         } catch (Exception e) {
           throw new IllegalStateException(e);
         }
@@ -304,7 +304,7 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
       }, mapMutator -> {
         try {
           // Modify props on namespace
-          client.namespaceOperations().modifyPropertiesAsync(namespace, mapMutator).join();
+          client.namespaceOperations().modifyProperties(namespace, mapMutator);
         } catch (Exception e) {
           throw new IllegalStateException(e);
         }
@@ -372,8 +372,7 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
 
         @Override
         public void modifyProperties(Consumer<Map<String,String>> modifier) throws Exception {
-          client.tableOperations()
-              .modifyProperties(table, modifier, Executors.newCachedThreadPool()).join();
+          client.tableOperations().modifyProperties(table, modifier);
         }
 
         @Override
@@ -396,7 +395,7 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
 
         @Override
         public void modifyProperties(Consumer<Map<String,String>> modifier) throws Exception {
-          client.namespaceOperations().modifyPropertiesAsync(namespace, modifier).join();
+          client.namespaceOperations().modifyProperties(namespace, modifier);
         }
 
         @Override
@@ -416,7 +415,7 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
 
         @Override
         public void modifyProperties(Consumer<Map<String,String>> modifier) throws Exception {
-          client.instanceOperations().modifyProperties(modifier, Duration.ofMinutes(1));
+          client.instanceOperations().modifyProperties(modifier);
         }
 
         @Override
@@ -519,61 +518,5 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
     }));
 
     executor.shutdown();
-  }
-
-  @Test
-  public void testConditionalInstanceUpdates() throws Exception {
-    // this test does two conditional updates, the first should go through and the second should not
-
-    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
-      var acceptedProps = client.instanceOperations().modifyProperties(props->{
-        if(!props.containsKey("general.custom.A")) {
-          props.put("general.custom.A","1");
-        }
-      }, Duration.ofMinutes(1));
-
-      acceptedProps = Maps.filterKeys(acceptedProps, k->k.equals("general.custom.A"));
-      assertEquals(Map.of("general.custom.A","1"), acceptedProps);
-
-      acceptedProps = client.instanceOperations().modifyProperties(props->{
-        if(!props.containsKey("general.custom.A")) {
-          props.put("general.custom.A","2");
-        }
-      }, Duration.ofMinutes(1));
-
-      acceptedProps = Maps.filterKeys(acceptedProps, k->k.equals("general.custom.A"));
-      assertEquals(Map.of("general.custom.A","1"), acceptedProps);
-    }
-  }
-
-  @Test
-  public void testConditionalTableUpdates() throws Exception {
-    // this test does two conditional updates, the first should go through and the second should not
-    String table = getUniqueNames(1)[0];
-    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
-      client.tableOperations().create(table);
-
-      ExecutorService executor = Executors.newCachedThreadPool();
-
-      var acceptedProps = client.tableOperations().modifyProperties(table, props->{
-        if(!props.containsKey("table.custom.A")) {
-          props.put("table.custom.A","1");
-        }
-      }, executor).join();
-
-      acceptedProps = Maps.filterKeys(acceptedProps, k->k.equals("table.custom.A"));
-      assertEquals(Map.of("table.custom.A","1"), acceptedProps);
-
-      acceptedProps = client.tableOperations().modifyProperties(table, props->{
-        if(!props.containsKey("table.custom.A")) {
-          props.put("table.custom.A","2");
-        }
-      }, executor).join();
-
-      acceptedProps = Maps.filterKeys(acceptedProps, k->k.equals("table.custom.A"));
-      assertEquals(Map.of("table.custom.A","1"), acceptedProps);
-
-      executor.shutdown();
-    }
   }
 }
