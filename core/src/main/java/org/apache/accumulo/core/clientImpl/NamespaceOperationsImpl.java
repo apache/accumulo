@@ -236,6 +236,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     return vProperties.getProperties();
   }
 
+  @Override
   public Map<String,String> modifyProperties(final String namespace,
       final Consumer<Map<String,String>> mapMutator)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
