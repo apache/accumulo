@@ -244,12 +244,12 @@ Files:
     ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
     POSSIBILITY OF SUCH DAMAGE.
 
-## JQuery 3.2.1 (https://jquery.com/)
+## JQuery 3.6.1 (https://jquery.com/)
 
 Files:
 * server/monitor/src/main/resources/org/apache/accumulo/monitor/resources/external/jquery/*
 
-    jQuery JavaScript Library v3.2.1
+    jQuery JavaScript Library v3.6.1
     https://jquery.com/
 
     Includes Sizzle.js
@@ -259,7 +259,7 @@ Files:
     Released under the MIT license
     https://jquery.org/license
 
-    Date: 2017-03-20T18:59Z
+    Date: 2022-08-26T17:52Z
 
     Text of the MIT License:
 
@@ -284,7 +284,7 @@ Files:
     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
     OTHER DEALINGS IN THE SOFTWARE.
 
-## Flot 4.2.1 (https://github.com/flot/flot)
+## Flot 4.2.3 (https://github.com/flot/flot)
 
 Files:
 * server/monitor/src/main/resources/org/apache/accumulo/monitor/resources/external/flot/*
@@ -295,9 +295,21 @@ Files:
 
     Flot bundles additional works:
 
-    jquery.pie.js
-    * Created by Brian Medendorp, June 2009
-    * Updated November 2009 with contributions from: btburnett3, Anthony Aragues and Xavi Ivars
+    jquery.flot.pie.js
+        Flot plugin for rendering pie charts.
+
+        Copyright (c) 2007-2014 IOLA and Ole Laursen.
+        Licensed under the MIT license.
+
+        The plugin assumes that each series has a single data value, and that each
+        value is a positive integer or zero.  Negative numbers don't make sense for a
+        pie chart, and have unpredictable results.  The values do NOT need to be
+        passed in as percentages; the plugin will calculate the total and per-slice
+        percentages internally.
+
+        * Created by Brian Medendorp
+
+        * Updated with contributions from btburnett3, Anthony Aragues and Xavi Ivars
 
     jquery.flot.resize.js
     * Inline dependency:

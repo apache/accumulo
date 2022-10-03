@@ -826,8 +826,8 @@ Licensed under the MIT license.
                         var expectedPs = s.datapoints.pointsize != null ? s.datapoints.pointsize : (s.data && s.data[0] && s.data[0].length ? s.data[0].length : 3);
                         if (expectedPs > 2) {
                             format.push({
-                                x: false,
-                                y: true,
+                                x: s.bars.horizontal,
+                                y: !s.bars.horizontal,
                                 number: true,
                                 required: false,
                                 computeRange: s.yaxis.options.autoScale !== 'none',
@@ -1520,7 +1520,7 @@ Licensed under the MIT license.
             var magn = parseFloat('1e' + (-dec)),
                 norm = delta / magn;
 
-            if (norm > 2.25 && norm < 3 && (dec + 1) <= tickDecimals) {
+            if (norm > 2.25 && norm < 3 && (tickDecimals == null || (dec + 1) <= tickDecimals)) {
                 //we need an extra decimals when tickSize is 2.5
                 ++dec;
             }

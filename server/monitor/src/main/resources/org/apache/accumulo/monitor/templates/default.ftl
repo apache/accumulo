@@ -30,7 +30,7 @@
         ${val}
       </#list>
     <#else>
-      <script src="/resources/external/jquery/jquery-3.2.1.js"></script>
+      <script src="/resources/external/jquery/jquery-3.6.1.js"></script>
       <script src="/resources/external/bootstrap/js/bootstrap.js"></script>
       <script src="/resources/external/datatables/js/jquery.dataTables.js"></script>
       <script src="/resources/external/datatables/js/dataTables.bootstrap5.js"></script>
