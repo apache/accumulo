@@ -114,15 +114,18 @@ public class DeleteZooInstance {
 
   private static boolean checkCurrentInstance(ServerContext context, String instanceName,
       String instanceId) {
+    boolean operate = true;
+    // If the instance given is the current instance we should verify the user actually wants to
+    // delete
     if (instanceId.equals(context.getInstanceID().canonical())) {
-      String prompt = String.valueOf(
-          System.console().readLine("Warning: This is the current instance, are you sure? Y/n: "));
-      if (prompt == null || !prompt.equals("Y")) {
+      String line = String.valueOf(System.console()
+          .readLine("Warning: This is the current instance, are you sure? (yes|no): "));
+      operate = line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
+      if (!operate) {
         System.out.println("Instance deletion of '" + instanceName + "' cancelled.");
-        return false;
       }
     }
-    return true;
+    return operate;
   }
 
   private static String getRootChildPath(String child) {
