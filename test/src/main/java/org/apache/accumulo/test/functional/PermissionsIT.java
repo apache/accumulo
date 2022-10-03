@@ -665,6 +665,10 @@ public class PermissionsIT extends AccumuloClusterHarness {
 
         // test each permission
         for (TablePermission perm : TablePermission.values()) {
+          if (perm == TablePermission.READ) {
+            // we give test user client READ permission when creating table
+            continue;
+          }
           log.debug("Verifying the {} permission", perm);
 
           // test permission before and after granting it
@@ -673,14 +677,14 @@ public class PermissionsIT extends AccumuloClusterHarness {
           testMissingTablePermission(test_user_client, perm, tableName);
           loginAs(rootUser);
           c.securityOperations().grantTablePermission(principal, tableName, perm);
-          verifyHasOnlyTheseTablePermissions(c, principal, tableName, perm);
+          verifyHasOnlyTheseTablePermissions(c, principal, tableName, perm, TablePermission.READ);
           loginAs(testUser);
           testGrantedTablePermission(test_user_client, perm, tableName);
 
           loginAs(rootUser);
           createTestTable(c, principal, tableName);
           c.securityOperations().revokeTablePermission(principal, tableName, perm);
-          verifyHasNoTablePermissions(c, principal, tableName, perm);
+          verifyHasOnlyReadPermission(c, principal, tableName, perm);
         }
       }
     }
@@ -700,7 +704,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
 
       // verify proper permissions for creator and test user
       verifyHasOnlyTheseTablePermissions(c, c.whoami(), tableName, TablePermission.values());
-      verifyHasNoTablePermissions(c, testUser, tableName, TablePermission.values());
+      verifyHasOnlyReadPermission(c, testUser, tableName, TablePermission.values());
 
     }
   }
@@ -877,12 +881,18 @@ public class PermissionsIT extends AccumuloClusterHarness {
     }
   }
 
-  private void verifyHasNoTablePermissions(AccumuloClient root_client, String user, String table,
+  private void verifyHasOnlyReadPermission(AccumuloClient root_client, String user, String table,
       TablePermission... perms) throws AccumuloException, AccumuloSecurityException {
-    for (TablePermission p : perms)
-      if (root_client.securityOperations().hasTablePermission(user, table, p))
+    for (TablePermission p : perms) {
+      if (p == TablePermission.READ) {
+        if (!root_client.securityOperations().hasTablePermission(user, table, p)) {
+          root_client.securityOperations().grantTablePermission(user, table, p);
+        }
+      }
+      else if (root_client.securityOperations().hasTablePermission(user, table, p))
         throw new IllegalStateException(
             user + " SHOULD NOT have table permission " + p + " for table " + table);
+    }
   }
 
   private void testArbitraryProperty(AccumuloClient c, String tableName, boolean havePerm)

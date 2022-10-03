@@ -325,16 +325,22 @@ service ClientService {
     2:trace.TInfo tinfo
     3:security.TCredentials credentials
     1:ConfigurationType type
+  ) throws (
+    1:ThriftSecurityException sec
   )
 
   map<string, string> getSystemProperties(
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
+  ) throws (
+    1:ThriftSecurityException sec
   )
 
   TVersionedProperties getVersionedSystemProperties(
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
+  ) throws (
+    1:ThriftSecurityException sec
   )
 
   map<string, string> getTableConfiguration(
@@ -342,7 +348,8 @@ service ClientService {
     3:security.TCredentials credentials
     2:string tableName
   ) throws (
-    1:ThriftTableOperationException tope
+    1:ThriftSecurityException sec
+    2:ThriftTableOperationException tope
   )
 
   map<string, string> getTableProperties(
@@ -350,7 +357,8 @@ service ClientService {
     3:security.TCredentials credentials
     2:string tableName
   ) throws (
-    1:ThriftTableOperationException tope
+    1:ThriftSecurityException sec
+    2:ThriftTableOperationException tope
   )
 
   TVersionedProperties getVersionedTableProperties(
@@ -358,7 +366,8 @@ service ClientService {
     3:security.TCredentials credentials
     2:string tableName
   ) throws (
-    1:ThriftTableOperationException tope
+    1:ThriftSecurityException sec
+    2:ThriftTableOperationException tope
   )
 
   map<string, string> getNamespaceConfiguration(
@@ -366,7 +375,8 @@ service ClientService {
     2:security.TCredentials credentials
     3:string ns
   ) throws (
-    1:ThriftTableOperationException tope
+    1:ThriftSecurityException sec
+    2:ThriftTableOperationException tope
   )
 
   map<string, string> getNamespaceProperties(
@@ -374,7 +384,8 @@ service ClientService {
     2:security.TCredentials credentials
     3:string ns
   ) throws (
-    1:ThriftTableOperationException tope
+    1:ThriftSecurityException sec
+    2:ThriftTableOperationException tope
   )
 
   TVersionedProperties getVersionedNamespaceProperties(
@@ -382,7 +393,8 @@ service ClientService {
     2:security.TCredentials credentials
     3:string ns
   ) throws (
-    1:ThriftTableOperationException tope
+    1:ThriftSecurityException sec
+    2:ThriftTableOperationException tope
   )
 
   bool checkClass(

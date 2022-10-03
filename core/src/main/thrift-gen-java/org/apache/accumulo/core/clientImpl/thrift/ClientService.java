@@ -77,23 +77,23 @@ public class ClientService {
 
     public void revokeNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String ns, byte permission) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
-    public java.util.Map<java.lang.String,java.lang.String> getConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, ConfigurationType type) throws org.apache.thrift.TException;
+    public java.util.Map<java.lang.String,java.lang.String> getConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, ConfigurationType type) throws ThriftSecurityException, org.apache.thrift.TException;
 
-    public java.util.Map<java.lang.String,java.lang.String> getSystemProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.thrift.TException;
+    public java.util.Map<java.lang.String,java.lang.String> getSystemProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws ThriftSecurityException, org.apache.thrift.TException;
 
-    public TVersionedProperties getVersionedSystemProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.thrift.TException;
+    public TVersionedProperties getVersionedSystemProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws ThriftSecurityException, org.apache.thrift.TException;
 
-    public java.util.Map<java.lang.String,java.lang.String> getTableConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName) throws ThriftTableOperationException, org.apache.thrift.TException;
+    public java.util.Map<java.lang.String,java.lang.String> getTableConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
-    public java.util.Map<java.lang.String,java.lang.String> getTableProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName) throws ThriftTableOperationException, org.apache.thrift.TException;
+    public java.util.Map<java.lang.String,java.lang.String> getTableProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
-    public TVersionedProperties getVersionedTableProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName) throws ThriftTableOperationException, org.apache.thrift.TException;
+    public TVersionedProperties getVersionedTableProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
-    public java.util.Map<java.lang.String,java.lang.String> getNamespaceConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns) throws ThriftTableOperationException, org.apache.thrift.TException;
+    public java.util.Map<java.lang.String,java.lang.String> getNamespaceConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
-    public java.util.Map<java.lang.String,java.lang.String> getNamespaceProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns) throws ThriftTableOperationException, org.apache.thrift.TException;
+    public java.util.Map<java.lang.String,java.lang.String> getNamespaceProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
-    public TVersionedProperties getVersionedNamespaceProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns) throws ThriftTableOperationException, org.apache.thrift.TException;
+    public TVersionedProperties getVersionedNamespaceProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
     public boolean checkClass(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String className, java.lang.String interfaceMatch) throws org.apache.thrift.TException;
 
@@ -884,7 +884,7 @@ public class ClientService {
     }
 
     @Override
-    public java.util.Map<java.lang.String,java.lang.String> getConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, ConfigurationType type) throws org.apache.thrift.TException
+    public java.util.Map<java.lang.String,java.lang.String> getConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, ConfigurationType type) throws ThriftSecurityException, org.apache.thrift.TException
     {
       send_getConfiguration(tinfo, credentials, type);
       return recv_getConfiguration();
@@ -899,18 +899,21 @@ public class ClientService {
       sendBase("getConfiguration", args);
     }
 
-    public java.util.Map<java.lang.String,java.lang.String> recv_getConfiguration() throws org.apache.thrift.TException
+    public java.util.Map<java.lang.String,java.lang.String> recv_getConfiguration() throws ThriftSecurityException, org.apache.thrift.TException
     {
       getConfiguration_result result = new getConfiguration_result();
       receiveBase(result, "getConfiguration");
       if (result.isSetSuccess()) {
         return result.success;
       }
+      if (result.sec != null) {
+        throw result.sec;
+      }
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getConfiguration failed: unknown result");
     }
 
     @Override
-    public java.util.Map<java.lang.String,java.lang.String> getSystemProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.thrift.TException
+    public java.util.Map<java.lang.String,java.lang.String> getSystemProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws ThriftSecurityException, org.apache.thrift.TException
     {
       send_getSystemProperties(tinfo, credentials);
       return recv_getSystemProperties();
@@ -924,18 +927,21 @@ public class ClientService {
       sendBase("getSystemProperties", args);
     }
 
-    public java.util.Map<java.lang.String,java.lang.String> recv_getSystemProperties() throws org.apache.thrift.TException
+    public java.util.Map<java.lang.String,java.lang.String> recv_getSystemProperties() throws ThriftSecurityException, org.apache.thrift.TException
     {
       getSystemProperties_result result = new getSystemProperties_result();
       receiveBase(result, "getSystemProperties");
       if (result.isSetSuccess()) {
         return result.success;
       }
+      if (result.sec != null) {
+        throw result.sec;
+      }
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getSystemProperties failed: unknown result");
     }
 
     @Override
-    public TVersionedProperties getVersionedSystemProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.thrift.TException
+    public TVersionedProperties getVersionedSystemProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws ThriftSecurityException, org.apache.thrift.TException
     {
       send_getVersionedSystemProperties(tinfo, credentials);
       return recv_getVersionedSystemProperties();
@@ -949,18 +955,21 @@ public class ClientService {
       sendBase("getVersionedSystemProperties", args);
     }
 
-    public TVersionedProperties recv_getVersionedSystemProperties() throws org.apache.thrift.TException
+    public TVersionedProperties recv_getVersionedSystemProperties() throws ThriftSecurityException, org.apache.thrift.TException
     {
       getVersionedSystemProperties_result result = new getVersionedSystemProperties_result();
       receiveBase(result, "getVersionedSystemProperties");
       if (result.isSetSuccess()) {
         return result.success;
       }
+      if (result.sec != null) {
+        throw result.sec;
+      }
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getVersionedSystemProperties failed: unknown result");
     }
 
     @Override
-    public java.util.Map<java.lang.String,java.lang.String> getTableConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName) throws ThriftTableOperationException, org.apache.thrift.TException
+    public java.util.Map<java.lang.String,java.lang.String> getTableConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
       send_getTableConfiguration(tinfo, credentials, tableName);
       return recv_getTableConfiguration();
@@ -975,12 +984,15 @@ public class ClientService {
       sendBase("getTableConfiguration", args);
     }
 
-    public java.util.Map<java.lang.String,java.lang.String> recv_getTableConfiguration() throws ThriftTableOperationException, org.apache.thrift.TException
+    public java.util.Map<java.lang.String,java.lang.String> recv_getTableConfiguration() throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
       getTableConfiguration_result result = new getTableConfiguration_result();
       receiveBase(result, "getTableConfiguration");
       if (result.isSetSuccess()) {
         return result.success;
+      }
+      if (result.sec != null) {
+        throw result.sec;
       }
       if (result.tope != null) {
         throw result.tope;
@@ -989,7 +1001,7 @@ public class ClientService {
     }
 
     @Override
-    public java.util.Map<java.lang.String,java.lang.String> getTableProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName) throws ThriftTableOperationException, org.apache.thrift.TException
+    public java.util.Map<java.lang.String,java.lang.String> getTableProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
       send_getTableProperties(tinfo, credentials, tableName);
       return recv_getTableProperties();
@@ -1004,12 +1016,15 @@ public class ClientService {
       sendBase("getTableProperties", args);
     }
 
-    public java.util.Map<java.lang.String,java.lang.String> recv_getTableProperties() throws ThriftTableOperationException, org.apache.thrift.TException
+    public java.util.Map<java.lang.String,java.lang.String> recv_getTableProperties() throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
       getTableProperties_result result = new getTableProperties_result();
       receiveBase(result, "getTableProperties");
       if (result.isSetSuccess()) {
         return result.success;
+      }
+      if (result.sec != null) {
+        throw result.sec;
       }
       if (result.tope != null) {
         throw result.tope;
@@ -1018,7 +1033,7 @@ public class ClientService {
     }
 
     @Override
-    public TVersionedProperties getVersionedTableProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName) throws ThriftTableOperationException, org.apache.thrift.TException
+    public TVersionedProperties getVersionedTableProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
       send_getVersionedTableProperties(tinfo, credentials, tableName);
       return recv_getVersionedTableProperties();
@@ -1033,12 +1048,15 @@ public class ClientService {
       sendBase("getVersionedTableProperties", args);
     }
 
-    public TVersionedProperties recv_getVersionedTableProperties() throws ThriftTableOperationException, org.apache.thrift.TException
+    public TVersionedProperties recv_getVersionedTableProperties() throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
       getVersionedTableProperties_result result = new getVersionedTableProperties_result();
       receiveBase(result, "getVersionedTableProperties");
       if (result.isSetSuccess()) {
         return result.success;
+      }
+      if (result.sec != null) {
+        throw result.sec;
       }
       if (result.tope != null) {
         throw result.tope;
@@ -1047,7 +1065,7 @@ public class ClientService {
     }
 
     @Override
-    public java.util.Map<java.lang.String,java.lang.String> getNamespaceConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns) throws ThriftTableOperationException, org.apache.thrift.TException
+    public java.util.Map<java.lang.String,java.lang.String> getNamespaceConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
       send_getNamespaceConfiguration(tinfo, credentials, ns);
       return recv_getNamespaceConfiguration();
@@ -1062,12 +1080,15 @@ public class ClientService {
       sendBase("getNamespaceConfiguration", args);
     }
 
-    public java.util.Map<java.lang.String,java.lang.String> recv_getNamespaceConfiguration() throws ThriftTableOperationException, org.apache.thrift.TException
+    public java.util.Map<java.lang.String,java.lang.String> recv_getNamespaceConfiguration() throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
       getNamespaceConfiguration_result result = new getNamespaceConfiguration_result();
       receiveBase(result, "getNamespaceConfiguration");
       if (result.isSetSuccess()) {
         return result.success;
+      }
+      if (result.sec != null) {
+        throw result.sec;
       }
       if (result.tope != null) {
         throw result.tope;
@@ -1076,7 +1097,7 @@ public class ClientService {
     }
 
     @Override
-    public java.util.Map<java.lang.String,java.lang.String> getNamespaceProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns) throws ThriftTableOperationException, org.apache.thrift.TException
+    public java.util.Map<java.lang.String,java.lang.String> getNamespaceProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
       send_getNamespaceProperties(tinfo, credentials, ns);
       return recv_getNamespaceProperties();
@@ -1091,12 +1112,15 @@ public class ClientService {
       sendBase("getNamespaceProperties", args);
     }
 
-    public java.util.Map<java.lang.String,java.lang.String> recv_getNamespaceProperties() throws ThriftTableOperationException, org.apache.thrift.TException
+    public java.util.Map<java.lang.String,java.lang.String> recv_getNamespaceProperties() throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
       getNamespaceProperties_result result = new getNamespaceProperties_result();
       receiveBase(result, "getNamespaceProperties");
       if (result.isSetSuccess()) {
         return result.success;
+      }
+      if (result.sec != null) {
+        throw result.sec;
       }
       if (result.tope != null) {
         throw result.tope;
@@ -1105,7 +1129,7 @@ public class ClientService {
     }
 
     @Override
-    public TVersionedProperties getVersionedNamespaceProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns) throws ThriftTableOperationException, org.apache.thrift.TException
+    public TVersionedProperties getVersionedNamespaceProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
       send_getVersionedNamespaceProperties(tinfo, credentials, ns);
       return recv_getVersionedNamespaceProperties();
@@ -1120,12 +1144,15 @@ public class ClientService {
       sendBase("getVersionedNamespaceProperties", args);
     }
 
-    public TVersionedProperties recv_getVersionedNamespaceProperties() throws ThriftTableOperationException, org.apache.thrift.TException
+    public TVersionedProperties recv_getVersionedNamespaceProperties() throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
       getVersionedNamespaceProperties_result result = new getVersionedNamespaceProperties_result();
       receiveBase(result, "getVersionedNamespaceProperties");
       if (result.isSetSuccess()) {
         return result.success;
+      }
+      if (result.sec != null) {
+        throw result.sec;
       }
       if (result.tope != null) {
         throw result.tope;
@@ -2294,7 +2321,7 @@ public class ClientService {
       }
 
       @Override
-      public java.util.Map<java.lang.String,java.lang.String> getResult() throws org.apache.thrift.TException {
+      public java.util.Map<java.lang.String,java.lang.String> getResult() throws ThriftSecurityException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -2332,7 +2359,7 @@ public class ClientService {
       }
 
       @Override
-      public java.util.Map<java.lang.String,java.lang.String> getResult() throws org.apache.thrift.TException {
+      public java.util.Map<java.lang.String,java.lang.String> getResult() throws ThriftSecurityException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -2370,7 +2397,7 @@ public class ClientService {
       }
 
       @Override
-      public TVersionedProperties getResult() throws org.apache.thrift.TException {
+      public TVersionedProperties getResult() throws ThriftSecurityException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -2411,7 +2438,7 @@ public class ClientService {
       }
 
       @Override
-      public java.util.Map<java.lang.String,java.lang.String> getResult() throws ThriftTableOperationException, org.apache.thrift.TException {
+      public java.util.Map<java.lang.String,java.lang.String> getResult() throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -2452,7 +2479,7 @@ public class ClientService {
       }
 
       @Override
-      public java.util.Map<java.lang.String,java.lang.String> getResult() throws ThriftTableOperationException, org.apache.thrift.TException {
+      public java.util.Map<java.lang.String,java.lang.String> getResult() throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -2493,7 +2520,7 @@ public class ClientService {
       }
 
       @Override
-      public TVersionedProperties getResult() throws ThriftTableOperationException, org.apache.thrift.TException {
+      public TVersionedProperties getResult() throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -2534,7 +2561,7 @@ public class ClientService {
       }
 
       @Override
-      public java.util.Map<java.lang.String,java.lang.String> getResult() throws ThriftTableOperationException, org.apache.thrift.TException {
+      public java.util.Map<java.lang.String,java.lang.String> getResult() throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -2575,7 +2602,7 @@ public class ClientService {
       }
 
       @Override
-      public java.util.Map<java.lang.String,java.lang.String> getResult() throws ThriftTableOperationException, org.apache.thrift.TException {
+      public java.util.Map<java.lang.String,java.lang.String> getResult() throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -2616,7 +2643,7 @@ public class ClientService {
       }
 
       @Override
-      public TVersionedProperties getResult() throws ThriftTableOperationException, org.apache.thrift.TException {
+      public TVersionedProperties getResult() throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -3613,7 +3640,11 @@ public class ClientService {
       @Override
       public getConfiguration_result getResult(I iface, getConfiguration_args args) throws org.apache.thrift.TException {
         getConfiguration_result result = new getConfiguration_result();
-        result.success = iface.getConfiguration(args.tinfo, args.credentials, args.type);
+        try {
+          result.success = iface.getConfiguration(args.tinfo, args.credentials, args.type);
+        } catch (ThriftSecurityException sec) {
+          result.sec = sec;
+        }
         return result;
       }
     }
@@ -3641,7 +3672,11 @@ public class ClientService {
       @Override
       public getSystemProperties_result getResult(I iface, getSystemProperties_args args) throws org.apache.thrift.TException {
         getSystemProperties_result result = new getSystemProperties_result();
-        result.success = iface.getSystemProperties(args.tinfo, args.credentials);
+        try {
+          result.success = iface.getSystemProperties(args.tinfo, args.credentials);
+        } catch (ThriftSecurityException sec) {
+          result.sec = sec;
+        }
         return result;
       }
     }
@@ -3669,7 +3704,11 @@ public class ClientService {
       @Override
       public getVersionedSystemProperties_result getResult(I iface, getVersionedSystemProperties_args args) throws org.apache.thrift.TException {
         getVersionedSystemProperties_result result = new getVersionedSystemProperties_result();
-        result.success = iface.getVersionedSystemProperties(args.tinfo, args.credentials);
+        try {
+          result.success = iface.getVersionedSystemProperties(args.tinfo, args.credentials);
+        } catch (ThriftSecurityException sec) {
+          result.sec = sec;
+        }
         return result;
       }
     }
@@ -3699,6 +3738,8 @@ public class ClientService {
         getTableConfiguration_result result = new getTableConfiguration_result();
         try {
           result.success = iface.getTableConfiguration(args.tinfo, args.credentials, args.tableName);
+        } catch (ThriftSecurityException sec) {
+          result.sec = sec;
         } catch (ThriftTableOperationException tope) {
           result.tope = tope;
         }
@@ -3731,6 +3772,8 @@ public class ClientService {
         getTableProperties_result result = new getTableProperties_result();
         try {
           result.success = iface.getTableProperties(args.tinfo, args.credentials, args.tableName);
+        } catch (ThriftSecurityException sec) {
+          result.sec = sec;
         } catch (ThriftTableOperationException tope) {
           result.tope = tope;
         }
@@ -3763,6 +3806,8 @@ public class ClientService {
         getVersionedTableProperties_result result = new getVersionedTableProperties_result();
         try {
           result.success = iface.getVersionedTableProperties(args.tinfo, args.credentials, args.tableName);
+        } catch (ThriftSecurityException sec) {
+          result.sec = sec;
         } catch (ThriftTableOperationException tope) {
           result.tope = tope;
         }
@@ -3795,6 +3840,8 @@ public class ClientService {
         getNamespaceConfiguration_result result = new getNamespaceConfiguration_result();
         try {
           result.success = iface.getNamespaceConfiguration(args.tinfo, args.credentials, args.ns);
+        } catch (ThriftSecurityException sec) {
+          result.sec = sec;
         } catch (ThriftTableOperationException tope) {
           result.tope = tope;
         }
@@ -3827,6 +3874,8 @@ public class ClientService {
         getNamespaceProperties_result result = new getNamespaceProperties_result();
         try {
           result.success = iface.getNamespaceProperties(args.tinfo, args.credentials, args.ns);
+        } catch (ThriftSecurityException sec) {
+          result.sec = sec;
         } catch (ThriftTableOperationException tope) {
           result.tope = tope;
         }
@@ -3859,6 +3908,8 @@ public class ClientService {
         getVersionedNamespaceProperties_result result = new getVersionedNamespaceProperties_result();
         try {
           result.success = iface.getVersionedNamespaceProperties(args.tinfo, args.credentials, args.ns);
+        } catch (ThriftSecurityException sec) {
+          result.sec = sec;
         } catch (ThriftTableOperationException tope) {
           result.tope = tope;
         }
@@ -5765,7 +5816,11 @@ public class ClientService {
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TSerializable msg;
             getConfiguration_result result = new getConfiguration_result();
-            if (e instanceof org.apache.thrift.transport.TTransportException) {
+            if (e instanceof ThriftSecurityException) {
+              result.sec = (ThriftSecurityException) e;
+              result.setSecIsSet(true);
+              msg = result;
+            } else if (e instanceof org.apache.thrift.transport.TTransportException) {
               _LOGGER.error("TTransportException inside handler", e);
               fb.close();
               return;
@@ -5832,7 +5887,11 @@ public class ClientService {
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TSerializable msg;
             getSystemProperties_result result = new getSystemProperties_result();
-            if (e instanceof org.apache.thrift.transport.TTransportException) {
+            if (e instanceof ThriftSecurityException) {
+              result.sec = (ThriftSecurityException) e;
+              result.setSecIsSet(true);
+              msg = result;
+            } else if (e instanceof org.apache.thrift.transport.TTransportException) {
               _LOGGER.error("TTransportException inside handler", e);
               fb.close();
               return;
@@ -5899,7 +5958,11 @@ public class ClientService {
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TSerializable msg;
             getVersionedSystemProperties_result result = new getVersionedSystemProperties_result();
-            if (e instanceof org.apache.thrift.transport.TTransportException) {
+            if (e instanceof ThriftSecurityException) {
+              result.sec = (ThriftSecurityException) e;
+              result.setSecIsSet(true);
+              msg = result;
+            } else if (e instanceof org.apache.thrift.transport.TTransportException) {
               _LOGGER.error("TTransportException inside handler", e);
               fb.close();
               return;
@@ -5966,7 +6029,11 @@ public class ClientService {
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TSerializable msg;
             getTableConfiguration_result result = new getTableConfiguration_result();
-            if (e instanceof ThriftTableOperationException) {
+            if (e instanceof ThriftSecurityException) {
+              result.sec = (ThriftSecurityException) e;
+              result.setSecIsSet(true);
+              msg = result;
+            } else if (e instanceof ThriftTableOperationException) {
               result.tope = (ThriftTableOperationException) e;
               result.setTopeIsSet(true);
               msg = result;
@@ -6037,7 +6104,11 @@ public class ClientService {
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TSerializable msg;
             getTableProperties_result result = new getTableProperties_result();
-            if (e instanceof ThriftTableOperationException) {
+            if (e instanceof ThriftSecurityException) {
+              result.sec = (ThriftSecurityException) e;
+              result.setSecIsSet(true);
+              msg = result;
+            } else if (e instanceof ThriftTableOperationException) {
               result.tope = (ThriftTableOperationException) e;
               result.setTopeIsSet(true);
               msg = result;
@@ -6108,7 +6179,11 @@ public class ClientService {
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TSerializable msg;
             getVersionedTableProperties_result result = new getVersionedTableProperties_result();
-            if (e instanceof ThriftTableOperationException) {
+            if (e instanceof ThriftSecurityException) {
+              result.sec = (ThriftSecurityException) e;
+              result.setSecIsSet(true);
+              msg = result;
+            } else if (e instanceof ThriftTableOperationException) {
               result.tope = (ThriftTableOperationException) e;
               result.setTopeIsSet(true);
               msg = result;
@@ -6179,7 +6254,11 @@ public class ClientService {
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TSerializable msg;
             getNamespaceConfiguration_result result = new getNamespaceConfiguration_result();
-            if (e instanceof ThriftTableOperationException) {
+            if (e instanceof ThriftSecurityException) {
+              result.sec = (ThriftSecurityException) e;
+              result.setSecIsSet(true);
+              msg = result;
+            } else if (e instanceof ThriftTableOperationException) {
               result.tope = (ThriftTableOperationException) e;
               result.setTopeIsSet(true);
               msg = result;
@@ -6250,7 +6329,11 @@ public class ClientService {
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TSerializable msg;
             getNamespaceProperties_result result = new getNamespaceProperties_result();
-            if (e instanceof ThriftTableOperationException) {
+            if (e instanceof ThriftSecurityException) {
+              result.sec = (ThriftSecurityException) e;
+              result.setSecIsSet(true);
+              msg = result;
+            } else if (e instanceof ThriftTableOperationException) {
               result.tope = (ThriftTableOperationException) e;
               result.setTopeIsSet(true);
               msg = result;
@@ -6321,7 +6404,11 @@ public class ClientService {
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TSerializable msg;
             getVersionedNamespaceProperties_result result = new getVersionedNamespaceProperties_result();
-            if (e instanceof ThriftTableOperationException) {
+            if (e instanceof ThriftSecurityException) {
+              result.sec = (ThriftSecurityException) e;
+              result.setSecIsSet(true);
+              msg = result;
+            } else if (e instanceof ThriftTableOperationException) {
               result.tope = (ThriftTableOperationException) e;
               result.setTopeIsSet(true);
               msg = result;
@@ -33460,15 +33547,18 @@ public class ClientService {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getConfiguration_result");
 
     private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.MAP, (short)0);
+    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getConfiguration_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getConfiguration_resultTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> success; // required
+    public @org.apache.thrift.annotation.Nullable ThriftSecurityException sec; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      SUCCESS((short)0, "success");
+      SUCCESS((short)0, "success"),
+      SEC((short)1, "sec");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -33486,6 +33576,8 @@ public class ClientService {
         switch(fieldId) {
           case 0: // SUCCESS
             return SUCCESS;
+          case 1: // SEC
+            return SEC;
           default:
             return null;
         }
@@ -33536,6 +33628,8 @@ public class ClientService {
           new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
               new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
               new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
+      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftSecurityException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getConfiguration_result.class, metaDataMap);
     }
@@ -33544,10 +33638,12 @@ public class ClientService {
     }
 
     public getConfiguration_result(
-      java.util.Map<java.lang.String,java.lang.String> success)
+      java.util.Map<java.lang.String,java.lang.String> success,
+      ThriftSecurityException sec)
     {
       this();
       this.success = success;
+      this.sec = sec;
     }
 
     /**
@@ -33557,6 +33653,9 @@ public class ClientService {
       if (other.isSetSuccess()) {
         java.util.Map<java.lang.String,java.lang.String> __this__success = new java.util.HashMap<java.lang.String,java.lang.String>(other.success);
         this.success = __this__success;
+      }
+      if (other.isSetSec()) {
+        this.sec = new ThriftSecurityException(other.sec);
       }
     }
 
@@ -33568,6 +33667,7 @@ public class ClientService {
     @Override
     public void clear() {
       this.success = null;
+      this.sec = null;
     }
 
     public int getSuccessSize() {
@@ -33606,6 +33706,31 @@ public class ClientService {
       }
     }
 
+    @org.apache.thrift.annotation.Nullable
+    public ThriftSecurityException getSec() {
+      return this.sec;
+    }
+
+    public getConfiguration_result setSec(@org.apache.thrift.annotation.Nullable ThriftSecurityException sec) {
+      this.sec = sec;
+      return this;
+    }
+
+    public void unsetSec() {
+      this.sec = null;
+    }
+
+    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
+    public boolean isSetSec() {
+      return this.sec != null;
+    }
+
+    public void setSecIsSet(boolean value) {
+      if (!value) {
+        this.sec = null;
+      }
+    }
+
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
@@ -33614,6 +33739,14 @@ public class ClientService {
           unsetSuccess();
         } else {
           setSuccess((java.util.Map<java.lang.String,java.lang.String>)value);
+        }
+        break;
+
+      case SEC:
+        if (value == null) {
+          unsetSec();
+        } else {
+          setSec((ThriftSecurityException)value);
         }
         break;
 
@@ -33626,6 +33759,9 @@ public class ClientService {
       switch (field) {
       case SUCCESS:
         return getSuccess();
+
+      case SEC:
+        return getSec();
 
       }
       throw new java.lang.IllegalStateException();
@@ -33641,6 +33777,8 @@ public class ClientService {
       switch (field) {
       case SUCCESS:
         return isSetSuccess();
+      case SEC:
+        return isSetSec();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -33667,6 +33805,15 @@ public class ClientService {
           return false;
       }
 
+      boolean this_present_sec = true && this.isSetSec();
+      boolean that_present_sec = true && that.isSetSec();
+      if (this_present_sec || that_present_sec) {
+        if (!(this_present_sec && that_present_sec))
+          return false;
+        if (!this.sec.equals(that.sec))
+          return false;
+      }
+
       return true;
     }
 
@@ -33677,6 +33824,10 @@ public class ClientService {
       hashCode = hashCode * 8191 + ((isSetSuccess()) ? 131071 : 524287);
       if (isSetSuccess())
         hashCode = hashCode * 8191 + success.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
+      if (isSetSec())
+        hashCode = hashCode * 8191 + sec.hashCode();
 
       return hashCode;
     }
@@ -33695,6 +33846,16 @@ public class ClientService {
       }
       if (isSetSuccess()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, other.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetSec(), other.isSetSec());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSec()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -33727,6 +33888,14 @@ public class ClientService {
         sb.append("null");
       } else {
         sb.append(this.success);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("sec:");
+      if (this.sec == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.sec);
       }
       first = false;
       sb.append(")");
@@ -33794,6 +33963,15 @@ public class ClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
+            case 1: // SEC
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.sec = new ThriftSecurityException();
+                struct.sec.read(iprot);
+                struct.setSecIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -33823,6 +34001,11 @@ public class ClientService {
           }
           oprot.writeFieldEnd();
         }
+        if (struct.sec != null) {
+          oprot.writeFieldBegin(SEC_FIELD_DESC);
+          struct.sec.write(oprot);
+          oprot.writeFieldEnd();
+        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -33845,7 +34028,10 @@ public class ClientService {
         if (struct.isSetSuccess()) {
           optionals.set(0);
         }
-        oprot.writeBitSet(optionals, 1);
+        if (struct.isSetSec()) {
+          optionals.set(1);
+        }
+        oprot.writeBitSet(optionals, 2);
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
@@ -33856,12 +34042,15 @@ public class ClientService {
             }
           }
         }
+        if (struct.isSetSec()) {
+          struct.sec.write(oprot);
+        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, getConfiguration_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(1);
+        java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           {
             org.apache.thrift.protocol.TMap _map80 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
@@ -33876,6 +34065,11 @@ public class ClientService {
             }
           }
           struct.setSuccessIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.sec = new ThriftSecurityException();
+          struct.sec.read(iprot);
+          struct.setSecIsSet(true);
         }
       }
     }
@@ -34384,15 +34578,18 @@ public class ClientService {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getSystemProperties_result");
 
     private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.MAP, (short)0);
+    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getSystemProperties_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getSystemProperties_resultTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> success; // required
+    public @org.apache.thrift.annotation.Nullable ThriftSecurityException sec; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      SUCCESS((short)0, "success");
+      SUCCESS((short)0, "success"),
+      SEC((short)1, "sec");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -34410,6 +34607,8 @@ public class ClientService {
         switch(fieldId) {
           case 0: // SUCCESS
             return SUCCESS;
+          case 1: // SEC
+            return SEC;
           default:
             return null;
         }
@@ -34460,6 +34659,8 @@ public class ClientService {
           new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
               new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
               new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
+      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftSecurityException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getSystemProperties_result.class, metaDataMap);
     }
@@ -34468,10 +34669,12 @@ public class ClientService {
     }
 
     public getSystemProperties_result(
-      java.util.Map<java.lang.String,java.lang.String> success)
+      java.util.Map<java.lang.String,java.lang.String> success,
+      ThriftSecurityException sec)
     {
       this();
       this.success = success;
+      this.sec = sec;
     }
 
     /**
@@ -34481,6 +34684,9 @@ public class ClientService {
       if (other.isSetSuccess()) {
         java.util.Map<java.lang.String,java.lang.String> __this__success = new java.util.HashMap<java.lang.String,java.lang.String>(other.success);
         this.success = __this__success;
+      }
+      if (other.isSetSec()) {
+        this.sec = new ThriftSecurityException(other.sec);
       }
     }
 
@@ -34492,6 +34698,7 @@ public class ClientService {
     @Override
     public void clear() {
       this.success = null;
+      this.sec = null;
     }
 
     public int getSuccessSize() {
@@ -34530,6 +34737,31 @@ public class ClientService {
       }
     }
 
+    @org.apache.thrift.annotation.Nullable
+    public ThriftSecurityException getSec() {
+      return this.sec;
+    }
+
+    public getSystemProperties_result setSec(@org.apache.thrift.annotation.Nullable ThriftSecurityException sec) {
+      this.sec = sec;
+      return this;
+    }
+
+    public void unsetSec() {
+      this.sec = null;
+    }
+
+    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
+    public boolean isSetSec() {
+      return this.sec != null;
+    }
+
+    public void setSecIsSet(boolean value) {
+      if (!value) {
+        this.sec = null;
+      }
+    }
+
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
@@ -34538,6 +34770,14 @@ public class ClientService {
           unsetSuccess();
         } else {
           setSuccess((java.util.Map<java.lang.String,java.lang.String>)value);
+        }
+        break;
+
+      case SEC:
+        if (value == null) {
+          unsetSec();
+        } else {
+          setSec((ThriftSecurityException)value);
         }
         break;
 
@@ -34550,6 +34790,9 @@ public class ClientService {
       switch (field) {
       case SUCCESS:
         return getSuccess();
+
+      case SEC:
+        return getSec();
 
       }
       throw new java.lang.IllegalStateException();
@@ -34565,6 +34808,8 @@ public class ClientService {
       switch (field) {
       case SUCCESS:
         return isSetSuccess();
+      case SEC:
+        return isSetSec();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -34591,6 +34836,15 @@ public class ClientService {
           return false;
       }
 
+      boolean this_present_sec = true && this.isSetSec();
+      boolean that_present_sec = true && that.isSetSec();
+      if (this_present_sec || that_present_sec) {
+        if (!(this_present_sec && that_present_sec))
+          return false;
+        if (!this.sec.equals(that.sec))
+          return false;
+      }
+
       return true;
     }
 
@@ -34601,6 +34855,10 @@ public class ClientService {
       hashCode = hashCode * 8191 + ((isSetSuccess()) ? 131071 : 524287);
       if (isSetSuccess())
         hashCode = hashCode * 8191 + success.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
+      if (isSetSec())
+        hashCode = hashCode * 8191 + sec.hashCode();
 
       return hashCode;
     }
@@ -34619,6 +34877,16 @@ public class ClientService {
       }
       if (isSetSuccess()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, other.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetSec(), other.isSetSec());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSec()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -34651,6 +34919,14 @@ public class ClientService {
         sb.append("null");
       } else {
         sb.append(this.success);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("sec:");
+      if (this.sec == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.sec);
       }
       first = false;
       sb.append(")");
@@ -34718,6 +34994,15 @@ public class ClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
+            case 1: // SEC
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.sec = new ThriftSecurityException();
+                struct.sec.read(iprot);
+                struct.setSecIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -34747,6 +35032,11 @@ public class ClientService {
           }
           oprot.writeFieldEnd();
         }
+        if (struct.sec != null) {
+          oprot.writeFieldBegin(SEC_FIELD_DESC);
+          struct.sec.write(oprot);
+          oprot.writeFieldEnd();
+        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -34769,7 +35059,10 @@ public class ClientService {
         if (struct.isSetSuccess()) {
           optionals.set(0);
         }
-        oprot.writeBitSet(optionals, 1);
+        if (struct.isSetSec()) {
+          optionals.set(1);
+        }
+        oprot.writeBitSet(optionals, 2);
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
@@ -34780,12 +35073,15 @@ public class ClientService {
             }
           }
         }
+        if (struct.isSetSec()) {
+          struct.sec.write(oprot);
+        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, getSystemProperties_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(1);
+        java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           {
             org.apache.thrift.protocol.TMap _map90 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
@@ -34800,6 +35096,11 @@ public class ClientService {
             }
           }
           struct.setSuccessIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.sec = new ThriftSecurityException();
+          struct.sec.read(iprot);
+          struct.setSecIsSet(true);
         }
       }
     }
@@ -35308,15 +35609,18 @@ public class ClientService {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getVersionedSystemProperties_result");
 
     private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRUCT, (short)0);
+    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getVersionedSystemProperties_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getVersionedSystemProperties_resultTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable TVersionedProperties success; // required
+    public @org.apache.thrift.annotation.Nullable ThriftSecurityException sec; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      SUCCESS((short)0, "success");
+      SUCCESS((short)0, "success"),
+      SEC((short)1, "sec");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -35334,6 +35638,8 @@ public class ClientService {
         switch(fieldId) {
           case 0: // SUCCESS
             return SUCCESS;
+          case 1: // SEC
+            return SEC;
           default:
             return null;
         }
@@ -35382,6 +35688,8 @@ public class ClientService {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TVersionedProperties.class)));
+      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftSecurityException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getVersionedSystemProperties_result.class, metaDataMap);
     }
@@ -35390,10 +35698,12 @@ public class ClientService {
     }
 
     public getVersionedSystemProperties_result(
-      TVersionedProperties success)
+      TVersionedProperties success,
+      ThriftSecurityException sec)
     {
       this();
       this.success = success;
+      this.sec = sec;
     }
 
     /**
@@ -35402,6 +35712,9 @@ public class ClientService {
     public getVersionedSystemProperties_result(getVersionedSystemProperties_result other) {
       if (other.isSetSuccess()) {
         this.success = new TVersionedProperties(other.success);
+      }
+      if (other.isSetSec()) {
+        this.sec = new ThriftSecurityException(other.sec);
       }
     }
 
@@ -35413,6 +35726,7 @@ public class ClientService {
     @Override
     public void clear() {
       this.success = null;
+      this.sec = null;
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -35440,6 +35754,31 @@ public class ClientService {
       }
     }
 
+    @org.apache.thrift.annotation.Nullable
+    public ThriftSecurityException getSec() {
+      return this.sec;
+    }
+
+    public getVersionedSystemProperties_result setSec(@org.apache.thrift.annotation.Nullable ThriftSecurityException sec) {
+      this.sec = sec;
+      return this;
+    }
+
+    public void unsetSec() {
+      this.sec = null;
+    }
+
+    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
+    public boolean isSetSec() {
+      return this.sec != null;
+    }
+
+    public void setSecIsSet(boolean value) {
+      if (!value) {
+        this.sec = null;
+      }
+    }
+
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
@@ -35448,6 +35787,14 @@ public class ClientService {
           unsetSuccess();
         } else {
           setSuccess((TVersionedProperties)value);
+        }
+        break;
+
+      case SEC:
+        if (value == null) {
+          unsetSec();
+        } else {
+          setSec((ThriftSecurityException)value);
         }
         break;
 
@@ -35460,6 +35807,9 @@ public class ClientService {
       switch (field) {
       case SUCCESS:
         return getSuccess();
+
+      case SEC:
+        return getSec();
 
       }
       throw new java.lang.IllegalStateException();
@@ -35475,6 +35825,8 @@ public class ClientService {
       switch (field) {
       case SUCCESS:
         return isSetSuccess();
+      case SEC:
+        return isSetSec();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -35501,6 +35853,15 @@ public class ClientService {
           return false;
       }
 
+      boolean this_present_sec = true && this.isSetSec();
+      boolean that_present_sec = true && that.isSetSec();
+      if (this_present_sec || that_present_sec) {
+        if (!(this_present_sec && that_present_sec))
+          return false;
+        if (!this.sec.equals(that.sec))
+          return false;
+      }
+
       return true;
     }
 
@@ -35511,6 +35872,10 @@ public class ClientService {
       hashCode = hashCode * 8191 + ((isSetSuccess()) ? 131071 : 524287);
       if (isSetSuccess())
         hashCode = hashCode * 8191 + success.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
+      if (isSetSec())
+        hashCode = hashCode * 8191 + sec.hashCode();
 
       return hashCode;
     }
@@ -35529,6 +35894,16 @@ public class ClientService {
       }
       if (isSetSuccess()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, other.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetSec(), other.isSetSec());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSec()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -35561,6 +35936,14 @@ public class ClientService {
         sb.append("null");
       } else {
         sb.append(this.success);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("sec:");
+      if (this.sec == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.sec);
       }
       first = false;
       sb.append(")");
@@ -35620,6 +36003,15 @@ public class ClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
+            case 1: // SEC
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.sec = new ThriftSecurityException();
+                struct.sec.read(iprot);
+                struct.setSecIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -35639,6 +36031,11 @@ public class ClientService {
         if (struct.success != null) {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           struct.success.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.sec != null) {
+          oprot.writeFieldBegin(SEC_FIELD_DESC);
+          struct.sec.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -35663,20 +36060,31 @@ public class ClientService {
         if (struct.isSetSuccess()) {
           optionals.set(0);
         }
-        oprot.writeBitSet(optionals, 1);
+        if (struct.isSetSec()) {
+          optionals.set(1);
+        }
+        oprot.writeBitSet(optionals, 2);
         if (struct.isSetSuccess()) {
           struct.success.write(oprot);
+        }
+        if (struct.isSetSec()) {
+          struct.sec.write(oprot);
         }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, getVersionedSystemProperties_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(1);
+        java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           struct.success = new TVersionedProperties();
           struct.success.read(iprot);
           struct.setSuccessIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.sec = new ThriftSecurityException();
+          struct.sec.read(iprot);
+          struct.setSecIsSet(true);
         }
       }
     }
@@ -36290,18 +36698,21 @@ public class ClientService {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getTableConfiguration_result");
 
     private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.MAP, (short)0);
-    private static final org.apache.thrift.protocol.TField TOPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tope", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField TOPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tope", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getTableConfiguration_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getTableConfiguration_resultTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> success; // required
+    public @org.apache.thrift.annotation.Nullable ThriftSecurityException sec; // required
     public @org.apache.thrift.annotation.Nullable ThriftTableOperationException tope; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
-      TOPE((short)1, "tope");
+      SEC((short)1, "sec"),
+      TOPE((short)2, "tope");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -36319,7 +36730,9 @@ public class ClientService {
         switch(fieldId) {
           case 0: // SUCCESS
             return SUCCESS;
-          case 1: // TOPE
+          case 1: // SEC
+            return SEC;
+          case 2: // TOPE
             return TOPE;
           default:
             return null;
@@ -36371,6 +36784,8 @@ public class ClientService {
           new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
               new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
               new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
+      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftSecurityException.class)));
       tmpMap.put(_Fields.TOPE, new org.apache.thrift.meta_data.FieldMetaData("tope", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftTableOperationException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
@@ -36382,10 +36797,12 @@ public class ClientService {
 
     public getTableConfiguration_result(
       java.util.Map<java.lang.String,java.lang.String> success,
+      ThriftSecurityException sec,
       ThriftTableOperationException tope)
     {
       this();
       this.success = success;
+      this.sec = sec;
       this.tope = tope;
     }
 
@@ -36396,6 +36813,9 @@ public class ClientService {
       if (other.isSetSuccess()) {
         java.util.Map<java.lang.String,java.lang.String> __this__success = new java.util.HashMap<java.lang.String,java.lang.String>(other.success);
         this.success = __this__success;
+      }
+      if (other.isSetSec()) {
+        this.sec = new ThriftSecurityException(other.sec);
       }
       if (other.isSetTope()) {
         this.tope = new ThriftTableOperationException(other.tope);
@@ -36410,6 +36830,7 @@ public class ClientService {
     @Override
     public void clear() {
       this.success = null;
+      this.sec = null;
       this.tope = null;
     }
 
@@ -36450,6 +36871,31 @@ public class ClientService {
     }
 
     @org.apache.thrift.annotation.Nullable
+    public ThriftSecurityException getSec() {
+      return this.sec;
+    }
+
+    public getTableConfiguration_result setSec(@org.apache.thrift.annotation.Nullable ThriftSecurityException sec) {
+      this.sec = sec;
+      return this;
+    }
+
+    public void unsetSec() {
+      this.sec = null;
+    }
+
+    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
+    public boolean isSetSec() {
+      return this.sec != null;
+    }
+
+    public void setSecIsSet(boolean value) {
+      if (!value) {
+        this.sec = null;
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
     public ThriftTableOperationException getTope() {
       return this.tope;
     }
@@ -36485,6 +36931,14 @@ public class ClientService {
         }
         break;
 
+      case SEC:
+        if (value == null) {
+          unsetSec();
+        } else {
+          setSec((ThriftSecurityException)value);
+        }
+        break;
+
       case TOPE:
         if (value == null) {
           unsetTope();
@@ -36503,6 +36957,9 @@ public class ClientService {
       case SUCCESS:
         return getSuccess();
 
+      case SEC:
+        return getSec();
+
       case TOPE:
         return getTope();
 
@@ -36520,6 +36977,8 @@ public class ClientService {
       switch (field) {
       case SUCCESS:
         return isSetSuccess();
+      case SEC:
+        return isSetSec();
       case TOPE:
         return isSetTope();
       }
@@ -36548,6 +37007,15 @@ public class ClientService {
           return false;
       }
 
+      boolean this_present_sec = true && this.isSetSec();
+      boolean that_present_sec = true && that.isSetSec();
+      if (this_present_sec || that_present_sec) {
+        if (!(this_present_sec && that_present_sec))
+          return false;
+        if (!this.sec.equals(that.sec))
+          return false;
+      }
+
       boolean this_present_tope = true && this.isSetTope();
       boolean that_present_tope = true && that.isSetTope();
       if (this_present_tope || that_present_tope) {
@@ -36567,6 +37035,10 @@ public class ClientService {
       hashCode = hashCode * 8191 + ((isSetSuccess()) ? 131071 : 524287);
       if (isSetSuccess())
         hashCode = hashCode * 8191 + success.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
+      if (isSetSec())
+        hashCode = hashCode * 8191 + sec.hashCode();
 
       hashCode = hashCode * 8191 + ((isSetTope()) ? 131071 : 524287);
       if (isSetTope())
@@ -36589,6 +37061,16 @@ public class ClientService {
       }
       if (isSetSuccess()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, other.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetSec(), other.isSetSec());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSec()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -36631,6 +37113,14 @@ public class ClientService {
         sb.append("null");
       } else {
         sb.append(this.success);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("sec:");
+      if (this.sec == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.sec);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -36706,7 +37196,16 @@ public class ClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // TOPE
+            case 1: // SEC
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.sec = new ThriftSecurityException();
+                struct.sec.read(iprot);
+                struct.setSecIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 2: // TOPE
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.tope = new ThriftTableOperationException();
                 struct.tope.read(iprot);
@@ -36744,6 +37243,11 @@ public class ClientService {
           }
           oprot.writeFieldEnd();
         }
+        if (struct.sec != null) {
+          oprot.writeFieldBegin(SEC_FIELD_DESC);
+          struct.sec.write(oprot);
+          oprot.writeFieldEnd();
+        }
         if (struct.tope != null) {
           oprot.writeFieldBegin(TOPE_FIELD_DESC);
           struct.tope.write(oprot);
@@ -36771,10 +37275,13 @@ public class ClientService {
         if (struct.isSetSuccess()) {
           optionals.set(0);
         }
-        if (struct.isSetTope()) {
+        if (struct.isSetSec()) {
           optionals.set(1);
         }
-        oprot.writeBitSet(optionals, 2);
+        if (struct.isSetTope()) {
+          optionals.set(2);
+        }
+        oprot.writeBitSet(optionals, 3);
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
@@ -36785,6 +37292,9 @@ public class ClientService {
             }
           }
         }
+        if (struct.isSetSec()) {
+          struct.sec.write(oprot);
+        }
         if (struct.isSetTope()) {
           struct.tope.write(oprot);
         }
@@ -36793,7 +37303,7 @@ public class ClientService {
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, getTableConfiguration_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(2);
+        java.util.BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           {
             org.apache.thrift.protocol.TMap _map100 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
@@ -36810,6 +37320,11 @@ public class ClientService {
           struct.setSuccessIsSet(true);
         }
         if (incoming.get(1)) {
+          struct.sec = new ThriftSecurityException();
+          struct.sec.read(iprot);
+          struct.setSecIsSet(true);
+        }
+        if (incoming.get(2)) {
           struct.tope = new ThriftTableOperationException();
           struct.tope.read(iprot);
           struct.setTopeIsSet(true);
@@ -37426,18 +37941,21 @@ public class ClientService {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getTableProperties_result");
 
     private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.MAP, (short)0);
-    private static final org.apache.thrift.protocol.TField TOPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tope", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField TOPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tope", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getTableProperties_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getTableProperties_resultTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> success; // required
+    public @org.apache.thrift.annotation.Nullable ThriftSecurityException sec; // required
     public @org.apache.thrift.annotation.Nullable ThriftTableOperationException tope; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
-      TOPE((short)1, "tope");
+      SEC((short)1, "sec"),
+      TOPE((short)2, "tope");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -37455,7 +37973,9 @@ public class ClientService {
         switch(fieldId) {
           case 0: // SUCCESS
             return SUCCESS;
-          case 1: // TOPE
+          case 1: // SEC
+            return SEC;
+          case 2: // TOPE
             return TOPE;
           default:
             return null;
@@ -37507,6 +38027,8 @@ public class ClientService {
           new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
               new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
               new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
+      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftSecurityException.class)));
       tmpMap.put(_Fields.TOPE, new org.apache.thrift.meta_data.FieldMetaData("tope", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftTableOperationException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
@@ -37518,10 +38040,12 @@ public class ClientService {
 
     public getTableProperties_result(
       java.util.Map<java.lang.String,java.lang.String> success,
+      ThriftSecurityException sec,
       ThriftTableOperationException tope)
     {
       this();
       this.success = success;
+      this.sec = sec;
       this.tope = tope;
     }
 
@@ -37532,6 +38056,9 @@ public class ClientService {
       if (other.isSetSuccess()) {
         java.util.Map<java.lang.String,java.lang.String> __this__success = new java.util.HashMap<java.lang.String,java.lang.String>(other.success);
         this.success = __this__success;
+      }
+      if (other.isSetSec()) {
+        this.sec = new ThriftSecurityException(other.sec);
       }
       if (other.isSetTope()) {
         this.tope = new ThriftTableOperationException(other.tope);
@@ -37546,6 +38073,7 @@ public class ClientService {
     @Override
     public void clear() {
       this.success = null;
+      this.sec = null;
       this.tope = null;
     }
 
@@ -37586,6 +38114,31 @@ public class ClientService {
     }
 
     @org.apache.thrift.annotation.Nullable
+    public ThriftSecurityException getSec() {
+      return this.sec;
+    }
+
+    public getTableProperties_result setSec(@org.apache.thrift.annotation.Nullable ThriftSecurityException sec) {
+      this.sec = sec;
+      return this;
+    }
+
+    public void unsetSec() {
+      this.sec = null;
+    }
+
+    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
+    public boolean isSetSec() {
+      return this.sec != null;
+    }
+
+    public void setSecIsSet(boolean value) {
+      if (!value) {
+        this.sec = null;
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
     public ThriftTableOperationException getTope() {
       return this.tope;
     }
@@ -37621,6 +38174,14 @@ public class ClientService {
         }
         break;
 
+      case SEC:
+        if (value == null) {
+          unsetSec();
+        } else {
+          setSec((ThriftSecurityException)value);
+        }
+        break;
+
       case TOPE:
         if (value == null) {
           unsetTope();
@@ -37639,6 +38200,9 @@ public class ClientService {
       case SUCCESS:
         return getSuccess();
 
+      case SEC:
+        return getSec();
+
       case TOPE:
         return getTope();
 
@@ -37656,6 +38220,8 @@ public class ClientService {
       switch (field) {
       case SUCCESS:
         return isSetSuccess();
+      case SEC:
+        return isSetSec();
       case TOPE:
         return isSetTope();
       }
@@ -37684,6 +38250,15 @@ public class ClientService {
           return false;
       }
 
+      boolean this_present_sec = true && this.isSetSec();
+      boolean that_present_sec = true && that.isSetSec();
+      if (this_present_sec || that_present_sec) {
+        if (!(this_present_sec && that_present_sec))
+          return false;
+        if (!this.sec.equals(that.sec))
+          return false;
+      }
+
       boolean this_present_tope = true && this.isSetTope();
       boolean that_present_tope = true && that.isSetTope();
       if (this_present_tope || that_present_tope) {
@@ -37703,6 +38278,10 @@ public class ClientService {
       hashCode = hashCode * 8191 + ((isSetSuccess()) ? 131071 : 524287);
       if (isSetSuccess())
         hashCode = hashCode * 8191 + success.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
+      if (isSetSec())
+        hashCode = hashCode * 8191 + sec.hashCode();
 
       hashCode = hashCode * 8191 + ((isSetTope()) ? 131071 : 524287);
       if (isSetTope())
@@ -37725,6 +38304,16 @@ public class ClientService {
       }
       if (isSetSuccess()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, other.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetSec(), other.isSetSec());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSec()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -37767,6 +38356,14 @@ public class ClientService {
         sb.append("null");
       } else {
         sb.append(this.success);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("sec:");
+      if (this.sec == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.sec);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -37842,7 +38439,16 @@ public class ClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // TOPE
+            case 1: // SEC
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.sec = new ThriftSecurityException();
+                struct.sec.read(iprot);
+                struct.setSecIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 2: // TOPE
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.tope = new ThriftTableOperationException();
                 struct.tope.read(iprot);
@@ -37880,6 +38486,11 @@ public class ClientService {
           }
           oprot.writeFieldEnd();
         }
+        if (struct.sec != null) {
+          oprot.writeFieldBegin(SEC_FIELD_DESC);
+          struct.sec.write(oprot);
+          oprot.writeFieldEnd();
+        }
         if (struct.tope != null) {
           oprot.writeFieldBegin(TOPE_FIELD_DESC);
           struct.tope.write(oprot);
@@ -37907,10 +38518,13 @@ public class ClientService {
         if (struct.isSetSuccess()) {
           optionals.set(0);
         }
-        if (struct.isSetTope()) {
+        if (struct.isSetSec()) {
           optionals.set(1);
         }
-        oprot.writeBitSet(optionals, 2);
+        if (struct.isSetTope()) {
+          optionals.set(2);
+        }
+        oprot.writeBitSet(optionals, 3);
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
@@ -37921,6 +38535,9 @@ public class ClientService {
             }
           }
         }
+        if (struct.isSetSec()) {
+          struct.sec.write(oprot);
+        }
         if (struct.isSetTope()) {
           struct.tope.write(oprot);
         }
@@ -37929,7 +38546,7 @@ public class ClientService {
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, getTableProperties_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(2);
+        java.util.BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           {
             org.apache.thrift.protocol.TMap _map110 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
@@ -37946,6 +38563,11 @@ public class ClientService {
           struct.setSuccessIsSet(true);
         }
         if (incoming.get(1)) {
+          struct.sec = new ThriftSecurityException();
+          struct.sec.read(iprot);
+          struct.setSecIsSet(true);
+        }
+        if (incoming.get(2)) {
           struct.tope = new ThriftTableOperationException();
           struct.tope.read(iprot);
           struct.setTopeIsSet(true);
@@ -38562,18 +39184,21 @@ public class ClientService {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getVersionedTableProperties_result");
 
     private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRUCT, (short)0);
-    private static final org.apache.thrift.protocol.TField TOPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tope", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField TOPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tope", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getVersionedTableProperties_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getVersionedTableProperties_resultTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable TVersionedProperties success; // required
+    public @org.apache.thrift.annotation.Nullable ThriftSecurityException sec; // required
     public @org.apache.thrift.annotation.Nullable ThriftTableOperationException tope; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
-      TOPE((short)1, "tope");
+      SEC((short)1, "sec"),
+      TOPE((short)2, "tope");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -38591,7 +39216,9 @@ public class ClientService {
         switch(fieldId) {
           case 0: // SUCCESS
             return SUCCESS;
-          case 1: // TOPE
+          case 1: // SEC
+            return SEC;
+          case 2: // TOPE
             return TOPE;
           default:
             return null;
@@ -38641,6 +39268,8 @@ public class ClientService {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TVersionedProperties.class)));
+      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftSecurityException.class)));
       tmpMap.put(_Fields.TOPE, new org.apache.thrift.meta_data.FieldMetaData("tope", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftTableOperationException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
@@ -38652,10 +39281,12 @@ public class ClientService {
 
     public getVersionedTableProperties_result(
       TVersionedProperties success,
+      ThriftSecurityException sec,
       ThriftTableOperationException tope)
     {
       this();
       this.success = success;
+      this.sec = sec;
       this.tope = tope;
     }
 
@@ -38665,6 +39296,9 @@ public class ClientService {
     public getVersionedTableProperties_result(getVersionedTableProperties_result other) {
       if (other.isSetSuccess()) {
         this.success = new TVersionedProperties(other.success);
+      }
+      if (other.isSetSec()) {
+        this.sec = new ThriftSecurityException(other.sec);
       }
       if (other.isSetTope()) {
         this.tope = new ThriftTableOperationException(other.tope);
@@ -38679,6 +39313,7 @@ public class ClientService {
     @Override
     public void clear() {
       this.success = null;
+      this.sec = null;
       this.tope = null;
     }
 
@@ -38704,6 +39339,31 @@ public class ClientService {
     public void setSuccessIsSet(boolean value) {
       if (!value) {
         this.success = null;
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public ThriftSecurityException getSec() {
+      return this.sec;
+    }
+
+    public getVersionedTableProperties_result setSec(@org.apache.thrift.annotation.Nullable ThriftSecurityException sec) {
+      this.sec = sec;
+      return this;
+    }
+
+    public void unsetSec() {
+      this.sec = null;
+    }
+
+    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
+    public boolean isSetSec() {
+      return this.sec != null;
+    }
+
+    public void setSecIsSet(boolean value) {
+      if (!value) {
+        this.sec = null;
       }
     }
 
@@ -38743,6 +39403,14 @@ public class ClientService {
         }
         break;
 
+      case SEC:
+        if (value == null) {
+          unsetSec();
+        } else {
+          setSec((ThriftSecurityException)value);
+        }
+        break;
+
       case TOPE:
         if (value == null) {
           unsetTope();
@@ -38761,6 +39429,9 @@ public class ClientService {
       case SUCCESS:
         return getSuccess();
 
+      case SEC:
+        return getSec();
+
       case TOPE:
         return getTope();
 
@@ -38778,6 +39449,8 @@ public class ClientService {
       switch (field) {
       case SUCCESS:
         return isSetSuccess();
+      case SEC:
+        return isSetSec();
       case TOPE:
         return isSetTope();
       }
@@ -38806,6 +39479,15 @@ public class ClientService {
           return false;
       }
 
+      boolean this_present_sec = true && this.isSetSec();
+      boolean that_present_sec = true && that.isSetSec();
+      if (this_present_sec || that_present_sec) {
+        if (!(this_present_sec && that_present_sec))
+          return false;
+        if (!this.sec.equals(that.sec))
+          return false;
+      }
+
       boolean this_present_tope = true && this.isSetTope();
       boolean that_present_tope = true && that.isSetTope();
       if (this_present_tope || that_present_tope) {
@@ -38825,6 +39507,10 @@ public class ClientService {
       hashCode = hashCode * 8191 + ((isSetSuccess()) ? 131071 : 524287);
       if (isSetSuccess())
         hashCode = hashCode * 8191 + success.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
+      if (isSetSec())
+        hashCode = hashCode * 8191 + sec.hashCode();
 
       hashCode = hashCode * 8191 + ((isSetTope()) ? 131071 : 524287);
       if (isSetTope())
@@ -38847,6 +39533,16 @@ public class ClientService {
       }
       if (isSetSuccess()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, other.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetSec(), other.isSetSec());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSec()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -38889,6 +39585,14 @@ public class ClientService {
         sb.append("null");
       } else {
         sb.append(this.success);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("sec:");
+      if (this.sec == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.sec);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -38956,7 +39660,16 @@ public class ClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // TOPE
+            case 1: // SEC
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.sec = new ThriftSecurityException();
+                struct.sec.read(iprot);
+                struct.setSecIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 2: // TOPE
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.tope = new ThriftTableOperationException();
                 struct.tope.read(iprot);
@@ -38986,6 +39699,11 @@ public class ClientService {
           struct.success.write(oprot);
           oprot.writeFieldEnd();
         }
+        if (struct.sec != null) {
+          oprot.writeFieldBegin(SEC_FIELD_DESC);
+          struct.sec.write(oprot);
+          oprot.writeFieldEnd();
+        }
         if (struct.tope != null) {
           oprot.writeFieldBegin(TOPE_FIELD_DESC);
           struct.tope.write(oprot);
@@ -39013,12 +39731,18 @@ public class ClientService {
         if (struct.isSetSuccess()) {
           optionals.set(0);
         }
-        if (struct.isSetTope()) {
+        if (struct.isSetSec()) {
           optionals.set(1);
         }
-        oprot.writeBitSet(optionals, 2);
+        if (struct.isSetTope()) {
+          optionals.set(2);
+        }
+        oprot.writeBitSet(optionals, 3);
         if (struct.isSetSuccess()) {
           struct.success.write(oprot);
+        }
+        if (struct.isSetSec()) {
+          struct.sec.write(oprot);
         }
         if (struct.isSetTope()) {
           struct.tope.write(oprot);
@@ -39028,13 +39752,18 @@ public class ClientService {
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, getVersionedTableProperties_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(2);
+        java.util.BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           struct.success = new TVersionedProperties();
           struct.success.read(iprot);
           struct.setSuccessIsSet(true);
         }
         if (incoming.get(1)) {
+          struct.sec = new ThriftSecurityException();
+          struct.sec.read(iprot);
+          struct.setSecIsSet(true);
+        }
+        if (incoming.get(2)) {
           struct.tope = new ThriftTableOperationException();
           struct.tope.read(iprot);
           struct.setTopeIsSet(true);
@@ -39651,18 +40380,21 @@ public class ClientService {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getNamespaceConfiguration_result");
 
     private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.MAP, (short)0);
-    private static final org.apache.thrift.protocol.TField TOPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tope", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField TOPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tope", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getNamespaceConfiguration_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getNamespaceConfiguration_resultTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> success; // required
+    public @org.apache.thrift.annotation.Nullable ThriftSecurityException sec; // required
     public @org.apache.thrift.annotation.Nullable ThriftTableOperationException tope; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
-      TOPE((short)1, "tope");
+      SEC((short)1, "sec"),
+      TOPE((short)2, "tope");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -39680,7 +40412,9 @@ public class ClientService {
         switch(fieldId) {
           case 0: // SUCCESS
             return SUCCESS;
-          case 1: // TOPE
+          case 1: // SEC
+            return SEC;
+          case 2: // TOPE
             return TOPE;
           default:
             return null;
@@ -39732,6 +40466,8 @@ public class ClientService {
           new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
               new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
               new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
+      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftSecurityException.class)));
       tmpMap.put(_Fields.TOPE, new org.apache.thrift.meta_data.FieldMetaData("tope", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftTableOperationException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
@@ -39743,10 +40479,12 @@ public class ClientService {
 
     public getNamespaceConfiguration_result(
       java.util.Map<java.lang.String,java.lang.String> success,
+      ThriftSecurityException sec,
       ThriftTableOperationException tope)
     {
       this();
       this.success = success;
+      this.sec = sec;
       this.tope = tope;
     }
 
@@ -39757,6 +40495,9 @@ public class ClientService {
       if (other.isSetSuccess()) {
         java.util.Map<java.lang.String,java.lang.String> __this__success = new java.util.HashMap<java.lang.String,java.lang.String>(other.success);
         this.success = __this__success;
+      }
+      if (other.isSetSec()) {
+        this.sec = new ThriftSecurityException(other.sec);
       }
       if (other.isSetTope()) {
         this.tope = new ThriftTableOperationException(other.tope);
@@ -39771,6 +40512,7 @@ public class ClientService {
     @Override
     public void clear() {
       this.success = null;
+      this.sec = null;
       this.tope = null;
     }
 
@@ -39811,6 +40553,31 @@ public class ClientService {
     }
 
     @org.apache.thrift.annotation.Nullable
+    public ThriftSecurityException getSec() {
+      return this.sec;
+    }
+
+    public getNamespaceConfiguration_result setSec(@org.apache.thrift.annotation.Nullable ThriftSecurityException sec) {
+      this.sec = sec;
+      return this;
+    }
+
+    public void unsetSec() {
+      this.sec = null;
+    }
+
+    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
+    public boolean isSetSec() {
+      return this.sec != null;
+    }
+
+    public void setSecIsSet(boolean value) {
+      if (!value) {
+        this.sec = null;
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
     public ThriftTableOperationException getTope() {
       return this.tope;
     }
@@ -39846,6 +40613,14 @@ public class ClientService {
         }
         break;
 
+      case SEC:
+        if (value == null) {
+          unsetSec();
+        } else {
+          setSec((ThriftSecurityException)value);
+        }
+        break;
+
       case TOPE:
         if (value == null) {
           unsetTope();
@@ -39864,6 +40639,9 @@ public class ClientService {
       case SUCCESS:
         return getSuccess();
 
+      case SEC:
+        return getSec();
+
       case TOPE:
         return getTope();
 
@@ -39881,6 +40659,8 @@ public class ClientService {
       switch (field) {
       case SUCCESS:
         return isSetSuccess();
+      case SEC:
+        return isSetSec();
       case TOPE:
         return isSetTope();
       }
@@ -39909,6 +40689,15 @@ public class ClientService {
           return false;
       }
 
+      boolean this_present_sec = true && this.isSetSec();
+      boolean that_present_sec = true && that.isSetSec();
+      if (this_present_sec || that_present_sec) {
+        if (!(this_present_sec && that_present_sec))
+          return false;
+        if (!this.sec.equals(that.sec))
+          return false;
+      }
+
       boolean this_present_tope = true && this.isSetTope();
       boolean that_present_tope = true && that.isSetTope();
       if (this_present_tope || that_present_tope) {
@@ -39928,6 +40717,10 @@ public class ClientService {
       hashCode = hashCode * 8191 + ((isSetSuccess()) ? 131071 : 524287);
       if (isSetSuccess())
         hashCode = hashCode * 8191 + success.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
+      if (isSetSec())
+        hashCode = hashCode * 8191 + sec.hashCode();
 
       hashCode = hashCode * 8191 + ((isSetTope()) ? 131071 : 524287);
       if (isSetTope())
@@ -39950,6 +40743,16 @@ public class ClientService {
       }
       if (isSetSuccess()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, other.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetSec(), other.isSetSec());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSec()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -39992,6 +40795,14 @@ public class ClientService {
         sb.append("null");
       } else {
         sb.append(this.success);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("sec:");
+      if (this.sec == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.sec);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -40067,7 +40878,16 @@ public class ClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // TOPE
+            case 1: // SEC
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.sec = new ThriftSecurityException();
+                struct.sec.read(iprot);
+                struct.setSecIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 2: // TOPE
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.tope = new ThriftTableOperationException();
                 struct.tope.read(iprot);
@@ -40105,6 +40925,11 @@ public class ClientService {
           }
           oprot.writeFieldEnd();
         }
+        if (struct.sec != null) {
+          oprot.writeFieldBegin(SEC_FIELD_DESC);
+          struct.sec.write(oprot);
+          oprot.writeFieldEnd();
+        }
         if (struct.tope != null) {
           oprot.writeFieldBegin(TOPE_FIELD_DESC);
           struct.tope.write(oprot);
@@ -40132,10 +40957,13 @@ public class ClientService {
         if (struct.isSetSuccess()) {
           optionals.set(0);
         }
-        if (struct.isSetTope()) {
+        if (struct.isSetSec()) {
           optionals.set(1);
         }
-        oprot.writeBitSet(optionals, 2);
+        if (struct.isSetTope()) {
+          optionals.set(2);
+        }
+        oprot.writeBitSet(optionals, 3);
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
@@ -40146,6 +40974,9 @@ public class ClientService {
             }
           }
         }
+        if (struct.isSetSec()) {
+          struct.sec.write(oprot);
+        }
         if (struct.isSetTope()) {
           struct.tope.write(oprot);
         }
@@ -40154,7 +40985,7 @@ public class ClientService {
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, getNamespaceConfiguration_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(2);
+        java.util.BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           {
             org.apache.thrift.protocol.TMap _map120 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
@@ -40171,6 +41002,11 @@ public class ClientService {
           struct.setSuccessIsSet(true);
         }
         if (incoming.get(1)) {
+          struct.sec = new ThriftSecurityException();
+          struct.sec.read(iprot);
+          struct.setSecIsSet(true);
+        }
+        if (incoming.get(2)) {
           struct.tope = new ThriftTableOperationException();
           struct.tope.read(iprot);
           struct.setTopeIsSet(true);
@@ -40787,18 +41623,21 @@ public class ClientService {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getNamespaceProperties_result");
 
     private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.MAP, (short)0);
-    private static final org.apache.thrift.protocol.TField TOPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tope", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField TOPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tope", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getNamespaceProperties_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getNamespaceProperties_resultTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> success; // required
+    public @org.apache.thrift.annotation.Nullable ThriftSecurityException sec; // required
     public @org.apache.thrift.annotation.Nullable ThriftTableOperationException tope; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
-      TOPE((short)1, "tope");
+      SEC((short)1, "sec"),
+      TOPE((short)2, "tope");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -40816,7 +41655,9 @@ public class ClientService {
         switch(fieldId) {
           case 0: // SUCCESS
             return SUCCESS;
-          case 1: // TOPE
+          case 1: // SEC
+            return SEC;
+          case 2: // TOPE
             return TOPE;
           default:
             return null;
@@ -40868,6 +41709,8 @@ public class ClientService {
           new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
               new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
               new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
+      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftSecurityException.class)));
       tmpMap.put(_Fields.TOPE, new org.apache.thrift.meta_data.FieldMetaData("tope", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftTableOperationException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
@@ -40879,10 +41722,12 @@ public class ClientService {
 
     public getNamespaceProperties_result(
       java.util.Map<java.lang.String,java.lang.String> success,
+      ThriftSecurityException sec,
       ThriftTableOperationException tope)
     {
       this();
       this.success = success;
+      this.sec = sec;
       this.tope = tope;
     }
 
@@ -40893,6 +41738,9 @@ public class ClientService {
       if (other.isSetSuccess()) {
         java.util.Map<java.lang.String,java.lang.String> __this__success = new java.util.HashMap<java.lang.String,java.lang.String>(other.success);
         this.success = __this__success;
+      }
+      if (other.isSetSec()) {
+        this.sec = new ThriftSecurityException(other.sec);
       }
       if (other.isSetTope()) {
         this.tope = new ThriftTableOperationException(other.tope);
@@ -40907,6 +41755,7 @@ public class ClientService {
     @Override
     public void clear() {
       this.success = null;
+      this.sec = null;
       this.tope = null;
     }
 
@@ -40947,6 +41796,31 @@ public class ClientService {
     }
 
     @org.apache.thrift.annotation.Nullable
+    public ThriftSecurityException getSec() {
+      return this.sec;
+    }
+
+    public getNamespaceProperties_result setSec(@org.apache.thrift.annotation.Nullable ThriftSecurityException sec) {
+      this.sec = sec;
+      return this;
+    }
+
+    public void unsetSec() {
+      this.sec = null;
+    }
+
+    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
+    public boolean isSetSec() {
+      return this.sec != null;
+    }
+
+    public void setSecIsSet(boolean value) {
+      if (!value) {
+        this.sec = null;
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
     public ThriftTableOperationException getTope() {
       return this.tope;
     }
@@ -40982,6 +41856,14 @@ public class ClientService {
         }
         break;
 
+      case SEC:
+        if (value == null) {
+          unsetSec();
+        } else {
+          setSec((ThriftSecurityException)value);
+        }
+        break;
+
       case TOPE:
         if (value == null) {
           unsetTope();
@@ -41000,6 +41882,9 @@ public class ClientService {
       case SUCCESS:
         return getSuccess();
 
+      case SEC:
+        return getSec();
+
       case TOPE:
         return getTope();
 
@@ -41017,6 +41902,8 @@ public class ClientService {
       switch (field) {
       case SUCCESS:
         return isSetSuccess();
+      case SEC:
+        return isSetSec();
       case TOPE:
         return isSetTope();
       }
@@ -41045,6 +41932,15 @@ public class ClientService {
           return false;
       }
 
+      boolean this_present_sec = true && this.isSetSec();
+      boolean that_present_sec = true && that.isSetSec();
+      if (this_present_sec || that_present_sec) {
+        if (!(this_present_sec && that_present_sec))
+          return false;
+        if (!this.sec.equals(that.sec))
+          return false;
+      }
+
       boolean this_present_tope = true && this.isSetTope();
       boolean that_present_tope = true && that.isSetTope();
       if (this_present_tope || that_present_tope) {
@@ -41064,6 +41960,10 @@ public class ClientService {
       hashCode = hashCode * 8191 + ((isSetSuccess()) ? 131071 : 524287);
       if (isSetSuccess())
         hashCode = hashCode * 8191 + success.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
+      if (isSetSec())
+        hashCode = hashCode * 8191 + sec.hashCode();
 
       hashCode = hashCode * 8191 + ((isSetTope()) ? 131071 : 524287);
       if (isSetTope())
@@ -41086,6 +41986,16 @@ public class ClientService {
       }
       if (isSetSuccess()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, other.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetSec(), other.isSetSec());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSec()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -41128,6 +42038,14 @@ public class ClientService {
         sb.append("null");
       } else {
         sb.append(this.success);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("sec:");
+      if (this.sec == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.sec);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -41203,7 +42121,16 @@ public class ClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // TOPE
+            case 1: // SEC
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.sec = new ThriftSecurityException();
+                struct.sec.read(iprot);
+                struct.setSecIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 2: // TOPE
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.tope = new ThriftTableOperationException();
                 struct.tope.read(iprot);
@@ -41241,6 +42168,11 @@ public class ClientService {
           }
           oprot.writeFieldEnd();
         }
+        if (struct.sec != null) {
+          oprot.writeFieldBegin(SEC_FIELD_DESC);
+          struct.sec.write(oprot);
+          oprot.writeFieldEnd();
+        }
         if (struct.tope != null) {
           oprot.writeFieldBegin(TOPE_FIELD_DESC);
           struct.tope.write(oprot);
@@ -41268,10 +42200,13 @@ public class ClientService {
         if (struct.isSetSuccess()) {
           optionals.set(0);
         }
-        if (struct.isSetTope()) {
+        if (struct.isSetSec()) {
           optionals.set(1);
         }
-        oprot.writeBitSet(optionals, 2);
+        if (struct.isSetTope()) {
+          optionals.set(2);
+        }
+        oprot.writeBitSet(optionals, 3);
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
@@ -41282,6 +42217,9 @@ public class ClientService {
             }
           }
         }
+        if (struct.isSetSec()) {
+          struct.sec.write(oprot);
+        }
         if (struct.isSetTope()) {
           struct.tope.write(oprot);
         }
@@ -41290,7 +42228,7 @@ public class ClientService {
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, getNamespaceProperties_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(2);
+        java.util.BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           {
             org.apache.thrift.protocol.TMap _map130 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
@@ -41307,6 +42245,11 @@ public class ClientService {
           struct.setSuccessIsSet(true);
         }
         if (incoming.get(1)) {
+          struct.sec = new ThriftSecurityException();
+          struct.sec.read(iprot);
+          struct.setSecIsSet(true);
+        }
+        if (incoming.get(2)) {
           struct.tope = new ThriftTableOperationException();
           struct.tope.read(iprot);
           struct.setTopeIsSet(true);
@@ -41923,18 +42866,21 @@ public class ClientService {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getVersionedNamespaceProperties_result");
 
     private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRUCT, (short)0);
-    private static final org.apache.thrift.protocol.TField TOPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tope", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField TOPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tope", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getVersionedNamespaceProperties_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getVersionedNamespaceProperties_resultTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable TVersionedProperties success; // required
+    public @org.apache.thrift.annotation.Nullable ThriftSecurityException sec; // required
     public @org.apache.thrift.annotation.Nullable ThriftTableOperationException tope; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
-      TOPE((short)1, "tope");
+      SEC((short)1, "sec"),
+      TOPE((short)2, "tope");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -41952,7 +42898,9 @@ public class ClientService {
         switch(fieldId) {
           case 0: // SUCCESS
             return SUCCESS;
-          case 1: // TOPE
+          case 1: // SEC
+            return SEC;
+          case 2: // TOPE
             return TOPE;
           default:
             return null;
@@ -42002,6 +42950,8 @@ public class ClientService {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TVersionedProperties.class)));
+      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftSecurityException.class)));
       tmpMap.put(_Fields.TOPE, new org.apache.thrift.meta_data.FieldMetaData("tope", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftTableOperationException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
@@ -42013,10 +42963,12 @@ public class ClientService {
 
     public getVersionedNamespaceProperties_result(
       TVersionedProperties success,
+      ThriftSecurityException sec,
       ThriftTableOperationException tope)
     {
       this();
       this.success = success;
+      this.sec = sec;
       this.tope = tope;
     }
 
@@ -42026,6 +42978,9 @@ public class ClientService {
     public getVersionedNamespaceProperties_result(getVersionedNamespaceProperties_result other) {
       if (other.isSetSuccess()) {
         this.success = new TVersionedProperties(other.success);
+      }
+      if (other.isSetSec()) {
+        this.sec = new ThriftSecurityException(other.sec);
       }
       if (other.isSetTope()) {
         this.tope = new ThriftTableOperationException(other.tope);
@@ -42040,6 +42995,7 @@ public class ClientService {
     @Override
     public void clear() {
       this.success = null;
+      this.sec = null;
       this.tope = null;
     }
 
@@ -42065,6 +43021,31 @@ public class ClientService {
     public void setSuccessIsSet(boolean value) {
       if (!value) {
         this.success = null;
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public ThriftSecurityException getSec() {
+      return this.sec;
+    }
+
+    public getVersionedNamespaceProperties_result setSec(@org.apache.thrift.annotation.Nullable ThriftSecurityException sec) {
+      this.sec = sec;
+      return this;
+    }
+
+    public void unsetSec() {
+      this.sec = null;
+    }
+
+    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
+    public boolean isSetSec() {
+      return this.sec != null;
+    }
+
+    public void setSecIsSet(boolean value) {
+      if (!value) {
+        this.sec = null;
       }
     }
 
@@ -42104,6 +43085,14 @@ public class ClientService {
         }
         break;
 
+      case SEC:
+        if (value == null) {
+          unsetSec();
+        } else {
+          setSec((ThriftSecurityException)value);
+        }
+        break;
+
       case TOPE:
         if (value == null) {
           unsetTope();
@@ -42122,6 +43111,9 @@ public class ClientService {
       case SUCCESS:
         return getSuccess();
 
+      case SEC:
+        return getSec();
+
       case TOPE:
         return getTope();
 
@@ -42139,6 +43131,8 @@ public class ClientService {
       switch (field) {
       case SUCCESS:
         return isSetSuccess();
+      case SEC:
+        return isSetSec();
       case TOPE:
         return isSetTope();
       }
@@ -42167,6 +43161,15 @@ public class ClientService {
           return false;
       }
 
+      boolean this_present_sec = true && this.isSetSec();
+      boolean that_present_sec = true && that.isSetSec();
+      if (this_present_sec || that_present_sec) {
+        if (!(this_present_sec && that_present_sec))
+          return false;
+        if (!this.sec.equals(that.sec))
+          return false;
+      }
+
       boolean this_present_tope = true && this.isSetTope();
       boolean that_present_tope = true && that.isSetTope();
       if (this_present_tope || that_present_tope) {
@@ -42186,6 +43189,10 @@ public class ClientService {
       hashCode = hashCode * 8191 + ((isSetSuccess()) ? 131071 : 524287);
       if (isSetSuccess())
         hashCode = hashCode * 8191 + success.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
+      if (isSetSec())
+        hashCode = hashCode * 8191 + sec.hashCode();
 
       hashCode = hashCode * 8191 + ((isSetTope()) ? 131071 : 524287);
       if (isSetTope())
@@ -42208,6 +43215,16 @@ public class ClientService {
       }
       if (isSetSuccess()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, other.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetSec(), other.isSetSec());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSec()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -42250,6 +43267,14 @@ public class ClientService {
         sb.append("null");
       } else {
         sb.append(this.success);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("sec:");
+      if (this.sec == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.sec);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -42317,7 +43342,16 @@ public class ClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // TOPE
+            case 1: // SEC
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.sec = new ThriftSecurityException();
+                struct.sec.read(iprot);
+                struct.setSecIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 2: // TOPE
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.tope = new ThriftTableOperationException();
                 struct.tope.read(iprot);
@@ -42347,6 +43381,11 @@ public class ClientService {
           struct.success.write(oprot);
           oprot.writeFieldEnd();
         }
+        if (struct.sec != null) {
+          oprot.writeFieldBegin(SEC_FIELD_DESC);
+          struct.sec.write(oprot);
+          oprot.writeFieldEnd();
+        }
         if (struct.tope != null) {
           oprot.writeFieldBegin(TOPE_FIELD_DESC);
           struct.tope.write(oprot);
@@ -42374,12 +43413,18 @@ public class ClientService {
         if (struct.isSetSuccess()) {
           optionals.set(0);
         }
-        if (struct.isSetTope()) {
+        if (struct.isSetSec()) {
           optionals.set(1);
         }
-        oprot.writeBitSet(optionals, 2);
+        if (struct.isSetTope()) {
+          optionals.set(2);
+        }
+        oprot.writeBitSet(optionals, 3);
         if (struct.isSetSuccess()) {
           struct.success.write(oprot);
+        }
+        if (struct.isSetSec()) {
+          struct.sec.write(oprot);
         }
         if (struct.isSetTope()) {
           struct.tope.write(oprot);
@@ -42389,13 +43434,18 @@ public class ClientService {
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, getVersionedNamespaceProperties_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(2);
+        java.util.BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           struct.success = new TVersionedProperties();
           struct.success.read(iprot);
           struct.setSuccessIsSet(true);
         }
         if (incoming.get(1)) {
+          struct.sec = new ThriftSecurityException();
+          struct.sec.read(iprot);
+          struct.setSecIsSet(true);
+        }
+        if (incoming.get(2)) {
           struct.tope = new ThriftTableOperationException();
           struct.tope.read(iprot);
           struct.setTopeIsSet(true);
