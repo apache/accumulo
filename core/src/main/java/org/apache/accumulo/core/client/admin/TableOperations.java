@@ -606,16 +606,18 @@ public interface TableOperations {
       throws AccumuloException, AccumuloSecurityException;
 
   /**
-   * Modify table properties using a Consumer that accepts a mutable map containing the current
-   * table properties. If the supplied Consumer alters the map without throwing an Exception, then
-   * the resulting map will atomically replace the current table properties.
+   *
+   * For a detailed overview of the behavior of this method see
+   * {@link InstanceOperations#modifyProperties(Consumer)} which operates on a different layer of
+   * properties but has the same behavior and better documentation.
    *
    * @param mapMutator
-   *          This consumer should modify the passed in map to contain the desired keys and values.
-   *          It should be safe for Accumulo to call this consumer multiple times, this may be done
-   *          automatically when certain retryable errors happen. The consumer should probably avoid
-   *          accessing the Accumulo client as that could lead to undefined behavior.
-   *
+   *          This consumer should modify the passed in snapshot of table properties contain the
+   *          desired keys and values. It should be safe for Accumulo to call this consumer multiple
+   *          times, this may be done automatically when certain retryable errors happen. The
+   *          consumer should probably avoid accessing the Accumulo client as that could lead to
+   *          undefined behavior.
+   * @return
    * @throws AccumuloException
    *           if a general error occurs
    * @throws AccumuloSecurityException
@@ -624,7 +626,7 @@ public interface TableOperations {
    *           if the Consumer alters the map by adding properties that cannot be stored
    * @since 2.1.0
    */
-  void modifyProperties(String tableName, Consumer<Map<String,String>> mapMutator)
+  Map<String,String> modifyProperties(String tableName, Consumer<Map<String,String>> mapMutator)
       throws AccumuloException, AccumuloSecurityException, IllegalArgumentException;
 
   /**

@@ -357,7 +357,7 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
   }
 
   interface PropertyShim {
-    void modifyProperties(Consumer<Map<String,String>> modifier) throws Exception;
+    Map<String,String> modifyProperties(Consumer<Map<String,String>> modifier) throws Exception;
 
     Map<String,String> getProperties() throws Exception;
   }
@@ -371,8 +371,9 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
       var propShim = new PropertyShim() {
 
         @Override
-        public void modifyProperties(Consumer<Map<String,String>> modifier) throws Exception {
-          client.tableOperations().modifyProperties(table, modifier);
+        public Map<String,String> modifyProperties(Consumer<Map<String,String>> modifier)
+            throws Exception {
+          return client.tableOperations().modifyProperties(table, modifier);
         }
 
         @Override
@@ -394,8 +395,9 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
       var propShim = new PropertyShim() {
 
         @Override
-        public void modifyProperties(Consumer<Map<String,String>> modifier) throws Exception {
-          client.namespaceOperations().modifyProperties(namespace, modifier);
+        public Map<String,String> modifyProperties(Consumer<Map<String,String>> modifier)
+            throws Exception {
+          return client.namespaceOperations().modifyProperties(namespace, modifier);
         }
 
         @Override
@@ -414,8 +416,9 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
       var propShim = new PropertyShim() {
 
         @Override
-        public void modifyProperties(Consumer<Map<String,String>> modifier) throws Exception {
-          client.instanceOperations().modifyProperties(modifier);
+        public Map<String,String> modifyProperties(Consumer<Map<String,String>> modifier)
+            throws Exception {
+          return client.instanceOperations().modifyProperties(modifier);
         }
 
         @Override
@@ -441,7 +444,13 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
 
     Callable<Void> task1 = () -> {
       for (int i = 0; i < iterations; i++) {
-        propShim.modifyProperties(tableProps -> {
+
+        Map<String,String> prevProps = null;
+        if (iterations % 10 == 0) {
+          prevProps = propShim.getProperties();
+        }
+
+        Map<String,String> acceptedProps = propShim.modifyProperties(tableProps -> {
           int A = Integer.parseInt(tableProps.getOrDefault("table.custom.A", "0"));
           int B = Integer.parseInt(tableProps.getOrDefault("table.custom.B", "0"));
           int C = Integer.parseInt(tableProps.getOrDefault("table.custom.C", "0"));
@@ -452,6 +461,26 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
           tableProps.put("table.custom.C", C + 5 + "");
           tableProps.put("table.custom.D", D + 7 + "");
         });
+
+        if (prevProps != null) {
+          var beforeA = Integer.parseInt(prevProps.getOrDefault("table.custom.A", "0"));
+          var beforeB = Integer.parseInt(prevProps.getOrDefault("table.custom.B", "0"));
+          var beforeC = Integer.parseInt(prevProps.getOrDefault("table.custom.C", "0"));
+          var beforeD = Integer.parseInt(prevProps.getOrDefault("table.custom.D", "0"));
+
+          var afterA = Integer.parseInt(acceptedProps.get("table.custom.A"));
+          var afterB = Integer.parseInt(acceptedProps.get("table.custom.B"));
+          var afterC = Integer.parseInt(acceptedProps.get("table.custom.C"));
+          var afterD = Integer.parseInt(acceptedProps.get("table.custom.D"));
+
+          // because there are other thread possibly making changes since reading prevProps, can
+          // only do >= as opposed to == check. Should at a minimum see the changes made by this
+          // thread.
+          assertTrue(afterA >= beforeA + 2);
+          assertTrue(afterB >= beforeA + 3);
+          assertTrue(afterC >= beforeA + 5);
+          assertTrue(afterD >= beforeA + 7);
+        }
       }
       return null;
     };
@@ -516,6 +545,33 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
       }
       return equal;
     }));
+
+    // now that there are not other thread modifying properties, make a modification to check that
+    // the returned map
+    // is exactly as expected.
+    Map<String,String> acceptedProps = propShim.modifyProperties(tableProps -> {
+      int A = Integer.parseInt(tableProps.getOrDefault("table.custom.A", "0"));
+      int B = Integer.parseInt(tableProps.getOrDefault("table.custom.B", "0"));
+      int C = Integer.parseInt(tableProps.getOrDefault("table.custom.C", "0"));
+      int D = Integer.parseInt(tableProps.getOrDefault("table.custom.D", "0"));
+
+      tableProps.put("table.custom.A", A + 2 + "");
+      tableProps.put("table.custom.B", B + 3 + "");
+      tableProps.put("table.custom.C", C + 5 + "");
+      tableProps.put("table.custom.D", D + 7 + "");
+    });
+
+    var afterA = Integer.parseInt(acceptedProps.get("table.custom.A"));
+    var afterB = Integer.parseInt(acceptedProps.get("table.custom.B"));
+    var afterC = Integer.parseInt(acceptedProps.get("table.custom.C"));
+    var afterD = Integer.parseInt(acceptedProps.get("table.custom.D"));
+    var afterE = Integer.parseInt(acceptedProps.get("table.custom.E"));
+
+    assertEquals(iterations * 2 + 2, afterA);
+    assertEquals(iterations * (3 + 11 + 17) + 3, afterB);
+    assertEquals(iterations * (5 + 13) + 5, afterC);
+    assertEquals(iterations * 7 + 7, afterD);
+    assertEquals(iterations * 19 + 0, afterE);
 
     executor.shutdown();
   }

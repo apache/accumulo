@@ -84,7 +84,7 @@ public interface InstanceOperations {
    * <pre>
    *         {@code
    *             AccumuloClient client = getClient();
-   *             client.instanceOperations().modifyProperties(currProps -> {
+   *             Map<String,String> acceptedProps = client.instanceOperations().modifyProperties(currProps -> {
    *               var planner = currProps.get("tserver.compaction.major.service.default.planner");
    *               //This code will only change the compaction planner if its currently set to default settings.
    *               //The endsWith() function was used to make the example short, would be better to use equals().
@@ -97,6 +97,14 @@ public interface InstanceOperations {
    *                 currProps.put("tserver.compaction.major.service.default.planner.opts.myOpt2","val2");
    *                }
    *             });
+   *
+   *             // Since three properties were set may want to check for the values of all
+   *             // three, just checking one in this example to keep it short.
+   *             if("MyPlannerClassName".equals(acceptedProps.get("tserver.compaction.major.service.default.planner"))){
+   *                // the compaction planner change was accepted or already existed, so take action for that outcome
+   *             } else {
+   *                // the compaction planner change was not done, so take action for that outcome
+   *             }
    *           }
    *         }
    * </pre>
@@ -104,10 +112,11 @@ public interface InstanceOperations {
    *
    *
    * @param mapMutator
-   *          This consumer should modify the passed in map to contain the desired keys and values.
-   *          It should be safe for Accumulo to call this consumer multiple times, this may be done
-   *          automatically when certain retryable errors happen. The consumer should probably avoid
-   *          accessing the Accumulo client as that could lead to undefined behavior.
+   *          This consumer should modify the passed snapshot of instance properties to contain the
+   *          desired keys and values. It should be safe for Accumulo to call this consumer multiple
+   *          times, this may be done automatically when certain retryable errors happen. The
+   *          consumer should probably avoid accessing the Accumulo client as that could lead to
+   *          undefined behavior.
    *
    * @throws AccumuloException
    *           if a general error occurs
@@ -116,9 +125,12 @@ public interface InstanceOperations {
    * @throws IllegalArgumentException
    *           if the Consumer alters the map by adding properties that cannot be stored in
    *           ZooKeeper
+   *
+   * @return The map that became Accumulo's new properties for this table. This map is immutable and
+   *         contains the snapshot passed to mapMutator and the changes made by mapMutator.
    * @since 2.1.0
    */
-  void modifyProperties(Consumer<Map<String,String>> mapMutator)
+  Map<String,String> modifyProperties(Consumer<Map<String,String>> mapMutator)
       throws AccumuloException, AccumuloSecurityException, IllegalArgumentException;
 
   /**

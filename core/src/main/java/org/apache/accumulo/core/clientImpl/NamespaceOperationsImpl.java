@@ -189,7 +189,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     checkLocalityGroups(namespace, property);
   }
 
-  private void tryToModifyProperties(final String namespace,
+  private Map<String,String> tryToModifyProperties(final String namespace,
       final Consumer<Map<String,String>> mapMutator)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
 
@@ -197,6 +197,12 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
         ThriftClientTypes.CLIENT.execute(context, client -> client
             .getVersionedNamespaceProperties(TraceUtil.traceInfo(), context.rpcCreds(), namespace));
     mapMutator.accept(vProperties.getProperties());
+
+    // A reference to the map was passed to the user, maybe they still have the reference and are
+    // modifying it. Buggy Accumulo code could attempt to make modifications to the map after this
+    // point. Because of these potential issues, create an immutable snapshot of the map so that
+    // from here on the code is assured to always be dealing with the same map.
+    vProperties.setProperties(Map.copyOf(vProperties.getProperties()));
 
     try {
       // Send to server
@@ -214,9 +220,11 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       else
         throw new AccumuloException(e);
     }
+
+    return vProperties.getProperties();
   }
 
-  public void modifyProperties(final String namespace,
+  public Map<String,String> modifyProperties(final String namespace,
       final Consumer<Map<String,String>> mapMutator)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
     EXISTING_NAMESPACE_NAME.validate(namespace);
@@ -228,8 +236,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
     while (true) {
       try {
-        tryToModifyProperties(namespace, mapMutator);
-        break;
+        return tryToModifyProperties(namespace, mapMutator);
       } catch (ConcurrentModificationException cme) {
         try {
           retry.logRetry(log, "Unable to modify namespace properties for " + namespace

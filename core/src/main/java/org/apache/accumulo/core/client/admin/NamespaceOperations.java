@@ -171,14 +171,23 @@ public interface NamespaceOperations {
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
 
   /**
+   * For a detailed overview of the behavior of this method see
+   * {@link InstanceOperations#modifyProperties(Consumer)} which operates on a different layer of
+   * properties but has the same behavior and better documentation.
+   *
    * @param mapMutator
-   *          This consumer should modify the passed in map to contain the desired keys and values.
-   *          It should be safe for Accumulo to call this consumer multiple times, this may be done
-   *          automatically when certain retryable errors happen. The consumer should probably avoid
-   *          accessing the Accumulo client as that could lead to undefined behavior.
+   *          This consumer should modify the passed in snapshot of namespace properties to contain
+   *          the desired keys and values. It should be safe for Accumulo to call this consumer
+   *          multiple times, this may be done automatically when certain retryable errors happen.
+   *          The consumer should probably avoid accessing the Accumulo client as that could lead to
+   *          undefined behavior.
+   *
+   * @return The map that became Accumulo's new properties for this namespace. This map is immutable
+   *         and contains the snapshot passed to mapMutator and the changes made by mapMutator.
+   *
    * @since 2.1.0
    */
-  void modifyProperties(String namespace, Consumer<Map<String,String>> mapMutator)
+  Map<String,String> modifyProperties(String namespace, Consumer<Map<String,String>> mapMutator)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
 
   /**

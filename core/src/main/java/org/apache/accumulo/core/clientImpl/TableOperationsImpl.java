@@ -1010,13 +1010,19 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  private void tryToModifyProperties(String tableName,
+  private Map<String,String> tryToModifyProperties(String tableName,
       final Consumer<Map<String,String>> mapMutator) throws AccumuloException,
       AccumuloSecurityException, IllegalArgumentException, ConcurrentModificationException {
     final TVersionedProperties vProperties =
         ThriftClientTypes.CLIENT.execute(context, client -> client
             .getVersionedTableProperties(TraceUtil.traceInfo(), context.rpcCreds(), tableName));
     mapMutator.accept(vProperties.getProperties());
+
+    // A reference to the map was passed to the user, maybe they still have the reference and are
+    // modifying it. Buggy Accumulo code could attempt to make modifications to the map after this
+    // point. Because of these potential issues, create an immutable snapshot of the map so that
+    // from here on the code is assured to always be dealing with the same map.
+    vProperties.setProperties(Map.copyOf(vProperties.getProperties()));
 
     try {
       // Send to server
@@ -1029,10 +1035,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
     } catch (TableNotFoundException e) {
       throw new AccumuloException(e);
     }
+
+    return vProperties.getProperties();
   }
 
   @Override
-  public void modifyProperties(String tableName, final Consumer<Map<String,String>> mapMutator)
+  public Map<String,String> modifyProperties(String tableName,
+      final Consumer<Map<String,String>> mapMutator)
       throws AccumuloException, AccumuloSecurityException, IllegalArgumentException {
     EXISTING_TABLE_NAME.validate(tableName);
     checkArgument(mapMutator != null, "mapMutator is null");
@@ -1043,8 +1052,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     while (true) {
       try {
-        tryToModifyProperties(tableName, mapMutator);
-        break;
+        return tryToModifyProperties(tableName, mapMutator);
       } catch (ConcurrentModificationException cme) {
         try {
           retry.logRetry(log, "Unable to modify table properties for " + tableName

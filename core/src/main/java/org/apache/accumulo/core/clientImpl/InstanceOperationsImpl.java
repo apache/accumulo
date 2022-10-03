@@ -95,12 +95,18 @@ public class InstanceOperationsImpl implements InstanceOperations {
     checkLocalityGroups(property);
   }
 
-  private void tryToModifyProperties(final Consumer<Map<String,String>> mapMutator)
+  private Map<String,String> tryToModifyProperties(final Consumer<Map<String,String>> mapMutator)
       throws AccumuloException, AccumuloSecurityException, IllegalArgumentException {
     checkArgument(mapMutator != null, "mapMutator is null");
 
     final TVersionedProperties vProperties = getSystemProperties();
     mapMutator.accept(vProperties.getProperties());
+
+    // A reference to the map was passed to the user, maybe they still have the reference and are
+    // modifying it. Buggy Accumulo code could attempt to make modifications to the map after this
+    // point. Because of these potential issues, create an immutable snapshot of the map so that
+    // from here on the code is assured to always be dealing with the same map.
+    vProperties.setProperties(Map.copyOf(vProperties.getProperties()));
 
     for (Map.Entry<String,String> entry : vProperties.getProperties().entrySet()) {
       final String property = Objects.requireNonNull(entry.getKey(), "property key is null");
@@ -118,10 +124,12 @@ public class InstanceOperationsImpl implements InstanceOperations {
     // Send to server
     ThriftClientTypes.MANAGER.executeVoid(context, client -> client
         .modifySystemProperties(TraceUtil.traceInfo(), context.rpcCreds(), vProperties));
+
+    return vProperties.getProperties();
   }
 
   @Override
-  public void modifyProperties(final Consumer<Map<String,String>> mapMutator)
+  public Map<String,String> modifyProperties(final Consumer<Map<String,String>> mapMutator)
       throws AccumuloException, AccumuloSecurityException, IllegalArgumentException {
 
     Retry retry =
@@ -130,8 +138,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
     while (true) {
       try {
-        tryToModifyProperties(mapMutator);
-        break;
+        return tryToModifyProperties(mapMutator);
       } catch (ConcurrentModificationException cme) {
         try {
           retry.logRetry(LoggerFactory.getLogger(InstanceOperationsImpl.class),
