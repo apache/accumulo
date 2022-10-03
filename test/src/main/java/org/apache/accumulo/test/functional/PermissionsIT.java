@@ -888,8 +888,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
         if (!root_client.securityOperations().hasTablePermission(user, table, p)) {
           root_client.securityOperations().grantTablePermission(user, table, p);
         }
-      }
-      else if (root_client.securityOperations().hasTablePermission(user, table, p))
+      } else if (root_client.securityOperations().hasTablePermission(user, table, p))
         throw new IllegalStateException(
             user + " SHOULD NOT have table permission " + p + " for table " + table);
     }
