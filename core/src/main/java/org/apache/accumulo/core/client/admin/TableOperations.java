@@ -617,7 +617,10 @@ public interface TableOperations {
    *          times, this may be done automatically when certain retryable errors happen. The
    *          consumer should probably avoid accessing the Accumulo client as that could lead to
    *          undefined behavior.
-   * @return
+   *
+   * @return The map that became Accumulo's new properties for this table. This map is immutable and
+   *         contains the snapshot passed to mapMutator and the changes made by mapMutator.
+   *
    * @throws AccumuloException
    *           if a general error occurs
    * @throws AccumuloSecurityException
