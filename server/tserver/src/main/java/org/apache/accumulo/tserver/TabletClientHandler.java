@@ -1202,33 +1202,27 @@ public class TabletClientHandler implements TabletClientService.Iface {
       throw new RuntimeException(e);
     }
 
-    ArrayList<Tablet> tabletsToFlush = new ArrayList<>();
-
     KeyExtent ke = new KeyExtent(TableId.of(tableId), ByteBufferUtil.toText(endRow),
         ByteBufferUtil.toText(startRow));
 
-    for (Tablet tablet : server.getOnlineTablets().values()) {
-      if (ke.overlaps(tablet.getExtent())) {
-        tabletsToFlush.add(tablet);
-      }
+    List<Tablet> tabletsToFlush = server.getOnlineTablets().values().stream()
+        .filter(tablet -> ke.overlaps(tablet.getExtent())).collect(toList());
+
+    if (tabletsToFlush.isEmpty())
+      return; // no tablets to flush
+
+    // read the flush id once from zookeeper instead of reading it for each tablet
+    final long flushID;
+    try {
+      Tablet firstTablet = tabletsToFlush.get(0);
+      flushID = firstTablet.getFlushID();
+    } catch (NoNodeException e) {
+      // table was probably deleted
+      log.info("Asked to flush table that has no flush id {} {}", ke, e.getMessage());
+      return;
     }
 
-    Long flushID = null;
-
-    for (Tablet tablet : tabletsToFlush) {
-      if (flushID == null) {
-        // read the flush id once from zookeeper instead of reading
-        // it for each tablet
-        try {
-          flushID = tablet.getFlushID();
-        } catch (NoNodeException e) {
-          // table was probably deleted
-          log.info("Asked to flush table that has no flush id {} {}", ke, e.getMessage());
-          return;
-        }
-      }
-      tablet.flush(flushID);
-    }
+    tabletsToFlush.forEach(tablet -> tablet.flush(flushID));
   }
 
   @Override

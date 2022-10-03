@@ -326,8 +326,9 @@ public class MetadataSchema {
      * data for the current tablet, so that they are safe to merge
      */
     public static class ChoppedColumnFamily {
-      public static final Text NAME = new Text("chopped");
-      public static final ColumnFQ CHOPPED_COLUMN = new ColumnFQ(NAME, new Text("chopped"));
+      public static final String STR_NAME = "chopped";
+      public static final Text NAME = new Text(STR_NAME);
+      public static final ColumnFQ CHOPPED_COLUMN = new ColumnFQ(NAME, new Text(STR_NAME));
     }
 
     public static class ExternalCompactionColumnFamily {

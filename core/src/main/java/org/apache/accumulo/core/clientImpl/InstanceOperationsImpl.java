@@ -99,7 +99,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
       throws AccumuloException, AccumuloSecurityException, IllegalArgumentException {
     checkArgument(mapMutator != null, "mapMutator is null");
 
-    final TVersionedProperties vProperties = getSystemProperties();
+    final TVersionedProperties vProperties = ThriftClientTypes.CLIENT.execute(context,
+        client -> client.getVersionedSystemProperties(TraceUtil.traceInfo(), context.rpcCreds()));
     mapMutator.accept(vProperties.getProperties());
 
     // A reference to the map was passed to the user, maybe they still have the reference and are
@@ -188,13 +189,6 @@ public class InstanceOperationsImpl implements InstanceOperations {
       throws AccumuloException, AccumuloSecurityException {
     return ThriftClientTypes.CLIENT.execute(context, client -> client
         .getConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), ConfigurationType.CURRENT));
-  }
-
-  @Override
-  public TVersionedProperties getSystemProperties()
-      throws AccumuloException, AccumuloSecurityException {
-    return ThriftClientTypes.CLIENT.execute(context,
-        client -> client.getVersionedSystemProperties(TraceUtil.traceInfo(), context.rpcCreds()));
   }
 
   @Override
