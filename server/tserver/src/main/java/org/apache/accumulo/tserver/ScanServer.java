@@ -653,20 +653,7 @@ public class ScanServer extends AbstractServer
       throw new NoSuchScanIDException();
     }
 
-    Set<StoredTabletFile> scanSessionFiles;
-
-    if (session instanceof SingleScanSession) {
-      var sss = (SingleScanSession) session;
-      scanSessionFiles =
-          Set.copyOf(session.getTabletResolver().getTablet(sss.extent).getDatafiles().keySet());
-    } else if (session instanceof MultiScanSession) {
-      var mss = (MultiScanSession) session;
-      scanSessionFiles = mss.exents.stream()
-          .flatMap(e -> mss.getTabletResolver().getTablet(e).getDatafiles().keySet().stream())
-          .collect(Collectors.toUnmodifiableSet());
-    } else {
-      throw new IllegalArgumentException("Unknown session type " + session.getClass().getName());
-    }
+    Set<StoredTabletFile> scanSessionFiles = getScanSessionFiles(session);
 
     long myReservationId = nextScanReservationId.incrementAndGet();
     // we are only reserving if the files already exists in reservedFiles, so only need the read
@@ -696,6 +683,20 @@ public class ScanServer extends AbstractServer
     }
 
     return new ScanReservation(scanSessionFiles, myReservationId);
+  }
+
+  private static Set<StoredTabletFile> getScanSessionFiles(ScanSession session) {
+    if (session instanceof SingleScanSession) {
+      var sss = (SingleScanSession) session;
+      return Set.copyOf(session.getTabletResolver().getTablet(sss.extent).getDatafiles().keySet());
+    } else if (session instanceof MultiScanSession) {
+      var mss = (MultiScanSession) session;
+      return mss.exents.stream()
+          .flatMap(e -> mss.getTabletResolver().getTablet(e).getDatafiles().keySet().stream())
+          .collect(Collectors.toUnmodifiableSet());
+    } else {
+      throw new IllegalArgumentException("Unknown session type " + session.getClass().getName());
+    }
   }
 
   private void cleanUpReservedFiles(long expireTimeMs) {

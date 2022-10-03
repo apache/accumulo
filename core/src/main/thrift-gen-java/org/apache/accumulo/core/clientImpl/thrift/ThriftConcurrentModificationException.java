@@ -22,22 +22,22 @@
  * DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
  *  @generated
  */
-package org.apache.accumulo.core.tabletserver.thrift;
+package org.apache.accumulo.core.clientImpl.thrift;
 
 @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
-public class TSampleNotPresentException extends org.apache.thrift.TException implements org.apache.thrift.TBase<TSampleNotPresentException, TSampleNotPresentException._Fields>, java.io.Serializable, Cloneable, Comparable<TSampleNotPresentException> {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TSampleNotPresentException");
+public class ThriftConcurrentModificationException extends org.apache.thrift.TException implements org.apache.thrift.TBase<ThriftConcurrentModificationException, ThriftConcurrentModificationException._Fields>, java.io.Serializable, Cloneable, Comparable<ThriftConcurrentModificationException> {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ThriftConcurrentModificationException");
 
-  private static final org.apache.thrift.protocol.TField EXTENT_FIELD_DESC = new org.apache.thrift.protocol.TField("extent", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+  private static final org.apache.thrift.protocol.TField DESCRIPTION_FIELD_DESC = new org.apache.thrift.protocol.TField("description", org.apache.thrift.protocol.TType.STRING, (short)1);
 
-  private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TSampleNotPresentExceptionStandardSchemeFactory();
-  private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TSampleNotPresentExceptionTupleSchemeFactory();
+  private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new ThriftConcurrentModificationExceptionStandardSchemeFactory();
+  private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new ThriftConcurrentModificationExceptionTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent; // required
+  public @org.apache.thrift.annotation.Nullable java.lang.String description; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-    EXTENT((short)1, "extent");
+    DESCRIPTION((short)1, "description");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -53,8 +53,8 @@ public class TSampleNotPresentException extends org.apache.thrift.TException imp
     @org.apache.thrift.annotation.Nullable
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // EXTENT
-          return EXTENT;
+        case 1: // DESCRIPTION
+          return DESCRIPTION;
         default:
           return null;
       }
@@ -101,74 +101,74 @@ public class TSampleNotPresentException extends org.apache.thrift.TException imp
   public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.EXTENT, new org.apache.thrift.meta_data.FieldMetaData("extent", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent.class)));
+    tmpMap.put(_Fields.DESCRIPTION, new org.apache.thrift.meta_data.FieldMetaData("description", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TSampleNotPresentException.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ThriftConcurrentModificationException.class, metaDataMap);
   }
 
-  public TSampleNotPresentException() {
+  public ThriftConcurrentModificationException() {
   }
 
-  public TSampleNotPresentException(
-    org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent)
+  public ThriftConcurrentModificationException(
+    java.lang.String description)
   {
     this();
-    this.extent = extent;
+    this.description = description;
   }
 
   /**
    * Performs a deep copy on <i>other</i>.
    */
-  public TSampleNotPresentException(TSampleNotPresentException other) {
-    if (other.isSetExtent()) {
-      this.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent(other.extent);
+  public ThriftConcurrentModificationException(ThriftConcurrentModificationException other) {
+    if (other.isSetDescription()) {
+      this.description = other.description;
     }
   }
 
   @Override
-  public TSampleNotPresentException deepCopy() {
-    return new TSampleNotPresentException(this);
+  public ThriftConcurrentModificationException deepCopy() {
+    return new ThriftConcurrentModificationException(this);
   }
 
   @Override
   public void clear() {
-    this.extent = null;
+    this.description = null;
   }
 
   @org.apache.thrift.annotation.Nullable
-  public org.apache.accumulo.core.dataImpl.thrift.TKeyExtent getExtent() {
-    return this.extent;
+  public java.lang.String getDescription() {
+    return this.description;
   }
 
-  public TSampleNotPresentException setExtent(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent) {
-    this.extent = extent;
+  public ThriftConcurrentModificationException setDescription(@org.apache.thrift.annotation.Nullable java.lang.String description) {
+    this.description = description;
     return this;
   }
 
-  public void unsetExtent() {
-    this.extent = null;
+  public void unsetDescription() {
+    this.description = null;
   }
 
-  /** Returns true if field extent is set (has been assigned a value) and false otherwise */
-  public boolean isSetExtent() {
-    return this.extent != null;
+  /** Returns true if field description is set (has been assigned a value) and false otherwise */
+  public boolean isSetDescription() {
+    return this.description != null;
   }
 
-  public void setExtentIsSet(boolean value) {
+  public void setDescriptionIsSet(boolean value) {
     if (!value) {
-      this.extent = null;
+      this.description = null;
     }
   }
 
   @Override
   public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
     switch (field) {
-    case EXTENT:
+    case DESCRIPTION:
       if (value == null) {
-        unsetExtent();
+        unsetDescription();
       } else {
-        setExtent((org.apache.accumulo.core.dataImpl.thrift.TKeyExtent)value);
+        setDescription((java.lang.String)value);
       }
       break;
 
@@ -179,8 +179,8 @@ public class TSampleNotPresentException extends org.apache.thrift.TException imp
   @Override
   public java.lang.Object getFieldValue(_Fields field) {
     switch (field) {
-    case EXTENT:
-      return getExtent();
+    case DESCRIPTION:
+      return getDescription();
 
     }
     throw new java.lang.IllegalStateException();
@@ -194,31 +194,31 @@ public class TSampleNotPresentException extends org.apache.thrift.TException imp
     }
 
     switch (field) {
-    case EXTENT:
-      return isSetExtent();
+    case DESCRIPTION:
+      return isSetDescription();
     }
     throw new java.lang.IllegalStateException();
   }
 
   @Override
   public boolean equals(java.lang.Object that) {
-    if (that instanceof TSampleNotPresentException)
-      return this.equals((TSampleNotPresentException)that);
+    if (that instanceof ThriftConcurrentModificationException)
+      return this.equals((ThriftConcurrentModificationException)that);
     return false;
   }
 
-  public boolean equals(TSampleNotPresentException that) {
+  public boolean equals(ThriftConcurrentModificationException that) {
     if (that == null)
       return false;
     if (this == that)
       return true;
 
-    boolean this_present_extent = true && this.isSetExtent();
-    boolean that_present_extent = true && that.isSetExtent();
-    if (this_present_extent || that_present_extent) {
-      if (!(this_present_extent && that_present_extent))
+    boolean this_present_description = true && this.isSetDescription();
+    boolean that_present_description = true && that.isSetDescription();
+    if (this_present_description || that_present_description) {
+      if (!(this_present_description && that_present_description))
         return false;
-      if (!this.extent.equals(that.extent))
+      if (!this.description.equals(that.description))
         return false;
     }
 
@@ -229,27 +229,27 @@ public class TSampleNotPresentException extends org.apache.thrift.TException imp
   public int hashCode() {
     int hashCode = 1;
 
-    hashCode = hashCode * 8191 + ((isSetExtent()) ? 131071 : 524287);
-    if (isSetExtent())
-      hashCode = hashCode * 8191 + extent.hashCode();
+    hashCode = hashCode * 8191 + ((isSetDescription()) ? 131071 : 524287);
+    if (isSetDescription())
+      hashCode = hashCode * 8191 + description.hashCode();
 
     return hashCode;
   }
 
   @Override
-  public int compareTo(TSampleNotPresentException other) {
+  public int compareTo(ThriftConcurrentModificationException other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
 
     int lastComparison = 0;
 
-    lastComparison = java.lang.Boolean.compare(isSetExtent(), other.isSetExtent());
+    lastComparison = java.lang.Boolean.compare(isSetDescription(), other.isSetDescription());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetExtent()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.extent, other.extent);
+    if (isSetDescription()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.description, other.description);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -275,14 +275,14 @@ public class TSampleNotPresentException extends org.apache.thrift.TException imp
 
   @Override
   public java.lang.String toString() {
-    java.lang.StringBuilder sb = new java.lang.StringBuilder("TSampleNotPresentException(");
+    java.lang.StringBuilder sb = new java.lang.StringBuilder("ThriftConcurrentModificationException(");
     boolean first = true;
 
-    sb.append("extent:");
-    if (this.extent == null) {
+    sb.append("description:");
+    if (this.description == null) {
       sb.append("null");
     } else {
-      sb.append(this.extent);
+      sb.append(this.description);
     }
     first = false;
     sb.append(")");
@@ -292,9 +292,6 @@ public class TSampleNotPresentException extends org.apache.thrift.TException imp
   public void validate() throws org.apache.thrift.TException {
     // check for required fields
     // check for sub-struct validity
-    if (extent != null) {
-      extent.validate();
-    }
   }
 
   private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
@@ -313,17 +310,17 @@ public class TSampleNotPresentException extends org.apache.thrift.TException imp
     }
   }
 
-  private static class TSampleNotPresentExceptionStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+  private static class ThriftConcurrentModificationExceptionStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
     @Override
-    public TSampleNotPresentExceptionStandardScheme getScheme() {
-      return new TSampleNotPresentExceptionStandardScheme();
+    public ThriftConcurrentModificationExceptionStandardScheme getScheme() {
+      return new ThriftConcurrentModificationExceptionStandardScheme();
     }
   }
 
-  private static class TSampleNotPresentExceptionStandardScheme extends org.apache.thrift.scheme.StandardScheme<TSampleNotPresentException> {
+  private static class ThriftConcurrentModificationExceptionStandardScheme extends org.apache.thrift.scheme.StandardScheme<ThriftConcurrentModificationException> {
 
     @Override
-    public void read(org.apache.thrift.protocol.TProtocol iprot, TSampleNotPresentException struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol iprot, ThriftConcurrentModificationException struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TField schemeField;
       iprot.readStructBegin();
       while (true)
@@ -333,11 +330,10 @@ public class TSampleNotPresentException extends org.apache.thrift.TException imp
           break;
         }
         switch (schemeField.id) {
-          case 1: // EXTENT
-            if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-              struct.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
-              struct.extent.read(iprot);
-              struct.setExtentIsSet(true);
+          case 1: // DESCRIPTION
+            if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+              struct.description = iprot.readString();
+              struct.setDescriptionIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -354,13 +350,13 @@ public class TSampleNotPresentException extends org.apache.thrift.TException imp
     }
 
     @Override
-    public void write(org.apache.thrift.protocol.TProtocol oprot, TSampleNotPresentException struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot, ThriftConcurrentModificationException struct) throws org.apache.thrift.TException {
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
-      if (struct.extent != null) {
-        oprot.writeFieldBegin(EXTENT_FIELD_DESC);
-        struct.extent.write(oprot);
+      if (struct.description != null) {
+        oprot.writeFieldBegin(DESCRIPTION_FIELD_DESC);
+        oprot.writeString(struct.description);
         oprot.writeFieldEnd();
       }
       oprot.writeFieldStop();
@@ -369,36 +365,35 @@ public class TSampleNotPresentException extends org.apache.thrift.TException imp
 
   }
 
-  private static class TSampleNotPresentExceptionTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+  private static class ThriftConcurrentModificationExceptionTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
     @Override
-    public TSampleNotPresentExceptionTupleScheme getScheme() {
-      return new TSampleNotPresentExceptionTupleScheme();
+    public ThriftConcurrentModificationExceptionTupleScheme getScheme() {
+      return new ThriftConcurrentModificationExceptionTupleScheme();
     }
   }
 
-  private static class TSampleNotPresentExceptionTupleScheme extends org.apache.thrift.scheme.TupleScheme<TSampleNotPresentException> {
+  private static class ThriftConcurrentModificationExceptionTupleScheme extends org.apache.thrift.scheme.TupleScheme<ThriftConcurrentModificationException> {
 
     @Override
-    public void write(org.apache.thrift.protocol.TProtocol prot, TSampleNotPresentException struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol prot, ThriftConcurrentModificationException struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
       java.util.BitSet optionals = new java.util.BitSet();
-      if (struct.isSetExtent()) {
+      if (struct.isSetDescription()) {
         optionals.set(0);
       }
       oprot.writeBitSet(optionals, 1);
-      if (struct.isSetExtent()) {
-        struct.extent.write(oprot);
+      if (struct.isSetDescription()) {
+        oprot.writeString(struct.description);
       }
     }
 
     @Override
-    public void read(org.apache.thrift.protocol.TProtocol prot, TSampleNotPresentException struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol prot, ThriftConcurrentModificationException struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
       java.util.BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {
-        struct.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
-        struct.extent.read(iprot);
-        struct.setExtentIsSet(true);
+        struct.description = iprot.readString();
+        struct.setDescriptionIsSet(true);
       }
     }
   }

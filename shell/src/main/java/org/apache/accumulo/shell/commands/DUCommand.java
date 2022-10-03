@@ -37,6 +37,18 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
+/**
+ * "du" command that will compute disk usage for tables and shared usage across tables by scanning
+ * the metadata table for file size information.
+ *
+ * Because the metadata table is used for computing usage and not the actual files in HDFS the
+ * results will be an estimate. Older entries may exist with no file metadata (resulting in size 0)
+ * and other actions in the cluster can impact the estimated size such as flushes, tablet splits,
+ * compactions, etc.
+ *
+ * For more accurate information a compaction should first be run on the set of tables being
+ * computed.
+ */
 public class DUCommand extends Command {
 
   private Option optTablePattern, optHumanReadble, optNamespace;
@@ -95,9 +107,14 @@ public class DUCommand extends Command {
 
   @Override
   public String description() {
-    return "prints how much space, in bytes, is used by files referenced by a"
-        + " table. When multiple tables are specified it prints how much space, in"
-        + " bytes, is used by files shared between tables, if any.";
+    return "Prints estimated space, in bytes, used by files referenced by a "
+        + "table or tables.  When multiple tables are specified it prints how much space, in "
+        + "bytes, are used by files shared between tables, if any. Because the metadata table "
+        + "is used for the file size information and not the actual files in HDFS the results "
+        + "will be an estimate. Older entries may exist with no file metadata (resulting in size 0) and "
+        + "other actions in the cluster can impact the estimated size such as flushes, tablet splits, "
+        + "compactions, etc. For more accurate information a compaction should first be run on all of the files for the "
+        + "set of tables being computed.";
   }
 
   @Override

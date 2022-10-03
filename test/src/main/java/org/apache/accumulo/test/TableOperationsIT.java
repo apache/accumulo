@@ -104,7 +104,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     List<DiskUsage> diskUsage =
         accumuloClient.tableOperations().getDiskUsage(Collections.singleton(tableName));
     assertEquals(1, diskUsage.size());
-    assertEquals(0, (long) diskUsage.get(0).getUsage());
+    assertEquals(0, diskUsage.get(0).getUsage());
     assertEquals(tableName, diskUsage.get(0).getTables().iterator().next());
 
     accumuloClient.securityOperations().revokeTablePermission(getAdminPrincipal(), tableName,

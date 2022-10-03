@@ -122,6 +122,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
 
           // test permission before and after granting it
           String tableNamePrefix = getUniqueNames(1)[0];
+          Thread.sleep(1000);
           testMissingSystemPermission(tableNamePrefix, c, rootUser, test_user_client, testUser,
               perm);
           loginAs(rootUser);
@@ -198,9 +199,27 @@ public class PermissionsIT extends AccumuloClusterHarness {
                   .get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
             throw e;
         }
+        try {
+          // Add test for modifyProperties
+          loginAs(testUser);
+          test_user_client.tableOperations().modifyProperties(tableName, properties -> {
+            properties.put(Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
+          });
+          throw new IllegalStateException("Should NOT be able to set a table property");
+        } catch (AccumuloSecurityException e) {
+          loginAs(rootUser);
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
+              || root_client.tableOperations().getConfiguration(tableName)
+                  .get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
+            throw e;
+        }
         loginAs(rootUser);
         root_client.tableOperations().setProperty(tableName,
             Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
+        // add check on modify properties
+        root_client.tableOperations().modifyProperties(tableName, properties -> {
+          properties.put(Property.TABLE_BLOOM_SIZE.getKey(), "2048576");
+        });
         try {
           loginAs(testUser);
           test_user_client.tableOperations().removeProperty(tableName,
@@ -352,9 +371,27 @@ public class PermissionsIT extends AccumuloClusterHarness {
                   .get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
             throw e;
         }
+        try {
+          loginAs(testUser);
+          // Verify modifyProperties also checks permissions
+          test_user_client.namespaceOperations().modifyProperties(namespace, properties -> {
+            properties.put(Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
+          });
+          throw new IllegalStateException("Should NOT be able to set a namespace property");
+        } catch (AccumuloSecurityException e) {
+          loginAs(rootUser);
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
+              || root_client.namespaceOperations().getConfiguration(namespace)
+                  .get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
+            throw e;
+        }
         loginAs(rootUser);
         root_client.namespaceOperations().setProperty(namespace,
             Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
+        // add check on modify properties
+        root_client.namespaceOperations().modifyProperties(namespace, properties -> {
+          properties.put(Property.TABLE_BLOOM_SIZE.getKey(), "2048576");
+        });
         try {
           loginAs(testUser);
           test_user_client.namespaceOperations().removeProperty(namespace,
