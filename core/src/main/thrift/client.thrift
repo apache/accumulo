@@ -348,8 +348,8 @@ service ClientService {
     3:security.TCredentials credentials
     2:string tableName
   ) throws (
-    1:ThriftSecurityException sec
-    2:ThriftTableOperationException tope
+    1:ThriftTableOperationException tope
+    2:ThriftSecurityException sec
   )
 
   map<string, string> getTableProperties(
@@ -357,8 +357,8 @@ service ClientService {
     3:security.TCredentials credentials
     2:string tableName
   ) throws (
-    1:ThriftSecurityException sec
-    2:ThriftTableOperationException tope
+    1:ThriftTableOperationException tope
+    2:ThriftSecurityException sec
   )
 
   TVersionedProperties getVersionedTableProperties(
@@ -366,8 +366,8 @@ service ClientService {
     3:security.TCredentials credentials
     2:string tableName
   ) throws (
-    1:ThriftSecurityException sec
-    2:ThriftTableOperationException tope
+    1:ThriftTableOperationException tope
+    2:ThriftSecurityException sec
   )
 
   map<string, string> getNamespaceConfiguration(
@@ -375,8 +375,8 @@ service ClientService {
     2:security.TCredentials credentials
     3:string ns
   ) throws (
-    1:ThriftSecurityException sec
-    2:ThriftTableOperationException tope
+    1:ThriftTableOperationException tope
+    2:ThriftSecurityException sec
   )
 
   map<string, string> getNamespaceProperties(
@@ -384,8 +384,8 @@ service ClientService {
     2:security.TCredentials credentials
     3:string ns
   ) throws (
-    1:ThriftSecurityException sec
-    2:ThriftTableOperationException tope
+    1:ThriftTableOperationException tope
+    2:ThriftSecurityException sec
   )
 
   TVersionedProperties getVersionedNamespaceProperties(
@@ -393,8 +393,8 @@ service ClientService {
     2:security.TCredentials credentials
     3:string ns
   ) throws (
-    1:ThriftSecurityException sec
-    2:ThriftTableOperationException tope
+    1:ThriftTableOperationException tope
+    2:ThriftSecurityException sec
   )
 
   bool checkClass(

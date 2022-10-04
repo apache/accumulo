@@ -259,6 +259,13 @@ public class NamespacesIT extends SharedMiniClusterBase {
 
   @Test
   public void verifyPropertyInheritance() throws Exception {
+
+    try (AccumuloClient client =
+        getCluster().createAccumuloClient(getPrincipal(), new PasswordToken(getRootPassword()))) {
+      client.securityOperations().grantNamespacePermission(getPrincipal(), "",
+          NamespacePermission.ALTER_NAMESPACE);
+    }
+
     String t0 = "0";
     String t1 = namespace + ".1";
     String t2 = namespace + ".2";
@@ -755,7 +762,7 @@ public class NamespacesIT extends SharedMiniClusterBase {
 
       loginAs(root);
       c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.ALTER_TABLE);
-      c.securityOperations().grantTablePermission(u1, t3, TablePermission.READ);
+      c.securityOperations().grantTablePermission(u1, t3, TablePermission.ALTER_TABLE);
       loginAs(user1);
       user1Con.tableOperations().setProperty(t3, Property.TABLE_FILE_MAX.getKey(), "42");
       user1Con.tableOperations().modifyProperties(t3,
@@ -773,7 +780,6 @@ public class NamespacesIT extends SharedMiniClusterBase {
 
       loginAs(root);
       c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.ALTER_NAMESPACE);
-      c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.READ);
       loginAs(user1);
       user1Con.namespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "42");
       user1Con.namespaceOperations().modifyProperties(n1, properties -> {
@@ -840,6 +846,15 @@ public class NamespacesIT extends SharedMiniClusterBase {
 
   @Test
   public void verifySystemPropertyInheritance() throws Exception {
+
+    try (AccumuloClient client =
+        getCluster().createAccumuloClient(getPrincipal(), new PasswordToken(getRootPassword()))) {
+      client.securityOperations().grantNamespacePermission(getPrincipal(), "accumulo",
+          NamespacePermission.ALTER_NAMESPACE);
+      client.securityOperations().grantNamespacePermission(getPrincipal(), "",
+          NamespacePermission.ALTER_NAMESPACE);
+    }
+
     String t1 = "1";
     String t2 = namespace + "." + t1;
     c.tableOperations().create(t1);

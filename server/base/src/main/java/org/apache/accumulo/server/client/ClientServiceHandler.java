@@ -354,7 +354,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       String tableName) throws TException, ThriftTableOperationException {
     TableId tableId = checkTableId(context, tableName, null);
     if (security.isSystemUser(credentials) || security.hasTablePermission(credentials,
-        credentials.getPrincipal(), tableId, TablePermission.READ)) {
+        credentials.getPrincipal(), tableId, TablePermission.ALTER_TABLE)) {
       context.getPropStore().getCache().remove(TablePropKey.of(context, tableId));
       AccumuloConfiguration config = context.getTableConfiguration(tableId);
       return conf(credentials, config);
@@ -369,7 +369,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       String tableName) throws TException {
     final TableId tableId = checkTableId(context, tableName, null);
     if (security.hasTablePermission(credentials, credentials.getPrincipal(), tableId,
-        TablePermission.READ)) {
+        TablePermission.ALTER_TABLE)) {
       return context.getPropStore().get(TablePropKey.of(context, tableId)).asMap();
     } else {
       throw new ThriftSecurityException(credentials.getPrincipal(),
@@ -382,7 +382,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       String tableName) throws TException {
     final TableId tableId = checkTableId(context, tableName, null);
     if (security.isSystemUser(credentials) || security.hasTablePermission(credentials,
-        credentials.getPrincipal(), tableId, TablePermission.READ)) {
+        credentials.getPrincipal(), tableId, TablePermission.ALTER_TABLE)) {
       return Optional.of(context.getPropStore().get(TablePropKey.of(context, tableId)))
           .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap())).get();
     } else {
@@ -527,7 +527,7 @@ public class ClientServiceHandler implements ClientService.Iface {
           TableOperationExceptionType.NAMESPACE_NOTFOUND, why);
     }
     if (security.isSystemUser(credentials) || security.hasNamespacePermission(credentials,
-        credentials.getPrincipal(), namespaceId, NamespacePermission.READ)) {
+        credentials.getPrincipal(), namespaceId, NamespacePermission.ALTER_NAMESPACE)) {
       context.getPropStore().getCache().remove(NamespacePropKey.of(context, namespaceId));
       AccumuloConfiguration config = context.getNamespaceConfiguration(namespaceId);
       return conf(credentials, config);
@@ -544,7 +544,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     try {
       namespaceId = Namespaces.getNamespaceId(context, ns);
       if (security.hasNamespacePermission(credentials, credentials.getPrincipal(), namespaceId,
-          NamespacePermission.READ)) {
+          NamespacePermission.ALTER_NAMESPACE)) {
         return context.getPropStore().get(NamespacePropKey.of(context, namespaceId)).asMap();
       } else {
         throw new ThriftSecurityException(credentials.getPrincipal(),
@@ -564,7 +564,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     try {
       namespaceId = Namespaces.getNamespaceId(context, ns);
       if (security.isSystemUser(credentials) || security.hasNamespacePermission(credentials,
-          credentials.getPrincipal(), namespaceId, NamespacePermission.READ)) {
+          credentials.getPrincipal(), namespaceId, NamespacePermission.ALTER_NAMESPACE)) {
         return Optional.of(context.getPropStore().get(NamespacePropKey.of(context, namespaceId)))
             .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap())).get();
       } else {

@@ -401,7 +401,6 @@ public class ZKPermHandler implements PermissionHandler {
         Collections.singleton(NamespacePermission.ALTER_NAMESPACE));
     namespacePerms.put(Namespace.ACCUMULO.id(),
         Collections.singleton(NamespacePermission.ALTER_TABLE));
-    namespacePerms.put(Namespace.DEFAULT.id(), Collections.singleton(NamespacePermission.READ));
 
     try {
       // prep parent node of users with root username
