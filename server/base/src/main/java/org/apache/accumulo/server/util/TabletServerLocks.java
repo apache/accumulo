@@ -46,9 +46,11 @@ public class TabletServerLocks {
       for (String tabletServer : tabletServers) {
         var zLockPath = ServiceLock.path(tserverPath + "/" + tabletServer);
         byte[] lockData = ServiceLock.getLockData(cache, zLockPath, null);
-        String holder = null;
+        final String holder;
         if (lockData != null) {
           holder = new String(lockData, UTF_8);
+        } else {
+          holder = "<none>";
         }
 
         System.out.printf("%32s %16s%n", tabletServer, holder);
@@ -57,7 +59,10 @@ public class TabletServerLocks {
       if (lock == null) {
         printUsage();
       }
-      ServiceLock.deleteLock(zoo, ServiceLock.path(tserverPath + "/" + lock));
+
+      ServiceLock.ServiceLockPath path = ServiceLock.path(tserverPath + "/" + lock);
+      ServiceLock.deleteLock(zoo, path);
+      System.out.printf("Deleted %s", path);
     }
   }
 
