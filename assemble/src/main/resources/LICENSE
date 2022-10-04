@@ -300,14 +300,7 @@ Files:
         Copyright (c) 2007-2014 IOLA and Ole Laursen.
         Licensed under the MIT license.
 
-        The plugin assumes that each series has a single data value, and that each
-        value is a positive integer or zero.  Negative numbers don't make sense for a
-        pie chart, and have unpredictable results.  The values do NOT need to be
-        passed in as percentages; the plugin will calculate the total and per-slice
-        percentages internally.
-
         * Created by Brian Medendorp
-
         * Updated with contributions from btburnett3, Anthony Aragues and Xavi Ivars
 
     jquery.flot.resize.js
