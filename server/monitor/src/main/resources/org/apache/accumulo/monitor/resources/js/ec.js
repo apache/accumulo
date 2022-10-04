@@ -138,6 +138,56 @@ $(document).ready(function () {
     ]
   });
 
+  // Create a table for compaction coordinator
+  coordinatorTable = $('#coordinatorTable').DataTable({
+    "ajax": {
+      "url": '/rest/ec',
+      "dataSrc": function (data) {
+        // the data needs to be in an array to work with DataTables
+        var arr = [];
+        if (data === undefined) {
+          console.warn('the value of "data" is undefined');
+        } else {
+          arr = [data];
+        }
+
+        return arr;
+      }
+    },
+    "stateSave": true,
+    "searching": false,
+    "paging": false,
+    "info": false,
+    "columnDefs": [{
+        "targets": "duration",
+        "render": function (data, type, row) {
+          if (type === 'display') data = timeDuration(data);
+          return data;
+        }
+      },
+      {
+        "targets": "date",
+        "render": function (data, type, row) {
+          if (type === 'display') data = dateFormat(data);
+          return data;
+        }
+      }
+    ],
+    "columns": [{
+        "data": "server"
+      },
+      {
+        "data": "numQueues"
+      },
+      {
+        "data": "numCompactors"
+      },
+      {
+        "data": "lastContact"
+      }
+    ]
+  });
+
   // Array to track the ids of the details displayed rows
   var detailRows = [];
   $("#runningTable tbody").on('click', 'tr td.details-control', function () {
@@ -192,35 +242,12 @@ function refresh() {
  * Generates the compactions table
  */
 function refreshECTables() {
-  getCompactionCoordinator();
-  var ecInfo = sessionStorage.ecInfo === undefined ? [] :
-    JSON.parse(sessionStorage.ecInfo);
-  if (ecInfo.length === 0) {
-    return;
-  }
-  var ccAddress = ecInfo.server;
-  var numCompactors = ecInfo.numCompactors;
-  var lastContactTime = timeDuration(ecInfo.lastContact);
-  console.log("compaction coordinator = " + ccAddress);
-  console.log("numCompactors = " + numCompactors);
-  $('#ccHostname').text(ccAddress);
-  $('#ccNumQueues').text(ecInfo.numQueues);
-  $('#ccNumCompactors').text(numCompactors);
-  $('#ccLastContact').html(lastContactTime);
 
   // user paging is not reset on reload
   if (compactorsTable) compactorsTable.ajax.reload(null, false);
   if (runningTable) runningTable.ajax.reload(null, false);
 }
 
-/**
- * Get address of the compaction coordinator info
- */
-function getCompactionCoordinator() {
-  $.getJSON('/rest/ec', function (data) {
-    sessionStorage.ecInfo = JSON.stringify(data);
-  });
-}
 
 function getRunningDetails(ecid, idSuffix) {
   var ajaxUrl = '/rest/ec/details?ecid=' + ecid;
