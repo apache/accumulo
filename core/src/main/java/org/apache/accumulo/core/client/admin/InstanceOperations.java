@@ -57,9 +57,9 @@ public interface InstanceOperations {
    * accepted.
    *
    * <p>
-   * Accumulo has multiple layers of properties that for many APIs and SPIs presented as single
-   * merged view. This API does not offer that merged view, it only offers the properties set at the
-   * system layer to the mapMutator.
+   * Accumulo has multiple layers of properties that for many APIs and SPIs are presented as a
+   * single merged view. This API does not offer that merged view, it only offers the properties set
+   * at the system layer to the mapMutator.
    * </p>
    *
    * <p>

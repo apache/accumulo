@@ -612,9 +612,9 @@ public interface TableOperations {
    * properties but has the same behavior and better documentation.
    *
    * <p>
-   * Accumulo has multiple layers of properties that for many APIs and SPIs presented as single
-   * merged view. This API does not offer that merged view, it only offers the properties set at
-   * this table's layer to the mapMutator.
+   * Accumulo has multiple layers of properties that for many APIs and SPIs are presented as a
+   * single merged view. This API does not offer that merged view, it only offers the properties set
+   * at this table's layer to the mapMutator.
    * </p>
    *
    * @param mapMutator
