@@ -56,30 +56,36 @@ public interface InstanceOperations {
    * property overrides in ZooKeeper. Only properties which can be stored in ZooKeeper will be
    * accepted.
    *
-   * <P>
+   * <p>
+   * Accumulo has multiple layers of properties that for many APIs and SPIs presented as single
+   * merged view. This API does not offer that merged view, it only offers the properties set at the
+   * system layer to the mapMutator.
+   * </p>
+   *
+   * <p>
    * This new API offers two distinct advantages over the older {@link #setProperty(String, String)}
    * API. The older API offered the ability to unconditionally set a single property. This new API
    * offers the following.
-   * </P>
+   * </p>
    *
-   * <UL>
-   * <LI>Ability to unconditionally set multiple properties atomically. If five properties are
+   * <ul>
+   * <li>Ability to unconditionally set multiple properties atomically. If five properties are
    * mutated by this API, then eventually all of the servers will see those changes all at once.
    * This is really important for configuring something like a scan iterator that requires setting
-   * multiple properties.</LI>
-   * <LI>Ability to conditionally set multiple properties atomically. With this new API a snapshot
+   * multiple properties.</li>
+   * <li>Ability to conditionally set multiple properties atomically. With this new API a snapshot
    * of the current instance configuration is passed in to the mapMutator. Code can inspect the
    * current config and decide what if any changes it would like to make. If the config changes
    * while mapMutator is doing inspection and modification, then those actions will be ignored and
-   * it will be called again with the latest snapshot of the config.</LI>
-   * </UL>
+   * it will be called again with the latest snapshot of the config.</li>
+   * </ul>
    *
-   * <P>
+   * <p>
    * Below is an example of using this API to conditionally set some instance properties. If while
    * trying to set the compaction planner properties another process modifies the manager balancer
    * properties, then it would automatically retry and call the lambda again with the latest
    * snapshot of instance properties.
-   * </P>
+   * </p>
    *
    * <pre>
    *         {@code

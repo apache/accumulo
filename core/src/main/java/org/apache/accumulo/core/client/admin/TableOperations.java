@@ -611,6 +611,12 @@ public interface TableOperations {
    * {@link InstanceOperations#modifyProperties(Consumer)} which operates on a different layer of
    * properties but has the same behavior and better documentation.
    *
+   * <p>
+   * Accumulo has multiple layers of properties that for many APIs and SPIs presented as single
+   * merged view. This API does not offer that merged view, it only offers the properties set at
+   * this table's layer to the mapMutator.
+   * </p>
+   *
    * @param mapMutator
    *          This consumer should modify the passed in snapshot of table properties contain the
    *          desired keys and values. It should be safe for Accumulo to call this consumer multiple
