@@ -164,13 +164,6 @@ $(document).ready(function () {
           if (type === 'display') data = timeDuration(data);
           return data;
         }
-      },
-      {
-        "targets": "date",
-        "render": function (data, type, row) {
-          if (type === 'display') data = dateFormat(data);
-          return data;
-        }
       }
     ],
     "columns": [{
@@ -246,6 +239,7 @@ function refreshECTables() {
   // user paging is not reset on reload
   if (compactorsTable) compactorsTable.ajax.reload(null, false);
   if (runningTable) runningTable.ajax.reload(null, false);
+  if (coordinatorTable) coordinatorTable.ajax.reload(null, false);
 }
 
 
