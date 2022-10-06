@@ -43,8 +43,10 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.DelegationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.client.summary.Summary;
 import org.apache.accumulo.core.conf.Property;
@@ -419,7 +421,14 @@ public class PermissionsIT extends AccumuloClusterHarness {
         break;
       case OBTAIN_DELEGATION_TOKEN:
         if (saslEnabled()) {
-          // TODO Try to obtain a delegation token without the permission
+          // assert the test user does not have permissions to obtain a delegation token
+          loginAs(rootUser);
+          assertFalse(root_client.securityOperations().hasSystemPermission(testUser.getPrincipal(),
+              SystemPermission.OBTAIN_DELEGATION_TOKEN));
+          // login as the test user and attempt to obtain a delegation token
+          loginAs(testUser);
+          DelegationToken token =
+              test_user_client.securityOperations().getDelegationToken(new DelegationTokenConfig());
         }
         break;
       case GRANT:
@@ -592,7 +601,16 @@ public class PermissionsIT extends AccumuloClusterHarness {
         break;
       case OBTAIN_DELEGATION_TOKEN:
         if (saslEnabled()) {
-          // TODO Try to obtain a delegation token with the permission
+          // grant system permission to obtain a delegation token
+          loginAs(rootUser);
+          root_client.securityOperations().grantSystemPermission(testUser.getPrincipal(),
+              SystemPermission.OBTAIN_DELEGATION_TOKEN);
+          assertTrue(root_client.securityOperations().hasSystemPermission(testUser.getPrincipal(),
+                  SystemPermission.OBTAIN_DELEGATION_TOKEN));
+          // ensure user is able to obtain the token
+          loginAs(testUser);
+          AuthenticationToken token =
+                  test_user_client.securityOperations().getDelegationToken(new DelegationTokenConfig());
         }
         break;
       case GRANT:
