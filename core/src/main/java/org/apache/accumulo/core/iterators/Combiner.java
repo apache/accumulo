@@ -310,7 +310,6 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
 
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    // TODO test
     Combiner newInstance;
     try {
       newInstance = this.getClass().getDeclaredConstructor().newInstance();
