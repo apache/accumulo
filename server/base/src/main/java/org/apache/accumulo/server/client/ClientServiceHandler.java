@@ -304,10 +304,16 @@ public class ClientServiceHandler implements ClientService.Iface {
     return result;
   }
 
+  private boolean checkSystemUserAndAuthenticate(TCredentials credentials)
+      throws ThriftSecurityException {
+    return security.isSystemUser(credentials)
+        && security.authenticateUser(credentials, credentials);
+  }
+
   @Override
   public Map<String,String> getConfiguration(TInfo tinfo, TCredentials credentials,
       ConfigurationType type) throws TException {
-    if (!(security.isSystemUser(credentials) || security.hasSystemPermission(credentials,
+    if (!(checkSystemUserAndAuthenticate(credentials) || security.hasSystemPermission(credentials,
         credentials.getPrincipal(), SystemPermission.SYSTEM))) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
@@ -339,7 +345,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   @Override
   public TVersionedProperties getVersionedSystemProperties(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException {
-    if (security.isSystemUser(credentials) || security.hasSystemPermission(credentials,
+    if (checkSystemUserAndAuthenticate(credentials) || security.hasSystemPermission(credentials,
         credentials.getPrincipal(), SystemPermission.SYSTEM)) {
       return Optional.of(context.getPropStore().get(SystemPropKey.of(context)))
           .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap())).get();
@@ -353,7 +359,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   public Map<String,String> getTableConfiguration(TInfo tinfo, TCredentials credentials,
       String tableName) throws TException, ThriftTableOperationException {
     TableId tableId = checkTableId(context, tableName, null);
-    if (security.isSystemUser(credentials) || security.hasTablePermission(credentials,
+    if (checkSystemUserAndAuthenticate(credentials) || security.hasTablePermission(credentials,
         credentials.getPrincipal(), tableId, TablePermission.ALTER_TABLE)) {
       context.getPropStore().getCache().remove(TablePropKey.of(context, tableId));
       AccumuloConfiguration config = context.getTableConfiguration(tableId);
@@ -381,7 +387,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   public TVersionedProperties getVersionedTableProperties(TInfo tinfo, TCredentials credentials,
       String tableName) throws TException {
     final TableId tableId = checkTableId(context, tableName, null);
-    if (security.isSystemUser(credentials) || security.hasTablePermission(credentials,
+    if (checkSystemUserAndAuthenticate(credentials) || security.hasTablePermission(credentials,
         credentials.getPrincipal(), tableId, TablePermission.ALTER_TABLE)) {
       return Optional.of(context.getPropStore().get(TablePropKey.of(context, tableId)))
           .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap())).get();
@@ -526,7 +532,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       throw new ThriftTableOperationException(null, ns, null,
           TableOperationExceptionType.NAMESPACE_NOTFOUND, why);
     }
-    if (security.isSystemUser(credentials) || security.hasNamespacePermission(credentials,
+    if (checkSystemUserAndAuthenticate(credentials) || security.hasNamespacePermission(credentials,
         credentials.getPrincipal(), namespaceId, NamespacePermission.ALTER_NAMESPACE)) {
       context.getPropStore().getCache().remove(NamespacePropKey.of(context, namespaceId));
       AccumuloConfiguration config = context.getNamespaceConfiguration(namespaceId);
@@ -563,8 +569,9 @@ public class ClientServiceHandler implements ClientService.Iface {
     NamespaceId namespaceId;
     try {
       namespaceId = Namespaces.getNamespaceId(context, ns);
-      if (security.isSystemUser(credentials) || security.hasNamespacePermission(credentials,
-          credentials.getPrincipal(), namespaceId, NamespacePermission.ALTER_NAMESPACE)) {
+      if (checkSystemUserAndAuthenticate(credentials)
+          || security.hasNamespacePermission(credentials, credentials.getPrincipal(), namespaceId,
+              NamespacePermission.ALTER_NAMESPACE)) {
         return Optional.of(context.getPropStore().get(NamespacePropKey.of(context, namespaceId)))
             .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap())).get();
       } else {
