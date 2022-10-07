@@ -45,6 +45,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.cluster.ClusterUser;
@@ -281,10 +282,31 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
           assertEquals(Status.ACCEPTED, cw.write(cm0).getStatus());
 
           scanner.setRange(new Range("99006"));
-          // TODO verify all columns
-          scanner.fetchColumn("tx", "seq");
-          Entry<Key,Value> entry = getOnlyElement(scanner);
-          assertEquals("1", entry.getValue().toString());
+
+          // verify we get the expected values that were written above
+          Function<Scanner,Entry<Key,Value>> verifyValues = givenScanner -> {
+            Entry<Key,Value> result;
+
+            givenScanner.fetchColumn("name", "last");
+            result = getOnlyElement(givenScanner);
+            assertEquals("doe", result.getValue().toString());
+            givenScanner.clearColumns();
+
+            givenScanner.fetchColumn("name", "first");
+            result = getOnlyElement(givenScanner);
+            assertEquals("john", result.getValue().toString());
+            givenScanner.clearColumns();
+
+            givenScanner.fetchColumn("tx", "seq");
+            result = getOnlyElement(givenScanner);
+            assertEquals("1", result.getValue().toString());
+            givenScanner.clearColumns();
+
+            return result;
+          };
+
+          Entry<Key,Value> entry = verifyValues.apply(scanner);
+
           long ts = entry.getKey().getTimestamp();
 
           // test wrong colf
@@ -328,8 +350,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
           assertEquals(Status.REJECTED, cw.write(cm5).getStatus());
 
           // ensure no updates were made
-          entry = getOnlyElement(scanner);
-          assertEquals("1", entry.getValue().toString());
+          verifyValues.apply(scanner);
 
           // set all columns correctly
           ConditionalMutation cm6 = new ConditionalMutation("99006",
@@ -339,6 +360,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
           cm6.put("tx", "seq", cva, "2");
           assertEquals(Status.ACCEPTED, cw.write(cm6).getStatus());
 
+          scanner.fetchColumn("tx", "seq");
           entry = getOnlyElement(scanner);
           assertEquals("2", entry.getValue().toString());
         }
