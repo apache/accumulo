@@ -333,8 +333,8 @@ public class ClientServiceHandler implements ClientService.Iface {
   @Override
   public Map<String,String> getSystemProperties(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException {
-    if (security.hasSystemPermission(credentials, credentials.getPrincipal(),
-        SystemPermission.SYSTEM)) {
+    if (checkSystemUserAndAuthenticate(credentials) || security.hasSystemPermission(credentials,
+        credentials.getPrincipal(), SystemPermission.SYSTEM)) {
       return context.getPropStore().get(SystemPropKey.of(context)).asMap();
     } else {
       throw new ThriftSecurityException(credentials.getPrincipal(),
@@ -374,8 +374,8 @@ public class ClientServiceHandler implements ClientService.Iface {
   public Map<String,String> getTableProperties(TInfo tinfo, TCredentials credentials,
       String tableName) throws TException {
     final TableId tableId = checkTableId(context, tableName, null);
-    if (security.hasTablePermission(credentials, credentials.getPrincipal(), tableId,
-        TablePermission.ALTER_TABLE)) {
+    if (checkSystemUserAndAuthenticate(credentials) || security.hasTablePermission(credentials,
+        credentials.getPrincipal(), tableId, TablePermission.ALTER_TABLE)) {
       return context.getPropStore().get(TablePropKey.of(context, tableId)).asMap();
     } else {
       throw new ThriftSecurityException(credentials.getPrincipal(),
@@ -549,8 +549,9 @@ public class ClientServiceHandler implements ClientService.Iface {
     NamespaceId namespaceId;
     try {
       namespaceId = Namespaces.getNamespaceId(context, ns);
-      if (security.hasNamespacePermission(credentials, credentials.getPrincipal(), namespaceId,
-          NamespacePermission.ALTER_NAMESPACE)) {
+      if (checkSystemUserAndAuthenticate(credentials)
+          || security.hasNamespacePermission(credentials, credentials.getPrincipal(), namespaceId,
+              NamespacePermission.ALTER_NAMESPACE)) {
         return context.getPropStore().get(NamespacePropKey.of(context, namespaceId)).asMap();
       } else {
         throw new ThriftSecurityException(credentials.getPrincipal(),
