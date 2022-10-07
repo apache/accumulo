@@ -251,7 +251,7 @@ Files:
 Files:
 * jquery-*.js
 
-    jQuery JavaScript Library v3.2.1
+    jQuery JavaScript Library v3.6.1
     https://jquery.com/
 
     Includes Sizzle.js
@@ -261,7 +261,7 @@ Files:
     Released under the MIT license
     https://jquery.org/license
 
-    Date: 2017-03-20T18:59Z
+    Date: 2022-08-26T17:52Z
 
     Text of the MIT License:
 
@@ -294,9 +294,14 @@ Files:
 
     Flot bundles additional works:
 
-    jquery.pie.js
-    * Created by Brian Medendorp, June 2009
-    * Updated November 2009 with contributions from: btburnett3, Anthony Aragues and Xavi Ivars
+    jquery.flot.pie.js
+        Flot plugin for rendering pie charts.
+
+        Copyright (c) 2007-2014 IOLA and Ole Laursen.
+        Licensed under the MIT license.
+
+        * Created by Brian Medendorp
+        * Updated with contributions from btburnett3, Anthony Aragues and Xavi Ivars
 
     jquery.flot.resize.js
     * Inline dependency:
