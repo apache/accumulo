@@ -1052,7 +1052,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     while (true) {
       try {
-        return tryToModifyProperties(tableName, mapMutator);
+        var props = tryToModifyProperties(tableName, mapMutator);
+        retry.logCompletion(log, "Modifying properties for table " + tableName);
+        return props;
       } catch (ConcurrentModificationException cme) {
         try {
           retry.logRetry(log, "Unable to modify table properties for " + tableName

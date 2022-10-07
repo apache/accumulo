@@ -135,16 +135,20 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public Map<String,String> modifyProperties(final Consumer<Map<String,String>> mapMutator)
       throws AccumuloException, AccumuloSecurityException, IllegalArgumentException {
 
+    var log = LoggerFactory.getLogger(InstanceOperationsImpl.class);
+
     Retry retry =
         Retry.builder().infiniteRetries().retryAfter(25, MILLISECONDS).incrementBy(25, MILLISECONDS)
             .maxWait(30, SECONDS).backOffFactor(1.5).logInterval(3, MINUTES).createRetry();
 
     while (true) {
       try {
-        return tryToModifyProperties(mapMutator);
+        var props = tryToModifyProperties(mapMutator);
+        retry.logCompletion(log, "Modifying instance properties");
+        return props;
       } catch (ConcurrentModificationException cme) {
         try {
-          retry.logRetry(LoggerFactory.getLogger(InstanceOperationsImpl.class),
+          retry.logRetry(log,
               "Unable to modify instance properties for because of concurrent modification");
           retry.waitForNextAttempt();
         } catch (InterruptedException e) {
@@ -154,6 +158,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
         retry.useRetry();
       }
     }
+
   }
 
   @Override

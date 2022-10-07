@@ -249,7 +249,9 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
     while (true) {
       try {
-        return tryToModifyProperties(namespace, mapMutator);
+        var props = tryToModifyProperties(namespace, mapMutator);
+        retry.logCompletion(log, "Modifying properties for namespace " + namespace);
+        return props;
       } catch (ConcurrentModificationException cme) {
         try {
           retry.logRetry(log, "Unable to modify namespace properties for " + namespace
