@@ -325,16 +325,22 @@ service ClientService {
     2:trace.TInfo tinfo
     3:security.TCredentials credentials
     1:ConfigurationType type
+  ) throws (
+    1:ThriftSecurityException sec
   )
 
   map<string, string> getSystemProperties(
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
+  ) throws (
+    1:ThriftSecurityException sec
   )
 
   TVersionedProperties getVersionedSystemProperties(
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
+  ) throws (
+    1:ThriftSecurityException sec
   )
 
   map<string, string> getTableConfiguration(
@@ -343,6 +349,7 @@ service ClientService {
     2:string tableName
   ) throws (
     1:ThriftTableOperationException tope
+    2:ThriftSecurityException sec
   )
 
   map<string, string> getTableProperties(
@@ -351,6 +358,7 @@ service ClientService {
     2:string tableName
   ) throws (
     1:ThriftTableOperationException tope
+    2:ThriftSecurityException sec
   )
 
   TVersionedProperties getVersionedTableProperties(
@@ -359,6 +367,7 @@ service ClientService {
     2:string tableName
   ) throws (
     1:ThriftTableOperationException tope
+    2:ThriftSecurityException sec
   )
 
   map<string, string> getNamespaceConfiguration(
@@ -367,6 +376,7 @@ service ClientService {
     3:string ns
   ) throws (
     1:ThriftTableOperationException tope
+    2:ThriftSecurityException sec
   )
 
   map<string, string> getNamespaceProperties(
@@ -375,6 +385,7 @@ service ClientService {
     3:string ns
   ) throws (
     1:ThriftTableOperationException tope
+    2:ThriftSecurityException sec
   )
 
   TVersionedProperties getVersionedNamespaceProperties(
@@ -383,6 +394,7 @@ service ClientService {
     3:string ns
   ) throws (
     1:ThriftTableOperationException tope
+    2:ThriftSecurityException sec
   )
 
   bool checkClass(
