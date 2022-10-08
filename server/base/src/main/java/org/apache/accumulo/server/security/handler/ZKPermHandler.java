@@ -398,15 +398,14 @@ public class ZKPermHandler implements PermissionHandler {
     tablePerms.put(RootTable.ID, Collections.singleton(TablePermission.ALTER_TABLE));
     tablePerms.put(MetadataTable.ID, Collections.singleton(TablePermission.ALTER_TABLE));
     // essentially the same but on the system namespace, the ALTER_TABLE permission is now redundant
-    // After PR #2994 which added security checks for configuration we need to add ALTER_NAMESPACE
-    // to both Default and Accumulo Namespaces for the root user. Also add READ and ALTER_TABLE for
-    // consistency
+    // After PR #2994 which added security checks for configuration we need to also add
+    // ALTER_NAMESPACE
+    // to both Default and Accumulo Namespaces for the root user.
     Map<NamespaceId,Set<NamespacePermission>> namespacePerms = new HashMap<>();
-    Set<NamespacePermission> rootNsPermissions =
-        new HashSet<>(List.of(NamespacePermission.ALTER_NAMESPACE, NamespacePermission.ALTER_TABLE,
-            NamespacePermission.READ));
-    namespacePerms.put(Namespace.DEFAULT.id(), rootNsPermissions);
-    namespacePerms.put(Namespace.ACCUMULO.id(), rootNsPermissions);
+    namespacePerms.put(Namespace.DEFAULT.id(),
+        Collections.singleton(NamespacePermission.ALTER_NAMESPACE));
+    namespacePerms.put(Namespace.ACCUMULO.id(), new HashSet<>(
+        List.of(NamespacePermission.ALTER_NAMESPACE, NamespacePermission.ALTER_TABLE)));
 
     try {
       // prep parent node of users with root username
