@@ -22,6 +22,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -396,11 +398,15 @@ public class ZKPermHandler implements PermissionHandler {
     tablePerms.put(RootTable.ID, Collections.singleton(TablePermission.ALTER_TABLE));
     tablePerms.put(MetadataTable.ID, Collections.singleton(TablePermission.ALTER_TABLE));
     // essentially the same but on the system namespace, the ALTER_TABLE permission is now redundant
+    // After PR #2994 which added security checks for configuration we need to add ALTER_NAMESPACE
+    // to both Default and Accumulo Namespaces for the root user. Also add READ and ALTER_TABLE for
+    // consistency
     Map<NamespaceId,Set<NamespacePermission>> namespacePerms = new HashMap<>();
-    namespacePerms.put(Namespace.ACCUMULO.id(),
-        Collections.singleton(NamespacePermission.ALTER_NAMESPACE));
-    namespacePerms.put(Namespace.ACCUMULO.id(),
-        Collections.singleton(NamespacePermission.ALTER_TABLE));
+    Set<NamespacePermission> rootNsPermissions =
+        new HashSet<>(List.of(NamespacePermission.ALTER_NAMESPACE, NamespacePermission.ALTER_TABLE,
+            NamespacePermission.READ));
+    namespacePerms.put(Namespace.DEFAULT.id(), rootNsPermissions);
+    namespacePerms.put(Namespace.ACCUMULO.id(), rootNsPermissions);
 
     try {
       // prep parent node of users with root username
