@@ -20,6 +20,7 @@ package org.apache.accumulo.shell.commands;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -155,14 +156,30 @@ public class ConfigCommand extends Command {
     } else {
       // display properties
       final TreeMap<String,String> systemConfig = new TreeMap<>();
-      systemConfig
-          .putAll(shellState.getAccumuloClient().instanceOperations().getSystemConfiguration());
+      final TreeMap<String,String> siteConfig = new TreeMap<>();
+      boolean canReadSystemSiteConfig = false;
+
+      try {
+        // The user may not have permissions for system/site configs so handle security exception by
+        // wrapping
+        // in a try/catch block and setting a flag
+        systemConfig
+            .putAll(shellState.getAccumuloClient().instanceOperations().getSystemConfiguration());
+        siteConfig
+            .putAll(shellState.getAccumuloClient().instanceOperations().getSiteConfiguration());
+        canReadSystemSiteConfig = true;
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        if (isSecurityException(e) && (tableName != null || namespace != null)) {
+          Shell.log.debug(
+              "User does not have permission to read system and/or site configuration: {}",
+              e.getMessage());
+        } else {
+          throw e;
+        }
+      }
 
       final String outputFile = cl.getOptionValue(outputFileOpt.getOpt());
       final PrintFile printFile = outputFile == null ? null : new PrintFile(outputFile);
-
-      final TreeMap<String,String> siteConfig = new TreeMap<>();
-      siteConfig.putAll(shellState.getAccumuloClient().instanceOperations().getSiteConfiguration());
 
       final TreeMap<String,String> defaults = new TreeMap<>();
       for (Entry<String,String> defaultEntry : DefaultConfiguration.getInstance()) {
@@ -171,14 +188,24 @@ public class ConfigCommand extends Command {
 
       final TreeMap<String,String> namespaceConfig = new TreeMap<>();
       if (tableName != null) {
-        String n = Namespaces.getNamespaceName(shellState.getContext(),
-            shellState.getContext().getNamespaceId(shellState.getContext().getTableId(tableName)));
-        shellState.getAccumuloClient().namespaceOperations().getConfiguration(n)
-            .forEach(namespaceConfig::put);
+        // The user may not have permission to read the namespace properties so handle
+        // security exception and just return an empty map if permission isn't granted
+        try {
+          String tableNamespace = Namespaces.getNamespaceName(shellState.getContext(), shellState
+              .getContext().getNamespaceId(shellState.getContext().getTableId(tableName)));
+          namespaceConfig.putAll(shellState.getAccumuloClient().namespaceOperations()
+              .getConfiguration(tableNamespace));
+        } catch (AccumuloException | AccumuloSecurityException e) {
+          if (isSecurityException(e)) {
+            Shell.log.debug("User does not have permission to read namespace configuration: {}",
+                e.getMessage());
+          } else {
+            throw e;
+          }
+        }
       }
 
-      Map<String,String> acuconf =
-          shellState.getAccumuloClient().instanceOperations().getSystemConfiguration();
+      Map<String,String> acuconf = new HashMap<>(systemConfig);
       if (tableName != null) {
         acuconf = shellState.getAccumuloClient().tableOperations().getConfiguration(tableName);
       } else if (namespace != null) {
@@ -204,58 +231,20 @@ public class ConfigCommand extends Command {
       final ArrayList<String> output = new ArrayList<>();
       printConfHeader(output);
 
-      for (Entry<String,String> propEntry : sortedConf.entrySet()) {
-        final String key = propEntry.getKey();
-        final String value = propEntry.getValue();
-        // only show properties which names or values
-        // match the filter text
-
-        if (matchTheFilterText(cl, key, value)) {
-          continue;
+      try {
+        // If the user can read the full config then print the full information
+        // about where properties came from else we just have to use the default, ns, and table
+        // levels
+        if (canReadSystemSiteConfig) {
+          printFullConfigs(cl, output, defaults, siteConfig, systemConfig, namespaceConfig,
+              tableName, namespace, sortedConf);
+        } else {
+          printConfigs(cl, output, tableName, namespace, defaults, namespaceConfig, sortedConf);
         }
-        if ((tableName != null || namespace != null) && !Property.isValidTablePropertyKey(key)) {
-          continue;
-        }
-        String siteVal = siteConfig.get(key);
-        String sysVal = systemConfig.get(key);
-        String curVal = propEntry.getValue();
-        String dfault = defaults.get(key);
-        String nspVal = namespaceConfig.get(key);
-        boolean printed = false;
-
-        if (dfault != null && key.toLowerCase().contains("password")) {
-          siteVal = sysVal = dfault = curVal = curVal.replaceAll(".", "*");
-        }
-        if (sysVal != null) {
-          if (defaults.containsKey(key) && !Property.getPropertyByKey(key).isExperimental()) {
-            printConfLine(output, "default", key, dfault);
-            printed = true;
-          }
-          if (!defaults.containsKey(key) || !defaults.get(key).equals(siteVal)) {
-            printConfLine(output, "site", printed ? "   @override" : key,
-                siteVal == null ? "" : siteVal);
-            printed = true;
-          }
-          if (!siteConfig.containsKey(key) || !siteVal.equals(sysVal)) {
-            printConfLine(output, "system", printed ? "   @override" : key, sysVal);
-            printed = true;
-          }
-
-        }
-        if (nspVal != null) {
-          if (!systemConfig.containsKey(key) || !sysVal.equals(nspVal)) {
-            printConfLine(output, "namespace", printed ? "   @override" : key, nspVal);
-            printed = true;
-          }
-        }
-
-        // show per-table value only if it is different (overridden)
-        if (tableName != null && !curVal.equals(nspVal)) {
-          printConfLine(output, "table", printed ? "   @override" : key, curVal);
-        } else if (namespace != null && !curVal.equals(sysVal)) {
-          printConfLine(output, "namespace", printed ? "   @override" : key, curVal);
-        }
+      } catch (Exception e) {
+        throw e;
       }
+
       printConfFooter(output);
       shellState.printLines(output.iterator(), !cl.hasOption(disablePaginationOpt.getOpt()),
           printFile);
@@ -264,6 +253,118 @@ public class ConfigCommand extends Command {
       }
     }
     return 0;
+  }
+
+  private static boolean isSecurityException(Exception e) {
+    return e instanceof AccumuloSecurityException
+        || (e != null && e.getCause() instanceof AccumuloSecurityException);
+  }
+
+  // Prints configs for users with access to all properties, including site and system
+  private void printFullConfigs(final CommandLine cl, final ArrayList<String> output,
+      final TreeMap<String,String> defaults, final TreeMap<String,String> siteConfig,
+      final TreeMap<String,String> systemConfig, final TreeMap<String,String> namespaceConfig,
+      final String tableName, final String namespace, final Map<String,String> sortedConf) {
+
+    for (Entry<String,String> propEntry : sortedConf.entrySet()) {
+      final String key = propEntry.getKey();
+      final String value = propEntry.getValue();
+      // only show properties which names or values
+      // match the filter text
+
+      if (matchTheFilterText(cl, key, value)) {
+        continue;
+      }
+      if ((tableName != null || namespace != null) && !Property.isValidTablePropertyKey(key)) {
+        continue;
+      }
+      String siteVal = siteConfig.get(key);
+      String sysVal = systemConfig.get(key);
+      String curVal = propEntry.getValue();
+      String dfault = defaults.get(key);
+      String nspVal = namespaceConfig.get(key);
+      boolean printed = false;
+
+      if (dfault != null && key.toLowerCase().contains("password")) {
+        siteVal = sysVal = dfault = curVal = curVal.replaceAll(".", "*");
+      }
+      if (sysVal != null) {
+        if (defaults.containsKey(key) && !Property.getPropertyByKey(key).isExperimental()) {
+          printConfLine(output, "default", key, dfault);
+          printed = true;
+        }
+        if (!defaults.containsKey(key) || !defaults.get(key).equals(siteVal)) {
+          printConfLine(output, "site", printed ? "   @override" : key,
+              siteVal == null ? "" : siteVal);
+          printed = true;
+        }
+        if (!siteConfig.containsKey(key) || !siteVal.equals(sysVal)) {
+          printConfLine(output, "system", printed ? "   @override" : key, sysVal);
+          printed = true;
+        }
+
+      }
+      if (nspVal != null) {
+        if (!systemConfig.containsKey(key) || !sysVal.equals(nspVal)) {
+          printConfLine(output, "namespace", printed ? "   @override" : key, nspVal);
+          printed = true;
+        }
+      }
+
+      // show per-table value only if it is different (overridden)
+      if (tableName != null && !curVal.equals(nspVal)) {
+        printConfLine(output, "table", printed ? "   @override" : key, curVal);
+      } else if (namespace != null && !curVal.equals(sysVal)) {
+        printConfLine(output, "namespace", printed ? "   @override" : key, curVal);
+      }
+    }
+  }
+
+  // Print configs for users without permissions to read the Site or System properties
+  // so only have accesss to defaults, namespace, and table properties
+  private void printConfigs(final CommandLine cl, final ArrayList<String> output, String tableName,
+      String namespace, final TreeMap<String,String> defaults,
+      final TreeMap<String,String> namespaceConfig, final Map<String,String> sortedConf) {
+
+    for (Entry<String,String> propEntry : sortedConf.entrySet()) {
+      String key = propEntry.getKey();
+
+      if (matchTheFilterText(cl, key, propEntry.getValue())) {
+        continue;
+      }
+      if ((tableName != null || namespace != null) && !Property.isValidTablePropertyKey(key)) {
+        continue;
+      }
+      boolean printed = false;
+
+      String curVal = propEntry.getValue();
+      String dfault = defaults.get(key);
+      String nspVal = namespaceConfig.get(key);
+
+      if (key.toLowerCase().contains("password")) {
+        curVal = dfault = curVal.replaceAll(".", "*");
+      }
+
+      // Print all the configs as default if exists in default config
+      if (defaults.containsKey(key) && !Property.getPropertyByKey(key).isExperimental()) {
+        printConfLine(output, "default", key, dfault);
+        printed = true;
+      }
+
+      if (nspVal != null) {
+        if (!defaults.containsKey(key) || !defaults.get(key).equals(nspVal)) {
+          printConfLine(output, "namespace", printed ? "   @override" : key, nspVal);
+          printed = true;
+        }
+      }
+
+      // show per-table value only if it is different (overridden)
+      if (tableName != null && (!curVal.equals(nspVal) && !curVal.equals(dfault))) {
+        printConfLine(output, "table", printed ? "   @override" : key, curVal);
+      } else if (namespace != null && !curVal.equals(dfault)) {
+        printConfLine(output, "namespace", printed ? "   @override" : key, curVal);
+      }
+    }
   }
 
   private boolean matchTheFilterText(CommandLine cl, String key, String value) {
