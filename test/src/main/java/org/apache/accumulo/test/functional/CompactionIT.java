@@ -61,6 +61,7 @@ import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.user.GrepIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -491,6 +492,54 @@ public class CompactionIT extends AccumuloClusterHarness {
           getCluster().start();
         }
       }
+    }
+  }
+
+  @Test
+  public void testMultiStepCompactionThatDeletesAll() throws Exception {
+
+    // There was a bug where user compactions would never complete when : the tablet had to be
+    // compacted in multiple passes AND the intermediate passes produced no output.
+
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      final String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "100.0");
+
+      var beforeCount = countFiles(c);
+
+      try (var writer = c.createBatchWriter(tableName)) {
+        for (int i = 0; i < 60; i++) {
+          Mutation m = new Mutation("r" + i);
+          m.put("f1", "q1", "v" + i);
+          writer.addMutation(m);
+          writer.flush();
+          c.tableOperations().flush(tableName, null, null, true);
+        }
+      }
+
+      try (var scanner = c.createScanner(tableName)) {
+        assertEquals(60, scanner.stream().count());
+      }
+
+      var afterCount = countFiles(c);
+
+      assertTrue(afterCount >= beforeCount + 60);
+
+      CompactionConfig comactionConfig = new CompactionConfig();
+      // configure an iterator that drops all data
+      IteratorSetting iter = new IteratorSetting(100, GrepIterator.class);
+      GrepIterator.setTerm(iter, "keep");
+      comactionConfig.setIterators(List.of(iter));
+      comactionConfig.setWait(true);
+      c.tableOperations().compact(tableName, comactionConfig);
+
+      try (var scanner = c.createScanner(tableName)) {
+        assertEquals(0, scanner.stream().count());
+      }
+
+      var finalCount = countFiles(c);
+      assertTrue(finalCount <= beforeCount);
     }
   }
 

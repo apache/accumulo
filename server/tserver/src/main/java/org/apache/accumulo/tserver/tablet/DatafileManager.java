@@ -426,7 +426,7 @@ class DatafileManager {
     return newFile;
   }
 
-  StoredTabletFile bringMajorCompactionOnline(Set<StoredTabletFile> oldDatafiles,
+  Optional<StoredTabletFile> bringMajorCompactionOnline(Set<StoredTabletFile> oldDatafiles,
       TabletFile tmpDatafile, Long compactionId, Set<StoredTabletFile> selectedFiles,
       DataFileValue dfv, Optional<ExternalCompactionId> ecid) throws IOException {
     final KeyExtent extent = tablet.getExtent();
@@ -449,9 +449,14 @@ class DatafileManager {
     }
 
     TServerInstance lastLocation = null;
-    // calling insert to get the new file before inserting into the metadata
-    StoredTabletFile newFile = newDatafile.insert();
+    Optional<StoredTabletFile> newFile;
 
+    if (dfv.getNumEntries() > 0) {
+      // calling insert to get the new file before inserting into the metadata
+      newFile = Optional.of(newDatafile.insert());
+    } else {
+      newFile = Optional.empty();
+    }
     Long compactionIdToWrite = null;
 
     // increment start count before metadata update AND updating in memory map of files
@@ -465,8 +470,8 @@ class DatafileManager {
         Preconditions.checkState(datafileSizes.keySet().containsAll(oldDatafiles),
             "Compacted files %s are not a subset of tablet files %s", oldDatafiles,
             datafileSizes.keySet());
-        if (dfv.getNumEntries() > 0) {
-          Preconditions.checkState(!datafileSizes.containsKey(newFile),
+        if (newFile.isPresent()) {
+          Preconditions.checkState(!datafileSizes.containsKey(newFile.get()),
               "New compaction file %s already exist in tablet files %s", newFile,
               datafileSizes.keySet());
         }
@@ -475,8 +480,8 @@ class DatafileManager {
 
         datafileSizes.keySet().removeAll(oldDatafiles);
 
-        if (dfv.getNumEntries() > 0) {
-          datafileSizes.put(newFile, dfv);
+        if (newFile.isPresent()) {
+          datafileSizes.put(newFile.get(), dfv);
           // could be used by a follow on compaction in a multipass compaction
         }
 
