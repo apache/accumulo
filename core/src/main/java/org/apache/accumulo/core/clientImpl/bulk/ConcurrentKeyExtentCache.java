@@ -138,9 +138,9 @@ class ConcurrentKeyExtentCache implements KeyExtentCache {
               } catch (TabletDeletedException tde) {
                 // tablets were merged away in the table, start over and try again
                 log.debug(
-                    "While trying to obtain a tablet location for bulk import a tablet was "
-                        + "deleted.   This can be caused by a concurrent merge tablet "
-                        + "operation.  If so its of no concern, otherwise it could be a problem.",
+                    "While trying to obtain a tablet location for bulk import, a tablet was "
+                        + "deleted. If this was caused by a concurrent merge tablet "
+                        + "operation, this is okay. Otherwise, it could be a problem.",
                     tde);
               }
             }
