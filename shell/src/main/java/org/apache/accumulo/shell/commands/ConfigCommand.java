@@ -239,10 +239,10 @@ public class ConfigCommand extends Command {
         String nspVal = namespaceConfig.get(key);
         boolean printed = false;
 
-        if (dfault != null && key.toLowerCase().contains("password")) {
-          siteVal = sysVal = dfault = curVal = curVal.replaceAll(".", "*");
-        }
         if (sysVal != null) {
+          if (dfault != null && key.toLowerCase().contains("password")) {
+            siteVal = sysVal = dfault = curVal = curVal.replaceAll(".", "*");
+          }
           if (defaults.containsKey(key) && !Property.getPropertyByKey(key).isExperimental()) {
             printConfLine(output, "default", key, dfault);
             printed = true;
@@ -256,9 +256,15 @@ public class ConfigCommand extends Command {
             printConfLine(output, "system", printed ? "   @override" : key, sysVal);
             printed = true;
           }
-
         }
         if (nspVal != null) {
+          // If the user can't see the system configuration, then print the default
+          // configuration value if the current namespace value is different from it.
+          if (sysVal == null && dfault != null && !dfault.equals(nspVal)
+              && !Property.getPropertyByKey(key).isExperimental()) {
+            printConfLine(output, "default", key, dfault);
+            printed = true;
+          }
           if (!systemConfig.containsKey(key) || !sysVal.equals(nspVal)) {
             printConfLine(output, "namespace", printed ? "   @override" : key, nspVal);
             printed = true;
@@ -267,8 +273,22 @@ public class ConfigCommand extends Command {
 
         // show per-table value only if it is different (overridden)
         if (tableName != null && !curVal.equals(nspVal)) {
+          // If the user can't see the system configuration, then print the default
+          // configuration value if the current table value is different from it.
+          if (nspVal == null && dfault != null && !dfault.equals(curVal)
+              && !Property.getPropertyByKey(key).isExperimental()) {
+            printConfLine(output, "default", key, dfault);
+            printed = true;
+          }
           printConfLine(output, "table", printed ? "   @override" : key, curVal);
         } else if (namespace != null && !curVal.equals(sysVal)) {
+          // If the user can't see the system configuration, then print the default
+          // configuration value if the current namespace value is different from it.
+          if (sysVal == null && dfault != null && !dfault.equals(curVal)
+              && !Property.getPropertyByKey(key).isExperimental()) {
+            printConfLine(output, "default", key, dfault);
+            printed = true;
+          }
           printConfLine(output, "namespace", printed ? "   @override" : key, curVal);
         }
       }
