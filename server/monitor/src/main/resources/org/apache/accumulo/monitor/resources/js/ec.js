@@ -65,7 +65,7 @@ $(document).ready(function () {
     ]
   });
 
-  // Create a table for compactors
+  // Create a table for running compactors
   runningTable = $('#runningTable').DataTable({
     "ajax": {
       "url": '/rest/ec/running',
@@ -232,14 +232,13 @@ function refresh() {
 }
 
 /**
- * Generates the compactions table
+ * Refreshes the compaction tables
  */
 function refreshECTables() {
-
   // user paging is not reset on reload
-  if (compactorsTable) compactorsTable.ajax.reload(null, false);
-  if (runningTable) runningTable.ajax.reload(null, false);
-  if (coordinatorTable) coordinatorTable.ajax.reload(null, false);
+  ajaxReloadTable(compactorsTable);
+  ajaxReloadTable(runningTable);
+  ajaxReloadTable(coordinatorTable);
 }
 
 
