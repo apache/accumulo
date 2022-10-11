@@ -35,13 +35,18 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.bulk.BulkImport.KeyExtentCache;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 
 class ConcurrentKeyExtentCache implements KeyExtentCache {
+
+  private static Logger log = LoggerFactory.getLogger(ConcurrentKeyExtentCache.class);
 
   private static final Text MAX = new Text();
 
@@ -120,12 +125,20 @@ class ConcurrentKeyExtentCache implements KeyExtentCache {
 
         for (Text lookupRow : lookupRows) {
           if (getFromCache(lookupRow) == null) {
-            Iterator<KeyExtent> iter = lookupExtents(lookupRow).iterator();
-            while (iter.hasNext()) {
-              KeyExtent ke2 = iter.next();
-              if (inCache(ke2))
+            while (true) {
+              try {
+                Iterator<KeyExtent> iter = lookupExtents(lookupRow).iterator();
+                while (iter.hasNext()) {
+                  KeyExtent ke2 = iter.next();
+                  if (inCache(ke2))
+                    break;
+                  updateCache(ke2);
+                }
                 break;
-              updateCache(ke2);
+              } catch (TabletDeletedException tde) {
+                // tablets were merged away in the table, start over and try again
+                log.debug("Ignoring exception", tde);
+              }
             }
           }
         }
