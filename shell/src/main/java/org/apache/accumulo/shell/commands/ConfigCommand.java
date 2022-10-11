@@ -155,14 +155,23 @@ public class ConfigCommand extends Command {
     } else {
       // display properties
       final TreeMap<String,String> systemConfig = new TreeMap<>();
-      systemConfig
-          .putAll(shellState.getAccumuloClient().instanceOperations().getSystemConfiguration());
+      try {
+        systemConfig
+            .putAll(shellState.getAccumuloClient().instanceOperations().getSystemConfiguration());
+      } catch (AccumuloSecurityException e) {
+        Shell.log.warn("System Configuration: " + e.getMessage());
+      }
 
       final String outputFile = cl.getOptionValue(outputFileOpt.getOpt());
       final PrintFile printFile = outputFile == null ? null : new PrintFile(outputFile);
 
       final TreeMap<String,String> siteConfig = new TreeMap<>();
-      siteConfig.putAll(shellState.getAccumuloClient().instanceOperations().getSiteConfiguration());
+      try {
+        siteConfig
+            .putAll(shellState.getAccumuloClient().instanceOperations().getSiteConfiguration());
+      } catch (AccumuloSecurityException e) {
+        Shell.log.warn("Site Configuration: " + e.getMessage());
+      }
 
       final TreeMap<String,String> defaults = new TreeMap<>();
       for (Entry<String,String> defaultEntry : DefaultConfiguration.getInstance()) {
@@ -173,12 +182,19 @@ public class ConfigCommand extends Command {
       if (tableName != null) {
         String n = Namespaces.getNamespaceName(shellState.getContext(),
             shellState.getContext().getNamespaceId(shellState.getContext().getTableId(tableName)));
-        shellState.getAccumuloClient().namespaceOperations().getConfiguration(n)
-            .forEach(namespaceConfig::put);
+        try {
+          shellState.getAccumuloClient().namespaceOperations().getConfiguration(n)
+              .forEach(namespaceConfig::put);
+        } catch (AccumuloSecurityException e) {
+          Shell.log.warn("Namespace Configuration: " + e.getMessage());
+        }
       }
 
-      Map<String,String> acuconf =
-          shellState.getAccumuloClient().instanceOperations().getSystemConfiguration();
+      Map<String,String> acuconf = systemConfig;
+      if (acuconf.isEmpty()) {
+        acuconf = defaults;
+      }
+
       if (tableName != null) {
         acuconf = shellState.getAccumuloClient().tableOperations().getConfiguration(tableName);
       } else if (namespace != null) {
