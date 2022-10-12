@@ -570,7 +570,7 @@ public class CompactableUtils {
   /**
    * Finish major compaction by bringing the new file online and returning the completed file.
    */
-  static StoredTabletFile bringOnline(DatafileManager datafileManager,
+  static Optional<StoredTabletFile> bringOnline(DatafileManager datafileManager,
       CompactableImpl.CompactionInfo cInfo, CompactionStats stats,
       Map<StoredTabletFile,DataFileValue> compactFiles,
       SortedMap<StoredTabletFile,DataFileValue> allFiles, CompactionKind kind,

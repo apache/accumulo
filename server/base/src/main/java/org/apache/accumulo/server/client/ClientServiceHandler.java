@@ -293,7 +293,6 @@ public class ClientServiceHandler implements ClientService.Iface {
 
   private Map<String,String> conf(TCredentials credentials, AccumuloConfiguration conf)
       throws TException {
-    security.authenticateUser(credentials, credentials);
     conf.invalidateCache();
 
     Map<String,String> result = new HashMap<>();
@@ -305,9 +304,42 @@ public class ClientServiceHandler implements ClientService.Iface {
     return result;
   }
 
+  private boolean checkSystemUserAndAuthenticate(TCredentials credentials)
+      throws ThriftSecurityException {
+    return security.isSystemUser(credentials)
+        && security.authenticateUser(credentials, credentials);
+  }
+
+  private void checkSystemPermission(TCredentials credentials) throws ThriftSecurityException {
+    if (!(checkSystemUserAndAuthenticate(credentials) || security.hasSystemPermission(credentials,
+        credentials.getPrincipal(), SystemPermission.SYSTEM))) {
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
+    }
+  }
+
+  private void checkTablePermission(TCredentials credentials, TableId tableId,
+      TablePermission tablePermission) throws ThriftSecurityException {
+    if (!(checkSystemUserAndAuthenticate(credentials) || security.hasTablePermission(credentials,
+        credentials.getPrincipal(), tableId, tablePermission))) {
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
+    }
+  }
+
+  private void checkNamespacePermission(TCredentials credentials, NamespaceId namespaceId,
+      NamespacePermission namespacePermission) throws ThriftSecurityException {
+    if (!(checkSystemUserAndAuthenticate(credentials) || security.hasNamespacePermission(
+        credentials, credentials.getPrincipal(), namespaceId, namespacePermission))) {
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
+    }
+  }
+
   @Override
   public Map<String,String> getConfiguration(TInfo tinfo, TCredentials credentials,
       ConfigurationType type) throws TException {
+    checkSystemPermission(credentials);
     switch (type) {
       case CURRENT:
         context.getPropStore().getCache().remove(SystemPropKey.of(context));
@@ -321,12 +353,16 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public Map<String,String> getSystemProperties(TInfo tinfo, TCredentials credentials) {
+  public Map<String,String> getSystemProperties(TInfo tinfo, TCredentials credentials)
+      throws ThriftSecurityException {
+    checkSystemPermission(credentials);
     return context.getPropStore().get(SystemPropKey.of(context)).asMap();
   }
 
   @Override
-  public TVersionedProperties getVersionedSystemProperties(TInfo tinfo, TCredentials credentials) {
+  public TVersionedProperties getVersionedSystemProperties(TInfo tinfo, TCredentials credentials)
+      throws ThriftSecurityException {
+    checkSystemPermission(credentials);
     return Optional.of(context.getPropStore().get(SystemPropKey.of(context)))
         .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap())).get();
   }
@@ -335,6 +371,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   public Map<String,String> getTableConfiguration(TInfo tinfo, TCredentials credentials,
       String tableName) throws TException, ThriftTableOperationException {
     TableId tableId = checkTableId(context, tableName, null);
+    checkTablePermission(credentials, tableId, TablePermission.ALTER_TABLE);
     context.getPropStore().getCache().remove(TablePropKey.of(context, tableId));
     AccumuloConfiguration config = context.getTableConfiguration(tableId);
     return conf(credentials, config);
@@ -344,6 +381,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   public Map<String,String> getTableProperties(TInfo tinfo, TCredentials credentials,
       String tableName) throws TException {
     final TableId tableId = checkTableId(context, tableName, null);
+    checkTablePermission(credentials, tableId, TablePermission.ALTER_TABLE);
     return context.getPropStore().get(TablePropKey.of(context, tableId)).asMap();
   }
 
@@ -351,6 +389,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   public TVersionedProperties getVersionedTableProperties(TInfo tinfo, TCredentials credentials,
       String tableName) throws TException {
     final TableId tableId = checkTableId(context, tableName, null);
+    checkTablePermission(credentials, tableId, TablePermission.ALTER_TABLE);
     return Optional.of(context.getPropStore().get(TablePropKey.of(context, tableId)))
         .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap())).get();
   }
@@ -490,9 +529,11 @@ public class ClientServiceHandler implements ClientService.Iface {
       throw new ThriftTableOperationException(null, ns, null,
           TableOperationExceptionType.NAMESPACE_NOTFOUND, why);
     }
+    checkNamespacePermission(credentials, namespaceId, NamespacePermission.ALTER_NAMESPACE);
     context.getPropStore().getCache().remove(NamespacePropKey.of(context, namespaceId));
     AccumuloConfiguration config = context.getNamespaceConfiguration(namespaceId);
     return conf(credentials, config);
+
   }
 
   @Override
@@ -501,7 +542,9 @@ public class ClientServiceHandler implements ClientService.Iface {
     NamespaceId namespaceId;
     try {
       namespaceId = Namespaces.getNamespaceId(context, ns);
+      checkNamespacePermission(credentials, namespaceId, NamespacePermission.ALTER_NAMESPACE);
       return context.getPropStore().get(NamespacePropKey.of(context, namespaceId)).asMap();
+
     } catch (NamespaceNotFoundException e) {
       String why = "Could not find namespace while getting configuration.";
       throw new ThriftTableOperationException(null, ns, null,
@@ -515,6 +558,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     NamespaceId namespaceId;
     try {
       namespaceId = Namespaces.getNamespaceId(context, ns);
+      checkNamespacePermission(credentials, namespaceId, NamespacePermission.ALTER_NAMESPACE);
       return Optional.of(context.getPropStore().get(NamespacePropKey.of(context, namespaceId)))
           .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap())).get();
     } catch (NamespaceNotFoundException e) {
@@ -527,4 +571,5 @@ public class ClientServiceHandler implements ClientService.Iface {
   public List<BulkImportStatus> getBulkLoadStatus() {
     return bulkImportStatus.getBulkLoadStatus();
   }
+
 }

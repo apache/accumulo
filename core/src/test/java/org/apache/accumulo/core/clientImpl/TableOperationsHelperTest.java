@@ -138,10 +138,16 @@ public class TableOperationsHelperTest {
     }
 
     @Override
-    public void modifyProperties(String tableName, Consumer<Map<String,String>> mapMutator)
+    public Map<String,String> modifyProperties(String tableName,
+        Consumer<Map<String,String>> mapMutator)
         throws IllegalArgumentException, ConcurrentModificationException {
-      settings.putIfAbsent(tableName, new TreeMap<>());
-      mapMutator.accept(settings.get(tableName));
+      var map = settings.get(tableName);
+      if (map != null) {
+        mapMutator.accept(map);
+        return Map.copyOf(map);
+      } else {
+        throw new IllegalArgumentException("No such table " + tableName);
+      }
     }
 
     @Override

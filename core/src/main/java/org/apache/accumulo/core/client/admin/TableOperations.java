@@ -20,7 +20,6 @@ package org.apache.accumulo.core.client.admin;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.ConcurrentModificationException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -607,9 +606,26 @@ public interface TableOperations {
       throws AccumuloException, AccumuloSecurityException;
 
   /**
-   * Modify table properties using a Consumer that accepts a mutable map containing the current
-   * table properties. If the supplied Consumer alters the map without throwing an Exception, then
-   * the resulting map will atomically replace the current table properties.
+   *
+   * For a detailed overview of the behavior of this method see
+   * {@link InstanceOperations#modifyProperties(Consumer)} which operates on a different layer of
+   * properties but has the same behavior and better documentation.
+   *
+   * <p>
+   * Accumulo has multiple layers of properties that for many APIs and SPIs are presented as a
+   * single merged view. This API does not offer that merged view, it only offers the properties set
+   * at this table's layer to the mapMutator.
+   * </p>
+   *
+   * @param mapMutator
+   *          This consumer should modify the passed in snapshot of table properties contain the
+   *          desired keys and values. It should be safe for Accumulo to call this consumer multiple
+   *          times, this may be done automatically when certain retryable errors happen. The
+   *          consumer should probably avoid accessing the Accumulo client as that could lead to
+   *          undefined behavior.
+   *
+   * @return The map that became Accumulo's new properties for this table. This map is immutable and
+   *         contains the snapshot passed to mapMutator and the changes made by mapMutator.
    *
    * @throws AccumuloException
    *           if a general error occurs
@@ -617,13 +633,10 @@ public interface TableOperations {
    *           if the user does not have permission
    * @throws IllegalArgumentException
    *           if the Consumer alters the map by adding properties that cannot be stored
-   * @throws ConcurrentModificationException
-   *           without altering the stored properties if the server reports that the properties have
-   *           been changed by another process
+   * @since 2.1.0
    */
-  void modifyProperties(String tableName, Consumer<Map<String,String>> mapMutator)
-      throws AccumuloException, AccumuloSecurityException, IllegalArgumentException,
-      ConcurrentModificationException;
+  Map<String,String> modifyProperties(String tableName, Consumer<Map<String,String>> mapMutator)
+      throws AccumuloException, AccumuloSecurityException, IllegalArgumentException;
 
   /**
    * Removes a property from a table. This operation is asynchronous and eventually consistent. Not
