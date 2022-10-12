@@ -47,6 +47,7 @@ public class Retry {
   private long initialWait;
 
   private boolean hasNeverLogged;
+  private boolean hasLoggedWarn = false;
   private long lastRetryLog;
   private static final SecureRandom random = new SecureRandom();
   private double currentBackOffFactor;
@@ -210,6 +211,7 @@ public class Retry {
     } else if ((now - lastRetryLog) > logIntervalNanoSec) {
       log.warn(getMessage(message), t);
       lastRetryLog = now;
+      hasLoggedWarn = true;
     } else {
       if (log.isTraceEnabled()) {
         log.trace(getMessage(message, t));
@@ -229,6 +231,7 @@ public class Retry {
     } else if ((now - lastRetryLog) > logIntervalNanoSec) {
       log.warn(getMessage(message));
       lastRetryLog = now;
+      hasLoggedWarn = true;
     } else {
       if (log.isTraceEnabled()) {
         log.trace(getMessage(message));
@@ -244,6 +247,18 @@ public class Retry {
   private String getMessage(String message, Throwable t) {
     return message + ":" + t + ", retrying attempt " + (retriesDone + 1)
         + " (suppressing retry messages for " + getLogInterval() + "ms)";
+  }
+
+  public void logCompletion(Logger log, String operationDescription) {
+    if (!hasNeverLogged) {
+      var message = operationDescription + " completed after " + (retriesDone + 1)
+          + " retries and is no longer retrying.";
+      if (hasLoggedWarn) {
+        log.info(message);
+      } else {
+        log.debug(message);
+      }
+    }
   }
 
   public interface NeedsRetries {

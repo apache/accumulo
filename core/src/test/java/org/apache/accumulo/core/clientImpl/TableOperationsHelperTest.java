@@ -30,7 +30,6 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -140,9 +139,16 @@ public class TableOperationsHelperTest {
     }
 
     @Override
-    public void modifyProperties(String tableName, Consumer<Map<String,String>> mapMutator)
+    public Map<String,String> modifyProperties(String tableName,
+        Consumer<Map<String,String>> mapMutator)
         throws IllegalArgumentException, ConcurrentModificationException {
-      Optional.ofNullable(settings.get(tableName)).ifPresent(map -> mapMutator.accept(map));
+      var map = settings.get(tableName);
+      if (map != null) {
+        mapMutator.accept(map);
+        return Map.copyOf(map);
+      } else {
+        throw new IllegalArgumentException("No such table " + tableName);
+      }
     }
 
     @Override

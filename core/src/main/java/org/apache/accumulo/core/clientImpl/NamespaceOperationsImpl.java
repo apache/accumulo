@@ -20,6 +20,8 @@ package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.util.Validators.EXISTING_NAMESPACE_NAME;
 import static org.apache.accumulo.core.util.Validators.NEW_NAMESPACE_NAME;
@@ -27,6 +29,7 @@ import static org.apache.accumulo.core.util.Validators.NEW_NAMESPACE_NAME;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.ConcurrentModificationException;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -60,6 +63,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.OpTimer;
+import org.apache.accumulo.fate.util.Retry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -197,17 +201,20 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     checkLocalityGroups(namespace, property);
   }
 
-  @Override
-  public void modifyProperties(final String namespace,
+  private Map<String,String> tryToModifyProperties(final String namespace,
       final Consumer<Map<String,String>> mapMutator)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
-    EXISTING_NAMESPACE_NAME.validate(namespace);
-    checkArgument(mapMutator != null, "mapMutator is null");
 
     final TVersionedProperties vProperties =
         ThriftClientTypes.CLIENT.execute(context, client -> client
             .getVersionedNamespaceProperties(TraceUtil.traceInfo(), context.rpcCreds(), namespace));
     mapMutator.accept(vProperties.getProperties());
+
+    // A reference to the map was passed to the user, maybe they still have the reference and are
+    // modifying it. Buggy Accumulo code could attempt to make modifications to the map after this
+    // point. Because of these potential issues, create an immutable snapshot of the map so that
+    // from here on the code is assured to always be dealing with the same map.
+    vProperties.setProperties(Map.copyOf(vProperties.getProperties()));
 
     try {
       // Send to server
@@ -224,6 +231,38 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
         throw (NamespaceNotFoundException) e.getCause();
       else
         throw new AccumuloException(e);
+    }
+
+    return vProperties.getProperties();
+  }
+
+  @Override
+  public Map<String,String> modifyProperties(final String namespace,
+      final Consumer<Map<String,String>> mapMutator)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
+    EXISTING_NAMESPACE_NAME.validate(namespace);
+    checkArgument(mapMutator != null, "mapMutator is null");
+
+    Retry retry =
+        Retry.builder().infiniteRetries().retryAfter(25, MILLISECONDS).incrementBy(25, MILLISECONDS)
+            .maxWait(30, SECONDS).backOffFactor(1.5).logInterval(3, MINUTES).createRetry();
+
+    while (true) {
+      try {
+        var props = tryToModifyProperties(namespace, mapMutator);
+        retry.logCompletion(log, "Modifying properties for namespace " + namespace);
+        return props;
+      } catch (ConcurrentModificationException cme) {
+        try {
+          retry.logRetry(log, "Unable to modify namespace properties for " + namespace
+              + " because of concurrent modification");
+          retry.waitForNextAttempt();
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
+      } finally {
+        retry.useRetry();
+      }
     }
   }
 

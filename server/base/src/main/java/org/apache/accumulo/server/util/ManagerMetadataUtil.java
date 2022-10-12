@@ -182,9 +182,9 @@ public class ManagerMetadataUtil {
   }
 
   public static void replaceDatafiles(ServerContext context, KeyExtent extent,
-      Set<StoredTabletFile> datafilesToDelete, Set<StoredTabletFile> scanFiles, TabletFile path,
-      Long compactionId, DataFileValue size, String address, TServerInstance lastLocation,
-      ServiceLock zooLock, Optional<ExternalCompactionId> ecid) {
+      Set<StoredTabletFile> datafilesToDelete, Set<StoredTabletFile> scanFiles,
+      Optional<StoredTabletFile> path, Long compactionId, DataFileValue size, String address,
+      TServerInstance lastLocation, ServiceLock zooLock, Optional<ExternalCompactionId> ecid) {
 
     context.getAmple().putGcCandidates(extent.tableId(), datafilesToDelete);
 
@@ -193,8 +193,8 @@ public class ManagerMetadataUtil {
     datafilesToDelete.forEach(tablet::deleteFile);
     scanFiles.forEach(tablet::putScan);
 
-    if (size.getNumEntries() > 0)
-      tablet.putFile(path, size);
+    if (path.isPresent())
+      tablet.putFile(path.get(), size);
 
     if (compactionId != null)
       tablet.putCompactionId(compactionId);
