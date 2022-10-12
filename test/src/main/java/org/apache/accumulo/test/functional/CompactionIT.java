@@ -508,8 +508,10 @@ public class CompactionIT extends AccumuloClusterHarness {
 
       var beforeCount = countFiles(c);
 
+      final int NUM_ENTRIES_AND_FILES = 60;
+
       try (var writer = c.createBatchWriter(tableName)) {
-        for (int i = 0; i < 60; i++) {
+        for (int i = 0; i < NUM_ENTRIES_AND_FILES; i++) {
           Mutation m = new Mutation("r" + i);
           m.put("f1", "q1", "v" + i);
           writer.addMutation(m);
@@ -519,12 +521,12 @@ public class CompactionIT extends AccumuloClusterHarness {
       }
 
       try (var scanner = c.createScanner(tableName)) {
-        assertEquals(60, scanner.stream().count());
+        assertEquals(NUM_ENTRIES_AND_FILES, scanner.stream().count());
       }
 
       var afterCount = countFiles(c);
 
-      assertTrue(afterCount >= beforeCount + 60);
+      assertTrue(afterCount >= beforeCount + NUM_ENTRIES_AND_FILES);
 
       CompactionConfig comactionConfig = new CompactionConfig();
       // configure an iterator that drops all data
