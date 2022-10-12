@@ -159,13 +159,12 @@ $(document).ready(function () {
     "paging": false,
     "info": false,
     "columnDefs": [{
-        "targets": "duration",
-        "render": function (data, type, row) {
-          if (type === 'display') data = timeDuration(data);
-          return data;
-        }
+      "targets": "duration",
+      "render": function (data, type, row) {
+        if (type === 'display') data = timeDuration(data);
+        return data;
       }
-    ],
+    }],
     "columns": [{
         "data": "server"
       },
