@@ -98,7 +98,7 @@ public abstract class ShellPluginConfigurationCommand extends Command {
     Map<String,String> props;
     try {
       props = shellState.getAccumuloClient().tableOperations().getConfiguration(tableName);
-    } catch (AccumuloException | TableNotFoundException e) {
+    } catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
       return null;
     }
 

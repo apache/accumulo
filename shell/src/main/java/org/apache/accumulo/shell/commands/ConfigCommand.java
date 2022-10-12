@@ -153,13 +153,17 @@ public class ConfigCommand extends Command {
         Shell.log.debug("Successfully set system configuration option.");
       }
     } else {
+      boolean warned = false;
       // display properties
       final TreeMap<String,String> systemConfig = new TreeMap<>();
       try {
         systemConfig
             .putAll(shellState.getAccumuloClient().instanceOperations().getSystemConfiguration());
       } catch (AccumuloSecurityException e) {
-        Shell.log.warn("User is unable to retreive system configuration: {}", e.getMessage());
+        Shell.log.warn(
+            "User unable to retrieve system configuration (requires System.SYSTEM permission), error: {}",
+            e.getMessage());
+        warned = true;
       }
 
       final String outputFile = cl.getOptionValue(outputFileOpt.getOpt());
@@ -170,7 +174,10 @@ public class ConfigCommand extends Command {
         siteConfig
             .putAll(shellState.getAccumuloClient().instanceOperations().getSiteConfiguration());
       } catch (AccumuloSecurityException e) {
-        Shell.log.warn("User is unable to retreive site configuration: {}", e.getMessage());
+        Shell.log.warn(
+            "User unable to retrieve site configuration (requires System.SYSTEM permission), error: {}",
+            e.getMessage());
+        warned = true;
       }
 
       final TreeMap<String,String> defaults = new TreeMap<>();
@@ -186,9 +193,16 @@ public class ConfigCommand extends Command {
           shellState.getAccumuloClient().namespaceOperations().getConfiguration(n)
               .forEach(namespaceConfig::put);
         } catch (AccumuloSecurityException e) {
-          Shell.log.warn("User is unable to retreive {} namespace configuration: {}", n,
-              e.getMessage());
+          Shell.log.warn(
+              "User unable to retrieve {} namespace configuration (requires Namespace.ALTER_NAMESPACE permission), error: {}",
+              n, e.getMessage());
+          warned = true;
         }
+      }
+
+      if (warned) {
+        Shell.log.warn(
+            "User does not have permission to see entire configuration heirarchy. Property values shown may be set at a higher level.");
       }
 
       Map<String,String> acuconf = systemConfig;
@@ -197,9 +211,24 @@ public class ConfigCommand extends Command {
       }
 
       if (tableName != null) {
-        acuconf = shellState.getAccumuloClient().tableOperations().getConfiguration(tableName);
+        try {
+          acuconf = shellState.getAccumuloClient().tableOperations().getConfiguration(tableName);
+        } catch (AccumuloSecurityException e) {
+          Shell.log.error(
+              "User unable to retrieve {} table configuration (requires Table.ALTER_TABLE permission)",
+              tableName);
+          throw e;
+        }
       } else if (namespace != null) {
-        acuconf = shellState.getAccumuloClient().namespaceOperations().getConfiguration(namespace);
+        try {
+          acuconf =
+              shellState.getAccumuloClient().namespaceOperations().getConfiguration(namespace);
+        } catch (AccumuloSecurityException e) {
+          Shell.log.error(
+              "User unable to retrieve {} namespace configuration (requires Namespace.ALTER_NAMESPACE permission)",
+              namespace);
+          throw e;
+        }
       }
       final Map<String,String> sortedConf = ImmutableSortedMap.copyOf(acuconf);
 

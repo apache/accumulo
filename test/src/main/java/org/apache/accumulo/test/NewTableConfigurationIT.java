@@ -521,7 +521,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
    * Verify the expected iterator properties exist.
    */
   private void verifyIterators(AccumuloClient client, String tablename, String[] values,
-      boolean withDefaultIts) throws AccumuloException, TableNotFoundException {
+      boolean withDefaultIts)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     Map<String,String> expected = new TreeMap<>();
     if (withDefaultIts) {
       expected.put("table.iterator.scan.vers",
@@ -543,7 +544,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   }
 
   private Map<String,String> getProperties(AccumuloClient accumuloClient, String tableName)
-      throws AccumuloException, TableNotFoundException {
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     Map<String,String> properties = accumuloClient.tableOperations().getConfiguration(tableName);
     return Map.copyOf(properties);
   }

@@ -1098,7 +1098,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   void checkLocalityGroups(String tableName, String propChanged)
-      throws AccumuloException, TableNotFoundException {
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     if (LocalityGroupUtil.isLocalityGroupProperty(propChanged)) {
       Map<String,String> allProps = getConfiguration(tableName);
       try {
@@ -1116,12 +1116,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public Map<String,String> getConfiguration(final String tableName)
-      throws AccumuloException, TableNotFoundException {
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
 
     try {
       return ThriftClientTypes.CLIENT.execute(context, client -> client
           .getTableConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), tableName));
+    } catch (AccumuloSecurityException e) {
+      throw e;
     } catch (AccumuloException e) {
       Throwable t = e.getCause();
       if (t instanceof ThriftTableOperationException) {
@@ -1208,7 +1210,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public Map<String,Set<Text>> getLocalityGroups(String tableName)
-      throws AccumuloException, TableNotFoundException {
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
     AccumuloConfiguration conf = new ConfigurationCopy(this.getProperties(tableName));
     Map<String,Set<ByteSequence>> groups = LocalityGroupUtil.getLocalityGroups(conf);
@@ -1840,7 +1842,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public SamplerConfiguration getSamplerConfiguration(String tableName)
-      throws TableNotFoundException, AccumuloException {
+      throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
     EXISTING_TABLE_NAME.validate(tableName);
 
     AccumuloConfiguration conf = new ConfigurationCopy(this.getProperties(tableName));
@@ -2095,7 +2097,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public List<SummarizerConfiguration> listSummarizers(String tableName)
-      throws AccumuloException, TableNotFoundException {
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
     return new ArrayList<>(SummarizerConfiguration.fromTableProperties(getProperties(tableName)));
   }
