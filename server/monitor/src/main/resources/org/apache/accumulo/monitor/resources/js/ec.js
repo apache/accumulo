@@ -303,11 +303,11 @@ function populateDetails(data, idSuffix) {
 function refreshCompactors() {
   console.log("Refresh compactors table.");
   // user paging is not reset on reload
-  if (compactorsTable) compactorsTable.ajax.reload(null, false);
+  ajaxReloadTable(compactorsTable);
 }
 
 function refreshRunning() {
   console.log("Refresh running compactions table.");
   // user paging is not reset on reload
-  if (runningTable) runningTable.ajax.reload(null, false);
+  ajaxReloadTable(runningTable);
 }
