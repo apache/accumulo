@@ -159,7 +159,7 @@ public class ConfigCommand extends Command {
         systemConfig
             .putAll(shellState.getAccumuloClient().instanceOperations().getSystemConfiguration());
       } catch (AccumuloSecurityException e) {
-        Shell.log.warn("System Configuration: " + e.getMessage());
+        Shell.log.warn("User is unable to retreive system configuration: {}", e.getMessage());
       }
 
       final String outputFile = cl.getOptionValue(outputFileOpt.getOpt());
@@ -170,7 +170,7 @@ public class ConfigCommand extends Command {
         siteConfig
             .putAll(shellState.getAccumuloClient().instanceOperations().getSiteConfiguration());
       } catch (AccumuloSecurityException e) {
-        Shell.log.warn("Site Configuration: " + e.getMessage());
+        Shell.log.warn("User is unable to retreive site configuration: {}", e.getMessage());
       }
 
       final TreeMap<String,String> defaults = new TreeMap<>();
@@ -186,7 +186,8 @@ public class ConfigCommand extends Command {
           shellState.getAccumuloClient().namespaceOperations().getConfiguration(n)
               .forEach(namespaceConfig::put);
         } catch (AccumuloSecurityException e) {
-          Shell.log.warn("Namespace Configuration: " + e.getMessage());
+          Shell.log.warn("User is unable to retreive {} namespace configuration: {}", n,
+              e.getMessage());
         }
       }
 
