@@ -452,7 +452,7 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
       for (int i = 0; i < iterations; i++) {
 
         Map<String,String> prevProps = null;
-        if (iterations % 10 == 0) {
+        if (i % 10 == 0) {
           prevProps = propShim.getProperties();
         }
 
@@ -483,9 +483,9 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
           // only do >= as opposed to == check. Should at a minimum see the changes made by this
           // thread.
           assertTrue(afterA >= beforeA + 2);
-          assertTrue(afterB >= beforeA + 3);
-          assertTrue(afterC >= beforeA + 5);
-          assertTrue(afterD >= beforeA + 7);
+          assertTrue(afterB >= beforeB + 3);
+          assertTrue(afterC >= beforeC + 5);
+          assertTrue(afterD >= beforeD + 7);
         }
       }
       return null;

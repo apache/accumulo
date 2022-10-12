@@ -350,7 +350,8 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
           assertEquals(Status.REJECTED, cw.write(cm5).getStatus());
 
           // ensure no updates were made
-          var ignored = verifyValues.apply(scanner);
+          var after = verifyValues.apply(scanner);
+          assertEquals(ts, after.getKey().getTimestamp());
 
           // set all columns correctly
           ConditionalMutation cm6 = new ConditionalMutation("99006",
