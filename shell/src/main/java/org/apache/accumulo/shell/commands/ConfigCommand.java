@@ -200,17 +200,16 @@ public class ConfigCommand extends Command {
         }
       }
 
-      if (warned) {
-        Shell.log.warn(
-            "User does not have permission to see entire configuration heirarchy. Property values shown may be set at a higher level.");
-      }
-
       Map<String,String> acuconf = systemConfig;
       if (acuconf.isEmpty()) {
         acuconf = defaults;
       }
 
       if (tableName != null) {
+        if (warned) {
+          Shell.log.warn(
+              "User does not have permission to see entire configuration heirarchy. Property values shown below may be set above the table level.");
+        }
         try {
           acuconf = shellState.getAccumuloClient().tableOperations().getConfiguration(tableName);
         } catch (AccumuloSecurityException e) {
@@ -220,6 +219,10 @@ public class ConfigCommand extends Command {
           throw e;
         }
       } else if (namespace != null) {
+        if (warned) {
+          Shell.log.warn(
+              "User does not have permission to see entire configuration heirarchy. Property values shown below may be set above the namespace level.");
+        }
         try {
           acuconf =
               shellState.getAccumuloClient().namespaceOperations().getConfiguration(namespace);
