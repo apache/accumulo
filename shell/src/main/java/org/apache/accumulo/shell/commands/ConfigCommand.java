@@ -225,10 +225,15 @@ public class ConfigCommand extends Command {
         }
         try {
           acuconf = shellState.getAccumuloClient().tableOperations().getConfiguration(tableName);
-        } catch (AccumuloSecurityException e) {
-          Shell.log.error(
-              "User unable to retrieve {} table configuration (requires Table.ALTER_TABLE permission)",
-              tableName);
+        } catch (AccumuloException e) {
+          if (e.getCause() != null && e.getCause() instanceof AccumuloSecurityException) {
+            AccumuloSecurityException ase = (AccumuloSecurityException) e.getCause();
+            if (ase.getSecurityErrorCode() == PERMISSION_DENIED) {
+              Shell.log.error(
+                  "User unable to retrieve {} table configuration (requires Table.ALTER_TABLE permission)",
+                  tableName);
+            }
+          }
           throw e;
         }
       } else if (namespace != null) {

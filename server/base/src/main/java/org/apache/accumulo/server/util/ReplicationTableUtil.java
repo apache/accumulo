@@ -119,7 +119,7 @@ public class ReplicationTableUtil {
     Map<String,String> properties;
     try {
       properties = tops.getConfiguration(tableName);
-    } catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
+    } catch (AccumuloException | TableNotFoundException e) {
       throw new RuntimeException(e);
     }
 

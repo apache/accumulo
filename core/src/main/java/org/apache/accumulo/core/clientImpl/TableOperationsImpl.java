@@ -1116,14 +1116,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public Map<String,String> getConfiguration(final String tableName)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      throws AccumuloException, TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
 
     try {
       return ThriftClientTypes.CLIENT.execute(context, client -> client
           .getTableConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), tableName));
-    } catch (AccumuloSecurityException e) {
-      throw e;
     } catch (AccumuloException e) {
       Throwable t = e.getCause();
       if (t instanceof ThriftTableOperationException) {
@@ -1210,7 +1208,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public Map<String,Set<Text>> getLocalityGroups(String tableName)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      throws AccumuloException, TableNotFoundException {
 
     AccumuloConfiguration conf = new ConfigurationCopy(this.getProperties(tableName));
     Map<String,Set<ByteSequence>> groups = LocalityGroupUtil.getLocalityGroups(conf);
@@ -2097,7 +2095,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public List<SummarizerConfiguration> listSummarizers(String tableName)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      throws AccumuloException, TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
     return new ArrayList<>(SummarizerConfiguration.fromTableProperties(getProperties(tableName)));
   }

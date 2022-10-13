@@ -544,7 +544,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   }
 
   private Map<String,String> getProperties(AccumuloClient accumuloClient, String tableName)
-      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+      throws AccumuloException, TableNotFoundException {
     Map<String,String> properties = accumuloClient.tableOperations().getConfiguration(tableName);
     return Map.copyOf(properties);
   }

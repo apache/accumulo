@@ -173,8 +173,7 @@ public abstract class TableOperationsHelper implements TableOperations {
 
   @Override
   public void checkIteratorConflicts(String tableName, IteratorSetting setting,
-      EnumSet<IteratorScope> scopes)
-      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+      EnumSet<IteratorScope> scopes) throws AccumuloException, TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
 
     Map<String,String> iteratorProps = Map.copyOf(this.getConfiguration(tableName));
@@ -220,7 +219,7 @@ public abstract class TableOperationsHelper implements TableOperations {
 
   @Override
   public Map<String,Integer> listConstraints(String tableName)
-      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+      throws AccumuloException, TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
 
     Map<String,Integer> constraints = new TreeMap<>();

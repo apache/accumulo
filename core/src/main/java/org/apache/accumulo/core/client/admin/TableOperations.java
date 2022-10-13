@@ -667,14 +667,12 @@ public interface TableOperations {
    *          the name of the table
    * @return all properties visible by this table (system and per-table properties). Note that
    *         recently changed properties may not be visible immediately.
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
    * @throws TableNotFoundException
    *           if the table does not exist
    * @since 1.6.0
    */
   default Iterable<Entry<String,String>> getProperties(String tableName)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      throws AccumuloException, TableNotFoundException {
     return getConfiguration(tableName).entrySet();
   }
 
@@ -688,14 +686,12 @@ public interface TableOperations {
    *          the name of the table
    * @return all properties visible by this table (system and per-table properties). Note that
    *         recently changed properties may not be visible immediately.
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
    * @throws TableNotFoundException
    *           if the table does not exist
    * @since 2.1.0
    */
   Map<String,String> getConfiguration(String tableName)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+      throws AccumuloException, TableNotFoundException;
 
   /**
    * Gets per-table properties of a table. This operation is asynchronous and eventually consistent.
@@ -740,13 +736,11 @@ public interface TableOperations {
    * @return mapping of locality group names to column families in the locality group
    * @throws AccumuloException
    *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
    * @throws TableNotFoundException
    *           if the table does not exist
    */
   Map<String,Set<Text>> getLocalityGroups(String tableName)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+      throws AccumuloException, TableNotFoundException;
 
   /**
    * @param tableName
@@ -1085,8 +1079,7 @@ public interface TableOperations {
    *          object specifying the properties of the iterator
    */
   void checkIteratorConflicts(String tableName, IteratorSetting setting,
-      EnumSet<IteratorScope> scopes)
-      throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
+      EnumSet<IteratorScope> scopes) throws AccumuloException, TableNotFoundException;
 
   /**
    * Add a new constraint to a table.
@@ -1131,7 +1124,7 @@ public interface TableOperations {
    * @since 1.5.0
    */
   Map<String,Integer> listConstraints(String tableName)
-      throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
+      throws AccumuloException, TableNotFoundException;
 
   /**
    * Gets the number of bytes being used by the files for a set of tables. This operation will scan
@@ -1268,7 +1261,7 @@ public interface TableOperations {
    * @see SummarizerConfiguration#fromTableProperties(Map)
    */
   default List<SummarizerConfiguration> listSummarizers(String tableName)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      throws AccumuloException, TableNotFoundException {
     throw new UnsupportedOperationException();
   }
 

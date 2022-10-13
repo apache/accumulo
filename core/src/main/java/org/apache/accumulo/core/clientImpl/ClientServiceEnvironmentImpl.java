@@ -51,7 +51,7 @@ public class ClientServiceEnvironmentImpl implements ServiceEnvironment {
     try {
       return new ConfigurationImpl(
           new ConfigurationCopy(context.tableOperations().getConfiguration(getTableName(tableId))));
-    } catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
+    } catch (AccumuloException | TableNotFoundException e) {
       throw new RuntimeException("Error getting table configuration", e);
     }
   }
