@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import static org.apache.accumulo.core.client.security.SecurityErrorCode.PERMISSION_DENIED;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,6 +46,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
+import org.apache.commons.lang3.StringUtils;
 import org.jline.reader.LineReader;
 
 import com.google.common.collect.ImmutableSortedMap;
@@ -160,10 +163,13 @@ public class ConfigCommand extends Command {
         systemConfig
             .putAll(shellState.getAccumuloClient().instanceOperations().getSystemConfiguration());
       } catch (AccumuloSecurityException e) {
-        Shell.log.warn(
-            "User unable to retrieve system configuration (requires System.SYSTEM permission), error: {}",
-            e.getMessage());
-        warned = true;
+        if (e.getSecurityErrorCode() == PERMISSION_DENIED) {
+          Shell.log.warn(
+              "User unable to retrieve system configuration (requires System.SYSTEM permission)");
+          warned = true;
+        } else {
+          throw e;
+        }
       }
 
       final String outputFile = cl.getOptionValue(outputFileOpt.getOpt());
@@ -174,10 +180,13 @@ public class ConfigCommand extends Command {
         siteConfig
             .putAll(shellState.getAccumuloClient().instanceOperations().getSiteConfiguration());
       } catch (AccumuloSecurityException e) {
-        Shell.log.warn(
-            "User unable to retrieve site configuration (requires System.SYSTEM permission), error: {}",
-            e.getMessage());
-        warned = true;
+        if (e.getSecurityErrorCode() == PERMISSION_DENIED) {
+          Shell.log.warn(
+              "User unable to retrieve site configuration (requires System.SYSTEM permission)");
+          warned = true;
+        } else {
+          throw e;
+        }
       }
 
       final TreeMap<String,String> defaults = new TreeMap<>();
@@ -193,10 +202,14 @@ public class ConfigCommand extends Command {
           shellState.getAccumuloClient().namespaceOperations().getConfiguration(n)
               .forEach(namespaceConfig::put);
         } catch (AccumuloSecurityException e) {
-          Shell.log.warn(
-              "User unable to retrieve {} namespace configuration (requires Namespace.ALTER_NAMESPACE permission), error: {}",
-              n, e.getMessage());
-          warned = true;
+          if (e.getSecurityErrorCode() == PERMISSION_DENIED) {
+            Shell.log.warn(
+                "User unable to retrieve {} namespace configuration (requires Namespace.ALTER_NAMESPACE permission)",
+                StringUtils.isEmpty(n) ? "default" : n);
+            warned = true;
+          } else {
+            throw e;
+          }
         }
       }
 
@@ -229,7 +242,7 @@ public class ConfigCommand extends Command {
         } catch (AccumuloSecurityException e) {
           Shell.log.error(
               "User unable to retrieve {} namespace configuration (requires Namespace.ALTER_NAMESPACE permission)",
-              namespace);
+              StringUtils.isEmpty(namespace) ? "default" : namespace);
           throw e;
         }
       }
