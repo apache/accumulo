@@ -400,7 +400,7 @@ public class NamespacesIT extends SharedMiniClusterBase {
       assertFalse(s.iterator().hasNext());
 
       // verify can see inserted entry again
-      c.namespaceOperations().  removeIterator(namespace, setting.getName(),
+      c.namespaceOperations().removeIterator(namespace, setting.getName(),
           EnumSet.allOf(IteratorScope.class));
       sleepUninterruptibly(2, TimeUnit.SECONDS);
       assertFalse(c.namespaceOperations().listIterators(namespace).containsKey(iterName));
