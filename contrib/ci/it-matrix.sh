@@ -50,4 +50,4 @@ function createTestMatrix() {
   { echo "Finished creating matrix ($count tasks)" | tee "$GITHUB_STEP_SUMMARY"; } 1>&2
 }
 
-echo "CUSTOM_MATRIX='$(createTestMatrix "$testsPerJob")'" | tee -a "$GITHUB_OUTPUT"
+echo "CUSTOM_MATRIX=$(createTestMatrix "$testsPerJob")" | tee -a "$GITHUB_OUTPUT"
