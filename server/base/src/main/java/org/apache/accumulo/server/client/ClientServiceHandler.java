@@ -320,8 +320,11 @@ public class ClientServiceHandler implements ClientService.Iface {
 
   private void checkTablePermission(TCredentials credentials, TableId tableId,
       TablePermission tablePermission) throws ThriftSecurityException {
-    if (!(checkSystemUserAndAuthenticate(credentials) || security.hasTablePermission(credentials,
-        credentials.getPrincipal(), tableId, tablePermission))) {
+    if (!(checkSystemUserAndAuthenticate(credentials)
+        || security.hasSystemPermission(credentials, credentials.getPrincipal(),
+            SystemPermission.SYSTEM)
+        || security.hasTablePermission(credentials, credentials.getPrincipal(), tableId,
+            tablePermission))) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
     }
@@ -329,8 +332,11 @@ public class ClientServiceHandler implements ClientService.Iface {
 
   private void checkNamespacePermission(TCredentials credentials, NamespaceId namespaceId,
       NamespacePermission namespacePermission) throws ThriftSecurityException {
-    if (!(checkSystemUserAndAuthenticate(credentials) || security.hasNamespacePermission(
-        credentials, credentials.getPrincipal(), namespaceId, namespacePermission))) {
+    if (!(checkSystemUserAndAuthenticate(credentials)
+        || security.hasSystemPermission(credentials, credentials.getPrincipal(),
+            SystemPermission.SYSTEM)
+        || security.hasNamespacePermission(credentials, credentials.getPrincipal(), namespaceId,
+            namespacePermission))) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
     }
