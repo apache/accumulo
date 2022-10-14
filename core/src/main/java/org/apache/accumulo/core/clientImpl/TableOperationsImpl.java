@@ -1098,7 +1098,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   void checkLocalityGroups(String tableName, String propChanged)
-      throws AccumuloException, TableNotFoundException {
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     if (LocalityGroupUtil.isLocalityGroupProperty(propChanged)) {
       Map<String,String> allProps = getConfiguration(tableName);
       try {
@@ -1840,7 +1840,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public SamplerConfiguration getSamplerConfiguration(String tableName)
-      throws TableNotFoundException, AccumuloException {
+      throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
     EXISTING_TABLE_NAME.validate(tableName);
 
     AccumuloConfiguration conf = new ConfigurationCopy(this.getProperties(tableName));

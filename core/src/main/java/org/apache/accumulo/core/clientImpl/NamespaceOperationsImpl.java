@@ -285,12 +285,14 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
   @Override
   public Map<String,String> getConfiguration(final String namespace)
-      throws AccumuloException, NamespaceNotFoundException {
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
     EXISTING_NAMESPACE_NAME.validate(namespace);
 
     try {
       return ThriftClientTypes.CLIENT.execute(context, client -> client
           .getNamespaceConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), namespace));
+    } catch (AccumuloSecurityException e) {
+      throw e;
     } catch (AccumuloException e) {
       Throwable t = e.getCause();
       if (t instanceof ThriftTableOperationException) {
@@ -395,7 +397,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   }
 
   private void checkLocalityGroups(String namespace, String propChanged)
-      throws AccumuloException, NamespaceNotFoundException {
+      throws AccumuloSecurityException, AccumuloException, NamespaceNotFoundException {
     EXISTING_NAMESPACE_NAME.validate(namespace);
 
     if (LocalityGroupUtil.isLocalityGroupProperty(propChanged)) {

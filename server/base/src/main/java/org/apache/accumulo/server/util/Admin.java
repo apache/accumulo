@@ -743,7 +743,8 @@ public class Admin implements KeywordExecutable {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who provided input")
   private void printTableConfiguration(AccumuloClient accumuloClient, String tableName,
-      File outputDirectory) throws AccumuloException, TableNotFoundException, IOException {
+      File outputDirectory)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
     File tableBackup = new File(outputDirectory, tableName + ".cfg");
     try (BufferedWriter writer = new BufferedWriter(new FileWriter(tableBackup, UTF_8))) {
       writer.write(createTableFormat.format(new String[] {tableName}));
