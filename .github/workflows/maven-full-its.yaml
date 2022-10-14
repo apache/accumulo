@@ -85,7 +85,7 @@ jobs:
   mvn:
     needs: creatematrix
     strategy:
-      matrix: ${{ fromJson(needs.creatematrix.outputs.matrix) }}
+      matrix: ${{ fromJson(needs.creatematrix.outputs.CUSTOM_MATRIX) }}
       fail-fast: false
     runs-on: ubuntu-latest
     steps:
