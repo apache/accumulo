@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -59,10 +60,10 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
     for (IteratorScope scope : scopes) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
           scope.name().toLowerCase(), setting.getName());
-      for (Entry<String,String> prop : setting.getOptions().entrySet()) {
-        this.setProperty(namespace, root + ".opt." + prop.getKey(), prop.getValue());
-      }
-      this.setProperty(namespace, root, setting.getPriority() + "," + setting.getIteratorClass());
+      var propsToAdd = setting.getOptions().entrySet().stream()
+          .collect(Collectors.toMap(prop -> root + ".opt." + prop.getKey(), Entry::getValue));
+      propsToAdd.put(root, setting.getPriority() + "," + setting.getIteratorClass());
+      this.modifyProperties(namespace, properties -> properties.putAll(propsToAdd));
     }
   }
 
@@ -75,10 +76,9 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
     for (IteratorScope scope : scopes) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
           scope.name().toLowerCase(), name);
-      for (Entry<String,String> property : copy.entrySet()) {
-        if (property.getKey().equals(root) || property.getKey().startsWith(root + ".opt."))
-          this.removeProperty(namespace, property.getKey());
-      }
+      var propsToRemove =
+          copy.keySet().stream().filter(key -> key.equals(root) || key.startsWith(root + ".opt."));
+      this.modifyProperties(namespace, properties -> propsToRemove.forEach(properties::remove));
     }
   }
 

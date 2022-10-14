@@ -21,6 +21,7 @@ package org.apache.accumulo.shell.commands;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -62,12 +63,11 @@ public class CreateNamespaceCommand extends Command {
       }
     }
     if (configuration != null) {
-      for (Entry<String,String> entry : configuration.entrySet()) {
-        if (Property.isValidTablePropertyKey(entry.getKey())) {
-          shellState.getAccumuloClient().namespaceOperations().setProperty(namespace,
-              entry.getKey(), entry.getValue());
-        }
-      }
+      var propsToAdd = configuration.entrySet().stream()
+          .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
+          .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
+      shellState.getAccumuloClient().namespaceOperations().modifyProperties(namespace,
+          properties -> properties.putAll(propsToAdd));
     }
 
     return 0;
