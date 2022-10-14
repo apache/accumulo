@@ -25,6 +25,8 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import org.apache.accumulo.core.crypto.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.data.Key;
@@ -77,7 +79,7 @@ public class RecoveryLogsIterator
 
     for (Path logDir : recoveryLogDirs) {
       LOG.debug("Opening recovery log dir {}", logDir.getName());
-      List<Path> logFiles = getFiles(vm, logDir);
+      SortedSet<Path> logFiles = getFiles(vm, logDir);
       var fs = vm.getFileSystemByPath(logDir);
 
       // only check the first key once to prevent extra iterator creation and seeking
@@ -134,9 +136,9 @@ public class RecoveryLogsIterator
   /**
    * Check for sorting signal files (finished/failed) and get the logs in the provided directory.
    */
-  private List<Path> getFiles(VolumeManager fs, Path directory) throws IOException {
+  private SortedSet<Path> getFiles(VolumeManager fs, Path directory) throws IOException {
     boolean foundFinish = false;
-    List<Path> logFiles = new ArrayList<>();
+    SortedSet<Path> logFiles = new TreeSet<>();
     for (FileStatus child : fs.listStatus(directory)) {
       if (child.getPath().getName().startsWith("_"))
         continue;
@@ -161,9 +163,9 @@ public class RecoveryLogsIterator
    * Check that the first entry in the WAL is OPEN. Only need to do this once.
    */
   private void validateFirstKey(ServerContext context, CryptoService cs, FileSystem fs,
-      List<Path> logFiles, Path fullLogPath) throws IOException {
+      SortedSet<Path> logFiles, Path fullLogPath) throws IOException {
     try (FileSKVIterator fileIter = FileOperations.getInstance().newReaderBuilder()
-        .forFile(logFiles.get(0).toString(), fs, fs.getConf(), cs)
+        .forFile(logFiles.first().toString(), fs, fs.getConf(), cs)
         .withTableConfiguration(context.getConfiguration()).seekToBeginning().build()) {
       Iterator<Entry<Key,Value>> iterator = new IteratorAdapter(fileIter);
 
