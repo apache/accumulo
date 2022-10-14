@@ -112,18 +112,18 @@ public class TransformTokenIT {
 
     var sysPropKey = SystemPropKey.of(instanceId);
 
-    TransformToken token = TransformToken.createToken(sysPropKey, zrw);
+    TransformToken token = TransformToken.createToken(sysPropKey.getPath(), zrw);
 
     assertTrue(token.haveTokenOwnership());
     token.releaseToken();
     assertFalse(token.haveTokenOwnership());
 
     // relock by getting a new lock
-    TransformToken lock2 = TransformToken.createToken(sysPropKey, zrw);
+    TransformToken lock2 = TransformToken.createToken(sysPropKey.getPath(), zrw);
     assertTrue(lock2.haveTokenOwnership());
 
     // fail with a current lock node present
-    TransformToken lock3 = TransformToken.createToken(sysPropKey, zrw);
+    TransformToken lock3 = TransformToken.createToken(sysPropKey.getPath(), zrw);
     assertFalse(lock3.haveTokenOwnership());
     // and confirm lock still present
     assertTrue(lock2.haveTokenOwnership());
@@ -135,9 +135,9 @@ public class TransformTokenIT {
     replay(context, watcher);
 
     var sysPropKey = SystemPropKey.of(instanceId);
-    var tokenPath = sysPropKey.getBasePath() + TransformToken.TRANSFORM_TOKEN;
+    var tokenPath = sysPropKey.getPath() + TransformToken.TRANSFORM_TOKEN;
 
-    TransformToken lock = TransformToken.createToken(sysPropKey, zrw);
+    TransformToken lock = TransformToken.createToken(sysPropKey.getPath(), zrw);
 
     // force change in lock
     assertTrue(lock.haveTokenOwnership());
@@ -147,7 +147,7 @@ public class TransformTokenIT {
 
     // clean-up and get new lock
     zrw.delete(tokenPath);
-    TransformToken lock3 = TransformToken.createToken(sysPropKey, zrw);
+    TransformToken lock3 = TransformToken.createToken(sysPropKey.getPath(), zrw);
     assertTrue(lock3.haveTokenOwnership());
     zrw.delete(tokenPath);
     assertThrows(IllegalStateException.class, lock::releaseToken,

@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.conf.store;
 
+import static org.apache.accumulo.core.Constants.ZCONFIG;
 import static org.apache.accumulo.core.Constants.ZNAMESPACES;
 import static org.apache.accumulo.core.Constants.ZTABLES;
 
@@ -44,11 +45,9 @@ import org.slf4j.LoggerFactory;
 public abstract class PropStoreKey<ID_TYPE extends AbstractId<ID_TYPE>>
     implements Comparable<PropStoreKey<ID_TYPE>> {
 
-  public static final String PROP_NODE_NAME = "encoded_props";
-
   private static final Logger log = LoggerFactory.getLogger(PropStoreKey.class);
 
-  // indices for path.split();
+  // indices for path.split() on config node paths;
   public static final int TYPE_TOKEN_POSITION = 3;
   public static final int IID_TOKEN_POSITION = 2;
   public static final int ID_TOKEN_POSITION = 4;
@@ -72,10 +71,6 @@ public abstract class PropStoreKey<ID_TYPE extends AbstractId<ID_TYPE>>
     return path;
   }
 
-  public @NonNull abstract String getBasePath();
-
-  public @NonNull abstract String getNodePath();
-
   public @NonNull ID_TYPE getId() {
     return id;
   }
@@ -90,6 +85,10 @@ public abstract class PropStoreKey<ID_TYPE extends AbstractId<ID_TYPE>>
   public static @Nullable PropStoreKey<?> fromPath(final String path) {
     String[] tokens = path.split("/");
 
+    if (tokens.length < 1) {
+      return null;
+    }
+
     InstanceId instanceId;
     try {
       instanceId = InstanceId.of(tokens[IID_TOKEN_POSITION]);
@@ -97,17 +96,22 @@ public abstract class PropStoreKey<ID_TYPE extends AbstractId<ID_TYPE>>
       log.warn("Path '{}' is an invalid path for a property cache key", path);
       return null;
     }
-    if (tokens.length < 1 || !tokens[tokens.length - 1].equals(PROP_NODE_NAME)) {
-      // without tokens or it does not end with PROP_NAME_NAME
-      return null;
-    }
-    if (tokens[TYPE_TOKEN_POSITION].equals(TABLES_NODE_NAME)) {
+
+    String nodeName = "/" + tokens[tokens.length - 1];
+    if (tokens[TYPE_TOKEN_POSITION].equals(TABLES_NODE_NAME) && nodeName.equals(ZCONFIG)) {
       return TablePropKey.of(instanceId, TableId.of(tokens[ID_TOKEN_POSITION]));
     }
-    if (tokens[TYPE_TOKEN_POSITION].equals(NAMESPACE_NODE_NAME)) {
+
+    if (tokens[TYPE_TOKEN_POSITION].equals(NAMESPACE_NODE_NAME) && nodeName.equals(ZCONFIG)) {
       return NamespacePropKey.of(instanceId, NamespaceId.of(tokens[ID_TOKEN_POSITION]));
     }
-    return SystemPropKey.of(instanceId);
+
+    if (nodeName.equals(ZCONFIG)) {
+      return SystemPropKey.of(instanceId);
+    }
+
+    // without tokens or it does not end with PROP_NAME_NAME
+    return null;
   }
 
   @Override

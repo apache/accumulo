@@ -173,7 +173,7 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
       assertTrue(
           noAcl.get(0).toString().contains("world") || noAcl.get(1).toString().contains("world"));
 
-      var sysAcl = zrw.getACL(SystemPropKey.of(serverContext).getNodePath());
+      var sysAcl = zrw.getACL(SystemPropKey.of(serverContext).getPath());
       assertEquals(1, sysAcl.size());
       assertFalse(sysAcl.get(0).toString().contains("world"));
 
@@ -181,7 +181,8 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
           .entrySet()) {
         log.debug("Check acl on namespace name: {}, id: {}", nsEntry.getKey(), nsEntry.getValue());
         var namespaceAcl = zrw.getACL(
-            NamespacePropKey.of(serverContext, NamespaceId.of(nsEntry.getValue())).getNodePath());
+            NamespacePropKey.of(serverContext, NamespaceId.of(nsEntry.getValue())).getPath());
+        log.debug("namespace permissions: {}", namespaceAcl);
         assertEquals(1, namespaceAcl.size());
         assertFalse(namespaceAcl.get(0).toString().contains("world"));
       }
@@ -189,7 +190,8 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
       for (Map.Entry<String,String> tEntry : client.tableOperations().tableIdMap().entrySet()) {
         log.debug("Check acl on table name: {}, id: {}", tEntry.getKey(), tEntry.getValue());
         var tableAcl =
-            zrw.getACL(TablePropKey.of(serverContext, TableId.of(tEntry.getValue())).getNodePath());
+            zrw.getACL(TablePropKey.of(serverContext, TableId.of(tEntry.getValue())).getPath());
+        log.debug("Received ACLs of: {}", tableAcl);
         assertEquals(1, tableAcl.size());
         assertFalse(tableAcl.get(0).toString().contains("world"));
       }

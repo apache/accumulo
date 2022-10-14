@@ -190,7 +190,8 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     }
 
     if (propStoreKey instanceof SystemPropKey) {
-      return new ConfigTransformer(zrw, codec, propStoreWatcher).transform(propStoreKey);
+      return new ConfigTransformer(zrw, codec, propStoreWatcher).transform(propStoreKey,
+          propStoreKey.getPath(), false);
     }
 
     throw new IllegalStateException(
@@ -222,6 +223,10 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     try {
       Stat stat = new Stat();
       byte[] bytes = zooReader.getData(propStoreKey.getPath(), watcher, stat);
+      if (bytes.length == 0) {
+        // node exists - but is empty - no props have been stored on node.
+        return null;
+      }
       return codec.fromBytes(stat.getVersion(), bytes);
     } catch (KeeperException.NoNodeException ex) {
       // ignore no node - allow other exceptions to propagate
@@ -438,6 +443,9 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     try {
       Stat stat = new Stat();
       byte[] bytes = zrw.getData(propStoreKey.getPath(), stat);
+      if (bytes.length == 0) {
+        return new VersionedProperties();
+      }
       return codec.fromBytes(stat.getVersion(), bytes);
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();

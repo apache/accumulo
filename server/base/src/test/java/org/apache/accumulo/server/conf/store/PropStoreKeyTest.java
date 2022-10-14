@@ -21,7 +21,6 @@ package org.apache.accumulo.server.conf.store;
 import static org.apache.accumulo.core.Constants.ZCONFIG;
 import static org.apache.accumulo.core.Constants.ZNAMESPACES;
 import static org.apache.accumulo.core.Constants.ZTABLES;
-import static org.apache.accumulo.server.conf.store.PropStoreKey.PROP_NODE_NAME;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
@@ -49,7 +48,7 @@ public class PropStoreKeyTest {
   public void systemType() {
     var propKey = SystemPropKey.of(instanceId);
     log.info("name: {}", propKey);
-    assertTrue(propKey.getPath().endsWith(ZCONFIG + "/" + PROP_NODE_NAME));
+    assertTrue(propKey.getPath().endsWith(ZCONFIG));
   }
 
   @Test
@@ -60,7 +59,7 @@ public class PropStoreKeyTest {
 
     var propKey = SystemPropKey.of(context);
     log.info("propKey: {}", propKey);
-    assertTrue(propKey.getPath().endsWith(ZCONFIG + "/" + PROP_NODE_NAME));
+    assertTrue(propKey.getPath().endsWith(ZCONFIG));
     verify(context);
   }
 
@@ -68,8 +67,7 @@ public class PropStoreKeyTest {
   public void namespaceType() {
     var propKey = NamespacePropKey.of(instanceId, NamespaceId.of("a"));
     log.info("propKey: {}", propKey);
-    assertTrue(
-        propKey.getPath().endsWith(PROP_NODE_NAME) && propKey.getPath().contains(ZNAMESPACES));
+    assertTrue(propKey.getPath().endsWith(ZCONFIG) && propKey.getPath().contains(ZNAMESPACES));
     log.info("propKey: {}", propKey);
   }
 
@@ -80,8 +78,7 @@ public class PropStoreKeyTest {
     replay(context);
 
     var propKey = NamespacePropKey.of(context, NamespaceId.of("a"));
-    assertTrue(
-        propKey.getPath().endsWith(PROP_NODE_NAME) && propKey.getPath().contains(ZNAMESPACES));
+    assertTrue(propKey.getPath().endsWith(ZCONFIG) && propKey.getPath().contains(ZNAMESPACES));
     verify(context);
   }
 
@@ -89,7 +86,7 @@ public class PropStoreKeyTest {
   public void tableType() {
     var propKey = TablePropKey.of(instanceId, TableId.of("a"));
     log.info("propKey: {}", propKey);
-    assertTrue(propKey.getPath().endsWith(PROP_NODE_NAME) && propKey.getPath().contains(ZTABLES));
+    assertTrue(propKey.getPath().endsWith(ZCONFIG) && propKey.getPath().contains(ZTABLES));
     log.info("propKey: {}", propKey);
   }
 
@@ -98,18 +95,16 @@ public class PropStoreKeyTest {
 
     var iid = "3f9976c6-3bf1-41ab-9751-1b0a9be3551d";
 
-    PropStoreKey<?> t1 =
-        PropStoreKey.fromPath("/accumulo/" + iid + "/tables/t1/conf/encoded_props");
+    PropStoreKey<?> t1 = PropStoreKey.fromPath("/accumulo/" + iid + "/tables/t1" + ZCONFIG);
     assertNotNull(t1);
     assertEquals(TableId.of("t1"), t1.getId());
 
-    PropStoreKey<?> n1 =
-        PropStoreKey.fromPath("/accumulo/" + iid + "/namespaces/n1/conf/encoded_props");
+    PropStoreKey<?> n1 = PropStoreKey.fromPath("/accumulo/" + iid + "/namespaces/n1" + ZCONFIG);
     assertNotNull(n1);
     assertEquals(NamespaceId.of("n1"), n1.getId());
     assertNotNull(n1.getId());
 
-    PropStoreKey<?> s1 = PropStoreKey.fromPath("/accumulo/" + iid + "/config/encoded_props");
+    PropStoreKey<?> s1 = PropStoreKey.fromPath("/accumulo/" + iid + ZCONFIG);
     assertNotNull(s1);
     // system config returns instance id as id placeholder
     assertEquals(iid, s1.getId().canonical());
@@ -117,9 +112,8 @@ public class PropStoreKeyTest {
 
   @Test
   public void getBasePathTest() {
-    assertTrue(SystemPropKey.of(instanceId).getBasePath().endsWith("/config"));
-    assertTrue(
-        NamespacePropKey.of(instanceId, NamespaceId.of("123")).getBasePath().endsWith("/conf"));
-    assertTrue(TablePropKey.of(instanceId, TableId.of("456")).getBasePath().endsWith("/conf"));
+    assertTrue(SystemPropKey.of(instanceId).getPath().endsWith("/config"));
+    assertTrue(NamespacePropKey.of(instanceId, NamespaceId.of("123")).getPath().endsWith(ZCONFIG));
+    assertTrue(TablePropKey.of(instanceId, TableId.of("456")).getPath().endsWith(ZCONFIG));
   }
 }

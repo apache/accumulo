@@ -40,7 +40,6 @@ public class Constants {
   public static final byte[] ZTABLES_INITIAL_ID = {'0'};
   public static final String ZTABLE_NAME = "/name";
   public static final String ZTABLE_DELETE_MARKER = "/deleting";
-  public static final String ZTABLE_CONF = "/conf";
   public static final String ZTABLE_STATE = "/state";
   public static final String ZTABLE_FLUSH_ID = "/flush-id";
   public static final String ZTABLE_COMPACT_ID = "/compact-id";
@@ -49,7 +48,6 @@ public class Constants {
 
   public static final String ZNAMESPACES = "/namespaces";
   public static final String ZNAMESPACE_NAME = "/name";
-  public static final String ZNAMESPACE_CONF = "/conf";
 
   public static final String ZMANAGERS = "/managers";
   public static final String ZMANAGER_LOCK = ZMANAGERS + "/lock";
@@ -64,6 +62,8 @@ public class Constants {
   public static final String ZMONITOR_LOCK = ZMONITOR + "/lock";
   public static final String ZMONITOR_HTTP_ADDR = ZMONITOR + "/http_addr";
 
+  // used by < 2.1 table and namespace configurations
+  public static final String ZCONF_LEGACY = "/conf";
   public static final String ZCONFIG = "/config";
 
   public static final String ZTSERVERS = "/tservers";

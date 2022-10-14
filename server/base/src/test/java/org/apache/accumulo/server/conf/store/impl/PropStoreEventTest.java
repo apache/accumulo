@@ -226,7 +226,7 @@ public class PropStoreEventTest {
 
     watcher.signalCacheChangeEvent(tablePropKey);
 
-    Thread.sleep(150);
+    Thread.sleep(250);
     assertEquals(1, listener.getCacheChangeEventCount());
   }
 
