@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
@@ -138,7 +139,10 @@ public class RecoveryLogsIterator
    */
   private SortedSet<Path> getFiles(VolumeManager fs, Path directory) throws IOException {
     boolean foundFinish = false;
-    SortedSet<Path> logFiles = new TreeSet<>();
+    // Path::getName compares the last component of each Path value. In this case, the last
+    // component should
+    // always have the format 'part-r-XXXXX.rf', where XXXXX are one-up values.
+    SortedSet<Path> logFiles = new TreeSet<>(Comparator.comparing(Path::getName));
     for (FileStatus child : fs.listStatus(directory)) {
       if (child.getPath().getName().startsWith("_"))
         continue;
