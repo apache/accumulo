@@ -72,7 +72,7 @@ jobs:
     needs: fastbuild
     timeout-minutes: 5
     outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      matrix: ${{ steps.set-matrix.outputs.CUSTOM_MATRIX }}
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
