@@ -242,7 +242,7 @@ public class TabletServerLogger {
 
         try {
           // Backoff
-          createRetry.waitForNextAttempt();
+          createRetry.waitForNextAttempt(log, "create WAL");
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           throw new RuntimeException(e);
@@ -444,7 +444,7 @@ public class TabletServerLogger {
 
         try {
           // Backoff
-          writeRetry.waitForNextAttempt();
+          writeRetry.waitForNextAttempt(log, "write to WAL");
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           throw new RuntimeException(e);

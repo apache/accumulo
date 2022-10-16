@@ -1059,7 +1059,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         try {
           retry.logRetry(log, "Unable to modify table properties for " + tableName
               + " because of concurrent modification");
-          retry.waitForNextAttempt();
+          retry.waitForNextAttempt(log, " modify table properties");
         } catch (InterruptedException e) {
           throw new RuntimeException(e);
         }
@@ -1939,7 +1939,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       context.requireNotOffline(tableId, tableName);
       binnedRanges.clear();
       try {
-        retry.waitForNextAttempt();
+        retry.waitForNextAttempt(log, "locate tablets");
       } catch (InterruptedException e) {
         throw new RuntimeException(e);
       }

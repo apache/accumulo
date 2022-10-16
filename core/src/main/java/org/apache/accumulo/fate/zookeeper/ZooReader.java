@@ -201,7 +201,7 @@ public class ZooReader {
       log.warn("Saw (possibly) transient exception communicating with ZooKeeper", e);
       if (retries.canRetry()) {
         retries.useRetry();
-        retries.waitForNextAttempt();
+        retries.waitForNextAttempt(log, "useRetryForTransient exception");
         return true;
       }
       log.error("Retry attempts ({}) exceeded trying to communicate with ZooKeeper",
