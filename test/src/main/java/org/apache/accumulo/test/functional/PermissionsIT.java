@@ -421,14 +421,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
         break;
       case OBTAIN_DELEGATION_TOKEN:
         if (saslEnabled()) {
-          // assert the test user does not have permissions to obtain a delegation token
-          loginAs(rootUser);
-          assertFalse(root_client.securityOperations().hasSystemPermission(testUser.getPrincipal(),
-              SystemPermission.OBTAIN_DELEGATION_TOKEN));
-          // login as the test user and attempt to obtain a delegation token
-          loginAs(testUser);
-          DelegationToken token =
-              test_user_client.securityOperations().getDelegationToken(new DelegationTokenConfig());
+          // not implemented
         }
         break;
       case GRANT:
@@ -601,16 +594,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
         break;
       case OBTAIN_DELEGATION_TOKEN:
         if (saslEnabled()) {
-          // grant system permission to obtain a delegation token
-          loginAs(rootUser);
-          root_client.securityOperations().grantSystemPermission(testUser.getPrincipal(),
-              SystemPermission.OBTAIN_DELEGATION_TOKEN);
-          assertTrue(root_client.securityOperations().hasSystemPermission(testUser.getPrincipal(),
-                  SystemPermission.OBTAIN_DELEGATION_TOKEN));
-          // ensure user is able to obtain the token
-          loginAs(testUser);
-          AuthenticationToken token =
-                  test_user_client.securityOperations().getDelegationToken(new DelegationTokenConfig());
+          // not implemented
         }
         break;
       case GRANT:
