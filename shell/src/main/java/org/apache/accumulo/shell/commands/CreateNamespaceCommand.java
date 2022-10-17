@@ -20,8 +20,6 @@ package org.apache.accumulo.shell.commands;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
