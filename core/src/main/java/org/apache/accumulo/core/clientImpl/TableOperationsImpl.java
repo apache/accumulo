@@ -1822,11 +1822,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     EXISTING_TABLE_NAME.validate(tableName);
 
     clearSamplerOptions(tableName);
-    List<Pair<String,String>> props =
-        new SamplerConfigurationImpl(samplerConfiguration).toTableProperties();
-    for (Pair<String,String> pair : props) {
-      setProperty(tableName, pair.getFirst(), pair.getSecond());
-    }
+    Map<String,String> props =
+        new SamplerConfigurationImpl(samplerConfiguration).toTablePropertiesMap();
+    modifyProperties(tableName, properties -> properties.putAll(props));
   }
 
   @Override
@@ -2068,11 +2066,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
     }
 
-    Set<Entry<String,String>> es =
-        SummarizerConfiguration.toTableProperties(newConfigSet).entrySet();
-    for (Entry<String,String> entry : es) {
-      setProperty(tableName, entry.getKey(), entry.getValue());
-    }
+    Map<String,String> props = SummarizerConfiguration.toTableProperties(newConfigSet);
+    modifyProperties(tableName, properties -> properties.putAll(props));
   }
 
   @Override
@@ -2083,14 +2078,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Collection<SummarizerConfiguration> summarizerConfigs =
         SummarizerConfiguration.fromTableProperties(getProperties(tableName));
 
-    for (SummarizerConfiguration sc : summarizerConfigs) {
-      if (predicate.test(sc)) {
-        Set<String> ks = sc.toTableProperties().keySet();
-        for (String key : ks) {
-          removeProperty(tableName, key);
-        }
-      }
-    }
+    modifyProperties(tableName,
+        properties -> summarizerConfigs.stream().filter(predicate)
+            .map(sc -> sc.toTableProperties().keySet())
+            .forEach(keySet -> keySet.forEach(properties::remove)));
+
   }
 
   @Override

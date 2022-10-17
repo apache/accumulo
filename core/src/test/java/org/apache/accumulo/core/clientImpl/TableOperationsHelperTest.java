@@ -133,8 +133,7 @@ public class TableOperationsHelperTest {
 
     @Override
     public void setProperty(String tableName, String property, String value) {
-      if (!settings.containsKey(tableName))
-        settings.put(tableName, new TreeMap<>());
+      settings.computeIfAbsent(tableName, k -> new TreeMap<>());
       settings.get(tableName).put(property, value);
     }
 
@@ -142,13 +141,10 @@ public class TableOperationsHelperTest {
     public Map<String,String> modifyProperties(String tableName,
         Consumer<Map<String,String>> mapMutator)
         throws IllegalArgumentException, ConcurrentModificationException {
+      settings.computeIfAbsent(tableName, k -> new TreeMap<>());
       var map = settings.get(tableName);
-      if (map != null) {
-        mapMutator.accept(map);
-        return Map.copyOf(map);
-      } else {
-        throw new IllegalArgumentException("No such table " + tableName);
-      }
+      mapMutator.accept(map);
+      return Map.copyOf(map);
     }
 
     @Override

@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -134,9 +133,9 @@ public class CreateTableCommand extends Command {
     shellState.setTableName(tableName); // switch shell to new table context
 
     if (cl.hasOption(createTableNoDefaultIters.getOpt())) {
-      for (String key : IteratorConfigUtil.generateInitialTableProperties(true).keySet()) {
-        shellState.getAccumuloClient().tableOperations().removeProperty(tableName, key);
-      }
+      Set<String> initialProps = IteratorConfigUtil.generateInitialTableProperties(true).keySet();
+      shellState.getAccumuloClient().tableOperations().modifyProperties(tableName,
+          properties -> initialProps.forEach(properties::remove));
     }
 
     // Copy options if flag was set
@@ -144,12 +143,11 @@ public class CreateTableCommand extends Command {
       if (shellState.getAccumuloClient().tableOperations().exists(tableName)) {
         final Map<String,String> configuration = shellState.getAccumuloClient().tableOperations()
             .getConfiguration(cl.getOptionValue(createTableOptCopyConfig.getOpt()));
-        for (Entry<String,String> entry : configuration.entrySet()) {
-          if (Property.isValidTablePropertyKey(entry.getKey())) {
-            shellState.getAccumuloClient().tableOperations().setProperty(tableName, entry.getKey(),
-                entry.getValue());
-          }
-        }
+
+        shellState.getAccumuloClient().tableOperations().modifyProperties(tableName,
+            properties -> configuration.entrySet().stream()
+                .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
+                .forEach(entry -> properties.put(entry.getKey(), entry.getValue())));
       }
     }
 
