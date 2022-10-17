@@ -56,9 +56,10 @@ public abstract class PropStoreKey<ID_TYPE extends AbstractId<ID_TYPE>>
   // remove starting slash from constant.
   public static final String TABLES_NODE_NAME = ZTABLES.substring(1);
   public static final String NAMESPACE_NODE_NAME = ZNAMESPACES.substring(1);
-  public static final int EXPECTED_CONFIG_LEN = 6; // expected token length for table and namespace
-                                                   // config
-  public static final int EXPECTED_SYS_CONFIG_LEN = 4; // expected token length for sys config
+  // expected token length for table and namespace config
+  public static final int EXPECTED_CONFIG_LEN = 6;
+  // expected token length for sys config
+  public static final int EXPECTED_SYS_CONFIG_LEN = 4;
 
   protected final InstanceId instanceId;
   protected final ID_TYPE id;
@@ -88,8 +89,6 @@ public abstract class PropStoreKey<ID_TYPE extends AbstractId<ID_TYPE>>
    */
   public static @Nullable PropStoreKey<?> fromPath(final String path) {
     String[] tokens = path.split("/");
-
-    log.warn("LENGTH: {}, {}", path, tokens.length);
     if (tokens.length < 1) {
       return null;
     }
@@ -97,33 +96,37 @@ public abstract class PropStoreKey<ID_TYPE extends AbstractId<ID_TYPE>>
     InstanceId instanceId;
     try {
       instanceId = InstanceId.of(tokens[IID_TOKEN_POSITION]);
+
+      // needs to start with /accumulo/[instanceId]
+      if (!path.startsWith(ZooUtil.getRoot(instanceId))) {
+        log.warn(
+            "Path '{}' is invalid for a property cache key, expected to start with /accumulo/[instance_id]",
+            path);
+        return null;
+      }
+
+      String nodeName = "/" + tokens[tokens.length - 1];
+      if (tokens.length == EXPECTED_CONFIG_LEN
+          && tokens[TYPE_TOKEN_POSITION].equals(TABLES_NODE_NAME) && nodeName.equals(ZCONFIG)) {
+        return TablePropKey.of(instanceId, TableId.of(tokens[ID_TOKEN_POSITION]));
+      }
+
+      if (tokens.length == EXPECTED_CONFIG_LEN
+          && tokens[TYPE_TOKEN_POSITION].equals(NAMESPACE_NODE_NAME) && nodeName.equals(ZCONFIG)) {
+        return NamespacePropKey.of(instanceId, NamespaceId.of(tokens[ID_TOKEN_POSITION]));
+      }
+
+      if (tokens.length == EXPECTED_SYS_CONFIG_LEN && nodeName.equals(ZCONFIG)) {
+        return SystemPropKey.of(instanceId);
+      }
+      // without tokens or it does not end with PROP_NAME_NAME
+      log.debug("Did not find property cache key in '{}'", path);
+      return null;
+
     } catch (ArrayIndexOutOfBoundsException ex) {
       log.warn("Path '{}' is an invalid path for a property cache key", path);
       return null;
     }
-
-    // needs to start with /accumulo/[instanceId]
-    if (!path.startsWith(ZooUtil.getRoot(instanceId))) {
-      return null;
-    }
-
-    String nodeName = "/" + tokens[tokens.length - 1];
-    if (tokens.length == EXPECTED_CONFIG_LEN && tokens[TYPE_TOKEN_POSITION].equals(TABLES_NODE_NAME)
-        && nodeName.equals(ZCONFIG)) {
-      return TablePropKey.of(instanceId, TableId.of(tokens[ID_TOKEN_POSITION]));
-    }
-
-    if (tokens.length == EXPECTED_CONFIG_LEN
-        && tokens[TYPE_TOKEN_POSITION].equals(NAMESPACE_NODE_NAME) && nodeName.equals(ZCONFIG)) {
-      return NamespacePropKey.of(instanceId, NamespaceId.of(tokens[ID_TOKEN_POSITION]));
-    }
-
-    if (tokens.length == EXPECTED_SYS_CONFIG_LEN && nodeName.equals(ZCONFIG)) {
-      return SystemPropKey.of(instanceId);
-    }
-
-    // without tokens or it does not end with PROP_NAME_NAME
-    return null;
   }
 
   @Override
