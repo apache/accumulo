@@ -160,7 +160,7 @@ public class ConfigTransformer {
       }
 
       upgradeNodes = convertDeprecatedProps(propStoreKey, upgradeNodes);
-      // todo - here
+
       results = writeConverted(propStoreKey, upgradeNodes);
 
       if (results == null) {

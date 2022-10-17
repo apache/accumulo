@@ -26,10 +26,12 @@ import static org.apache.accumulo.core.Constants.ZROOT;
 import static org.apache.accumulo.core.Constants.ZTABLES;
 import static org.apache.accumulo.core.Constants.ZTABLE_NAME;
 import static org.apache.accumulo.core.Constants.ZTABLE_NAMESPACE;
-import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.isA;
+import static org.easymock.EasyMock.newCapture;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -54,8 +56,9 @@ import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
-import org.apache.zookeeper.Watcher;
+import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
 import org.apache.zookeeper.data.Stat;
+import org.easymock.Capture;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -298,8 +301,17 @@ public class ZooInfoViewerTest {
 
     var sysPropBytes = propCodec
         .toBytes(new VersionedProperties(123, Instant.now(), Map.of("s1", "sv1", "s2", "sv2")));
-    expect(zooReader.getData(eq(SystemPropKey.of(iid).getPath()), anyObject(Watcher.class),
-        anyObject(Stat.class))).andReturn(sysPropBytes).anyTimes();
+    Capture<Stat> sStat = newCapture();
+    expect(zooReader.getData(eq(SystemPropKey.of(iid).getPath()), isA(PropStoreWatcher.class),
+        capture(sStat))).andAnswer(() -> {
+          Stat s = sStat.getValue();
+          s.setCtime(System.currentTimeMillis());
+          s.setMtime(System.currentTimeMillis());
+          s.setVersion(0); // default version
+          s.setDataLength(sysPropBytes.length);
+          sStat.setValue(s);
+          return sysPropBytes;
+        }).once();
 
     var nsBasePath = ZooUtil.getRoot(iid) + ZNAMESPACES;
     expect(zooReader.getChildren(nsBasePath)).andReturn(List.of("a")).anyTimes();
@@ -308,18 +320,38 @@ public class ZooInfoViewerTest {
     var nsPropBytes =
         propCodec.toBytes(new VersionedProperties(123, Instant.now(), Map.of("n1", "nv1")));
     NamespaceId nsId = NamespaceId.of("a");
-    expect(zooReader.getData(eq(NamespacePropKey.of(iid, nsId).getPath()), anyObject(Watcher.class),
-        anyObject(Stat.class))).andReturn(nsPropBytes).anyTimes();
+    Capture<Stat> nsStat = newCapture();
+    expect(zooReader.getData(eq(NamespacePropKey.of(iid, nsId).getPath()),
+        isA(PropStoreWatcher.class), capture(nsStat))).andAnswer(() -> {
+          Stat s = nsStat.getValue();
+          s.setCtime(System.currentTimeMillis());
+          s.setMtime(System.currentTimeMillis());
+          s.setVersion(0); // default version
+          s.setDataLength(nsPropBytes.length);
+          nsStat.setValue(s);
+          return nsPropBytes;
+        }).once();
 
     var tBasePath = ZooUtil.getRoot(iid) + ZTABLES;
     expect(zooReader.getChildren(tBasePath)).andReturn(List.of("t")).anyTimes();
     expect(zooReader.getData(eq(tBasePath + "/t" + ZTABLE_NAME)))
         .andReturn("t_table".getBytes(UTF_8)).anyTimes();
-    var tPropBytes =
-        propCodec.toBytes(new VersionedProperties(123, Instant.now(), Map.of("t1", "tv1")));
+
+    var tProps = new VersionedProperties(123, Instant.now(), Map.of("t1", "tv1"));
+    var tPropBytes = propCodec.toBytes(tProps);
     TableId tid = TableId.of("t");
-    expect(zooReader.getData(eq(TablePropKey.of(iid, tid).getPath()), anyObject(Watcher.class),
-        anyObject(Stat.class))).andReturn(tPropBytes).anyTimes();
+    Capture<Stat> stat = newCapture();
+    expect(zooReader.getData(eq(TablePropKey.of(iid, tid).getPath()), isA(PropStoreWatcher.class),
+        capture(stat))).andAnswer(() -> {
+          Stat s = stat.getValue();
+          s.setCtime(System.currentTimeMillis());
+          s.setMtime(System.currentTimeMillis());
+          s.setVersion((int) tProps.getDataVersion());
+          s.setDataLength(tPropBytes.length);
+          stat.setValue(s);
+          return tPropBytes;
+        }).once();
+
     expect(zooReader.getData(tBasePath + "/t" + ZTABLE_NAMESPACE))
         .andReturn("+default".getBytes(UTF_8)).anyTimes();
 

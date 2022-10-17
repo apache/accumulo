@@ -223,7 +223,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     try {
       Stat stat = new Stat();
       byte[] bytes = zooReader.getData(propStoreKey.getPath(), watcher, stat);
-      if (bytes.length == 0) {
+      if (stat.getDataLength() == 0) {
         // node exists - but is empty - no props have been stored on node.
         return null;
       }
@@ -443,7 +443,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     try {
       Stat stat = new Stat();
       byte[] bytes = zrw.getData(propStoreKey.getPath(), stat);
-      if (bytes.length == 0) {
+      if (stat.getDataLength() == 0) {
         return new VersionedProperties();
       }
       return codec.fromBytes(stat.getVersion(), bytes);

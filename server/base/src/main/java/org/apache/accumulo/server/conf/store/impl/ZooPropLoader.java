@@ -63,7 +63,7 @@ public class ZooPropLoader implements CacheLoader<PropStoreKey<?>,VersionedPrope
 
       Stat stat = new Stat();
       byte[] bytes = zrw.getData(propStoreKey.getPath(), propStoreWatcher, stat);
-      if (bytes.length == 0) {
+      if (stat.getDataLength() == 0) {
         return new VersionedProperties();
       }
       VersionedProperties vProps = propCodec.fromBytes(stat.getVersion(), bytes);

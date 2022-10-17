@@ -246,6 +246,7 @@ public class PropStoreEventTest {
       s.setCtime(System.currentTimeMillis());
       s.setMtime(System.currentTimeMillis());
       s.setVersion(12);
+      s.setDataLength(propCodec.toBytes(vProps).length);
       stat.setValue(s);
       return propCodec.toBytes(vProps);
     }).once();

@@ -29,6 +29,7 @@ import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
@@ -55,6 +56,9 @@ public abstract class PropStoreKey<ID_TYPE extends AbstractId<ID_TYPE>>
   // remove starting slash from constant.
   public static final String TABLES_NODE_NAME = ZTABLES.substring(1);
   public static final String NAMESPACE_NODE_NAME = ZNAMESPACES.substring(1);
+  public static final int EXPECTED_CONFIG_LEN = 6; // expected token length for table and namespace
+                                                   // config
+  public static final int EXPECTED_SYS_CONFIG_LEN = 4; // expected token length for sys config
 
   protected final InstanceId instanceId;
   protected final ID_TYPE id;
@@ -85,6 +89,7 @@ public abstract class PropStoreKey<ID_TYPE extends AbstractId<ID_TYPE>>
   public static @Nullable PropStoreKey<?> fromPath(final String path) {
     String[] tokens = path.split("/");
 
+    log.warn("LENGTH: {}, {}", path, tokens.length);
     if (tokens.length < 1) {
       return null;
     }
@@ -97,16 +102,23 @@ public abstract class PropStoreKey<ID_TYPE extends AbstractId<ID_TYPE>>
       return null;
     }
 
+    // needs to start with /accumulo/[instanceId]
+    if (!path.startsWith(ZooUtil.getRoot(instanceId))) {
+      return null;
+    }
+
     String nodeName = "/" + tokens[tokens.length - 1];
-    if (tokens[TYPE_TOKEN_POSITION].equals(TABLES_NODE_NAME) && nodeName.equals(ZCONFIG)) {
+    if (tokens.length == EXPECTED_CONFIG_LEN && tokens[TYPE_TOKEN_POSITION].equals(TABLES_NODE_NAME)
+        && nodeName.equals(ZCONFIG)) {
       return TablePropKey.of(instanceId, TableId.of(tokens[ID_TOKEN_POSITION]));
     }
 
-    if (tokens[TYPE_TOKEN_POSITION].equals(NAMESPACE_NODE_NAME) && nodeName.equals(ZCONFIG)) {
+    if (tokens.length == EXPECTED_CONFIG_LEN
+        && tokens[TYPE_TOKEN_POSITION].equals(NAMESPACE_NODE_NAME) && nodeName.equals(ZCONFIG)) {
       return NamespacePropKey.of(instanceId, NamespaceId.of(tokens[ID_TOKEN_POSITION]));
     }
 
-    if (nodeName.equals(ZCONFIG)) {
+    if (tokens.length == EXPECTED_SYS_CONFIG_LEN && nodeName.equals(ZCONFIG)) {
       return SystemPropKey.of(instanceId);
     }
 
