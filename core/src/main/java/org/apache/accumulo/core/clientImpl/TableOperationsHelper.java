@@ -56,11 +56,11 @@ public abstract class TableOperationsHelper implements TableOperations {
     for (IteratorScope scope : scopes) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
           scope.name().toLowerCase(), setting.getName());
-      this.modifyProperties(tableName, props -> {
+      this.modifyProperties(tableName, properties -> {
         for (Entry<String,String> prop : setting.getOptions().entrySet()) {
-          props.put(root + ".opt." + prop.getKey(), prop.getValue());
+          properties.put(root + ".opt." + prop.getKey(), prop.getValue());
         }
-        props.put(root, setting.getPriority() + "," + setting.getIteratorClass());
+        properties.put(root, setting.getPriority() + "," + setting.getIteratorClass());
       });
     }
   }
