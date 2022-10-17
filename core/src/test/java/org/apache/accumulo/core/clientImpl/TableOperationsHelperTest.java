@@ -133,7 +133,7 @@ public class TableOperationsHelperTest {
 
     @Override
     public void setProperty(String tableName, String property, String value) {
-      settings.putIfAbsent(tableName, new TreeMap<>());
+      settings.computeIfAbsent(tableName, k -> new TreeMap<>());
       settings.get(tableName).put(property, value);
     }
 

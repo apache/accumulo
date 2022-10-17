@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -57,12 +56,12 @@ public abstract class TableOperationsHelper implements TableOperations {
     for (IteratorScope scope : scopes) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
           scope.name().toLowerCase(), setting.getName());
-
-      Map<String,String> propsToAdd = setting.getOptions().entrySet().stream()
-          .collect(Collectors.toMap(prop -> root + ".opt." + prop.getKey(), Entry::getValue));
-      propsToAdd.put(root, setting.getPriority() + "," + setting.getIteratorClass());
-
-      this.modifyProperties(tableName, props -> props.putAll(propsToAdd));
+      this.modifyProperties(tableName, props -> {
+        for (Entry<String,String> prop : setting.getOptions().entrySet()) {
+          props.put(root + ".opt." + prop.getKey(), prop.getValue());
+        }
+        props.put(root, setting.getPriority() + "," + setting.getIteratorClass());
+      });
     }
   }
 
