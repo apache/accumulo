@@ -59,10 +59,12 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
     for (IteratorScope scope : scopes) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
           scope.name().toLowerCase(), setting.getName());
-      for (Entry<String,String> prop : setting.getOptions().entrySet()) {
-        this.setProperty(namespace, root + ".opt." + prop.getKey(), prop.getValue());
-      }
-      this.setProperty(namespace, root, setting.getPriority() + "," + setting.getIteratorClass());
+      this.modifyProperties(namespace, properties -> {
+        for (Entry<String,String> prop : setting.getOptions().entrySet()) {
+          properties.put(root + ".opt." + prop.getKey(), prop.getValue());
+        }
+        properties.put(root, setting.getPriority() + "," + setting.getIteratorClass());
+      });
     }
   }
 
@@ -75,10 +77,10 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
     for (IteratorScope scope : scopes) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
           scope.name().toLowerCase(), name);
-      for (Entry<String,String> property : copy.entrySet()) {
-        if (property.getKey().equals(root) || property.getKey().startsWith(root + ".opt."))
-          this.removeProperty(namespace, property.getKey());
-      }
+      this.modifyProperties(namespace,
+          properties -> copy.keySet().stream()
+              .filter(key -> key.equals(root) || key.startsWith(root + ".opt."))
+              .forEach(properties::remove));
     }
   }
 

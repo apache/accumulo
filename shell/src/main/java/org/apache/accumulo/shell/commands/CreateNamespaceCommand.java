@@ -20,7 +20,6 @@ package org.apache.accumulo.shell.commands;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -62,12 +61,11 @@ public class CreateNamespaceCommand extends Command {
       }
     }
     if (configuration != null) {
-      for (Entry<String,String> entry : configuration.entrySet()) {
-        if (Property.isValidTablePropertyKey(entry.getKey())) {
-          shellState.getAccumuloClient().namespaceOperations().setProperty(namespace,
-              entry.getKey(), entry.getValue());
-        }
-      }
+      final Map<String,String> config = configuration;
+      shellState.getAccumuloClient().namespaceOperations().modifyProperties(namespace,
+          properties -> config.entrySet().stream()
+              .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
+              .forEach(entry -> properties.put(entry.getKey(), entry.getValue())));
     }
 
     return 0;
