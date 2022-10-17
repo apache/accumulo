@@ -146,13 +146,10 @@ public class CreateTableCommand extends Command {
         final Map<String,String> configuration = shellState.getAccumuloClient().tableOperations()
             .getConfiguration(cl.getOptionValue(createTableOptCopyConfig.getOpt()));
 
-        Map<String,
-            String> propsToAdd = configuration.entrySet().stream()
-                .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
-                .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
-
         shellState.getAccumuloClient().tableOperations().modifyProperties(tableName,
-            properties -> properties.putAll(propsToAdd));
+            properties -> configuration.entrySet().stream()
+                .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
+                .forEach(entry -> properties.put(entry.getKey(), entry.getValue())));
       }
     }
 

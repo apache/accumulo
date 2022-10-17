@@ -141,7 +141,7 @@ public class TableOperationsHelperTest {
     public Map<String,String> modifyProperties(String tableName,
         Consumer<Map<String,String>> mapMutator)
         throws IllegalArgumentException, ConcurrentModificationException {
-      settings.putIfAbsent(tableName, new TreeMap<>());
+      settings.computeIfAbsent(tableName, k -> new TreeMap<>());
       var map = settings.get(tableName);
       mapMutator.accept(map);
       return Map.copyOf(map);
