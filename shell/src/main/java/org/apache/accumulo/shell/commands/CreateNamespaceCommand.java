@@ -63,11 +63,11 @@ public class CreateNamespaceCommand extends Command {
       }
     }
     if (configuration != null) {
-      var propsToAdd = configuration.entrySet().stream()
-          .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
-          .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
+      final Map<String,String> config = configuration;
       shellState.getAccumuloClient().namespaceOperations().modifyProperties(namespace,
-          properties -> properties.putAll(propsToAdd));
+          properties -> config.entrySet().stream()
+              .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
+              .forEach(entry -> properties.put(entry.getKey(), entry.getValue())));
     }
 
     return 0;
