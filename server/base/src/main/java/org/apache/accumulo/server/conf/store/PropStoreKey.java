@@ -89,44 +89,40 @@ public abstract class PropStoreKey<ID_TYPE extends AbstractId<ID_TYPE>>
    */
   public static @Nullable PropStoreKey<?> fromPath(final String path) {
     String[] tokens = path.split("/");
-    if (tokens.length < 1) {
+
+    if (tokens.length < 1
+        || tokens.length != EXPECTED_CONFIG_LEN && tokens.length != EXPECTED_SYS_CONFIG_LEN) {
+      log.warn("Path '{}' is an invalid path for a property cache key - bad length", path);
       return null;
     }
 
-    InstanceId instanceId;
-    try {
-      instanceId = InstanceId.of(tokens[IID_TOKEN_POSITION]);
+    InstanceId instanceId = InstanceId.of(tokens[IID_TOKEN_POSITION]);
 
-      // needs to start with /accumulo/[instanceId]
-      if (!path.startsWith(ZooUtil.getRoot(instanceId))) {
-        log.warn(
-            "Path '{}' is invalid for a property cache key, expected to start with /accumulo/[instance_id]",
-            path);
-        return null;
-      }
-
-      String nodeName = "/" + tokens[tokens.length - 1];
-      if (tokens.length == EXPECTED_CONFIG_LEN
-          && tokens[TYPE_TOKEN_POSITION].equals(TABLES_NODE_NAME) && nodeName.equals(ZCONFIG)) {
-        return TablePropKey.of(instanceId, TableId.of(tokens[ID_TOKEN_POSITION]));
-      }
-
-      if (tokens.length == EXPECTED_CONFIG_LEN
-          && tokens[TYPE_TOKEN_POSITION].equals(NAMESPACE_NODE_NAME) && nodeName.equals(ZCONFIG)) {
-        return NamespacePropKey.of(instanceId, NamespaceId.of(tokens[ID_TOKEN_POSITION]));
-      }
-
-      if (tokens.length == EXPECTED_SYS_CONFIG_LEN && nodeName.equals(ZCONFIG)) {
-        return SystemPropKey.of(instanceId);
-      }
-      // without tokens or it does not end with PROP_NAME_NAME
-      log.debug("Did not find property cache key in '{}'", path);
-      return null;
-
-    } catch (ArrayIndexOutOfBoundsException ex) {
-      log.warn("Path '{}' is an invalid path for a property cache key", path);
+    // needs to start with /accumulo/[instanceId]
+    if (!path.startsWith(ZooUtil.getRoot(instanceId))) {
+      log.warn(
+          "Path '{}' is invalid for a property cache key, expected to start with /accumulo/{}}",
+          path, instanceId);
       return null;
     }
+
+    String nodeName = "/" + tokens[tokens.length - 1];
+    if (tokens.length == EXPECTED_CONFIG_LEN && tokens[TYPE_TOKEN_POSITION].equals(TABLES_NODE_NAME)
+        && nodeName.equals(ZCONFIG)) {
+      return TablePropKey.of(instanceId, TableId.of(tokens[ID_TOKEN_POSITION]));
+    }
+
+    if (tokens.length == EXPECTED_CONFIG_LEN
+        && tokens[TYPE_TOKEN_POSITION].equals(NAMESPACE_NODE_NAME) && nodeName.equals(ZCONFIG)) {
+      return NamespacePropKey.of(instanceId, NamespaceId.of(tokens[ID_TOKEN_POSITION]));
+    }
+
+    if (tokens.length == EXPECTED_SYS_CONFIG_LEN && nodeName.equals(ZCONFIG)) {
+      return SystemPropKey.of(instanceId);
+    }
+    // without tokens or it does not end with PROP_NAME_NAME
+    log.warn("Path '{}' is an invalid path for a property cache key", path);
+    return null;
   }
 
   @Override

@@ -27,6 +27,7 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.UUID;
@@ -108,6 +109,32 @@ public class PropStoreKeyTest {
     assertNotNull(s1);
     // system config returns instance id as id placeholder
     assertEquals(iid, s1.getId().canonical());
+  }
+
+  @Test
+  public void invalidKeysTest() {
+    var iid = "3f9976c6-3bf1-41ab-9751-1b0a9be3551d";
+
+    // too short
+    assertNull(PropStoreKey.fromPath("/accumulo"));
+
+    // not a system config
+    assertTrue(PropStoreKey.fromPath("/accumulo/" + iid + ZCONFIG) instanceof SystemPropKey);
+    assertNull(PropStoreKey.fromPath("/foo"));
+    assertNull(PropStoreKey.fromPath("/accumulo/" + iid + "/foo"));
+    assertNull(PropStoreKey.fromPath("/accumulo/" + iid + ZCONFIG + "/foo"));
+
+    assertTrue(PropStoreKey
+        .fromPath("/accumulo/" + iid + ZTABLES + "/a" + ZCONFIG) instanceof TablePropKey);
+    assertNull(PropStoreKey.fromPath("/accumulo/" + iid + ZTABLES + ZCONFIG));
+    assertNull(PropStoreKey.fromPath("/accumulo/" + iid + "/invalid/a" + ZCONFIG));
+    assertNull(PropStoreKey.fromPath("/accumulo/" + iid + ZTABLES + "/a" + ZCONFIG + "/foo"));
+
+    assertTrue(PropStoreKey
+        .fromPath("/accumulo/" + iid + ZNAMESPACES + "/a" + ZCONFIG) instanceof NamespacePropKey);
+    assertNull(PropStoreKey.fromPath("/accumulo/" + iid + ZNAMESPACES + ZCONFIG));
+    assertNull(PropStoreKey.fromPath("/accumulo/" + iid + "/invalid/a" + ZCONFIG));
+    assertNull(PropStoreKey.fromPath("/accumulo/" + iid + ZNAMESPACES + "/a" + ZCONFIG + "/foo"));
   }
 
   @Test
