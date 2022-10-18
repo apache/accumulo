@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.conf.store;
 
+import static org.apache.accumulo.core.Constants.ZCONFIG;
 import static org.apache.accumulo.core.Constants.ZNAMESPACES;
 import static org.apache.accumulo.core.Constants.ZTABLES;
 
@@ -28,6 +29,7 @@ import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
@@ -44,11 +46,9 @@ import org.slf4j.LoggerFactory;
 public abstract class PropStoreKey<ID_TYPE extends AbstractId<ID_TYPE>>
     implements Comparable<PropStoreKey<ID_TYPE>> {
 
-  public static final String PROP_NODE_NAME = "encoded_props";
-
   private static final Logger log = LoggerFactory.getLogger(PropStoreKey.class);
 
-  // indices for path.split();
+  // indices for path.split() on config node paths;
   public static final int TYPE_TOKEN_POSITION = 3;
   public static final int IID_TOKEN_POSITION = 2;
   public static final int ID_TOKEN_POSITION = 4;
@@ -56,6 +56,10 @@ public abstract class PropStoreKey<ID_TYPE extends AbstractId<ID_TYPE>>
   // remove starting slash from constant.
   public static final String TABLES_NODE_NAME = ZTABLES.substring(1);
   public static final String NAMESPACE_NODE_NAME = ZNAMESPACES.substring(1);
+  // expected token length for table and namespace config
+  public static final int EXPECTED_CONFIG_LEN = 6;
+  // expected token length for sys config
+  public static final int EXPECTED_SYS_CONFIG_LEN = 4;
 
   protected final InstanceId instanceId;
   protected final ID_TYPE id;
@@ -72,10 +76,6 @@ public abstract class PropStoreKey<ID_TYPE extends AbstractId<ID_TYPE>>
     return path;
   }
 
-  public @NonNull abstract String getBasePath();
-
-  public @NonNull abstract String getNodePath();
-
   public @NonNull ID_TYPE getId() {
     return id;
   }
@@ -90,24 +90,39 @@ public abstract class PropStoreKey<ID_TYPE extends AbstractId<ID_TYPE>>
   public static @Nullable PropStoreKey<?> fromPath(final String path) {
     String[] tokens = path.split("/");
 
-    InstanceId instanceId;
-    try {
-      instanceId = InstanceId.of(tokens[IID_TOKEN_POSITION]);
-    } catch (ArrayIndexOutOfBoundsException ex) {
-      log.warn("Path '{}' is an invalid path for a property cache key", path);
+    if (tokens.length < 1
+        || tokens.length != EXPECTED_CONFIG_LEN && tokens.length != EXPECTED_SYS_CONFIG_LEN) {
+      log.warn("Path '{}' is an invalid path for a property cache key - bad length", path);
       return null;
     }
-    if (tokens.length < 1 || !tokens[tokens.length - 1].equals(PROP_NODE_NAME)) {
-      // without tokens or it does not end with PROP_NAME_NAME
+
+    InstanceId instanceId = InstanceId.of(tokens[IID_TOKEN_POSITION]);
+
+    // needs to start with /accumulo/[instanceId]
+    if (!path.startsWith(ZooUtil.getRoot(instanceId))) {
+      log.warn(
+          "Path '{}' is invalid for a property cache key, expected to start with /accumulo/{}}",
+          path, instanceId);
       return null;
     }
-    if (tokens[TYPE_TOKEN_POSITION].equals(TABLES_NODE_NAME)) {
+
+    String nodeName = "/" + tokens[tokens.length - 1];
+    if (tokens.length == EXPECTED_CONFIG_LEN && tokens[TYPE_TOKEN_POSITION].equals(TABLES_NODE_NAME)
+        && nodeName.equals(ZCONFIG)) {
       return TablePropKey.of(instanceId, TableId.of(tokens[ID_TOKEN_POSITION]));
     }
-    if (tokens[TYPE_TOKEN_POSITION].equals(NAMESPACE_NODE_NAME)) {
+
+    if (tokens.length == EXPECTED_CONFIG_LEN
+        && tokens[TYPE_TOKEN_POSITION].equals(NAMESPACE_NODE_NAME) && nodeName.equals(ZCONFIG)) {
       return NamespacePropKey.of(instanceId, NamespaceId.of(tokens[ID_TOKEN_POSITION]));
     }
-    return SystemPropKey.of(instanceId);
+
+    if (tokens.length == EXPECTED_SYS_CONFIG_LEN && nodeName.equals(ZCONFIG)) {
+      return SystemPropKey.of(instanceId);
+    }
+    // without tokens or it does not end with PROP_NAME_NAME
+    log.warn("Path '{}' is an invalid path for a property cache key", path);
+    return null;
   }
 
   @Override

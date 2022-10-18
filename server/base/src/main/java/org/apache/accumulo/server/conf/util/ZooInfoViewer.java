@@ -342,7 +342,7 @@ public class ZooInfoViewer implements KeywordExecutable {
     filteredIds.forEach((nid, name) -> {
       try {
         var key = NamespacePropKey.of(iid, nid);
-        log.trace("fetch props from path: {}", key.getNodePath());
+        log.trace("fetch props from path: {}", key.getPath());
         var props = ZooPropStore.readFromZk(key, nullWatcher, zooReader);
         results.put(name, props);
       } catch (InterruptedException ex) {
@@ -379,7 +379,7 @@ public class ZooInfoViewer implements KeywordExecutable {
     filteredIds.forEach((tid, name) -> {
       try {
         var key = TablePropKey.of(iid, tid);
-        log.trace("fetch props from path: {}", key.getNodePath());
+        log.trace("fetch props from path: {}", key.getPath());
         var props = ZooPropStore.readFromZk(key, nullWatcher, zooReader);
         results.put(name, props);
       } catch (InterruptedException ex) {
@@ -424,16 +424,20 @@ public class ZooInfoViewer implements KeywordExecutable {
       final Map<String,VersionedProperties> props) {
     log.trace("Printing: {}", props);
     props.forEach((n, p) -> {
-      writer.printf("Name: %s, Data Version:%s, Data Timestamp: %s:\n", n, p.getDataVersion(),
-          tsFormat.format(p.getTimestamp()));
-      Map<String,String> pMap = p.asMap();
-      if (pMap.isEmpty()) {
-        writer.println("-- none --");
+      if (p == null) {
+        writer.printf("Name: '%s' : no property node present\n", n);
       } else {
-        TreeMap<String,String> sorted = new TreeMap<>(pMap);
-        sorted.forEach((name, value) -> writer.printf("%s%s=%s\n", INDENT, name, value));
+        writer.printf("Name: %s, Data Version:%s, Data Timestamp: %s:\n", n, p.getDataVersion(),
+            tsFormat.format(p.getTimestamp()));
+        Map<String,String> pMap = p.asMap();
+        if (pMap.isEmpty()) {
+          writer.println("-- none --");
+        } else {
+          TreeMap<String,String> sorted = new TreeMap<>(pMap);
+          sorted.forEach((name, value) -> writer.printf("%s%s=%s\n", INDENT, name, value));
+        }
+        writer.println();
       }
-      writer.println();
     });
   }
 

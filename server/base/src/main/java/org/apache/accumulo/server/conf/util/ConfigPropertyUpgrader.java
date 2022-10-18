@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.conf.util;
 
+import static org.apache.accumulo.core.Constants.ZCONFIG;
+
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -41,6 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.auto.service.AutoService;
+import com.google.common.annotations.VisibleForTesting;
 
 @AutoService(KeywordExecutable.class)
 public class ConfigPropertyUpgrader implements KeywordExecutable {
@@ -88,21 +91,25 @@ public class ConfigPropertyUpgrader implements KeywordExecutable {
     upgradeTableProps(instanceId, zrw, transformer);
   }
 
-  private void upgradeSysProps(final InstanceId instanceId, final ConfigTransformer transformer) {
+  @VisibleForTesting
+  void upgradeSysProps(final InstanceId instanceId, final ConfigTransformer transformer) {
     log.info("Upgrade system config properties for {}", instanceId);
-    transformer.transform(SystemPropKey.of(instanceId));
+    String legacyPath = ZooUtil.getRoot(instanceId) + ZCONFIG;
+    transformer.transform(SystemPropKey.of(instanceId), legacyPath, false);
   }
 
-  private void upgradeNamespaceProps(final InstanceId instanceId, final ZooReaderWriter zrw,
+  @VisibleForTesting
+  void upgradeNamespaceProps(final InstanceId instanceId, final ZooReaderWriter zrw,
       final ConfigTransformer transformer) {
     String zkPathNamespaceBase = ZooUtil.getRoot(instanceId) + Constants.ZNAMESPACES;
     try {
       // sort is cosmetic - only improves readability and consistency in logs
       Set<String> namespaces = new TreeSet<>(zrw.getChildren(zkPathNamespaceBase));
       for (String namespace : namespaces) {
-        String zkPropBasePath = zkPathNamespaceBase + "/" + namespace + Constants.ZNAMESPACE_CONF;
-        log.info("Upgrading namespace {} base path: {}", namespace, zkPropBasePath);
-        transformer.transform(NamespacePropKey.of(instanceId, NamespaceId.of(namespace)));
+        String legacyPath = zkPathNamespaceBase + "/" + namespace + Constants.ZCONF_LEGACY;
+        log.info("Upgrading namespace {} base path: {}", namespace, legacyPath);
+        transformer.transform(NamespacePropKey.of(instanceId, NamespaceId.of(namespace)),
+            legacyPath, true);
       }
     } catch (KeeperException ex) {
       throw new IllegalStateException(
@@ -113,16 +120,17 @@ public class ConfigPropertyUpgrader implements KeywordExecutable {
     }
   }
 
-  private void upgradeTableProps(final InstanceId instanceId, final ZooReaderWriter zrw,
+  @VisibleForTesting
+  void upgradeTableProps(final InstanceId instanceId, final ZooReaderWriter zrw,
       ConfigTransformer transformer) {
     String zkPathTableBase = ZooUtil.getRoot(instanceId) + Constants.ZTABLES;
     try {
       // sort is cosmetic - only improves readability and consistency in logs
       Set<String> tables = new TreeSet<>(zrw.getChildren(zkPathTableBase));
       for (String table : tables) {
-        String zkPropBasePath = zkPathTableBase + "/" + table + Constants.ZNAMESPACE_CONF;
-        log.info("Upgrading table {} base path: {}", table, zkPropBasePath);
-        transformer.transform(TablePropKey.of(instanceId, TableId.of(table)));
+        String legacyPath = zkPathTableBase + "/" + table + Constants.ZCONF_LEGACY;
+        log.info("Upgrading table {} base path: {}", table, legacyPath);
+        transformer.transform(TablePropKey.of(instanceId, TableId.of(table)), legacyPath, true);
       }
     } catch (KeeperException ex) {
       throw new IllegalStateException(

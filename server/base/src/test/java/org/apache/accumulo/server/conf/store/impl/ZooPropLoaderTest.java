@@ -30,6 +30,7 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.isA;
 import static org.easymock.EasyMock.newCapture;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
@@ -108,10 +109,18 @@ public class ZooPropLoaderTest {
   @Test
   public void loadTest() throws Exception {
 
-    VersionedProperties defaultProps = new VersionedProperties();
-
-    expect(zrw.getData(eq(propStoreKey.getPath()), anyObject(), anyObject()))
-        .andReturn(propCodec.toBytes(defaultProps)).anyTimes();
+    final VersionedProperties defaultProps = new VersionedProperties();
+    final byte[] bytes = propCodec.toBytes(defaultProps);
+    Capture<Stat> stat = newCapture();
+    expect(zrw.getData(eq(propStoreKey.getPath()), anyObject(), capture(stat))).andAnswer(() -> {
+      Stat s = stat.getValue();
+      s.setCtime(System.currentTimeMillis());
+      s.setMtime(System.currentTimeMillis());
+      s.setVersion((int) defaultProps.getDataVersion());
+      s.setDataLength(bytes.length);
+      stat.setValue(s);
+      return (bytes);
+    }).once();
 
     cacheMetrics.addLoadTime(anyLong());
     expectLastCall().times(1);
@@ -132,12 +141,23 @@ public class ZooPropLoaderTest {
   @Test
   public void loadAndCacheTest() throws Exception {
 
-    VersionedProperties defaultProps = new VersionedProperties();
+    final VersionedProperties defaultProps = new VersionedProperties();
+    final byte[] bytes = propCodec.toBytes(defaultProps);
 
     expect(zrw.getStatus(propStoreKey.getPath())).andThrow(new KeeperException.NoNodeException())
         .anyTimes();
-    expect(zrw.getData(eq(propStoreKey.getPath()), anyObject(), anyObject()))
-        .andReturn(propCodec.toBytes(defaultProps)).once();
+
+    Capture<Stat> stat = newCapture();
+    expect(zrw.getData(eq(propStoreKey.getPath()), isA(PropStoreWatcher.class), capture(stat)))
+        .andAnswer(() -> {
+          Stat s = stat.getValue();
+          s.setCtime(System.currentTimeMillis());
+          s.setMtime(System.currentTimeMillis());
+          s.setVersion((int) defaultProps.getDataVersion());
+          s.setDataLength(bytes.length);
+          stat.setValue(s);
+          return (bytes);
+        }).once();
 
     cacheMetrics.addLoadTime(anyLong());
     expectLastCall().times(1);
@@ -192,9 +212,19 @@ public class ZooPropLoaderTest {
   public void expireTest() throws Exception {
 
     VersionedProperties defaultProps = new VersionedProperties();
+    byte[] bytes = propCodec.toBytes(defaultProps);
 
-    expect(zrw.getData(eq(propStoreKey.getPath()), anyObject(), anyObject()))
-        .andReturn(propCodec.toBytes(defaultProps)).times(2);
+    Capture<Stat> stat = newCapture();
+    expect(zrw.getData(eq(propStoreKey.getPath()), isA(PropStoreWatcher.class), capture(stat)))
+        .andAnswer(() -> {
+          Stat s = stat.getValue();
+          s.setCtime(System.currentTimeMillis());
+          s.setMtime(System.currentTimeMillis());
+          s.setVersion((int) defaultProps.getDataVersion());
+          s.setDataLength(bytes.length);
+          stat.setValue(s);
+          return (bytes);
+        }).times(2);
 
     cacheMetrics.addLoadTime(anyLong());
     expectLastCall().times(2);
@@ -227,9 +257,19 @@ public class ZooPropLoaderTest {
   public void reloadExceptionTest() throws Exception {
 
     final VersionedProperties defaultProps = new VersionedProperties();
+    final byte[] bytes = propCodec.toBytes(defaultProps);
 
-    expect(zrw.getData(eq(propStoreKey.getPath()), anyObject(), anyObject()))
-        .andReturn(propCodec.toBytes(defaultProps)).once();
+    Capture<Stat> stat = newCapture();
+    expect(zrw.getData(eq(propStoreKey.getPath()), isA(PropStoreWatcher.class), capture(stat)))
+        .andAnswer(() -> {
+          Stat s = stat.getValue();
+          s.setCtime(System.currentTimeMillis());
+          s.setMtime(System.currentTimeMillis());
+          s.setVersion((int) defaultProps.getDataVersion());
+          s.setDataLength(bytes.length);
+          stat.setValue(s);
+          return (bytes);
+        }).once();
 
     expect(zrw.getData(eq(propStoreKey.getPath()), anyObject(), anyObject()))
         .andThrow(new KeeperException.NoNodeException("forced no node")).anyTimes();
@@ -283,12 +323,32 @@ public class ZooPropLoaderTest {
     final var sysPropKey = SystemPropKey.of(instanceId);
     final var tablePropKey = TablePropKey.of(instanceId, TableId.of("t1"));
 
-    VersionedProperties defaultProps = new VersionedProperties();
+    final VersionedProperties defaultProps = new VersionedProperties();
+    final byte[] bytes = propCodec.toBytes(defaultProps);
 
-    expect(zrw.getData(eq(sysPropKey.getPath()), anyObject(), anyObject()))
-        .andReturn(propCodec.toBytes(defaultProps)).once();
-    expect(zrw.getData(eq(tablePropKey.getPath()), anyObject(), anyObject()))
-        .andReturn(propCodec.toBytes(defaultProps)).once();
+    Capture<Stat> stat = newCapture();
+    expect(zrw.getData(eq(sysPropKey.getPath()), isA(PropStoreWatcher.class), capture(stat)))
+        .andAnswer(() -> {
+          Stat s = stat.getValue();
+          s.setCtime(System.currentTimeMillis());
+          s.setMtime(System.currentTimeMillis());
+          s.setVersion((int) defaultProps.getDataVersion());
+          s.setDataLength(bytes.length);
+          stat.setValue(s);
+          return (bytes);
+        }).once();
+
+    Capture<Stat> stat1 = newCapture();
+    expect(zrw.getData(eq(tablePropKey.getPath()), isA(PropStoreWatcher.class), capture(stat1)))
+        .andAnswer(() -> {
+          Stat s = stat1.getValue();
+          s.setCtime(System.currentTimeMillis());
+          s.setMtime(System.currentTimeMillis());
+          s.setVersion((int) defaultProps.getDataVersion());
+          s.setDataLength(bytes.length);
+          stat1.setValue(s);
+          return (bytes);
+        }).once();
 
     cacheMetrics.addLoadTime(anyLong());
     expectLastCall().times(2);
@@ -314,12 +374,32 @@ public class ZooPropLoaderTest {
     final var sysPropKey = SystemPropKey.of(instanceId);
     final var tablePropKey = TablePropKey.of(instanceId, TableId.of("t1"));
 
-    VersionedProperties defaultProps = new VersionedProperties();
+    final VersionedProperties defaultProps = new VersionedProperties();
+    final byte[] bytes = propCodec.toBytes(defaultProps);
 
-    expect(zrw.getData(eq(sysPropKey.getPath()), anyObject(), anyObject()))
-        .andReturn(propCodec.toBytes(defaultProps)).once();
-    expect(zrw.getData(eq(tablePropKey.getPath()), anyObject(), anyObject()))
-        .andReturn(propCodec.toBytes(defaultProps)).once();
+    Capture<Stat> stat = newCapture();
+    expect(zrw.getData(eq(sysPropKey.getPath()), isA(PropStoreWatcher.class), capture(stat)))
+        .andAnswer(() -> {
+          Stat s = stat.getValue();
+          s.setCtime(System.currentTimeMillis());
+          s.setMtime(System.currentTimeMillis());
+          s.setVersion((int) defaultProps.getDataVersion());
+          s.setDataLength(bytes.length);
+          stat.setValue(s);
+          return (bytes);
+        }).once();
+
+    Capture<Stat> stat1 = newCapture();
+    expect(zrw.getData(eq(tablePropKey.getPath()), isA(PropStoreWatcher.class), capture(stat1)))
+        .andAnswer(() -> {
+          Stat s = stat1.getValue();
+          s.setCtime(System.currentTimeMillis());
+          s.setMtime(System.currentTimeMillis());
+          s.setVersion((int) defaultProps.getDataVersion());
+          s.setDataLength(bytes.length);
+          stat1.setValue(s);
+          return (bytes);
+        }).once();
 
     cacheMetrics.addLoadTime(anyLong());
     expectLastCall().times(2);

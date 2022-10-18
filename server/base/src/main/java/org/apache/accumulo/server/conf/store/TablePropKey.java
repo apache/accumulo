@@ -18,14 +18,13 @@
  */
 package org.apache.accumulo.server.conf.store;
 
+import static org.apache.accumulo.core.Constants.ZCONFIG;
 import static org.apache.accumulo.core.Constants.ZTABLES;
-import static org.apache.accumulo.core.Constants.ZTABLE_CONF;
 
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
-import org.checkerframework.checker.nullness.qual.NonNull;
 
 public class TablePropKey extends PropStoreKey<TableId> {
 
@@ -34,26 +33,14 @@ public class TablePropKey extends PropStoreKey<TableId> {
   }
 
   public static TablePropKey of(final InstanceId instanceId, final TableId tableId) {
-    return new TablePropKey(instanceId, getNodePath(instanceId, tableId), tableId);
+    return new TablePropKey(instanceId, buildNodePath(instanceId, tableId), tableId);
   }
 
   private TablePropKey(final InstanceId instanceId, final String path, final TableId tableId) {
     super(instanceId, path, tableId);
   }
 
-  private static String getNodePath(final InstanceId instanceId, final TableId id) {
-    return ZooUtil.getRoot(instanceId) + ZTABLES + "/" + id.canonical() + ZTABLE_CONF + "/"
-        + PROP_NODE_NAME;
+  private static String buildNodePath(final InstanceId instanceId, final TableId id) {
+    return ZooUtil.getRoot(instanceId) + ZTABLES + "/" + id.canonical() + ZCONFIG;
   }
-
-  @Override
-  public @NonNull String getNodePath() {
-    return getNodePath(instanceId, id);
-  }
-
-  @Override
-  public @NonNull String getBasePath() {
-    return ZooUtil.getRoot(instanceId) + ZTABLES + "/" + id.canonical() + ZTABLE_CONF;
-  }
-
 }

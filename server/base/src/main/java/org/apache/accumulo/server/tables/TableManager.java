@@ -75,8 +75,6 @@ public class TableManager {
     zoo.putPersistentData(zPath, new byte[0], existsPolicy);
     zoo.putPersistentData(zPath + Constants.ZNAMESPACE_NAME, namespace.getBytes(UTF_8),
         existsPolicy);
-    zoo.putPersistentData(zPath + Constants.ZNAMESPACE_CONF, new byte[0], existsPolicy);
-
     var propKey = NamespacePropKey.of(instanceId, namespaceId);
     if (!propStore.exists(propKey)) {
       propStore.create(propKey, Map.of());
@@ -101,7 +99,6 @@ public class TableManager {
     tableName = qualifiedTableName.getSecond();
     String zTablePath = Constants.ZROOT + "/" + instanceId + Constants.ZTABLES + "/" + tableId;
     zoo.putPersistentData(zTablePath, new byte[0], existsPolicy);
-    zoo.putPersistentData(zTablePath + Constants.ZTABLE_CONF, new byte[0], existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_NAMESPACE,
         namespaceId.canonical().getBytes(UTF_8), existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_NAME, tableName.getBytes(UTF_8),
@@ -221,9 +218,9 @@ public class TableManager {
         TableState.NEW, NodeExistsPolicy.OVERWRITE);
 
     String srcTablePath = Constants.ZROOT + "/" + instanceID + Constants.ZTABLES + "/" + srcTableId
-        + Constants.ZTABLE_CONF;
-    String newTablePath = Constants.ZROOT + "/" + instanceID + Constants.ZTABLES + "/" + tableId
-        + Constants.ZTABLE_CONF;
+        + Constants.ZCONFIG;
+    String newTablePath =
+        Constants.ZROOT + "/" + instanceID + Constants.ZTABLES + "/" + tableId + Constants.ZCONFIG;
     zoo.recursiveCopyPersistentOverwrite(srcTablePath, newTablePath);
 
     PropUtil.setProperties(context, TablePropKey.of(context, tableId), propertiesToSet);
@@ -296,7 +293,7 @@ public class TableManager {
         case NodeDeleted:
           if (zPath != null && tableId != null
               && (zPath.equals(tablesPrefix + "/" + tableId + Constants.ZTABLE_STATE)
-                  || zPath.equals(tablesPrefix + "/" + tableId + Constants.ZTABLE_CONF)
+                  || zPath.equals(tablesPrefix + "/" + tableId + Constants.ZCONFIG)
                   || zPath.equals(tablesPrefix + "/" + tableId + Constants.ZTABLE_NAME)))
             tableStateCache.remove(tableId);
           break;

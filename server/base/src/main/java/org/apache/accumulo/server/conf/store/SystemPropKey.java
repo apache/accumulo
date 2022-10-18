@@ -23,7 +23,6 @@ import static org.apache.accumulo.core.Constants.ZCONFIG;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
-import org.checkerframework.checker.nullness.qual.NonNull;
 
 public class SystemPropKey extends PropStoreKey<InstanceId> {
 
@@ -31,26 +30,16 @@ public class SystemPropKey extends PropStoreKey<InstanceId> {
     super(instanceId, path, instanceId);
   }
 
-  @Override
-  public @NonNull String getNodePath() {
-    return getNodeName(instanceId);
-  }
-
-  @Override
-  public @NonNull String getBasePath() {
-    return ZooUtil.getRoot(instanceId) + ZCONFIG;
-  }
-
   public static SystemPropKey of(final ServerContext context) {
     return of(context.getInstanceID());
   }
 
   public static SystemPropKey of(final InstanceId instanceId) {
-    return new SystemPropKey(instanceId, getNodeName(instanceId));
+    return new SystemPropKey(instanceId, buildNodePath(instanceId));
   }
 
-  private static String getNodeName(final InstanceId instanceId) {
-    return ZooUtil.getRoot(instanceId) + ZCONFIG + "/" + PROP_NODE_NAME;
+  private static String buildNodePath(final InstanceId instanceId) {
+    return ZooUtil.getRoot(instanceId) + ZCONFIG;
   }
 
 }

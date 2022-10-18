@@ -73,9 +73,6 @@ public class ZooKeeperInitializer {
 
       String zkInstanceRoot = Constants.ZROOT + "/" + instanceId;
       zoo.putPersistentData(zkInstanceRoot, EMPTY_BYTE_ARRAY, ZooUtil.NodeExistsPolicy.SKIP);
-      zoo.putPersistentData(zkInstanceRoot + Constants.ZCONFIG, EMPTY_BYTE_ARRAY,
-          ZooUtil.NodeExistsPolicy.SKIP);
-
       var sysPropPath = SystemPropKey.of(instanceId).getPath();
       VersionedProperties vProps = new VersionedProperties();
       // skip if the encoded props node exists
