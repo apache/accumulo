@@ -267,14 +267,14 @@ public class ZooPropLoaderTest {
   }
 
   @Test
-  public void getWithoutCachingTest() {
+  public void getIfCachedTest() {
 
     replay(context, zrw, propStoreWatcher, cacheMetrics);
 
     PropCacheCaffeineImpl cache =
         new PropCacheCaffeineImpl.Builder(loader, cacheMetrics).forTests(ticker).build();
 
-    assertNull(cache.getWithoutCaching(propStoreKey));
+    assertNull(cache.getIfCached(propStoreKey));
 
   }
 
@@ -305,8 +305,8 @@ public class ZooPropLoaderTest {
     cache.remove(tablePropKey);
 
     // verify retrieved from cache without loading.
-    assertNotNull(cache.getWithoutCaching(sysPropKey));
-    assertNull(cache.getWithoutCaching(tablePropKey));
+    assertNotNull(cache.getIfCached(sysPropKey));
+    assertNull(cache.getIfCached(tablePropKey));
   }
 
   @Test
@@ -336,19 +336,19 @@ public class ZooPropLoaderTest {
     cache.removeAll();
 
     // verify retrieved from cache without loading.
-    assertNull(cache.getWithoutCaching(sysPropKey));
-    assertNull(cache.getWithoutCaching(tablePropKey));
+    assertNull(cache.getIfCached(sysPropKey));
+    assertNull(cache.getIfCached(tablePropKey));
   }
 
   @Test
-  public void getWithoutCachingNotPresentTest() {
+  public void getIfCachedNotPresentTest() {
     replay(context, zrw, propStoreWatcher, cacheMetrics);
 
     PropCacheCaffeineImpl cache =
         new PropCacheCaffeineImpl.Builder(loader, cacheMetrics).forTests(ticker).build();
 
     // load into cache
-    assertNull(cache.getWithoutCaching(propStoreKey));
+    assertNull(cache.getIfCached(propStoreKey));
   }
 
   @Test

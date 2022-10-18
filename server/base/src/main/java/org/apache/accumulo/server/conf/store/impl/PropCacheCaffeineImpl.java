@@ -109,7 +109,7 @@ public class PropCacheCaffeineImpl implements PropCache {
    *          the property id
    * @return the version properties if cached, otherwise return null.
    */
-  public @Nullable VersionedProperties getWithoutCaching(PropStoreKey<?> propStoreKey) {
+  public @Nullable VersionedProperties getIfCached(PropStoreKey<?> propStoreKey) {
     return cache.getIfPresent(propStoreKey);
   }
 

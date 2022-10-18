@@ -136,7 +136,7 @@ public interface PropStore {
   PropCache getCache();
 
   @Nullable
-  VersionedProperties getWithoutCaching(PropStoreKey<?> propStoreKey);
+  VersionedProperties getIfCached(PropStoreKey<?> propStoreKey);
 
   /**
    * Compare the stored data version with the expected version. Notifies subscribers of the change

@@ -115,11 +115,11 @@ public class PropCacheCaffeineImplTest {
     expect(zooPropLoader.load(eq(table2PropKey))).andReturn(vProps).once();
 
     replay(context, propStoreWatcher, zooPropLoader);
-    var props = cache.getWithoutCaching(tablePropKey);
+    var props = cache.getIfCached(tablePropKey);
     assertNull(props);
 
     assertNotNull(cache.get(table2PropKey)); // load into cache
-    assertNotNull(cache.getWithoutCaching(table2PropKey)); // read from cache - no load call.
+    assertNotNull(cache.getIfCached(table2PropKey)); // read from cache - no load call.
   }
 
   @Test
@@ -149,8 +149,8 @@ public class PropCacheCaffeineImplTest {
     cache.removeAll();
 
     // check that values are not in cache - will not call load
-    assertNull(cache.getWithoutCaching(tablePropKey));
-    assertNull(cache.getWithoutCaching(table2PropKey));
+    assertNull(cache.getIfCached(tablePropKey));
+    assertNull(cache.getIfCached(table2PropKey));
   }
 
   @Test
