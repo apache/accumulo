@@ -291,7 +291,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
 
     try {
 
-      VersionedProperties vProps = cache.getWithoutCaching(propStoreKey);
+      VersionedProperties vProps = cache.getIfCached(propStoreKey);
       if (vProps == null) {
         vProps = readPropsFromZk(propStoreKey);
       }
@@ -330,7 +330,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
 
     try {
       // Grab the current properties
-      VersionedProperties vProps = cache.getWithoutCaching(propStoreKey);
+      VersionedProperties vProps = cache.getIfCached(propStoreKey);
       if (vProps == null) {
         vProps = readPropsFromZk(propStoreKey);
       }
@@ -451,8 +451,8 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   }
 
   @Override
-  public @Nullable VersionedProperties getWithoutCaching(PropStoreKey<?> propStoreKey) {
-    return cache.getWithoutCaching(propStoreKey);
+  public @Nullable VersionedProperties getIfCached(PropStoreKey<?> propStoreKey) {
+    return cache.getIfCached(propStoreKey);
   }
 
   @Override
