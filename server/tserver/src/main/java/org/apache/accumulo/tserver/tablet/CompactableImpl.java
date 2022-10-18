@@ -1515,12 +1515,14 @@ public class CompactableImpl implements Compactable {
 
       closed = true;
 
-      // wait while internal jobs are running, external compactions are committing or the status of
-      // chops is MARKING, but do not wait on external compactions that are running
+      // Wait while internal jobs are running or external compactions are committing. When
+      // chopStatus is MARKING or selectStatus is SELECTING, there may be metadata table writes so
+      // wait on those. Do not wait on external compactions that are running.
       while (runningJobs.stream()
           .anyMatch(job -> !((CompactionExecutorIdImpl) job.getExecutor()).isExternalId())
           || !externalCompactionsCommitting.isEmpty()
-          || fileMgr.chopStatus == ChopSelectionStatus.MARKING) {
+          || fileMgr.chopStatus == ChopSelectionStatus.MARKING
+          || fileMgr.selectStatus == FileSelectionStatus.SELECTING) {
         try {
           wait(50);
         } catch (InterruptedException e) {
