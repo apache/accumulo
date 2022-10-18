@@ -18,12 +18,14 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static java.util.stream.Collectors.toUnmodifiableMap;
+
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
+import java.util.Map.Entry;
 
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.spi.scan.ScanServerAttempt;
@@ -41,71 +43,14 @@ public class ScanServerAttemptsImpl {
 
   private static final Logger LOG = LoggerFactory.getLogger(ScanServerAttemptsImpl.class);
 
-  static class ScanServerAttemptImpl implements ScanServerAttempt {
+  private final Map<TabletId,Collection<ScanServerAttemptImpl>> attempts = new HashMap<>();
 
-    private final String server;
-    private final long time;
-    private final Result result;
-    private volatile long mutationCount = Long.MAX_VALUE;
-
-    ScanServerAttemptImpl(Result result, String server, long time) {
-      this.result = result;
-      this.server = Objects.requireNonNull(server);
-      this.time = time;
-    }
-
-    @Override
-    public String getServer() {
-      return server;
-    }
-
-    @Override
-    public long getEndTime() {
-      return time;
-    }
-
-    @Override
-    public Result getResult() {
-      return result;
-    }
-
-    private void setMutationCount(long mc) {
-      this.mutationCount = mc;
-    }
-
-    public long getMutationCount() {
-      return mutationCount;
-    }
-  }
-
-  private final Map<TabletId,Collection<ScanServerAttemptImpl>> attempts =
-      new ConcurrentHashMap<>();
-  private long mutationCounter = 0;
-
-  private void add(TabletId tablet, ScanServerAttempt.Result result, String server, long endTime) {
-
-    ScanServerAttemptImpl sa = new ScanServerAttemptImpl(result, server, endTime);
-
-    attempts.computeIfAbsent(tablet, k -> ConcurrentHashMap.newKeySet()).add(sa);
-
-    synchronized (this) {
-      // now that the scan attempt obj is added to all concurrent data structs, make it visible
-      // need to atomically increment the counter AND set the counter on the object
-      sa.setMutationCount(mutationCounter++);
-    }
-
-  }
-
-  public interface ScanAttemptReporter {
-    void report(ScanServerAttempt.Result result);
-  }
-
-  ScanAttemptReporter createReporter(String server, TabletId tablet) {
-    return new ScanAttemptReporter() {
-      @Override
-      public void report(ScanServerAttempt.Result result) {
-        LOG.trace("Received result: {}", result);
-        add(tablet, result, server, System.currentTimeMillis());
+  ScanServerAttemptReporter createReporter(String server, TabletId tablet) {
+    return result -> {
+      LOG.trace("Received result: {}", result);
+      synchronized (attempts) {
+        attempts.computeIfAbsent(tablet, k -> new ArrayList<>())
+            .add(new ScanServerAttemptImpl(result, server));
       }
     };
   }
@@ -118,28 +63,9 @@ public class ScanServerAttemptsImpl {
    *         that TabletId
    */
   Map<TabletId,Collection<ScanServerAttemptImpl>> snapshot() {
-
-    final long mutationCounterSnapshot;
-    synchronized (ScanServerAttemptsImpl.this) {
-      mutationCounterSnapshot = mutationCounter;
+    synchronized (attempts) {
+      return attempts.entrySet().stream()
+          .collect(toUnmodifiableMap(Entry::getKey, entry -> List.copyOf(entry.getValue())));
     }
-
-    Map<TabletId,Collection<ScanServerAttemptImpl>> result = new ConcurrentHashMap<>();
-
-    attempts.forEach((tabletId, scanAttempts) -> {
-
-      // filter out ScanServerScanAttempt objects that were added after this call
-      List<ScanServerAttemptImpl> filteredScanAttempts = scanAttempts.stream()
-          .filter(scanAttempt -> scanAttempt.getMutationCount() < mutationCounterSnapshot)
-          .collect(Collectors.toList());
-
-      // only add an entry to the map if there are ScanServerScanAttempt objects for the current
-      // TabletId
-      if (!filteredScanAttempts.isEmpty())
-        result.put(tabletId, filteredScanAttempts);
-
-    });
-
-    return result;
   }
 }

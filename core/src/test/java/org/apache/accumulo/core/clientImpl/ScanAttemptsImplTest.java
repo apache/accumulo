@@ -34,7 +34,7 @@ import org.junit.jupiter.api.Test;
 public class ScanAttemptsImplTest {
 
   private Map<TabletId,Collection<String>>
-      simplify(Map<TabletId,Collection<ScanServerAttemptsImpl.ScanServerAttemptImpl>> map) {
+      simplify(Map<TabletId,Collection<ScanServerAttemptImpl>> map) {
     Map<TabletId,Collection<String>> ret = new HashMap<>();
 
     map.forEach((tabletId, scanAttempts) -> {

@@ -131,23 +131,16 @@ public class ConfigurableScanServerSelectorTest {
   static class TestScanServerAttempt implements ScanServerAttempt {
 
     private final String server;
-    private final long endTime;
     private final Result result;
 
-    TestScanServerAttempt(String server, long endTime, Result result) {
+    TestScanServerAttempt(String server, Result result) {
       this.server = server;
-      this.endTime = endTime;
       this.result = result;
     }
 
     @Override
     public String getServer() {
       return server;
-    }
-
-    @Override
-    public long getEndTime() {
-      return endTime;
     }
 
     @Override
@@ -204,7 +197,7 @@ public class ConfigurableScanServerSelectorTest {
     var tabletId = nti("1", "m");
 
     var tabletAttempts = Stream.iterate(1, i -> i <= busyAttempts, i -> i + 1)
-        .map(i -> (new TestScanServerAttempt("ss" + i + ":" + i, i, ScanServerAttempt.Result.BUSY)))
+        .map(i -> (new TestScanServerAttempt("ss" + i + ":" + i, ScanServerAttempt.Result.BUSY)))
         .collect(Collectors.toList());
 
     Map<TabletId,Collection<? extends ScanServerAttempt>> attempts = new HashMap<>();

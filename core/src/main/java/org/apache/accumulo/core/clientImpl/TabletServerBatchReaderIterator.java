@@ -344,13 +344,12 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     private List<Column> columns;
     private int semaphoreSize;
     private final long busyTimeout;
-    private final ScanServerAttemptsImpl.ScanAttemptReporter reporter;
+    private final ScanServerAttemptReporter reporter;
     private final Duration scanServerSelectorDelay;
 
     QueryTask(String tsLocation, Map<KeyExtent,List<Range>> tabletsRanges,
         Map<KeyExtent,List<Range>> failures, ResultReceiver receiver, List<Column> columns,
-        long busyTimeout, ScanServerAttemptsImpl.ScanAttemptReporter reporter,
-        Duration scanServerSelectorDelay) {
+        long busyTimeout, ScanServerAttemptReporter reporter, Duration scanServerSelectorDelay) {
       this.tsLocation = tsLocation;
       this.tabletsRanges = tabletsRanges;
       this.receiver = receiver;
@@ -487,7 +486,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     long busyTimeout = 0;
     Duration scanServerSelectorDelay = null;
-    Map<String,ScanServerAttemptsImpl.ScanAttemptReporter> reporters = Map.of();
+    Map<String,ScanServerAttemptReporter> reporters = Map.of();
 
     if (options.getConsistencyLevel().equals(ConsistencyLevel.EVENTUAL)) {
       var scanServerData = rebinToScanServers(binnedRanges);
@@ -580,7 +579,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   private static class ScanServerData {
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges;
     ScanServerSelections actions;
-    Map<String,ScanServerAttemptsImpl.ScanAttemptReporter> reporters;
+    Map<String,ScanServerAttemptReporter> reporters;
   }
 
   private ScanServerData rebinToScanServers(Map<String,Map<KeyExtent,List<Range>>> binnedRanges) {
@@ -624,7 +623,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges2 = new HashMap<>();
 
-    Map<String,ScanServerAttemptsImpl.ScanAttemptReporter> reporters = new HashMap<>();
+    Map<String,ScanServerAttemptReporter> reporters = new HashMap<>();
 
     for (TabletIdImpl tabletId : tabletIds) {
       KeyExtent extent = tabletId.toKeyExtent();

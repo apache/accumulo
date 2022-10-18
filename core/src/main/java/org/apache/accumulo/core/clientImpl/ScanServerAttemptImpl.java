@@ -16,23 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.spi.scan;
+package org.apache.accumulo.core.clientImpl;
 
-/**
- * This object is used to communicate what previous actions were attempted, when they were
- * attempted, and the result of those attempts
- *
- * @since 2.1.0
- */
-public interface ScanServerAttempt {
+import java.util.Objects;
 
-  // represents reasons that previous attempts to scan failed
-  enum Result {
-    BUSY, ERROR
+import org.apache.accumulo.core.spi.scan.ScanServerAttempt;
+
+class ScanServerAttemptImpl implements ScanServerAttempt {
+
+  private final String server;
+  private final Result result;
+
+  ScanServerAttemptImpl(Result result, String server) {
+    this.result = result;
+    this.server = Objects.requireNonNull(server);
   }
 
-  String getServer();
+  @Override
+  public String getServer() {
+    return server;
+  }
 
-  ScanServerAttempt.Result getResult();
+  @Override
+  public Result getResult() {
+    return result;
+  }
 
 }
