@@ -86,7 +86,6 @@ import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.AbstractServer;
-import org.apache.accumulo.server.GarbageCollectionLogger;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.conf.TableConfiguration;
@@ -194,8 +193,6 @@ public class ScanServer extends AbstractServer
   private final SessionManager sessionManager;
   private final TabletServerResourceManager resourceManager;
   HostAndPort clientAddress;
-  private final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
-
   private volatile boolean serverStopRequested = false;
   private ServiceLock scanServerLock;
   protected TabletServerScanMetrics scanMetrics;
@@ -326,7 +323,7 @@ public class ScanServer extends AbstractServer
             if (!serverStopRequested) {
               LOG.error("Lost tablet server lock (reason = {}), exiting.", reason);
             }
-            gcLogger.logGCInfo(getConfiguration());
+            getContext().getJvmGcLogger().log();
           });
         }
 
@@ -406,8 +403,7 @@ public class ScanServer extends AbstractServer
       } catch (IOException e) {
         LOG.warn("Failed to close filesystem : {}", e.getMessage(), e);
       }
-
-      gcLogger.logGCInfo(getConfiguration());
+      getContext().getJvmGcLogger().log();
       LOG.info("stop requested. exiting ... ");
       try {
         if (null != lock) {
@@ -968,11 +964,6 @@ public class ScanServer extends AbstractServer
   @Override
   public ZooCache getManagerLockCache() {
     return managerLockCache;
-  }
-
-  @Override
-  public GarbageCollectionLogger getGcLogger() {
-    return gcLogger;
   }
 
   @Override

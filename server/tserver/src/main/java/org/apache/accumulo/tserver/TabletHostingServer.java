@@ -24,7 +24,6 @@ import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.scan.ScanServerInfo;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.server.JvmGcLogger;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
@@ -57,8 +56,6 @@ public interface TabletHostingServer {
   ServiceLock getLock();
 
   ZooCache getManagerLockCache();
-
-  JvmGcLogger getJvmGcLogger();
 
   BlockCacheManager.Configuration getBlockCacheConfiguration(AccumuloConfiguration acuConf);
 }
