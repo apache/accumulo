@@ -125,16 +125,21 @@ public class Scanner {
       else
         throw iie;
     } catch (IOException ioe) {
-      if (ShutdownUtil.isShutdownInProgress()) {
+      if (ShutdownUtil.wasCausedByHadoopShutdown(ioe)) {
         log.debug("IOException while shutdown in progress ", ioe);
-        throw new TabletClosedException(ioe); // assume IOException was caused by execution of HDFS
-                                              // shutdown hook
+        throw new TabletClosedException(ioe); // this was possibly caused by Hadoop shutdown hook,
+                                              // so make the client retry
       }
 
       sawException = true;
       dataSource.close(true);
       throw ioe;
     } catch (RuntimeException re) {
+      if (ShutdownUtil.wasCausedByHadoopShutdown(re)) {
+        log.debug("RuntimeException while shutdown in progress ", re);
+        throw new TabletClosedException(re); // this was possibly caused by Hadoop shutdown hook, so
+                                             // make the client retry
+      }
       sawException = true;
       throw re;
     } finally {

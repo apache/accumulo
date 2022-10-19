@@ -410,7 +410,7 @@ public abstract class TabletBase {
             entriesAdded);
         tabletClosed = true;
       } catch (IOException ioe) {
-        if (ShutdownUtil.isShutdownInProgress()) {
+        if (ShutdownUtil.wasCausedByHadoopShutdown(ioe)) {
           // assume HDFS shutdown hook caused this exception
           log.debug("IOException while shutdown in progress", ioe);
           handleTabletClosedDuringScan(results, lookupResult, exceededMemoryUsage, range,
@@ -431,6 +431,15 @@ public abstract class TabletBase {
         handleTabletClosedDuringScan(results, lookupResult, exceededMemoryUsage, range,
             entriesAdded);
         tabletClosed = true;
+      } catch (RuntimeException re) {
+        if (ShutdownUtil.wasCausedByHadoopShutdown(re)) {
+          log.debug("RuntimeException while shutdown in progress", re);
+          handleTabletClosedDuringScan(results, lookupResult, exceededMemoryUsage, range,
+              entriesAdded);
+          tabletClosed = true;
+        } else {
+          throw re;
+        }
       }
 
     }

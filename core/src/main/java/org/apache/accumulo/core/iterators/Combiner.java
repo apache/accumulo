@@ -21,6 +21,7 @@ package org.apache.accumulo.core.iterators;
 import static java.util.concurrent.TimeUnit.HOURS;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -130,7 +131,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
         source.next();
         hasNext = _hasNext();
       } catch (IOException e) {
-        throw new RuntimeException(e);
+        throw new UncheckedIOException(e);
       }
       return topValue;
     }
