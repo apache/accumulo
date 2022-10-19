@@ -237,7 +237,9 @@ public class SummarizerConfiguration {
      * Convenience method for adding multiple options. The following
      *
      * <pre>
-     * {@code builder.addOptions("opt1","val1","opt2","val2","opt3","val3")}
+     * {@code
+     * builder.addOptions("opt1", "val1", "opt2", "val2", "opt3", "val3")
+     * }
      * </pre>
      *
      * <p>
@@ -245,9 +247,9 @@ public class SummarizerConfiguration {
      *
      * <pre>
      * {@code
-     *   builder.addOption("opt1","val1");
-     *   builder.addOption("opt2","val2");
-     *   builder.addOption("opt3","val3");
+     * builder.addOption("opt1", "val1");
+     * builder.addOption("opt2", "val2");
+     * builder.addOption("opt3", "val3");
      * }
      * </pre>
      *
