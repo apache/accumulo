@@ -419,7 +419,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
         break;
       case OBTAIN_DELEGATION_TOKEN:
         if (saslEnabled()) {
-          // TODO Try to obtain a delegation token without the permission
+          // not implemented
         }
         break;
       case GRANT:
@@ -592,7 +592,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
         break;
       case OBTAIN_DELEGATION_TOKEN:
         if (saslEnabled()) {
-          // TODO Try to obtain a delegation token with the permission
+          // not implemented
         }
         break;
       case GRANT:
