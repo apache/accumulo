@@ -326,8 +326,9 @@ public class MetadataSchema {
      * data for the current tablet, so that they are safe to merge
      */
     public static class ChoppedColumnFamily {
-      public static final Text NAME = new Text("chopped");
-      public static final ColumnFQ CHOPPED_COLUMN = new ColumnFQ(NAME, new Text("chopped"));
+      public static final String STR_NAME = "chopped";
+      public static final Text NAME = new Text(STR_NAME);
+      public static final ColumnFQ CHOPPED_COLUMN = new ColumnFQ(NAME, new Text(STR_NAME));
     }
 
     public static class ExternalCompactionColumnFamily {
@@ -459,6 +460,19 @@ public class MetadataSchema {
   public static class ExternalCompactionSection {
     private static final Section section =
         new Section(RESERVED_PREFIX + "ecomp", true, RESERVED_PREFIX + "ecomq", false);
+
+    public static Range getRange() {
+      return section.getRange();
+    }
+
+    public static String getRowPrefix() {
+      return section.getRowPrefix();
+    }
+  }
+
+  public static class ScanServerFileReferenceSection {
+    private static final Section section =
+        new Section(RESERVED_PREFIX + "sserv", true, RESERVED_PREFIX + "sserx", false);
 
     public static Range getRange() {
       return section.getRange();

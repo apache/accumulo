@@ -34,10 +34,13 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.crypto.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
+import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
@@ -140,7 +143,7 @@ public class LogSorter {
 
       input = fs.open(srcPath);
       try {
-        decryptingInput = DfsLogger.getDecryptingStream(input, sortedLogConf);
+        decryptingInput = DfsLogger.getDecryptingStream(input, cryptoService);
       } catch (LogHeaderIncompleteException e) {
         log.warn("Could not read header from write-ahead log {}. Not sorting.", srcPath);
         // Creating a 'finished' marker will cause recovery to proceed normally and the
@@ -208,7 +211,8 @@ public class LogSorter {
 
   ThreadPoolExecutor threadPool;
   private final ServerContext context;
-  private double walBlockSize;
+  private final double walBlockSize;
+  private final CryptoService cryptoService;
 
   public LogSorter(ServerContext context, AccumuloConfiguration conf) {
     this.context = context;
@@ -219,6 +223,8 @@ public class LogSorter {
     this.threadPool = ThreadPools.getServerThreadPools().createFixedThreadPool(threadPoolSize,
         this.getClass().getName(), true);
     this.walBlockSize = DfsLogger.getWalBlockSize(conf);
+    CryptoEnvironment env = new CryptoEnvironmentImpl(CryptoEnvironment.Scope.RECOVERY);
+    this.cryptoService = context.getCryptoFactory().getService(env, conf.getAllCryptoProperties());
   }
 
   /**
@@ -264,7 +270,7 @@ public class LogSorter {
     }
 
     try (var writer = FileOperations.getInstance().newWriterBuilder()
-        .forFile(fullPath.toString(), fs, fs.getConf(), context.getCryptoService())
+        .forFile(fullPath.toString(), fs, fs.getConf(), cryptoService)
         .withTableConfiguration(sortedLogConf).build()) {
       writer.startDefaultLocalityGroup();
       for (var entry : keyListMap.entrySet()) {

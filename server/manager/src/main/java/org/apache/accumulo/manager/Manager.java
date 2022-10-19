@@ -23,6 +23,7 @@ import static java.util.Collections.emptySortedMap;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -38,6 +39,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -133,6 +135,7 @@ import org.apache.accumulo.server.security.delegation.AuthenticationTokenKeyMana
 import org.apache.accumulo.server.security.delegation.ZooAuthenticationKeyDistributor;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tables.TableObserver;
+import org.apache.accumulo.server.util.ScanServerMetadataEntries;
 import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.hadoop.io.DataInputBuffer;
@@ -205,7 +208,11 @@ public class Manager extends AbstractServer
 
   private ManagerState state = ManagerState.INITIAL;
 
-  Fate<Manager> fate;
+  // fateReadyLatch and fateRef go together; when this latch is ready, then the fate reference
+  // should already have been set; still need to use atomic reference or volatile for fateRef, so no
+  // thread's cached view shows that fateRef is still null after the latch is ready
+  private final CountDownLatch fateReadyLatch = new CountDownLatch(1);
+  private final AtomicReference<Fate<Manager>> fateRef = new AtomicReference<>(null);
 
   volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus = emptySortedMap();
   volatile SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancer = emptySortedMap();
@@ -221,6 +228,40 @@ public class Manager extends AbstractServer
 
   public boolean stillManager() {
     return getManagerState() != ManagerState.STOP;
+  }
+
+  /**
+   * Retrieve the Fate object, blocking until it is ready. This could cause problems if Fate
+   * operations are attempted to be used prior to the Manager being ready for them. If these
+   * operations are triggered by a client side request from a tserver or client, it should be safe
+   * to wait to handle those until Fate is ready, but if it occurs during an upgrade, or some other
+   * time in the Manager before Fate is started, that may result in a deadlock and will need to be
+   * fixed.
+   *
+   * @return the Fate object, only after the fate components are running and ready
+   */
+  Fate<Manager> fate() {
+    try {
+      // block up to 30 seconds until it's ready; if it's still not ready, introduce some logging
+      if (!fateReadyLatch.await(30, TimeUnit.SECONDS)) {
+        String msgPrefix = "Unexpected use of fate in thread " + Thread.currentThread().getName()
+            + " at time " + System.currentTimeMillis();
+        // include stack trace so we know where it's coming from, in case we need to troubleshoot it
+        log.warn("{} blocked until fate starts", msgPrefix,
+            new IllegalStateException("Attempted fate action before manager finished starting up; "
+                + "if this doesn't make progress, please report it as a bug to the developers"));
+        int minutes = 0;
+        while (!fateReadyLatch.await(5, TimeUnit.MINUTES)) {
+          minutes += 5;
+          log.warn("{} still blocked after {} minutes; this is getting weird", msgPrefix, minutes);
+        }
+        log.debug("{} no longer blocked", msgPrefix);
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Thread was interrupted; cannot proceed");
+    }
+    return fateRef.get();
   }
 
   static final boolean X = true;
@@ -262,7 +303,7 @@ public class Manager extends AbstractServer
     }
 
     if (oldState != newState && (newState == ManagerState.NORMAL)) {
-      if (fate != null) {
+      if (fateRef.get() != null) {
         throw new IllegalStateException("Access to Fate should not have been"
             + " initialized prior to the Manager finishing upgrades. Please save"
             + " all logs and file a bug.");
@@ -1049,7 +1090,9 @@ public class Manager extends AbstractServer
       MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
           sa.getAddress());
       ManagerMetrics.init(getConfiguration(), this);
-    } catch (Exception e1) {
+    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+        | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
+        | SecurityException e1) {
       log.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
 
@@ -1141,14 +1184,19 @@ public class Manager extends AbstractServer
                   context.getZooReaderWriter()),
               TimeUnit.HOURS.toMillis(8), System::currentTimeMillis);
 
-      fate = new Fate<>(this, store, TraceRepo::toLogString);
-      fate.startTransactionRunners(getConfiguration());
+      Fate<Manager> f = new Fate<>(this, store, TraceRepo::toLogString);
+      f.startTransactionRunners(getConfiguration());
+      fateRef.set(f);
+      fateReadyLatch.countDown();
 
       ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
           .scheduleWithFixedDelay(store::ageOff, 63000, 63000, TimeUnit.MILLISECONDS));
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
     }
+
+    ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
+        () -> ScanServerMetadataEntries.clean(context), 10, 10, TimeUnit.MINUTES));
 
     initializeZkForReplication(zReaderWriter, zroot);
 
@@ -1216,7 +1264,7 @@ public class Manager extends AbstractServer
       sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
     }
     log.info("Shutting down fate.");
-    fate.shutdown();
+    fate().shutdown();
 
     final long deadline = System.currentTimeMillis() + MAX_CLEANUP_WAIT_TIME;
     try {

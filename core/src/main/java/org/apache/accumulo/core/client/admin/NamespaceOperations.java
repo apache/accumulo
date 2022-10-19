@@ -22,6 +22,7 @@ import java.util.EnumSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedSet;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -170,6 +171,32 @@ public interface NamespaceOperations {
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
 
   /**
+   * For a detailed overview of the behavior of this method see
+   * {@link InstanceOperations#modifyProperties(Consumer)} which operates on a different layer of
+   * properties but has the same behavior and better documentation.
+   *
+   * <p>
+   * Accumulo has multiple layers of properties that for many APIs and SPIs are presented as a
+   * single merged view. This API does not offer that merged view, it only offers the properties set
+   * at this namespace's layer to the mapMutator.
+   * </p>
+   *
+   * @param mapMutator
+   *          This consumer should modify the passed in snapshot of namespace properties to contain
+   *          the desired keys and values. It should be safe for Accumulo to call this consumer
+   *          multiple times, this may be done automatically when certain retryable errors happen.
+   *          The consumer should probably avoid accessing the Accumulo client as that could lead to
+   *          undefined behavior.
+   *
+   * @return The map that became Accumulo's new properties for this namespace. This map is immutable
+   *         and contains the snapshot passed to mapMutator and the changes made by mapMutator.
+   *
+   * @since 2.1.0
+   */
+  Map<String,String> modifyProperties(String namespace, Consumer<Map<String,String>> mapMutator)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
+
+  /**
    * Removes a property from a namespace. Note that it may take a few seconds to propagate the
    * change everywhere.
    *
@@ -228,6 +255,25 @@ public interface NamespaceOperations {
    * @since 2.1.0
    */
   Map<String,String> getConfiguration(String namespace)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
+
+  /**
+   * Gets properties specific to this namespace. Note that recently changed properties may not be
+   * available immediately. This new method returns a Map instead of an Iterable.
+   *
+   * @param namespace
+   *          the name of the namespace
+   * @return per-table properties specific to this namespace. Note that recently changed properties
+   *         may not be visible immediately.
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission
+   * @throws NamespaceNotFoundException
+   *           if the specified namespace doesn't exist
+   * @since 2.1.0
+   */
+  Map<String,String> getNamespaceProperties(String namespace)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
 
   /**

@@ -46,15 +46,14 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
+import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.singletons.SingletonReservation;
-import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.spi.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -63,10 +62,8 @@ import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
-import org.apache.accumulo.server.conf.SystemConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.conf.store.PropStore;
-import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.metadata.ServerAmpleImpl;
@@ -100,11 +97,10 @@ public class ServerContext extends ClientContext {
   private final Supplier<TableManager> tableManager;
   private final Supplier<UniqueNameAllocator> nameAllocator;
   private final Supplier<ServerConfigurationFactory> serverConfFactory;
-  private final Supplier<SystemConfiguration> systemConfig;
   private final Supplier<AuthenticationTokenSecretManager> secretManager;
-  private final Supplier<CryptoService> cryptoService;
   private final Supplier<ScheduledThreadPoolExecutor> sharedScheduledThreadPool;
   private final Supplier<AuditedSecurityOperation> securityOperation;
+  private final Supplier<CryptoServiceFactory> cryptoFactorySupplier;
 
   private final Supplier<JvmGcLogger> jvmGcLogger;
 
@@ -123,12 +119,9 @@ public class ServerContext extends ClientContext {
     tableManager = memoize(() -> new TableManager(this));
     nameAllocator = memoize(() -> new UniqueNameAllocator(this));
     serverConfFactory = memoize(() -> new ServerConfigurationFactory(this, getSiteConfiguration()));
-    systemConfig = memoize(() -> new SystemConfiguration(this, SystemPropKey.of(getInstanceID()),
-        getSiteConfiguration()));
     secretManager = memoize(() -> new AuthenticationTokenSecretManager(getInstanceID(),
         getConfiguration().getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME)));
-    cryptoService = memoize(
-        () -> CryptoServiceFactory.newInstance(getConfiguration(), ClassloaderType.ACCUMULO));
+    cryptoFactorySupplier = memoize(() -> CryptoFactoryLoader.newInstance(getConfiguration()));
     sharedScheduledThreadPool = memoize(() -> ThreadPools.getServerThreadPools()
         .createGeneralScheduledExecutorService(getConfiguration()));
     securityOperation =
@@ -165,7 +158,7 @@ public class ServerContext extends ClientContext {
 
   @Override
   public AccumuloConfiguration getConfiguration() {
-    return systemConfig.get();
+    return serverConfFactory.get().getSystemConfiguration();
   }
 
   public TableConfiguration getTableConfiguration(TableId id) {
@@ -277,8 +270,8 @@ public class ServerContext extends ClientContext {
     return nameAllocator.get();
   }
 
-  public CryptoService getCryptoService() {
-    return cryptoService.get();
+  public CryptoServiceFactory getCryptoFactory() {
+    return cryptoFactorySupplier.get();
   }
 
   @Override

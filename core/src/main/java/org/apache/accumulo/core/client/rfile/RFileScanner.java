@@ -39,8 +39,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
+import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
@@ -67,6 +66,7 @@ import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheEntry;
 import org.apache.accumulo.core.spi.cache.CacheType;
+import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -208,7 +208,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
         if (opts.dataCacheSize > 0) {
           cc.set(Property.TSERV_DATACACHE_SIZE, Long.toString(opts.dataCacheSize));
         }
-        blockCacheManager.start(new BlockCacheConfiguration(cc));
+        blockCacheManager.start(BlockCacheConfiguration.forTabletServer(cc));
         this.indexCache = blockCacheManager.getBlockCache(CacheType.INDEX);
         this.dataCache = blockCacheManager.getBlockCache(CacheType.DATA);
       } catch (RuntimeException e) {
@@ -223,7 +223,8 @@ class RFileScanner extends ScannerOptions implements Scanner {
     if (this.dataCache == null) {
       this.dataCache = new NoopCache();
     }
-    this.cryptoService = CryptoServiceFactory.newInstance(tableConf, ClassloaderType.JAVA);
+    this.cryptoService =
+        CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.TABLE, opts.tableConfig);
   }
 
   @Override

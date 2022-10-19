@@ -18,6 +18,10 @@
  */
 package org.apache.accumulo.core.spi.crypto;
 
+import java.util.Optional;
+
+import org.apache.accumulo.core.data.TableId;
+
 /**
  * Useful information provided to the crypto implementation
  *
@@ -28,10 +32,18 @@ public interface CryptoEnvironment {
    * Where in Accumulo the on-disk file encryption takes place.
    */
   enum Scope {
-    WAL, RFILE
+    WAL, TABLE, RECOVERY
   }
 
   Scope getScope();
 
-  byte[] getDecryptionParams();
+  /**
+   * If in the TABLE scope, get the tableId. Will be empty in WAL scope.
+   */
+  Optional<TableId> getTableId();
+
+  /**
+   * If decrypting files, get the params read from the file. Will be empty if encrypting.
+   */
+  Optional<byte[]> getDecryptionParams();
 }

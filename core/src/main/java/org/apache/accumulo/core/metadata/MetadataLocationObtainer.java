@@ -115,9 +115,9 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
         range = new Range(results.lastKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME),
             true, new Key(stopRow).followingKey(PartialKey.ROW), false);
         encodedResults.clear();
-        more = ThriftScanner.getBatchFromServer(context, range, src.tablet_extent,
-            src.tablet_location, encodedResults, locCols, serverSideIteratorList,
-            serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, 0L, null);
+        ThriftScanner.getBatchFromServer(context, range, src.tablet_extent, src.tablet_location,
+            encodedResults, locCols, serverSideIteratorList, serverSideIteratorOptions,
+            Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, 0L, null);
 
         decodeRows(encodedResults, results);
       }

@@ -20,7 +20,6 @@ package org.apache.accumulo.server.conf.store.impl;
 
 import static org.apache.accumulo.core.conf.Property.TABLE_BULK_MAX_TABLETS;
 import static org.apache.accumulo.core.conf.Property.TABLE_FILE_BLOCK_SIZE;
-import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
@@ -31,7 +30,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
@@ -117,11 +115,11 @@ public class PropCacheCaffeineImplTest {
     expect(zooPropLoader.load(eq(table2PropKey))).andReturn(vProps).once();
 
     replay(context, propStoreWatcher, zooPropLoader);
-    var props = cache.getWithoutCaching(tablePropKey);
+    var props = cache.getIfCached(tablePropKey);
     assertNull(props);
 
     assertNotNull(cache.get(table2PropKey)); // load into cache
-    assertNotNull(cache.getWithoutCaching(table2PropKey)); // read from cache - no load call.
+    assertNotNull(cache.getIfCached(table2PropKey)); // read from cache - no load call.
   }
 
   @Test
@@ -151,29 +149,8 @@ public class PropCacheCaffeineImplTest {
     cache.removeAll();
 
     // check that values are not in cache - will not call load
-    assertNull(cache.getWithoutCaching(tablePropKey));
-    assertNull(cache.getWithoutCaching(table2PropKey));
-  }
-
-  VersionedProperties asyncProps() {
-    return vProps;
-  }
-
-  @Test
-  public void refreshTest() throws Exception {
-
-    expect(zooPropLoader.load(eq(tablePropKey))).andReturn(vProps).once();
-
-    var future = CompletableFuture.supplyAsync(this::asyncProps);
-
-    expect(zooPropLoader.asyncReload(eq(tablePropKey), eq(vProps), anyObject())).andReturn(future)
-        .once();
-
-    replay(context, propStoreWatcher, zooPropLoader);
-    assertNotNull(cache.get(tablePropKey)); // will call load and place into cache
-
-    ticker.advance(30, TimeUnit.MINUTES);
-    assertNotNull(cache.get(tablePropKey)); // will async check stat and then reload
+    assertNull(cache.getIfCached(tablePropKey));
+    assertNull(cache.getIfCached(table2PropKey));
   }
 
   @Test

@@ -81,7 +81,7 @@ public class TableLoadBalancerTest {
     return new TServerStatusImpl(thriftStatus);
   }
 
-  static SortedMap<TabletServerId,TServerStatus> state;
+  private static final SortedMap<TabletServerId,TServerStatus> state = new TreeMap<>();
 
   static List<TabletStatistics> generateFakeTablets(TabletServerId tserver, TableId tableId) {
     List<TabletStatistics> result = new ArrayList<>();
@@ -133,7 +133,7 @@ public class TableLoadBalancerTest {
 
     String t1Id = TABLE_ID_MAP.get("t1"), t2Id = TABLE_ID_MAP.get("t2"),
         t3Id = TABLE_ID_MAP.get("t3");
-    state = new TreeMap<>();
+    state.clear();
     TabletServerId svr = mkts("10.0.0.1", 1234, "0x01020304");
     state.put(svr, status(t1Id, 10, t2Id, 10, t3Id, 10));
 

@@ -81,7 +81,7 @@ public class RetryTest {
     for (int i = 0; i < MAX_RETRIES; i++) {
       assertEquals(i, retry.retriesCompleted());
       // canRetry doesn't alter retry's state
-      retry.canRetry();
+      assertTrue(retry.canRetry());
       assertEquals(i, retry.retriesCompleted());
       // Using the retry will increase the internal count
       retry.useRetry();

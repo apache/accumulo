@@ -21,11 +21,14 @@ package org.apache.accumulo.core.rpc.clients;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
+import java.util.ConcurrentModificationException;
+
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftConcurrentModificationException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
@@ -74,6 +77,8 @@ public class ManagerThriftClient extends ThriftClientTypes<Client>
         // Let it loop, fetching a new location
         LOG.debug("Contacted a Manager which is no longer active, retrying");
         sleepUninterruptibly(100, MILLISECONDS);
+      } catch (ThriftConcurrentModificationException e) {
+        throw new ConcurrentModificationException(e.getMessage(), e);
       } catch (Exception e) {
         throw new AccumuloException(e);
       } finally {
@@ -119,6 +124,8 @@ public class ManagerThriftClient extends ThriftClientTypes<Client>
         // Let it loop, fetching a new location
         LOG.debug("Contacted a Manager which is no longer active, retrying");
         sleepUninterruptibly(100, MILLISECONDS);
+      } catch (ThriftConcurrentModificationException e) {
+        throw new ConcurrentModificationException(e.getMessage(), e);
       } catch (Exception e) {
         throw new AccumuloException(e);
       } finally {

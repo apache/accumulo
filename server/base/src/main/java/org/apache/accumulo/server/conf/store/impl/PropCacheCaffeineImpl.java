@@ -39,11 +39,11 @@ import com.github.benmanes.caffeine.cache.Ticker;
 public class PropCacheCaffeineImpl implements PropCache {
 
   public static final TimeUnit BASE_TIME_UNITS = TimeUnit.MINUTES;
-  public static final int REFRESH_MIN = 15;
+
   public static final int EXPIRE_MIN = 60;
   private static final Logger log = LoggerFactory.getLogger(PropCacheCaffeineImpl.class);
   private static final Executor executor = ThreadPools.getServerThreadPools().createThreadPool(1,
-      20, 60, TimeUnit.SECONDS, "cache-refresh", false);
+      20, 60, TimeUnit.SECONDS, "caffeine-tasks", false);
 
   private final PropStoreMetrics metrics;
 
@@ -52,15 +52,15 @@ public class PropCacheCaffeineImpl implements PropCache {
   private PropCacheCaffeineImpl(final CacheLoader<PropStoreKey<?>,VersionedProperties> cacheLoader,
       final PropStoreMetrics metrics, final Ticker ticker, boolean runTasksInline) {
     this.metrics = metrics;
-    var builder = Caffeine.newBuilder().refreshAfterWrite(REFRESH_MIN, BASE_TIME_UNITS)
-        .expireAfterAccess(EXPIRE_MIN, BASE_TIME_UNITS).evictionListener(this::evictionNotifier);
+    var builder = Caffeine.newBuilder().expireAfterAccess(EXPIRE_MIN, BASE_TIME_UNITS)
+        .evictionListener(this::evictionNotifier);
     if (runTasksInline) {
-      builder = builder.executor(Runnable::run);
+      builder.executor(Runnable::run);
     } else {
-      builder = builder.executor(executor);
+      builder.executor(executor);
     }
     if (ticker != null) {
-      builder = builder.ticker(ticker);
+      builder.ticker(ticker);
     }
     cache = builder.build(cacheLoader);
   }
@@ -109,7 +109,7 @@ public class PropCacheCaffeineImpl implements PropCache {
    *          the property id
    * @return the version properties if cached, otherwise return null.
    */
-  public @Nullable VersionedProperties getWithoutCaching(PropStoreKey<?> propStoreKey) {
+  public @Nullable VersionedProperties getIfCached(PropStoreKey<?> propStoreKey) {
     return cache.getIfPresent(propStoreKey);
   }
 

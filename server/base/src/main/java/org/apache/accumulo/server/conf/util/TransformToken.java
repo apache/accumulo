@@ -25,7 +25,6 @@ import java.util.Objects;
 import java.util.UUID;
 
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.server.conf.store.PropStoreKey;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -55,8 +54,8 @@ public class TransformToken {
   private final ZooReaderWriter zrw;
   private boolean haveToken = false;
 
-  private TransformToken(final @NonNull PropStoreKey<?> key, final ZooReaderWriter zrw) {
-    path = key.getBasePath() + TRANSFORM_TOKEN;
+  private TransformToken(final @NonNull String basePath, final ZooReaderWriter zrw) {
+    path = basePath + TRANSFORM_TOKEN;
     this.zrw = zrw;
 
     boolean t = getTokenOwnership();
@@ -69,18 +68,16 @@ public class TransformToken {
    * already exists, the lock is unlocked and the caller can decide to either wait for the resource
    * to be created by the thread that created the lock, or try calling to {@code lock} to succeed
    *
-   * @param key
-   *          a PropStoreKey that defines the storage location of the created lock and the
-   *          associated property nodes.
+   * @param path
+   *          the parent node of the legacy properties and the associated property children nodes.
    * @param zrw
    *          a ZooReaderWriter
    * @return an TransformLock instance.
    * @throws IllegalStateException
    *           is the lock creation fails due to an underlying ZooKeeper exception.
    */
-  public static TransformToken createToken(final @NonNull PropStoreKey<?> key,
-      final ZooReaderWriter zrw) {
-    return new TransformToken(key, zrw);
+  public static TransformToken createToken(final @NonNull String path, final ZooReaderWriter zrw) {
+    return new TransformToken(path, zrw);
   }
 
   /**

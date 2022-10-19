@@ -42,7 +42,6 @@ import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -56,8 +55,10 @@ import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterato
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
+import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.tserver.InMemoryMap.MemoryIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -96,12 +97,14 @@ public class InMemoryMapTest extends WithTestNames {
   public static ServerContext getServerContext() {
     Configuration hadoopConf = new Configuration();
     ServerContext context = EasyMock.createMock(ServerContext.class);
-    EasyMock.expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())
-        .anyTimes();
+    TableConfiguration tConf = EasyMock.createMock(TableConfiguration.class);
     EasyMock.expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance())
         .anyTimes();
+    EasyMock.expect(context.getTableConfiguration(EasyMock.anyObject())).andReturn(tConf)
+        .anyTimes();
+    EasyMock.expect(tConf.getCryptoService()).andReturn(NoCryptoServiceFactory.NONE).anyTimes();
     EasyMock.expect(context.getHadoopConf()).andReturn(hadoopConf).anyTimes();
-    EasyMock.replay(context);
+    EasyMock.replay(context, tConf);
     return context;
   }
 

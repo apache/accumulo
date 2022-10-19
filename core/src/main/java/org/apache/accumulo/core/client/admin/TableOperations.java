@@ -27,6 +27,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.concurrent.Executor;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -183,19 +184,23 @@ public interface TableOperations {
    */
   default void importTable(String tableName, String importDir)
       throws TableExistsException, AccumuloException, AccumuloSecurityException {
-    importTable(tableName, Set.of(importDir));
+    importTable(tableName, Set.of(importDir), ImportConfiguration.empty());
   }
 
   /**
-   * Imports a table exported via exportTable and copied via hadoop distcp.
+   * Imports a table exported via {@link #exportTable(String, String)} and then copied via hadoop
+   * distcp.
    *
    * @param tableName
    *          Name of a table to create and import into.
+   * @param ic
+   *          ImportConfiguration for the table being created. If no configuration is needed pass
+   *          {@link ImportConfiguration#empty}
    * @param importDirs
    *          A set of directories containing the files copied by distcp from exportTable
    * @since 2.1.0
    */
-  void importTable(String tableName, Set<String> importDirs)
+  void importTable(String tableName, Set<String> importDirs, ImportConfiguration ic)
       throws TableExistsException, AccumuloException, AccumuloSecurityException;
 
   /**
@@ -424,12 +429,24 @@ public interface TableOperations {
 
   /**
    * Starts a full major compaction of the tablets in the range (start, end]. If the config does not
-   * specify a compaction strategy, then all files in a tablet are compacted. The compaction is
-   * performed even for tablets that have only one file.
+   * specify a compaction selector (or a deprecated strategy), then all files in a tablet are
+   * compacted. The compaction is performed even for tablets that have only one file.
    *
    * <p>
-   * Only one compact call at a time can pass iterators and/or a compaction strategy. If two threads
-   * call compaction with iterators and/or a compaction strategy, then one will fail.
+   * The following optional settings can only be set by one compact call per table at the same time.
+   *
+   * <ul>
+   * <li>Execution hints : {@link CompactionConfig#setExecutionHints(Map)}</li>
+   * <li>Selector : {@link CompactionConfig#setSelector(PluginConfig)}</li>
+   * <li>Configurer : {@link CompactionConfig#setConfigurer(PluginConfig)}</li>
+   * <li>Iterators : {@link CompactionConfig#setIterators(List)}</li>
+   * <li>Compaction strategy (deprecated) :
+   * {@code CompactionConfig.setCompactionStrategy(CompactionStrategyConfig)}</li>
+   * </ul>
+   *
+   * <p>
+   * If two threads call this method concurrently for the same table and set one or more of the
+   * above then one thread will fail.
    *
    * @param tableName
    *          the table to compact
@@ -589,6 +606,39 @@ public interface TableOperations {
       throws AccumuloException, AccumuloSecurityException;
 
   /**
+   *
+   * For a detailed overview of the behavior of this method see
+   * {@link InstanceOperations#modifyProperties(Consumer)} which operates on a different layer of
+   * properties but has the same behavior and better documentation.
+   *
+   * <p>
+   * Accumulo has multiple layers of properties that for many APIs and SPIs are presented as a
+   * single merged view. This API does not offer that merged view, it only offers the properties set
+   * at this table's layer to the mapMutator.
+   * </p>
+   *
+   * @param mapMutator
+   *          This consumer should modify the passed in snapshot of table properties contain the
+   *          desired keys and values. It should be safe for Accumulo to call this consumer multiple
+   *          times, this may be done automatically when certain retryable errors happen. The
+   *          consumer should probably avoid accessing the Accumulo client as that could lead to
+   *          undefined behavior.
+   *
+   * @return The map that became Accumulo's new properties for this table. This map is immutable and
+   *         contains the snapshot passed to mapMutator and the changes made by mapMutator.
+   *
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission
+   * @throws IllegalArgumentException
+   *           if the Consumer alters the map by adding properties that cannot be stored
+   * @since 2.1.0
+   */
+  Map<String,String> modifyProperties(String tableName, Consumer<Map<String,String>> mapMutator)
+      throws AccumuloException, AccumuloSecurityException, IllegalArgumentException;
+
+  /**
    * Removes a property from a table. This operation is asynchronous and eventually consistent. Not
    * all tablets in a table will acknowledge this altered value immediately nor at the same time.
    * Within a few seconds without another change, all tablets in a table should see the altered
@@ -641,6 +691,23 @@ public interface TableOperations {
    * @since 2.1.0
    */
   Map<String,String> getConfiguration(String tableName)
+      throws AccumuloException, TableNotFoundException;
+
+  /**
+   * Gets per-table properties of a table. This operation is asynchronous and eventually consistent.
+   * It is not guaranteed that all tablets in a table will return the same values. Within a few
+   * seconds without another change, all tablets in a table should be consistent. The clone table
+   * feature can be used if consistency is required.
+   *
+   * @param tableName
+   *          the name of the table
+   * @return per-table properties visible by this table. Note that recently changed properties may
+   *         not be visible immediately.
+   * @throws TableNotFoundException
+   *           if the table does not exist
+   * @since 2.1.0
+   */
+  Map<String,String> getTableProperties(String tableName)
       throws AccumuloException, TableNotFoundException;
 
   /**
@@ -1060,11 +1127,21 @@ public interface TableOperations {
       throws AccumuloException, TableNotFoundException;
 
   /**
-   * Gets the number of bytes being used in the files for a set of tables
+   * Gets the number of bytes being used by the files for a set of tables. This operation will scan
+   * the metadata table for file size information to compute the size metrics for the tables.
+   *
+   * Because the metadata table is used for computing usage and not the actual files in HDFS the
+   * results will be an estimate. Older entries may exist with no file metadata (resulting in size
+   * 0) and other actions in the cluster can impact the estimated size such as flushes, tablet
+   * splits, compactions, etc.
+   *
+   * For more accurate information a compaction should first be run on all files for the set of
+   * tables being computed.
    *
    * @param tables
    *          a set of tables
-   * @return a list of disk usage objects containing linked table names and sizes
+   * @return a list of disk usage objects containing linked table names and sizes set of tables to
+   *         compute usage across
    * @since 1.6.0
    */
   List<DiskUsage> getDiskUsage(Set<String> tables)
@@ -1187,4 +1264,17 @@ public interface TableOperations {
       throws AccumuloException, TableNotFoundException {
     throw new UnsupportedOperationException();
   }
+
+  /**
+   * Return the TimeType for the given table
+   *
+   * @param tableName
+   *          The name of table to query
+   * @return the TimeType of the supplied table, representing either Logical or Milliseconds
+   * @since 2.1.0
+   */
+  default TimeType getTimeType(String tableName) throws TableNotFoundException {
+    throw new UnsupportedOperationException();
+  }
+
 }

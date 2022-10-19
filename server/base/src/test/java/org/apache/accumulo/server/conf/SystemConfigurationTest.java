@@ -133,9 +133,4 @@ public class SystemConfigurationTest {
     assertTrue(sysConfig.isPropertySet(TABLE_BLOOM_SIZE)); // default
 
   }
-
-  @Test
-  public void isPropertySet() {
-    // TODO - add test
-  }
 }

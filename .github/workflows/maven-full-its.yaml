@@ -37,6 +37,9 @@ on:
         required: true
         default: 15
 
+permissions:
+  contents: read
+
 jobs:
   # fast build to populate the local maven repository cache
   fastbuild:
@@ -69,7 +72,7 @@ jobs:
     needs: fastbuild
     timeout-minutes: 5
     outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      matrix: ${{ steps.set-matrix.outputs.CUSTOM_MATRIX }}
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3

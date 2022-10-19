@@ -20,6 +20,7 @@ package org.apache.accumulo.core.metadata.schema;
 
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.data.Mutation;
@@ -28,6 +29,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
@@ -45,21 +47,21 @@ import org.apache.hadoop.io.Text;
  * <p>
  * This interface seeks to satisfy the following goals.
  *
- * <UL>
- * <LI>Provide a single entry point for all reading and writing of Accumulo Metadata.
- * <LI>The root tablet persists its data in Zookeeper. Metadata tablets persist their data in root
+ * <ul>
+ * <li>Provide a single entry point for all reading and writing of Accumulo Metadata.
+ * <li>The root tablet persists its data in Zookeeper. Metadata tablets persist their data in root
  * tablet. All other tablets persist their data in the metadata table. This interface abstracts how
  * and where information for a tablet is actually persisted.
- * <LI>Before the creation of this interface, many concurrent metadata table updates resulted in
+ * <li>Before the creation of this interface, many concurrent metadata table updates resulted in
  * separate synchronous RPCs. The design of this interface allows batching of metadata table updates
  * within a tablet server for cluster wide efficiencies. Batching is not required by
  * implementations, but the design of the interface makes it possible.
- * <LI>Make code that updates Accumulo persistent metadata more concise. Before this interface
+ * <li>Make code that updates Accumulo persistent metadata more concise. Before this interface
  * existed, there was a lot of redundant and verbose code for updating metadata.
- * <LI>Reduce specialized code for the root tablet. Currently there is specialized code to manage
+ * <li>Reduce specialized code for the root tablet. Currently there is specialized code to manage
  * the root tablets files that is different from all other tablets. This interface is the beginning
  * of an effort to remove this specialized code. See #936
- * </UL>
+ * </ul>
  */
 public interface Ample {
 
@@ -304,5 +306,46 @@ public interface Ample {
      * After this method is called, calling any method on this object will result in an exception.
      */
     void mutate();
+  }
+
+  /**
+   * Insert ScanServer references to Tablet files
+   *
+   * @param scanRefs
+   *          set of scan server ref table file objects
+   */
+  default void putScanServerFileReferences(Collection<ScanServerRefTabletFile> scanRefs) {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Get ScanServer references to Tablet files
+   *
+   * @return stream of scan server references
+   */
+  default Stream<ScanServerRefTabletFile> getScanServerFileReferences() {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Delete the set of scan server references
+   *
+   * @param refsToDelete
+   *          set of scan server references to delete
+   */
+  default void deleteScanServerFileReferences(Collection<ScanServerRefTabletFile> refsToDelete) {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Delete scan server references for this server
+   *
+   * @param serverAddress
+   *          address of server, cannot be null
+   * @param serverSessionId
+   *          server session id, cannot be null
+   */
+  default void deleteScanServerFileReferences(String serverAddress, UUID serverSessionId) {
+    throw new UnsupportedOperationException();
   }
 }

@@ -297,7 +297,10 @@ public class CompressionAlgorithm extends Configured {
       updateBuffer(config, bufferSizeConfigOpt, bufferSize);
       return (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), config);
     } catch (ClassNotFoundException e) {
-      LOG.debug("Unable to load codec class {} for {}", clazz, codecClazzProp, e);
+      LOG.debug(
+          "ClassNotFoundException creating codec class {} for {}. Enable trace logging for stacktrace.",
+          clazz, codecClazzProp);
+      LOG.trace("Unable to load codec class due to ", e);
     }
     return null;
   }

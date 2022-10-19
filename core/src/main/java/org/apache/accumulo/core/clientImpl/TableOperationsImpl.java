@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.ConcurrentModificationException;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -50,6 +51,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -57,10 +59,10 @@ import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -78,10 +80,12 @@ import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.FindMax;
+import org.apache.accumulo.core.client.admin.ImportConfiguration;
 import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.SummaryRetriever;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -91,6 +95,7 @@ import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Client;
 import org.apache.accumulo.core.clientImpl.thrift.TDiskUsage;
+import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
@@ -156,7 +161,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   private static final SecureRandom random = new SecureRandom();
 
-  public static final String CLONE_EXCLUDE_PREFIX = "!";
+  public static final String PROPERTY_EXCLUDE_PREFIX = "!";
   public static final String COMPACTION_CANCELED_MSG = "Compaction canceled";
   public static final String TABLE_DELETED_MSG = "Table is being deleted";
 
@@ -772,33 +777,21 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloSecurityException, TableNotFoundException, AccumuloException,
       TableExistsException {
     NEW_TABLE_NAME.validate(newTableName);
+    requireNonNull(config, "CloneConfiguration required.");
 
     TableId srcTableId = context.getTableId(srcTableName);
 
     if (config.isFlush())
       _flush(srcTableId, null, null, true);
 
-    Set<String> propertiesToExclude = config.getPropertiesToExclude();
-    if (propertiesToExclude == null)
-      propertiesToExclude = Collections.emptySet();
-
-    Map<String,String> propertiesToSet = config.getPropertiesToSet();
-    if (propertiesToSet == null)
-      propertiesToSet = Collections.emptyMap();
+    Map<String,String> opts = new HashMap<>();
+    validatePropertiesToSet(opts, config.getPropertiesToSet());
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(srcTableId.canonical().getBytes(UTF_8)),
         ByteBuffer.wrap(newTableName.getBytes(UTF_8)),
         ByteBuffer.wrap(Boolean.toString(config.isKeepOffline()).getBytes(UTF_8)));
-    Map<String,String> opts = new HashMap<>();
-    for (Entry<String,String> entry : propertiesToSet.entrySet()) {
-      if (entry.getKey().startsWith(CLONE_EXCLUDE_PREFIX))
-        throw new IllegalArgumentException("Property can not start with " + CLONE_EXCLUDE_PREFIX);
-      opts.put(entry.getKey(), entry.getValue());
-    }
 
-    for (String prop : propertiesToExclude) {
-      opts.put(CLONE_EXCLUDE_PREFIX + prop, "");
-    }
+    prependPropertiesToExclude(opts, config.getPropertiesToExclude());
 
     doTableFateOperation(newTableName, AccumuloException.class, FateOperation.TABLE_CLONE, args,
         opts);
@@ -1017,6 +1010,65 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
+  private Map<String,String> tryToModifyProperties(String tableName,
+      final Consumer<Map<String,String>> mapMutator) throws AccumuloException,
+      AccumuloSecurityException, IllegalArgumentException, ConcurrentModificationException {
+    final TVersionedProperties vProperties =
+        ThriftClientTypes.CLIENT.execute(context, client -> client
+            .getVersionedTableProperties(TraceUtil.traceInfo(), context.rpcCreds(), tableName));
+    mapMutator.accept(vProperties.getProperties());
+
+    // A reference to the map was passed to the user, maybe they still have the reference and are
+    // modifying it. Buggy Accumulo code could attempt to make modifications to the map after this
+    // point. Because of these potential issues, create an immutable snapshot of the map so that
+    // from here on the code is assured to always be dealing with the same map.
+    vProperties.setProperties(Map.copyOf(vProperties.getProperties()));
+
+    try {
+      // Send to server
+      ThriftClientTypes.MANAGER.executeVoid(context,
+          client -> client.modifyTableProperties(TraceUtil.traceInfo(), context.rpcCreds(),
+              tableName, vProperties));
+      for (String property : vProperties.getProperties().keySet()) {
+        checkLocalityGroups(tableName, property);
+      }
+    } catch (TableNotFoundException e) {
+      throw new AccumuloException(e);
+    }
+
+    return vProperties.getProperties();
+  }
+
+  @Override
+  public Map<String,String> modifyProperties(String tableName,
+      final Consumer<Map<String,String>> mapMutator)
+      throws AccumuloException, AccumuloSecurityException, IllegalArgumentException {
+    EXISTING_TABLE_NAME.validate(tableName);
+    checkArgument(mapMutator != null, "mapMutator is null");
+
+    Retry retry =
+        Retry.builder().infiniteRetries().retryAfter(25, MILLISECONDS).incrementBy(25, MILLISECONDS)
+            .maxWait(30, SECONDS).backOffFactor(1.5).logInterval(3, MINUTES).createRetry();
+
+    while (true) {
+      try {
+        var props = tryToModifyProperties(tableName, mapMutator);
+        retry.logCompletion(log, "Modifying properties for table " + tableName);
+        return props;
+      } catch (ConcurrentModificationException cme) {
+        try {
+          retry.logRetry(log, "Unable to modify table properties for " + tableName
+              + " because of concurrent modification");
+          retry.waitForNextAttempt();
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
+      } finally {
+        retry.useRetry();
+      }
+    }
+  }
+
   private void setPropertyNoChecks(final String tableName, final String property,
       final String value)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
@@ -1046,7 +1098,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   void checkLocalityGroups(String tableName, String propChanged)
-      throws AccumuloException, TableNotFoundException {
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     if (LocalityGroupUtil.isLocalityGroupProperty(propChanged)) {
       Map<String,String> allProps = getConfiguration(tableName);
       try {
@@ -1070,6 +1122,33 @@ public class TableOperationsImpl extends TableOperationsHelper {
     try {
       return ThriftClientTypes.CLIENT.execute(context, client -> client
           .getTableConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), tableName));
+    } catch (AccumuloException e) {
+      Throwable t = e.getCause();
+      if (t instanceof ThriftTableOperationException) {
+        ThriftTableOperationException ttoe = (ThriftTableOperationException) t;
+        switch (ttoe.getType()) {
+          case NOTFOUND:
+            throw new TableNotFoundException(ttoe);
+          case NAMESPACE_NOTFOUND:
+            throw new TableNotFoundException(tableName, new NamespaceNotFoundException(ttoe));
+          default:
+            throw e;
+        }
+      }
+      throw e;
+    } catch (Exception e) {
+      throw new AccumuloException(e);
+    }
+  }
+
+  @Override
+  public Map<String,String> getTableProperties(final String tableName)
+      throws AccumuloException, TableNotFoundException {
+    EXISTING_TABLE_NAME.validate(tableName);
+
+    try {
+      return ThriftClientTypes.CLIENT.execute(context, client -> client
+          .getTableProperties(TraceUtil.traceInfo(), context.rpcCreds(), tableName));
     } catch (AccumuloException e) {
       Throwable t = e.getCause();
       if (t instanceof ThriftTableOperationException) {
@@ -1570,10 +1649,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public void importTable(String tableName, Set<String> importDirs)
+  public void importTable(String tableName, Set<String> importDirs, ImportConfiguration ic)
       throws TableExistsException, AccumuloException, AccumuloSecurityException {
     EXISTING_TABLE_NAME.validate(tableName);
     checkArgument(importDirs != null, "importDir is null");
+
+    boolean keepOffline = ic.isKeepOffline();
+    boolean keepMapping = ic.isKeepMappings();
 
     Set<String> checkedImportDirs = new HashSet<>();
     try {
@@ -1603,15 +1685,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
           ioe.getMessage());
     }
 
-    Stream<String> argStream = Stream.concat(Stream.of(tableName), checkedImportDirs.stream());
-    List<ByteBuffer> args =
-        argStream.map(String::getBytes).map(ByteBuffer::wrap).collect(Collectors.toList());
-
-    Map<String,String> opts = Collections.emptyMap();
+    List<ByteBuffer> args = new ArrayList<>(3 + checkedImportDirs.size());
+    args.add(0, ByteBuffer.wrap(tableName.getBytes(UTF_8)));
+    args.add(1, ByteBuffer.wrap(Boolean.toString(keepOffline).getBytes(UTF_8)));
+    args.add(2, ByteBuffer.wrap(Boolean.toString(keepMapping).getBytes(UTF_8)));
+    checkedImportDirs.stream().map(String::getBytes).map(ByteBuffer::wrap).forEach(args::add);
 
     try {
       doTableFateOperation(tableName, AccumuloException.class, FateOperation.TABLE_IMPORT, args,
-          opts);
+          Collections.emptyMap());
     } catch (TableNotFoundException e) {
       // should not happen
       throw new AssertionError(e);
@@ -1632,6 +1714,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     EXISTING_TABLE_NAME.validate(tableName);
     checkArgument(exportDir != null, "exportDir is null");
+
+    if (isOnline(tableName)) {
+      throw new IllegalStateException("The table " + tableName + " is online; exportTable requires"
+          + " a table to be offline before exporting.");
+    }
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)),
         ByteBuffer.wrap(exportDir.getBytes(UTF_8)));
@@ -1735,11 +1822,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     EXISTING_TABLE_NAME.validate(tableName);
 
     clearSamplerOptions(tableName);
-    List<Pair<String,String>> props =
-        new SamplerConfigurationImpl(samplerConfiguration).toTableProperties();
-    for (Pair<String,String> pair : props) {
-      setProperty(tableName, pair.getFirst(), pair.getSecond());
-    }
+    Map<String,String> props =
+        new SamplerConfigurationImpl(samplerConfiguration).toTablePropertiesMap();
+    modifyProperties(tableName, properties -> properties.putAll(props));
   }
 
   @Override
@@ -1753,7 +1838,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public SamplerConfiguration getSamplerConfiguration(String tableName)
-      throws TableNotFoundException, AccumuloException {
+      throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
     EXISTING_TABLE_NAME.validate(tableName);
 
     AccumuloConfiguration conf = new ConfigurationCopy(this.getProperties(tableName));
@@ -1981,11 +2066,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
     }
 
-    Set<Entry<String,String>> es =
-        SummarizerConfiguration.toTableProperties(newConfigSet).entrySet();
-    for (Entry<String,String> entry : es) {
-      setProperty(tableName, entry.getKey(), entry.getValue());
-    }
+    Map<String,String> props = SummarizerConfiguration.toTableProperties(newConfigSet);
+    modifyProperties(tableName, properties -> properties.putAll(props));
   }
 
   @Override
@@ -1996,14 +2078,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Collection<SummarizerConfiguration> summarizerConfigs =
         SummarizerConfiguration.fromTableProperties(getProperties(tableName));
 
-    for (SummarizerConfiguration sc : summarizerConfigs) {
-      if (predicate.test(sc)) {
-        Set<String> ks = sc.toTableProperties().keySet();
-        for (String key : ks) {
-          removeProperty(tableName, key);
-        }
-      }
-    }
+    modifyProperties(tableName,
+        properties -> summarizerConfigs.stream().filter(predicate)
+            .map(sc -> sc.toTableProperties().keySet())
+            .forEach(keySet -> keySet.forEach(properties::remove)));
+
   }
 
   @Override
@@ -2016,5 +2095,36 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public ImportDestinationArguments importDirectory(String directory) {
     return new BulkImport(directory, context);
+  }
+
+  @Override
+  public TimeType getTimeType(final String tableName) throws TableNotFoundException {
+    TableId tableId = context.getTableId(tableName);
+    Optional<TabletMetadata> tabletMetadata = context.getAmple().readTablets().forTable(tableId)
+        .fetch(TabletMetadata.ColumnType.TIME).checkConsistency().build().stream().findFirst();
+    TabletMetadata timeData =
+        tabletMetadata.orElseThrow(() -> new IllegalStateException("Failed to retrieve TimeType"));
+    return timeData.getTime().getType();
+  }
+
+  private void prependPropertiesToExclude(Map<String,String> opts, Set<String> propsToExclude) {
+    if (propsToExclude == null)
+      return;
+
+    for (String prop : propsToExclude) {
+      opts.put(PROPERTY_EXCLUDE_PREFIX + prop, "");
+    }
+  }
+
+  private void validatePropertiesToSet(Map<String,String> opts, Map<String,String> propsToSet) {
+    if (propsToSet == null)
+      return;
+
+    propsToSet.forEach((k, v) -> {
+      if (k.startsWith(PROPERTY_EXCLUDE_PREFIX))
+        throw new IllegalArgumentException(
+            "Property can not start with " + PROPERTY_EXCLUDE_PREFIX);
+      opts.put(k, v);
+    });
   }
 }

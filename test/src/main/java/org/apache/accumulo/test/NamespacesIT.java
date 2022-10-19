@@ -55,6 +55,7 @@ import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.ImportConfiguration;
 import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -258,6 +259,13 @@ public class NamespacesIT extends SharedMiniClusterBase {
 
   @Test
   public void verifyPropertyInheritance() throws Exception {
+
+    try (AccumuloClient client =
+        getCluster().createAccumuloClient(getPrincipal(), new PasswordToken(getRootPassword()))) {
+      client.securityOperations().grantNamespacePermission(getPrincipal(), "",
+          NamespacePermission.ALTER_NAMESPACE);
+    }
+
     String t0 = "0";
     String t1 = namespace + ".1";
     String t2 = namespace + ".2";
@@ -325,6 +333,25 @@ public class NamespacesIT extends SharedMiniClusterBase {
     assertTrue(checkNamespaceHasProp(namespace, k2, v2));
     assertTrue(checkTableHasProp(t1, k2, v2));
     assertTrue(checkTableHasProp(t2, k2, table_v2));
+
+    // modify multiple at once
+    String k3 = Property.TABLE_FILE_BLOCK_SIZE.getKey();
+    String v3 = "52";
+    String table_v3 = "73";
+    c.namespaceOperations().modifyProperties(namespace, properties -> {
+      properties.remove(k2);
+      properties.put(k3, v3);
+    });
+    c.tableOperations().modifyProperties(t2, properties -> {
+      properties.remove(k2);
+      properties.put(k3, table_v3);
+    });
+    assertTrue(checkNamespaceHasProp(namespace, k3, v3));
+    assertTrue(checkTableHasProp(t1, k3, v3));
+    assertTrue(checkTableHasProp(t2, k3, table_v3));
+    assertFalse(checkNamespaceHasProp(namespace, k2, v2));
+    assertFalse(checkTableHasProp(t1, k2, v2));
+    assertFalse(checkTableHasProp(t2, k2, table_v2));
 
     c.tableOperations().delete(t1);
     c.tableOperations().delete(t2);
@@ -729,11 +756,17 @@ public class NamespacesIT extends SharedMiniClusterBase {
       loginAs(user1);
       assertSecurityException(SecurityErrorCode.PERMISSION_DENIED,
           () -> user1Con.tableOperations().setProperty(t3, Property.TABLE_FILE_MAX.getKey(), "42"));
+      assertSecurityException(SecurityErrorCode.PERMISSION_DENIED,
+          () -> user1Con.tableOperations().modifyProperties(t3,
+              properties -> properties.put(Property.TABLE_FILE_MAX.getKey(), "55")));
 
       loginAs(root);
       c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.ALTER_TABLE);
+      c.securityOperations().grantTablePermission(u1, t3, TablePermission.ALTER_TABLE);
       loginAs(user1);
       user1Con.tableOperations().setProperty(t3, Property.TABLE_FILE_MAX.getKey(), "42");
+      user1Con.tableOperations().modifyProperties(t3,
+          properties -> properties.put(Property.TABLE_FILE_MAX.getKey(), "43"));
       user1Con.tableOperations().removeProperty(t3, Property.TABLE_FILE_MAX.getKey());
       loginAs(root);
       c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.ALTER_TABLE);
@@ -741,11 +774,17 @@ public class NamespacesIT extends SharedMiniClusterBase {
       loginAs(user1);
       assertSecurityException(SecurityErrorCode.PERMISSION_DENIED, () -> user1Con
           .namespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "55"));
+      assertSecurityException(SecurityErrorCode.PERMISSION_DENIED,
+          () -> user1Con.namespaceOperations().modifyProperties(n1,
+              properties -> properties.put(Property.TABLE_FILE_MAX.getKey(), "55")));
 
       loginAs(root);
       c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.ALTER_NAMESPACE);
       loginAs(user1);
       user1Con.namespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "42");
+      user1Con.namespaceOperations().modifyProperties(n1, properties -> {
+        properties.put(Property.TABLE_FILE_MAX.getKey(), "43");
+      });
       user1Con.namespaceOperations().removeProperty(n1, Property.TABLE_FILE_MAX.getKey());
       loginAs(root);
       c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.ALTER_NAMESPACE);
@@ -807,6 +846,15 @@ public class NamespacesIT extends SharedMiniClusterBase {
 
   @Test
   public void verifySystemPropertyInheritance() throws Exception {
+
+    try (AccumuloClient client =
+        getCluster().createAccumuloClient(getPrincipal(), new PasswordToken(getRootPassword()))) {
+      client.securityOperations().grantNamespacePermission(getPrincipal(), "accumulo",
+          NamespacePermission.ALTER_NAMESPACE);
+      client.securityOperations().grantNamespacePermission(getPrincipal(), "",
+          NamespacePermission.ALTER_NAMESPACE);
+    }
+
     String t1 = "1";
     String t2 = namespace + "." + t1;
     c.tableOperations().create(t1);
@@ -1008,8 +1056,8 @@ public class NamespacesIT extends SharedMiniClusterBase {
         () -> ops.clone("a", tableName, true, Collections.emptyMap(), Collections.emptySet()));
     ops.offline("a", true);
     ops.exportTable("a", System.getProperty("user.dir") + "/target");
-    assertAccumuloExceptionNoNamespace(
-        () -> ops.importTable(tableName, Set.of(System.getProperty("user.dir") + "/target")));
+    assertAccumuloExceptionNoNamespace(() -> ops.importTable(tableName,
+        Set.of(System.getProperty("user.dir") + "/target"), ImportConfiguration.empty()));
 
     // table operations that should throw an AccumuloException caused by a TableNotFoundException
     // caused by a NamespaceNotFoundException

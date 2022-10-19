@@ -22,6 +22,7 @@ import static java.util.Objects.requireNonNullElseGet;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.ConcurrentModificationException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiFunction;
@@ -47,6 +48,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Ticker;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class ZooPropStore implements PropStore, PropChangeListener {
 
@@ -87,6 +90,8 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    * @param ticker
    *          a synthetic clock used for testing. Optional, if null, one is created.
    */
+  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
+      justification = "random number not used in secure context")
   ZooPropStore(final InstanceId instanceId, final ZooReaderWriter zrw, final ReadyMonitor monitor,
       final PropStoreWatcher watcher, final Ticker ticker) {
 
@@ -117,7 +122,11 @@ public class ZooPropStore implements PropStore, PropChangeListener {
         throw new IllegalStateException("Instance may not have been initialized, root node: " + path
             + " does not exist in ZooKeeper");
       }
-    } catch (InterruptedException | KeeperException ex) {
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException(
+          "Interrupted trying to read root node " + instanceId + " from ZooKeeper", ex);
+    } catch (KeeperException ex) {
       throw new IllegalStateException("Failed to read root node " + instanceId + " from ZooKeeper",
           ex);
     }
@@ -181,7 +190,8 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     }
 
     if (propStoreKey instanceof SystemPropKey) {
-      return new ConfigTransformer(zrw, codec, propStoreWatcher).transform(propStoreKey);
+      return new ConfigTransformer(zrw, codec, propStoreWatcher).transform(propStoreKey,
+          propStoreKey.getPath(), false);
     }
 
     throw new IllegalStateException(
@@ -213,6 +223,10 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     try {
       Stat stat = new Stat();
       byte[] bytes = zooReader.getData(propStoreKey.getPath(), watcher, stat);
+      if (stat.getDataLength() == 0) {
+        // node exists - but is empty - no props have been stored on node.
+        return null;
+      }
       return codec.fromBytes(stat.getVersion(), bytes);
     } catch (KeeperException.NoNodeException ex) {
       // ignore no node - allow other exceptions to propagate
@@ -247,6 +261,12 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   }
 
   @Override
+  public void replaceAll(@NonNull PropStoreKey<?> propStoreKey, long version,
+      @NonNull Map<String,String> props) {
+    mutateVersionedProps(propStoreKey, VersionedProperties::replaceAll, version, props);
+  }
+
+  @Override
   public void removeProperties(@NonNull PropStoreKey<?> propStoreKey,
       @NonNull Collection<String> keys) {
     if (keys.isEmpty()) {
@@ -276,7 +296,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
 
     try {
 
-      VersionedProperties vProps = cache.getWithoutCaching(propStoreKey);
+      VersionedProperties vProps = cache.getIfCached(propStoreKey);
       if (vProps == null) {
         vProps = readPropsFromZk(propStoreKey);
       }
@@ -304,6 +324,54 @@ public class ZooPropStore implements PropStore, PropChangeListener {
       }
       throw new IllegalStateException(
           "failed to remove properties to zooKeeper for " + propStoreKey, ex);
+    }
+  }
+
+  private <T> void mutateVersionedProps(PropStoreKey<?> propStoreKey,
+      BiFunction<VersionedProperties,T,VersionedProperties> action, long existingVersion,
+      T changes) {
+
+    log.trace("mutateVersionedProps called for: {}", propStoreKey);
+
+    try {
+      // Grab the current properties
+      VersionedProperties vProps = cache.getIfCached(propStoreKey);
+      if (vProps == null) {
+        vProps = readPropsFromZk(propStoreKey);
+      }
+
+      // Compare the version of the current properties in the cache/ZK and the passed in version to
+      // see if the versions match
+      // If the versions do not match then we want to throw an error. This check here allows us to
+      // avoid
+      // an extra call to zookeeper if the versions don't match
+      if (vProps.getDataVersion() != existingVersion) {
+        throw new ConcurrentModificationException("Failed to modify properties to zooKeeper for "
+            + propStoreKey + ", properties changed since reading.", null);
+      }
+
+      final VersionedProperties updates = action.apply(vProps, changes);
+
+      // We checked the version earlier but this could still fail if another update was made
+      // and hadn't propagated yet to update the cache during the time that updates were applied
+      // after reading
+      // Zookeeper will return false if the versions do not match, so we should throw an error to
+      // let the caller
+      // know the version supplied is no longer the latest
+      if (!zrw.overwritePersistentData(propStoreKey.getPath(), codec.toBytes(updates),
+          (int) updates.getDataVersion())) {
+        throw new ConcurrentModificationException("Failed to modify properties to zooKeeper for "
+            + propStoreKey + ", properties changed since reading.", null);
+      }
+    } catch (IllegalArgumentException | IOException ex) {
+      throw new IllegalStateException(
+          "Codec failed to decode / encode properties for " + propStoreKey, ex);
+    } catch (InterruptedException | KeeperException ex) {
+      if (ex instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
+      throw new IllegalStateException(
+          "failed to modify properties to zooKeeper for " + propStoreKey, ex);
     }
   }
 
@@ -375,6 +443,9 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     try {
       Stat stat = new Stat();
       byte[] bytes = zrw.getData(propStoreKey.getPath(), stat);
+      if (stat.getDataLength() == 0) {
+        return new VersionedProperties();
+      }
       return codec.fromBytes(stat.getVersion(), bytes);
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
@@ -388,7 +459,30 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   }
 
   @Override
-  public @Nullable VersionedProperties getWithoutCaching(PropStoreKey<?> propStoreKey) {
-    return cache.getWithoutCaching(propStoreKey);
+  public @Nullable VersionedProperties getIfCached(PropStoreKey<?> propStoreKey) {
+    return cache.getIfCached(propStoreKey);
   }
+
+  @Override
+  public boolean validateDataVersion(PropStoreKey<?> storeKey, long expectedVersion) {
+    try {
+      Stat stat = zrw.getStatus(storeKey.getPath());
+      log.trace("data version sync: stat returned: {} for {}", stat, storeKey);
+      if (stat == null || expectedVersion != stat.getVersion()) {
+        propStoreWatcher.signalZkChangeEvent(storeKey);
+        return false;
+      }
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException(ex);
+    } catch (KeeperException.NoNodeException ex) {
+      propStoreWatcher.signalZkChangeEvent(storeKey);
+      return false;
+    } catch (KeeperException ex) {
+      log.debug("exception occurred verifying data version for {}", storeKey);
+      return false;
+    }
+    return true;
+  }
+
 }

@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
@@ -42,25 +44,39 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
-import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.RemoteIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
-import com.google.common.base.Joiner;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
+/**
+ * This utility class will scan the Accumulo Metadata table to compute the disk usage for a table or
+ * table(s) by using the size value stored in columns that contain the column family
+ * {@link org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily}.
+ *
+ * This class will also track shared files to computed shared usage across all tables that are
+ * provided as part of the Set of tables when getting disk usage.
+ *
+ * Because the metadata table is used for computing usage and not the actual files in HDFS the
+ * results will be an estimate. Older entries may exist with no file metadata (resulting in size 0)
+ * and other actions in the cluster can impact the estimated size such as flushes, tablet splits,
+ * compactions, etc.
+ *
+ * For more accurate information a compaction should first be run on all files for the set of tables
+ * being computed.
+ */
 public class TableDiskUsage {
 
   private static final Logger log = LoggerFactory.getLogger(TableDiskUsage.class);
@@ -71,8 +87,9 @@ public class TableDiskUsage {
   private Map<String,Long> fileSizes = new HashMap<>();
 
   void addTable(TableId tableId) {
-    if (internalIds.containsKey(tableId))
+    if (internalIds.containsKey(tableId)) {
       throw new IllegalArgumentException("Already added table " + tableId);
+    }
 
     // Keep an internal counter for each table added
     int iid = nextInternalId++;
@@ -91,8 +108,9 @@ public class TableDiskUsage {
     Integer[] tables = tableFiles.get(file);
     if (tables == null) {
       tables = new Integer[internalIds.size()];
-      for (int i = 0; i < tables.length; i++)
+      for (int i = 0; i < tables.length; i++) {
         tables[i] = 0;
+      }
       tableFiles.put(file, tables);
     }
 
@@ -121,8 +139,9 @@ public class TableDiskUsage {
       Long size = fileSizes.get(entry.getKey());
 
       Long tablesUsage = usage.get(key);
-      if (tablesUsage == null)
+      if (tablesUsage == null) {
         tablesUsage = 0L;
+      }
 
       tablesUsage += size;
 
@@ -137,9 +156,10 @@ public class TableDiskUsage {
       List<Integer> key = entry.getKey();
       // table bitset
       for (int i = 0; i < key.size(); i++)
-        if (key.get(i) != 0)
+        if (key.get(i) != 0) {
           // Convert by internal id to the table id
           externalKey.add(externalIds.get(i));
+        }
 
       // list of table ids and size of files shared across the tables
       externalUsage.put(externalKey, entry.getValue());
@@ -154,83 +174,90 @@ public class TableDiskUsage {
     void print(String line);
   }
 
-  public static void printDiskUsage(Collection<String> tableNames, VolumeManager fs,
-      AccumuloClient client, boolean humanReadable) throws TableNotFoundException, IOException {
-    printDiskUsage(tableNames, fs, client, System.out::println, humanReadable);
+  public static void printDiskUsage(Collection<String> tableNames, AccumuloClient client,
+      boolean humanReadable) throws TableNotFoundException, IOException {
+    printDiskUsage(tableNames, client, System.out::println, humanReadable);
   }
 
-  public static Map<TreeSet<String>,Long> getDiskUsage(Set<TableId> tableIds, VolumeManager fs,
-      AccumuloClient client) throws IOException {
-    TableDiskUsage tdu = new TableDiskUsage();
+  /**
+   * Compute the estimated disk usage for the given set of tables by scanning the Metadata table for
+   * file sizes. Optionally computes shared usage across tables.
+   *
+   * @param tableIds
+   *          set of tables to compute an estimated disk usage for
+   * @param client
+   *          accumulo client used to scan
+   * @return the computed estimated usage results
+   *
+   * @throws TableNotFoundException
+   *           if the table(s) do not exist
+   */
+  public static Map<SortedSet<String>,Long> getDiskUsage(Set<TableId> tableIds,
+      AccumuloClient client) throws TableNotFoundException {
+    final TableDiskUsage tdu = new TableDiskUsage();
 
     // Add each tableID
     for (TableId tableId : tableIds)
       tdu.addTable(tableId);
 
-    HashSet<TableId> tablesReferenced = new HashSet<>(tableIds);
     HashSet<TableId> emptyTableIds = new HashSet<>();
-    HashSet<String> nameSpacesReferenced = new HashSet<>();
 
     // For each table ID
     for (TableId tableId : tableIds) {
-      Scanner mdScanner;
-      try {
-        mdScanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-      } catch (TableNotFoundException e) {
-        throw new RuntimeException(e);
-      }
-      mdScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-      mdScanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
+      // if the table to compute usage is for the metadata table itself then we need to scan the
+      // root table, else we scan the metadata table
+      try (Scanner mdScanner = tableId.equals(MetadataTable.ID)
+          ? client.createScanner(RootTable.NAME, Authorizations.EMPTY)
+          : client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+        mdScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+        mdScanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
 
-      if (!mdScanner.iterator().hasNext()) {
-        emptyTableIds.add(tableId);
-      }
+        final Set<TabletFile> files = new HashSet<>();
 
-      // Read each file referenced by that table
-      for (Entry<Key,Value> entry : mdScanner) {
-        String file = entry.getKey().getColumnQualifier().toString();
-        String[] parts = file.split("/");
-        // the filename
-        String uniqueName = parts[parts.length - 1];
-        if (file.contains(":") || file.startsWith("../")) {
-          String ref = parts[parts.length - 3];
-          // Track any tables which are referenced externally by the current table
-          if (!ref.equals(tableId.canonical())) {
-            tablesReferenced.add(TableId.of(ref));
+        // Read each file referenced by that table
+        for (Map.Entry<Key,Value> entry : mdScanner) {
+          final TabletFile file =
+              new TabletFile(new Path(entry.getKey().getColumnQualifier().toString()));
+
+          // get the table referenced by the file which may not be the same as the current
+          // table we are scanning if the file is shared between multiple tables
+          final TableId fileTableRef = file.getTableId();
+
+          // if this is a ref to a different table than the one we are scanning then we need
+          // to make sure the table is also linked for this shared file if the table is
+          // part of the set of tables we are running du on so we can track shared usages
+          if (!fileTableRef.equals(tableId) && tableIds.contains(fileTableRef)) {
+            // link the table and the shared file for computing shared sizes
+            tdu.linkFileAndTable(fileTableRef, file.getFileName());
           }
-          if (file.contains(":") && parts.length > 3) {
-            List<String> base = Arrays.asList(Arrays.copyOf(parts, parts.length - 3));
-            nameSpacesReferenced.add(Joiner.on("/").join(base));
+
+          // link the file to the table we are scanning for
+          tdu.linkFileAndTable(tableId, file.getFileName());
+
+          // add the file size for the table if not already seen for this scan
+          if (files.add(file)) {
+            // This tracks the file size for individual files for computing shared file statistics
+            // later
+            tdu.addFileSize(file.getFileName(),
+                new DataFileValue(entry.getValue().get()).getSize());
           }
         }
 
-        // add this file to this table
-        tdu.linkFileAndTable(tableId, uniqueName);
-      }
-    }
-
-    // Each table seen (provided by user, or reference by table the user provided)
-    for (TableId tableId : tablesReferenced) {
-      for (String tableDir : nameSpacesReferenced) {
-        // Find each file and add its size
-        Path path = new Path(tableDir + "/" + tableId);
-        if (!fs.exists(path)) {
-          log.debug("Table ID directory {} does not exist.", path);
-          continue;
-        }
-        log.info("Get all files recursively in {}", path);
-        RemoteIterator<LocatedFileStatus> ri = fs.listFiles(path, true);
-        while (ri.hasNext()) {
-          FileStatus status = ri.next();
-          String name = status.getPath().getName();
-          tdu.addFileSize(name, status.getLen());
+        // Track tables that are empty with no metadata
+        if (files.isEmpty()) {
+          emptyTableIds.add(tableId);
         }
       }
     }
 
-    Map<TableId,String> reverseTableIdMap = ((ClientContext) client).getTableIdToNameMap();
+    return buildSharedUsageMap(tdu, ((ClientContext) client), emptyTableIds);
+  }
 
-    TreeMap<TreeSet<String>,Long> usage = new TreeMap<>((o1, o2) -> {
+  protected static Map<SortedSet<String>,Long> buildSharedUsageMap(final TableDiskUsage tdu,
+      final ClientContext clientContext, final Set<TableId> emptyTableIds) {
+    final Map<TableId,String> reverseTableIdMap = clientContext.getTableIdToNameMap();
+
+    SortedMap<SortedSet<String>,Long> usage = new TreeMap<>((o1, o2) -> {
       int len1 = o1.size();
       int len2 = o2.size();
 
@@ -247,8 +274,9 @@ public class TableDiskUsage {
 
         int cmp = s1.compareTo(s2);
 
-        if (cmp != 0)
+        if (cmp != 0) {
           return cmp;
+        }
 
         count++;
       }
@@ -259,8 +287,9 @@ public class TableDiskUsage {
     for (Entry<List<TableId>,Long> entry : tdu.calculateUsage().entrySet()) {
       TreeSet<String> tableNames = new TreeSet<>();
       // Convert size shared by each table id into size shared by each table name
-      for (TableId tableId : entry.getKey())
+      for (TableId tableId : entry.getKey()) {
         tableNames.add(reverseTableIdMap.get(tableId));
+      }
 
       // Make table names to shared file size
       usage.put(tableNames, entry.getValue());
@@ -277,25 +306,25 @@ public class TableDiskUsage {
     return usage;
   }
 
-  public static void printDiskUsage(Collection<String> tableNames, VolumeManager fs,
-      AccumuloClient client, Printer printer, boolean humanReadable)
-      throws TableNotFoundException, IOException {
+  public static void printDiskUsage(Collection<String> tableNames, AccumuloClient client,
+      Printer printer, boolean humanReadable) throws TableNotFoundException, IOException {
 
     HashSet<TableId> tableIds = new HashSet<>();
 
     // Get table IDs for all tables requested to be 'du'
     for (String tableName : tableNames) {
       TableId tableId = ((ClientContext) client).getTableId(tableName);
-      if (tableId == null)
+      if (tableId == null) {
         throw new TableNotFoundException(null, tableName, "Table " + tableName + " not found");
+      }
 
       tableIds.add(tableId);
     }
 
-    Map<TreeSet<String>,Long> usage = getDiskUsage(tableIds, fs, client);
+    Map<SortedSet<String>,Long> usage = getDiskUsage(tableIds, client);
 
     String valueFormat = humanReadable ? "%9s" : "%,24d";
-    for (Entry<TreeSet<String>,Long> entry : usage.entrySet()) {
+    for (Entry<SortedSet<String>,Long> entry : usage.entrySet()) {
       Object value = humanReadable ? NumUtil.bigNumberForSize(entry.getValue()) : entry.getValue();
       printer.print(String.format(valueFormat + " %s", value, entry.getKey()));
     }
@@ -312,9 +341,7 @@ public class TableDiskUsage {
     Span span = TraceUtil.startSpan(TableDiskUsage.class, "main");
     try (Scope scope = span.makeCurrent()) {
       try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
-        VolumeManager fs = opts.getServerContext().getVolumeManager();
-        org.apache.accumulo.server.util.TableDiskUsage.printDiskUsage(opts.tables, fs, client,
-            false);
+        org.apache.accumulo.server.util.TableDiskUsage.printDiskUsage(opts.tables, client, false);
       } finally {
         span.end();
       }

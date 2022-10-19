@@ -213,10 +213,6 @@ public abstract class TabletBalancer
     @Override
     public void run() {
       balancerLog.warn("Not balancing due to {} outstanding migrations.", migrations.size());
-      /*
-       * TODO ACCUMULO-2938 redact key extents in this output to avoid leaking protected
-       * information.
-       */
       balancerLog.debug("Sample up to 10 outstanding migrations: {}",
           migrations.stream().limit(10).collect(toList()));
     }

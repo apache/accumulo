@@ -18,15 +18,13 @@
  */
 package org.apache.accumulo.server.conf.store;
 
+import static org.apache.accumulo.core.Constants.ZCONFIG;
 import static org.apache.accumulo.core.Constants.ZNAMESPACES;
-import static org.apache.accumulo.core.Constants.ZNAMESPACE_CONF;
-import static org.apache.accumulo.core.Constants.ZTABLE_CONF;
 
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
-import org.checkerframework.checker.nullness.qual.NonNull;
 
 public class NamespacePropKey extends PropStoreKey<NamespaceId> {
 
@@ -34,32 +32,15 @@ public class NamespacePropKey extends PropStoreKey<NamespaceId> {
     super(instanceId, path, id);
   }
 
-  private static String getNodeName(final InstanceId instanceId, final NamespaceId id) {
-    return ZooUtil.getRoot(instanceId) + ZNAMESPACES + "/" + id.canonical() + ZTABLE_CONF + "/"
-        + PROP_NODE_NAME;
-  }
-
   public static NamespacePropKey of(final ServerContext context, final NamespaceId id) {
     return of(context.getInstanceID(), id);
   }
 
   public static NamespacePropKey of(final InstanceId instanceId, final NamespaceId id) {
-    return new NamespacePropKey(instanceId, getNodePath(instanceId, id), id);
+    return new NamespacePropKey(instanceId, buildNodePath(instanceId, id), id);
   }
 
-  private static String getNodePath(final InstanceId instanceId, final NamespaceId id) {
-    return ZooUtil.getRoot(instanceId) + ZNAMESPACES + "/" + id.canonical() + ZNAMESPACE_CONF + "/"
-        + PROP_NODE_NAME;
-  }
-
-  @Override
-  public @NonNull String getNodePath() {
-    return getNodeName(instanceId, id);
-  }
-
-  @Override
-  @NonNull
-  public String getBasePath() {
-    return ZooUtil.getRoot(instanceId) + ZNAMESPACES + "/" + id.canonical() + ZNAMESPACE_CONF;
+  private static String buildNodePath(final InstanceId instanceId, final NamespaceId id) {
+    return ZooUtil.getRoot(instanceId) + ZNAMESPACES + "/" + id.canonical() + ZCONFIG;
   }
 }

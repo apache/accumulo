@@ -34,7 +34,7 @@ import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
@@ -185,8 +185,7 @@ class FileSystemInitializer {
     }
     FileSystem fs = volmanager.getFileSystemByPath(new Path(fileName));
 
-    CryptoService cs =
-        CryptoServiceFactory.newInstance(conf, CryptoServiceFactory.ClassloaderType.ACCUMULO);
+    CryptoService cs = CryptoFactoryLoader.getServiceForServer(conf);
 
     FileSKVWriter tabletWriter = FileOperations.getInstance().newWriterBuilder()
         .forFile(fileName, fs, fs.getConf(), cs).withTableConfiguration(conf).build();

@@ -27,6 +27,7 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.isA;
 import static org.easymock.EasyMock.newCapture;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
@@ -119,8 +120,17 @@ public class ZooPropStoreTest {
     var vProps = new VersionedProperties(Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
 
     // expect one ZooKeeper call - subsequent calls should load from cache.
-    expect(zrw.getData(eq(propStoreKey.getPath()), anyObject(PropStoreWatcher.class), anyObject()))
-        .andReturn(VersionedPropCodec.getDefault().toBytes(vProps)).once();
+    Capture<Stat> stat = newCapture();
+    expect(zrw.getData(eq(propStoreKey.getPath()), isA(PropStoreWatcher.class), capture(stat)))
+        .andAnswer(() -> {
+          Stat s = stat.getValue();
+          s.setCtime(System.currentTimeMillis());
+          s.setMtime(System.currentTimeMillis());
+          s.setVersion((int) vProps.getDataVersion());
+          s.setDataLength(propCodec.toBytes(vProps).length);
+          stat.setValue(s);
+          return propCodec.toBytes(vProps);
+        }).once();
 
     replay(context, zrw);
 
@@ -152,6 +162,7 @@ public class ZooPropStoreTest {
           s.setCtime(System.currentTimeMillis());
           s.setMtime(System.currentTimeMillis());
           s.setVersion(expectedVersion);
+          s.setDataLength(propCodec.toBytes(new VersionedProperties(props)).length);
           stat.setValue(s);
           return propCodec.toBytes(new VersionedProperties(props));
         }).once();
@@ -178,9 +189,18 @@ public class ZooPropStoreTest {
     var initialProps = new VersionedProperties(0, Instant.now(),
         Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "1234", TABLE_FILE_BLOCK_SIZE.getKey(), "512M"));
 
-    // not cached - will load from ZooKeeper
-    expect(zrw.getData(eq(propStoreKey.getPath()), anyObject(Stat.class)))
-        .andReturn(propCodec.toBytes(initialProps)).once();
+    // not cached - first will load from ZooKeeper
+    Capture<Stat> stat = newCapture();
+
+    expect(zrw.getData(eq(propStoreKey.getPath()), capture(stat))).andAnswer(() -> {
+      Stat s = stat.getValue();
+      s.setCtime(System.currentTimeMillis());
+      s.setMtime(System.currentTimeMillis());
+      s.setVersion((int) initialProps.getDataVersion());
+      s.setDataLength(propCodec.toBytes(initialProps).length);
+      stat.setValue(s);
+      return propCodec.toBytes(initialProps);
+    }).once();
 
     Capture<byte[]> bytes = newCapture();
     expect(zrw.overwritePersistentData(eq(propStoreKey.getPath()), capture(bytes), eq(0)))
@@ -222,6 +242,7 @@ public class ZooPropStoreTest {
     expect(zrw.getData(eq(propStoreKey.getPath()), capture(stat))).andAnswer(() -> {
       Stat s = stat.getValue();
       s.setVersion(123);
+      s.setDataLength(propCodec.toBytes(initialProps).length);
       stat.setValue(s);
       return propCodec.toBytes(initialProps);
     }).once();
@@ -264,6 +285,7 @@ public class ZooPropStoreTest {
       s.setMtime(System.currentTimeMillis());
       s.setCzxid(1234);
       s.setVersion(19);
+      s.setDataLength(12345);
       stat.setValue(s);
       return new byte[100];
     }).once();
@@ -365,14 +387,6 @@ public class ZooPropStoreTest {
     }
   }
 
-  /**
-   * Verify that a node is created when it does not exist.
-   */
-  // @Test
-  public void getNoNodeTest() {
-    // TODO - implementation requires mocking transform locking
-  }
-
   @Test
   public void deleteTest() throws Exception {
 
@@ -381,8 +395,18 @@ public class ZooPropStoreTest {
     var vProps = new VersionedProperties(Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
 
     // expect first call to load cache.
-    expect(zrw.getData(eq(propStoreKey.getPath()), anyObject(PropStoreWatcher.class), anyObject()))
-        .andReturn(VersionedPropCodec.getDefault().toBytes(vProps)).once();
+    // expect one ZooKeeper call - subsequent calls should load from cache.
+    Capture<Stat> stat = newCapture();
+    expect(zrw.getData(eq(propStoreKey.getPath()), isA(PropStoreWatcher.class), capture(stat)))
+        .andAnswer(() -> {
+          Stat s = stat.getValue();
+          s.setCtime(System.currentTimeMillis());
+          s.setMtime(System.currentTimeMillis());
+          s.setVersion((int) vProps.getDataVersion());
+          s.setDataLength(propCodec.toBytes(vProps).length);
+          stat.setValue(s);
+          return propCodec.toBytes(vProps);
+        }).once();
 
     zrw.delete(eq(propStoreKey.getPath()));
     expectLastCall().once();

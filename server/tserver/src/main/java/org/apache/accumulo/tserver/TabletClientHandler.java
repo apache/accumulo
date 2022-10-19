@@ -1202,33 +1202,27 @@ public class TabletClientHandler implements TabletClientService.Iface {
       throw new RuntimeException(e);
     }
 
-    ArrayList<Tablet> tabletsToFlush = new ArrayList<>();
-
     KeyExtent ke = new KeyExtent(TableId.of(tableId), ByteBufferUtil.toText(endRow),
         ByteBufferUtil.toText(startRow));
 
-    for (Tablet tablet : server.getOnlineTablets().values()) {
-      if (ke.overlaps(tablet.getExtent())) {
-        tabletsToFlush.add(tablet);
-      }
+    List<Tablet> tabletsToFlush = server.getOnlineTablets().values().stream()
+        .filter(tablet -> ke.overlaps(tablet.getExtent())).collect(toList());
+
+    if (tabletsToFlush.isEmpty())
+      return; // no tablets to flush
+
+    // read the flush id once from zookeeper instead of reading it for each tablet
+    final long flushID;
+    try {
+      Tablet firstTablet = tabletsToFlush.get(0);
+      flushID = firstTablet.getFlushID();
+    } catch (NoNodeException e) {
+      // table was probably deleted
+      log.info("Asked to flush table that has no flush id {} {}", ke, e.getMessage());
+      return;
     }
 
-    Long flushID = null;
-
-    for (Tablet tablet : tabletsToFlush) {
-      if (flushID == null) {
-        // read the flush id once from zookeeper instead of reading
-        // it for each tablet
-        try {
-          flushID = tablet.getFlushID();
-        } catch (NoNodeException e) {
-          // table was probably deleted
-          log.info("Asked to flush table that has no flush id {} {}", ke, e.getMessage());
-          return;
-        }
-      }
-      tablet.flush(flushID);
-    }
+    tabletsToFlush.forEach(tablet -> tablet.flush(flushID));
   }
 
   @Override
@@ -1486,8 +1480,10 @@ public class TabletClientHandler implements TabletClientService.Iface {
     }
 
     ExecutorService es = server.resourceManager.getSummaryPartitionExecutor();
-    Future<SummaryCollection> future = new Gatherer(server.getContext(), request,
-        context.getTableConfiguration(tableId), context.getCryptoService()).gather(es);
+    var tableConf = context.getTableConfiguration(tableId);
+    Future<SummaryCollection> future =
+        new Gatherer(server.getContext(), request, tableConf, tableConf.getCryptoService())
+            .gather(es);
 
     return startSummaryOperation(credentials, future);
   }
@@ -1506,7 +1502,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
     TableConfiguration tableConfig =
         context.getTableConfiguration(TableId.of(request.getTableId()));
     Future<SummaryCollection> future =
-        new Gatherer(server.getContext(), request, tableConfig, context.getCryptoService())
+        new Gatherer(server.getContext(), request, tableConfig, tableConfig.getCryptoService())
             .processPartition(spe, modulus, remainder);
 
     return startSummaryOperation(credentials, future);
@@ -1530,7 +1526,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
     VolumeManager fs = context.getVolumeManager();
     FileSystemResolver volMgr = fs::getFileSystemByPath;
     Future<SummaryCollection> future =
-        new Gatherer(server.getContext(), request, tableCfg, context.getCryptoService())
+        new Gatherer(server.getContext(), request, tableCfg, tableCfg.getCryptoService())
             .processFiles(volMgr, files, summaryCache, indexCache, fileLenCache, srp);
 
     return startSummaryOperation(credentials, future);

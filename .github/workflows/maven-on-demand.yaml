@@ -54,6 +54,9 @@ on:
         required: true
         default: -Dspotbugs.skip -Dcheckstyle.skip -DskipFormat -DverifyFormat
 
+permissions:
+  contents: read
+
 jobs:
   mvn:
     name: mvn (triggered by ${{ github.event.sender.login }})

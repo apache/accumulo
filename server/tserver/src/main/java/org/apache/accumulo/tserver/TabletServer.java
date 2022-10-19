@@ -30,6 +30,7 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -72,6 +73,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.Compacting;
@@ -354,7 +356,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
     logger = new TabletServerLogger(this, walMaxSize, syncCounter, flushCounter,
         walCreationRetryFactory, walWritingRetryFactory, walMaxAge);
-    this.resourceManager = new TabletServerResourceManager(context);
+    this.resourceManager = new TabletServerResourceManager(context, this);
     this.security = context.getSecurityOperation();
 
     watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
@@ -757,7 +759,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     try {
       MetricsUtil.initializeMetrics(context.getConfiguration(), this.applicationName,
           clientAddress);
-    } catch (Exception e1) {
+    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+        | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
+        | SecurityException e1) {
       log.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
 
@@ -1047,7 +1051,12 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
     final AccumuloConfiguration aconf = getConfiguration();
 
-    FileSystemMonitor.start(aconf, Property.TSERV_MONITOR_FS);
+    @SuppressWarnings("removal")
+    Property TSERV_MONITOR_FS = Property.TSERV_MONITOR_FS;
+    if (aconf.getBoolean(TSERV_MONITOR_FS)) {
+      log.warn("{} is deprecated and marked for removal.", TSERV_MONITOR_FS.getKey());
+      FileSystemMonitor.start(aconf);
+    }
 
     Runnable gcDebugTask = () -> jvmGcLogger.log();
 
@@ -1377,4 +1386,10 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   public CompactionManager getCompactionManager() {
     return compactionManager;
   }
+
+  @Override
+  public BlockCacheConfiguration getBlockCacheConfiguration(AccumuloConfiguration acuConf) {
+    return BlockCacheConfiguration.forTabletServer(acuConf);
+  }
+
 }

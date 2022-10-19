@@ -20,6 +20,9 @@ package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static org.apache.accumulo.core.rpc.ThriftUtil.createClient;
 import static org.apache.accumulo.core.rpc.ThriftUtil.createTransport;
@@ -28,11 +31,15 @@ import static org.apache.accumulo.core.rpc.ThriftUtil.returnClient;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -43,6 +50,7 @@ import org.apache.accumulo.core.client.admin.ActiveCompaction.CompactionHost;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
+import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.data.InstanceId;
@@ -55,6 +63,7 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
+import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
@@ -64,6 +73,7 @@ import org.slf4j.LoggerFactory;
  * Provides a class for administering the accumulo instance
  */
 public class InstanceOperationsImpl implements InstanceOperations {
+
   private final ClientContext context;
 
   public InstanceOperationsImpl(ClientContext context) {
@@ -85,6 +95,70 @@ public class InstanceOperationsImpl implements InstanceOperations {
     ThriftClientTypes.MANAGER.executeVoid(context, client -> client
         .setSystemProperty(TraceUtil.traceInfo(), context.rpcCreds(), property, value));
     checkLocalityGroups(property);
+  }
+
+  private Map<String,String> tryToModifyProperties(final Consumer<Map<String,String>> mapMutator)
+      throws AccumuloException, AccumuloSecurityException, IllegalArgumentException {
+    checkArgument(mapMutator != null, "mapMutator is null");
+
+    final TVersionedProperties vProperties = ThriftClientTypes.CLIENT.execute(context,
+        client -> client.getVersionedSystemProperties(TraceUtil.traceInfo(), context.rpcCreds()));
+    mapMutator.accept(vProperties.getProperties());
+
+    // A reference to the map was passed to the user, maybe they still have the reference and are
+    // modifying it. Buggy Accumulo code could attempt to make modifications to the map after this
+    // point. Because of these potential issues, create an immutable snapshot of the map so that
+    // from here on the code is assured to always be dealing with the same map.
+    vProperties.setProperties(Map.copyOf(vProperties.getProperties()));
+
+    for (Map.Entry<String,String> entry : vProperties.getProperties().entrySet()) {
+      final String property = Objects.requireNonNull(entry.getKey(), "property key is null");
+
+      DeprecatedPropertyUtil.getReplacementName(property, (log, replacement) -> {
+        // force a warning on the client side, but send the name the user used to the
+        // server-side
+        // to trigger a warning in the server logs, and to handle it there
+        log.warn("{} was deprecated and will be removed in a future release;"
+            + " setting its replacement {} instead", property, replacement);
+      });
+      checkLocalityGroups(property);
+    }
+
+    // Send to server
+    ThriftClientTypes.MANAGER.executeVoid(context, client -> client
+        .modifySystemProperties(TraceUtil.traceInfo(), context.rpcCreds(), vProperties));
+
+    return vProperties.getProperties();
+  }
+
+  @Override
+  public Map<String,String> modifyProperties(final Consumer<Map<String,String>> mapMutator)
+      throws AccumuloException, AccumuloSecurityException, IllegalArgumentException {
+
+    var log = LoggerFactory.getLogger(InstanceOperationsImpl.class);
+
+    Retry retry =
+        Retry.builder().infiniteRetries().retryAfter(25, MILLISECONDS).incrementBy(25, MILLISECONDS)
+            .maxWait(30, SECONDS).backOffFactor(1.5).logInterval(3, MINUTES).createRetry();
+
+    while (true) {
+      try {
+        var props = tryToModifyProperties(mapMutator);
+        retry.logCompletion(log, "Modifying instance properties");
+        return props;
+      } catch (ConcurrentModificationException cme) {
+        try {
+          retry.logRetry(log,
+              "Unable to modify instance properties for because of concurrent modification");
+          retry.waitForNextAttempt();
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
+      } finally {
+        retry.useRetry();
+      }
+    }
+
   }
 
   @Override
@@ -134,6 +208,11 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public List<String> getManagerLocations() {
     return context.getManagerLocations();
+  }
+
+  @Override
+  public Set<String> getScanServers() {
+    return Set.copyOf(context.getScanServers().keySet());
   }
 
   @Override

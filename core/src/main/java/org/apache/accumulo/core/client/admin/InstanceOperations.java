@@ -20,6 +20,8 @@ package org.apache.accumulo.core.client.admin;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -46,6 +48,94 @@ public interface InstanceOperations {
    */
   void setProperty(final String property, final String value)
       throws AccumuloException, AccumuloSecurityException;
+
+  /**
+   * Modify system properties using a Consumer that accepts a mutable map containing the current
+   * system property overrides stored in ZooKeeper. If the supplied Consumer alters the map without
+   * throwing an Exception, then the resulting map will atomically replace the current system
+   * property overrides in ZooKeeper. Only properties which can be stored in ZooKeeper will be
+   * accepted.
+   *
+   * <p>
+   * Accumulo has multiple layers of properties that for many APIs and SPIs are presented as a
+   * single merged view. This API does not offer that merged view, it only offers the properties set
+   * at the system layer to the mapMutator.
+   * </p>
+   *
+   * <p>
+   * This new API offers two distinct advantages over the older {@link #setProperty(String, String)}
+   * API. The older API offered the ability to unconditionally set a single property. This new API
+   * offers the following.
+   * </p>
+   *
+   * <ul>
+   * <li>Ability to unconditionally set multiple properties atomically. If five properties are
+   * mutated by this API, then eventually all of the servers will see those changes all at once.
+   * This is really important for configuring something like a scan iterator that requires setting
+   * multiple properties.</li>
+   * <li>Ability to conditionally set multiple properties atomically. With this new API a snapshot
+   * of the current instance configuration is passed in to the mapMutator. Code can inspect the
+   * current config and decide what if any changes it would like to make. If the config changes
+   * while mapMutator is doing inspection and modification, then those actions will be ignored and
+   * it will be called again with the latest snapshot of the config.</li>
+   * </ul>
+   *
+   * <p>
+   * Below is an example of using this API to conditionally set some instance properties. If while
+   * trying to set the compaction planner properties another process modifies the manager balancer
+   * properties, then it would automatically retry and call the lambda again with the latest
+   * snapshot of instance properties.
+   * </p>
+   *
+   * <pre>
+   *         {@code
+   *             AccumuloClient client = getClient();
+   *             Map<String,String> acceptedProps = client.instanceOperations().modifyProperties(currProps -> {
+   *               var planner = currProps.get("tserver.compaction.major.service.default.planner");
+   *               //This code will only change the compaction planner if its currently set to default settings.
+   *               //The endsWith() function was used to make the example short, would be better to use equals().
+   *               if(planner != null && planner.endsWith("DefaultCompactionPlanner") {
+   *                 // tservers will eventually see these compaction planner changes and when they do they will see all of the changes at once
+   *                 currProps.keySet().removeIf(
+   *                    prop -> prop.startsWith("tserver.compaction.major.service.default.planner.opts."));
+   *                 currProps.put("tserver.compaction.major.service.default.planner","MyPlannerClassName");
+   *                 currProps.put("tserver.compaction.major.service.default.planner.opts.myOpt1","val1");
+   *                 currProps.put("tserver.compaction.major.service.default.planner.opts.myOpt2","val2");
+   *                }
+   *             });
+   *
+   *             // Since three properties were set may want to check for the values of all
+   *             // three, just checking one in this example to keep it short.
+   *             if("MyPlannerClassName".equals(acceptedProps.get("tserver.compaction.major.service.default.planner"))){
+   *                // the compaction planner change was accepted or already existed, so take action for that outcome
+   *             } else {
+   *                // the compaction planner change was not done, so take action for that outcome
+   *             }
+   *           }
+   *         }
+   * </pre>
+   *
+   * @param mapMutator
+   *          This consumer should modify the passed snapshot of instance properties to contain the
+   *          desired keys and values. It should be safe for Accumulo to call this consumer multiple
+   *          times, this may be done automatically when certain retryable errors happen. The
+   *          consumer should probably avoid accessing the Accumulo client as that could lead to
+   *          undefined behavior.
+   *
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission
+   * @throws IllegalArgumentException
+   *           if the Consumer alters the map by adding properties that cannot be stored in
+   *           ZooKeeper
+   *
+   * @return The map that became Accumulo's new properties for this table. This map is immutable and
+   *         contains the snapshot passed to mapMutator and the changes made by mapMutator.
+   * @since 2.1.0
+   */
+  Map<String,String> modifyProperties(Consumer<Map<String,String>> mapMutator)
+      throws AccumuloException, AccumuloSecurityException, IllegalArgumentException;
 
   /**
    * Removes a system property from zookeeper. Changes can be seen using
@@ -84,6 +174,13 @@ public interface InstanceOperations {
    * @since 2.1.0
    */
   List<String> getManagerLocations();
+
+  /**
+   * Returns the locations of the active scan servers
+   *
+   * @return A set of currently active scan servers.
+   */
+  Set<String> getScanServers();
 
   /**
    * List the currently active tablet servers participating in the accumulo instance

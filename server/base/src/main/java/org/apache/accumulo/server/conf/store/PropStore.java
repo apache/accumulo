@@ -19,6 +19,7 @@
 package org.apache.accumulo.server.conf.store;
 
 import java.util.Collection;
+import java.util.ConcurrentModificationException;
 import java.util.Map;
 
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
@@ -52,7 +53,6 @@ public interface PropStore {
   void create(PropStoreKey<?> propStoreKey, Map<String,String> props);
 
   /**
-   *
    * @param propCacheId
    *          the prop cache key
    * @return The versioned properties.
@@ -75,6 +75,24 @@ public interface PropStore {
    *           if the values cannot be written or if an underlying store exception occurs.
    */
   void putAll(PropStoreKey<?> propStoreKey, Map<String,String> props);
+
+  /**
+   * Replaces all current properties with map provided. If a property is not included in the new
+   * map, the property will not be set.
+   *
+   * @param propStoreKey
+   *          the prop cache key
+   * @param version
+   *          the version of the properties
+   * @param props
+   *          a map of property k,v pairs
+   * @throws IllegalStateException
+   *           if the values cannot be written or if an underlying store exception occurs.
+   * @throws java.util.ConcurrentModificationException
+   *           if the properties changed since reading and can not be modified
+   */
+  void replaceAll(PropStoreKey<?> propStoreKey, long version, Map<String,String> props)
+      throws ConcurrentModificationException;
 
   /**
    * Delete the store node from the underlying store.
@@ -118,6 +136,17 @@ public interface PropStore {
   PropCache getCache();
 
   @Nullable
-  VersionedProperties getWithoutCaching(PropStoreKey<?> propStoreKey);
+  VersionedProperties getIfCached(PropStoreKey<?> propStoreKey);
 
+  /**
+   * Compare the stored data version with the expected version. Notifies subscribers of the change
+   * detection.
+   *
+   * @param storeKey
+   *          specifies key for backend store
+   * @param expectedVersion
+   *          the expected data version
+   * @return true if the stored version matches the provided expected version.
+   */
+  boolean validateDataVersion(PropStoreKey<?> storeKey, long expectedVersion);
 }

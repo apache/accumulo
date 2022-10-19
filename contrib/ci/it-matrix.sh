@@ -22,16 +22,32 @@ testsPerJob=15
 if [[ -n $1 && $1 =~ ^[0-9]*$ ]]; then
   testsPerJob=$1
 fi
-echo "Creating matrix (tests per job: $testsPerJob)..."
 
-gitRootDir=$(git rev-parse --show-toplevel)
-# this only works because our test paths don't have spaces; we should keep it that way
-count=0
-echo -n '::set-output name=matrix::{"profile":['
-for x in $(find "$gitRootDir" -name '*IT.java' -exec basename '{}' .java \; | sort -u | xargs -n "$testsPerJob" | tr ' ' ','); do
-  [[ $count -gt 0 ]] && echo -n ','
-  echo -n "{\"name\":\"task_$count\",\"its\":\"$x\"}"
-  ((count = count + 1))
-done
-echo ']}'
-echo "Finished creating matrix ($count tasks)"
+# set these to /dev/null if they aren't defined in the environment
+GITHUB_OUTPUT="${GITHUB_OUTPUT:-/dev/null}"
+GITHUB_STEP_SUMMARY="${GITHUB_STEP_SUMMARY:-/dev/null}"
+
+function createTestMatrix() {
+
+  local count=0
+  local chunk=$1
+  local batch
+  local gitRootDir
+
+  { echo "Creating matrix (tests per job: $chunk)..." | tee -a "$GITHUB_STEP_SUMMARY"; } 1>&2
+
+  gitRootDir=$(git rev-parse --show-toplevel)
+
+  # this only works because our test paths don't have spaces; we should keep it that way
+  echo -n '{"profile":['
+  for batch in $(find "$gitRootDir" -name '*IT.java' -exec basename '{}' .java \; | sort -u | xargs -n "$chunk" | tr ' ' ','); do
+    [[ $count -gt 0 ]] && echo -n ','
+    echo -n '{"name":"task_'"$count"'","its":"'"$batch"'"}'
+    ((count = count + 1))
+  done
+  echo ']}'
+
+  { echo "Finished creating matrix ($count tasks)" | tee "$GITHUB_STEP_SUMMARY"; } 1>&2
+}
+
+echo "CUSTOM_MATRIX=$(createTestMatrix "$testsPerJob")" | tee -a "$GITHUB_OUTPUT"

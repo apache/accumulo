@@ -116,29 +116,21 @@ public class ZooBasedConfigIT {
   @BeforeEach
   public void initPaths() {
     context = createMock(ServerContext.class);
-    testZk.initPaths(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZCONFIG);
+    testZk.initPaths(ZooUtil.getRoot(INSTANCE_ID));
 
     try {
       zooKeeper.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES, new byte[0],
           ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+
       zooKeeper.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES + "/" + tidA.canonical(),
           new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-      zooKeeper.create(
-          ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES + "/" + tidA.canonical() + "/conf",
-          new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-
       zooKeeper.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES + "/" + tidB.canonical(),
           new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-      zooKeeper.create(
-          ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES + "/" + tidB.canonical() + "/conf",
-          new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+
       zooKeeper.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZNAMESPACES, new byte[0],
           ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
       zooKeeper.create(
           ZooUtil.getRoot(INSTANCE_ID) + Constants.ZNAMESPACES + "/" + nsId.canonical(),
-          new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-      zooKeeper.create(
-          ZooUtil.getRoot(INSTANCE_ID) + Constants.ZNAMESPACES + "/" + nsId.canonical() + "/conf",
           new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
     } catch (KeeperException ex) {
@@ -191,8 +183,11 @@ public class ZooBasedConfigIT {
    * node should be created.
    */
   @Test
-  public void upgradeSysTestNoProps() {
+  public void upgradeSysTestNoProps() throws Exception {
     replay(context);
+    // force create empty sys config node.
+    zooKeeper.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZCONFIG, new byte[0],
+        ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
     var propKey = SystemPropKey.of(INSTANCE_ID);
     ZooBasedConfiguration zbc = new SystemConfiguration(context, propKey, parent);
     assertNotNull(zbc);

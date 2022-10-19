@@ -65,6 +65,18 @@ public class MiniAccumuloConfig {
   }
 
   /**
+   * Calling this method is optional. If not set, it defaults to zero.
+   *
+   * @param numScanServers
+   *          the number of scan servers that mini accumulo cluster should start
+   * @since 2.1.0
+   */
+  public MiniAccumuloConfig setNumScanServers(int numScanServers) {
+    impl.setNumScanServers(numScanServers);
+    return this;
+  }
+
+  /**
    * Calling this method is optional. If not set, defaults to 'miniInstance'
    *
    * @since 1.6.0

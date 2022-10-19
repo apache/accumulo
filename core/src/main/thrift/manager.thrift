@@ -195,6 +195,18 @@ service ManagerClientService {
     3:client.ThriftNotActiveServiceException tnase
   )
 
+  void modifyTableProperties(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string tableName
+    4:client.TVersionedProperties vProperties
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftTableOperationException tope
+    3:client.ThriftNotActiveServiceException tnase
+    4:client.ThriftConcurrentModificationException tcme
+  )
+
   void removeTableProperty(
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
@@ -216,6 +228,18 @@ service ManagerClientService {
     1:client.ThriftSecurityException sec
     2:client.ThriftTableOperationException tope
     3:client.ThriftNotActiveServiceException tnase
+  )
+
+  void modifyNamespaceProperties(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string ns
+    4:client.TVersionedProperties vProperties
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftTableOperationException tope
+    3:client.ThriftNotActiveServiceException tnase
+    4:client.ThriftConcurrentModificationException tcme
   )
 
   void removeNamespaceProperty(
@@ -254,7 +278,7 @@ service ManagerClientService {
     3:string tabletServer
     4:bool force
   ) throws (
-    1: client.ThriftSecurityException sec
+    1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
   )
 
@@ -266,6 +290,16 @@ service ManagerClientService {
   ) throws (
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
+  )
+ 
+  void modifySystemProperties(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+    3:client.TVersionedProperties vProperties
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
+    3:client.ThriftConcurrentModificationException tcme
   )
 
   void removeSystemProperty(

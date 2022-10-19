@@ -59,7 +59,7 @@ public class NamespaceConfiguration extends ZooBasedConfiguration {
       return value;
     }
 
-    return getParent().get(key);
+    return getParent().get(property);
   }
 
   /**

@@ -122,6 +122,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
 
           // test permission before and after granting it
           String tableNamePrefix = getUniqueNames(1)[0];
+          Thread.sleep(1000);
           testMissingSystemPermission(tableNamePrefix, c, rootUser, test_user_client, testUser,
               perm);
           loginAs(rootUser);
@@ -198,9 +199,27 @@ public class PermissionsIT extends AccumuloClusterHarness {
                   .get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
             throw e;
         }
+        try {
+          // Add test for modifyProperties
+          loginAs(testUser);
+          test_user_client.tableOperations().modifyProperties(tableName, properties -> {
+            properties.put(Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
+          });
+          throw new IllegalStateException("Should NOT be able to set a table property");
+        } catch (AccumuloSecurityException e) {
+          loginAs(rootUser);
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
+              || root_client.tableOperations().getConfiguration(tableName)
+                  .get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
+            throw e;
+        }
         loginAs(rootUser);
         root_client.tableOperations().setProperty(tableName,
             Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
+        // add check on modify properties
+        root_client.tableOperations().modifyProperties(tableName, properties -> {
+          properties.put(Property.TABLE_BLOOM_SIZE.getKey(), "2048576");
+        });
         try {
           loginAs(testUser);
           test_user_client.tableOperations().removeProperty(tableName,
@@ -352,9 +371,27 @@ public class PermissionsIT extends AccumuloClusterHarness {
                   .get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
             throw e;
         }
+        try {
+          loginAs(testUser);
+          // Verify modifyProperties also checks permissions
+          test_user_client.namespaceOperations().modifyProperties(namespace, properties -> {
+            properties.put(Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
+          });
+          throw new IllegalStateException("Should NOT be able to set a namespace property");
+        } catch (AccumuloSecurityException e) {
+          loginAs(rootUser);
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
+              || root_client.namespaceOperations().getConfiguration(namespace)
+                  .get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
+            throw e;
+        }
         loginAs(rootUser);
         root_client.namespaceOperations().setProperty(namespace,
             Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
+        // add check on modify properties
+        root_client.namespaceOperations().modifyProperties(namespace, properties -> {
+          properties.put(Property.TABLE_BLOOM_SIZE.getKey(), "2048576");
+        });
         try {
           loginAs(testUser);
           test_user_client.namespaceOperations().removeProperty(namespace,
@@ -623,11 +660,14 @@ public class PermissionsIT extends AccumuloClusterHarness {
         loginAs(rootUser);
         verifyHasOnlyTheseTablePermissions(c, c.whoami(), MetadataTable.NAME, TablePermission.READ,
             TablePermission.ALTER_TABLE);
-        verifyHasOnlyTheseTablePermissions(c, principal, MetadataTable.NAME, TablePermission.READ);
         String tableName = getUniqueNames(1)[0] + "__TABLE_PERMISSION_TEST__";
 
         // test each permission
         for (TablePermission perm : TablePermission.values()) {
+          if (perm == TablePermission.ALTER_TABLE) {
+            // we give test user client ALTER_TABLE permission when creating table
+            continue;
+          }
           log.debug("Verifying the {} permission", perm);
 
           // test permission before and after granting it
@@ -636,14 +676,15 @@ public class PermissionsIT extends AccumuloClusterHarness {
           testMissingTablePermission(test_user_client, perm, tableName);
           loginAs(rootUser);
           c.securityOperations().grantTablePermission(principal, tableName, perm);
-          verifyHasOnlyTheseTablePermissions(c, principal, tableName, perm);
+          verifyHasOnlyTheseTablePermissions(c, principal, tableName, perm,
+              TablePermission.ALTER_TABLE);
           loginAs(testUser);
           testGrantedTablePermission(test_user_client, perm, tableName);
 
           loginAs(rootUser);
           createTestTable(c, principal, tableName);
           c.securityOperations().revokeTablePermission(principal, tableName, perm);
-          verifyHasNoTablePermissions(c, principal, tableName, perm);
+          verifyHasOnlyAlterTablePermission(c, principal, tableName, perm);
         }
       }
     }
@@ -663,7 +704,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
 
       // verify proper permissions for creator and test user
       verifyHasOnlyTheseTablePermissions(c, c.whoami(), tableName, TablePermission.values());
-      verifyHasNoTablePermissions(c, testUser, tableName, TablePermission.values());
+      verifyHasOnlyAlterTablePermission(c, testUser, tableName, TablePermission.values());
 
     }
   }
@@ -706,15 +747,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
             throw e;
         }
-        // Now see if we can flush
-        try {
-          test_user_client.tableOperations().flush(tableName, new Text("myrow"), new Text("myrow~"),
-              false);
-          throw new IllegalStateException("Should NOT be able to flsuh a table");
-        } catch (AccumuloSecurityException e) {
-          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
-            throw e;
-        }
+        // Now see if we can flush, this should be allowed because we give the user ALTER_TABLE
+        test_user_client.tableOperations().flush(tableName, new Text("myrow"), new Text("myrow~"),
+            false);
         break;
       case BULK_IMPORT:
         // test for bulk import permission would go here
@@ -840,12 +875,17 @@ public class PermissionsIT extends AccumuloClusterHarness {
     }
   }
 
-  private void verifyHasNoTablePermissions(AccumuloClient root_client, String user, String table,
-      TablePermission... perms) throws AccumuloException, AccumuloSecurityException {
-    for (TablePermission p : perms)
-      if (root_client.securityOperations().hasTablePermission(user, table, p))
+  private void verifyHasOnlyAlterTablePermission(AccumuloClient root_client, String user,
+      String table, TablePermission... perms) throws AccumuloException, AccumuloSecurityException {
+    for (TablePermission p : perms) {
+      if (p == TablePermission.ALTER_TABLE) {
+        if (!root_client.securityOperations().hasTablePermission(user, table, p)) {
+          root_client.securityOperations().grantTablePermission(user, table, p);
+        }
+      } else if (root_client.securityOperations().hasTablePermission(user, table, p))
         throw new IllegalStateException(
             user + " SHOULD NOT have table permission " + p + " for table " + table);
+    }
   }
 
   private void testArbitraryProperty(AccumuloClient c, String tableName, boolean havePerm)

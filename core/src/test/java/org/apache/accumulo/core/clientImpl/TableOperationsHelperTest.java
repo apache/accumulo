@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.ConcurrentModificationException;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -32,13 +33,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.DiskUsage;
+import org.apache.accumulo.core.client.admin.ImportConfiguration;
 import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.SummaryRetriever;
@@ -129,9 +133,18 @@ public class TableOperationsHelperTest {
 
     @Override
     public void setProperty(String tableName, String property, String value) {
-      if (!settings.containsKey(tableName))
-        settings.put(tableName, new TreeMap<>());
+      settings.computeIfAbsent(tableName, k -> new TreeMap<>());
       settings.get(tableName).put(property, value);
+    }
+
+    @Override
+    public Map<String,String> modifyProperties(String tableName,
+        Consumer<Map<String,String>> mapMutator)
+        throws IllegalArgumentException, ConcurrentModificationException {
+      settings.computeIfAbsent(tableName, k -> new TreeMap<>());
+      var map = settings.get(tableName);
+      mapMutator.accept(map);
+      return Map.copyOf(map);
     }
 
     @Override
@@ -143,6 +156,15 @@ public class TableOperationsHelperTest {
 
     @Override
     public Map<String,String> getConfiguration(String tableName) {
+      Map<String,String> empty = Collections.emptyMap();
+      if (!settings.containsKey(tableName))
+        return empty;
+      return settings.get(tableName);
+    }
+
+    @Override
+    public Map<String,String> getTableProperties(String tableName)
+        throws AccumuloException, TableNotFoundException {
       Map<String,String> empty = Collections.emptyMap();
       if (!settings.containsKey(tableName))
         return empty;
@@ -201,7 +223,7 @@ public class TableOperationsHelperTest {
     }
 
     @Override
-    public void importTable(String tableName, Set<String> exportDir) {}
+    public void importTable(String tableName, Set<String> exportDir, ImportConfiguration ic) {}
 
     @Override
     public void exportTable(String tableName, String exportDir) {}

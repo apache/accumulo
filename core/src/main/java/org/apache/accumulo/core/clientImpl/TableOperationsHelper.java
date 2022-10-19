@@ -56,10 +56,12 @@ public abstract class TableOperationsHelper implements TableOperations {
     for (IteratorScope scope : scopes) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
           scope.name().toLowerCase(), setting.getName());
-      for (Entry<String,String> prop : setting.getOptions().entrySet()) {
-        this.setProperty(tableName, root + ".opt." + prop.getKey(), prop.getValue());
-      }
-      this.setProperty(tableName, root, setting.getPriority() + "," + setting.getIteratorClass());
+      this.modifyProperties(tableName, properties -> {
+        for (Entry<String,String> prop : setting.getOptions().entrySet()) {
+          properties.put(root + ".opt." + prop.getKey(), prop.getValue());
+        }
+        properties.put(root, setting.getPriority() + "," + setting.getIteratorClass());
+      });
     }
   }
 
@@ -72,16 +74,16 @@ public abstract class TableOperationsHelper implements TableOperations {
     for (IteratorScope scope : scopes) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
           scope.name().toLowerCase(), name);
-      for (Entry<String,String> property : copy.entrySet()) {
-        if (property.getKey().equals(root) || property.getKey().startsWith(root + ".opt."))
-          this.removeProperty(tableName, property.getKey());
-      }
+      this.modifyProperties(tableName,
+          properties -> copy.keySet().stream()
+              .filter(prop -> prop.equals(root) || prop.startsWith(root + ".opt."))
+              .forEach(properties::remove));
     }
   }
 
   @Override
   public IteratorSetting getIteratorSetting(String tableName, String name, IteratorScope scope)
-      throws AccumuloException, TableNotFoundException {
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
     checkArgument(name != null, "name is null");
     checkArgument(scope != null, "scope is null");
@@ -113,7 +115,7 @@ public abstract class TableOperationsHelper implements TableOperations {
 
   @Override
   public Map<String,EnumSet<IteratorScope>> listIterators(String tableName)
-      throws AccumuloException, TableNotFoundException {
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
 
     Map<String,EnumSet<IteratorScope>> result = new TreeMap<>();

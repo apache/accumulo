@@ -384,11 +384,10 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     log.trace("Fate id: {}, status: {}", tx.getTxid(), tx.getStatus());
 
     String top = tx.getTop();
-    String debug = tx.getDebug();
+    String txName = tx.getTxName();
 
-    return top != null && debug != null && top.contains("CompactionDriver")
-        && tx.getDebug().contains("CompactRange");
-
+    return top != null && txName != null && top.contains("CompactionDriver")
+        && tx.getTxName().equals("TABLE_COMPACT");
   }
 
   /**

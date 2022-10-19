@@ -23,6 +23,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -96,6 +97,7 @@ import org.apache.accumulo.server.compaction.CompactionWatcher;
 import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.server.compaction.RetryableThriftCall;
 import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceededException;
+import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
@@ -518,17 +520,16 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         TCompactionStatusUpdate update =
             new TCompactionStatusUpdate(TCompactionState.STARTED, "Compaction started", -1, -1, -1);
         updateCompactionState(job, update);
-
-        final AccumuloConfiguration tConfig;
-
         var extent = KeyExtent.fromThrift(job.getExtent());
+        final AccumuloConfiguration aConfig;
+        final TableConfiguration tConfig = getContext().getTableConfiguration(extent.tableId());
 
         if (!job.getOverrides().isEmpty()) {
-          tConfig = new ConfigurationCopy(getContext().getTableConfiguration(extent.tableId()));
-          job.getOverrides().forEach((k, v) -> ((ConfigurationCopy) tConfig).set(k, v));
+          aConfig = new ConfigurationCopy(tConfig);
+          job.getOverrides().forEach(((ConfigurationCopy) aConfig)::set);
           LOG.debug("Overriding table properties with {}", job.getOverrides());
         } else {
-          tConfig = getContext().getTableConfiguration(extent.tableId());
+          aConfig = tConfig;
         }
 
         final TabletFile outputFile = new TabletFile(new Path(job.getOutputFile()));
@@ -547,7 +548,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
         ExtCEnv cenv = new ExtCEnv(JOB_HOLDER, queueName);
         FileCompactor compactor = new FileCompactor(getContext(), extent, files, outputFile,
-            job.isPropagateDeletes(), cenv, iters, tConfig);
+            job.isPropagateDeletes(), cenv, iters, aConfig, tConfig.getCryptoService());
 
         LOG.trace("Starting compactor");
         started.countDown();
@@ -624,7 +625,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     try {
       MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
           clientAddress);
-    } catch (Exception e1) {
+    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+        | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
+        | SecurityException e1) {
       LOG.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
     MetricsUtil.initializeProducers(this);

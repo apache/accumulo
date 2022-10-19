@@ -24,7 +24,6 @@ import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -45,7 +44,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -66,19 +64,19 @@ import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.NamespacePermission;
+import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.shell.commands.fateCommand.FateSummaryReport;
 import org.apache.accumulo.test.compaction.TestCompactionStrategy;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.conf.Configuration;
@@ -163,6 +161,13 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @Test
   public void exporttableImporttable() throws Exception {
+
+    try (AccumuloClient client =
+        getCluster().createAccumuloClient(getPrincipal(), new PasswordToken(getRootPassword()))) {
+      client.securityOperations().grantNamespacePermission(getPrincipal(), "",
+          NamespacePermission.ALTER_NAMESPACE);
+    }
+
     final String table = getUniqueNames(1)[0];
     final String table2 = table + "2";
 
@@ -211,6 +216,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       assertEquals(0, cp.run(distCpArgs), "Failed to run distcp: " + Arrays.toString(distCpArgs));
     }
     ts.exec("importtable " + table2 + " " + import_, true);
+    Thread.sleep(100);
     ts.exec("config -t " + table2 + " -np", true, "345M", true);
     ts.exec("getsplits -t " + table2, true, "row5", true);
     ts.exec("constraint --list -t " + table2, true, "VisibilityConstraint=2", true);
@@ -634,6 +640,13 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void clonetable() throws Exception {
+
+    try (AccumuloClient client =
+        getCluster().createAccumuloClient(getPrincipal(), new PasswordToken(getRootPassword()))) {
+      client.securityOperations().grantNamespacePermission(getPrincipal(), "",
+          NamespacePermission.ALTER_NAMESPACE);
+    }
+
     final String table = getUniqueNames(1)[0];
     final String clone = table + "_clone";
 
@@ -656,6 +669,13 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void clonetableOffline() throws Exception {
+
+    try (AccumuloClient client =
+        getCluster().createAccumuloClient(getPrincipal(), new PasswordToken(getRootPassword()))) {
+      client.securityOperations().grantNamespacePermission(getPrincipal(), "",
+          NamespacePermission.ALTER_NAMESPACE);
+    }
+
     final String table = getUniqueNames(1)[0];
     final String clone = table + "_clone";
 
@@ -1267,12 +1287,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
     String odd = new File(importDir, "odd.rf").toString();
     AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
     FileSKVWriter evenWriter = FileOperations.getInstance().newWriterBuilder()
-        .forFile(even, fs, conf, CryptoServiceFactory.newDefaultInstance())
-        .withTableConfiguration(aconf).build();
+        .forFile(even, fs, conf, NoCryptoServiceFactory.NONE).withTableConfiguration(aconf).build();
     evenWriter.startDefaultLocalityGroup();
     FileSKVWriter oddWriter = FileOperations.getInstance().newWriterBuilder()
-        .forFile(odd, fs, conf, CryptoServiceFactory.newDefaultInstance())
-        .withTableConfiguration(aconf).build();
+        .forFile(odd, fs, conf, NoCryptoServiceFactory.NONE).withTableConfiguration(aconf).build();
     oddWriter.startDefaultLocalityGroup();
     long timestamp = System.currentTimeMillis();
     Text cf = new Text("cf");
@@ -2141,98 +2159,4 @@ public class ShellServerIT extends SharedMiniClusterBase {
     }
   }
 
-  @Test
-  public void testFateSummaryCommandWithSlowCompaction() throws Exception {
-    String namespace = "ns1";
-    final String table = namespace + "." + getUniqueNames(1)[0];
-
-    String orgProps = System.getProperty("accumulo.properties");
-
-    System.setProperty("accumulo.properties",
-        "file://" + getCluster().getConfig().getAccumuloPropsFile().getCanonicalPath());
-    // compact
-    ts.exec("createnamespace " + namespace);
-    ts.exec("createtable " + table);
-    ts.exec("addsplits h m r w -t " + table);
-    ts.exec("offline -t " + table);
-    ts.exec("online h m r w -t " + table);
-
-    // setup SlowIterator to sleep for 10 seconds
-    ts.exec("config -t " + table
-        + " -s table.iterator.majc.slow=1,org.apache.accumulo.test.functional.SlowIterator");
-    ts.exec("config -t " + table + " -s table.iterator.majc.slow.opt.sleepTime=10000");
-
-    // make two files
-    ts.exec("insert a1 b c v_a1");
-    ts.exec("insert a2 b c v_a2");
-    ts.exec("flush -w");
-    ts.exec("insert x1 b c v_x1");
-    ts.exec("insert x2 b c v_x2");
-    ts.exec("flush -w");
-
-    // no transactions running
-
-    String cmdOut =
-        ts.exec("fate -summary -np json -t NEW IN_PROGRESS FAILED", true, "reportTime", true);
-    // strip command included in shell output
-    String jsonOut = cmdOut.substring(cmdOut.indexOf("{"));
-    FateSummaryReport report = FateSummaryReport.fromJson(jsonOut);
-
-    // validate blank report
-    assertNotNull(report);
-    assertNotEquals(0, report.getReportTime());
-    assertEquals(Set.of("NEW", "IN_PROGRESS", "FAILED"), report.getStatusFilterNames());
-    assertEquals(Map.of(), report.getStatusCounts());
-    assertEquals(Map.of(), report.getStepCounts());
-    assertEquals(Map.of(), report.getCmdCounts());
-    assertEquals(Set.of(), report.getFateDetails());
-
-    ts.exec("fate -summary -np", true, "Report Time:", true);
-
-    // merge two files into one
-    ts.exec("compact -t " + table);
-    Thread.sleep(1_000);
-    // start 2nd transaction
-    ts.exec("compact -t " + table);
-    Thread.sleep(3_000);
-
-    // 2 compactions should be running so parse the output to get one of the transaction ids
-    log.debug("Calling fate summary");
-    ts.exec("fate -summary -np", true, "Report Time:", true);
-
-    cmdOut = ts.exec("fate -summary -np json", true, "reportTime", true);
-    // strip command included in shell output
-    jsonOut = cmdOut.substring(cmdOut.indexOf("{"));
-    log.debug("report to json:\n{}", jsonOut);
-    report = FateSummaryReport.fromJson(jsonOut);
-
-    // validate no filters
-    assertNotNull(report);
-    assertNotEquals(0, report.getReportTime());
-    assertEquals(Set.of(), report.getStatusFilterNames());
-    assertFalse(report.getStatusCounts().isEmpty());
-    assertFalse(report.getStepCounts().isEmpty());
-    assertFalse(report.getCmdCounts().isEmpty());
-    assertFalse(report.getFateDetails().isEmpty());
-
-    // validate filter by excluding all
-    cmdOut = ts.exec("fate -summary -np json -t FAILED", true, "reportTime", true);
-    jsonOut = cmdOut.substring(cmdOut.indexOf("{"));
-    report = FateSummaryReport.fromJson(jsonOut);
-
-    // validate blank report
-    assertNotNull(report);
-    assertNotEquals(0, report.getReportTime());
-    assertEquals(Set.of("FAILED"), report.getStatusFilterNames());
-    assertFalse(report.getStatusCounts().isEmpty());
-    assertFalse(report.getStepCounts().isEmpty());
-    assertFalse(report.getCmdCounts().isEmpty());
-    assertEquals(0, report.getFateDetails().size());
-
-    ts.exec("deletetable -f " + table);
-
-    if (orgProps != null) {
-      System.setProperty("accumulo.properties", orgProps);
-    }
-  }
 }

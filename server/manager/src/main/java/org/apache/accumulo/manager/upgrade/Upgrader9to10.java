@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.Constants;
@@ -68,9 +69,11 @@ import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
+import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
@@ -87,6 +90,12 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
+import org.apache.zookeeper.ZKUtil;
+import org.apache.zookeeper.ZooDefs;
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.data.ACL;
+import org.apache.zookeeper.data.Id;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -124,12 +133,57 @@ public class Upgrader9to10 implements Upgrader {
 
   @Override
   public void upgradeZookeeper(ServerContext context) {
+    validateACLs(context);
     upgradePropertyStorage(context);
     setMetaTableProps(context);
     upgradeRootTabletMetadata(context);
     createExternalCompactionNodes(context);
     // special case where old files need to be deleted
     dropSortedMapWALFiles(context);
+    createScanServerNodes(context);
+  }
+
+  private void validateACLs(ServerContext context) {
+
+    final AtomicBoolean aclErrorOccurred = new AtomicBoolean(false);
+    final ZooReaderWriter zrw = context.getZooReaderWriter();
+    final ZooKeeper zk = zrw.getZooKeeper();
+    final String rootPath = context.getZooKeeperRoot();
+
+    final Id zkDigest =
+        ZooUtil.getZkDigestAuthId(context.getConfiguration().get(Property.INSTANCE_SECRET));
+    final List<ACL> privateWithAuth = new ArrayList<>();
+    privateWithAuth.add(new ACL(ZooDefs.Perms.ALL, zkDigest));
+    final List<ACL> publicWithAuth = new ArrayList<>(privateWithAuth);
+    publicWithAuth.add(new ACL(ZooDefs.Perms.READ, ZooDefs.Ids.ANYONE_ID_UNSAFE));
+
+    try {
+      ZKUtil.visitSubTreeDFS(zk, rootPath, false, (rc, path, ctx, name) -> {
+        try {
+          final Stat stat = new Stat();
+          final List<ACL> acls = zk.getACL(path, stat);
+
+          if (((path.equals(Constants.ZROOT) || path.equals(Constants.ZROOT + Constants.ZINSTANCES))
+              && !acls.equals(ZooDefs.Ids.OPEN_ACL_UNSAFE))
+              || (!privateWithAuth.equals(acls) && !publicWithAuth.equals(acls))) {
+            log.error("ZNode at {} has unexpected ACL: {}", path, acls);
+            aclErrorOccurred.set(true);
+          } else {
+            log.trace("ZNode at {} has expected ACL.", path);
+          }
+        } catch (KeeperException | InterruptedException e) {
+          log.error("Error getting ACL for path: {}", path, e);
+          aclErrorOccurred.set(true);
+        }
+      });
+      if (aclErrorOccurred.get()) {
+        throw new RuntimeException("Upgrade Failed! Error validating ZNode ACLs. "
+            + "Check the log for specific failed paths, check ZooKeeper troubleshooting in user documentation "
+            + "for instructions on how to fix.");
+      }
+    } catch (KeeperException | InterruptedException e) {
+      throw new RuntimeException("Upgrade Failed! Error validating nodes under " + rootPath, e);
+    }
   }
 
   @Override
@@ -176,6 +230,17 @@ public class Upgrader9to10 implements Upgrader {
       setDispatcherProps.accept(MetadataTable.ID, "meta");
     } catch (IllegalStateException ex) {
       throw new RuntimeException("Unable to set system table properties", ex);
+    }
+  }
+
+  private void createScanServerNodes(ServerContext context) {
+    final byte[] EMPTY_BYTE_ARRAY = new byte[0];
+    try {
+      context.getZooReaderWriter().putPersistentData(
+          context.getZooKeeperRoot() + Constants.ZSSERVERS, EMPTY_BYTE_ARRAY,
+          NodeExistsPolicy.SKIP);
+    } catch (KeeperException | InterruptedException e) {
+      throw new RuntimeException("Unable to create scan server paths", e);
     }
   }
 
@@ -372,11 +437,11 @@ public class Upgrader9to10 implements Upgrader {
         Path path = new Path(good);
 
         FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
+        var tableConf = context.getTableConfiguration(RootTable.ID);
         long maxTime = -1;
         try (FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-            .forFile(path.toString(), ns, ns.getConf(), context.getCryptoService())
-            .withTableConfiguration(context.getTableConfiguration(RootTable.ID)).seekToBeginning()
-            .build()) {
+            .forFile(path.toString(), ns, ns.getConf(), NoCryptoServiceFactory.NONE)
+            .withTableConfiguration(tableConf).seekToBeginning().build()) {
           while (reader.hasTop()) {
             maxTime = Math.max(maxTime, reader.getTopKey().getTimestamp());
             reader.next();

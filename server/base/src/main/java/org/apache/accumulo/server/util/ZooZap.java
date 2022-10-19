@@ -78,6 +78,8 @@ public class ZooZap implements KeywordExecutable {
     boolean zapCoordinators = false;
     @Parameter(names = "-compactors", description = "remove compactor locks")
     boolean zapCompactors = false;
+    @Parameter(names = "-sservers", description = "remove scan server locks")
+    boolean zapScanServers = false;
     @Parameter(names = "-verbose", description = "print out messages about progress")
     boolean verbose = false;
   }
@@ -116,7 +118,7 @@ public class ZooZap implements KeywordExecutable {
 
         try {
           zapDirectory(zoo, managerLockPath, opts);
-        } catch (Exception e) {
+        } catch (KeeperException | InterruptedException e) {
           e.printStackTrace();
         }
       }
@@ -139,7 +141,7 @@ public class ZooZap implements KeywordExecutable {
               }
             }
           }
-        } catch (Exception e) {
+        } catch (KeeperException | InterruptedException e) {
           log.error("{}", e.getMessage(), e);
         }
       }
@@ -156,8 +158,10 @@ public class ZooZap implements KeywordExecutable {
       if (opts.zapCoordinators) {
         final String coordinatorPath = Constants.ZROOT + "/" + iid + Constants.ZCOORDINATOR_LOCK;
         try {
-          zapDirectory(zoo, coordinatorPath, opts);
-        } catch (Exception e) {
+          if (zoo.exists(coordinatorPath)) {
+            zapDirectory(zoo, coordinatorPath, opts);
+          }
+        } catch (KeeperException | InterruptedException e) {
           log.error("Error deleting coordinator from zookeeper, {}", e.getMessage(), e);
         }
       }
@@ -165,15 +169,36 @@ public class ZooZap implements KeywordExecutable {
       if (opts.zapCompactors) {
         String compactorsBasepath = Constants.ZROOT + "/" + iid + Constants.ZCOMPACTORS;
         try {
-          List<String> queues = zoo.getChildren(compactorsBasepath);
-          for (String queue : queues) {
-            message("Deleting " + compactorsBasepath + "/" + queue + " from zookeeper", opts);
-            zoo.recursiveDelete(compactorsBasepath + "/" + queue, NodeMissingPolicy.SKIP);
+          if (zoo.exists(compactorsBasepath)) {
+            List<String> queues = zoo.getChildren(compactorsBasepath);
+            for (String queue : queues) {
+              message("Deleting " + compactorsBasepath + "/" + queue + " from zookeeper", opts);
+              zoo.recursiveDelete(compactorsBasepath + "/" + queue, NodeMissingPolicy.SKIP);
+            }
           }
-        } catch (Exception e) {
+        } catch (KeeperException | InterruptedException e) {
           log.error("Error deleting compactors from zookeeper, {}", e.getMessage(), e);
         }
 
+      }
+
+      if (opts.zapScanServers) {
+        String sserversPath = Constants.ZROOT + "/" + iid + Constants.ZSSERVERS;
+        try {
+          if (zoo.exists(sserversPath)) {
+            List<String> children = zoo.getChildren(sserversPath);
+            for (String child : children) {
+              message("Deleting " + sserversPath + "/" + child + " from zookeeper", opts);
+
+              var zLockPath = ServiceLock.path(sserversPath + "/" + child);
+              if (!zoo.getChildren(zLockPath.toString()).isEmpty()) {
+                ServiceLock.deleteLock(zoo, zLockPath);
+              }
+            }
+          }
+        } catch (KeeperException | InterruptedException e) {
+          log.error("{}", e.getMessage(), e);
+        }
       }
 
     } finally {

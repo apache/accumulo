@@ -22,7 +22,9 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashSet;
@@ -48,8 +50,10 @@ import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.dataImpl.thrift.InitialScan;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.dataImpl.thrift.ScanResult;
@@ -58,8 +62,12 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.scan.ScanServerAttempt;
+import org.apache.accumulo.core.spi.scan.ScanServerSelections;
+import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
+import org.apache.accumulo.core.tabletserver.thrift.ScanServerBusyException;
 import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException;
@@ -109,7 +117,7 @@ public class ThriftScanner {
         ScanState scanState = new ScanState(context, extent.tableId(), authorizations, range,
             fetchedColumns, size, serverSideIteratorList, serverSideIteratorOptions, false,
             Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD, null, batchTimeOut, classLoaderContext,
-            null);
+            null, false);
 
         TabletType ttype = TabletType.type(extent);
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(server);
@@ -119,7 +127,7 @@ public class ThriftScanner {
             scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
             scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated,
             scanState.readaheadThreshold, null, scanState.batchTimeOut, classLoaderContext,
-            scanState.executionHints);
+            scanState.executionHints, 0L);
         if (waitForWrites)
           serversWaitedForWrites.get(ttype).add(server);
 
@@ -156,6 +164,7 @@ public class ThriftScanner {
     boolean skipStartRow;
     long readaheadThreshold;
     long batchTimeOut;
+    boolean runOnScanServer;
 
     Range range;
 
@@ -179,12 +188,20 @@ public class ThriftScanner {
     SamplerConfiguration samplerConfig;
     Map<String,String> executionHints;
 
+    ScanServerAttemptsImpl scanAttempts;
+
+    Duration busyTimeout;
+
+    TabletLocation getErrorLocation() {
+      return prevLoc;
+    }
+
     public ScanState(ClientContext context, TableId tableId, Authorizations authorizations,
         Range range, SortedSet<Column> fetchedColumns, int size,
         List<IterInfo> serverSideIteratorList,
         Map<String,Map<String,String>> serverSideIteratorOptions, boolean isolated,
         long readaheadThreshold, SamplerConfiguration samplerConfig, long batchTimeOut,
-        String classLoaderContext, Map<String,String> executionHints) {
+        String classLoaderContext, Map<String,String> executionHints, boolean useScanServer) {
       this.context = context;
       this.authorizations = authorizations;
       this.classLoaderContext = classLoaderContext;
@@ -221,6 +238,12 @@ public class ThriftScanner {
         this.executionHints = null; // avoid thrift serialization for empty map
       else
         this.executionHints = executionHints;
+
+      this.runOnScanServer = useScanServer;
+
+      if (useScanServer) {
+        scanAttempts = new ScanServerAttemptsImpl();
+      }
     }
   }
 
@@ -230,8 +253,13 @@ public class ThriftScanner {
 
   }
 
-  static long pause(long millis, long maxSleep) throws InterruptedException {
-    Thread.sleep(millis);
+  static long pause(long millis, long maxSleep, boolean runOnScanServer)
+      throws InterruptedException {
+    if (!runOnScanServer) {
+      // the client side scan server plugin controls sleep time... this sleep is for regular scans
+      // where the scan server plugin does not have control
+      Thread.sleep(millis);
+    }
     // wait 2 * last time, with +-10% random jitter
     return (long) (Math.min(millis * 2, maxSleep) * (.9 + random.nextDouble() / 5));
   }
@@ -281,7 +309,7 @@ public class ThriftScanner {
               else if (log.isTraceEnabled())
                 log.trace("{}", error);
               lastError = error;
-              sleepMillis = pause(sleepMillis, maxSleepTime);
+              sleepMillis = pause(sleepMillis, maxSleepTime, scanState.runOnScanServer);
             } else {
               // when a tablet splits we do want to continue scanning the low child
               // of the split if we are already passed it
@@ -314,7 +342,7 @@ public class ThriftScanner {
             TraceUtil.setException(child1, e, false);
 
             lastError = error;
-            sleepMillis = pause(sleepMillis, maxSleepTime);
+            sleepMillis = pause(sleepMillis, maxSleepTime, scanState.runOnScanServer);
           } finally {
             child1.end();
           }
@@ -332,14 +360,14 @@ public class ThriftScanner {
           throw e;
         } catch (TApplicationException tae) {
           TraceUtil.setException(child2, tae, true);
-          throw new AccumuloServerException(loc.tablet_location, tae);
+          throw new AccumuloServerException(scanState.getErrorLocation().tablet_location, tae);
         } catch (TSampleNotPresentException tsnpe) {
           String message = "Table " + context.getPrintableTableInfoFromId(scanState.tableId)
               + " does not have sampling configured or built";
           TraceUtil.setException(child2, tsnpe, true);
           throw new SampleNotPresentException(message, tsnpe);
         } catch (NotServingTabletException e) {
-          error = "Scan failed, not serving tablet " + loc;
+          error = "Scan failed, not serving tablet " + scanState.getErrorLocation();
           if (!error.equals(lastError))
             log.debug("{}", error);
           else if (log.isTraceEnabled())
@@ -358,9 +386,25 @@ public class ThriftScanner {
           }
 
           TraceUtil.setException(child2, e, false);
-          sleepMillis = pause(sleepMillis, maxSleepTime);
+          sleepMillis = pause(sleepMillis, maxSleepTime, scanState.runOnScanServer);
+        } catch (ScanServerBusyException e) {
+          error = "Scan failed, scan server was busy " + scanState.getErrorLocation();
+          if (!error.equals(lastError))
+            log.debug("{}", error);
+          else if (log.isTraceEnabled())
+            log.trace("{}", error);
+          lastError = error;
+
+          if (scanState.isolated) {
+            TraceUtil.setException(child2, e, true);
+            throw new IsolationException();
+          }
+
+          TraceUtil.setException(child2, e, false);
+          scanState.scanID = null;
         } catch (NoSuchScanIDException e) {
-          error = "Scan failed, no such scan id " + scanState.scanID + " " + loc;
+          error = "Scan failed, no such scan id " + scanState.scanID + " "
+              + scanState.getErrorLocation();
           if (!error.equals(lastError))
             log.debug("{}", error);
           else if (log.isTraceEnabled())
@@ -375,7 +419,7 @@ public class ThriftScanner {
           TraceUtil.setException(child2, e, false);
           scanState.scanID = null;
         } catch (TooManyFilesException e) {
-          error = "Tablet has too many files " + loc + " retrying...";
+          error = "Tablet has too many files " + scanState.getErrorLocation() + " retrying...";
           if (error.equals(lastError)) {
             tooManyFilesCount++;
             if (tooManyFilesCount == 300)
@@ -399,12 +443,12 @@ public class ThriftScanner {
           }
 
           TraceUtil.setException(child2, e, false);
-          sleepMillis = pause(sleepMillis, maxSleepTime);
+          sleepMillis = pause(sleepMillis, maxSleepTime, scanState.runOnScanServer);
         } catch (TException e) {
           TabletLocator.getLocator(context, scanState.tableId).invalidateCache(context,
               loc.tablet_location);
           error = "Scan failed, thrift error " + e.getClass().getName() + "  " + e.getMessage()
-              + " " + loc;
+              + " " + scanState.getErrorLocation();
           if (!error.equals(lastError))
             log.debug("{}", error);
           else if (log.isTraceEnabled())
@@ -423,7 +467,7 @@ public class ThriftScanner {
           }
 
           TraceUtil.setException(child2, e, false);
-          sleepMillis = pause(sleepMillis, maxSleepTime);
+          sleepMillis = pause(sleepMillis, maxSleepTime, scanState.runOnScanServer);
         } finally {
           child2.end();
         }
@@ -448,9 +492,99 @@ public class ThriftScanner {
     if (scanState.finished)
       return null;
 
+    if (scanState.runOnScanServer) {
+
+      TabletLocation newLoc;
+
+      var tabletId = new TabletIdImpl(loc.tablet_extent);
+
+      if (scanState.scanID != null && scanState.prevLoc != null
+          && scanState.prevLoc.tablet_session.equals("scan_server")
+          && scanState.prevLoc.tablet_extent.equals(loc.tablet_extent)) {
+        // this is the case of continuing a scan on a scan server for the same tablet, so lets not
+        // call the scan server selector and just go back to the previous scan server
+        newLoc = scanState.prevLoc;
+        log.trace(
+            "For tablet {} continuing scan on scan server {} without consulting scan server selector, using busyTimeout {}",
+            loc.tablet_extent, newLoc.tablet_location, scanState.busyTimeout);
+      } else {
+        // obtain a snapshot once and only expose this snapshot to the plugin for consistency
+        var attempts = scanState.scanAttempts.snapshot();
+
+        var params = new ScanServerSelector.SelectorParameters() {
+
+          @Override
+          public List<TabletId> getTablets() {
+            return List.of(tabletId);
+          }
+
+          @Override
+          public Collection<? extends ScanServerAttempt> getAttempts(TabletId tabletId) {
+            return attempts.getOrDefault(tabletId, Set.of());
+          }
+
+          @Override
+          public Map<String,String> getHints() {
+            if (scanState.executionHints == null)
+              return Map.of();
+            return scanState.executionHints;
+          }
+        };
+
+        ScanServerSelections actions = context.getScanServerSelector().selectServers(params);
+
+        Duration delay = null;
+
+        String scanServer = actions.getScanServer(tabletId);
+        if (scanServer != null) {
+          newLoc = new TabletLocation(loc.tablet_extent, scanServer, "scan_server");
+          delay = actions.getDelay();
+          scanState.busyTimeout = actions.getBusyTimeout();
+          log.trace(
+              "For tablet {} scan server selector chose scan_server:{} delay:{} busyTimeout:{}",
+              loc.tablet_extent, scanServer, delay, scanState.busyTimeout);
+        } else {
+          newLoc = loc;
+          delay = actions.getDelay();
+          scanState.busyTimeout = Duration.ZERO;
+          log.trace("For tablet {} scan server selector chose tablet_server", loc.tablet_extent);
+        }
+
+        if (!delay.isZero()) {
+          try {
+            Thread.sleep(delay.toMillis());
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+          }
+        }
+      }
+
+      var reporter = scanState.scanAttempts.createReporter(newLoc.tablet_location, tabletId);
+
+      try {
+        return scanRpc(newLoc, scanState, context, scanState.busyTimeout.toMillis());
+      } catch (ScanServerBusyException ssbe) {
+        reporter.report(ScanServerAttempt.Result.BUSY);
+        throw ssbe;
+      } catch (Exception e) {
+        reporter.report(ScanServerAttempt.Result.ERROR);
+        throw e;
+      }
+    } else {
+      return scanRpc(loc, scanState, context, 0L);
+    }
+  }
+
+  private static List<KeyValue> scanRpc(TabletLocation loc, ScanState scanState,
+      ClientContext context, long busyTimeout) throws AccumuloSecurityException,
+      NotServingTabletException, TException, NoSuchScanIDException, TooManyFilesException,
+      TSampleNotPresentException, ScanServerBusyException {
+
     OpTimer timer = null;
 
     final TInfo tinfo = TraceUtil.traceInfo();
+
     final HostAndPort parsedLocation = HostAndPort.fromString(loc.tablet_location);
     TabletScanClientService.Client client =
         ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedLocation, context);
@@ -487,7 +621,7 @@ public class ThriftScanner {
             scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated,
             scanState.readaheadThreshold,
             SamplerConfigurationImpl.toThrift(scanState.samplerConfig), scanState.batchTimeOut,
-            scanState.classLoaderContext, scanState.executionHints);
+            scanState.classLoaderContext, scanState.executionHints, busyTimeout);
         if (waitForWrites)
           serversWaitedForWrites.get(ttype).add(loc.tablet_location);
 
@@ -509,7 +643,7 @@ public class ThriftScanner {
           timer = new OpTimer().start();
         }
 
-        sr = client.continueScan(tinfo, scanState.scanID);
+        sr = client.continueScan(tinfo, scanState.scanID, busyTimeout);
         if (!sr.more) {
           client.closeScan(tinfo, scanState.scanID);
           scanState.scanID = null;
