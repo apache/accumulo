@@ -431,6 +431,15 @@ public abstract class TabletBase {
         handleTabletClosedDuringScan(results, lookupResult, exceededMemoryUsage, range,
             entriesAdded);
         tabletClosed = true;
+      } catch (RuntimeException re) {
+        if (ShutdownUtil.wasCausedByHadoopShutdown(re)) {
+          log.debug("RuntimeException while shutdown in progress", re);
+          handleTabletClosedDuringScan(results, lookupResult, exceededMemoryUsage, range,
+              entriesAdded);
+          tabletClosed = true;
+        } else {
+          throw re;
+        }
       }
 
     }

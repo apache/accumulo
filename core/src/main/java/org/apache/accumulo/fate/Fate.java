@@ -20,6 +20,7 @@ package org.apache.accumulo.fate;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.ShutdownUtil.isIOException;
 import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.FAILED;
 import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.FAILED_IN_PROGRESS;
 import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.IN_PROGRESS;
@@ -133,20 +134,6 @@ public class Fate<T> {
           }
         }
       }
-    }
-
-    private boolean isIOException(Throwable e) {
-      if (e == null)
-        return false;
-
-      if (e instanceof IOException)
-        return true;
-
-      for (Throwable suppressed : e.getSuppressed())
-        if (isIOException(suppressed))
-          return true;
-
-      return isIOException(e.getCause());
     }
 
     /**
