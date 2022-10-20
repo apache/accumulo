@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.conf;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.conf.ConfigurationTypeHelper.getMemoryAsBytes;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -27,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,12 +48,14 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.test.util.Wait;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -59,9 +63,24 @@ import org.slf4j.LoggerFactory;
 
 @Tag(MINI_CLUSTER_ONLY)
 @Tag(SUNNY_DAY)
-public class PropStoreConfigIT extends AccumuloClusterHarness {
+public class PropStoreConfigIT extends SharedMiniClusterBase {
 
   private static final Logger log = LoggerFactory.getLogger(PropStoreConfigIT.class);
+
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
+  }
+
+  @BeforeAll
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
+  }
+
+  @AfterAll
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
 
   @Test
   public void setTablePropTest() throws Exception {
@@ -119,7 +138,7 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
       var tableIdMap = client.tableOperations().tableIdMap();
       var nsIdMap = client.namespaceOperations().namespaceIdMap();
 
-      ServerContext context = getServerContext();
+      ServerContext context = getCluster().getServerContext();
 
       NamespaceId nid = NamespaceId.of(nsIdMap.get(namespace));
       TableId tid = TableId.of(tableIdMap.get(table));
@@ -164,7 +183,7 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
 
       Thread.sleep(SECONDS.toMillis(3L));
 
-      ServerContext serverContext = cluster.getServerContext();
+      ServerContext serverContext = getCluster().getServerContext();
       ZooReaderWriter zrw = serverContext.getZooReaderWriter();
 
       // validate that a world-readable node has expected perms to validate test method
@@ -206,30 +225,38 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
       Map<String,String> config = client.instanceOperations().getSystemConfiguration();
       Map<String,String> properties = getStoredConfiguration();
 
-      // should be empty to start
-      assertEquals(0, properties.size());
+      final String origMaxOpenFiles = config.get(Property.TSERV_SCAN_MAX_OPENFILES.getKey());
+      final String origMaxMem = config.get(Property.TSERV_MAXMEM.getKey());
+      // final long origMaxMem = getMemoryAsBytes(config.get(Property.TSERV_MAXMEM.getKey()));
 
-      final String originalClientPort = config.get(Property.TSERV_CLIENTPORT.getKey());
-      final String originalMaxMem = config.get(Property.TSERV_MAXMEM.getKey());
+      client.instanceOperations().modifyProperties(Map::clear);
+      assertTrue(Wait.waitFor(() -> getStoredConfiguration().size() == 0, 5000, 500));
+
+      // should be empty to start
+      final int numProps = properties.size();
+
+      final String expectedMaxOpenFiles = "" + (Integer.parseInt(origMaxOpenFiles) + 1);
+      final String expectMaxMem = (getMemoryAsBytes(origMaxMem) + 1024) + "M";
 
       // Set properties in ZK
       client.instanceOperations().modifyProperties(original -> {
-        original.put(Property.TSERV_CLIENTPORT.getKey(), "9998");
-        original.put(Property.TSERV_MAXMEM.getKey(), "35%");
+        original.put(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), expectedMaxOpenFiles);
+        original.put(Property.TSERV_MAXMEM.getKey(), expectMaxMem);
       });
 
       // Verify system properties added
-      assertTrue(Wait.waitFor(() -> getStoredConfiguration().size() > 0, 5000, 500));
+      assertTrue(Wait.waitFor(() -> getStoredConfiguration().size() > numProps, 5000, 500));
 
       // verify properties updated
       properties = getStoredConfiguration();
-      assertEquals("9998", properties.get(Property.TSERV_CLIENTPORT.getKey()));
-      assertEquals("35%", properties.get(Property.TSERV_MAXMEM.getKey()));
+      assertEquals(expectedMaxOpenFiles,
+          properties.get(Property.TSERV_SCAN_MAX_OPENFILES.getKey()));
+      assertEquals(expectMaxMem, properties.get(Property.TSERV_MAXMEM.getKey()));
 
       // verify properties updated in config as well
       config = client.instanceOperations().getSystemConfiguration();
-      assertEquals("9998", config.get(Property.TSERV_CLIENTPORT.getKey()));
-      assertEquals("35%", config.get(Property.TSERV_MAXMEM.getKey()));
+      assertEquals(expectedMaxOpenFiles, config.get(Property.TSERV_SCAN_MAX_OPENFILES.getKey()));
+      assertEquals(expectMaxMem, config.get(Property.TSERV_MAXMEM.getKey()));
 
       // Verify removal by sending empty map - only removes props that were set in previous values
       // should be restored
@@ -239,8 +266,8 @@ public class PropStoreConfigIT extends AccumuloClusterHarness {
 
       // verify default system config restored
       config = client.instanceOperations().getSystemConfiguration();
-      assertEquals(originalClientPort, config.get(Property.TSERV_CLIENTPORT.getKey()));
-      assertEquals(originalMaxMem, config.get(Property.TSERV_MAXMEM.getKey()));
+      assertEquals(origMaxOpenFiles, config.get(Property.TSERV_SCAN_MAX_OPENFILES.getKey()));
+      assertEquals(origMaxMem, config.get(Property.TSERV_MAXMEM.getKey()));
     }
   }
 
