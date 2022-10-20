@@ -21,7 +21,7 @@ package org.apache.accumulo.server.conf.store;
 import static org.apache.accumulo.core.Constants.ZCONFIG;
 
 import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 
 public class SystemPropKey extends PropStoreKey<InstanceId> {

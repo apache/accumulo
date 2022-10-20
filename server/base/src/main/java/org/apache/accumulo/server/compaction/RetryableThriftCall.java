@@ -22,8 +22,8 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.fate.util.Retry;
-import org.apache.accumulo.fate.util.Retry.NeedsRetryDelay;
+import org.apache.accumulo.core.util.Retry;
+import org.apache.accumulo.core.util.Retry.NeedsRetryDelay;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

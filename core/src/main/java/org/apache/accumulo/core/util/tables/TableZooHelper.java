@@ -34,8 +34,8 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;

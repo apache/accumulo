@@ -18,18 +18,18 @@
  */
 package org.apache.accumulo.core.logging;
 
-import static org.apache.accumulo.fate.FateTxId.formatTid;
+import static org.apache.accumulo.core.fate.FateTxId.formatTid;
 
 import java.io.Serializable;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.function.Function;
 
-import org.apache.accumulo.fate.Fate;
-import org.apache.accumulo.fate.ReadOnlyRepo;
-import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.fate.StackOverflowException;
-import org.apache.accumulo.fate.TStore;
+import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.ReadOnlyRepo;
+import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.StackOverflowException;
+import org.apache.accumulo.core.fate.TStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

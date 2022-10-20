@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.manager.tableOps.namespace.create;
 
-import org.apache.accumulo.fate.Repo;
+import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;

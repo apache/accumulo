@@ -20,8 +20,8 @@ package org.apache.accumulo.manager.tableOps.tableImport;
 
 import static org.apache.accumulo.core.Constants.IMPORT_MAPPINGS_FILE;
 
+import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;

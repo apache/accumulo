@@ -21,7 +21,7 @@ package org.apache.accumulo.server.util;
 import java.io.IOException;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
+import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.zookeeper.KeeperException;
 
 public class AccumuloStatus {

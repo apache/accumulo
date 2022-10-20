@@ -22,8 +22,8 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.commons.io.FileUtils;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;

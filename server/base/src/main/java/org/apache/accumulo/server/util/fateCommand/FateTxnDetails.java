@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import org.apache.accumulo.fate.AdminUtil;
+import org.apache.accumulo.core.fate.AdminUtil;
 
 public class FateTxnDetails implements Comparable<FateTxnDetails> {
   final static String TXN_HEADER =

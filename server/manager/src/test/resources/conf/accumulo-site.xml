@@ -89,8 +89,6 @@
       $ACCUMULO_HOME/lib/accumulo-core.jar,
       $ACCUMULO_HOME/start/target/classes/,
       $ACCUMULO_HOME/lib/accumulo-start.jar,
-      $ACCUMULO_HOME/fate/target/classes/,
-      $ACCUMULO_HOME/lib/accumulo-fate.jar,
       $ACCUMULO_HOME/proxy/target/classes/,
       $ACCUMULO_HOME/lib/accumulo-proxy.jar,
       $ACCUMULO_HOME/lib/[^.].*.jar,

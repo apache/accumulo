@@ -23,7 +23,7 @@ import static org.apache.accumulo.core.Constants.ZTABLES;
 
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 
 public class TablePropKey extends PropStoreKey<TableId> {

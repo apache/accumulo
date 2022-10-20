@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
+import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

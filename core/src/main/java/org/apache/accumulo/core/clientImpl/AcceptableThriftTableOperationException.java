@@ -21,7 +21,7 @@ package org.apache.accumulo.core.clientImpl;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
-import org.apache.accumulo.fate.AcceptableException;
+import org.apache.accumulo.core.fate.AcceptableException;
 
 /**
  * Concrete implementation of {@link AcceptableException} for table operations.

@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Arrays;
 
-import org.apache.accumulo.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateTxId;
 import org.junit.jupiter.api.Test;
 
 public class FastFormatTest {

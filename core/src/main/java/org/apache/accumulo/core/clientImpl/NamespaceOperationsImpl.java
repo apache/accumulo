@@ -63,7 +63,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.OpTimer;
-import org.apache.accumulo.fate.util.Retry;
+import org.apache.accumulo.core.util.Retry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

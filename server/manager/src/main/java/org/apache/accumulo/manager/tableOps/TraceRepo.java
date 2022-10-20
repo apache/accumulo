@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.manager.tableOps;
 
+import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 
 import com.google.gson.Gson;

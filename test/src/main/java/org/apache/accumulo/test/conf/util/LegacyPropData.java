@@ -25,7 +25,7 @@ import java.util.List;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 
 /**
  * Provides sampled ZooKeeper properties paths / data from a 1.10 instance for testing.
