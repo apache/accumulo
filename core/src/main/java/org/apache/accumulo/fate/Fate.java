@@ -29,7 +29,6 @@ import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.SUBMITTED;
 import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.SUCCESSFUL;
 import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.UNKNOWN;
 
-import java.io.IOException;
 import java.util.EnumSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
