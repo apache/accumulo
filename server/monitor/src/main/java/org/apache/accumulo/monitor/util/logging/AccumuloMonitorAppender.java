@@ -32,8 +32,8 @@ import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.monitor.rest.logs.LogResource;
 import org.apache.accumulo.monitor.rest.logs.SingleLogEvent;
 import org.apache.accumulo.server.ServerContext;

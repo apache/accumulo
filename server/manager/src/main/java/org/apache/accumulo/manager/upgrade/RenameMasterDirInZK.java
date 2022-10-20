@@ -20,8 +20,8 @@ package org.apache.accumulo.manager.upgrade;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;

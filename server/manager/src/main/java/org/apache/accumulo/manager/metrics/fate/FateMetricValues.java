@@ -23,8 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.accumulo.fate.AdminUtil;
-import org.apache.accumulo.fate.ReadOnlyTStore;
+import org.apache.accumulo.core.fate.AdminUtil;
+import org.apache.accumulo.core.fate.ReadOnlyTStore;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;

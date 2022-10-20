@@ -34,7 +34,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.fate.util.UtilWaitThread;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
 import org.junit.jupiter.api.Test;

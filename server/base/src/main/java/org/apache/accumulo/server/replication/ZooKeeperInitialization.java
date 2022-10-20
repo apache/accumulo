@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.server.replication;
 
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.replication.ReplicationConstants;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
 
 /**

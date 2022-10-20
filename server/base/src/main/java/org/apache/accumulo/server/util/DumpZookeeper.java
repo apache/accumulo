@@ -24,7 +24,7 @@ import java.io.PrintStream;
 import java.util.Base64;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;

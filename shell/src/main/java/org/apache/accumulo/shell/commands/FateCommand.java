@@ -19,7 +19,7 @@
 package org.apache.accumulo.shell.commands;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.fate.FateTxId.parseTidFromUserInput;
+import static org.apache.accumulo.core.fate.FateTxId.parseTidFromUserInput;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -38,15 +38,15 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.fate.AdminUtil;
+import org.apache.accumulo.core.fate.ReadOnlyRepo;
+import org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus;
+import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.ZooStore;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLock.ServiceLockPath;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.util.FastFormat;
-import org.apache.accumulo.fate.AdminUtil;
-import org.apache.accumulo.fate.ReadOnlyRepo;
-import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
-import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.fate.ZooStore;
-import org.apache.accumulo.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;

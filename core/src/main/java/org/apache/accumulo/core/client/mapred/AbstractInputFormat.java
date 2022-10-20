@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.client.mapred;
 
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.net.InetAddress;

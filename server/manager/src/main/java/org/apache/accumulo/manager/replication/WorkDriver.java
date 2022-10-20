@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.manager.replication;
 
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.concurrent.TimeUnit;
 

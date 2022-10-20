@@ -19,7 +19,7 @@
 package org.apache.accumulo.tserver.replication;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;

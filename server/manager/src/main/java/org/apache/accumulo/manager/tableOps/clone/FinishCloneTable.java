@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.clone;
 
+import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;

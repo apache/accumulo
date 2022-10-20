@@ -32,8 +32,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import org.apache.accumulo.fate.AdminUtil;
-import org.apache.accumulo.fate.ReadOnlyTStore;
+import org.apache.accumulo.core.fate.AdminUtil;
+import org.apache.accumulo.core.fate.ReadOnlyTStore;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

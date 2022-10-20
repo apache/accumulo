@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.compaction;
 
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;

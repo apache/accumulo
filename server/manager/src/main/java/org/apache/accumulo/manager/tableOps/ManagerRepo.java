@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.manager.tableOps;
 
-import org.apache.accumulo.fate.Repo;
+import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 
 public abstract class ManagerRepo implements Repo<Manager> {

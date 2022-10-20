@@ -25,11 +25,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.fate.ReadOnlyTStore;
+import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.accumulo.fate.ReadOnlyTStore;
-import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;

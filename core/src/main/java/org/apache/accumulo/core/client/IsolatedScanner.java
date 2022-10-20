@@ -19,7 +19,7 @@
 package org.apache.accumulo.core.client;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.ArrayList;
 import java.util.Iterator;

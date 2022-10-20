@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.performance;
 
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
