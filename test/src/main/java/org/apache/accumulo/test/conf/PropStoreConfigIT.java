@@ -40,7 +40,6 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
@@ -99,21 +98,26 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
 
       client.tableOperations().create(table);
 
-      log.info("Tables: {}", client.tableOperations().list());
+      log.debug("Tables: {}", client.tableOperations().list());
 
+      // override default in sys, and then over-ride that for table prop
       client.instanceOperations().setProperty(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
+      client.tableOperations().setProperty(table, Property.TABLE_BLOOM_ENABLED.getKey(), "false");
+
+      assertTrue(Wait.waitFor(() -> client.instanceOperations().getSystemConfiguration()
+          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"), 5000, 500));
+      assertTrue(Wait.waitFor(() -> client.tableOperations().getConfiguration(table)
+          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false"), 5000, 500));
+
+      // revert sys, and then over-ride to true with table prop
+      client.instanceOperations().removeProperty(Property.TABLE_BLOOM_ENABLED.getKey());
       client.tableOperations().setProperty(table, Property.TABLE_BLOOM_ENABLED.getKey(), "true");
 
-      Thread.sleep(SECONDS.toMillis(3L));
+      assertTrue(Wait.waitFor(() -> client.instanceOperations().getSystemConfiguration()
+          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false"), 5000, 500));
+      assertTrue(Wait.waitFor(() -> client.tableOperations().getConfiguration(table)
+          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"), 5000, 500));
 
-      var props = client.tableOperations().getProperties(table);
-      log.info("Props: {}", props);
-      for (Map.Entry<String,String> e : props) {
-        if (e.getKey().contains("table.bloom.enabled")) {
-          log.info("after bloom property: {}={}", e.getKey(), e.getValue());
-          assertEquals("true", e.getValue());
-        }
-      }
     }
   }
 
@@ -130,19 +134,26 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
 
       log.info("Tables: {}", client.tableOperations().list());
 
-      client.instanceOperations().setProperty(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
-      client.tableOperations().setProperty(table, Property.TABLE_BLOOM_ENABLED.getKey(), "true");
+      client.instanceOperations().setProperty(Property.TABLE_BLOOM_SIZE.getKey(), "12345");
+      assertTrue(Wait.waitFor(() -> client.instanceOperations().getSystemConfiguration()
+          .get(Property.TABLE_BLOOM_SIZE.getKey()).equals("12345"), 5000, 500));
+      assertEquals("12345",
+          client.tableOperations().getConfiguration(table).get(Property.TABLE_BLOOM_SIZE.getKey()));
 
-      Thread.sleep(SECONDS.toMillis(1L));
+      client.namespaceOperations().setProperty(namespace, Property.TABLE_BLOOM_SIZE.getKey(),
+          "23456");
+      assertTrue(Wait.waitFor(() -> client.namespaceOperations().getConfiguration(namespace)
+          .get(Property.TABLE_BLOOM_SIZE.getKey()).equals("23456"), 5000, 500));
+      assertEquals("23456",
+          client.tableOperations().getConfiguration(table).get(Property.TABLE_BLOOM_SIZE.getKey()));
 
-      var props = client.tableOperations().getProperties(table);
-      log.info("Props: {}", props);
-      for (Map.Entry<String,String> e : props) {
-        if (e.getKey().contains("table.bloom.enabled")) {
-          log.info("after bloom property: {}={}", e.getKey(), e.getValue());
-          assertEquals("true", e.getValue());
-        }
-      }
+      client.tableOperations().setProperty(table, Property.TABLE_BLOOM_SIZE.getKey(), "34567");
+      assertTrue(Wait.waitFor(() -> client.tableOperations().getConfiguration(table)
+          .get(Property.TABLE_BLOOM_SIZE.getKey()).equals("34567"), 5000, 500));
+      assertEquals("12345", client.instanceOperations().getSystemConfiguration()
+          .get(Property.TABLE_BLOOM_SIZE.getKey()));
+      assertEquals("23456", client.namespaceOperations().getConfiguration(namespace)
+          .get(Property.TABLE_BLOOM_SIZE.getKey()));
 
       var tableIdMap = client.tableOperations().tableIdMap();
       var nsIdMap = client.namespaceOperations().namespaceIdMap();
@@ -186,9 +197,6 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
       client.namespaceOperations().create(namespace);
       client.tableOperations().create(table1);
       client.tableOperations().create(table2);
-
-      client.instanceOperations().setProperty(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
-      client.tableOperations().setProperty(table1, Property.TABLE_BLOOM_ENABLED.getKey(), "true");
 
       Thread.sleep(SECONDS.toMillis(3L));
 
@@ -426,7 +434,7 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
         }
       };
 
-      runConcurrentPropsModificationTest(propShim, client);
+      runConcurrentPropsModificationTest(propShim);
     }
   }
 
@@ -450,7 +458,7 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
         }
       };
 
-      runConcurrentPropsModificationTest(propShim, client);
+      runConcurrentPropsModificationTest(propShim);
     }
   }
 
@@ -471,7 +479,7 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
         }
       };
 
-      runConcurrentPropsModificationTest(propShim, client);
+      runConcurrentPropsModificationTest(propShim);
     }
   }
 
@@ -480,8 +488,7 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
    * modifications. The modifications build on each other and the test is written in such a way that
    * if any single modification is lost it can be detected.
    */
-  private static void runConcurrentPropsModificationTest(PropertyShim propShim,
-      AccumuloClient client) throws Exception {
+  private static void runConcurrentPropsModificationTest(PropertyShim propShim) throws Exception {
     ExecutorService executor = Executors.newFixedThreadPool(4);
 
     final int iterations = 151;
@@ -615,7 +622,7 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
     assertEquals(iterations * (3 + 11 + 17) + 3, afterB);
     assertEquals(iterations * (5 + 13) + 5, afterC);
     assertEquals(iterations * 7 + 7, afterD);
-    assertEquals(iterations * 19 + 0, afterE);
+    assertEquals(iterations * 19, afterE);
 
     executor.shutdown();
   }
