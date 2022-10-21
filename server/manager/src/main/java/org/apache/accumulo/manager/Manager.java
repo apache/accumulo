@@ -1371,7 +1371,7 @@ public class Manager extends AbstractServer
 
     while (needTservers && tserverRetry.canRetry()) {
 
-      tserverRetry.waitForNextAttempt();
+      tserverRetry.waitForNextAttempt(log, "block until minimum tservers reached");
 
       needTservers = tserverSet.size() < minTserverCount;
 

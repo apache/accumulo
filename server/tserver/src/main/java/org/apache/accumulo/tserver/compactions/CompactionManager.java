@@ -145,7 +145,7 @@ public class CompactionManager {
         log.warn("Failed to compact {} ", extent, e);
         retry.useRetry();
         try {
-          retry.waitForNextAttempt();
+          retry.waitForNextAttempt(log, "compaction initiation loop");
         } catch (InterruptedException e1) {
           log.debug("Retry interrupted", e1);
         }

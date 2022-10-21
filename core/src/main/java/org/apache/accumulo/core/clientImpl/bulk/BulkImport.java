@@ -177,7 +177,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
           checkPlanForSplits(ae);
         }
         try {
-          retry.waitForNextAttempt();
+          retry.waitForNextAttempt(log, String.format("bulk import to %s(%s)", tableName, tableId));
         } catch (InterruptedException e) {
           throw new RuntimeException(e);
         }

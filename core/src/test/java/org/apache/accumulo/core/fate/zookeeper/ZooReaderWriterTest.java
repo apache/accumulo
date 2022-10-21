@@ -41,6 +41,8 @@ import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ZooReaderWriterTest {
 
@@ -48,6 +50,8 @@ public class ZooReaderWriterTest {
   private ZooKeeper zk;
   private RetryFactory retryFactory;
   private Retry retry;
+
+  private static final Logger log = LoggerFactory.getLogger(ZooReaderWriterTest.class);
 
   @BeforeEach
   public void setup() {
@@ -83,7 +87,7 @@ public class ZooReaderWriterTest {
     expect(retry.canRetry()).andReturn(true);
     retry.useRetry();
     expectLastCall().once();
-    retry.waitForNextAttempt();
+    retry.waitForNextAttempt(log, "test delete succeed on retry");
     expectLastCall().once();
     zk.delete(path, -1);
     expectLastCall().andThrow(KeeperException.create(Code.NONODE));
@@ -163,7 +167,7 @@ public class ZooReaderWriterTest {
     expect(retry.canRetry()).andReturn(true);
     retry.useRetry();
     expectLastCall();
-    retry.waitForNextAttempt();
+    retry.waitForNextAttempt(log, "test mutate with retry on set data");
     expectLastCall();
     // Let 2nd setData succeed
     expect(zk.setData(path, mutatedBytes, 0)).andReturn(null);

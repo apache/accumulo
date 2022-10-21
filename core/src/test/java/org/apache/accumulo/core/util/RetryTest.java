@@ -40,6 +40,7 @@ import org.easymock.EasyMock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RetryTest {
 
@@ -51,6 +52,8 @@ public class RetryTest {
   private static final long LOG_INTERVAL = 1000;
   private Retry unlimitedRetry;
   private static final TimeUnit MS = MILLISECONDS;
+
+  private static final Logger log = LoggerFactory.getLogger(RetryTest.class);
 
   @BeforeEach
   public void setup() {
@@ -121,7 +124,7 @@ public class RetryTest {
 
     while (retry.canRetry()) {
       retry.useRetry();
-      retry.waitForNextAttempt();
+      retry.waitForNextAttempt(log, "test wait increment");
     }
 
     EasyMock.verify(retry);
@@ -152,7 +155,7 @@ public class RetryTest {
 
     while (retry.canRetry()) {
       retry.useRetry();
-      retry.waitForNextAttempt();
+      retry.waitForNextAttempt(log, "test backoff factor");
     }
 
     EasyMock.verify(retry);
@@ -182,7 +185,7 @@ public class RetryTest {
 
     while (retry.canRetry()) {
       retry.useRetry();
-      retry.waitForNextAttempt();
+      retry.waitForNextAttempt(log, "test bounded wait increment");
     }
 
     EasyMock.verify(retry);

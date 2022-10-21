@@ -256,7 +256,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
         try {
           retry.logRetry(log, "Unable to modify namespace properties for " + namespace
               + " because of concurrent modification");
-          retry.waitForNextAttempt();
+          retry.waitForNextAttempt(log, "Modify namespace properties for " + namespace);
         } catch (InterruptedException e) {
           throw new RuntimeException(e);
         }
