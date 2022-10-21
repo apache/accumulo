@@ -56,6 +56,7 @@ import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -80,6 +81,14 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
   @AfterAll
   public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
+  }
+
+  @BeforeEach
+  public void clear() throws Exception {
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.instanceOperations().modifyProperties(Map::clear);
+      assertTrue(Wait.waitFor(() -> getStoredConfiguration().size() == 0, 5000, 500));
+    }
   }
 
   @Test
