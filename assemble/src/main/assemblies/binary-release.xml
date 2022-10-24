@@ -26,6 +26,6 @@
     <format>tar.gz</format>
   </formats>
   <componentDescriptors>
-    <componentDescriptor>src/main/assemblies/component.xml</componentDescriptor>
+    <componentDescriptor>target/assembly-components.xml</componentDescriptor>
   </componentDescriptors>
 </assembly>

@@ -527,6 +527,27 @@
     </pluginManagement>
     <plugins>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <!-- generate listing dependencies to bundle -->
+            <id>generate-dependencies-raw</id>
+            <goals>
+              <goal>list</goal>
+            </goals>
+            <phase>compile</phase>
+            <configuration>
+              <outputFile>${project.build.directory}/dependencies.raw.txt</outputFile>
+              <outputScope>false</outputScope>
+              <sort>true</sort>
+              <excludeGroupIds>org.apache.accumulo,com.github.spotbugs</excludeGroupIds>
+              <excludeTransitive>true</excludeTransitive>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
         <executions>
@@ -553,6 +574,16 @@
             <phase>compile</phase>
             <configuration>
               <executable>src/main/scripts/create-jshell.sh</executable>
+            </configuration>
+          </execution>
+          <execution>
+            <id>compute-assembly-components</id>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <phase>prepare-package</phase>
+            <configuration>
+              <executable>${basedir}/src/main/scripts/compute-assembly-components.sh</executable>
             </configuration>
           </execution>
         </executions>
