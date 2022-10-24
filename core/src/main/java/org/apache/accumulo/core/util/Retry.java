@@ -25,7 +25,6 @@ import java.security.SecureRandom;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -35,8 +34,6 @@ import com.google.common.base.Preconditions;
  * a bounded, linear backoff.
  */
 public class Retry {
-  private static final Logger log = LoggerFactory.getLogger(Retry.class);
-
   private long maxRetries; // not final for testing
   private long waitIncrement; // not final for testing
   private long maxWait; // not final for testing
