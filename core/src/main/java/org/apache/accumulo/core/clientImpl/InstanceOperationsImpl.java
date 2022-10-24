@@ -150,7 +150,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
         try {
           retry.logRetry(log,
               "Unable to modify instance properties for because of concurrent modification");
-          retry.waitForNextAttempt();
+          retry.waitForNextAttempt(log, "Modify instance properties");
         } catch (InterruptedException e) {
           throw new RuntimeException(e);
         }

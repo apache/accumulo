@@ -131,7 +131,7 @@ public class ConfigTransformer {
       while (!token.haveTokenOwnership()) {
         try {
           retry.useRetry();
-          retry.waitForNextAttempt();
+          retry.waitForNextAttempt(log, "transform property at " + propStoreKey.getPath());
           // look and return node if created while trying to token.
           log.trace("own the token - look for existing encoded node at: {}",
               propStoreKey.getPath());

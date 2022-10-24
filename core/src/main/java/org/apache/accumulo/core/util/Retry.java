@@ -25,7 +25,6 @@ import java.security.SecureRandom;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -35,8 +34,6 @@ import com.google.common.base.Preconditions;
  * a bounded, linear backoff.
  */
 public class Retry {
-  private static final Logger log = LoggerFactory.getLogger(Retry.class);
-
   private long maxRetries; // not final for testing
   private long waitIncrement; // not final for testing
   private long maxWait; // not final for testing
@@ -176,14 +173,16 @@ public class Retry {
     return retriesDone;
   }
 
-  public void waitForNextAttempt() throws InterruptedException {
+  public void waitForNextAttempt(Logger log, String operationDescription)
+      throws InterruptedException {
 
     double waitFactor = (1 + (random.nextDouble() - 0.5) / 10.0) * currentBackOffFactor;
     if (!doTimeJitter)
       waitFactor = currentBackOffFactor;
     currentBackOffFactor = currentBackOffFactor * backOffFactor;
 
-    log.debug("Sleeping for {}ms before retrying operation", currentWait);
+    log.debug("Sleeping for {}ms before retrying operation : {} ", currentWait,
+        operationDescription);
 
     sleep(currentWait);
 

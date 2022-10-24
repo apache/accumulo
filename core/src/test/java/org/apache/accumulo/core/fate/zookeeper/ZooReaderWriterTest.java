@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.fate.zookeeper;
 
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.anyString;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.createMockBuilder;
 import static org.easymock.EasyMock.expect;
@@ -72,6 +74,8 @@ public class ZooReaderWriterTest {
     replay(zk, zrw, retryFactory, retry);
 
     zrw.delete(path);
+
+    verify(zk, zrw, retryFactory, retry);
   }
 
   @Test
@@ -83,7 +87,7 @@ public class ZooReaderWriterTest {
     expect(retry.canRetry()).andReturn(true);
     retry.useRetry();
     expectLastCall().once();
-    retry.waitForNextAttempt();
+    retry.waitForNextAttempt(anyObject(), anyString());
     expectLastCall().once();
     zk.delete(path, -1);
     expectLastCall().andThrow(KeeperException.create(Code.NONODE));
@@ -109,6 +113,8 @@ public class ZooReaderWriterTest {
     replay(zk, zrw, retryFactory, retry);
 
     assertThrows(SessionExpiredException.class, () -> zrw.mutateOrCreate(path, value, mutator));
+
+    verify(zk, zrw, retryFactory, retry);
   }
 
   @Test
@@ -117,11 +123,6 @@ public class ZooReaderWriterTest {
     final byte[] value = {0};
     final byte[] mutatedBytes = {1};
     Mutator mutator = currentValue -> mutatedBytes;
-
-    zrw = createMockBuilder(ZooReaderWriter.class)
-        .addMockedMethods("getRetryFactory", "getZooKeeper").createMock();
-    expect(zrw.getRetryFactory()).andReturn(retryFactory).anyTimes();
-    expect(zrw.getZooKeeper()).andReturn(zk).anyTimes();
 
     Stat stat = new Stat();
 
@@ -147,23 +148,18 @@ public class ZooReaderWriterTest {
     final byte[] mutatedBytes = {1};
     Mutator mutator = currentValue -> mutatedBytes;
 
-    zrw = createMockBuilder(ZooReaderWriter.class)
-        .addMockedMethods("getRetryFactory", "getZooKeeper").createMock();
-    expect(zrw.getRetryFactory()).andReturn(retryFactory).anyTimes();
-    expect(zrw.getZooKeeper()).andReturn(zk).anyTimes();
-
     Stat stat = new Stat();
 
     zk.create(path, value, ZooUtil.PUBLIC, CreateMode.PERSISTENT);
     expectLastCall().andThrow(new NodeExistsException()).once();
     expect(zk.getData(path, null, stat)).andReturn(new byte[] {3}).times(2);
-    // BadVersionException should retry
+    // transient connection loss should retry
     expect(zk.setData(path, mutatedBytes, 0)).andThrow(new ConnectionLossException());
 
     expect(retry.canRetry()).andReturn(true);
     retry.useRetry();
     expectLastCall();
-    retry.waitForNextAttempt();
+    retry.waitForNextAttempt(anyObject(), anyString());
     expectLastCall();
     // Let 2nd setData succeed
     expect(zk.setData(path, mutatedBytes, 0)).andReturn(null);

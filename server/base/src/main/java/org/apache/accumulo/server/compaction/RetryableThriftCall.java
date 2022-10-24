@@ -110,7 +110,7 @@ public class RetryableThriftCall<T> {
         if (this.retry.canRetry()) {
           this.retry.useRetry();
           try {
-            this.retry.waitForNextAttempt();
+            this.retry.waitForNextAttempt(LOG, "making a thrift RPC");
           } catch (InterruptedException e) {
             LOG.error("Error waiting for next attempt: {}, retrying now.", e.getMessage(), e);
           }
