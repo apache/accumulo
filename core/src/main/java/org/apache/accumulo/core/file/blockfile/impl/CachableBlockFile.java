@@ -30,6 +30,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
+import org.apache.accumulo.core.file.rfile.BlockIndex;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.Reader.BlockReader;
 import org.apache.accumulo.core.file.rfile.bcfile.MetaBlockDoesNotExist;
@@ -37,7 +38,6 @@ import org.apache.accumulo.core.file.streams.RateLimitedInputStream;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCache.Loader;
 import org.apache.accumulo.core.spi.cache.CacheEntry;
-import org.apache.accumulo.core.spi.cache.CacheEntry.Weighable;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.hadoop.conf.Configuration;
@@ -59,7 +59,7 @@ public class CachableBlockFile {
 
   private static final Logger log = LoggerFactory.getLogger(CachableBlockFile.class);
 
-  private static interface IoeSupplier<T> {
+  private interface IoeSupplier<T> {
     T get() throws IOException;
   }
 
@@ -511,7 +511,7 @@ public class CachableBlockFile {
       return seekableInput.getBuffer();
     }
 
-    public <T extends Weighable> T getIndex(Supplier<T> indexSupplier) {
+    public BlockIndex getIndex(Supplier<BlockIndex> indexSupplier) {
       return cb.getIndex(indexSupplier);
     }
 

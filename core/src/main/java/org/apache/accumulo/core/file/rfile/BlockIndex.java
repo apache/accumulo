@@ -33,6 +33,8 @@ import org.apache.accumulo.core.spi.cache.CacheEntry.Weighable;
 
 public class BlockIndex implements Weighable {
 
+  private BlockIndex() {}
+
   public static BlockIndex getIndex(CachedBlockRead cacheBlock, IndexEntry indexEntry)
       throws IOException {
 
