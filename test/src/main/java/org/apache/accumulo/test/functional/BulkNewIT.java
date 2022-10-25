@@ -501,7 +501,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
       Map<String,Set<String>> hashes = new HashMap<>();
       hashes.put("0333", Set.of(h1));
-      hashes.put("null", new HashSet<>());
+      hashes.put("null", Set.of());
       verifyMetadata(c, tableName, hashes);
     }
   }
