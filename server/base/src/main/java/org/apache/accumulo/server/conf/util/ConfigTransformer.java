@@ -107,6 +107,10 @@ public class ConfigTransformer {
    */
   public VersionedProperties transform(final PropStoreKey<?> propStoreKey, final String legacyPath,
       final boolean deleteLegacyNode) {
+    VersionedProperties exists = checkNeedsTransform(propStoreKey);
+    if (exists != null) {
+      return exists;
+    }
     TransformToken token = TransformToken.createToken(legacyPath, zrw);
     return transform(propStoreKey, token, legacyPath, deleteLegacyNode);
   }
@@ -119,12 +123,10 @@ public class ConfigTransformer {
     VersionedProperties results;
     Instant start = Instant.now();
     try {
+
       // check for node - just return if it exists.
-      results = ZooPropStore.readFromZk(propStoreKey, propStoreWatcher, zrw);
+      results = checkNeedsTransform(propStoreKey);
       if (results != null) {
-        log.trace(
-            "Found existing node with properties at {}. skipping legacy prop conversion - version: {}, timestamp: {}",
-            propStoreKey, results.getDataVersion(), results.getTimestamp());
         return results;
       }
 
@@ -194,6 +196,32 @@ public class ConfigTransformer {
           Thread.currentThread().interrupt();
         }
       }
+    }
+    return null;
+  }
+
+  /**
+   * If the config node exists, return the properties, otherwise return null. ZooKeeper exceptions
+   * are ignored. Interrupt exceptions will be propagated as IllegalStateExceptions.
+   *
+   * @param propStoreKey
+   *          the prop key for that identifies the configuration node.
+   * @return the existing encoded properties if present, null if they do not.
+   */
+  private VersionedProperties checkNeedsTransform(PropStoreKey<?> propStoreKey) {
+    try { // check for node - just return if it exists.
+      VersionedProperties results = ZooPropStore.readFromZk(propStoreKey, propStoreWatcher, zrw);
+      if (results != null) {
+        log.trace(
+            "Found existing node with properties at {}. skipping legacy prop conversion - version: {}, timestamp: {}",
+            propStoreKey, results.getDataVersion(), results.getTimestamp());
+        return results;
+      }
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Interrupted during zookeeper read", ex);
+    } catch (IOException | KeeperException ex) {
+      log.trace("node for {} not found for upgrade", propStoreKey);
     }
     return null;
   }
@@ -321,17 +349,12 @@ public class ConfigTransformer {
         vProps = new VersionedProperties(props);
         zrw.putPrivatePersistentData(path, codec.toBytes(vProps),
             ZooUtil.NodeExistsPolicy.OVERWRITE);
-        // re-read to update property version
-        vProps = ZooPropStore.readFromZk(propStoreKey, propStoreWatcher, zrw);
-      } else {
-        // props exist - return stored value
-        vProps = ZooPropStore.readFromZk(propStoreKey, propStoreWatcher, zrw);
       }
+      return ZooPropStore.readFromZk(propStoreKey, propStoreWatcher, zrw);
     } catch (IOException ex) {
       throw new IllegalStateException(
           "failed to create node for " + propStoreKey + " on conversion", ex);
     }
-    return vProps;
   }
 
   private boolean validateWrite(final PropStoreKey<?> propStoreKey,
