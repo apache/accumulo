@@ -356,10 +356,17 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     }
 
     @Override
-    public Options overlapping(Text startRow, Text endRow) {
-      this.range = new KeyExtent(tableId, null, startRow).toMetaRange();
+    public Options overlapping(Text startRow, boolean startInclusive, Text endRow) {
+      var encRow = TabletsSection.encodeRow(tableId, startRow == null ? new Text("") : startRow);
+      this.range = new Range(encRow, startRow == null ? true : startInclusive, null, true);
       this.endRow = endRow;
+
       return this;
+    }
+
+    @Override
+    public Options overlapping(Text startRow, Text endRow) {
+      return overlapping(startRow, false, endRow);
     }
 
     @Override
@@ -465,8 +472,21 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
      * Limit to tablets that overlap the range {@code (startRow, endRow]}. Can pass null
      * representing -inf and +inf. The impl creates open ended ranges which may be problematic, see
      * #813.
+     *
+     * <p>
+     * This method is equivalent to calling {@link #overlapping(Text, boolean, Text)} as
+     * {@code overlapping(startRow, false, endRow)}
+     * </p>
      */
     Options overlapping(Text startRow, Text endRow);
+
+    /**
+     * When {@code startRowInclusive} is true limits to tablets that overlap the range
+     * {@code [startRow,endRow]}. When {@code startRowInclusive} is false limits to tablets that
+     * overlap the range {@code (startRow, endRow]}. Can pass null for start and end row
+     * representing -inf and +inf.
+     */
+    Options overlapping(Text startRow, boolean startRowInclusive, Text endRow);
   }
 
   private static class TabletMetadataIterator implements Iterator<TabletMetadata> {
