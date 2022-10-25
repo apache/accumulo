@@ -480,6 +480,33 @@ public class BulkNewIT extends SharedMiniClusterBase {
     }
   }
 
+  /*
+   * This test imports a file where the first row of the file is equal to the last row of the first
+   * tablet. There was a bug where this scenario would cause bulk import to hang forever.
+   */
+  @Test
+  public void testEndOfFirstTablet() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String dir = getDir("/testBulkFile-");
+      FileSystem fs = getCluster().getFileSystem();
+      fs.mkdirs(new Path(dir));
+
+      addSplits(c, tableName, "0333");
+
+      var h1 = writeData(dir + "/f1.", aconf, 333, 333);
+
+      c.tableOperations().importDirectory(dir).to(tableName).load();
+
+      verifyData(c, tableName, 333, 333, false);
+
+      Map<String,Set<String>> hashes = new HashMap<>();
+      hashes.put("0333", new HashSet<>());
+      hashes.get("0333").add(h1);
+      hashes.put("null", new HashSet<>());
+      verifyMetadata(c, tableName, hashes);
+    }
+  }
+
   private void addSplits(AccumuloClient client, String tableName, String splitString)
       throws Exception {
     SortedSet<Text> splits = new TreeSet<>();
