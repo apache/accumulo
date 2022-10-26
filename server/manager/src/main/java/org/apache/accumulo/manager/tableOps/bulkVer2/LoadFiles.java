@@ -376,7 +376,8 @@ class LoadFiles extends ManagerRepo {
       }
 
       if (cmp != 0) {
-        throw new IllegalStateException("Unexpected prev end row " + currTablet + " " + loadRange);
+        throw new IllegalStateException(
+            "Unexpected prev end row " + currTablet.getExtent() + " " + loadRange);
       }
 
       // we have found the first tablet in the range, add it to the list
