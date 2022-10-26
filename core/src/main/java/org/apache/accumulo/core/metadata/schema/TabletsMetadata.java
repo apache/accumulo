@@ -359,7 +359,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     public Options overlapping(Text startRow, boolean startInclusive, Text endRow) {
       var metaStartRow =
           TabletsSection.encodeRow(tableId, startRow == null ? new Text("") : startRow);
-      var metaEndRow = TabletsSection.encodeRow(tableId, endRow);
+      var metaEndRow = TabletsSection.encodeRow(tableId, null);
       this.range =
           new Range(metaStartRow, startRow == null ? true : startInclusive, metaEndRow, true);
       this.endRow = endRow;
