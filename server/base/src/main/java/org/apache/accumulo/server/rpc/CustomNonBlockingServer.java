@@ -128,6 +128,27 @@ public class CustomNonBlockingServer extends THsHaServer {
       }
       super.invoke();
     }
+
+    @Override
+    public boolean read() {
+      boolean result = super.read();
+      if (!result) {
+        log.trace("CustomFrameBuffer.read returned false when reading data from client: {}",
+            TServerUtils.clientAddress.get());
+      }
+      return result;
+    }
+
+    @Override
+    public boolean write() {
+      boolean result = super.write();
+      if (!result) {
+        log.trace("CustomFrameBuffer.write returned false when writing data to client: {}",
+            TServerUtils.clientAddress.get());
+      }
+      return result;
+    }
+
   }
 
 }
