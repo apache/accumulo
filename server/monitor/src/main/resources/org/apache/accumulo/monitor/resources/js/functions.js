@@ -135,7 +135,7 @@ function bigNumberForQuantity(quantity) {
 function dateFormat(timestamp) {
   var date = new Date(timestamp);
   var isoDate = date.toISOString().split('T');
-  return isoDate[0] + " " + isoDate[1].replace('.',',')
+  return [isoDate[0], isoDate[1].replace('.',',')].join('&nbsp;');
 }
 
 /**
