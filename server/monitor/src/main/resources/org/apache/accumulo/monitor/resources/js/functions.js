@@ -134,7 +134,8 @@ function bigNumberForQuantity(quantity) {
  */
 function dateFormat(timestamp) {
   var date = new Date(timestamp);
-  return date.toLocaleString([], { timeZoneName: 'short' }).split(' ').join('&nbsp;');
+  var isoDate = date.toISOString().split('T');
+  return isoDate[0] + " " + isoDate[1].replace('.',',')
 }
 
 /**
