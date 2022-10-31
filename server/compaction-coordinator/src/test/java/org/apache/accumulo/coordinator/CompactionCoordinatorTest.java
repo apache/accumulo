@@ -26,6 +26,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.net.UnknownHostException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -38,6 +39,7 @@ import java.util.UUID;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -86,6 +88,8 @@ public class CompactionCoordinatorTest {
     private final ServerContext context;
     private final ServerAddress client;
     private final TabletClientService.Client tabletServerClient;
+
+    private Set<ExternalCompactionId> metadataCompactionIds = null;
 
     protected TestCoordinator(CompactionFinalizer finalizer, LiveTServerSet tservers,
         ServerAddress client, TabletClientService.Client tabletServerClient, ServerContext context,
@@ -158,6 +162,18 @@ public class CompactionCoordinatorTest {
     public void compactionFailed(TInfo tinfo, TCredentials credentials, String externalCompactionId,
         TKeyExtent extent) throws ThriftSecurityException {}
 
+    void setMetadataCompactionIds(Set<ExternalCompactionId> mci) {
+      metadataCompactionIds = mci;
+    }
+
+    protected Set<ExternalCompactionId> readExternalCompactionIds() {
+      if (metadataCompactionIds == null) {
+        return RUNNING_CACHE.keySet();
+      } else {
+        return metadataCompactionIds;
+      }
+    }
+
     public Map<String,TreeMap<Short,TreeSet<TServerInstance>>> getQueues() {
       return CompactionCoordinator.QUEUE_SUMMARIES.QUEUES;
     }
@@ -167,13 +183,14 @@ public class CompactionCoordinatorTest {
     }
 
     public Map<ExternalCompactionId,RunningCompaction> getRunning() {
-      return RUNNING;
+      return RUNNING_CACHE;
     }
 
     public void resetInternals() {
       getQueues().clear();
       getIndex().clear();
       getRunning().clear();
+      metadataCompactionIds = null;
     }
 
   }
@@ -586,4 +603,52 @@ public class CompactionCoordinatorTest {
     coordinator.close();
   }
 
+  @Test
+  public void testCleanUpRunning() throws Exception {
+    PowerMock.resetAll();
+    PowerMock.suppress(PowerMock.constructor(AbstractServer.class));
+
+    ServerContext context = PowerMock.createNiceMock(ServerContext.class);
+    expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
+
+    TCredentials creds = PowerMock.createNiceMock(TCredentials.class);
+
+    CompactionFinalizer finalizer = PowerMock.createNiceMock(CompactionFinalizer.class);
+    LiveTServerSet tservers = PowerMock.createNiceMock(LiveTServerSet.class);
+
+    ServerAddress client = PowerMock.createNiceMock(ServerAddress.class);
+    HostAndPort address = HostAndPort.fromString("localhost:10240");
+    expect(client.getAddress()).andReturn(address).anyTimes();
+
+    TabletClientService.Client tsc = PowerMock.createNiceMock(TabletClientService.Client.class);
+
+    AuditedSecurityOperation security = PowerMock.createNiceMock(AuditedSecurityOperation.class);
+    expect(security.canPerformSystemActions(creds)).andReturn(true);
+
+    PowerMock.replayAll();
+
+    var coordinator = new TestCoordinator(finalizer, tservers, client, tsc, context, security);
+    coordinator.resetInternals();
+
+    var ecid1 = ExternalCompactionId.generate(UUID.randomUUID());
+    var ecid2 = ExternalCompactionId.generate(UUID.randomUUID());
+    var ecid3 = ExternalCompactionId.generate(UUID.randomUUID());
+
+    coordinator.getRunning().put(ecid1, new RunningCompaction(new TExternalCompaction()));
+    coordinator.getRunning().put(ecid2, new RunningCompaction(new TExternalCompaction()));
+    coordinator.getRunning().put(ecid3, new RunningCompaction(new TExternalCompaction()));
+
+    coordinator.setMetadataCompactionIds(Set.of(ecid1, ecid2));
+
+    coordinator.cleanUpRunning(coordinator.lastCleanUp);
+
+    assertEquals(Set.of(ecid1, ecid2, ecid3), coordinator.getRunning().keySet());
+
+    coordinator.cleanUpRunning(
+        Duration.ofNanos(coordinator.lastCleanUp).plus(CompactionCoordinator.CLEANUP_DELAY)
+            .plus(CompactionCoordinator.CLEANUP_DELAY).toNanos());
+
+    assertEquals(Set.of(ecid1, ecid2), coordinator.getRunning().keySet());
+
+  }
 }
