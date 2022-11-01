@@ -22,7 +22,6 @@ import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -148,6 +147,7 @@ public class CompactionCoordinator extends AbstractServer
     startGCLogger(schedExecutor);
     printStartupMsg();
     startCompactionCleaner(schedExecutor);
+    startRunningCleaner(schedExecutor);
   }
 
   @Override
@@ -178,6 +178,12 @@ public class CompactionCoordinator extends AbstractServer
   protected void startCompactionCleaner(ScheduledThreadPoolExecutor schedExecutor) {
     ScheduledFuture<?> future =
         schedExecutor.scheduleWithFixedDelay(this::cleanUpCompactors, 0, 5, TimeUnit.MINUTES);
+    ThreadPools.watchNonCriticalScheduledTask(future);
+  }
+
+  protected void startRunningCleaner(ScheduledThreadPoolExecutor schedExecutor) {
+    ScheduledFuture<?> future =
+        schedExecutor.scheduleWithFixedDelay(this::cleanUpRunning, 0, 5, TimeUnit.MINUTES);
     ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
@@ -591,10 +597,6 @@ public class CompactionCoordinator extends AbstractServer
     }
   }
 
-  protected long lastCleanUp = System.nanoTime();
-
-  static final Duration CLEANUP_DELAY = Duration.ofSeconds(60);
-
   private void recordCompletion(ExternalCompactionId ecid) {
     var rc = RUNNING_CACHE.remove(ecid);
     if (rc != null) {
@@ -612,13 +614,7 @@ public class CompactionCoordinator extends AbstractServer
    * The RUNNING_CACHE set may contain external compactions that are not actually running. This
    * method periodically cleans those up.
    */
-  protected void cleanUpRunning(long currNanoTime) {
-
-    var timeSinceCleanup = Duration.ofNanos(currNanoTime - lastCleanUp);
-
-    if (timeSinceCleanup.compareTo(CLEANUP_DELAY) < 0) {
-      return;
-    }
+  protected void cleanUpRunning() {
 
     // grab a snapshot of the ids in the set before reading the metadata table. This is done to
     // avoid removing things that are added while reading the metadata.
@@ -636,8 +632,6 @@ public class CompactionCoordinator extends AbstractServer
     if (idsToRemove.size() > 0) {
       LOG.debug("Removed stale entries from RUNNING_CACHE : {}", idsToRemove);
     }
-
-    lastCleanUp = System.nanoTime();
   }
 
   /**
@@ -659,8 +653,6 @@ public class CompactionCoordinator extends AbstractServer
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
-
-    cleanUpRunning(System.nanoTime());
 
     final TExternalCompactionList result = new TExternalCompactionList();
     RUNNING_CACHE.forEach((ecid, rc) -> {

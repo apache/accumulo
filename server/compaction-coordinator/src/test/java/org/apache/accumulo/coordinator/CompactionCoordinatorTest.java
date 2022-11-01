@@ -26,7 +26,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.net.UnknownHostException;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -638,15 +637,13 @@ public class CompactionCoordinatorTest {
     coordinator.getRunning().put(ecid2, new RunningCompaction(new TExternalCompaction()));
     coordinator.getRunning().put(ecid3, new RunningCompaction(new TExternalCompaction()));
 
-    coordinator.setMetadataCompactionIds(Set.of(ecid1, ecid2));
-
-    coordinator.cleanUpRunning(coordinator.lastCleanUp);
+    coordinator.cleanUpRunning();
 
     assertEquals(Set.of(ecid1, ecid2, ecid3), coordinator.getRunning().keySet());
 
-    coordinator.cleanUpRunning(
-        Duration.ofNanos(coordinator.lastCleanUp).plus(CompactionCoordinator.CLEANUP_DELAY)
-            .plus(CompactionCoordinator.CLEANUP_DELAY).toNanos());
+    coordinator.setMetadataCompactionIds(Set.of(ecid1, ecid2));
+
+    coordinator.cleanUpRunning();
 
     assertEquals(Set.of(ecid1, ecid2), coordinator.getRunning().keySet());
 
