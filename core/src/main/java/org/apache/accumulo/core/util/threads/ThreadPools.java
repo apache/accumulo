@@ -474,7 +474,7 @@ public class ThreadPools {
   public ThreadPoolExecutor createThreadPool(int coreThreads, int maxThreads, long timeOut,
       TimeUnit units, final String name, BlockingQueue<Runnable> queue, OptionalInt priority,
       boolean emitThreadPoolMetrics) {
-    LOG.debug(
+    LOG.trace(
         "Creating ThreadPoolExecutor for {} with {} core threads and {} max threads {} {} timeout",
         name, coreThreads, maxThreads, timeOut, units);
     var result = new ThreadPoolExecutor(coreThreads, maxThreads, timeOut, units, queue,
@@ -544,7 +544,7 @@ public class ThreadPools {
    */
   public ScheduledThreadPoolExecutor createScheduledExecutorService(int numThreads,
       final String name, boolean emitThreadPoolMetrics) {
-    LOG.debug("Creating ScheduledThreadPoolExecutor for {} with {} threads", name, numThreads);
+    LOG.trace("Creating ScheduledThreadPoolExecutor for {} with {} threads", name, numThreads);
     var result =
         new ScheduledThreadPoolExecutor(numThreads, new NamedThreadFactory(name, handler)) {
 
