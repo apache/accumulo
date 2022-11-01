@@ -36,10 +36,10 @@ import java.util.PriorityQueue;
  */
 public class CachedBlockQueue implements HeapSize {
 
-  private PriorityQueue<CachedBlock> queue;
+  private final PriorityQueue<CachedBlock> queue;
 
   private long heapSize;
-  private long maxSize;
+  private final long maxSize;
 
   /**
    * @param maxSize
@@ -73,7 +73,7 @@ public class CachedBlockQueue implements HeapSize {
       heapSize += cb.heapSize();
     } else {
       CachedBlock head = queue.peek();
-      if (cb.compareTo(head) > 0) {
+      if (head != null && cb.compareTo(head) > 0) {
         heapSize += cb.heapSize();
         heapSize -= head.heapSize();
         if (heapSize > maxSize) {
@@ -96,20 +96,7 @@ public class CachedBlockQueue implements HeapSize {
     while (!queue.isEmpty()) {
       blocks.addFirst(queue.poll());
     }
-    return blocks.toArray(new CachedBlock[blocks.size()]);
-  }
-
-  /**
-   * Get a sorted List of all elements in this queue, in descending order.
-   *
-   * @return list of cached elements in descending order
-   */
-  public LinkedList<CachedBlock> getList() {
-    LinkedList<CachedBlock> blocks = new LinkedList<>();
-    while (!queue.isEmpty()) {
-      blocks.addFirst(queue.poll());
-    }
-    return blocks;
+    return blocks.toArray(new CachedBlock[0]);
   }
 
   /**
