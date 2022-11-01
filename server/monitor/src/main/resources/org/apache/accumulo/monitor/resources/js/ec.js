@@ -31,6 +31,10 @@ $(document).ready(function () {
   if (sessionStorage.ecDetailsJSON === undefined) {
     sessionStorage.ecDetailsJSON = JSON.stringify([]);
   }
+
+  // display datatables errors in the console instead of in alerts
+  $.fn.dataTable.ext.errMode = 'throw';
+
   compactorsTable = $('#compactorsTable').DataTable({
     "ajax": {
       "url": '/rest/ec/compactors',
