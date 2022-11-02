@@ -75,7 +75,7 @@ public class CachedBlockQueue implements HeapSize {
     } else {
       CachedBlock head =
           Objects.requireNonNull(queue.peek(), "No cached blocks available from queue");
-      if (head != null && cb.compareTo(head) > 0) {
+      if (cb.compareTo(head) > 0) {
         heapSize += cb.heapSize();
         heapSize -= head.heapSize();
         if (heapSize > maxSize) {
