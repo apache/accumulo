@@ -40,7 +40,7 @@ assignees: ''
   - [ ] [Publish to production](https://github.com/apache/accumulo-website#publishing-staging-to-production)
 - Announcement email
   - [ ] Prepare and get review on dev list (see examples [from previous announcement messages](https://lists.apache.org/list.html?announce@apache.org:gte=1d:accumulo))
-  - [ ] Send to announce@apache.org and user@accumulo.apache.org
+  - [ ] Send to announce@apache.org and user@accumulo.apache.org (use plain text mode only; html email will be rejected)
 - GitHub wrap-up
   - [ ] Close this issue
   - [ ] Create a new "Automated Kanban" [project](https://github.com/apache/accumulo/projects) for the next version (if necessary) and move any open issues not completed in this release to that project
