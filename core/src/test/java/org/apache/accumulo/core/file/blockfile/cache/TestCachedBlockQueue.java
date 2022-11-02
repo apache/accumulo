@@ -20,7 +20,6 @@ package org.apache.accumulo.core.file.blockfile.cache;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
@@ -61,7 +60,11 @@ public class TestCachedBlockQueue {
 
     assertEquals(2, blocks.size());
 
-    assertEquals(Arrays.asList("cb1", "cb2"),
+    long expectedSize = cb1.heapSize() + cb2.heapSize();
+    assertEquals(expectedSize, queue.heapSize());
+    assertEquals(expectedSize, sum.get() - cb3.heapSize());
+
+    assertEquals(List.of("cb1", "cb2"),
         blocks.stream().map(cb -> cb.getName()).collect(Collectors.toList()));
   }
 
@@ -107,10 +110,11 @@ public class TestCachedBlockQueue {
         + cb5.heapSize() + cb6.heapSize() + cb7.heapSize() + cb8.heapSize();
 
     assertEquals(expectedSize, queue.heapSize());
+    assertEquals(expectedSize, sum.get() - cb9.heapSize() - cb10.heapSize());
 
     List<org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock> blocks = getList(queue);
 
-    assertEquals(Arrays.asList("cb1", "cb2", "cb3", "cb4", "cb5", "cb6", "cb7", "cb8"),
+    assertEquals(List.of("cb1", "cb2", "cb3", "cb4", "cb5", "cb6", "cb7", "cb8"),
         blocks.stream().map(cb -> cb.getName()).collect(Collectors.toList()));
   }
 
@@ -139,6 +143,9 @@ public class TestCachedBlockQueue {
     CachedBlock cb10 = new CachedBlock(1500, "cb10", 10);
     cb10.recordSize(sum);
 
+    // validate that sum was not improperly added to heapSize in recordSize method.
+    assertEquals(cb3.heapSize(), cb7.heapSize());
+
     CachedBlockQueue queue = new CachedBlockQueue(10000, 1000);
 
     queue.add(cb1);
@@ -163,11 +170,12 @@ public class TestCachedBlockQueue {
     long expectedSize = cb1.heapSize() + cb2.heapSize() + cb3.heapSize() + cb4.heapSize()
         + cb5.heapSize() + cb6.heapSize() + cb7.heapSize() + cb8.heapSize() + cb0.heapSize();
 
-    assertEquals(queue.heapSize(), expectedSize);
+    assertEquals(expectedSize, queue.heapSize());
+    assertEquals(expectedSize, sum.get() - cb9.heapSize() - cb10.heapSize());
 
     List<org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock> blocks = getList(queue);
 
-    assertEquals(Arrays.asList("cb0", "cb1", "cb2", "cb3", "cb4", "cb5", "cb6", "cb7", "cb8"),
+    assertEquals(List.of("cb0", "cb1", "cb2", "cb3", "cb4", "cb5", "cb6", "cb7", "cb8"),
         blocks.stream().map(cb -> cb.getName()).collect(Collectors.toList()));
   }
 
@@ -185,7 +193,7 @@ public class TestCachedBlockQueue {
    */
   private List<org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock>
       getList(final CachedBlockQueue queue) {
-    return Arrays.asList(queue.get());
+    return List.of(queue.get());
   }
 
 }
