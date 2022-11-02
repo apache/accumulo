@@ -165,6 +165,7 @@ public class CompactionCoordinatorTest {
       metadataCompactionIds = mci;
     }
 
+    @Override
     protected Set<ExternalCompactionId> readExternalCompactionIds() {
       if (metadataCompactionIds == null) {
         return RUNNING_CACHE.keySet();
@@ -626,26 +627,27 @@ public class CompactionCoordinatorTest {
 
     PowerMock.replayAll();
 
-    var coordinator = new TestCoordinator(finalizer, tservers, client, tsc, context, security);
-    coordinator.resetInternals();
+    try (var coordinator =
+        new TestCoordinator(finalizer, tservers, client, tsc, context, security)) {
+      coordinator.resetInternals();
 
-    var ecid1 = ExternalCompactionId.generate(UUID.randomUUID());
-    var ecid2 = ExternalCompactionId.generate(UUID.randomUUID());
-    var ecid3 = ExternalCompactionId.generate(UUID.randomUUID());
+      var ecid1 = ExternalCompactionId.generate(UUID.randomUUID());
+      var ecid2 = ExternalCompactionId.generate(UUID.randomUUID());
+      var ecid3 = ExternalCompactionId.generate(UUID.randomUUID());
 
-    coordinator.getRunning().put(ecid1, new RunningCompaction(new TExternalCompaction()));
-    coordinator.getRunning().put(ecid2, new RunningCompaction(new TExternalCompaction()));
-    coordinator.getRunning().put(ecid3, new RunningCompaction(new TExternalCompaction()));
+      coordinator.getRunning().put(ecid1, new RunningCompaction(new TExternalCompaction()));
+      coordinator.getRunning().put(ecid2, new RunningCompaction(new TExternalCompaction()));
+      coordinator.getRunning().put(ecid3, new RunningCompaction(new TExternalCompaction()));
 
-    coordinator.cleanUpRunning();
+      coordinator.cleanUpRunning();
 
-    assertEquals(Set.of(ecid1, ecid2, ecid3), coordinator.getRunning().keySet());
+      assertEquals(Set.of(ecid1, ecid2, ecid3), coordinator.getRunning().keySet());
 
-    coordinator.setMetadataCompactionIds(Set.of(ecid1, ecid2));
+      coordinator.setMetadataCompactionIds(Set.of(ecid1, ecid2));
 
-    coordinator.cleanUpRunning();
+      coordinator.cleanUpRunning();
 
-    assertEquals(Set.of(ecid1, ecid2), coordinator.getRunning().keySet());
-
+      assertEquals(Set.of(ecid1, ecid2), coordinator.getRunning().keySet());
+    }
   }
 }
