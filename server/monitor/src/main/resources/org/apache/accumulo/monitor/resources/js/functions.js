@@ -134,7 +134,10 @@ function bigNumberForQuantity(quantity) {
  */
 function dateFormat(timestamp) {
   var date = new Date(timestamp);
-  return date.toLocaleString([], {timeStyle: 'long', dateStyle: 'medium' })
+  return date.toLocaleString([], {
+      timeStyle: 'long',
+      dateStyle: 'medium'
+    })
     .split(' ').join('&nbsp;');
 }
 
