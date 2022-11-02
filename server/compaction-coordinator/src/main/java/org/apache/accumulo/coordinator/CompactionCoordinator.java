@@ -32,6 +32,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.coordinator.QueueSummaries.PrioTserver;
 import org.apache.accumulo.core.Constants;
@@ -55,7 +56,9 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -90,6 +93,7 @@ import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.common.collect.Sets;
 
 public class CompactionCoordinator extends AbstractServer
     implements CompactionCoordinatorService.Iface, LiveTServerSet.Listener {
@@ -100,8 +104,14 @@ public class CompactionCoordinator extends AbstractServer
 
   protected static final QueueSummaries QUEUE_SUMMARIES = new QueueSummaries();
 
-  /* Map of compactionId to RunningCompactions */
-  protected static final Map<ExternalCompactionId,RunningCompaction> RUNNING =
+  /*
+   * Map of compactionId to RunningCompactions. This is an informational cache of what external
+   * compactions may be running. Its possible it may contain external compactions that are not
+   * actually running. It may not contain compactions that are actually running. The metadata table
+   * is the most authoritative source of what external compactions are currently running, but it
+   * does not have the stats that this map has.
+   */
+  protected static final Map<ExternalCompactionId,RunningCompaction> RUNNING_CACHE =
       new ConcurrentHashMap<>();
 
   private static final Cache<ExternalCompactionId,RunningCompaction> COMPLETED =
@@ -137,6 +147,7 @@ public class CompactionCoordinator extends AbstractServer
     startGCLogger(schedExecutor);
     printStartupMsg();
     startCompactionCleaner(schedExecutor);
+    startRunningCleaner(schedExecutor);
   }
 
   @Override
@@ -167,6 +178,12 @@ public class CompactionCoordinator extends AbstractServer
   protected void startCompactionCleaner(ScheduledThreadPoolExecutor schedExecutor) {
     ScheduledFuture<?> future =
         schedExecutor.scheduleWithFixedDelay(this::cleanUpCompactors, 0, 5, TimeUnit.MINUTES);
+    ThreadPools.watchNonCriticalScheduledTask(future);
+  }
+
+  protected void startRunningCleaner(ScheduledThreadPoolExecutor schedExecutor) {
+    ScheduledFuture<?> future =
+        schedExecutor.scheduleWithFixedDelay(this::cleanUpRunning, 0, 5, TimeUnit.MINUTES);
     ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
@@ -277,7 +294,7 @@ public class CompactionCoordinator extends AbstractServer
         update.setState(TCompactionState.IN_PROGRESS);
         update.setMessage("Coordinator restarted, compaction found in progress");
         rc.addUpdate(System.currentTimeMillis(), update);
-        RUNNING.put(ExternalCompactionId.of(rc.getJob().getExternalCompactionId()), rc);
+        RUNNING_CACHE.put(ExternalCompactionId.of(rc.getJob().getExternalCompactionId()), rc);
       });
     }
 
@@ -446,7 +463,10 @@ public class CompactionCoordinator extends AbstractServer
           prioTserver = QUEUE_SUMMARIES.getNextTserver(queue);
           continue;
         }
-        RUNNING.put(ExternalCompactionId.of(job.getExternalCompactionId()),
+        // It is possible that by the time this added that the tablet has already canceled the
+        // compaction or the compactor that made this request is dead. In these cases the compaction
+        // is not actually running.
+        RUNNING_CACHE.put(ExternalCompactionId.of(job.getExternalCompactionId()),
             new RunningCompaction(job, compactorAddress, queue));
         LOG.debug("Returning external job {} to {}", job.externalCompactionId, compactorAddress);
         result = job;
@@ -523,15 +543,7 @@ public class CompactionCoordinator extends AbstractServer
     // It's possible that RUNNING might not have an entry for this ecid in the case
     // of a coordinator restart when the Coordinator can't find the TServer for the
     // corresponding external compaction.
-    final RunningCompaction rc = RUNNING.get(ecid);
-    if (null != rc) {
-      RUNNING.remove(ecid, rc);
-      COMPLETED.put(ecid, rc);
-    } else {
-      LOG.warn(
-          "Compaction completed called by Compactor for {}, but no running compaction for that id.",
-          externalCompactionId);
-    }
+    recordCompletion(ecid);
   }
 
   @Override
@@ -549,17 +561,7 @@ public class CompactionCoordinator extends AbstractServer
 
   void compactionFailed(Map<ExternalCompactionId,KeyExtent> compactions) {
     compactionFinalizer.failCompactions(compactions);
-    compactions.forEach((k, v) -> {
-      final RunningCompaction rc = RUNNING.get(k);
-      if (null != rc) {
-        RUNNING.remove(k, rc);
-        COMPLETED.put(k, rc);
-      } else {
-        LOG.warn(
-            "Compaction failed called by Compactor for {}, but no running compaction for that id.",
-            k);
-      }
-    });
+    compactions.forEach((k, v) -> recordCompletion(k));
   }
 
   /**
@@ -589,9 +591,46 @@ public class CompactionCoordinator extends AbstractServer
     }
     LOG.debug("Compaction status update, id: {}, timestamp: {}, update: {}", externalCompactionId,
         timestamp, update);
-    final RunningCompaction rc = RUNNING.get(ExternalCompactionId.of(externalCompactionId));
+    final RunningCompaction rc = RUNNING_CACHE.get(ExternalCompactionId.of(externalCompactionId));
     if (null != rc) {
       rc.addUpdate(timestamp, update);
+    }
+  }
+
+  private void recordCompletion(ExternalCompactionId ecid) {
+    var rc = RUNNING_CACHE.remove(ecid);
+    if (rc != null) {
+      COMPLETED.put(ecid, rc);
+    }
+  }
+
+  protected Set<ExternalCompactionId> readExternalCompactionIds() {
+    return getContext().getAmple().readTablets().forLevel(Ample.DataLevel.USER)
+        .fetch(TabletMetadata.ColumnType.ECOMP).build().stream()
+        .flatMap(tm -> tm.getExternalCompactions().keySet().stream()).collect(Collectors.toSet());
+  }
+
+  /**
+   * The RUNNING_CACHE set may contain external compactions that are not actually running. This
+   * method periodically cleans those up.
+   */
+  protected void cleanUpRunning() {
+
+    // grab a snapshot of the ids in the set before reading the metadata table. This is done to
+    // avoid removing things that are added while reading the metadata.
+    Set<ExternalCompactionId> idsSnapshot = Set.copyOf(RUNNING_CACHE.keySet());
+
+    // grab the ids that are listed as running in the metadata table. It important that this is done
+    // after getting the snapshot.
+    Set<ExternalCompactionId> idsInMetadata = readExternalCompactionIds();
+
+    var idsToRemove = Sets.difference(idsSnapshot, idsInMetadata);
+
+    // remove ids that are in the running set but not in the metadata table
+    idsToRemove.forEach(ecid -> recordCompletion(ecid));
+
+    if (idsToRemove.size() > 0) {
+      LOG.debug("Removed stale entries from RUNNING_CACHE : {}", idsToRemove);
     }
   }
 
@@ -614,8 +653,9 @@ public class CompactionCoordinator extends AbstractServer
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
+
     final TExternalCompactionList result = new TExternalCompactionList();
-    RUNNING.forEach((ecid, rc) -> {
+    RUNNING_CACHE.forEach((ecid, rc) -> {
       TExternalCompaction trc = new TExternalCompaction();
       trc.setQueueName(rc.getQueueName());
       trc.setCompactor(rc.getCompactorAddress());
@@ -660,7 +700,7 @@ public class CompactionCoordinator extends AbstractServer
   @Override
   public void cancel(TInfo tinfo, TCredentials credentials, String externalCompactionId)
       throws TException {
-    var runningCompaction = RUNNING.get(ExternalCompactionId.of(externalCompactionId));
+    var runningCompaction = RUNNING_CACHE.get(ExternalCompactionId.of(externalCompactionId));
     var extent = KeyExtent.fromThrift(runningCompaction.getJob().getExtent());
     try {
       NamespaceId nsId = getContext().getNamespaceId(extent.tableId());
