@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -25,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.security.SecureRandom;
-import java.util.Arrays;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -228,7 +228,7 @@ public class TestLruBlockCache {
     assertNull(cache.getBlock(blocks[0].blockName));
     assertNull(cache.getBlock(blocks[1].blockName));
     for (int i = 2; i < blocks.length; i++) {
-      assertTrue(Arrays.equals(cache.getBlock(blocks[i].blockName).getBuffer(), blocks[i].buf));
+      assertArrayEquals(cache.getBlock(blocks[i].blockName).getBuffer(), blocks[i].buf);
     }
     manager.stop();
   }
@@ -260,7 +260,7 @@ public class TestLruBlockCache {
     for (Block block : multiBlocks) {
       cache.cacheBlock(block.blockName, block.buf);
       expectedCacheSize += block.heapSize();
-      assertTrue(Arrays.equals(cache.getBlock(block.blockName).getBuffer(), block.buf));
+      assertArrayEquals(cache.getBlock(block.blockName).getBuffer(), block.buf);
     }
 
     // Add the single blocks (no get)
@@ -295,10 +295,8 @@ public class TestLruBlockCache {
 
     // And all others to be cached
     for (int i = 1; i < 4; i++) {
-      assertTrue(Arrays.equals(cache.getBlock(singleBlocks[i].blockName).getBuffer(),
-          singleBlocks[i].buf));
-      assertTrue(
-          Arrays.equals(cache.getBlock(multiBlocks[i].blockName).getBuffer(), multiBlocks[i].buf));
+      assertArrayEquals(cache.getBlock(singleBlocks[i].blockName).getBuffer(), singleBlocks[i].buf);
+      assertArrayEquals(cache.getBlock(multiBlocks[i].blockName).getBuffer(), multiBlocks[i].buf);
     }
     manager.stop();
   }
@@ -517,8 +515,8 @@ public class TestLruBlockCache {
     long roughBlockSize = maxSize / numBlocks;
     int numEntries = (int) Math.ceil((1.2) * maxSize / roughBlockSize);
     long totalOverhead = LruBlockCache.CACHE_FIXED_OVERHEAD + ClassSize.CONCURRENT_HASHMAP
-        + (numEntries * ClassSize.CONCURRENT_HASHMAP_ENTRY)
-        + (LruBlockCacheConfiguration.DEFAULT_CONCURRENCY_LEVEL
+        + ((long) numEntries * ClassSize.CONCURRENT_HASHMAP_ENTRY)
+        + ((long) LruBlockCacheConfiguration.DEFAULT_CONCURRENCY_LEVEL
             * ClassSize.CONCURRENT_HASHMAP_SEGMENT);
     long negateBlockSize = totalOverhead / numEntries;
     negateBlockSize += CachedBlock.PER_BLOCK_OVERHEAD;
@@ -529,8 +527,8 @@ public class TestLruBlockCache {
     long roughBlockSize = maxSize / numBlocks;
     int numEntries = (int) Math.ceil((1.2) * maxSize / roughBlockSize);
     long totalOverhead = LruBlockCache.CACHE_FIXED_OVERHEAD + ClassSize.CONCURRENT_HASHMAP
-        + (numEntries * ClassSize.CONCURRENT_HASHMAP_ENTRY)
-        + (LruBlockCacheConfiguration.DEFAULT_CONCURRENCY_LEVEL
+        + ((long) numEntries * ClassSize.CONCURRENT_HASHMAP_ENTRY)
+        + ((long) LruBlockCacheConfiguration.DEFAULT_CONCURRENCY_LEVEL
             * ClassSize.CONCURRENT_HASHMAP_SEGMENT);
     long negateBlockSize = totalOverhead / numEntries;
     negateBlockSize += CachedBlock.PER_BLOCK_OVERHEAD;
