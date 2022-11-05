@@ -258,6 +258,9 @@ public class FileCompactor implements Callable<CompactionStats> {
 
       majCStats.setFileSize(mfwTmp.getLength());
       return majCStats;
+    } catch (CompactionCanceledException e) {
+      log.debug("Compaction canceled {}", extent);
+      throw e;
     } catch (IOException | RuntimeException e) {
       log.error("{}", e.getMessage(), e);
       throw e;
@@ -280,7 +283,13 @@ public class FileCompactor implements Callable<CompactionStats> {
           }
         }
       } catch (IOException | RuntimeException e) {
-        log.warn("{}", e.getMessage(), e);
+        // If compaction was cancelled then this may happen due to an
+        // InterruptedException etc so suppress logging
+        if (!env.isCompactionEnabled()) {
+          log.warn("{}", e.getMessage(), e);
+        } else {
+          log.debug("{}", e.getMessage(), e);
+        }
       }
     }
   }
@@ -392,7 +401,8 @@ public class FileCompactor implements Callable<CompactionStats> {
             try {
               mfw.close();
             } catch (IOException e) {
-              log.error("{}", e.getMessage(), e);
+              log.warn("{}", e.getMessage());
+              log.debug("{}", e.getMessage(), e);
             }
             fs.deleteRecursively(outputFile.getPath());
           } catch (Exception e) {

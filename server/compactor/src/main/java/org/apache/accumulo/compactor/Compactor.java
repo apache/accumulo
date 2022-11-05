@@ -578,6 +578,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         TCompactionStatusUpdate update2 = new TCompactionStatusUpdate(TCompactionState.SUCCEEDED,
             "Compaction completed successfully", -1, -1, -1);
         updateCompactionState(job, update2);
+      } catch (FileCompactor.CompactionCanceledException cce) {
+        LOG.debug("Compaction canceled {}", job.getExternalCompactionId());
       } catch (Exception e) {
         LOG.error("Compaction failed", e);
         err.set(e);
