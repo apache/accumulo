@@ -74,7 +74,7 @@ public class TableConfigurationTest {
     zc = createMock(ZooCache.class);
     expect(
         zcf.getZooCache(eq(ZOOKEEPERS), eq(ZK_SESSION_TIMEOUT), anyObject(TableConfWatcher.class)))
-            .andReturn(zc);
+        .andReturn(zc);
     replay(zcf);
   }
 
@@ -116,10 +116,10 @@ public class TableConfigurationTest {
     children.add("ding");
     expect(zc
         .getChildren(ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF))
-            .andReturn(children);
+        .andReturn(children);
     expect(zc.get(
         ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF + "/" + "foo"))
-            .andReturn("bar".getBytes(UTF_8));
+        .andReturn("bar".getBytes(UTF_8));
     expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF + "/"
         + "ding")).andReturn("dong".getBytes(UTF_8));
     replay(zc);

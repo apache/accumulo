@@ -78,11 +78,13 @@ public class SequentialWorkAssignerTest {
     // file1 replicated
     expect(zooCache.get(ZooUtil.getRoot("instance") + ReplicationConstants.ZOO_WORK_QUEUE + "/"
         + DistributedWorkQueueWorkAssignerHelper.getQueueKey("file1",
-            new ReplicationTarget("cluster1", "1", "1")))).andReturn(null);
+            new ReplicationTarget("cluster1", "1", "1"))))
+        .andReturn(null);
     // file2 still needs to replicate
     expect(zooCache.get(ZooUtil.getRoot("instance") + ReplicationConstants.ZOO_WORK_QUEUE + "/"
         + DistributedWorkQueueWorkAssignerHelper.getQueueKey("file2",
-            new ReplicationTarget("cluster1", "2", "2")))).andReturn(new byte[0]);
+            new ReplicationTarget("cluster1", "2", "2"))))
+        .andReturn(new byte[0]);
 
     replay(workQueue, zooCache, conn, inst);
 
