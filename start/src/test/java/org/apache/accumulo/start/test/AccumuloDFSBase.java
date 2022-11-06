@@ -107,6 +107,7 @@ public class AccumuloDFSBase {
       vfs.addExtensionMap("tbz2", "tar");
       vfs.addExtensionMap("tgz", "tar");
       vfs.addExtensionMap("bz2", "bz2");
+      vfs.addMimeTypeMap("application/java-archive", "jar");
       vfs.addMimeTypeMap("application/x-tar", "tar");
       vfs.addMimeTypeMap("application/x-gzip", "gz");
       vfs.addMimeTypeMap("application/zip", "zip");
