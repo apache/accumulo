@@ -193,22 +193,16 @@ public class ThriftUtil {
    *          Maximum Thrift message frame size
    * @return A, possibly cached, TTransportFactory with the requested maximum frame size
    */
-  public static synchronized TTransportFactory transportFactory(int maxFrameSize) {
-    TTransportFactory factory = factoryCache.get(maxFrameSize);
-    if (factory == null) {
-      factory = new TFramedTransport.Factory(maxFrameSize);
-      factoryCache.put(maxFrameSize, factory);
-    }
-    return factory;
-  }
-
-  /**
-   * @see #transportFactory(int)
-   */
   public static synchronized TTransportFactory transportFactory(long maxFrameSize) {
     if (maxFrameSize > Integer.MAX_VALUE || maxFrameSize < 1)
       throw new RuntimeException("Thrift transport frames are limited to " + Integer.MAX_VALUE);
-    return transportFactory((int) maxFrameSize);
+    int maxFrameSize1 = (int) maxFrameSize;
+    TTransportFactory factory = factoryCache.get(maxFrameSize1);
+    if (factory == null) {
+      factory = new TFramedTransport.Factory(maxFrameSize1);
+      factoryCache.put(maxFrameSize1, factory);
+    }
+    return factory;
   }
 
   /**
@@ -382,7 +376,7 @@ public class ThriftUtil {
    * connection again. The other problem is to do with ticket expiry. To handle that, a relogin is
    * attempted.
    */
-  static void attemptClientReLogin() {
+  private static void attemptClientReLogin() {
     try {
       UserGroupInformation loginUser = UserGroupInformation.getLoginUser();
       if (loginUser == null || !loginUser.hasKerberosCredentials()) {
