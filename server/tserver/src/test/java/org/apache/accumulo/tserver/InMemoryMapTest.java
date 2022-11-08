@@ -1,25 +1,27 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -40,7 +42,6 @@ import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -48,28 +49,27 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
+import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.tserver.InMemoryMap.MemoryIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
-public class InMemoryMapTest {
+public class InMemoryMapTest extends WithTestNames {
 
   private static class SampleIE implements IteratorEnvironment {
 
@@ -94,37 +94,27 @@ public class InMemoryMapTest {
     }
   }
 
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
-
   public static ServerContext getServerContext() {
     Configuration hadoopConf = new Configuration();
     ServerContext context = EasyMock.createMock(ServerContext.class);
-    EasyMock.expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())
-        .anyTimes();
+    TableConfiguration tConf = EasyMock.createMock(TableConfiguration.class);
     EasyMock.expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance())
         .anyTimes();
+    EasyMock.expect(context.getTableConfiguration(EasyMock.anyObject())).andReturn(tConf)
+        .anyTimes();
+    EasyMock.expect(tConf.getCryptoService()).andReturn(NoCryptoServiceFactory.NONE).anyTimes();
     EasyMock.expect(context.getHadoopConf()).andReturn(hadoopConf).anyTimes();
-    EasyMock.replay(context);
+    EasyMock.replay(context, tConf);
     return context;
   }
 
-  @Rule
-  public TemporaryFolder tempFolder =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
-
-  public void mutate(InMemoryMap imm, String row, String column, long ts) {
-    Mutation m = new Mutation(new Text(row));
-    String[] sa = column.split(":");
-    m.putDelete(new Text(sa[0]), new Text(sa[1]), ts);
-
-    imm.mutate(Collections.singletonList(m), 1);
-  }
+  @TempDir
+  private static File tempDir;
 
   public void mutate(InMemoryMap imm, String row, String column, long ts, String value) {
     Mutation m = new Mutation(new Text(row));
     String[] sa = column.split(":");
-    m.put(new Text(sa[0]), new Text(sa[1]), ts, new Value(value.getBytes()));
+    m.put(new Text(sa[0]), new Text(sa[1]), ts, new Value(value));
 
     imm.mutate(Collections.singletonList(m), 1);
   }
@@ -138,7 +128,7 @@ public class InMemoryMapTest {
       int ts, String val) throws IOException {
     assertTrue(dc.hasTop());
     assertEquals(newKey(row, column, ts), dc.getTopKey());
-    assertEquals(new Value(val.getBytes()), dc.getTopValue());
+    assertEquals(new Value(val), dc.getTopValue());
     dc.next();
 
   }
@@ -147,7 +137,7 @@ public class InMemoryMapTest {
       int ts, String val) {
     assertTrue(dc.hasTop());
     assertEquals(newKey(row, column, ts), dc.getTopKey());
-    assertEquals(new Value(val.getBytes()), dc.getTopValue());
+    assertEquals(new Value(val), dc.getTopValue());
 
   }
 
@@ -174,8 +164,7 @@ public class InMemoryMapTest {
     return config;
   }
 
-  static InMemoryMap newInMemoryMap(boolean useNative, String memDumpDir)
-      throws LocalityGroupConfigurationError {
+  static InMemoryMap newInMemoryMap(boolean useNative, String memDumpDir) {
     ConfigurationCopy config = new ConfigurationCopy(DefaultConfiguration.getInstance());
     config.set(Property.TSERV_NATIVEMAP_ENABLED, "" + useNative);
     config.set(Property.TSERV_MEMDUMP_DIR, memDumpDir);
@@ -184,16 +173,16 @@ public class InMemoryMapTest {
 
   @Test
   public void test2() throws Exception {
-    InMemoryMap imm = newInMemoryMap(false, tempFolder.newFolder().getAbsolutePath());
+    InMemoryMap imm = newInMemoryMap(false, uniqueDirPaths(1)[0]);
 
     MemoryIterator ski1 = imm.skvIterator(null);
     mutate(imm, "r1", "foo:cq1", 3, "bar1");
     MemoryIterator ski2 = imm.skvIterator(null);
 
-    ski1.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski1.seek(new Range(), Set.of(), false);
     assertFalse(ski1.hasTop());
 
-    ski2.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski2.seek(new Range(), Set.of(), false);
     assertTrue(ski2.hasTop());
     testAndCallNext(ski2, "r1", "foo:cq1", 3, "bar1");
     assertFalse(ski2.hasTop());
@@ -202,7 +191,7 @@ public class InMemoryMapTest {
 
   @Test
   public void test3() throws Exception {
-    InMemoryMap imm = newInMemoryMap(false, tempFolder.newFolder().getAbsolutePath());
+    InMemoryMap imm = newInMemoryMap(false, uniqueDirPaths(1)[0]);
 
     mutate(imm, "r1", "foo:cq1", 3, "bar1");
     mutate(imm, "r1", "foo:cq1", 3, "bar2");
@@ -214,12 +203,12 @@ public class InMemoryMapTest {
 
     MemoryIterator ski2 = imm.skvIterator(null);
 
-    ski1.seek(new Range(new Text("r1")), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski1.seek(new Range(new Text("r1")), Set.of(), false);
     testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar2");
     testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar1");
     assertFalse(ski1.hasTop());
 
-    ski2.seek(new Range(new Text("r3")), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski2.seek(new Range(new Text("r3")), Set.of(), false);
     testAndCallNext(ski2, "r3", "foo:cq1", 3, "bara");
     testAndCallNext(ski2, "r3", "foo:cq1", 3, "bar9");
     assertFalse(ski1.hasTop());
@@ -228,7 +217,7 @@ public class InMemoryMapTest {
 
   @Test
   public void test4() throws Exception {
-    InMemoryMap imm = newInMemoryMap(false, tempFolder.newFolder().getAbsolutePath());
+    InMemoryMap imm = newInMemoryMap(false, uniqueDirPaths(1)[0]);
 
     mutate(imm, "r1", "foo:cq1", 3, "bar1");
     mutate(imm, "r1", "foo:cq1", 3, "bar2");
@@ -237,20 +226,20 @@ public class InMemoryMapTest {
 
     imm.delete(0);
 
-    ski1.seek(new Range(new Text("r1")), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski1.seek(new Range(new Text("r1")), Set.of(), false);
     testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar2");
     testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar1");
     assertFalse(ski1.hasTop());
 
-    ski1.seek(new Range(new Text("r1")), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski1.seek(new Range(new Text("r1")), Set.of(), false);
     testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar2");
     testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar1");
     assertFalse(ski1.hasTop());
 
-    ski1.seek(new Range(new Text("r2")), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski1.seek(new Range(new Text("r2")), Set.of(), false);
     assertFalse(ski1.hasTop());
 
-    ski1.seek(new Range(newKey("r1", "foo:cq1", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski1.seek(new Range(newKey("r1", "foo:cq1", 3), null), Set.of(), false);
     testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar2");
     testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar1");
     assertFalse(ski1.hasTop());
@@ -261,16 +250,16 @@ public class InMemoryMapTest {
   @Test
   public void testDecodeValueModification() throws Exception {
     // This test case is the fix for ACCUMULO-4483
-    InMemoryMap imm = newInMemoryMap(false, tempFolder.newFolder().getAbsolutePath());
+    InMemoryMap imm = newInMemoryMap(false, uniqueDirPaths(1)[0]);
 
     mutate(imm, "r1", "foo:cq1", 3, "");
     MemoryIterator ski1 = imm.skvIterator(null);
 
     imm.delete(0);
 
-    ski1.seek(new Range(new Text("r1")), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski1.seek(new Range(new Text("r1")), Set.of(), false);
     assertEqualsNoNext(ski1, "r1", "foo:cq1", 3, "");
-    ski1.seek(new Range(new Text("r1")), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski1.seek(new Range(new Text("r1")), Set.of(), false);
     testAndCallNext(ski1, "r1", "foo:cq1", 3, "");
     assertFalse(ski1.hasTop());
 
@@ -279,14 +268,15 @@ public class InMemoryMapTest {
 
   @Test
   public void test5() throws Exception {
-    InMemoryMap imm = newInMemoryMap(false, tempFolder.newFolder().getAbsolutePath());
+    String[] newFolders = uniqueDirPaths(2);
+    InMemoryMap imm = newInMemoryMap(false, newFolders[0]);
 
     mutate(imm, "r1", "foo:cq1", 3, "bar1");
     mutate(imm, "r1", "foo:cq1", 3, "bar2");
     mutate(imm, "r1", "foo:cq1", 3, "bar3");
 
     MemoryIterator ski1 = imm.skvIterator(null);
-    ski1.seek(new Range(new Text("r1")), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski1.seek(new Range(new Text("r1")), Set.of(), false);
     testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar3");
 
     imm.delete(0);
@@ -297,14 +287,14 @@ public class InMemoryMapTest {
 
     ski1.close();
 
-    imm = newInMemoryMap(false, tempFolder.newFolder().getAbsolutePath());
+    imm = newInMemoryMap(false, newFolders[1]);
 
     mutate(imm, "r1", "foo:cq1", 3, "bar1");
     mutate(imm, "r1", "foo:cq2", 3, "bar2");
     mutate(imm, "r1", "foo:cq3", 3, "bar3");
 
     ski1 = imm.skvIterator(null);
-    ski1.seek(new Range(new Text("r1")), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski1.seek(new Range(new Text("r1")), Set.of(), false);
     testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar1");
 
     imm.delete(0);
@@ -318,7 +308,7 @@ public class InMemoryMapTest {
 
   @Test
   public void test6() throws Exception {
-    InMemoryMap imm = newInMemoryMap(false, tempFolder.newFolder().getAbsolutePath());
+    InMemoryMap imm = newInMemoryMap(false, uniqueDirPaths(1)[0]);
 
     mutate(imm, "r1", "foo:cq1", 3, "bar1");
     mutate(imm, "r1", "foo:cq2", 3, "bar2");
@@ -331,10 +321,10 @@ public class InMemoryMapTest {
 
     SortedKeyValueIterator<Key,Value> dc = ski1.deepCopy(new SampleIE());
 
-    ski1.seek(new Range(newKey("r1", "foo:cq1", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski1.seek(new Range(newKey("r1", "foo:cq1", 3), null), Set.of(), false);
     testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar1");
 
-    dc.seek(new Range(newKey("r1", "foo:cq2", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
+    dc.seek(new Range(newKey("r1", "foo:cq2", 3), null), Set.of(), false);
     testAndCallNext(dc, "r1", "foo:cq2", 3, "bar2");
 
     imm.delete(0);
@@ -347,9 +337,9 @@ public class InMemoryMapTest {
     assertFalse(ski1.hasTop());
     assertFalse(dc.hasTop());
 
-    ski1.seek(new Range(newKey("r1", "foo:cq3", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski1.seek(new Range(newKey("r1", "foo:cq3", 3), null), Set.of(), false);
 
-    dc.seek(new Range(newKey("r1", "foo:cq4", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
+    dc.seek(new Range(newKey("r1", "foo:cq4", 3), null), Set.of(), false);
     testAndCallNext(dc, "r1", "foo:cq4", 3, "bar4");
     assertFalse(dc.hasTop());
 
@@ -364,7 +354,7 @@ public class InMemoryMapTest {
   private void deepCopyAndDelete(int interleaving, boolean interrupt) throws Exception {
     // interleaving == 0 intentionally omitted, this runs the test w/o deleting in mem map
 
-    InMemoryMap imm = newInMemoryMap(false, tempFolder.newFolder().getAbsolutePath());
+    InMemoryMap imm = newInMemoryMap(false, uniqueDirPaths(1)[0]);
 
     mutate(imm, "r1", "foo:cq1", 3, "bar1");
     mutate(imm, "r1", "foo:cq2", 3, "bar2");
@@ -390,8 +380,8 @@ public class InMemoryMapTest {
       }
     }
 
-    dc.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
-    ski1.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    dc.seek(new Range(), Set.of(), false);
+    ski1.seek(new Range(), Set.of(), false);
 
     if (interleaving == 3) {
       imm.delete(0);
@@ -402,7 +392,7 @@ public class InMemoryMapTest {
 
     testAndCallNext(dc, "r1", "foo:cq1", 3, "bar1");
     testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar1");
-    dc.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    dc.seek(new Range(), Set.of(), false);
 
     if (interleaving == 4) {
       imm.delete(0);
@@ -418,7 +408,7 @@ public class InMemoryMapTest {
     assertFalse(ski1.hasTop());
 
     if (interrupt) {
-      dc.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+      dc.seek(new Range(), Set.of(), false);
     }
   }
 
@@ -429,16 +419,15 @@ public class InMemoryMapTest {
     }
 
     for (int i = 1; i <= 4; i++) {
-      try {
-        deepCopyAndDelete(i, true);
-        fail("i = " + i);
-      } catch (IterationInterruptedException iie) {}
+      final int finalI = i;
+      assertThrows(IterationInterruptedException.class, () -> deepCopyAndDelete(finalI, true),
+          "i = " + finalI);
     }
   }
 
   @Test
   public void testBug1() throws Exception {
-    InMemoryMap imm = newInMemoryMap(false, tempFolder.newFolder().getAbsolutePath());
+    InMemoryMap imm = newInMemoryMap(false, uniqueDirPaths(1)[0]);
 
     for (int i = 0; i < 20; i++) {
       mutate(imm, "r1", "foo:cq" + i, 3, "bar" + i);
@@ -466,7 +455,7 @@ public class InMemoryMapTest {
 
   @Test
   public void testSeekBackWards() throws Exception {
-    InMemoryMap imm = newInMemoryMap(false, tempFolder.newFolder().getAbsolutePath());
+    InMemoryMap imm = newInMemoryMap(false, uniqueDirPaths(1)[0]);
 
     mutate(imm, "r1", "foo:cq1", 3, "bar1");
     mutate(imm, "r1", "foo:cq2", 3, "bar2");
@@ -475,40 +464,32 @@ public class InMemoryMapTest {
 
     MemoryIterator skvi1 = imm.skvIterator(null);
 
-    skvi1.seek(new Range(newKey("r1", "foo:cq3", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
+    skvi1.seek(new Range(newKey("r1", "foo:cq3", 3), null), Set.of(), false);
     testAndCallNext(skvi1, "r1", "foo:cq3", 3, "bar3");
 
-    skvi1.seek(new Range(newKey("r1", "foo:cq1", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
+    skvi1.seek(new Range(newKey("r1", "foo:cq1", 3), null), Set.of(), false);
     testAndCallNext(skvi1, "r1", "foo:cq1", 3, "bar1");
 
   }
 
   @Test
   public void testDuplicateKey() throws Exception {
-    InMemoryMap imm = newInMemoryMap(false, tempFolder.newFolder().getAbsolutePath());
+    InMemoryMap imm = newInMemoryMap(false, uniqueDirPaths(1)[0]);
 
     Mutation m = new Mutation(new Text("r1"));
-    m.put(new Text("foo"), new Text("cq"), 3, new Value("v1".getBytes()));
-    m.put(new Text("foo"), new Text("cq"), 3, new Value("v2".getBytes()));
+    m.put(new Text("foo"), new Text("cq"), 3, new Value("v1"));
+    m.put(new Text("foo"), new Text("cq"), 3, new Value("v2"));
     imm.mutate(Collections.singletonList(m), 2);
 
     MemoryIterator skvi1 = imm.skvIterator(null);
-    skvi1.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    skvi1.seek(new Range(), Set.of(), false);
     testAndCallNext(skvi1, "r1", "foo:cq", 3, "v2");
     testAndCallNext(skvi1, "r1", "foo:cq", 3, "v1");
   }
 
-  static long sum(long[] counts) {
-    long result = 0;
-    for (long count : counts) {
-      result += count;
-    }
-    return result;
-  }
-
   @Test
   public void testLocalityGroups() throws Exception {
-    ConfigurationCopy config = newConfig(tempFolder.newFolder().getAbsolutePath());
+    ConfigurationCopy config = newConfig(uniqueDirPaths(1)[0]);
     config.set(Property.TABLE_LOCALITY_GROUP_PREFIX + "lg1",
         LocalityGroupUtil.encodeColumnFamilies(toTextSet("cf1", "cf2")));
     config.set(Property.TABLE_LOCALITY_GROUP_PREFIX + "lg2",
@@ -562,13 +543,13 @@ public class InMemoryMapTest {
     SamplerConfigurationImpl sampleConfig = new SamplerConfigurationImpl(RowSampler.class.getName(),
         Map.of("hasher", "murmur3_32", "modulus", "7"));
     Sampler sampler = SamplerFactory.newSampler(sampleConfig, DefaultConfiguration.getInstance());
-
-    ConfigurationCopy config1 = newConfig(tempFolder.newFolder().getAbsolutePath());
+    String[] newFolders = uniqueDirPaths(2);
+    ConfigurationCopy config1 = newConfig(newFolders[0]);
     for (Entry<String,String> entry : sampleConfig.toTablePropertiesMap().entrySet()) {
       config1.set(entry.getKey(), entry.getValue());
     }
 
-    ConfigurationCopy config2 = newConfig(tempFolder.newFolder().getAbsolutePath());
+    ConfigurationCopy config2 = newConfig(newFolders[1]);
     config2.set(Property.TABLE_LOCALITY_GROUP_PREFIX + "lg1",
         LocalityGroupUtil.encodeColumnFamilies(toTextSet("cf2")));
     config2.set(Property.TABLE_LOCALITY_GROUPS.getKey(), "lg1");
@@ -591,7 +572,7 @@ public class InMemoryMapTest {
         mutate(imm, row, "cf2:cq2", 5, "v" + ((2 * r) + 1), sampler, expectedSample, expectedAll);
       }
 
-      assertTrue(expectedSample.size() > 0);
+      assertTrue(!expectedSample.isEmpty());
 
       MemoryIterator iter1 = imm.skvIterator(sampleConfig);
       MemoryIterator iter2 = imm.skvIterator(null);
@@ -658,7 +639,7 @@ public class InMemoryMapTest {
         RowSampler.class.getName(), Map.of("hasher", "murmur3_32", "modulus", "2"));
     Sampler sampler = SamplerFactory.newSampler(sampleConfig1, DefaultConfiguration.getInstance());
 
-    ConfigurationCopy config1 = newConfig(tempFolder.newFolder().getAbsolutePath());
+    ConfigurationCopy config1 = newConfig(uniqueDirPaths(1)[0]);
     for (Entry<String,String> entry : sampleConfig1.toTablePropertiesMap().entrySet()) {
       config1.set(entry.getKey(), entry.getValue());
     }
@@ -674,7 +655,7 @@ public class InMemoryMapTest {
       mutate(imm, row, "cf2:cq2", 5, "v" + ((2 * r) + 1), sampler, expectedSample, expectedAll);
     }
 
-    assertTrue(expectedSample.size() > 0);
+    assertTrue(!expectedSample.isEmpty());
 
     MemoryIterator miter = imm.skvIterator(sampleConfig1);
     AtomicBoolean iFlag = new AtomicBoolean(false);
@@ -695,10 +676,8 @@ public class InMemoryMapTest {
 
     assertEquals(expectedSample, readAll(iter));
     iFlag.set(true);
-    try {
-      readAll(iter);
-      fail();
-    } catch (IterationInterruptedException iie) {}
+    final var finalIter = iter;
+    assertThrows(IterationInterruptedException.class, () -> readAll(finalIter));
 
     miter.close();
   }
@@ -708,17 +687,17 @@ public class InMemoryMapTest {
     mutate(imm, row, cols, ts, val);
     Key k1 = newKey(row, cols, ts);
     if (sampler.accept(k1)) {
-      expectedSample.put(k1, new Value(val.getBytes()));
+      expectedSample.put(k1, new Value(val));
     }
-    expectedAll.put(k1, new Value(val.getBytes()));
+    expectedAll.put(k1, new Value(val));
   }
 
-  @Test(expected = SampleNotPresentException.class)
-  public void testDifferentSampleConfig() throws Exception {
+  @Test
+  public void testDifferentSampleConfig() {
     SamplerConfigurationImpl sampleConfig = new SamplerConfigurationImpl(RowSampler.class.getName(),
         Map.of("hasher", "murmur3_32", "modulus", "7"));
 
-    ConfigurationCopy config1 = newConfig(tempFolder.newFolder().getAbsolutePath());
+    ConfigurationCopy config1 = newConfig(uniqueDirPaths(1)[0]);
     for (Entry<String,String> entry : sampleConfig.toTablePropertiesMap().entrySet()) {
       config1.set(entry.getKey(), entry.getValue());
     }
@@ -730,31 +709,31 @@ public class InMemoryMapTest {
     SamplerConfigurationImpl sampleConfig2 = new SamplerConfigurationImpl(
         RowSampler.class.getName(), Map.of("hasher", "murmur3_32", "modulus", "9"));
     MemoryIterator iter = imm.skvIterator(sampleConfig2);
-    iter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    assertThrows(SampleNotPresentException.class, () -> iter.seek(new Range(), Set.of(), false));
   }
 
-  @Test(expected = SampleNotPresentException.class)
-  public void testNoSampleConfig() throws Exception {
-    InMemoryMap imm = newInMemoryMap(false, tempFolder.newFolder().getAbsolutePath());
+  @Test
+  public void testNoSampleConfig() {
+    InMemoryMap imm = newInMemoryMap(false, uniqueDirPaths(1)[0]);
 
     mutate(imm, "r", "cf:cq", 5, "b");
 
     SamplerConfigurationImpl sampleConfig2 = new SamplerConfigurationImpl(
         RowSampler.class.getName(), Map.of("hasher", "murmur3_32", "modulus", "9"));
     MemoryIterator iter = imm.skvIterator(sampleConfig2);
-    iter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    assertThrows(SampleNotPresentException.class, () -> iter.seek(new Range(), Set.of(), false));
   }
 
   @Test
   public void testEmptyNoSampleConfig() throws Exception {
-    InMemoryMap imm = newInMemoryMap(false, tempFolder.newFolder().getAbsolutePath());
+    InMemoryMap imm = newInMemoryMap(false, uniqueDirPaths(1)[0]);
 
     SamplerConfigurationImpl sampleConfig2 = new SamplerConfigurationImpl(
         RowSampler.class.getName(), Map.of("hasher", "murmur3_32", "modulus", "9"));
 
     // when in mem map is empty should be able to get sample iterator with any sample config
     MemoryIterator iter = imm.skvIterator(sampleConfig2);
-    iter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    iter.seek(new Range(), Set.of(), false);
     assertFalse(iter.hasTop());
   }
 
@@ -763,7 +742,7 @@ public class InMemoryMapTest {
     SamplerConfigurationImpl sampleConfig1 = new SamplerConfigurationImpl(
         RowSampler.class.getName(), Map.of("hasher", "murmur3_32", "modulus", "9"));
 
-    ConfigurationCopy config1 = newConfig(tempFolder.newFolder().getAbsolutePath());
+    ConfigurationCopy config1 = newConfig(uniqueDirPaths(1)[0]);
     for (Entry<String,String> entry : sampleConfig1.toTablePropertiesMap().entrySet()) {
       config1.set(entry.getKey(), entry.getValue());
     }
@@ -786,24 +765,34 @@ public class InMemoryMapTest {
     }
 
     MemoryIterator iter = imm.skvIterator(sampleConfig2);
-    iter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    iter.seek(new Range(), Set.of(), false);
     assertEquals(expectedSample, readAll(iter));
 
     SortedKeyValueIterator<Key,Value> dc = iter.deepCopy(new SampleIE(sampleConfig2));
-    dc.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    dc.seek(new Range(), Set.of(), false);
     assertEquals(expectedSample, readAll(dc));
 
     iter = imm.skvIterator(null);
-    iter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    iter.seek(new Range(), Set.of(), false);
     assertEquals(expectedAll, readAll(iter));
 
-    iter = imm.skvIterator(sampleConfig1);
-    thrown.expect(SampleNotPresentException.class);
-    iter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    final MemoryIterator finalIter = imm.skvIterator(sampleConfig1);
+    assertThrows(SampleNotPresentException.class,
+        () -> finalIter.seek(new Range(), Set.of(), false));
+  }
+
+  private String[] uniqueDirPaths(int numOfDirs) {
+    String[] newDirs = new String[numOfDirs];
+    for (int i = 0; i < newDirs.length; i++) {
+      File newDir = new File(tempDir, testName() + i);
+      assertTrue(newDir.isDirectory() || newDir.mkdir(), "Failed to create directory: " + newDir);
+      newDirs[i] = newDir.getAbsolutePath();
+    }
+    return newDirs;
   }
 
   private TreeMap<Key,Value> readAll(SortedKeyValueIterator<Key,Value> iter) throws IOException {
-    iter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    iter.seek(new Range(), Set.of(), false);
 
     TreeMap<Key,Value> actual = new TreeMap<>();
     while (iter.hasTop()) {
@@ -863,7 +852,7 @@ public class InMemoryMapTest {
     testAndCallNext(iter1, "r2", "cf2:x", 3, "5");
     assertFalse(iter1.hasTop());
 
-    iter1.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    iter1.seek(new Range(), Set.of(), false);
     assertAll(iter1);
 
     iter1.seek(new Range(), newCFSet("cf1"), false);

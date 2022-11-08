@@ -1,26 +1,28 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.master.balancer;
 
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,13 +36,14 @@ import java.util.Set;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.fate.util.UtilWaitThread;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
+@Deprecated(since = "2.1.0")
 public class HostRegexTableLoadBalancerReconfigurationTest
     extends BaseHostRegexTableLoadBalancerTest {
 
@@ -52,7 +55,13 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     replay(context1);
     final TestServerConfigurationFactory factory = new TestServerConfigurationFactory(context1);
     ServerContext context2 = createMockContext();
-    expect(context2.getServerConfFactory()).andReturn(factory).anyTimes();
+    expect(context2.getConfiguration()).andReturn(factory.getSystemConfiguration()).anyTimes();
+    expect(context2.getTableConfiguration(FOO.getId()))
+        .andReturn(factory.getTableConfiguration(FOO.getId())).anyTimes();
+    expect(context2.getTableConfiguration(BAR.getId()))
+        .andReturn(factory.getTableConfiguration(BAR.getId())).anyTimes();
+    expect(context2.getTableConfiguration(BAZ.getId()))
+        .andReturn(factory.getTableConfiguration(BAZ.getId())).anyTimes();
     replay(context2);
     init(context2);
     Map<KeyExtent,TServerInstance> unassigned = new HashMap<>();
@@ -79,7 +88,7 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     // Ensure assignments are correct
     for (Entry<KeyExtent,TServerInstance> e : assignments.entrySet()) {
       if (!tabletInBounds(e.getKey(), e.getValue())) {
-        fail("tablet not in bounds: " + e.getKey() + " -> " + e.getValue().host());
+        fail("tablet not in bounds: " + e.getKey() + " -> " + e.getValue().getHost());
       }
     }
     Set<KeyExtent> migrations = new HashSet<>();
@@ -99,11 +108,11 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     this.balance(Collections.unmodifiableSortedMap(allTabletServers), migrations, migrationsOut);
     assertEquals(5, migrationsOut.size());
     for (TabletMigration migration : migrationsOut) {
-      assertTrue(migration.newServer.host().startsWith("192.168.0.1")
-          || migration.newServer.host().startsWith("192.168.0.2")
-          || migration.newServer.host().startsWith("192.168.0.3")
-          || migration.newServer.host().startsWith("192.168.0.4")
-          || migration.newServer.host().startsWith("192.168.0.5"));
+      assertTrue(migration.newServer.getHost().startsWith("192.168.0.1")
+          || migration.newServer.getHost().startsWith("192.168.0.2")
+          || migration.newServer.getHost().startsWith("192.168.0.3")
+          || migration.newServer.getHost().startsWith("192.168.0.4")
+          || migration.newServer.getHost().startsWith("192.168.0.5"));
     }
   }
 
@@ -112,7 +121,7 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     List<TabletStats> tablets = new ArrayList<>();
     // Report assignment information
     for (Entry<KeyExtent,TServerInstance> e : this.assignments.entrySet()) {
-      if (e.getValue().equals(tserver) && e.getKey().getTableId().equals(tableId)) {
+      if (e.getValue().equals(tserver) && e.getKey().tableId().equals(tableId)) {
         TabletStats ts = new TabletStats();
         ts.setExtent(e.getKey().toThrift());
         tablets.add(ts);

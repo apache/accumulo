@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.util;
 
@@ -21,8 +23,8 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -48,7 +50,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.server.replication.StatusCombiner;
@@ -57,8 +58,9 @@ import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
+@Deprecated
 public class ReplicationTableUtilTest {
 
   @Test
@@ -96,14 +98,15 @@ public class ReplicationTableUtilTest {
     assertEquals(1, mutations.size());
     Mutation m = mutations.get(0);
 
-    assertEquals(MetadataSchema.ReplicationSection.getRowPrefix()
-        + "file:/home/user/accumulo/wal/server+port/" + uuid, new Text(m.getRow()).toString());
+    assertEquals(
+        ReplicationSection.getRowPrefix() + "file:/home/user/accumulo/wal/server+port/" + uuid,
+        new Text(m.getRow()).toString());
 
     List<ColumnUpdate> updates = m.getUpdates();
     assertEquals(1, updates.size());
     ColumnUpdate update = updates.get(0);
 
-    assertEquals(MetadataSchema.ReplicationSection.COLF, new Text(update.getColumnFamily()));
+    assertEquals(ReplicationSection.COLF, new Text(update.getColumnFamily()));
     assertEquals("1", new Text(update.getColumnQualifier()).toString());
     assertEquals(StatusUtil.fileCreatedValue(createdTime), new Value(update.getValue()));
   }
@@ -121,13 +124,12 @@ public class ReplicationTableUtilTest {
     Mutation m =
         ReplicationTableUtil.createUpdateMutation(filePath, ProtobufUtil.toValue(stat), extent);
 
-    assertEquals(new Text(MetadataSchema.ReplicationSection.getRowPrefix() + row),
-        new Text(m.getRow()));
+    assertEquals(new Text(ReplicationSection.getRowPrefix() + row), new Text(m.getRow()));
     assertEquals(1, m.getUpdates().size());
     ColumnUpdate col = m.getUpdates().get(0);
 
-    assertEquals(MetadataSchema.ReplicationSection.COLF, new Text(col.getColumnFamily()));
-    assertEquals(extent.getTableId().canonical(), new Text(col.getColumnQualifier()).toString());
+    assertEquals(ReplicationSection.COLF, new Text(col.getColumnFamily()));
+    assertEquals(extent.tableId().canonical(), new Text(col.getColumnQualifier()).toString());
     assertEquals(0, col.getColumnVisibility().length);
     assertArrayEquals(stat.toByteArray(), col.getValue());
   }
@@ -148,7 +150,7 @@ public class ReplicationTableUtilTest {
     tops.attachIterator(myMetadataTable, combiner);
     expectLastCall().once();
 
-    expect(tops.getProperties(myMetadataTable)).andReturn(Collections.emptyList());
+    expect(tops.getConfiguration(myMetadataTable)).andReturn(Collections.emptyMap());
     tops.setProperty(myMetadataTable, Property.TABLE_FORMATTER_CLASS.getKey(),
         ReplicationTableUtil.STATUS_FORMATTER_CLASS_NAME);
     expectLastCall().once();

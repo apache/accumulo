@@ -1,68 +1,63 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.tablet;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.core.client.sample.SamplerConfiguration;
-import org.apache.accumulo.core.conf.IterConfigUtil;
-import org.apache.accumulo.core.conf.IterLoad;
-import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
-import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
-import org.apache.accumulo.core.iterators.system.MultiIterator;
-import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator.DataSource;
-import org.apache.accumulo.core.iterators.system.StatsIterator;
+import org.apache.accumulo.core.iteratorsImpl.IteratorBuilder;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
+import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
+import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator.DataSource;
+import org.apache.accumulo.core.iteratorsImpl.system.StatsIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.SystemIteratorUtil;
 import org.apache.accumulo.server.conf.TableConfiguration.ParsedIteratorConfig;
-import org.apache.accumulo.server.fs.FileRef;
-import org.apache.accumulo.tserver.FileManager.ScanFileManager;
+import org.apache.accumulo.server.fs.FileManager.ScanFileManager;
+import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
 import org.apache.accumulo.tserver.InMemoryMap.MemoryIterator;
-import org.apache.accumulo.tserver.TabletIteratorEnvironment;
 import org.apache.accumulo.tserver.TabletServer;
+import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Iterables;
 
 class ScanDataSource implements DataSource {
 
   private static final Logger log = LoggerFactory.getLogger(ScanDataSource.class);
   // data source state
-  private final Tablet tablet;
+  private final TabletBase tablet;
   private ScanFileManager fileManager;
   private SortedKeyValueIterator<Key,Value> iter;
   private long expectedDeletionCount;
@@ -71,62 +66,47 @@ class ScanDataSource implements DataSource {
   private AtomicBoolean interruptFlag;
   private StatsIterator statsIterator;
 
-  private final ScanOptions options;
+  private final ScanParameters scanParams;
   private final boolean loadIters;
+  private final byte[] defaultLabels;
 
-  private static final Set<Column> EMPTY_COLS = Collections.emptySet();
-
-  ScanDataSource(Tablet tablet, Authorizations authorizations, byte[] defaultLabels,
-      HashSet<Column> columnSet, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
-      AtomicBoolean interruptFlag, SamplerConfiguration samplerConfig, long batchTimeOut,
-      String context) {
-    this(
-        tablet, tablet.getDataSourceDeletions(), new ScanOptions(-1, authorizations, defaultLabels,
-            columnSet, ssiList, ssio, interruptFlag, false, samplerConfig, batchTimeOut, context),
-        interruptFlag, true);
-  }
-
-  ScanDataSource(Tablet tablet, ScanOptions options) {
-    this(tablet, tablet.getDataSourceDeletions(), options, options.getInterruptFlag(), true);
-  }
-
-  ScanDataSource(Tablet tablet, Authorizations authorizations, byte[] defaultLabels,
-      AtomicBoolean iFlag) {
-    this(tablet, tablet.getDataSourceDeletions(), new ScanOptions(-1, authorizations, defaultLabels,
-        EMPTY_COLS, null, null, iFlag, false, null, -1, null), iFlag, false);
-  }
-
-  ScanDataSource(Tablet tablet, long expectedDeletionCount, ScanOptions options,
-      AtomicBoolean interruptFlag, boolean loadIters) {
+  ScanDataSource(TabletBase tablet, ScanParameters scanParams, boolean loadIters,
+      AtomicBoolean interruptFlag) {
     this.tablet = tablet;
-    this.expectedDeletionCount = expectedDeletionCount;
-    this.options = options;
+    this.expectedDeletionCount = tablet.getDataSourceDeletions();
+    this.scanParams = scanParams;
     this.interruptFlag = interruptFlag;
     this.loadIters = loadIters;
-    log.trace("new scan data source, tablet: {}, options: {}, interruptFlag: {}, loadIterators: {}",
-        this.tablet, this.options, this.interruptFlag, this.loadIters);
+    this.defaultLabels = tablet.getDefaultSecurityLabels();
+    if (log.isTraceEnabled()) {
+      log.trace("new scan data source, tablet: {}, params: {}, loadIterators: {}", this.tablet,
+          this.scanParams, this.loadIters);
+    }
   }
 
   @Override
   public DataSource getNewDataSource() {
-    if (!isCurrent()) {
+    if (isCurrent())
+      return this;
+    else {
       // log.debug("Switching data sources during a scan");
       if (memIters != null) {
-        tablet.getTabletMemory().returnIterators(memIters);
+        tablet.returnMemIterators(memIters);
         memIters = null;
-        tablet.getDatafileManager().returnFilesForScan(fileReservationId);
+        tablet.returnFilesForScan(fileReservationId);
         fileReservationId = -1;
       }
 
-      if (fileManager != null)
+      if (fileManager != null) {
+        tablet.getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
         fileManager.releaseOpenFiles(false);
+      }
 
       expectedDeletionCount = tablet.getDataSourceDeletions();
       iter = null;
 
       return this;
-    } else
-      return this;
+    }
   }
 
   @Override
@@ -143,9 +123,9 @@ class ScanDataSource implements DataSource {
 
   private SortedKeyValueIterator<Key,Value> createIterator() throws IOException {
 
-    Map<FileRef,DataFileValue> files;
+    Map<TabletFile,DataFileValue> files;
 
-    SamplerConfigurationImpl samplerConfig = options.getSamplerConfigurationImpl();
+    SamplerConfigurationImpl samplerConfig = scanParams.getSamplerConfigurationImpl();
 
     synchronized (tablet) {
 
@@ -161,7 +141,8 @@ class ScanDataSource implements DataSource {
 
       // only acquire the file manager when we know the tablet is open
       if (fileManager == null) {
-        fileManager = tablet.getTabletResources().newScanFileManager();
+        fileManager = tablet.getTabletResources().newScanFileManager(scanParams.getScanDispatch());
+        tablet.getScanMetrics().incrementOpenFiles(fileManager.getNumOpenFiles());
         tablet.addActiveScans(this);
       }
 
@@ -172,18 +153,16 @@ class ScanDataSource implements DataSource {
       // getIterators() throws an exception
       expectedDeletionCount = tablet.getDataSourceDeletions();
 
-      memIters = tablet.getTabletMemory().getIterators(samplerConfig);
-      Pair<Long,Map<FileRef,DataFileValue>> reservation =
-          tablet.getDatafileManager().reserveFilesForScan();
+      memIters = tablet.getMemIterators(samplerConfig);
+      Pair<Long,Map<TabletFile,DataFileValue>> reservation = tablet.reserveFilesForScan();
       fileReservationId = reservation.getFirst();
       files = reservation.getSecond();
     }
 
     Collection<InterruptibleIterator> mapfiles =
-        fileManager.openFiles(files, options.isIsolated(), samplerConfig);
+        fileManager.openFiles(files, scanParams.isIsolated(), samplerConfig);
 
-    for (SortedKeyValueIterator<Key,Value> skvi : Iterables.concat(mapfiles, memIters))
-      ((InterruptibleIterator) skvi).setInterruptFlag(interruptFlag);
+    List.of(mapfiles, memIters).forEach(c -> c.forEach(ii -> ii.setInterruptFlag(interruptFlag)));
 
     List<SortedKeyValueIterator<Key,Value>> iters =
         new ArrayList<>(mapfiles.size() + memIters.size());
@@ -193,28 +172,24 @@ class ScanDataSource implements DataSource {
 
     MultiIterator multiIter = new MultiIterator(iters, tablet.getExtent());
 
-    TabletIteratorEnvironment iterEnv =
-        new TabletIteratorEnvironment(tablet.getTabletServer().getContext(), IteratorScope.scan,
-            tablet.getTableConfiguration(), tablet.getExtent().getTableId(), fileManager, files,
-            options.getAuthorizations(), samplerConfig, new ArrayList<>());
+    TabletIteratorEnvironment iterEnv = new TabletIteratorEnvironment(tablet.getContext(),
+        IteratorScope.scan, tablet.getTableConfiguration(), tablet.getExtent().tableId(),
+        fileManager, files, scanParams.getAuthorizations(), samplerConfig, new ArrayList<>());
 
-    statsIterator =
-        new StatsIterator(multiIter, TabletServer.seekCount, tablet.getScannedCounter());
+    statsIterator = new StatsIterator(multiIter, TabletServer.seekCount, tablet.getScannedCounter(),
+        tablet.getScanMetrics().getScannedCounter());
 
-    SortedKeyValueIterator<Key,
-        Value> visFilter = SystemIteratorUtil.setupSystemScanIterators(statsIterator,
-            options.getColumnSet(), options.getAuthorizations(), options.getDefaultLabels(),
-            tablet.getTableConfiguration());
+    SortedKeyValueIterator<Key,Value> visFilter =
+        SystemIteratorUtil.setupSystemScanIterators(statsIterator, scanParams.getColumnSet(),
+            scanParams.getAuthorizations(), defaultLabels, tablet.getTableConfiguration());
 
-    if (!loadIters) {
-      return visFilter;
-    } else {
+    if (loadIters) {
       List<IterInfo> iterInfos;
       Map<String,Map<String,String>> iterOpts;
 
       ParsedIteratorConfig pic =
           tablet.getTableConfiguration().getParsedIteratorConfig(IteratorScope.scan);
-      if (options.getSsiList().size() == 0 && options.getSsio().size() == 0) {
+      if (scanParams.getSsiList().isEmpty() && scanParams.getSsio().isEmpty()) {
         // No scan time iterator options were set, so can just use the pre-parsed table iterator
         // options.
         iterInfos = pic.getIterInfo();
@@ -222,39 +197,43 @@ class ScanDataSource implements DataSource {
       } else {
         // Scan time iterator options were set, so need to merge those with pre-parsed table
         // iterator options.
-        iterOpts = new HashMap<>(pic.getOpts().size() + options.getSsio().size());
-        iterInfos = new ArrayList<>(pic.getIterInfo().size() + options.getSsiList().size());
-        IterConfigUtil.mergeIteratorConfig(iterInfos, iterOpts, pic.getIterInfo(), pic.getOpts(),
-            options.getSsiList(), options.getSsio());
+        iterOpts = new HashMap<>(pic.getOpts().size() + scanParams.getSsio().size());
+        iterInfos = new ArrayList<>(pic.getIterInfo().size() + scanParams.getSsiList().size());
+        IteratorConfigUtil.mergeIteratorConfig(iterInfos, iterOpts, pic.getIterInfo(),
+            pic.getOpts(), scanParams.getSsiList(), scanParams.getSsio());
       }
 
       String context;
-      if (options.getClassLoaderContext() != null) {
+      if (scanParams.getClassLoaderContext() != null) {
         log.trace("Loading iterators for scan with scan context: {}",
-            options.getClassLoaderContext());
-        context = options.getClassLoaderContext();
+            scanParams.getClassLoaderContext());
+        context = scanParams.getClassLoaderContext();
       } else {
         context = pic.getServiceEnv();
         if (context != null) {
           log.trace("Loading iterators for scan with table context: {}",
-              options.getClassLoaderContext());
+              scanParams.getClassLoaderContext());
         } else {
           log.trace("Loading iterators for scan");
         }
       }
 
-      IterLoad il = new IterLoad().iters(iterInfos).iterOpts(iterOpts).iterEnv(iterEnv)
-          .useAccumuloClassLoader(true).context(context);
-      return iterEnv.getTopLevelIterator(IterConfigUtil.loadIterators(visFilter, il));
+      var iteratorBuilder = IteratorBuilder.builder(iterInfos).opts(iterOpts).env(iterEnv)
+          .useClassLoader(context).build();
+      return iterEnv
+          .getTopLevelIterator(IteratorConfigUtil.loadIterators(visFilter, iteratorBuilder));
+    } else {
+      return visFilter;
     }
   }
 
-  void close(boolean sawErrors) {
+  @Override
+  public void close(boolean sawErrors) {
 
     if (memIters != null) {
-      tablet.getTabletMemory().returnIterators(memIters);
+      tablet.returnMemIterators(memIters);
       memIters = null;
-      tablet.getDatafileManager().returnFilesForScan(fileReservationId);
+      tablet.returnFilesForScan(fileReservationId);
       fileReservationId = -1;
     }
 
@@ -264,6 +243,7 @@ class ScanDataSource implements DataSource {
     }
 
     if (fileManager != null) {
+      tablet.getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
       fileManager.releaseOpenFiles(sawErrors);
       fileManager = null;
     }
@@ -285,7 +265,7 @@ class ScanDataSource implements DataSource {
 
   public void reattachFileManager() throws IOException {
     if (fileManager != null)
-      fileManager.reattach(options.getSamplerConfigurationImpl());
+      fileManager.reattach(scanParams.getSamplerConfigurationImpl());
   }
 
   public void detachFileManager() {

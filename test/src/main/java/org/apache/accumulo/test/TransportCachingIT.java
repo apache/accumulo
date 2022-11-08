@@ -1,30 +1,30 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -32,14 +32,11 @@ import org.apache.accumulo.core.clientImpl.ThriftTransportKey;
 import org.apache.accumulo.core.clientImpl.ThriftTransportPool;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.util.ServerServices;
-import org.apache.accumulo.core.util.ServerServices.Service;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,122 +45,78 @@ import org.slf4j.LoggerFactory;
  */
 public class TransportCachingIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(TransportCachingIT.class);
-  private static int ATTEMPTS = 0;
 
   @Test
   public void testCachedTransport() throws InterruptedException {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      while (client.instanceOperations().getTabletServers().isEmpty()) {
+
+      List<String> tservers;
+
+      while ((tservers = client.instanceOperations().getTabletServers()).isEmpty()) {
         // sleep until a tablet server is up
         Thread.sleep(50);
       }
+
       ClientContext context = (ClientContext) client;
       long rpcTimeout =
           ConfigurationTypeHelper.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT.getDefaultValue());
 
-      ZooCache zc = context.getZooCache();
-      final String zkRoot = context.getZooKeeperRoot();
+      List<ThriftTransportKey> servers = tservers.stream().map(serverStr -> {
+        return new ThriftTransportKey(HostAndPort.fromString(serverStr), rpcTimeout, context);
+      }).collect(Collectors.toList());
 
-      // wait until Zookeeper is populated
-      List<String> children = zc.getChildren(zkRoot + Constants.ZTSERVERS);
-      while (children.isEmpty()) {
-        Thread.sleep(100);
-        children = zc.getChildren(zkRoot + Constants.ZTSERVERS);
-      }
+      // only want to use one server for all subsequent test
+      servers = servers.subList(0, 1);
 
-      ArrayList<ThriftTransportKey> servers = new ArrayList<>();
-      while (servers.isEmpty()) {
-        for (String tserver : children) {
-          String path = zkRoot + Constants.ZTSERVERS + "/" + tserver;
-          byte[] data = ZooUtil.getLockData(zc, path);
-          if (data != null) {
-            String strData = new String(data, UTF_8);
-            if (!strData.equals("master"))
-              servers.add(new ThriftTransportKey(
-                  new ServerServices(strData).getAddress(Service.TSERV_CLIENT), rpcTimeout,
-                  context));
-          }
-        }
-        ATTEMPTS++;
-        if (!servers.isEmpty())
-          break;
-        else {
-          if (ATTEMPTS < 100) {
-            log.warn("Making another attempt to add ThriftTransportKey servers");
-            Thread.sleep(100);
-          } else {
-            log.error("Failed to add ThriftTransportKey servers - Failing TransportCachingIT test");
-            org.junit.Assert
-                .fail("Failed to add ThriftTransportKey servers - Failing TransportCachingIT test");
-          }
-        }
-      }
-
-      ThriftTransportPool pool = ThriftTransportPool.getInstance();
-      TTransport first = null;
-      while (first == null) {
-        try {
-          // Get a transport (cached or not)
-          first = pool.getAnyTransport(servers, true).getSecond();
-        } catch (TTransportException e) {
-          log.warn("Failed to obtain transport to {}", servers);
-        }
-      }
+      ThriftTransportPool pool = context.getTransportPool();
+      TTransport first = getAnyTransport(servers, pool, true);
 
       assertNotNull(first);
       // Return it to unreserve it
       pool.returnTransport(first);
 
-      TTransport second = null;
-      while (second == null) {
-        try {
-          // Get a cached transport (should be the first)
-          second = pool.getAnyTransport(servers, true).getSecond();
-        } catch (TTransportException e) {
-          log.warn("Failed obtain 2nd transport to {}", servers);
-        }
-      }
+      TTransport second = getAnyTransport(servers, pool, true);
 
       // We should get the same transport
-      assertSame("Expected the first and second to be the same instance", first, second);
-      // Return the 2nd
+      assertSame(first, second, "Expected the first and second to be the same instance");
       pool.returnTransport(second);
 
-      TTransport third = null;
-      while (third == null) {
-        try {
-          // Get a non-cached transport
-          third = pool.getAnyTransport(servers, false).getSecond();
-        } catch (TTransportException e) {
-          log.warn("Failed obtain 3rd transport to {}", servers);
-        }
-      }
+      // Ensure does not get cached connection just returned
+      TTransport third = getAnyTransport(servers, pool, false);
+      assertNotSame(second, third, "Expected second and third transport to be different instances");
 
-      assertNotSame("Expected second and third transport to be different instances", second, third);
+      TTransport fourth = getAnyTransport(servers, pool, false);
+      assertNotSame(third, fourth, "Expected third and fourth transport to be different instances");
+
       pool.returnTransport(third);
-
-      // ensure the LIFO scheme with a fourth and fifth entry
-      TTransport fourth = null;
-      while (fourth == null) {
-        try {
-          // Get a non-cached transport
-          fourth = pool.getAnyTransport(servers, false).getSecond();
-        } catch (TTransportException e) {
-          log.warn("Failed obtain 4th transport to {}", servers);
-        }
-      }
       pool.returnTransport(fourth);
-      TTransport fifth = null;
-      while (fifth == null) {
-        try {
-          // Get a cached transport
-          fifth = pool.getAnyTransport(servers, true).getSecond();
-        } catch (TTransportException e) {
-          log.warn("Failed obtain 5th transport to {}", servers);
-        }
-      }
-      assertSame("Expected fourth and fifth transport to be the same instance", fourth, fifth);
+
+      // The following three asserts ensure the per server queue is LIFO
+      TTransport fifth = getAnyTransport(servers, pool, true);
+      assertSame(fourth, fifth, "Expected fourth and fifth transport to be the same instance");
+
+      TTransport sixth = getAnyTransport(servers, pool, true);
+      assertSame(third, sixth, "Expected third and sixth transport to be the same instance");
+
+      TTransport seventh = getAnyTransport(servers, pool, true);
+      assertSame(second, seventh, "Expected second and seventh transport to be the same instance");
+
       pool.returnTransport(fifth);
+      pool.returnTransport(sixth);
+      pool.returnTransport(seventh);
     }
+  }
+
+  private TTransport getAnyTransport(List<ThriftTransportKey> servers, ThriftTransportPool pool,
+      boolean preferCached) {
+    TTransport first = null;
+    while (first == null) {
+      try {
+        first = pool.getAnyTransport(servers, preferCached).getSecond();
+      } catch (TTransportException e) {
+        log.warn("Failed to obtain transport to {}", servers);
+      }
+    }
+    return first;
   }
 }

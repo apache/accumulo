@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.security;
 
@@ -21,18 +23,16 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
-import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.commons.codec.digest.Crypt;
 import org.apache.hadoop.io.Writable;
 
 /**
@@ -46,12 +46,12 @@ public final class SystemCredentials extends Credentials {
 
   private final TCredentials AS_THRIFT;
 
-  public SystemCredentials(String instanceID, String principal, AuthenticationToken token) {
+  public SystemCredentials(InstanceId instanceID, String principal, AuthenticationToken token) {
     super(principal, token);
     AS_THRIFT = super.toThrift(instanceID);
   }
 
-  public static SystemCredentials get(String instanceID, SiteConfiguration siteConfig) {
+  public static SystemCredentials get(InstanceId instanceID, SiteConfiguration siteConfig) {
     String principal = SYSTEM_PRINCIPAL;
     if (siteConfig.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       // Use the server's kerberos principal as the Accumulo principal. We could also unwrap the
@@ -63,12 +63,13 @@ public final class SystemCredentials extends Credentials {
       principal =
           SecurityUtil.getServerPrincipal(siteConfig.get(Property.GENERAL_KERBEROS_PRINCIPAL));
     }
-    return new SystemCredentials(instanceID, principal, SystemToken.get(instanceID, siteConfig));
+    return new SystemCredentials(instanceID, principal,
+        SystemToken.generate(instanceID, siteConfig));
   }
 
   @Override
-  public TCredentials toThrift(String instanceID) {
-    if (!AS_THRIFT.getInstanceId().equals(instanceID))
+  public TCredentials toThrift(InstanceId instanceID) {
+    if (!AS_THRIFT.getInstanceId().equals(instanceID.canonical()))
       throw new IllegalArgumentException("Unexpected instance used for "
           + SystemCredentials.class.getSimpleName() + ": " + instanceID);
     return AS_THRIFT;
@@ -82,10 +83,19 @@ public final class SystemCredentials extends Credentials {
   public static final class SystemToken extends PasswordToken {
 
     /**
-     * Accumulo servers will only communicate with each other when this is the same. Bumped for 2.0
-     * to prevent 1.9 and 2.0 servers from communicating.
+     * Accumulo servers will only communicate with each other when this is the same.
+     *
+     * <ul>
+     * <li>Initial version 2 for 1.5 to support rolling upgrades for bugfix releases (ACCUMULO-751)
+     * <li>Bumped to 3 for 1.6 for additional namespace RPC changes (ACCUMULO-802)
+     * <li>Bumped to 4 for 2.0 to prevent 1.9 and 2.0 servers from communicating (#1139)
+     * <li>Bumped to 5 for 2.1 because of system credential hash incompatibility (#1798 / #1810)
+     * </ul>
      */
-    private static final Integer INTERNAL_WIRE_VERSION = 4;
+    static final int INTERNAL_WIRE_VERSION = 5;
+
+    static final String SALT_PREFIX = "$6$"; // SHA-512
+    private static final String SALT_SUFFIX = "$";
 
     /**
      * A Constructor for {@link Writable}.
@@ -96,45 +106,42 @@ public final class SystemCredentials extends Credentials {
       super(systemPassword);
     }
 
-    private static SystemToken get(String instanceID, SiteConfiguration siteConfig) {
-      byte[] instanceIdBytes = instanceID.getBytes(UTF_8);
-      byte[] confChecksum;
-      MessageDigest md;
-      try {
-        md = MessageDigest.getInstance(Constants.PW_HASH_ALGORITHM);
-      } catch (NoSuchAlgorithmException e) {
-        throw new RuntimeException("Failed to compute configuration checksum", e);
-      }
-
+    private static String hashInstanceConfigs(InstanceId instanceID, SiteConfiguration siteConfig) {
+      String wireVersion = Integer.toString(INTERNAL_WIRE_VERSION);
       // seed the config with the version and instance id, so at least it's not empty
-      md.update(INTERNAL_WIRE_VERSION.toString().getBytes(UTF_8));
-      md.update(instanceIdBytes);
-
-      for (Entry<String,String> entry : siteConfig) {
+      var sb = new StringBuilder(wireVersion).append("\t").append(instanceID).append("\t");
+      siteConfig.forEach(entry -> {
+        String k = entry.getKey();
+        String v = entry.getValue();
         // only include instance properties
-        if (entry.getKey().startsWith(Property.INSTANCE_PREFIX.toString())) {
-          md.update(entry.getKey().getBytes(UTF_8));
-          md.update(entry.getValue().getBytes(UTF_8));
+        if (k.startsWith(Property.INSTANCE_PREFIX.toString())) {
+          sb.append(k).append("=").append(v).append("\t");
         }
-      }
-      confChecksum = md.digest();
+      });
+      return Crypt.crypt(sb.toString(), SALT_PREFIX + wireVersion + SALT_SUFFIX);
+    }
 
+    private static SystemToken generate(InstanceId instanceID, SiteConfiguration siteConfig) {
+      byte[] instanceIdBytes = instanceID.canonical().getBytes(UTF_8);
+      byte[] configHash = hashInstanceConfigs(instanceID, siteConfig).getBytes(UTF_8);
+
+      // the actual token is a base64-encoded composition of:
+      // 1. the wire version,
+      // 2. the instance ID, and
+      // 3. a hash of the subset of config properties starting with 'instance.'
       int wireVersion = INTERNAL_WIRE_VERSION;
-
-      ByteArrayOutputStream bytes = new ByteArrayOutputStream(
-          3 * (Integer.SIZE / Byte.SIZE) + instanceIdBytes.length + confChecksum.length);
-      DataOutputStream out = new DataOutputStream(bytes);
-      try {
+      int capacity = 3 * (Integer.SIZE / Byte.SIZE) + instanceIdBytes.length + configHash.length;
+      try (var bytes = new ByteArrayOutputStream(capacity); var out = new DataOutputStream(bytes)) {
         out.write(wireVersion * -1);
         out.write(instanceIdBytes.length);
         out.write(instanceIdBytes);
-        out.write(confChecksum.length);
-        out.write(confChecksum);
+        out.write(configHash.length);
+        out.write(configHash);
+        return new SystemToken(Base64.getEncoder().encode(bytes.toByteArray()));
       } catch (IOException e) {
         // this is impossible with ByteArrayOutputStream; crash hard if this happens
-        throw new RuntimeException(e);
+        throw new AssertionError("byte array output stream somehow did the impossible", e);
       }
-      return new SystemToken(Base64.getEncoder().encode(bytes.toByteArray()));
     }
   }
 

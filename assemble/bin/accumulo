@@ -1,31 +1,36 @@
 #! /usr/bin/env bash
-
-# Licensed to the Apache Software Foundation (ASF) under one or more
-# contributor license agreements.  See the NOTICE file distributed with
-# this work for additional information regarding copyright ownership.
-# The ASF licenses this file to You under the Apache License, Version 2.0
-# (the "License"); you may not use this file except in compliance with
-# the License.  You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+#   https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
 
 function main() {
 
   SOURCE="${BASH_SOURCE[0]}"
-  while [[ -h "${SOURCE}" ]]; do
-     bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
-     SOURCE="$(readlink "${SOURCE}")"
-     [[ "${SOURCE}" != /* ]] && SOURCE="${bin}/${SOURCE}"
+  while [[ -L ${SOURCE} ]]; do
+    bin="$(cd -P "$(dirname "${SOURCE}")" && pwd)"
+    SOURCE="$(readlink "${SOURCE}")"
+    [[ ${SOURCE} != /* ]] && SOURCE="${bin}/${SOURCE}"
   done
   # Set up variables needed by accumulo-env.sh
-  bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"; export bin
-  basedir=$( cd -P "${bin}"/.. && pwd ); export basedir
+  bin="$(cd -P "$(dirname "${SOURCE}")" && pwd)"
+  export bin
+  basedir=$(cd -P "${bin}"/.. && pwd)
+  export basedir
   export conf="${ACCUMULO_CONF_DIR:-${basedir}/conf}"
   export lib="${basedir}/lib"
   export cmd="$1"
@@ -38,6 +43,7 @@ function main() {
     echo "accumulo-env.sh must exist in $conf"
     exit 1
   fi
+  #shellcheck source=../conf/accumulo-env.sh
   source "$conf/accumulo-env.sh"
 
   # Accumulo is moving away from these variables but they still might be needed
@@ -56,16 +62,27 @@ function main() {
     exit 0
   fi
 
+  # Start up JShell with Accumulo
+  local jShellPath="$conf/jshell-init.jsh"
+  if [[ $cmd == "jshell" ]]; then
+    shift
+    if [[ -f $jShellPath ]]; then
+      exec "$cmd" --startup DEFAULT --startup "$jShellPath" "$@"
+    else
+      exec "$cmd" "$@"
+    fi
+  fi
+
   if [[ -x "$JAVA_HOME/bin/java" ]]; then
     JAVA="$JAVA_HOME/bin/java"
   else
     JAVA=$(type -P java)
   fi
-  if [[ ! -x "$JAVA" ]]; then
+  if [[ ! -x $JAVA ]]; then
     echo "Could not find any executable java binary. Please set java on your PATH or set JAVA_HOME"
     exit 1
   fi
-  if [[ -n "$ACCUMULO_JAVA_PREFIX" ]]; then
+  if [[ -n $ACCUMULO_JAVA_PREFIX ]]; then
     JAVA=("${ACCUMULO_JAVA_PREFIX[*]}" "$JAVA")
   fi
 

@@ -1,27 +1,31 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Arrays;
 
-import org.junit.Test;
+import org.apache.accumulo.core.fate.FateTxId;
+import org.junit.jupiter.api.Test;
 
 public class FastFormatTest {
 
@@ -95,20 +99,58 @@ public class FastFormatTest {
         new String(FastFormat.toZeroPaddedString(1296, 7, 36, new byte[] {'P', 'A'}), UTF_8));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testNegative1() {
-    FastFormat.toZeroPaddedString(-5, 1, 36, new byte[] {});
+    assertThrows(IllegalArgumentException.class,
+        () -> FastFormat.toZeroPaddedString(-5, 1, 36, new byte[] {}));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testNegative2() {
     byte[] str = new byte[8];
-    FastFormat.toZeroPaddedString(str, 0, -5, 1, 36, new byte[] {});
+    assertThrows(IllegalArgumentException.class,
+        () -> FastFormat.toZeroPaddedString(str, 0, -5, 1, 36, new byte[] {}));
   }
 
-  @Test(expected = ArrayIndexOutOfBoundsException.class)
+  @Test
   public void testArrayOutOfBounds() {
     byte[] str = new byte[8];
-    FastFormat.toZeroPaddedString(str, 4, 64L, 4, 16, new byte[] {'P'});
+    assertThrows(ArrayIndexOutOfBoundsException.class,
+        () -> FastFormat.toZeroPaddedString(str, 4, 64L, 4, 16, new byte[] {'P'}));
+  }
+
+  @Test
+  public void testHexString() {
+    final String PREFIX = "FATE[";
+    final String SUFFIX = "]";
+    String formattedTxId = FateTxId.formatTid(64L);
+    String hexStr = FastFormat.toHexString(PREFIX, 64L, SUFFIX);
+    assertEquals(formattedTxId, hexStr);
+    long txid = FateTxId.fromString("FATE[2e429160071c63d8]");
+    assertEquals("FATE[2e429160071c63d8]", FastFormat.toHexString(PREFIX, txid, SUFFIX));
+    assertEquals(String.format("%016x", 64L), FastFormat.toHexString(64L));
+    assertEquals(String.format("%016x", 0X2e429160071c63d8L),
+        FastFormat.toHexString(0X2e429160071c63d8L));
+
+    assertEquals("-0000000000000040-", FastFormat.toHexString("-", 64L, "-"));
+    assertEquals("-00000000075bcd15", FastFormat.toHexString("-", 123456789L, ""));
+    assertEquals("000000000000000a", FastFormat.toHexString(0XaL));
+    assertEquals("000000000000000a", FastFormat.toHexString(10L));
+    assertEquals("0000000000000009", FastFormat.toHexString(9L));
+    assertEquals("0000000000000000", FastFormat.toHexString(0L));
+  }
+
+  @Test
+  public void testZeroPaddedHex() {
+    byte[] str = new byte[8];
+    Arrays.fill(str, (byte) '-');
+    str = FastFormat.toZeroPaddedHex(123456789L);
+    assertEquals(16, str.length);
+    assertEquals("00000000075bcd15", new String(str, UTF_8));
+
+    Arrays.fill(str, (byte) '-');
+    str = FastFormat.toZeroPaddedHex(0X2e429160071c63d8L);
+    assertEquals(16, str.length);
+    assertEquals("2e429160071c63d8", new String(str, UTF_8));
   }
 }

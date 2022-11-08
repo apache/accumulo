@@ -1,51 +1,53 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.start.classloader.vfs;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 import java.io.File;
 import java.util.HashSet;
+import java.util.Objects;
 
-import org.apache.accumulo.start.classloader.vfs.ContextManager.ContextConfig;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileSystemManager;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@Deprecated
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class ContextManagerTest {
+  @TempDir
+  private static File tempFolder;
 
-  private TemporaryFolder folder1 =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
-  private TemporaryFolder folder2 =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
   private FileSystemManager vfs;
+  private File folder1;
+  private File folder2;
   private String uri1;
   private String uri2;
 
@@ -57,21 +59,19 @@ public class ContextManagerTest {
     }
   }
 
-  @Before
+  @BeforeEach
   public void setup() throws Exception {
-
     vfs = getVFS();
+    folder1 = new File(tempFolder, "folder1");
+    folder2 = new File(tempFolder, "folder2");
 
-    folder1.create();
-    folder2.create();
+    FileUtils.copyURLToFile(Objects.requireNonNull(this.getClass().getResource("/HelloWorld.jar")),
+        new File(folder1, "HelloWorld.jar"));
+    FileUtils.copyURLToFile(Objects.requireNonNull(this.getClass().getResource("/HelloWorld.jar")),
+        new File(folder2, "HelloWorld.jar"));
 
-    FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"),
-        folder1.newFile("HelloWorld.jar"));
-    FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"),
-        folder2.newFile("HelloWorld.jar"));
-
-    uri1 = new File(folder1.getRoot(), "HelloWorld.jar").toURI().toString();
-    uri2 = folder2.getRoot().toURI() + ".*";
+    uri1 = new File(folder1, "HelloWorld.jar").toURI().toString();
+    uri2 = folder2.toURI() + ".*";
 
   }
 
@@ -94,20 +94,20 @@ public class ContextManagerTest {
 
     cm.setContextConfig(context -> {
       if (context.equals("CX1")) {
-        return new ContextConfig(uri1, true);
+        return new ContextManager.ContextConfig("CX1", uri1, true);
       } else if (context.equals("CX2")) {
-        return new ContextConfig(uri2, true);
+        return new ContextManager.ContextConfig("CX2", uri2, true);
       }
       return null;
     });
 
-    FileObject testDir = vfs.resolveFile(folder1.getRoot().toURI().toString());
+    FileObject testDir = vfs.resolveFile(folder1.toURI().toString());
     FileObject[] dirContents = testDir.getChildren();
     ClassLoader cl1 = cm.getClassLoader("CX1");
     FileObject[] files = ((VFSClassLoader) cl1).getFileObjects();
     assertArrayEquals(createFileSystems(dirContents), files);
 
-    FileObject testDir2 = vfs.resolveFile(folder2.getRoot().toURI().toString());
+    FileObject testDir2 = vfs.resolveFile(folder2.toURI().toString());
     FileObject[] dirContents2 = testDir2.getChildren();
     ClassLoader cl2 = cm.getClassLoader("CX2");
     FileObject[] files2 = ((VFSClassLoader) cl2).getFileObjects();
@@ -136,21 +136,15 @@ public class ContextManagerTest {
 
     cm.setContextConfig(context -> {
       if (context.equals("CX1")) {
-        return new ContextConfig(uri2.toString(), true);
+        return new ContextManager.ContextConfig("CX1", uri1.toString(), true);
       } else if (context.equals("CX2")) {
-        return new ContextConfig(uri2.toString(), false);
+        return new ContextManager.ContextConfig("CX2", uri2.toString(), false);
       }
       return null;
     });
 
     assertSame(cm.getClassLoader("CX1").loadClass("test.HelloWorld"), pclass);
     assertNotSame(cm.getClassLoader("CX2").loadClass("test.HelloWorld"), pclass);
-  }
-
-  @After
-  public void tearDown() throws Exception {
-    folder1.delete();
-    folder2.delete();
   }
 
 }

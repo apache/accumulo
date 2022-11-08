@@ -1,21 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.data;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import java.io.DataInput;
@@ -1563,9 +1566,7 @@ public class Mutation implements Writable {
     entries = WritableUtils.readVInt(in);
 
     boolean valuesPresent = (first & 0x01) == 0x01;
-    if (!valuesPresent) {
-      values = null;
-    } else {
+    if (valuesPresent) {
       values = new ArrayList<>();
       int numValues = WritableUtils.readVInt(in);
       for (int i = 0; i < numValues; i++) {
@@ -1574,6 +1575,8 @@ public class Mutation implements Writable {
         in.readFully(val);
         values.add(val);
       }
+    } else {
+      values = null;
     }
 
     if ((first & 0x02) == 0x02) {
@@ -1603,9 +1606,7 @@ public class Mutation implements Writable {
 
     List<byte[]> localValues;
     boolean valuesPresent = in.readBoolean();
-    if (!valuesPresent) {
-      localValues = null;
-    } else {
+    if (valuesPresent) {
       localValues = new ArrayList<>();
       int numValues = in.readInt();
       for (int i = 0; i < numValues; i++) {
@@ -1614,6 +1615,8 @@ public class Mutation implements Writable {
         in.readFully(val);
         localValues.add(val);
       }
+    } else {
+      localValues = null;
     }
 
     // convert data to new format
@@ -1770,4 +1773,35 @@ public class Mutation implements Writable {
     return this.useOldDeserialize ? SERIALIZED_FORMAT.VERSION1 : SERIALIZED_FORMAT.VERSION2;
   }
 
+  /**
+   * Creates a multi-lined, human-readable String for this mutation.
+   *
+   * This method creates many intermediate Strings and should not be used for large volumes of
+   * Mutations.
+   *
+   * @return A multi-lined, human-readable String for this mutation.
+   *
+   * @since 2.1.0
+   */
+  public String prettyPrint() {
+    StringBuilder sb = new StringBuilder();
+
+    sb.append("mutation: ").append(new String(row, UTF_8)).append('\n');
+    for (ColumnUpdate update : getUpdates()) {
+      sb.append(" update: ");
+      sb.append(new String(update.getColumnFamily(), UTF_8));
+      sb.append(':');
+      sb.append(new String(update.getColumnQualifier(), UTF_8));
+      sb.append(" value ");
+
+      if (update.isDeleted()) {
+        sb.append("[delete]");
+      } else {
+        sb.append(new String(update.getValue(), UTF_8));
+      }
+      sb.append('\n');
+    }
+
+    return sb.toString();
+  }
 }

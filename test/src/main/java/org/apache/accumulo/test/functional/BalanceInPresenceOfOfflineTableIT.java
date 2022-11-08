@@ -1,23 +1,25 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -33,14 +35,12 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Credentials;
-import org.apache.accumulo.core.clientImpl.MasterClient;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.master.thrift.MasterClientService;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
@@ -49,11 +49,9 @@ import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.apache.thrift.TException;
-import org.junit.After;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,23 +61,19 @@ import org.slf4j.LoggerFactory;
  */
 public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
-  private static Logger log = LoggerFactory.getLogger(BalanceInPresenceOfOfflineTableIT.class);
+  private static final Logger log =
+      LoggerFactory.getLogger(BalanceInPresenceOfOfflineTableIT.class);
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "10K");
-    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "0");
+    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "50ms");
     cfg.setSiteConfig(siteConfig);
     // ensure we have two tservers
     if (cfg.getNumTservers() < 2) {
       cfg.setNumTservers(2);
     }
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 10 * 60;
   }
 
   private static final int NUM_SPLITS = 200;
@@ -88,13 +82,18 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
   private AccumuloClient accumuloClient;
 
-  @Before
+  @BeforeEach
   public void setupTables() throws AccumuloException, AccumuloSecurityException,
       TableExistsException, TableNotFoundException {
     accumuloClient = Accumulo.newClient().from(getClientProps()).build();
-    // Need at least two tservers
-    Assume.assumeTrue("Not enough tservers to run test",
-        accumuloClient.instanceOperations().getTabletServers().size() >= 2);
+    // Need at least two tservers -- wait for them to start before failing
+    for (int retries = 0; retries < 5; ++retries) {
+      if (accumuloClient.instanceOperations().getTabletServers().size() >= 2)
+        break;
+      UtilWaitThread.sleep(TimeUnit.SECONDS.toMillis(2));
+    }
+    assumeTrue(accumuloClient.instanceOperations().getTabletServers().size() >= 2,
+        "Not enough tservers to run test");
 
     // set up splits
     final SortedSet<Text> splits = new TreeSet<>();
@@ -119,7 +118,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
         Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
   }
 
-  @After
+  @AfterEach
   public void closeClient() {
     accumuloClient.close();
   }
@@ -137,7 +136,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
     log.debug("waiting for balancing, up to ~5 minutes to allow for migration cleanup.");
     final long startTime = System.currentTimeMillis();
-    long currentWait = 10 * 1000;
+    long currentWait = 10_000;
     boolean balancingWorked = false;
 
     Credentials creds = new Credentials(getAdminPrincipal(), getAdminToken());
@@ -147,28 +146,9 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
       log.debug("fetch the list of tablets assigned to each tserver.");
 
-      MasterClientService.Iface client = null;
-      MasterMonitorInfo stats;
-      while (true) {
-        try {
-          client = MasterClient.getConnectionWithRetry((ClientContext) accumuloClient);
-          stats = client.getMasterStats(TraceUtil.traceInfo(),
-              creds.toThrift(accumuloClient.instanceOperations().getInstanceID()));
-          break;
-        } catch (ThriftSecurityException exception) {
-          throw new AccumuloSecurityException(exception);
-        } catch (ThriftNotActiveServiceException e) {
-          // Let it loop, fetching a new location
-          log.debug("Contacted a Master which is no longer active, retrying");
-          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-        } catch (TException exception) {
-          throw new AccumuloException(exception);
-        } finally {
-          if (client != null) {
-            MasterClient.close(client);
-          }
-        }
-      }
+      ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.execute((ClientContext) accumuloClient,
+          client -> client.getManagerStats(TraceUtil.traceInfo(),
+              creds.toThrift(accumuloClient.instanceOperations().getInstanceId())));
 
       if (stats.getTServerInfoSize() < 2) {
         log.debug("we need >= 2 servers. sleeping for {}ms", currentWait);
@@ -203,7 +183,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
       balancingWorked = true;
     }
 
-    assertTrue("did not properly balance", balancingWorked);
+    assertTrue(balancingWorked, "did not properly balance");
   }
 
 }

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client.summary;
 
@@ -24,6 +26,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.summary.SummarizerConfigurationUtil;
 
@@ -52,7 +56,7 @@ public class SummarizerConfiguration {
     if (configId == null) {
       ArrayList<String> keys = new ArrayList<>(this.options.keySet());
       Collections.sort(keys);
-      Hasher hasher = Hashing.murmur3_32().newHasher();
+      Hasher hasher = Hashing.murmur3_32_fixed().newHasher();
       hasher.putString(className, UTF_8);
       for (String key : keys) {
         hasher.putString(key, UTF_8);
@@ -80,7 +84,7 @@ public class SummarizerConfiguration {
   }
 
   /**
-   * The propertyId is used to when creating table properties for a summarizer. Its not used for
+   * The propertyId is used when creating table properties for a summarizer. It's not used for
    * equality or hashCode for this class.
    */
   public String getPropertyId() {
@@ -180,13 +184,13 @@ public class SummarizerConfiguration {
    * @since 2.0.0
    */
   public static class Builder {
-    private String className;
-    private ImmutableMap.Builder<String,String> imBuilder;
+    private final String className;
+    private final ImmutableMap.Builder<String,String> imBuilder = ImmutableMap.builder();
     private String configId = null;
+    private static final Predicate<String> ALPHANUM = Pattern.compile("\\w+").asMatchPredicate();
 
     private Builder(String className) {
       this.className = className;
-      this.imBuilder = ImmutableMap.builder();
     }
 
     /**
@@ -200,7 +204,7 @@ public class SummarizerConfiguration {
      * @see SummarizerConfiguration#toTableProperties()
      */
     public Builder setPropertyId(String propId) {
-      Preconditions.checkArgument(propId.matches("\\w+"), "Config Id %s is not alphanum", propId);
+      Preconditions.checkArgument(ALPHANUM.test(propId), "Config Id %s is not alphanum", propId);
       this.configId = propId;
       return this;
     }
@@ -213,7 +217,7 @@ public class SummarizerConfiguration {
      * @see SummarizerConfiguration#getOptions()
      */
     public Builder addOption(String key, String value) {
-      Preconditions.checkArgument(key.matches("\\w+"), "Option Id %s is not alphanum", key);
+      Preconditions.checkArgument(ALPHANUM.test(key), "Option Id %s is not alphanum", key);
       imBuilder.put(key, value);
       return this;
     }
@@ -233,7 +237,9 @@ public class SummarizerConfiguration {
      * Convenience method for adding multiple options. The following
      *
      * <pre>
-     * {@code builder.addOptions("opt1","val1","opt2","val2","opt3","val3")}
+     * {@code
+     * builder.addOptions("opt1", "val1", "opt2", "val2", "opt3", "val3")
+     * }
      * </pre>
      *
      * <p>
@@ -241,9 +247,9 @@ public class SummarizerConfiguration {
      *
      * <pre>
      * {@code
-     *   builder.addOption("opt1","val1");
-     *   builder.addOption("opt2","val2");
-     *   builder.addOption("opt3","val3");
+     * builder.addOption("opt1", "val1");
+     * builder.addOption("opt2", "val2");
+     * builder.addOption("opt3", "val3");
      * }
      * </pre>
      *
@@ -269,7 +275,7 @@ public class SummarizerConfiguration {
      * @see SummarizerConfiguration#getOptions()
      */
     public Builder addOptions(Map<String,String> options) {
-      options.entrySet().forEach(e -> addOption(e.getKey(), e.getValue()));
+      options.forEach(this::addOption);
       return this;
     }
 

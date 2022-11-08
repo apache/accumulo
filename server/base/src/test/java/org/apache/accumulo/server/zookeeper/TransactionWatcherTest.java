@@ -1,31 +1,33 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.zookeeper;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TransactionWatcherTest {
 
@@ -94,12 +96,8 @@ public class TransactionWatcherTest {
     final SimpleArbitrator sa = new SimpleArbitrator();
     final TransactionWatcher txw = new TransactionWatcher(sa);
     sa.start(txType, txid);
-    try {
-      sa.start(txType, txid);
-      fail("simple arbitrator did not throw an exception");
-    } catch (Exception ex) {
-      // expected
-    }
+    assertThrows(Exception.class, () -> sa.start(txType, txid),
+        "simple arbitrator did not throw an exception");
     txw.isActive(txid);
     assertFalse(txw.isActive(txid));
     txw.run(txType, txid, () -> {
@@ -113,29 +111,15 @@ public class TransactionWatcherTest {
     assertFalse(sa.transactionComplete(txType, txid));
     sa.cleanup(txType, txid);
     assertTrue(sa.transactionComplete(txType, txid));
-    try {
-      txw.run(txType, txid, () -> {
-        fail("Should not be able to start a new work on a discontinued transaction");
-        return null;
-      });
-      fail("work against stopped transaction should fail");
-    } catch (Exception ex) {
-
-    }
+    assertThrows(Exception.class, () -> txw.run(txType, txid, () -> null),
+        "Should not be able to start a new work on a discontinued transaction");
     final long txid2 = 9;
     sa.start(txType, txid2);
     txw.run(txType, txid2, () -> {
       assertTrue(txw.isActive(txid2));
       sa.stop(txType, txid2);
-      try {
-        txw.run(txType, txid2, () -> {
-          fail("Should not be able to start a new work on a discontinued transaction");
-          return null;
-        });
-        fail("work against a stopped transaction should fail");
-      } catch (Exception ex) {
-        // expected
-      }
+      assertThrows(Exception.class, () -> txw.run(txType, txid2, () -> null),
+          "Should not be able to start a new work on a discontinued transaction");
       assertTrue(txw.isActive(txid2));
       return null;
     });

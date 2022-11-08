@@ -1,28 +1,29 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -31,6 +32,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -40,6 +42,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -49,7 +52,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.LoadPlan;
 import org.apache.accumulo.core.data.LoadPlan.RangeType;
@@ -61,6 +64,7 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.MemoryUnit;
@@ -73,10 +77,10 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.Text;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -87,12 +91,17 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  */
 public class BulkNewIT extends SharedMiniClusterBase {
 
-  @BeforeClass
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
+  }
+
+  @BeforeAll
   public static void setup() throws Exception {
     SharedMiniClusterBase.startMiniClusterWithConfig(new Callback());
   }
 
-  @AfterClass
+  @AfterAll
   public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
   }
@@ -100,16 +109,11 @@ public class BulkNewIT extends SharedMiniClusterBase {
   private static class Callback implements MiniClusterConfigurationCallback {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration conf) {
-      cfg.setMemory(ServerType.TABLET_SERVER, 128 * 4, MemoryUnit.MEGABYTE);
+      cfg.setMemory(ServerType.TABLET_SERVER, 512, MemoryUnit.MEGABYTE);
 
       // use raw local file system
       conf.set("fs.file.impl", RawLocalFileSystem.class.getName());
     }
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
   }
 
   private String tableName;
@@ -117,7 +121,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
   private FileSystem fs;
   private String rootPath;
 
-  @Before
+  @BeforeEach
   public void setupBulkTest() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       tableName = getUniqueNames(1)[0];
@@ -147,6 +151,23 @@ public class BulkNewIT extends SharedMiniClusterBase {
     String h1 = writeData(dir + "/f1.", aconf, 0, 332);
 
     c.tableOperations().importDirectory(dir).to(tableName).tableTime(setTime).load();
+    // running again with ignoreEmptyDir set to true will not throw an exception
+    c.tableOperations().importDirectory(dir).to(tableName).tableTime(setTime).ignoreEmptyDir(true)
+        .load();
+    // but if run with with ignoreEmptyDir value set to false, an IllegalArgument exception will
+    // be thrown
+    try {
+      c.tableOperations().importDirectory(dir).to(tableName).tableTime(setTime)
+          .ignoreEmptyDir(false).load();
+    } catch (IllegalArgumentException ex) {
+      // expected the exception
+    }
+    // or if not supplied at all, the IllegalArgument exception will be thrown as well
+    try {
+      c.tableOperations().importDirectory(dir).to(tableName).tableTime(setTime).load();
+    } catch (IllegalArgumentException ex) {
+      // expected the exception
+    }
 
     if (offline) {
       c.tableOperations().online(tableName);
@@ -179,6 +200,32 @@ public class BulkNewIT extends SharedMiniClusterBase {
   public void testSingleTabletSingleFileOffline() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       testSingleTabletSingleFile(client, true, false);
+    }
+  }
+
+  @Test
+  public void testMaxTablets() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      tableName = "testMaxTablets_table1";
+      NewTableConfiguration newTableConf = new NewTableConfiguration();
+      // set logical time type so we can set time on bulk import
+      var props = Map.of(Property.TABLE_BULK_MAX_TABLETS.getKey(), "2");
+      newTableConf.setProperties(props);
+      client.tableOperations().create(tableName, newTableConf);
+
+      // test max tablets hit while inspecting bulk files
+      var thrown = assertThrows(RuntimeException.class, () -> testBulkFileMax(false));
+      var c = thrown.getCause();
+      assertTrue(c instanceof ExecutionException, "Wrong exception: " + c);
+      assertTrue(c.getCause() instanceof IllegalArgumentException,
+          "Wrong exception: " + c.getCause());
+      var msg = c.getCause().getMessage();
+      assertTrue(msg.contains("bad-file.rf"), "Bad File not in exception: " + msg);
+
+      // test max tablets hit using load plan on the server side
+      c = assertThrows(AccumuloException.class, () -> testBulkFileMax(true));
+      msg = c.getMessage();
+      assertTrue(msg.contains("bad-file.rf"), "Bad File not in exception: " + msg);
     }
   }
 
@@ -229,13 +276,11 @@ public class BulkNewIT extends SharedMiniClusterBase {
       FsPermission originalPerms = fs.getFileStatus(rFilePath).getPermission();
       fs.setPermission(rFilePath, FsPermission.valueOf("----------"));
       try {
-        c.tableOperations().importDirectory(dir).to(tableName).load();
-      } catch (Exception e) {
+        final var importMappingOptions = c.tableOperations().importDirectory(dir).to(tableName);
+        var e = assertThrows(Exception.class, importMappingOptions::load);
         Throwable cause = e.getCause();
-        if (!(cause instanceof FileNotFoundException)
-            && !(cause.getCause() instanceof FileNotFoundException)) {
-          fail("Expected FileNotFoundException but threw " + e.getCause());
-        }
+        assertTrue(cause instanceof FileNotFoundException
+            || cause.getCause() instanceof FileNotFoundException);
       } finally {
         fs.setPermission(rFilePath, originalPerms);
       }
@@ -243,11 +288,9 @@ public class BulkNewIT extends SharedMiniClusterBase {
       originalPerms = fs.getFileStatus(new Path(dir)).getPermission();
       fs.setPermission(new Path(dir), FsPermission.valueOf("dr--r--r--"));
       try {
-        c.tableOperations().importDirectory(dir).to(tableName).load();
-      } catch (AccumuloException ae) {
-        if (!(ae.getCause() instanceof FileNotFoundException)) {
-          fail("Expected FileNotFoundException but threw " + ae.getCause());
-        }
+        final var importMappingOptions = c.tableOperations().importDirectory(dir).to(tableName);
+        var ae = assertThrows(AccumuloException.class, importMappingOptions::load);
+        assertTrue(ae.getCause() instanceof FileNotFoundException);
       } finally {
         fs.setPermission(new Path(dir), originalPerms);
       }
@@ -312,6 +355,56 @@ public class BulkNewIT extends SharedMiniClusterBase {
     }
   }
 
+  private void testBulkFileMax(boolean usePlan) throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      addSplits(c, tableName, "0333 0666 0999 1333 1666");
+
+      String dir = getDir("/testBulkFileMax-");
+
+      Map<String,Set<String>> hashes = new HashMap<>();
+      for (String endRow : Arrays.asList("0333 0666 0999 1333 1666 null".split(" "))) {
+        hashes.put(endRow, new HashSet<>());
+      }
+
+      // Add a junk file, should be ignored
+      FSDataOutputStream out = fs.create(new Path(dir, "junk"));
+      out.writeChars("ABCDEFG\n");
+      out.close();
+
+      // 1 Tablet 0333-null
+      String h1 = writeData(dir + "/f1.", aconf, 0, 333);
+      hashes.get("0333").add(h1);
+
+      // 3 Tablets 0666-0334, 0999-0667, 1333-1000
+      String h2 = writeData(dir + "/bad-file.", aconf, 334, 1333);
+      hashes.get("0666").add(h2);
+      hashes.get("0999").add(h2);
+      hashes.get("1333").add(h2);
+
+      // 1 Tablet 1666-1334
+      String h3 = writeData(dir + "/f3.", aconf, 1334, 1499);
+      hashes.get("1666").add(h3);
+
+      // 2 Tablets 1666-1334, >1666
+      String h4 = writeData(dir + "/f4.", aconf, 1500, 1999);
+      hashes.get("1666").add(h4);
+      hashes.get("null").add(h4);
+
+      if (usePlan) {
+        LoadPlan loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(333))
+            .loadFileTo("bad-file.rf", RangeType.TABLE, row(333), row(1333))
+            .loadFileTo("f3.rf", RangeType.FILE, row(1334), row(1499))
+            .loadFileTo("f4.rf", RangeType.FILE, row(1500), row(1999)).build();
+        c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
+      } else {
+        c.tableOperations().importDirectory(dir).to(tableName).load();
+      }
+
+      verifyData(c, tableName, 0, 1999, false);
+      verifyMetadata(c, tableName, hashes);
+    }
+  }
+
   @Test
   public void testBulkFile() throws Exception {
     testBulkFile(false, false);
@@ -342,45 +435,74 @@ public class BulkNewIT extends SharedMiniClusterBase {
       writeData(dir + "/f1.", aconf, 0, 333);
       writeData(dir + "/f2.", aconf, 0, 666);
 
+      final var importMappingOptions = c.tableOperations().importDirectory(dir).to(tableName);
+
       // Create a plan with more files than exists in dir
       LoadPlan loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(333))
           .loadFileTo("f2.rf", RangeType.TABLE, null, row(666))
           .loadFileTo("f3.rf", RangeType.TABLE, null, row(666)).build();
-      try {
-        c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
-        fail();
-      } catch (IllegalArgumentException e) {
-        // ignore
-      }
+      final var tooManyFiles = importMappingOptions.plan(loadPlan);
+      assertThrows(IllegalArgumentException.class, tooManyFiles::load);
 
-      // Create a plan with less files than exists in dir
+      // Create a plan with fewer files than exists in dir
       loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(333)).build();
-      try {
-        c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
-        fail();
-      } catch (IllegalArgumentException e) {
-        // ignore
-      }
+      final var tooFewFiles = importMappingOptions.plan(loadPlan);
+      assertThrows(IllegalArgumentException.class, tooFewFiles::load);
 
-      // Create a plan with tablet boundary that does not exits
+      // Create a plan with tablet boundary that does not exist
       loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(555))
           .loadFileTo("f2.rf", RangeType.TABLE, null, row(555)).build();
-      try {
-        c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
-        fail();
-      } catch (AccumuloException e) {
-        // ignore
-      }
+      final var nonExistentBoundary = importMappingOptions.plan(loadPlan);
+      assertThrows(AccumuloException.class, nonExistentBoundary::load);
     }
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testEmptyDir() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String dir = getDir("/testBulkFile-");
       FileSystem fs = getCluster().getFileSystem();
       fs.mkdirs(new Path(dir));
+      assertThrows(IllegalArgumentException.class,
+          () -> c.tableOperations().importDirectory(dir).to(tableName).load());
+    }
+  }
+
+  // Test that the ignore option does not throw an exception if the import directory contains
+  // no files.
+  @Test
+  public void testEmptyDirWithIgnoreOption() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String dir = getDir("/testBulkFile-");
+      FileSystem fs = getCluster().getFileSystem();
+      fs.mkdirs(new Path(dir));
+      c.tableOperations().importDirectory(dir).to(tableName).ignoreEmptyDir(true).load();
+    }
+  }
+
+  /*
+   * This test imports a file where the first row of the file is equal to the last row of the first
+   * tablet. There was a bug where this scenario would cause bulk import to hang forever.
+   */
+  @Test
+  public void testEndOfFirstTablet() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String dir = getDir("/testBulkFile-");
+      FileSystem fs = getCluster().getFileSystem();
+      fs.mkdirs(new Path(dir));
+
+      addSplits(c, tableName, "0333");
+
+      var h1 = writeData(dir + "/f1.", aconf, 333, 333);
+
       c.tableOperations().importDirectory(dir).to(tableName).load();
+
+      verifyData(c, tableName, 333, 333, false);
+
+      Map<String,Set<String>> hashes = new HashMap<>();
+      hashes.put("0333", Set.of(h1));
+      hashes.put("null", Set.of());
+      verifyMetadata(c, tableName, hashes);
     }
   }
 
@@ -433,13 +555,13 @@ public class BulkNewIT extends SharedMiniClusterBase {
     Set<String> endRowsSeen = new HashSet<>();
 
     String id = client.tableOperations().tableIdMap().get(tableName);
-    try (TabletsMetadata tablets = TabletsMetadata.builder().forTable(TableId.of(id))
-        .fetch(FILES, LOADED, PREV_ROW).build(client)) {
+    try (TabletsMetadata tablets = TabletsMetadata.builder(client).forTable(TableId.of(id))
+        .fetch(FILES, LOADED, PREV_ROW).build()) {
       for (TabletMetadata tablet : tablets) {
         assertTrue(tablet.getLoaded().isEmpty());
 
-        Set<String> fileHashes =
-            tablet.getFiles().stream().map(f -> hash(f)).collect(Collectors.toSet());
+        Set<String> fileHashes = tablet.getFiles().stream().map(f -> hash(f.getMetaUpdateDelete()))
+            .collect(Collectors.toSet());
 
         String endRow = tablet.getEndRow() == null ? "null" : tablet.getEndRow().toString();
 
@@ -473,11 +595,11 @@ public class BulkNewIT extends SharedMiniClusterBase {
     FileSystem fs = getCluster().getFileSystem();
     String filename = file + RFile.EXTENSION;
     try (FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
-        .forFile(filename, fs, fs.getConf(), CryptoServiceFactory.newDefaultInstance())
+        .forFile(filename, fs, fs.getConf(), NoCryptoServiceFactory.NONE)
         .withTableConfiguration(aconf).build()) {
       writer.startDefaultLocalityGroup();
       for (int i = s; i <= e; i++) {
-        writer.append(new Key(new Text(row(i))), new Value(Integer.toString(i).getBytes(UTF_8)));
+        writer.append(new Key(new Text(row(i))), new Value(Integer.toString(i)));
       }
     }
 

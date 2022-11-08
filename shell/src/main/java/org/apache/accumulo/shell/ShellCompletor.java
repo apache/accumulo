@@ -1,21 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -24,8 +27,10 @@ import java.util.Set;
 
 import org.apache.accumulo.shell.Shell.Command.CompletionSet;
 import org.apache.accumulo.shell.commands.QuotedStringTokenizer;
-
-import jline.console.completer.Completer;
+import org.jline.reader.Candidate;
+import org.jline.reader.Completer;
+import org.jline.reader.LineReader;
+import org.jline.reader.ParsedLine;
 
 public class ShellCompletor implements Completer {
 
@@ -42,14 +47,16 @@ public class ShellCompletor implements Completer {
   }
 
   @Override
-  @SuppressWarnings({"unchecked", "rawtypes"})
-  public int complete(String buffer, int cursor, List candidates) {
+  public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
     try {
-      return _complete(buffer, cursor, candidates);
+      List<String> strings = new ArrayList<>();
+      _complete(line.line(), line.cursor(), strings);
+      for (String str : strings) {
+        candidates.add(new Candidate(str));
+      }
     } catch (Exception e) {
-      candidates.add("");
-      candidates.add(e.getMessage());
-      return cursor;
+      candidates.add(new Candidate(""));
+      candidates.add(new Candidate(e.getMessage()));
     }
   }
 
@@ -65,7 +72,7 @@ public class ShellCompletor implements Completer {
     boolean end_space = buffer.endsWith(" ");
 
     // tabbing with no text
-    if (buffer.length() == 0) {
+    if (buffer.isEmpty()) {
       candidates.addAll(root.getSubcommandNames());
       return 0;
     }
@@ -112,7 +119,7 @@ public class ShellCompletor implements Completer {
             }
           }
           Collections.sort(candidates);
-          return (prefix.length());
+          return prefix.length();
         }
         // need to match current command
         // if we're in -t <table>, -u <user>, or -tn <namespace> complete those
@@ -132,7 +139,7 @@ public class ShellCompletor implements Completer {
           candidates.addAll(current_command_token.getSubcommandNames(current_string_token));
 
         Collections.sort(candidates);
-        return (prefix.length());
+        return prefix.length();
       }
 
       if (current_string_token.trim().equals("-" + Shell.tableOption))

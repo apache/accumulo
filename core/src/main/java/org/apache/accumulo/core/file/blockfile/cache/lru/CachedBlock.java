@@ -7,13 +7,14 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.file.blockfile.cache.lru;
 
@@ -39,7 +40,7 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock> {
       ClassSize.align(ClassSize.OBJECT + (3 * ClassSize.REFERENCE) + (2 * SizeConstants.SIZEOF_LONG)
           + ClassSize.STRING + ClassSize.BYTE_BUFFER + ClassSize.REFERENCE);
 
-  public static enum BlockPriority {
+  public enum BlockPriority {
     /**
      * Accessed a single time (used for scan-resistance)
      */
@@ -54,7 +55,7 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock> {
     MEMORY
   }
 
-  private byte[] buffer;
+  private final byte[] buffer;
   private final String blockName;
   private volatile long accessTime;
   private volatile long recordedSize;
@@ -85,7 +86,7 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock> {
   @Override
   public long heapSize() {
     if (recordedSize < 0) {
-      throw new IllegalStateException("Block was evicted");
+      throw new IllegalStateException("Block was evicted: " + blockName);
     }
     return recordedSize;
   }
@@ -97,8 +98,7 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock> {
 
   @Override
   public boolean equals(Object obj) {
-    return this == obj
-        || (obj != null && obj instanceof CachedBlock && compareTo((CachedBlock) obj) == 0);
+    return this == obj || (obj instanceof CachedBlock && compareTo((CachedBlock) obj) == 0);
   }
 
   @Override
@@ -156,7 +156,7 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock> {
       return _recordSize(totalSize);
     }
 
-    throw new IllegalStateException("Block was evicted");
+    throw new IllegalStateException("Block was evicted: " + blockName);
   }
 
   public synchronized long evicted(AtomicLong totalSize) {
@@ -168,6 +168,6 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock> {
       return tmp;
     }
 
-    throw new IllegalStateException("already evicted");
+    throw new IllegalStateException("Block was already evicted: " + blockName);
   }
 }

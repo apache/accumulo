@@ -1,43 +1,47 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.harness;
 
-import static org.junit.Assert.assertTrue;
+import static java.lang.StackWalker.Option.RETAIN_CLASS_REFERENCE;
+import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
-import java.security.SecureRandom;
+import java.lang.StackWalker.StackFrame;
+import java.util.Optional;
 import java.util.Properties;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.cluster.ClusterUsers;
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.ClientProperty;
-import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,22 +51,21 @@ import org.slf4j.LoggerFactory;
  * testing see {@link AccumuloClusterHarness}
  *
  * There isn't a good way to build this off of the {@link AccumuloClusterHarness} (as would be the
- * logical place) because we need to start the MiniAccumuloCluster in a static BeforeClass-annotated
- * method. Because it is static and invoked before any other BeforeClass methods in the
+ * logical place) because we need to start the MiniAccumuloCluster in a static BeforeAll-annotated
+ * method. Because it is static and invoked before any other BeforeAll methods in the
  * implementation, the actual test classes can't expose any information to tell the base class that
  * it is to perform the one-MAC-per-class semantics.
  *
  * Implementations of this class must be sure to invoke {@link #startMiniCluster()} or
  * {@link #startMiniClusterWithConfig(MiniClusterConfigurationCallback)} in a method annotated with
- * the {@link org.junit.BeforeClass} JUnit annotation and {@link #stopMiniCluster()} in a method
- * annotated with the {@link org.junit.AfterClass} JUnit annotation.
+ * the {@link org.junit.jupiter.api.BeforeAll} JUnit annotation and {@link #stopMiniCluster()} in a
+ * method annotated with the {@link org.junit.jupiter.api.AfterAll} JUnit annotation.
  */
-@Category(MiniClusterOnlyTests.class)
+@Tag(MINI_CLUSTER_ONLY)
 public abstract class SharedMiniClusterBase extends AccumuloITBase implements ClusterUsers {
   private static final Logger log = LoggerFactory.getLogger(SharedMiniClusterBase.class);
   public static final String TRUE = Boolean.toString(true);
 
-  private static String principal = "root";
   private static String rootPassword;
   private static AuthenticationToken token;
   private static MiniAccumuloClusterImpl cluster;
@@ -108,43 +111,21 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
       token = new PasswordToken(rootPassword);
     }
 
-    cluster = harness.create(SharedMiniClusterBase.class.getName(),
-        System.currentTimeMillis() + "_" + new SecureRandom().nextInt(Short.MAX_VALUE), token,
+    cluster = harness.create(getTestClassName(), SharedMiniClusterBase.class.getSimpleName(), token,
         miniClusterCallback, krb);
     cluster.start();
 
-    if (krb != null) {
-      final String traceTable = Property.TRACE_TABLE.getDefaultValue();
-      final ClusterUser systemUser = krb.getAccumuloServerUser(), rootUser = krb.getRootUser();
-      // Login as the trace user
-      // Open a client as the system user (ensures the user will exist for us to assign
-      // permissions to)
-      UserGroupInformation.loginUserFromKeytab(systemUser.getPrincipal(),
-          systemUser.getKeytab().getAbsolutePath());
+  }
 
-      AuthenticationToken tempToken = new KerberosToken();
-      try (AccumuloClient c = cluster.createAccumuloClient(systemUser.getPrincipal(), tempToken)) {
-        c.securityOperations().authenticateUser(systemUser.getPrincipal(), tempToken);
-      }
-
-      // Then, log back in as the "root" user and do the grant
-      UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(),
-          rootUser.getKeytab().getAbsolutePath());
-
-      try (AccumuloClient c = cluster.createAccumuloClient(principal, token)) {
-        // Create the trace table
-        c.tableOperations().create(traceTable);
-        // Trace user (which is the same kerberos principal as the system user, but using a normal
-        // KerberosToken) needs
-        // to have the ability to read, write and alter the trace table
-        c.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
-            TablePermission.READ);
-        c.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
-            TablePermission.WRITE);
-        c.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
-            TablePermission.ALTER_TABLE);
-      }
-    }
+  private static String getTestClassName() {
+    Predicate<Class<?>> findITClass = c -> c.getSimpleName().endsWith("IT");
+    Function<Stream<StackFrame>,Optional<? extends Class<?>>> findCallerITClass =
+        frames -> frames.map(StackFrame::getDeclaringClass).filter(findITClass).findFirst();
+    Optional<String> callerClassName =
+        StackWalker.getInstance(RETAIN_CLASS_REFERENCE).walk(findCallerITClass).map(Class::getName);
+    // use the calling class name, or default to a unique name if IT class can't be found
+    return callerClassName.orElse(String.format("UnknownITClass-%d-%d", System.currentTimeMillis(),
+        random.nextInt(Short.MAX_VALUE)));
   }
 
   /**
@@ -207,8 +188,7 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
   @Override
   public ClusterUser getUser(int offset) {
     if (krb == null) {
-      String user =
-          SharedMiniClusterBase.class.getName() + "_" + testName.getMethodName() + "_" + offset;
+      String user = SharedMiniClusterBase.class.getName() + "_" + testName() + "_" + offset;
       // Password is the username
       return new ClusterUser(user, user);
     } else {

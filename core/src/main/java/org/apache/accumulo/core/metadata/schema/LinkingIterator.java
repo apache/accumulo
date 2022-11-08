@@ -1,26 +1,27 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.core.metadata.schema;
 
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.Iterator;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.data.Key;
@@ -68,10 +69,10 @@ public class LinkingIterator implements Iterator<TabletMetadata> {
     // Always expect the default tablet to exist for a table. The following checks for the case when
     // the default tablet was not seen when it should have been seen.
     if (!hasNext && prevTablet != null && prevTablet.getEndRow() != null) {
-      Text defaultTabletRow = TabletsSection.getRow(prevTablet.getTableId(), null);
+      Text defaultTabletRow = TabletsSection.encodeRow(prevTablet.getTableId(), null);
       if (range.contains(new Key(defaultTabletRow))) {
         throw new IllegalStateException(
-            "Scan range incudled default tablet, but did not see default tablet.  Last tablet seen : "
+            "Scan range included default tablet, but did not see default tablet.  Last tablet seen : "
                 + prevTablet.getExtent());
       }
     }
@@ -85,7 +86,18 @@ public class LinkingIterator implements Iterator<TabletMetadata> {
       return false;
     }
 
-    if (!curr.getTableId().equals(prev.getTableId())) {
+    if (curr.getTableId().equals(prev.getTableId())) {
+      if (prev.getEndRow() == null) {
+        throw new IllegalStateException("Null end row for tablet in middle of table: "
+            + prev.getExtent() + " " + curr.getExtent());
+      }
+
+      if (curr.getPrevEndRow() == null || !prev.getEndRow().equals(curr.getPrevEndRow())) {
+        log.debug("Tablets end row and prev end row not equals {} {} ", prev.getExtent(),
+            curr.getExtent());
+        return false;
+      }
+    } else {
       if (prev.getEndRow() != null) {
         log.debug("Non-null end row for last tablet in table: " + prev.getExtent() + " "
             + curr.getExtent());
@@ -94,17 +106,6 @@ public class LinkingIterator implements Iterator<TabletMetadata> {
 
       if (curr.getPrevEndRow() != null) {
         log.debug("First tablet for table had prev end row {} {} ", prev.getExtent(),
-            curr.getExtent());
-        return false;
-      }
-    } else {
-      if (prev.getEndRow() == null) {
-        throw new IllegalStateException("Null end row for tablet in middle of table: "
-            + prev.getExtent() + " " + curr.getExtent());
-      }
-
-      if (curr.getPrevEndRow() == null || !prev.getEndRow().equals(curr.getPrevEndRow())) {
-        log.debug("Tablets end row and prev end row not equals {} {} ", prev.getExtent(),
             curr.getExtent());
         return false;
       }
@@ -119,7 +120,7 @@ public class LinkingIterator implements Iterator<TabletMetadata> {
       source = iteratorFactory.apply(range);
     } else {
       // get the metadata table row for the previous tablet
-      Text prevMetaRow = TabletsSection.getRow(prevTablet.getTableId(), prevTablet.getEndRow());
+      Text prevMetaRow = TabletsSection.encodeRow(prevTablet.getTableId(), prevTablet.getEndRow());
 
       // ensure the previous tablet still exists in the metadata table
       if (Iterators.size(iteratorFactory.apply(new Range(prevMetaRow))) == 0) {
@@ -152,8 +153,8 @@ public class LinkingIterator implements Iterator<TabletMetadata> {
 
           KeyExtent extent = tmp.getExtent();
 
-          if (extent.getPrevEndRow() != null) {
-            prevMetaRow = TabletsSection.getRow(extent.getTableId(), extent.getPrevEndRow());
+          if (extent.prevEndRow() != null) {
+            prevMetaRow = TabletsSection.encodeRow(extent.tableId(), extent.prevEndRow());
           }
 
           // If the first tablet seen has a prev endrow within the range it means a preceding tablet
@@ -175,7 +176,7 @@ public class LinkingIterator implements Iterator<TabletMetadata> {
       }
 
       if (currTablet == null) {
-        sleepUninterruptibly(sleepTime, TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(sleepTime, MILLISECONDS);
         resetSource();
         sleepTime = Math.min(2 * sleepTime, 5000);
       }

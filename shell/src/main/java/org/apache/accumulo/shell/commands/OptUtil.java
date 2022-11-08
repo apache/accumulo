@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
@@ -32,6 +34,7 @@ import org.apache.hadoop.io.Text;
 public abstract class OptUtil {
   public static final String START_ROW_OPT = "b";
   public static final String END_ROW_OPT = "e";
+  public static final String IGNORE_EMPTY_BULKDIR_OPT = "i";
 
   public static String getTableOpt(final CommandLine cl, final Shell shellState)
       throws TableNotFoundException {
@@ -49,6 +52,14 @@ public abstract class OptUtil {
     }
 
     return tableName;
+  }
+
+  public static boolean getIgnoreEmptyDirOpt(final CommandLine cl, final Shell shellState) {
+    boolean ignoreEmptyDir = false;
+    if (cl.hasOption(IGNORE_EMPTY_BULKDIR_OPT)) {
+      ignoreEmptyDir = true;
+    }
+    return ignoreEmptyDir;
   }
 
   public static String getNamespaceOpt(final CommandLine cl, final Shell shellState)
@@ -75,6 +86,17 @@ public abstract class OptUtil {
     tableOpt.setArgName("table");
     tableOpt.setRequired(false);
     return tableOpt;
+  }
+
+  public static Option ignoreEmptyDirOpt() {
+    return ignoreEmptyDirOpt("ignoreEmptyDir");
+  }
+
+  public static Option ignoreEmptyDirOpt(final String description) {
+    final Option ignoreEmptyDirOpt = new Option("i", "ignore", false, description);
+    ignoreEmptyDirOpt.setArgName("ignore");
+    ignoreEmptyDirOpt.setRequired(false);
+    return ignoreEmptyDirOpt;
   }
 
   public static Option namespaceOpt() {

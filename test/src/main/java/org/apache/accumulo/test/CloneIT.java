@@ -1,24 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
 import java.util.Map.Entry;
@@ -33,14 +35,15 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CloneIT extends AccumuloClusterHarness {
 
@@ -51,11 +54,10 @@ public class CloneIT extends AccumuloClusterHarness {
       client.tableOperations().create(tableName);
 
       KeyExtent ke = new KeyExtent(TableId.of("0"), null, null);
-      Mutation mut = ke.getPrevRowUpdateMutation();
+      Mutation mut = TabletColumnFamily.createPrevRowMutation(ke);
 
-      TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0".getBytes()));
-      TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut,
-          new Value("/default_tablet".getBytes()));
+      ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0"));
+      ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value("/default_tablet"));
 
       try (BatchWriter bw1 = client.createBatchWriter(tableName)) {
         bw1.addMutation(mut);
@@ -74,17 +76,17 @@ public class CloneIT extends AccumuloClusterHarness {
 
   @Test
   public void testFilesChange() throws Exception {
+    String filePrefix = "hdfs://nn:8000/accumulo/tables/0";
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
 
       KeyExtent ke = new KeyExtent(TableId.of("0"), null, null);
-      Mutation mut = ke.getPrevRowUpdateMutation();
+      Mutation mut = TabletColumnFamily.createPrevRowMutation(ke);
 
-      TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0".getBytes()));
-      TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut,
-          new Value("/default_tablet".getBytes()));
-      mut.put(DataFileColumnFamily.NAME.toString(), "/default_tablet/0_0.rf",
+      ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0"));
+      ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value("/default_tablet"));
+      mut.put(DataFileColumnFamily.NAME.toString(), filePrefix + "/default_tablet/0_0.rf",
           new DataFileValue(1, 200).encodeAsString());
 
       try (BatchWriter bw1 = client.createBatchWriter(tableName);
@@ -95,9 +97,9 @@ public class CloneIT extends AccumuloClusterHarness {
 
         MetadataTableUtil.initializeClone(tableName, TableId.of("0"), TableId.of("1"), client, bw2);
 
-        Mutation mut2 = new Mutation(ke.getMetadataEntry());
-        mut2.putDelete(DataFileColumnFamily.NAME.toString(), "/default_tablet/0_0.rf");
-        mut2.put(DataFileColumnFamily.NAME.toString(), "/default_tablet/1_0.rf",
+        Mutation mut2 = new Mutation(ke.toMetaRow());
+        mut2.putDelete(DataFileColumnFamily.NAME.toString(), filePrefix + "/default_tablet/0_0.rf");
+        mut2.put(DataFileColumnFamily.NAME.toString(), filePrefix + "/default_tablet/1_0.rf",
             new DataFileValue(2, 300).encodeAsString());
 
         bw1.addMutation(mut2);
@@ -116,34 +118,39 @@ public class CloneIT extends AccumuloClusterHarness {
       HashSet<String> files = new HashSet<>();
 
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-        scanner.setRange(new KeyExtent(TableId.of("1"), null, null).toMetadataRange());
+        scanner.setRange(new KeyExtent(TableId.of("1"), null, null).toMetaRange());
         for (Entry<Key,Value> entry : scanner) {
           if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME))
             files.add(entry.getKey().getColumnQualifier().toString());
         }
       }
       assertEquals(1, files.size());
-      assertTrue(files.contains("../0/default_tablet/1_0.rf"));
+      assertTrue(files.contains(filePrefix + "/default_tablet/1_0.rf"));
     }
   }
 
   // test split where files of children are the same
   @Test
   public void testSplit1() throws Exception {
+    String filePrefix = "hdfs://nn:8000/accumulo/tables/0";
+
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
 
       try (BatchWriter bw1 = client.createBatchWriter(tableName);
           BatchWriter bw2 = client.createBatchWriter(tableName)) {
-        bw1.addMutation(createTablet("0", null, null, "/default_tablet", "/default_tablet/0_0.rf"));
+        bw1.addMutation(createTablet("0", null, null, "/default_tablet",
+            filePrefix + "/default_tablet/0_0.rf"));
 
         bw1.flush();
 
         MetadataTableUtil.initializeClone(tableName, TableId.of("0"), TableId.of("1"), client, bw2);
 
-        bw1.addMutation(createTablet("0", "m", null, "/default_tablet", "/default_tablet/0_0.rf"));
-        bw1.addMutation(createTablet("0", null, "m", "/t-1", "/default_tablet/0_0.rf"));
+        bw1.addMutation(
+            createTablet("0", "m", null, "/default_tablet", filePrefix + "/default_tablet/0_0.rf"));
+        bw1.addMutation(
+            createTablet("0", null, "m", "/t-1", filePrefix + "/default_tablet/0_0.rf"));
 
         bw1.flush();
 
@@ -156,7 +163,7 @@ public class CloneIT extends AccumuloClusterHarness {
       int count = 0;
 
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-        scanner.setRange(new KeyExtent(TableId.of("1"), null, null).toMetadataRange());
+        scanner.setRange(new KeyExtent(TableId.of("1"), null, null).toMetaRange());
         for (Entry<Key,Value> entry : scanner) {
           if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
             files.add(entry.getKey().getColumnQualifier().toString());
@@ -166,28 +173,31 @@ public class CloneIT extends AccumuloClusterHarness {
       }
       assertEquals(1, count);
       assertEquals(1, files.size());
-      assertTrue(files.contains("../0/default_tablet/0_0.rf"));
+      assertTrue(files.contains(filePrefix + "/default_tablet/0_0.rf"));
     }
   }
 
   // test split where files of children differ... like majc and split occurred
   @Test
   public void testSplit2() throws Exception {
+    String filePrefix = "hdfs://nn:8000/accumulo/tables/0";
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
 
       try (BatchWriter bw1 = client.createBatchWriter(tableName);
           BatchWriter bw2 = client.createBatchWriter(tableName)) {
-        bw1.addMutation(createTablet("0", null, null, "/default_tablet", "/default_tablet/0_0.rf"));
+        bw1.addMutation(createTablet("0", null, null, "/default_tablet",
+            filePrefix + "/default_tablet/0_0.rf"));
 
         bw1.flush();
 
         MetadataTableUtil.initializeClone(tableName, TableId.of("0"), TableId.of("1"), client, bw2);
 
-        bw1.addMutation(createTablet("0", "m", null, "/default_tablet", "/default_tablet/1_0.rf"));
-        Mutation mut3 = createTablet("0", null, "m", "/t-1", "/default_tablet/1_0.rf");
-        mut3.putDelete(DataFileColumnFamily.NAME.toString(), "/default_tablet/0_0.rf");
+        bw1.addMutation(
+            createTablet("0", "m", null, "/default_tablet", filePrefix + "/default_tablet/1_0.rf"));
+        Mutation mut3 = createTablet("0", null, "m", "/t-1", filePrefix + "/default_tablet/1_0.rf");
+        mut3.putDelete(DataFileColumnFamily.NAME.toString(), filePrefix + "/default_tablet/0_0.rf");
         bw1.addMutation(mut3);
 
         bw1.flush();
@@ -205,7 +215,7 @@ public class CloneIT extends AccumuloClusterHarness {
       int count = 0;
 
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-        scanner.setRange(new KeyExtent(TableId.of("1"), null, null).toMetadataRange());
+        scanner.setRange(new KeyExtent(TableId.of("1"), null, null).toMetaRange());
         for (Entry<Key,Value> entry : scanner) {
           if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
             files.add(entry.getKey().getColumnQualifier().toString());
@@ -215,17 +225,17 @@ public class CloneIT extends AccumuloClusterHarness {
       }
       assertEquals(1, files.size());
       assertEquals(2, count);
-      assertTrue(files.contains("../0/default_tablet/1_0.rf"));
+      assertTrue(files.contains(filePrefix + "/default_tablet/1_0.rf"));
     }
   }
 
   private static Mutation deleteTablet(String tid, String endRow, String prevRow, String file) {
     KeyExtent ke = new KeyExtent(TableId.of(tid), endRow == null ? null : new Text(endRow),
         prevRow == null ? null : new Text(prevRow));
-    Mutation mut = new Mutation(ke.getMetadataEntry());
-    TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.putDelete(mut);
-    TabletsSection.ServerColumnFamily.TIME_COLUMN.putDelete(mut);
-    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.putDelete(mut);
+    Mutation mut = new Mutation(ke.toMetaRow());
+    TabletColumnFamily.PREV_ROW_COLUMN.putDelete(mut);
+    ServerColumnFamily.TIME_COLUMN.putDelete(mut);
+    ServerColumnFamily.DIRECTORY_COLUMN.putDelete(mut);
     mut.putDelete(DataFileColumnFamily.NAME.toString(), file);
 
     return mut;
@@ -235,10 +245,10 @@ public class CloneIT extends AccumuloClusterHarness {
       String file) {
     KeyExtent ke = new KeyExtent(TableId.of(tid), endRow == null ? null : new Text(endRow),
         prevRow == null ? null : new Text(prevRow));
-    Mutation mut = ke.getPrevRowUpdateMutation();
+    Mutation mut = TabletColumnFamily.createPrevRowMutation(ke);
 
-    TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0".getBytes()));
-    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value(dir.getBytes()));
+    ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0"));
+    ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value(dir));
     mut.put(DataFileColumnFamily.NAME.toString(), file,
         new DataFileValue(10, 200).encodeAsString());
 
@@ -248,23 +258,24 @@ public class CloneIT extends AccumuloClusterHarness {
   // test two tablets splitting into four
   @Test
   public void testSplit3() throws Exception {
+    String filePrefix = "hdfs://nn:8000/accumulo/tables/0";
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
 
       try (BatchWriter bw1 = client.createBatchWriter(tableName);
           BatchWriter bw2 = client.createBatchWriter(tableName)) {
-        bw1.addMutation(createTablet("0", "m", null, "/d1", "/d1/file1"));
-        bw1.addMutation(createTablet("0", null, "m", "/d2", "/d2/file2"));
+        bw1.addMutation(createTablet("0", "m", null, "/d1", filePrefix + "/d1/file1.rf"));
+        bw1.addMutation(createTablet("0", null, "m", "/d2", filePrefix + "/d2/file2.rf"));
 
         bw1.flush();
 
         MetadataTableUtil.initializeClone(tableName, TableId.of("0"), TableId.of("1"), client, bw2);
 
-        bw1.addMutation(createTablet("0", "f", null, "/d1", "/d1/file3"));
-        bw1.addMutation(createTablet("0", "m", "f", "/d3", "/d1/file1"));
-        bw1.addMutation(createTablet("0", "s", "m", "/d2", "/d2/file2"));
-        bw1.addMutation(createTablet("0", null, "s", "/d4", "/d2/file2"));
+        bw1.addMutation(createTablet("0", "f", null, "/d1", filePrefix + "/d1/file3.rf"));
+        bw1.addMutation(createTablet("0", "m", "f", "/d3", filePrefix + "/d1/file1.rf"));
+        bw1.addMutation(createTablet("0", "s", "m", "/d2", filePrefix + "/d2/file2.rf"));
+        bw1.addMutation(createTablet("0", null, "s", "/d4", filePrefix + "/d2/file2.rf"));
 
         bw1.flush();
 
@@ -278,7 +289,7 @@ public class CloneIT extends AccumuloClusterHarness {
       int count = 0;
 
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-        scanner.setRange(new KeyExtent(TableId.of("1"), null, null).toMetadataRange());
+        scanner.setRange(new KeyExtent(TableId.of("1"), null, null).toMetaRange());
         for (Entry<Key,Value> entry : scanner) {
           if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
             files.add(entry.getKey().getColumnQualifier().toString());
@@ -288,8 +299,8 @@ public class CloneIT extends AccumuloClusterHarness {
       }
       assertEquals(2, count);
       assertEquals(2, files.size());
-      assertTrue(files.contains("../0/d1/file1"));
-      assertTrue(files.contains("../0/d2/file2"));
+      assertTrue(files.contains(filePrefix + "/d1/file1.rf"));
+      assertTrue(files.contains(filePrefix + "/d2/file2.rf"));
     }
   }
 
@@ -299,25 +310,26 @@ public class CloneIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
+      String filePrefix = "hdfs://nn:8000/accumulo/tables/0";
 
       try (BatchWriter bw1 = client.createBatchWriter(tableName);
           BatchWriter bw2 = client.createBatchWriter(tableName)) {
-        bw1.addMutation(createTablet("0", "m", null, "/d1", "/d1/file1"));
-        bw1.addMutation(createTablet("0", null, "m", "/d2", "/d2/file2"));
+        bw1.addMutation(createTablet("0", "m", null, "/d1", filePrefix + "/d1/file1.rf"));
+        bw1.addMutation(createTablet("0", null, "m", "/d2", filePrefix + "/d2/file2.rf"));
 
         bw1.flush();
 
         MetadataTableUtil.initializeClone(tableName, TableId.of("0"), TableId.of("1"), client, bw2);
 
-        bw1.addMutation(deleteTablet("0", "m", null, "/d1/file1"));
-        bw1.addMutation(deleteTablet("0", null, "m", "/d2/file2"));
+        bw1.addMutation(deleteTablet("0", "m", null, filePrefix + "/d1/file1.rf"));
+        bw1.addMutation(deleteTablet("0", null, "m", filePrefix + "/d2/file2.rf"));
 
         bw1.flush();
 
-        bw1.addMutation(createTablet("0", "f", null, "/d1", "/d1/file3"));
-        bw1.addMutation(createTablet("0", "m", "f", "/d3", "/d1/file1"));
-        bw1.addMutation(createTablet("0", "s", "m", "/d2", "/d2/file3"));
-        bw1.addMutation(createTablet("0", null, "s", "/d4", "/d4/file3"));
+        bw1.addMutation(createTablet("0", "f", null, "/d1", filePrefix + "/d1/file3.rf"));
+        bw1.addMutation(createTablet("0", "m", "f", "/d3", filePrefix + "/d1/file1.rf"));
+        bw1.addMutation(createTablet("0", "s", "m", "/d2", filePrefix + "/d2/file3.rf"));
+        bw1.addMutation(createTablet("0", null, "s", "/d4", filePrefix + "/d4/file3.rf"));
 
         bw1.flush();
 
@@ -326,11 +338,11 @@ public class CloneIT extends AccumuloClusterHarness {
 
         assertEquals(1, rc);
 
-        bw1.addMutation(deleteTablet("0", "m", "f", "/d1/file1"));
+        bw1.addMutation(deleteTablet("0", "m", "f", filePrefix + "/d1/file1.rf"));
 
         bw1.flush();
 
-        bw1.addMutation(createTablet("0", "m", "f", "/d3", "/d1/file3"));
+        bw1.addMutation(createTablet("0", "m", "f", "/d3", filePrefix + "/d1/file3.rf"));
 
         bw1.flush();
 
@@ -342,7 +354,7 @@ public class CloneIT extends AccumuloClusterHarness {
       int count = 0;
 
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-        scanner.setRange(new KeyExtent(TableId.of("1"), null, null).toMetadataRange());
+        scanner.setRange(new KeyExtent(TableId.of("1"), null, null).toMetaRange());
         for (Entry<Key,Value> entry : scanner) {
           if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
             files.add(entry.getKey().getColumnQualifier().toString());
@@ -352,40 +364,39 @@ public class CloneIT extends AccumuloClusterHarness {
       }
       assertEquals(3, count);
       assertEquals(3, files.size());
-      assertTrue(files.contains("../0/d1/file1"));
-      assertTrue(files.contains("../0/d2/file3"));
-      assertTrue(files.contains("../0/d4/file3"));
+      assertTrue(files.contains("hdfs://nn:8000/accumulo/tables/0/d1/file1.rf"));
+      assertTrue(files.contains("hdfs://nn:8000/accumulo/tables/0/d2/file3.rf"));
+      assertTrue(files.contains("hdfs://nn:8000/accumulo/tables/0/d4/file3.rf"));
     }
   }
 
   // test two tablets splitting into four
   @Test
   public void testMerge() throws Exception {
+    String filePrefix = "hdfs://nn:8000/accumulo/tables/0";
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
 
       try (BatchWriter bw1 = client.createBatchWriter(tableName);
           BatchWriter bw2 = client.createBatchWriter(tableName)) {
-        bw1.addMutation(createTablet("0", "m", null, "/d1", "/d1/file1"));
-        bw1.addMutation(createTablet("0", null, "m", "/d2", "/d2/file2"));
+        bw1.addMutation(createTablet("0", "m", null, "/d1", filePrefix + "/d1/file1.rf"));
+        bw1.addMutation(createTablet("0", null, "m", "/d2", filePrefix + "/d2/file2.rf"));
 
         bw1.flush();
 
         MetadataTableUtil.initializeClone(tableName, TableId.of("0"), TableId.of("1"), client, bw2);
 
-        bw1.addMutation(deleteTablet("0", "m", null, "/d1/file1"));
-        Mutation mut = createTablet("0", null, null, "/d2", "/d2/file2");
-        mut.put(DataFileColumnFamily.NAME.toString(), "/d1/file1",
+        bw1.addMutation(deleteTablet("0", "m", null, filePrefix + "/d1/file1.rf"));
+        Mutation mut = createTablet("0", null, null, "/d2", filePrefix + "/d2/file2.rf");
+        mut.put(DataFileColumnFamily.NAME.toString(), filePrefix + "/d1/file1.rf",
             new DataFileValue(10, 200).encodeAsString());
         bw1.addMutation(mut);
 
         bw1.flush();
 
-        try {
-          MetadataTableUtil.checkClone(tableName, TableId.of("0"), TableId.of("1"), client, bw2);
-          fail();
-        } catch (TabletDeletedException tde) {}
+        assertThrows(TabletDeletedException.class, () -> MetadataTableUtil.checkClone(tableName,
+            TableId.of("0"), TableId.of("1"), client, bw2));
       }
     }
   }

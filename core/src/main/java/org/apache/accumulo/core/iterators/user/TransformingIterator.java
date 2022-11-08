@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
 
@@ -21,7 +23,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -71,8 +72,7 @@ import org.slf4j.LoggerFactory;
  * fetch column families that are known to not transform at all).
  * <p>
  * If the implementing iterator is transforming column visibilities, then users must be careful NOT
- * to fetch column qualifiers from the scanner. The reason for this is due to ACCUMULO-??? (insert
- * issue number).
+ * to fetch column qualifiers from the scanner.
  * <p>
  * If the implementing iterator is transforming column visibilities, then the user should be sure to
  * supply authorizations via the {@link #AUTH_OPT} iterator option (note that this is only necessary
@@ -94,7 +94,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
   public static final String MAX_BUFFER_SIZE_OPT = "maxBufferSize";
   private static final long DEFAULT_MAX_BUFFER_SIZE = 10000000;
 
-  protected Logger log = LoggerFactory.getLogger(getClass());
+  private Logger log = LoggerFactory.getLogger(getClass());
 
   protected ArrayList<Pair<Key,Value>> keys = new ArrayList<>();
   protected int keyPos = -1;
@@ -228,7 +228,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
       keyPos++;
 
     // If we emptied out the transformed key map then transform the next key
-    // set from the source. It’s possible that transformation could produce keys
+    // set from the source. It's possible that transformation could produce keys
     // that are outside of our range or are not visible to the end user, so after the
     // call below we might not have added any keys to the map. Keep going until
     // we either get some keys in the map or exhaust the source iterator.
@@ -252,7 +252,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
     // Range clipping could cause us to trim out all the keys we transformed.
     // Keep looping until we either have some keys in the output range, or have
     // exhausted the source iterator.
-    keyPos = -1; // “Clear” list so hasTop returns false to get us into the loop (transformKeys
+    keyPos = -1; // "Clear" list so hasTop returns false to get us into the loop (transformKeys
                  // actually clears)
     while (!hasTop() && super.hasTop()) {
       // Build up a sorted list of all keys for the same prefix. When
@@ -363,7 +363,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
     }
 
     if (!keys.isEmpty()) {
-      Collections.sort(keys, keyComparator);
+      keys.sort(keyComparator);
       keyPos = 0;
     }
   }

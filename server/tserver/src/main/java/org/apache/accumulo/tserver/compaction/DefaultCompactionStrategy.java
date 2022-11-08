@@ -1,35 +1,38 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.compaction;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.server.fs.FileRef;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
+@SuppressWarnings("removal")
 public class DefaultCompactionStrategy extends CompactionStrategy {
 
   /**
@@ -48,13 +51,13 @@ public class DefaultCompactionStrategy extends CompactionStrategy {
 
     SizeWindow() {}
 
-    SizeWindow(Map<FileRef,DataFileValue> allFiles) {
+    SizeWindow(Map<StoredTabletFile,DataFileValue> allFiles) {
       files = new ArrayList<>();
-      for (Entry<FileRef,DataFileValue> entry : allFiles.entrySet()) {
+      for (Entry<StoredTabletFile,DataFileValue> entry : allFiles.entrySet()) {
         files.add(new CompactionFile(entry.getKey(), entry.getValue().getSize()));
       }
 
-      Collections.sort(files, Comparator.comparingLong(CompactionFile::getSize)
+      files.sort(Comparator.comparingLong(CompactionFile::getSize)
           .thenComparing(CompactionFile::getFile).reversed());
 
       for (CompactionFile file : files) {
@@ -115,8 +118,8 @@ public class DefaultCompactionStrategy extends CompactionStrategy {
       return (last - first);
     }
 
-    public List<FileRef> getFiles() {
-      List<FileRef> windowFiles = new ArrayList<>(size());
+    public List<StoredTabletFile> getFiles() {
+      List<StoredTabletFile> windowFiles = new ArrayList<>(size());
       for (int i = first; i < last; i++) {
         windowFiles.add(files.get(i).file);
       }
@@ -140,7 +143,7 @@ public class DefaultCompactionStrategy extends CompactionStrategy {
   public CompactionPlan getCompactionPlan(MajorCompactionRequest request) {
     CompactionPlan result = new CompactionPlan();
 
-    List<FileRef> toCompact = findMapFilesToCompact(request);
+    List<StoredTabletFile> toCompact = findMapFilesToCompact(request);
     if (toCompact == null || toCompact.isEmpty())
       return result;
     result.inputFiles.addAll(toCompact);
@@ -148,11 +151,10 @@ public class DefaultCompactionStrategy extends CompactionStrategy {
   }
 
   private static class CompactionFile {
-    public FileRef file;
+    public StoredTabletFile file;
     public long size;
 
-    public CompactionFile(FileRef file, long size) {
-      super();
+    public CompactionFile(StoredTabletFile file, long size) {
       this.file = file;
       this.size = size;
     }
@@ -161,12 +163,12 @@ public class DefaultCompactionStrategy extends CompactionStrategy {
       return size;
     }
 
-    FileRef getFile() {
+    TabletFile getFile() {
       return file;
     }
   }
 
-  private List<FileRef> findMapFilesToCompact(MajorCompactionRequest request) {
+  private List<StoredTabletFile> findMapFilesToCompact(MajorCompactionRequest request) {
     MajorCompactionReason reason = request.getReason();
     if (reason == MajorCompactionReason.USER) {
       return new ArrayList<>(request.getFiles().keySet());
@@ -193,7 +195,7 @@ public class DefaultCompactionStrategy extends CompactionStrategy {
 
     SizeWindow all = new SizeWindow(request.getFiles());
 
-    List<FileRef> files = null;
+    List<StoredTabletFile> files = null;
 
     // Within a window of size maxFilesToCompact containing the smallest files check to see if any
     // files meet the compaction ratio criteria.

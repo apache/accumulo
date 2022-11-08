@@ -7,18 +7,18 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.core.file;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -31,31 +31,27 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.bloomfilter.DynamicBloomFilter;
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.file.keyfunctor.KeyFunctor;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
-import org.apache.accumulo.core.util.NamingThreadFactory;
-import org.apache.accumulo.fate.util.LoggingRunnable;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
+import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
@@ -69,6 +65,8 @@ import org.slf4j.LoggerFactory;
  * functionality.
  */
 public class BloomFilterLayer {
+
+  private static final SecureRandom random = new SecureRandom();
   private static final Logger LOG = LoggerFactory.getLogger(BloomFilterLayer.class);
   public static final String BLOOM_FILE_NAME = "acu_bloom";
   public static final int HASH_COUNT = 5;
@@ -81,9 +79,8 @@ public class BloomFilterLayer {
     }
 
     if (maxLoadThreads > 0) {
-      BlockingQueue<Runnable> q = new LinkedBlockingQueue<>();
-      loadThreadPool = new ThreadPoolExecutor(0, maxLoadThreads, 60, TimeUnit.SECONDS, q,
-          new NamingThreadFactory("bloom-loader"));
+      loadThreadPool = ThreadPools.getServerThreadPools().createThreadPool(0, maxLoadThreads, 60,
+          SECONDS, "bloom-loader", false);
     }
 
     return loadThreadPool;
@@ -123,16 +120,13 @@ public class BloomFilterLayer {
        * load KeyFunctor
        */
       try {
-        String context = acuconf.get(Property.TABLE_CLASSPATH);
+        String context = ClassLoaderUtil.tableContext(acuconf);
         String classname = acuconf.get(Property.TABLE_BLOOM_KEY_FUNCTOR);
         Class<? extends KeyFunctor> clazz;
         if (!useAccumuloStart)
           clazz = Writer.class.getClassLoader().loadClass(classname).asSubclass(KeyFunctor.class);
-        else if (context != null && !context.equals(""))
-          clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, classname,
-              KeyFunctor.class);
         else
-          clazz = AccumuloVFSClassLoader.loadClass(classname, KeyFunctor.class);
+          clazz = ClassLoaderUtil.loadClass(context, classname, KeyFunctor.class);
 
         transformer = clazz.getDeclaredConstructor().newInstance();
 
@@ -217,7 +211,7 @@ public class BloomFilterLayer {
 
       loadThreshold = acuconf.getCount(Property.TABLE_BLOOM_LOAD_THRESHOLD);
 
-      final String context = acuconf.get(Property.TABLE_CLASSPATH);
+      final String context = ClassLoaderUtil.tableContext(acuconf);
 
       loadTask = () -> {
         // no need to load the bloom filter if the map file is closed
@@ -239,12 +233,8 @@ public class BloomFilterLayer {
            */
           ClassName = in.readUTF();
 
-          Class<? extends KeyFunctor> clazz;
-          if (context != null && !context.equals(""))
-            clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, ClassName,
-                KeyFunctor.class);
-          else
-            clazz = AccumuloVFSClassLoader.loadClass(ClassName, KeyFunctor.class);
+          Class<? extends KeyFunctor> clazz =
+              ClassLoaderUtil.loadClass(context, ClassName, KeyFunctor.class);
           transformer = clazz.getDeclaredConstructor().newInstance();
 
           /**
@@ -257,10 +247,10 @@ public class BloomFilterLayer {
         } catch (NoSuchMetaStoreException nsme) {
           // file does not have a bloom filter, ignore it
         } catch (IOException ioe) {
-          if (!closed)
-            LOG.warn("Can't open BloomFilter", ioe);
-          else
+          if (closed)
             LOG.debug("Can't open BloomFilter, file closed : {}", ioe.getMessage());
+          else
+            LOG.warn("Can't open BloomFilter", ioe);
 
           bloomFilter = null;
         } catch (ClassNotFoundException e) {
@@ -270,10 +260,10 @@ public class BloomFilterLayer {
           LOG.error("Could not instantiate KeyFunctor: " + sanitize(ClassName), e);
           bloomFilter = null;
         } catch (RuntimeException rte) {
-          if (!closed)
-            throw rte;
-          else
+          if (closed)
             LOG.debug("Can't open BloomFilter, RTE after closed ", rte);
+          else
+            throw rte;
         } finally {
           if (in != null) {
             try {
@@ -290,8 +280,8 @@ public class BloomFilterLayer {
     }
 
     /**
-     * Prevent potential CRLF injection into logs from read in user data See
-     * https://find-sec-bugs.github.io/bugs.htm#CRLF_INJECTION_LOGS
+     * Prevent potential CRLF injection into logs from read in user data. See the
+     * <a href="https://find-sec-bugs.github.io/bugs.htm#CRLF_INJECTION_LOGS">bug description</a>
      */
     private String sanitize(String msg) {
       return msg.replaceAll("[\r\n]", "");
@@ -308,7 +298,7 @@ public class BloomFilterLayer {
             loadTask.run();
           } else {
             // load the bloom filter in the background
-            ltp.execute(new LoggingRunnable(LOG, loadTask));
+            ltp.execute(loadTask);
           }
         } finally {
           // set load task to null so no one else can initiate the load
@@ -373,11 +363,11 @@ public class BloomFilterLayer {
     public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
         throws IOException {
 
-      if (!bfl.probablyHasKey(range)) {
-        checkSuper = false;
-      } else {
+      if (bfl.probablyHasKey(range)) {
         reader.seek(range, columnFamilies, inclusive);
         checkSuper = true;
+      } else {
+        checkSuper = false;
       }
     }
 
@@ -445,17 +435,19 @@ public class BloomFilterLayer {
       return new BloomFilterLayer.Reader(reader.getSample(sampleConfig), bfl);
     }
 
+    @Override
+    public void setCacheProvider(CacheProvider cacheProvider) {
+      reader.setCacheProvider(cacheProvider);
+    }
   }
 
   public static void main(String[] args) throws IOException {
     PrintStream out = System.out;
 
-    SecureRandom r = new SecureRandom();
-
     HashSet<Integer> valsSet = new HashSet<>();
 
     for (int i = 0; i < 100000; i++) {
-      valsSet.add(r.nextInt(Integer.MAX_VALUE));
+      valsSet.add(random.nextInt(Integer.MAX_VALUE));
     }
 
     ArrayList<Integer> vals = new ArrayList<>(valsSet);
@@ -475,8 +467,8 @@ public class BloomFilterLayer {
     String suffix = FileOperations.getNewFileExtension(acuconf);
     String fname = "/tmp/test." + suffix;
     FileSKVWriter bmfw = FileOperations.getInstance().newWriterBuilder()
-        .forFile(fname, fs, conf, CryptoServiceFactory.newDefaultInstance())
-        .withTableConfiguration(acuconf).build();
+        .forFile(fname, fs, conf, NoCryptoServiceFactory.NONE).withTableConfiguration(acuconf)
+        .build();
 
     long t1 = System.currentTimeMillis();
 
@@ -485,9 +477,9 @@ public class BloomFilterLayer {
     for (Integer i : vals) {
       String fi = String.format("%010d", i);
       bmfw.append(new org.apache.accumulo.core.data.Key(new Text("r" + fi), new Text("cf1")),
-          new Value(("v" + fi).getBytes(UTF_8)));
+          new Value("v" + fi));
       bmfw.append(new org.apache.accumulo.core.data.Key(new Text("r" + fi), new Text("cf2")),
-          new Value(("v" + fi).getBytes(UTF_8)));
+          new Value("v" + fi));
     }
 
     long t2 = System.currentTimeMillis();
@@ -498,8 +490,8 @@ public class BloomFilterLayer {
 
     t1 = System.currentTimeMillis();
     FileSKVIterator bmfr = FileOperations.getInstance().newReaderBuilder()
-        .forFile(fname, fs, conf, CryptoServiceFactory.newDefaultInstance())
-        .withTableConfiguration(acuconf).build();
+        .forFile(fname, fs, conf, NoCryptoServiceFactory.NONE).withTableConfiguration(acuconf)
+        .build();
     t2 = System.currentTimeMillis();
     out.println("Opened " + fname + " in " + (t2 - t1));
 
@@ -507,7 +499,7 @@ public class BloomFilterLayer {
 
     int hits = 0;
     for (int i = 0; i < 5000; i++) {
-      int row = r.nextInt(Integer.MAX_VALUE);
+      int row = random.nextInt(Integer.MAX_VALUE);
       String fi = String.format("%010d", row);
       // bmfr.seek(new Range(new Text("r"+fi)));
       org.apache.accumulo.core.data.Key k1 =
@@ -553,7 +545,7 @@ public class BloomFilterLayer {
 
     t2 = System.currentTimeMillis();
 
-    out.printf("existant lookup rate %6.2f%n", 500 / ((t2 - t1) / 1000.0));
+    out.printf("existing lookup rate %6.2f%n", 500 / ((t2 - t1) / 1000.0));
     out.println("expected hits 500.  Receive hits: " + count);
     bmfr.close();
   }

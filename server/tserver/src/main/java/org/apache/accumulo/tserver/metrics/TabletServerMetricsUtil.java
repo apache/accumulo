@@ -1,22 +1,25 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.metrics;
 
 import org.apache.accumulo.tserver.TabletServer;
+import org.apache.accumulo.tserver.TabletServerResourceManager.AssignmentWatcher;
 import org.apache.accumulo.tserver.tablet.Tablet;
 
 /**
@@ -30,6 +33,10 @@ public class TabletServerMetricsUtil {
 
   public TabletServerMetricsUtil(TabletServer tserver) {
     this.tserver = tserver;
+  }
+
+  public long getLongTabletAssignments() {
+    return AssignmentWatcher.getLongAssignments();
   }
 
   public long getEntries() {
@@ -48,62 +55,30 @@ public class TabletServerMetricsUtil {
     return result;
   }
 
-  public double getIngest() {
+  public double getIngestCount() {
     double result = 0;
     for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      result += tablet.ingestRate();
+      result += tablet.totalIngest();
     }
     return result;
   }
 
-  public double getIngestByteRate() {
+  public double getIngestByteCount() {
     double result = 0;
     for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      result += tablet.ingestByteRate();
-    }
-    return result;
-  }
-
-  public double getQueryRate() {
-    double result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      result += tablet.queryRate();
-    }
-    return result;
-  }
-
-  public double getQueryByteRate() {
-    double result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      result += tablet.queryByteRate();
-    }
-    return result;
-  }
-
-  public double getScannedRate() {
-    double result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      result += tablet.scanRate();
+      result += tablet.totalIngestBytes();
     }
     return result;
   }
 
   public int getMajorCompactions() {
-    int result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      if (tablet.isMajorCompactionRunning())
-        result++;
-    }
-    return result;
+    var mgr = tserver.getCompactionManager();
+    return mgr == null ? 0 : mgr.getCompactionsRunning();
   }
 
   public int getMajorCompactionsQueued() {
-    int result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      if (tablet.isMajorCompactionQueued())
-        result++;
-    }
-    return result;
+    var mgr = tserver.getCompactionManager();
+    return mgr == null ? 0 : mgr.getCompactionsQueued();
   }
 
   public int getMinorCompactions() {
@@ -125,19 +100,11 @@ public class TabletServerMetricsUtil {
   }
 
   public int getOnlineCount() {
-    return tserver.getOnlineTablets().values().size();
+    return tserver.getOnlineTablets().size();
   }
 
   public int getOpeningCount() {
     return tserver.getOpeningCount();
-  }
-
-  public long getQueries() {
-    long result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      result += tablet.totalQueries();
-    }
-    return result;
   }
 
   public int getUnopenedCount() {

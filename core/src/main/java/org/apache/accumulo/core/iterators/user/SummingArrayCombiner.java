@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
 
@@ -31,8 +33,8 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.lexicoder.AbstractEncoder;
+import org.apache.accumulo.core.client.lexicoder.AbstractLexicoder;
 import org.apache.accumulo.core.client.lexicoder.Encoder;
-import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoder;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
@@ -131,7 +133,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
     io.setName("sumarray");
     io.setDescription("SummingArrayCombiner can interpret Values as arrays of"
         + " Longs using a variety of encodings (arrays of variable length longs or"
-        + " fixed length longs, or comma-separated strings) before summing" + " element-wise.");
+        + " fixed length longs, or comma-separated strings) before summing element-wise.");
     io.addNamedOption(TYPE, "<VARLEN|FIXEDLEN|STRING|fullClassName>");
     return io;
   }
@@ -218,12 +220,12 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
   public static class StringArrayEncoder extends AbstractEncoder<List<Long>> {
     @Override
     public byte[] encode(List<Long> la) {
-      if (la.size() == 0)
+      if (la.isEmpty())
         return new byte[] {};
       StringBuilder sb = new StringBuilder(Long.toString(la.get(0)));
       for (int i = 1; i < la.size(); i++) {
         sb.append(",");
-        sb.append(Long.toString(la.get(i)));
+        sb.append(la.get(i));
       }
       return sb.toString().getBytes(UTF_8);
     }
@@ -240,7 +242,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
       String[] longstrs = new String(b, offset, len, UTF_8).split(",");
       List<Long> la = new ArrayList<>(longstrs.length);
       for (String s : longstrs) {
-        if (s.length() == 0)
+        if (s.isEmpty())
           la.add(0L);
         else
           try {

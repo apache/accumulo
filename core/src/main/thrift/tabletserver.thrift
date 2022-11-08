@@ -1,25 +1,28 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 namespace java org.apache.accumulo.core.tabletserver.thrift
 namespace cpp org.apache.accumulo.core.tabletserver.thrift
 
 include "data.thrift"
 include "security.thrift"
 include "client.thrift"
+include "manager.thrift"
 include "master.thrift"
 include "trace.thrift"
 
@@ -36,6 +39,8 @@ exception TSampleNotPresentException {
 }
 
 exception NoSuchScanIDException {}
+
+exception ScanServerBusyException {}
 
 exception ConstraintViolationException {
   1:list<data.TConstraintViolationSummary> violationSummaries
@@ -62,7 +67,7 @@ struct TabletStats {
   5:i64 numEntries
   6:double ingestRate
   7:double queryRate
-  // zero if loaded by the master, currentTimeMillis when the split was created
+  // zero if loaded by the manager, currentTimeMillis when the split was created
   8:i64 splitCreationTime
 }
 
@@ -96,14 +101,14 @@ struct ActiveScan {
   15:string classLoaderContext
 }
 
-enum CompactionType {
+enum TCompactionType {
   MINOR
   MERGE
   MAJOR
   FULL
 }
 
-enum CompactionReason {
+enum TCompactionReason {
   USER
   SYSTEM
   CHOP
@@ -124,8 +129,8 @@ struct ActiveCompaction {
   2:i64 age
   3:list<string> inputFiles
   4:string outputFile
-  5:CompactionType type
-  6:CompactionReason reason
+  5:TCompactionType type
+  6:TCompactionReason reason
   7:string localityGroup
   8:i64 entriesRead
   9:i64 entriesWritten
@@ -156,7 +161,44 @@ enum TUnloadTabletGoal {
   DELETED
 }
 
-service TabletClientService extends client.ClientService {
+struct InputFile {
+  1:string metadataFileEntry
+  2:i64 size
+  3:i64 entries
+  4:i64 timestamp
+}
+
+struct TExternalCompactionJob {
+  1:string externalCompactionId
+  2:data.TKeyExtent extent
+  3:list<InputFile> files
+  4:IteratorConfig iteratorSettings
+  5:string outputFile
+  6:bool propagateDeletes
+  7:TCompactionKind kind
+  8:i64 userCompactionId
+  9:map<string, string> overrides
+}
+
+enum TCompactionKind {
+  CHOP
+  SELECTOR
+  SYSTEM
+  USER
+}
+
+struct TCompactionQueueSummary {
+  1:string queue
+  2:i16 priority
+}
+
+struct TCompactionStats{
+  1:i64 entriesRead;
+  2:i64 entriesWritten;
+  3:i64 fileSize;
+}
+
+service TabletScanClientService {
 
   // scan a range of keys
   data.InitialScan startScan(
@@ -177,21 +219,25 @@ service TabletClientService extends client.ClientService {
     // name of the classloader context
     15:string classLoaderContext
     16:map<string, string> executionHints
+    17:i64 busyTimeout
   ) throws (
     1:client.ThriftSecurityException sec
     2:NotServingTabletException nste
     3:TooManyFilesException tmfe
     4:TSampleNotPresentException tsnpe
+    5:ScanServerBusyException ssbe
   )
 
   data.ScanResult continueScan(
     2:trace.TInfo tinfo
     1:data.ScanID scanID
+    3:i64 busyTimeout
   ) throws (
     1:NoSuchScanIDException nssi
     2:NotServingTabletException nste
     3:TooManyFilesException tmfe
     4:TSampleNotPresentException tsnpe
+    5:ScanServerBusyException ssbe
   )
 
   oneway void closeScan(
@@ -214,17 +260,21 @@ service TabletClientService extends client.ClientService {
     // name of the classloader context
     11:string classLoaderContext
     12:map<string, string> executionHints
+    13:i64 busyTimeout
   ) throws (
     1:client.ThriftSecurityException sec
     2:TSampleNotPresentException tsnpe
+    3:ScanServerBusyException ssbe
   )
 
   data.MultiScanResult continueMultiScan(
     2:trace.TInfo tinfo
     1:data.ScanID scanID
+    3:i64 busyTimeout
   ) throws (
     1:NoSuchScanIDException nssi
     2:TSampleNotPresentException tsnpe
+    3:ScanServerBusyException ssbe
   )
 
   void closeMultiScan(
@@ -233,6 +283,17 @@ service TabletClientService extends client.ClientService {
   ) throws (
     1:NoSuchScanIDException nssi
   )
+
+  list<ActiveScan> getActiveScans(
+    2:trace.TInfo tinfo
+    1:security.TCredentials credentials
+  ) throws (
+    1:client.ThriftSecurityException sec
+  )
+
+}
+
+service TabletClientService {
 
   //the following calls support a batch update to multiple tablets on a tablet server
   data.UpdateID startUpdate(
@@ -414,13 +475,6 @@ service TabletClientService extends client.ClientService {
     2:string lock
   )
 
-  list<ActiveScan> getActiveScans(
-    2:trace.TInfo tinfo
-    1:security.TCredentials credentials
-  ) throws (
-    1:client.ThriftSecurityException sec
-  )
-
   list<ActiveCompaction> getActiveCompactions(
     2:trace.TInfo tinfo
     1:security.TCredentials credentials
@@ -472,6 +526,40 @@ service TabletClientService extends client.ClientService {
     2:i64 sessionId
   ) throws (
     1:NoSuchScanIDException nssi
+  )
+  
+  list<TCompactionQueueSummary> getCompactionQueueInfo(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+  ) throws (
+    1:client.ThriftSecurityException sec
+  )
+  
+  TExternalCompactionJob reserveCompactionJob(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string queueName
+    4:i64 priority
+    5:string compactor
+    6:string externalCompactionId
+  ) throws (
+    1:client.ThriftSecurityException sec
+  )
+  
+  oneway void compactionJobFinished(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string externalCompactionId
+    4:data.TKeyExtent extent
+    5:i64 fileSize
+    6:i64 entries
+  )
+
+  oneway void compactionJobFailed(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string externalCompactionId
+    4:data.TKeyExtent extent
   )
 
 }

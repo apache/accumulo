@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
@@ -27,7 +29,6 @@ import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Namespaces;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.shell.Shell;
@@ -44,17 +45,17 @@ public class RenameNamespaceCommand extends Command {
     String newer = cl.getArgs()[1];
     boolean resetContext = false;
     TableId currentTableId = null;
-    if (!(shellState.getTableName() == null) && !shellState.getTableName().isEmpty()) {
+    if (shellState.getTableName() != null && !shellState.getTableName().isEmpty()) {
       NamespaceId namespaceId = Namespaces.getNamespaceId(shellState.getContext(), old);
       List<TableId> tableIds = Namespaces.getTableIds(shellState.getContext(), namespaceId);
-      currentTableId = Tables.getTableId(shellState.getContext(), shellState.getTableName());
+      currentTableId = shellState.getContext().getTableId(shellState.getTableName());
       resetContext = tableIds.contains(currentTableId);
     }
 
     shellState.getAccumuloClient().namespaceOperations().rename(old, newer);
 
     if (resetContext) {
-      shellState.setTableName(Tables.getTableName(shellState.getContext(), currentTableId));
+      shellState.setTableName(shellState.getContext().getTableName(currentTableId));
     }
 
     return 0;

@@ -1,30 +1,33 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
-import java.security.SecureRandom;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -34,7 +37,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -43,6 +45,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.Accumulo;
@@ -64,7 +68,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Condition;
@@ -84,45 +87,37 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.constraints.AlphaNumKeyConstraint;
 import org.apache.accumulo.test.functional.BadIterator;
 import org.apache.accumulo.test.functional.SlowIterator;
-import org.apache.accumulo.tracer.TraceDump;
-import org.apache.accumulo.tracer.TraceServer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.Sampler;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
-
 public class ConditionalWriterIT extends SharedMiniClusterBase {
+
   private static final Logger log = LoggerFactory.getLogger(ConditionalWriterIT.class);
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
   }
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() throws Exception {
     SharedMiniClusterBase.startMiniClusterWithConfig(new Callback());
   }
 
-  @AfterClass
+  @AfterAll
   public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
   }
@@ -132,7 +127,6 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
       // Set the min span to 0 so we will definitely get all the traces back. See ACCUMULO-4365
       Map<String,String> siteConf = cfg.getSiteConfig();
-      siteConf.put(Property.TRACE_SPAN_RECEIVER_PREFIX.getKey() + "tracer.span.min.ms", "0");
       cfg.setSiteConfig(siteConf);
     }
   }
@@ -144,7 +138,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
     return l;
   }
 
-  @Before
+  @BeforeEach
   public void deleteUsers() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       Set<String> users = client.securityOperations().listLocalUsers();
@@ -163,9 +157,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
       client.tableOperations().create(tableName);
 
-      try (
-          ConditionalWriter cw =
-              client.createConditionalWriter(tableName, new ConditionalWriterConfig());
+      try (ConditionalWriter cw = client.createConditionalWriter(tableName);
           Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
 
         // mutation conditional on column tx:seq not existing
@@ -216,7 +208,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         // ensure rejected mutations did not write
         scanner.fetchColumn("name", "last");
         scanner.setRange(new Range("99006"));
-        Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
+        Entry<Key,Value> entry = getOnlyElement(scanner);
         assertEquals("Doe", entry.getValue().toString());
 
         // test w/ two conditions that are met
@@ -227,7 +219,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         cm6.put("tx", "seq", "3");
         assertEquals(Status.ACCEPTED, cw.write(cm6).getStatus());
 
-        entry = Iterables.getOnlyElement(scanner);
+        entry = getOnlyElement(scanner);
         assertEquals("DOE", entry.getValue().toString());
 
         // test a conditional mutation that deletes
@@ -238,13 +230,13 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         cm7.putDelete("tx", "seq");
         assertEquals(Status.ACCEPTED, cw.write(cm7).getStatus());
 
-        assertFalse("Did not expect to find any results", scanner.iterator().hasNext());
+        assertFalse(scanner.iterator().hasNext(), "Did not expect to find any results");
 
         // add the row back
         assertEquals(Status.ACCEPTED, cw.write(cm0).getStatus());
         assertEquals(Status.REJECTED, cw.write(cm0).getStatus());
 
-        entry = Iterables.getOnlyElement(scanner);
+        entry = getOnlyElement(scanner);
         assertEquals("doe", entry.getValue().toString());
       }
     }
@@ -256,10 +248,8 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
     try (AccumuloClient client1 = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
-      String user = null;
-
       ClusterUser user1 = getUser(0);
-      user = user1.getPrincipal();
+      String user = user1.getPrincipal();
       if (saslEnabled()) {
         // The token is pointless for kerberos
         client1.securityOperations().createLocalUser(user, null);
@@ -292,10 +282,31 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
           assertEquals(Status.ACCEPTED, cw.write(cm0).getStatus());
 
           scanner.setRange(new Range("99006"));
-          // TODO verify all columns
-          scanner.fetchColumn("tx", "seq");
-          Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
-          assertEquals("1", entry.getValue().toString());
+
+          // verify we get the expected values that were written above
+          Function<Scanner,Entry<Key,Value>> verifyValues = givenScanner -> {
+            Entry<Key,Value> result;
+
+            givenScanner.fetchColumn("name", "last");
+            result = getOnlyElement(givenScanner);
+            assertEquals("doe", result.getValue().toString());
+            givenScanner.clearColumns();
+
+            givenScanner.fetchColumn("name", "first");
+            result = getOnlyElement(givenScanner);
+            assertEquals("john", result.getValue().toString());
+            givenScanner.clearColumns();
+
+            givenScanner.fetchColumn("tx", "seq");
+            result = getOnlyElement(givenScanner);
+            assertEquals("1", result.getValue().toString());
+            givenScanner.clearColumns();
+
+            return result;
+          };
+
+          Entry<Key,Value> entry = verifyValues.apply(scanner);
+
           long ts = entry.getKey().getTimestamp();
 
           // test wrong colf
@@ -339,8 +350,8 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
           assertEquals(Status.REJECTED, cw.write(cm5).getStatus());
 
           // ensure no updates were made
-          entry = Iterables.getOnlyElement(scanner);
-          assertEquals("1", entry.getValue().toString());
+          var after = verifyValues.apply(scanner);
+          assertEquals(ts, after.getKey().getTimestamp());
 
           // set all columns correctly
           ConditionalMutation cm6 = new ConditionalMutation("99006",
@@ -350,7 +361,8 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
           cm6.put("tx", "seq", cva, "2");
           assertEquals(Status.ACCEPTED, cw.write(cm6).getStatus());
 
-          entry = Iterables.getOnlyElement(scanner);
+          scanner.fetchColumn("tx", "seq");
+          entry = getOnlyElement(scanner);
           assertEquals("2", entry.getValue().toString());
         }
       }
@@ -458,14 +470,11 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         cm8.put("name", "first", cva, "john");
         cm8.put("tx", "seq", cva, "1");
 
-        try {
+        assertThrows(AccumuloSecurityException.class, () -> {
           Status status = cw2.write(cm8).getStatus();
-          fail(
-              "Writing mutation with Authorizations the user doesn't have should fail. Got status: "
-                  + status);
-        } catch (AccumuloSecurityException ase) {
-          // expected, check specific failure?
-        }
+          log.error("Writing mutation with Authorizations the user doesn't have should fail. Got "
+              + "status: {}", status);
+        });
       }
     }
   }
@@ -482,24 +491,22 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
       client.tableOperations().clone(tableName, tableName + "_clone", true, new HashMap<>(),
           new HashSet<>());
 
-      try (
-          ConditionalWriter cw =
-              client.createConditionalWriter(tableName + "_clone", new ConditionalWriterConfig());
+      try (ConditionalWriter cw = client.createConditionalWriter(tableName + "_clone");
           Scanner scanner = client.createScanner(tableName + "_clone", new Authorizations())) {
 
         ConditionalMutation cm0 = new ConditionalMutation("99006+", new Condition("tx", "seq"));
         cm0.put("tx", "seq", "1");
 
         assertEquals(Status.VIOLATED, cw.write(cm0).getStatus());
-        assertFalse("Should find no results in the table is mutation result was violated",
-            scanner.iterator().hasNext());
+        assertFalse(scanner.iterator().hasNext(),
+            "Should find no results in the table is mutation result was violated");
 
         ConditionalMutation cm1 = new ConditionalMutation("99006", new Condition("tx", "seq"));
         cm1.put("tx", "seq", "1");
 
         assertEquals(Status.ACCEPTED, cw.write(cm1).getStatus());
-        assertTrue("Accepted result should be returned when reading table",
-            scanner.iterator().hasNext());
+        assertTrue(scanner.iterator().hasNext(),
+            "Accepted result should be returned when reading table");
       }
     }
   }
@@ -550,31 +557,30 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         scanner.setRange(new Range("ACCUMULO-1000"));
         scanner.fetchColumn("count", "comments");
 
-        Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
+        Entry<Key,Value> entry = getOnlyElement(scanner);
         assertEquals("3", entry.getValue().toString());
 
-        try (ConditionalWriter cw =
-            client.createConditionalWriter(tableName, new ConditionalWriterConfig())) {
+        try (ConditionalWriter cw = client.createConditionalWriter(tableName)) {
 
           ConditionalMutation cm0 = new ConditionalMutation("ACCUMULO-1000",
               new Condition("count", "comments").setValue("3"));
           cm0.put("count", "comments", "1");
           assertEquals(Status.REJECTED, cw.write(cm0).getStatus());
-          entry = Iterables.getOnlyElement(scanner);
+          entry = getOnlyElement(scanner);
           assertEquals("3", entry.getValue().toString());
 
           ConditionalMutation cm1 = new ConditionalMutation("ACCUMULO-1000",
               new Condition("count", "comments").setIterators(iterConfig).setValue("3"));
           cm1.put("count", "comments", "1");
           assertEquals(Status.ACCEPTED, cw.write(cm1).getStatus());
-          entry = Iterables.getOnlyElement(scanner);
+          entry = getOnlyElement(scanner);
           assertEquals("4", entry.getValue().toString());
 
           ConditionalMutation cm2 = new ConditionalMutation("ACCUMULO-1000",
               new Condition("count", "comments").setValue("4"));
           cm2.put("count", "comments", "1");
           assertEquals(Status.REJECTED, cw.write(cm1).getStatus());
-          entry = Iterables.getOnlyElement(scanner);
+          entry = getOnlyElement(scanner);
           assertEquals("4", entry.getValue().toString());
 
           // run test with multiple iterators passed in same batch and condition with two iterators
@@ -598,8 +604,8 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
           while (results.hasNext()) {
             Result result = results.next();
             String k = new String(result.getMutation().getRow());
-            assertFalse("Did not expect to see multiple resultus for the row: " + k,
-                actual.containsKey(k));
+            assertFalse(actual.containsKey(k),
+                "Did not expect to see multiple results for the row: " + k);
             actual.put(k, result.getStatus());
           }
 
@@ -622,7 +628,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
       Value val = super.getTopValue();
       long l = Long.parseLong(val.toString());
       String newVal = (l + amount) + "";
-      return new Value(newVal.getBytes(UTF_8));
+      return new Value(newVal);
     }
 
     @Override
@@ -641,7 +647,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
       Value val = super.getTopValue();
       long l = Long.parseLong(val.toString());
       String newVal = l * amount + "";
-      return new Value(newVal.getBytes(UTF_8));
+      return new Value(newVal);
     }
 
     @Override
@@ -686,9 +692,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
       client.tableOperations().offline(tableName, true);
       client.tableOperations().online(tableName, true);
 
-      try (
-          ConditionalWriter cw =
-              client.createConditionalWriter(tableName, new ConditionalWriterConfig());
+      try (ConditionalWriter cw = client.createConditionalWriter(tableName);
           Scanner scanner = client.createScanner(tableName, new Authorizations())) {
 
         ConditionalMutation cm6 = new ConditionalMutation("ACCUMULO-1000",
@@ -699,7 +703,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         scanner.setRange(new Range("ACCUMULO-1000"));
         scanner.fetchColumn("count", "comments");
 
-        Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
+        Entry<Key,Value> entry = getOnlyElement(scanner);
         assertEquals("9", entry.getValue().toString());
 
         ConditionalMutation cm7 = new ConditionalMutation("ACCUMULO-1000",
@@ -707,7 +711,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         cm7.put("count", "comments", "8");
         assertEquals(Status.ACCEPTED, cw.write(cm7).getStatus());
 
-        entry = Iterables.getOnlyElement(scanner);
+        entry = getOnlyElement(scanner);
         assertEquals("10", entry.getValue().toString());
 
         ConditionalMutation cm8 = new ConditionalMutation("ACCUMULO-1000",
@@ -715,7 +719,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         cm8.put("count", "comments", "9");
         assertEquals(Status.ACCEPTED, cw.write(cm8).getStatus());
 
-        entry = Iterables.getOnlyElement(scanner);
+        entry = getOnlyElement(scanner);
         assertEquals("11", entry.getValue().toString());
 
         ConditionalMutation cm3 = new ConditionalMutation("ACCUMULO-1000",
@@ -736,8 +740,8 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         while (results.hasNext()) {
           Result result = results.next();
           String k = new String(result.getMutation().getRow());
-          assertFalse("Did not expect to see multiple resultus for the row: " + k,
-              actual.containsKey(k));
+          assertFalse(actual.containsKey(k),
+              "Did not expect to see multiple results for the row: " + k);
           actual.put(k, result.getStatus());
         }
 
@@ -804,7 +808,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
         for (String row : new String[] {"99006", "59056", "19059"}) {
           scanner.setRange(new Range(row));
-          Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
+          Entry<Key,Value> entry = getOnlyElement(scanner);
           assertEquals("1", entry.getValue().toString());
         }
 
@@ -847,22 +851,22 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
           }
         }
 
-        assertEquals("Expected only one accepted conditional mutation", 1, accepted);
-        assertEquals("Expected two rejected conditional mutations", 2, rejected);
+        assertEquals(1, accepted, "Expected only one accepted conditional mutation");
+        assertEquals(2, rejected, "Expected two rejected conditional mutations");
 
         for (String row : new String[] {"59056", "19059"}) {
           scanner.setRange(new Range(row));
-          Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
+          Entry<Key,Value> entry = getOnlyElement(scanner);
           assertEquals("1", entry.getValue().toString());
         }
 
         scanner.setRange(new Range("99006"));
-        Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
+        Entry<Key,Value> entry = getOnlyElement(scanner);
         assertEquals("2", entry.getValue().toString());
 
         scanner.clearColumns();
         scanner.fetchColumn("name", "last");
-        entry = Iterables.getOnlyElement(scanner);
+        entry = getOnlyElement(scanner);
         assertEquals("Doe", entry.getValue().toString());
       }
     }
@@ -874,8 +878,8 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
-      client.tableOperations().create(tableName);
-      client.tableOperations().addSplits(tableName, nss("2", "4", "6"));
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(nss("2", "4", "6"));
+      client.tableOperations().create(tableName, ntc);
 
       sleepUninterruptibly(2, TimeUnit.SECONDS);
 
@@ -884,11 +888,10 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
       ArrayList<byte[]> rows = new ArrayList<>(num);
       ArrayList<ConditionalMutation> cml = new ArrayList<>(num);
 
-      Random r = new SecureRandom();
       byte[] e = new byte[0];
 
       for (int i = 0; i < num; i++) {
-        rows.add(FastFormat.toZeroPaddedString(abs(r.nextLong()), 16, 16, e));
+        rows.add(FastFormat.toZeroPaddedString(abs(random.nextLong()), 16, 16, e));
       }
 
       for (int i = 0; i < num; i++) {
@@ -899,22 +902,25 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
         cml.add(cm);
       }
-
-      try (ConditionalWriter cw =
-          client.createConditionalWriter(tableName, new ConditionalWriterConfig())) {
+      try (ConditionalWriter cw = client.createConditionalWriter(tableName)) {
 
         Iterator<Result> results = cw.write(cml.iterator());
 
         int count = 0;
 
-        // TODO check got each row back
+        Set<String> rowsReceived = new HashSet<>();
         while (results.hasNext()) {
           Result result = results.next();
+          rowsReceived.add(new String(result.getMutation().getRow(), UTF_8));
           assertEquals(Status.ACCEPTED, result.getStatus());
           count++;
         }
 
-        assertEquals("Did not receive the expected number of results", num, count);
+        assertEquals(num, count, "Did not receive the expected number of results");
+
+        Set<String> rowsExpected =
+            rows.stream().map(row -> new String(row, UTF_8)).collect(Collectors.toSet());
+        assertEquals(rowsExpected, rowsReceived, "Did not receive all expected rows");
 
         ArrayList<ConditionalMutation> cml2 = new ArrayList<>(num);
 
@@ -938,7 +944,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
           count++;
         }
 
-        assertEquals("Did not receive the expected number of results", num, count);
+        assertEquals(num, count, "Did not receive the expected number of results");
       }
     }
   }
@@ -960,7 +966,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
       ColumnVisibility cvaob = new ColumnVisibility("A|B");
       ColumnVisibility cvaab = new ColumnVisibility("A&B");
 
-      switch ((new SecureRandom()).nextInt(3)) {
+      switch (random.nextInt(3)) {
         case 1:
           client.tableOperations().addSplits(tableName, nss("6"));
           break;
@@ -1008,14 +1014,19 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         while (results.hasNext()) {
           Result result = results.next();
           String row = new String(result.getMutation().getRow());
-          if (row.equals("19059")) {
-            assertEquals(Status.ACCEPTED, result.getStatus());
-          } else if (row.equals("59056")) {
-            assertEquals(Status.INVISIBLE_VISIBILITY, result.getStatus());
-          } else if (row.equals("99006")) {
-            assertEquals(Status.VIOLATED, result.getStatus());
-          } else if (row.equals("90909")) {
-            assertEquals(Status.REJECTED, result.getStatus());
+          switch (row) {
+            case "19059":
+              assertEquals(Status.ACCEPTED, result.getStatus());
+              break;
+            case "59056":
+              assertEquals(Status.INVISIBLE_VISIBILITY, result.getStatus());
+              break;
+            case "99006":
+              assertEquals(Status.VIOLATED, result.getStatus());
+              break;
+            case "90909":
+              assertEquals(Status.REJECTED, result.getStatus());
+              break;
           }
           rows.add(row);
         }
@@ -1023,7 +1034,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         assertEquals(4, rows.size());
 
         scanner.fetchColumn("tx", "seq");
-        Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
+        Entry<Key,Value> entry = getOnlyElement(scanner);
         assertEquals("1", entry.getValue().toString());
       }
     }
@@ -1038,8 +1049,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
       client.tableOperations().create(tableName);
 
-      try (ConditionalWriter cw =
-          client.createConditionalWriter(tableName, new ConditionalWriterConfig())) {
+      try (ConditionalWriter cw = client.createConditionalWriter(tableName)) {
 
         ConditionalMutation cm1 = new ConditionalMutation("r1", new Condition("tx", "seq"));
         cm1.put("tx", "seq", "1");
@@ -1077,9 +1087,9 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
           total++;
         }
 
-        assertEquals("Expected one accepted result", 1, accepted);
-        assertEquals("Expected two rejected results", 2, rejected);
-        assertEquals("Expected three total results", 3, total);
+        assertEquals(1, accepted, "Expected one accepted result");
+        assertEquals(2, rejected, "Expected two rejected results");
+        assertEquals(3, total, "Expected three total results");
       }
     }
   }
@@ -1144,7 +1154,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
       ConditionalMutation cm = new ConditionalMutation(row, cond);
 
       cm.put("meta", "seq", (seq + 1) + "");
-      cm.put("meta", "sum", (sum) + "");
+      cm.put("meta", "sum", sum + "");
 
       for (int i = 0; i < data.length; i++) {
         cm.put("data", i + "", data[i] + "");
@@ -1179,21 +1189,20 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
     public void run() {
       try (Scanner scanner =
           new IsolatedScanner(client.createScanner(tableName, Authorizations.EMPTY))) {
-        Random rand = new SecureRandom();
 
         for (int i = 0; i < 20; i++) {
-          int numRows = rand.nextInt(10) + 1;
+          int numRows = random.nextInt(10) + 1;
 
           ArrayList<ByteSequence> changes = new ArrayList<>(numRows);
           ArrayList<ConditionalMutation> mutations = new ArrayList<>();
 
           for (int j = 0; j < numRows; j++)
-            changes.add(rows.get(rand.nextInt(rows.size())));
+            changes.add(rows.get(random.nextInt(rows.size())));
 
           for (ByteSequence row : changes) {
             scanner.setRange(new Range(row.toString()));
             Stats stats = new Stats(scanner.iterator());
-            stats.set(rand.nextInt(10), rand.nextInt(Integer.MAX_VALUE));
+            stats.set(random.nextInt(10), random.nextInt(Integer.MAX_VALUE));
             mutations.add(stats.toMutation());
           }
 
@@ -1223,27 +1232,26 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
     String tableName = getUniqueNames(1)[0];
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
-      client.tableOperations().create(tableName);
+      NewTableConfiguration ntc = new NewTableConfiguration();
 
-      Random rand = new SecureRandom();
-
-      switch (rand.nextInt(3)) {
+      switch (random.nextInt(3)) {
         case 1:
-          client.tableOperations().addSplits(tableName, nss("4"));
+          ntc = ntc.withSplits(nss("4"));
           break;
         case 2:
-          client.tableOperations().addSplits(tableName, nss("3", "5"));
+          ntc = ntc.withSplits(nss("3", "5"));
           break;
       }
 
-      try (ConditionalWriter cw =
-          client.createConditionalWriter(tableName, new ConditionalWriterConfig())) {
+      client.tableOperations().create(tableName, ntc);
+
+      try (ConditionalWriter cw = client.createConditionalWriter(tableName)) {
 
         ArrayList<ByteSequence> rows = new ArrayList<>();
 
         for (int i = 0; i < 1000; i++) {
           rows.add(new ArrayByteSequence(
-              FastFormat.toZeroPaddedString(abs(rand.nextLong()), 16, 16, new byte[0])));
+              FastFormat.toZeroPaddedString(abs(random.nextLong()), 16, 16, new byte[0])));
         }
 
         ArrayList<ConditionalMutation> mutations = new ArrayList<>();
@@ -1268,7 +1276,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
         ExecutorService tp = Executors.newFixedThreadPool(5);
         for (int i = 0; i < 5; i++) {
-          tp.submit(new MutatorTask(tableName, client, rows, cw, failed));
+          tp.execute(new MutatorTask(tableName, client, rows, cw, failed));
         }
 
         tp.shutdown();
@@ -1277,7 +1285,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
           tp.awaitTermination(1, TimeUnit.MINUTES);
         }
 
-        assertFalse("A MutatorTask failed with an exception", failed.get());
+        assertFalse(failed.get(), "A MutatorTask failed with an exception");
       }
 
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
@@ -1303,11 +1311,10 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
   public void testSecurity() throws Exception {
     // test against table user does not have read and/or write permissions for
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String user = null;
 
       // Create a new user
       ClusterUser user1 = getUser(0);
-      user = user1.getPrincipal();
+      String user = user1.getPrincipal();
       if (saslEnabled()) {
         client.securityOperations().createLocalUser(user, null);
       } else {
@@ -1335,33 +1342,27 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
       try (
           AccumuloClient client2 =
               Accumulo.newClient().from(client.properties()).as(user, user1.getToken()).build();
-          ConditionalWriter cw1 =
-              client2.createConditionalWriter(table1, new ConditionalWriterConfig());
-          ConditionalWriter cw2 =
-              client2.createConditionalWriter(table2, new ConditionalWriterConfig());
-          ConditionalWriter cw3 =
-              client2.createConditionalWriter(table3, new ConditionalWriterConfig())) {
+          ConditionalWriter cw1 = client2.createConditionalWriter(table1);
+          ConditionalWriter cw2 = client2.createConditionalWriter(table2);
+          ConditionalWriter cw3 = client2.createConditionalWriter(table3)) {
 
         // Should be able to conditional-update a table we have R/W on
         assertEquals(Status.ACCEPTED, cw3.write(cm1).getStatus());
 
         // Conditional-update to a table we only have read on should fail
-        try {
+        assertThrows(AccumuloSecurityException.class, () -> {
           Status status = cw1.write(cm1).getStatus();
-          fail("Expected exception writing conditional mutation to table"
-              + " the user doesn't have write access to, Got status: " + status);
-        } catch (AccumuloSecurityException ase) {
-
-        }
+          log.error("Expected exception writing conditional mutation to table the user doesn't "
+              + "have write access to, Got status: {}", status);
+        });
 
         // Conditional-update to a table we only have writer on should fail
-        try {
+        assertThrows(AccumuloSecurityException.class, () -> {
           Status status = cw2.write(cm1).getStatus();
-          fail("Expected exception writing conditional mutation to table"
-              + " the user doesn't have read access to. Got status: " + status);
-        } catch (AccumuloSecurityException ase) {
-
-        }
+          log.error(
+              "Expected exception writing conditional mutation to table the user doesn't have read access to. Got status: {}",
+              status);
+        });
       }
     }
   }
@@ -1401,9 +1402,9 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
           String val = entry.getValue().toString();
 
           if (cf.equals("tx") && cq.equals("seq"))
-            assertEquals("Unexpected value in tx:seq", "1", val);
+            assertEquals("1", val, "Unexpected value in tx:seq");
           else if (cf.equals("data") && cq.equals("x"))
-            assertEquals("Unexpected value in data:x", "a", val);
+            assertEquals("a", val, "Unexpected value in data:x");
           else
             fail("Saw unexpected column family and qualifier: " + entry);
         }
@@ -1423,15 +1424,12 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
     String table = getUniqueNames(1)[0];
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
-      try {
-        client.createConditionalWriter(table, new ConditionalWriterConfig());
-        fail("Creating conditional writer for table that doesn't exist should fail");
-      } catch (TableNotFoundException e) {}
+      assertThrows(TableNotFoundException.class, () -> client.createConditionalWriter(table),
+          "Creating conditional writer for table that doesn't exist should fail");
 
       client.tableOperations().create(table);
 
-      try (ConditionalWriter cw =
-          client.createConditionalWriter(table, new ConditionalWriterConfig())) {
+      try (ConditionalWriter cw = client.createConditionalWriter(table)) {
 
         client.tableOperations().delete(table);
 
@@ -1441,13 +1439,13 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
         Result result = cw.write(cm1);
 
-        try {
+        var ae = assertThrows(AccumuloException.class, () -> {
           Status status = result.getStatus();
-          fail("Expected exception writing conditional mutation to deleted table. Got status: "
-              + status);
-        } catch (AccumuloException ae) {
-          assertEquals(TableDeletedException.class, ae.getCause().getClass());
-        }
+          log.error(
+              "Expected exception writing conditional mutation to deleted table. Got status: {}",
+              status);
+        });
+        assertSame(TableDeletedException.class, ae.getCause().getClass());
       }
     }
   }
@@ -1459,8 +1457,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
       client.tableOperations().create(table);
 
-      try (ConditionalWriter cw =
-          client.createConditionalWriter(table, new ConditionalWriterConfig())) {
+      try (ConditionalWriter cw = client.createConditionalWriter(table)) {
 
         client.tableOperations().offline(table, true);
 
@@ -1470,18 +1467,15 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
         Result result = cw.write(cm1);
 
-        try {
+        var ae = assertThrows(AccumuloException.class, () -> {
           Status status = result.getStatus();
-          fail("Expected exception writing conditional mutation to offline table. Got status: "
-              + status);
-        } catch (AccumuloException ae) {
-          assertEquals(TableOfflineException.class, ae.getCause().getClass());
-        }
+          log.error("Expected exception writing conditional mutation to offline table. Got "
+              + "status: {}", status);
+        });
+        assertSame(TableOfflineException.class, ae.getCause().getClass());
 
-        try {
-          client.createConditionalWriter(table, new ConditionalWriterConfig());
-          fail("Expected exception creating conditional writer to offline table");
-        } catch (TableOfflineException e) {}
+        assertThrows(TableOfflineException.class, () -> client.createConditionalWriter(table),
+            "Expected exception creating conditional writer to offline table");
       }
     }
   }
@@ -1493,8 +1487,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
       client.tableOperations().create(table);
 
-      try (ConditionalWriter cw =
-          client.createConditionalWriter(table, new ConditionalWriterConfig())) {
+      try (ConditionalWriter cw = client.createConditionalWriter(table)) {
 
         IteratorSetting iterSetting = new IteratorSetting(5, BadIterator.class);
 
@@ -1505,18 +1498,17 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
         Result result = cw.write(cm1);
 
-        try {
+        assertThrows(AccumuloException.class, () -> {
           Status status = result.getStatus();
-          fail("Expected exception using iterator which throws an error, Got status: " + status);
-        } catch (AccumuloException ae) {
-
-        }
+          log.error("Expected exception using iterator which throws an error, Got status: {}",
+              status);
+        });
 
       }
     }
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testNoConditions() throws AccumuloException, AccumuloSecurityException,
       TableExistsException, TableNotFoundException {
     String table = getUniqueNames(1)[0];
@@ -1524,89 +1516,15 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
       client.tableOperations().create(table);
 
-      try (ConditionalWriter cw =
-          client.createConditionalWriter(table, new ConditionalWriterConfig())) {
+      try (ConditionalWriter cw = client.createConditionalWriter(table)) {
 
         ConditionalMutation cm1 = new ConditionalMutation("r1");
         cm1.put("tx", "seq", "1");
         cm1.put("data", "x", "a");
 
-        cw.write(cm1);
+        assertThrows(IllegalArgumentException.class, () -> cw.write(cm1));
       }
     }
   }
 
-  @Test
-  public void testTrace() throws Exception {
-    // Need to add a getClientConfig() to AccumuloCluster
-    Process tracer = null;
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      MiniAccumuloClusterImpl mac = getCluster();
-      if (!client.tableOperations().exists("trace")) {
-        tracer = mac.exec(TraceServer.class).getProcess();
-        while (!client.tableOperations().exists("trace")) {
-          sleepUninterruptibly(1, TimeUnit.SECONDS);
-        }
-      }
-
-      String tableName = getUniqueNames(1)[0];
-      client.tableOperations().create(tableName);
-
-      TraceUtil.enableClientTraces("localhost", "testTrace", mac.getClientProperties());
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
-      long rootTraceId;
-      try (TraceScope root = Trace.startSpan("traceTest", Sampler.ALWAYS); ConditionalWriter cw =
-          client.createConditionalWriter(tableName, new ConditionalWriterConfig())) {
-        rootTraceId = root.getSpan().getTraceId();
-
-        // mutation conditional on column tx:seq not exiting
-        ConditionalMutation cm0 = new ConditionalMutation("99006", new Condition("tx", "seq"));
-        cm0.put("name", "last", "doe");
-        cm0.put("name", "first", "john");
-        cm0.put("tx", "seq", "1");
-        assertEquals(Status.ACCEPTED, cw.write(cm0).getStatus());
-      }
-
-      try (Scanner scanner = client.createScanner("trace", Authorizations.EMPTY)) {
-        scanner.setRange(new Range(new Text(Long.toHexString(rootTraceId))));
-        loop: while (true) {
-          final StringBuilder finalBuffer = new StringBuilder();
-          int traceCount = TraceDump.printTrace(scanner, line -> {
-            try {
-              finalBuffer.append(line).append("\n");
-            } catch (Exception ex) {
-              throw new RuntimeException(ex);
-            }
-          });
-          String traceOutput = finalBuffer.toString();
-          log.info("Trace output:" + traceOutput);
-          if (traceCount > 0) {
-            String[] parts = ("traceTest, startScan,startConditionalUpdate,conditionalUpdate"
-                + ",Check conditions,apply conditional mutations").split(",");
-            int lastPos = 0;
-            for (String part : parts) {
-              log.info("Looking in trace output for '" + part + "'");
-              int pos = traceOutput.indexOf(part);
-              if (pos == -1) {
-                log.info("Trace output doesn't contain '" + part + "'");
-                Thread.sleep(1000);
-                break loop;
-              }
-              assertTrue("Did not find '" + part + "' in output", pos > 0);
-              assertTrue("'" + part + "' occurred earlier than the previous element unexpectedly",
-                  pos > lastPos);
-              lastPos = pos;
-            }
-            break;
-          } else {
-            log.info("Ignoring trace output as traceCount not greater than zero: " + traceCount);
-            Thread.sleep(1000);
-          }
-        }
-        if (tracer != null) {
-          tracer.destroy();
-        }
-      }
-    }
-  }
 }

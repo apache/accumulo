@@ -1,25 +1,29 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.harness;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
-import static org.junit.Assert.assertTrue;
+import static org.apache.hadoop.minikdc.MiniKdc.JAVA_SECURITY_KRB5_CONF;
+import static org.apache.hadoop.minikdc.MiniKdc.SUN_SECURITY_KRB5_DEBUG;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -27,7 +31,6 @@ import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -55,76 +58,15 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class MiniClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(MiniClusterHarness.class);
 
-  private static final AtomicLong COUNTER = new AtomicLong(0);
-
   private static final String PROP_PREFIX = "org.apache.accumulo.test.functional.";
   public static final String USE_SSL_FOR_IT_OPTION = PROP_PREFIX + "useSslForIT";
   public static final String USE_CRED_PROVIDER_FOR_IT_OPTION = PROP_PREFIX + "useCredProviderForIT";
   public static final String USE_KERBEROS_FOR_IT_OPTION = PROP_PREFIX + "useKrbForIT";
   public static final String TRUE = Boolean.toString(true);
 
-  // TODO These are defined in MiniKdc >= 2.6.0. Can be removed when minimum Hadoop dependency is
-  // increased to that.
-  public static final String JAVA_SECURITY_KRB5_CONF = "java.security.krb5.conf",
-      SUN_SECURITY_KRB5_DEBUG = "sun.security.krb5.debug";
-
-  /**
-   * Create a MiniAccumuloCluster using the given Token as the credentials for the root user.
-   */
-  public MiniAccumuloClusterImpl create(AuthenticationToken token) throws Exception {
-    return create(MiniClusterHarness.class.getName(), Long.toString(COUNTER.incrementAndGet()),
-        token);
-  }
-
-  public MiniAccumuloClusterImpl create(AuthenticationToken token, TestingKdc kdc)
-      throws Exception {
-    return create(MiniClusterHarness.class.getName(), Long.toString(COUNTER.incrementAndGet()),
-        token, kdc);
-  }
-
-  public MiniAccumuloClusterImpl create(AccumuloITBase testBase, AuthenticationToken token)
-      throws Exception {
-    return create(testBase.getClass().getName(), testBase.testName.getMethodName(), token);
-  }
-
-  public MiniAccumuloClusterImpl create(AccumuloITBase testBase, AuthenticationToken token,
-      TestingKdc kdc) throws Exception {
-    return create(testBase, token, kdc, MiniClusterConfigurationCallback.NO_CALLBACK);
-  }
-
   public MiniAccumuloClusterImpl create(AccumuloITBase testBase, AuthenticationToken token,
       TestingKdc kdc, MiniClusterConfigurationCallback configCallback) throws Exception {
-    return create(testBase.getClass().getName(), testBase.testName.getMethodName(), token,
-        configCallback, kdc);
-  }
-
-  public MiniAccumuloClusterImpl create(AccumuloClusterHarness testBase, AuthenticationToken token,
-      TestingKdc kdc) throws Exception {
-    return create(testBase.getClass().getName(), testBase.testName.getMethodName(), token, testBase,
-        kdc);
-  }
-
-  public MiniAccumuloClusterImpl create(AccumuloClusterHarness testBase, AuthenticationToken token,
-      MiniClusterConfigurationCallback callback) throws Exception {
-    return create(testBase.getClass().getName(), testBase.testName.getMethodName(), token,
-        callback);
-  }
-
-  public MiniAccumuloClusterImpl create(String testClassName, String testMethodName,
-      AuthenticationToken token) throws Exception {
-    return create(testClassName, testMethodName, token,
-        MiniClusterConfigurationCallback.NO_CALLBACK);
-  }
-
-  public MiniAccumuloClusterImpl create(String testClassName, String testMethodName,
-      AuthenticationToken token, TestingKdc kdc) throws Exception {
-    return create(testClassName, testMethodName, token,
-        MiniClusterConfigurationCallback.NO_CALLBACK, kdc);
-  }
-
-  public MiniAccumuloClusterImpl create(String testClassName, String testMethodName,
-      AuthenticationToken token, MiniClusterConfigurationCallback configCallback) throws Exception {
-    return create(testClassName, testMethodName, token, configCallback, null);
+    return create(testBase.getClass().getName(), testBase.testName(), token, configCallback, kdc);
   }
 
   public MiniAccumuloClusterImpl create(String testClassName, String testMethodName,
@@ -213,10 +155,9 @@ public class MiniClusterHarness {
         truststorePassword = "truststore_password";
     try {
       new CertUtils(Property.RPC_SSL_KEYSTORE_TYPE.getDefaultValue(),
-          "o=Apache Accumulo,cn=MiniAccumuloCluster", "RSA", 2048, "sha1WithRSAEncryption")
-              .createAll(rootKeystoreFile, localKeystoreFile, publicTruststoreFile,
-                  cfg.getInstanceName(), rootKeystorePassword, cfg.getRootPassword(),
-                  truststorePassword);
+          "o=Apache Accumulo,cn=MiniAccumuloCluster", "RSA", 4096, "SHA512WITHRSA").createAll(
+              rootKeystoreFile, localKeystoreFile, publicTruststoreFile, cfg.getInstanceName(),
+              rootKeystorePassword, cfg.getRootPassword(), truststorePassword);
     } catch (Exception e) {
       throw new RuntimeException("error creating MAC keystore", e);
     }
@@ -265,10 +206,6 @@ public class MiniClusterHarness {
     cfg.setProperty(Property.INSTANCE_SECURITY_AUTHORIZOR, KerberosAuthorizor.class.getName());
     cfg.setProperty(Property.INSTANCE_SECURITY_PERMISSION_HANDLER,
         KerberosPermissionHandler.class.getName());
-    // Piggy-back on the "system user" credential, but use it as a normal KerberosToken, not the
-    // SystemToken.
-    cfg.setProperty(Property.TRACE_USER, serverUser.getPrincipal());
-    cfg.setProperty(Property.TRACE_TOKEN_TYPE, KerberosToken.CLASS_NAME);
 
     // Pass down some KRB5 debug properties
     Map<String,String> systemProperties = cfg.getSystemProperties();

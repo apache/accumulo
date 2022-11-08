@@ -1,31 +1,31 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -38,7 +38,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -64,7 +63,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterables;
 
@@ -130,7 +129,7 @@ public class SampleIT extends AccumuloClusterHarness {
 
       client.tableOperations().create(tableName, new NewTableConfiguration().enableSampling(SC1));
 
-      BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
+      BatchWriter bw = client.createBatchWriter(tableName);
 
       TreeMap<Key,Value> expected = new TreeMap<>();
       String someRow = writeData(bw, SC1, expected);
@@ -146,57 +145,58 @@ public class SampleIT extends AccumuloClusterHarness {
       isoScanner.setSamplerConfiguration(SC1);
       isoScanner.setBatchSize(10);
 
-      BatchScanner bScanner = client.createBatchScanner(tableName);
-      bScanner.setSamplerConfiguration(SC1);
-      bScanner.setRanges(Arrays.asList(new Range()));
+      try (BatchScanner bScanner = client.createBatchScanner(tableName)) {
+        bScanner.setSamplerConfiguration(SC1);
+        bScanner.setRanges(Arrays.asList(new Range()));
 
-      check(expected, scanner, bScanner, isoScanner, csiScanner);
+        check(expected, scanner, bScanner, isoScanner, csiScanner);
 
-      client.tableOperations().flush(tableName, null, null, true);
+        client.tableOperations().flush(tableName, null, null, true);
 
-      Scanner oScanner = newOfflineScanner(client, tableName, clone, SC1);
-      check(expected, scanner, bScanner, isoScanner, csiScanner, oScanner);
+        Scanner oScanner = newOfflineScanner(client, tableName, clone, SC1);
+        check(expected, scanner, bScanner, isoScanner, csiScanner, oScanner);
 
-      // ensure non sample data can be scanned after scanning sample data
-      for (ScannerBase sb : Arrays.asList(scanner, bScanner, isoScanner, csiScanner, oScanner)) {
-        sb.clearSamplerConfiguration();
-        assertEquals(20000, Iterables.size(sb));
-        sb.setSamplerConfiguration(SC1);
+        // ensure non sample data can be scanned after scanning sample data
+        for (ScannerBase sb : Arrays.asList(scanner, bScanner, isoScanner, csiScanner, oScanner)) {
+          sb.clearSamplerConfiguration();
+          assertEquals(20000, Iterables.size(sb));
+          sb.setSamplerConfiguration(SC1);
+        }
+
+        expected.keySet().removeIf(k -> k.getRow().toString().equals(someRow));
+
+        expected.put(new Key(someRow, "cf1", "cq1", 8), new Value("42"));
+        expected.put(new Key(someRow, "cf1", "cq3", 8), new Value("suprise"));
+
+        Mutation m = new Mutation(someRow);
+
+        m.put("cf1", "cq1", 8, "42");
+        m.putDelete("cf1", "cq2", 8);
+        m.put("cf1", "cq3", 8, "suprise");
+
+        bw.addMutation(m);
+        bw.close();
+
+        check(expected, scanner, bScanner, isoScanner, csiScanner);
+
+        client.tableOperations().flush(tableName, null, null, true);
+
+        oScanner = newOfflineScanner(client, tableName, clone, SC1);
+        check(expected, scanner, bScanner, isoScanner, csiScanner, oScanner);
+
+        scanner.setRange(new Range(someRow));
+        isoScanner.setRange(new Range(someRow));
+        csiScanner.setRange(new Range(someRow));
+        oScanner.setRange(new Range(someRow));
+        bScanner.setRanges(Arrays.asList(new Range(someRow)));
+
+        expected.clear();
+
+        expected.put(new Key(someRow, "cf1", "cq1", 8), new Value("42"));
+        expected.put(new Key(someRow, "cf1", "cq3", 8), new Value("suprise"));
+
+        check(expected, scanner, bScanner, isoScanner, csiScanner, oScanner);
       }
-
-      expected.keySet().removeIf(k -> k.getRow().toString().equals(someRow));
-
-      expected.put(new Key(someRow, "cf1", "cq1", 8), new Value("42".getBytes()));
-      expected.put(new Key(someRow, "cf1", "cq3", 8), new Value("suprise".getBytes()));
-
-      Mutation m = new Mutation(someRow);
-
-      m.put("cf1", "cq1", 8, "42");
-      m.putDelete("cf1", "cq2", 8);
-      m.put("cf1", "cq3", 8, "suprise");
-
-      bw.addMutation(m);
-      bw.close();
-
-      check(expected, scanner, bScanner, isoScanner, csiScanner);
-
-      client.tableOperations().flush(tableName, null, null, true);
-
-      oScanner = newOfflineScanner(client, tableName, clone, SC1);
-      check(expected, scanner, bScanner, isoScanner, csiScanner, oScanner);
-
-      scanner.setRange(new Range(someRow));
-      isoScanner.setRange(new Range(someRow));
-      csiScanner.setRange(new Range(someRow));
-      oScanner.setRange(new Range(someRow));
-      bScanner.setRanges(Arrays.asList(new Range(someRow)));
-
-      expected.clear();
-
-      expected.put(new Key(someRow, "cf1", "cq1", 8), new Value("42".getBytes()));
-      expected.put(new Key(someRow, "cf1", "cq3", 8), new Value("suprise".getBytes()));
-
-      check(expected, scanner, bScanner, isoScanner, csiScanner, oScanner);
     }
   }
 
@@ -229,12 +229,12 @@ public class SampleIT extends AccumuloClusterHarness {
 
       Key k1 = new Key(row, "cf1", "cq1", 7);
       if (sampler.accept(k1)) {
-        expected.put(k1, new Value(("" + i).getBytes()));
+        expected.put(k1, new Value("" + i));
       }
 
       Key k2 = new Key(row, "cf1", "cq2", 7);
       if (sampler.accept(k2)) {
-        expected.put(k2, new Value(("" + (100000000 - i)).getBytes()));
+        expected.put(k2, new Value("" + (100000000 - i)));
       }
     }
   }
@@ -258,7 +258,7 @@ public class SampleIT extends AccumuloClusterHarness {
 
       Key k1 = new Key(row, "cf1", "cq1", 7);
       if (sampler.accept(k1)) {
-        expected.put(k1, new Value(("" + i).getBytes()));
+        expected.put(k1, new Value("" + i));
         count++;
         if (count == 5) {
           someRow = row;
@@ -267,7 +267,7 @@ public class SampleIT extends AccumuloClusterHarness {
 
       Key k2 = new Key(row, "cf1", "cq2", 7);
       if (sampler.accept(k2)) {
-        expected.put(k2, new Value(("" + (100000000 - i)).getBytes()));
+        expected.put(k2, new Value("" + (100000000 - i)));
       }
     }
 
@@ -277,16 +277,7 @@ public class SampleIT extends AccumuloClusterHarness {
   }
 
   private int countEntries(Iterable<Entry<Key,Value>> scanner) {
-
-    int count = 0;
-    Iterator<Entry<Key,Value>> iter = scanner.iterator();
-
-    while (iter.hasNext()) {
-      iter.next();
-      count++;
-    }
-
-    return count;
+    return Iterables.size(scanner);
   }
 
   private void setRange(Range range, List<? extends ScannerBase> scanners) {
@@ -308,10 +299,10 @@ public class SampleIT extends AccumuloClusterHarness {
 
       client.tableOperations().create(tableName, new NewTableConfiguration().enableSampling(SC1));
 
-      BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
-
       TreeMap<Key,Value> expected = new TreeMap<>();
-      writeData(bw, SC1, expected);
+      try (BatchWriter bw = client.createBatchWriter(tableName)) {
+        writeData(bw, SC1, expected);
+      }
 
       ArrayList<Key> keys = new ArrayList<>(expected.keySet());
 
@@ -378,13 +369,9 @@ public class SampleIT extends AccumuloClusterHarness {
         scanners = Arrays.asList(scanner, isoScanner, bScanner, csiScanner, oScanner);
 
         for (ScannerBase s : scanners) {
-          try {
-            countEntries(s);
-            fail("Expected SampleNotPresentException, but it did not happen : "
-                + s.getClass().getSimpleName());
-          } catch (SampleNotPresentException e) {
-
-          }
+          assertThrows(SampleNotPresentException.class, () -> countEntries(s),
+              "Expected SampleNotPresentException, but it did not happen : "
+                  + s.getClass().getSimpleName());
         }
       } finally {
         if (scanner != null) {
@@ -422,7 +409,7 @@ public class SampleIT extends AccumuloClusterHarness {
       client.tableOperations().create(tableName);
 
       TreeMap<Key,Value> expected = new TreeMap<>();
-      try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
+      try (BatchWriter bw = client.createBatchWriter(tableName)) {
         writeData(bw, SC1, expected);
       }
 
@@ -430,52 +417,53 @@ public class SampleIT extends AccumuloClusterHarness {
       Scanner isoScanner = new IsolatedScanner(client.createScanner(tableName));
       isoScanner.setBatchSize(10);
       Scanner csiScanner = new ClientSideIteratorScanner(client.createScanner(tableName));
-      BatchScanner bScanner = client.createBatchScanner(tableName);
-      bScanner.setRanges(Arrays.asList(new Range()));
+      try (BatchScanner bScanner = client.createBatchScanner(tableName)) {
+        bScanner.setRanges(Arrays.asList(new Range()));
 
-      // ensure sample not present exception occurs when sampling is not configured
-      assertSampleNotPresent(SC1, scanner, isoScanner, bScanner, csiScanner);
+        // ensure sample not present exception occurs when sampling is not configured
+        assertSampleNotPresent(SC1, scanner, isoScanner, bScanner, csiScanner);
 
-      client.tableOperations().flush(tableName, null, null, true);
+        client.tableOperations().flush(tableName, null, null, true);
 
-      Scanner oScanner = newOfflineScanner(client, tableName, clone, SC1);
-      assertSampleNotPresent(SC1, scanner, isoScanner, bScanner, csiScanner, oScanner);
+        Scanner oScanner = newOfflineScanner(client, tableName, clone, SC1);
+        assertSampleNotPresent(SC1, scanner, isoScanner, bScanner, csiScanner, oScanner);
 
-      // configure sampling, however there exist an rfile w/o sample data... so should still see
-      // sample not present exception
+        // configure sampling, however there exist an rfile w/o sample data... so should still see
+        // sample not present exception
 
-      updateSamplingConfig(client, tableName, SC1);
+        updateSamplingConfig(client, tableName, SC1);
 
-      // create clone with new config
-      oScanner = newOfflineScanner(client, tableName, clone, SC1);
+        // create clone with new config
+        oScanner = newOfflineScanner(client, tableName, clone, SC1);
 
-      assertSampleNotPresent(SC1, scanner, isoScanner, bScanner, csiScanner, oScanner);
+        assertSampleNotPresent(SC1, scanner, isoScanner, bScanner, csiScanner, oScanner);
 
-      // create rfile with sample data present
-      client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+        // create rfile with sample data present
+        client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
 
-      // should be able to scan sample now
-      oScanner = newOfflineScanner(client, tableName, clone, SC1);
-      setSamplerConfig(SC1, scanner, csiScanner, isoScanner, bScanner, oScanner);
-      check(expected, scanner, isoScanner, bScanner, csiScanner, oScanner);
+        // should be able to scan sample now
+        oScanner = newOfflineScanner(client, tableName, clone, SC1);
+        setSamplerConfig(SC1, scanner, csiScanner, isoScanner, bScanner, oScanner);
+        check(expected, scanner, isoScanner, bScanner, csiScanner, oScanner);
 
-      // change sampling config
-      updateSamplingConfig(client, tableName, SC2);
+        // change sampling config
+        updateSamplingConfig(client, tableName, SC2);
 
-      // create clone with new config
-      oScanner = newOfflineScanner(client, tableName, clone, SC2);
+        // create clone with new config
+        oScanner = newOfflineScanner(client, tableName, clone, SC2);
 
-      // rfile should have different sample config than table, and scan should not work
-      assertSampleNotPresent(SC2, scanner, isoScanner, bScanner, csiScanner, oScanner);
+        // rfile should have different sample config than table, and scan should not work
+        assertSampleNotPresent(SC2, scanner, isoScanner, bScanner, csiScanner, oScanner);
 
-      // create rfile that has same sample data as table config
-      client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+        // create rfile that has same sample data as table config
+        client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
 
-      // should be able to scan sample now
-      updateExpected(SC2, expected);
-      oScanner = newOfflineScanner(client, tableName, clone, SC2);
-      setSamplerConfig(SC2, scanner, csiScanner, isoScanner, bScanner, oScanner);
-      check(expected, scanner, isoScanner, bScanner, csiScanner, oScanner);
+        // should be able to scan sample now
+        updateExpected(SC2, expected);
+        oScanner = newOfflineScanner(client, tableName, clone, SC2);
+        setSamplerConfig(SC2, scanner, csiScanner, isoScanner, bScanner, oScanner);
+        check(expected, scanner, isoScanner, bScanner, csiScanner, oScanner);
+      }
     }
   }
 
@@ -495,20 +483,12 @@ public class SampleIT extends AccumuloClusterHarness {
 
       scanner.setSamplerConfiguration(sc);
 
-      try {
-        for (Entry<Key,Value> entry : scanner) {
-          entry.getKey();
-        }
-        fail("Expected SampleNotPresentException, but it did not happen : "
-            + scanner.getClass().getSimpleName());
-      } catch (SampleNotPresentException e) {
-
-      }
+      final String message = "Expected SampleNotPresentException, but it did not happen : "
+          + scanner.getClass().getSimpleName();
+      assertThrows(SampleNotPresentException.class, () -> scanner.iterator().next(), message);
 
       scanner.clearSamplerConfiguration();
-      for (Entry<Key,Value> entry : scanner) {
-        entry.getKey();
-      }
+      scanner.forEach((k, v) -> {});
 
       if (csc == null) {
         scanner.clearSamplerConfiguration();
@@ -525,8 +505,8 @@ public class SampleIT extends AccumuloClusterHarness {
       for (Entry<Key,Value> entry : s) {
         actual.put(entry.getKey(), entry.getValue());
       }
-      assertEquals(String.format("Saw %d instead of %d entries using %s", actual.size(),
-          expected.size(), s.getClass().getSimpleName()), expected, actual);
+      assertEquals(expected, actual, String.format("Saw %d instead of %d entries using %s",
+          actual.size(), expected.size(), s.getClass().getSimpleName()));
     }
   }
 }

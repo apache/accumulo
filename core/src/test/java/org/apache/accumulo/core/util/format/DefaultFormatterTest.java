@@ -1,22 +1,25 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.util.format;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Collections;
 import java.util.Map;
@@ -27,8 +30,8 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class DefaultFormatterTest {
 
@@ -37,21 +40,21 @@ public class DefaultFormatterTest {
   DefaultFormatter df;
   Iterable<Entry<Key,Value>> empty = Collections.<Key,Value>emptyMap().entrySet();
 
-  @Before
+  @BeforeEach
   public void setUp() {
     df = new DefaultFormatter();
   }
 
-  @Test(expected = IllegalStateException.class)
+  @Test
   public void testDoubleInitialize() {
     final FormatterConfig timestampConfig = new FormatterConfig().setPrintTimestamps(true);
     df.initialize(empty, timestampConfig);
-    df.initialize(empty, timestampConfig);
+    assertThrows(IllegalStateException.class, () -> df.initialize(empty, timestampConfig));
   }
 
-  @Test(expected = IllegalStateException.class)
+  @Test
   public void testNextBeforeInitialize() {
-    df.hasNext();
+    assertThrows(IllegalStateException.class, df::hasNext);
   }
 
   @Test
@@ -70,7 +73,7 @@ public class DefaultFormatterTest {
   public void testFormatEntry() {
     final long timestamp = 0;
     Map<Key,Value> map = new TreeMap<>();
-    map.put(new Key("a", "ab", "abc", timestamp), new Value("abcd".getBytes()));
+    map.put(new Key("a", "ab", "abc", timestamp), new Value("abcd"));
 
     FormatterConfig config;
     String answer;

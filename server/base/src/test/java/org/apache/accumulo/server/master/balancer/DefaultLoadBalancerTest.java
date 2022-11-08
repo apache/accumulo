@@ -1,25 +1,27 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.master.balancer;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,14 +37,15 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.hadoop.io.Text;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
+@Deprecated(since = "2.1.0")
 public class DefaultLoadBalancerTest {
 
   class FakeTServer {
@@ -52,7 +55,7 @@ public class DefaultLoadBalancerTest {
       TabletServerStatus result = new TabletServerStatus();
       result.tableMap = new HashMap<>();
       for (KeyExtent extent : extents) {
-        TableId tableId = extent.getTableId();
+        TableId tableId = extent.tableId();
         TableInfo info = result.tableMap.get(tableId.canonical());
         if (info == null)
           result.tableMap.put(tableId.canonical(), info = new TableInfo());
@@ -74,7 +77,7 @@ public class DefaultLoadBalancerTest {
     public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, TableId table) {
       List<TabletStats> result = new ArrayList<>();
       for (KeyExtent extent : servers.get(tserver).extents) {
-        if (extent.getTableId().equals(table)) {
+        if (extent.tableId().equals(table)) {
           result.add(new TabletStats(extent.toThrift(), null, null, null, 0L, 0., 0., 0));
         }
       }
@@ -82,7 +85,7 @@ public class DefaultLoadBalancerTest {
     }
   }
 
-  @Before
+  @BeforeEach
   public void setUp() {
     last.clear();
     servers.clear();
@@ -196,7 +199,7 @@ public class DefaultLoadBalancerTest {
     while (true) {
       List<TabletMigration> migrationsOut = new ArrayList<>();
       balancer.balance(getAssignments(servers), migrations, migrationsOut);
-      if (migrationsOut.size() == 0)
+      if (migrationsOut.isEmpty())
         break;
       for (TabletMigration migration : migrationsOut) {
         if (servers.get(migration.oldServer).extents.remove(migration.tablet))
@@ -238,7 +241,7 @@ public class DefaultLoadBalancerTest {
     while (true) {
       List<TabletMigration> migrationsOut = new ArrayList<>();
       balancer.balance(getAssignments(servers), migrations, migrationsOut);
-      if (migrationsOut.size() == 0)
+      if (migrationsOut.isEmpty())
         break;
       for (TabletMigration migration : migrationsOut) {
         if (servers.get(migration.oldServer).extents.remove(migration.tablet))
@@ -269,15 +272,12 @@ public class DefaultLoadBalancerTest {
     if (expectedCounts != null) {
       for (FakeTServer server : servers.values()) {
         Map<String,Integer> counts = new HashMap<>();
-        for (KeyExtent extent : server.extents) {
-          String t = extent.getTableId().canonical();
-          if (counts.get(t) == null)
-            counts.put(t, 0);
+        server.extents.forEach(extent -> {
+          String t = extent.tableId().canonical();
+          counts.putIfAbsent(t, 0);
           counts.put(t, counts.get(t) + 1);
-        }
-        for (Entry<String,Integer> entry : counts.entrySet()) {
-          assertEquals(expectedCounts.get(entry.getKey()), counts.get(entry.getKey()));
-        }
+        });
+        counts.forEach((k, v) -> assertEquals(expectedCounts.get(k), v));
       }
     }
   }

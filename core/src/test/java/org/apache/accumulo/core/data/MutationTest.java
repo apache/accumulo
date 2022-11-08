@@ -1,27 +1,30 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.data;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -35,14 +38,14 @@ import java.util.List;
 import org.apache.accumulo.core.dataImpl.thrift.TMutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class MutationTest {
 
   private static String toHexString(byte[] ba) {
     StringBuilder str = new StringBuilder();
-    for (int i = 0; i < ba.length; i++) {
-      str.append(String.format("%x", ba[i]));
+    for (byte b : ba) {
+      str.append(String.format("%x", b));
     }
     return str.toString();
   }
@@ -51,11 +54,13 @@ public class MutationTest {
    * Test constructing a Mutation using a byte buffer. The byte array returned as the row is
    * converted to a hexadecimal string for easy comparision.
    */
+  @Test
   public void testByteConstructor() {
     Mutation m = new Mutation("0123456789".getBytes());
     assertEquals("30313233343536373839", toHexString(m.getRow()));
   }
 
+  @Test
   public void testLimitedByteConstructor() {
     Mutation m = new Mutation("0123456789".getBytes(), 2, 5);
     assertEquals("3233343536", toHexString(m.getRow()));
@@ -64,7 +69,7 @@ public class MutationTest {
   @Test
   public void test1() {
     Mutation m = new Mutation(new Text("r1"));
-    m.put(new Text("cf1"), new Text("cq1"), new Value("v1".getBytes()));
+    m.put(new Text("cf1"), new Text("cq1"), new Value("v1"));
 
     List<ColumnUpdate> updates = m.getUpdates();
 
@@ -82,8 +87,8 @@ public class MutationTest {
   @Test
   public void test2() throws IOException {
     Mutation m = new Mutation(new Text("r1"));
-    m.put(new Text("cf1"), new Text("cq1"), new Value("v1".getBytes()));
-    m.put(new Text("cf2"), new Text("cq2"), 56, new Value("v2".getBytes()));
+    m.put(new Text("cf1"), new Text("cq1"), new Value("v1"));
+    m.put(new Text("cf2"), new Text("cq2"), 56, new Value("v2"));
 
     List<ColumnUpdate> updates = m.getUpdates();
 
@@ -183,7 +188,7 @@ public class MutationTest {
   }
 
   private Value nv(String s) {
-    return new Value(s.getBytes());
+    return new Value(s);
   }
 
   @Test
@@ -361,7 +366,7 @@ public class MutationTest {
     assertEquals(expected, actual);
   }
 
-  @Test(expected = IllegalStateException.class)
+  @Test
   public void testFluentPutNull() {
     final String fam = "f16bc";
     final String qual = "q1pm2";
@@ -374,7 +379,8 @@ public class MutationTest {
     actual.at().family(fam).qualifier(qual).put(val.getBytes());
     assertEquals(expected, actual);
     assertEquals(34, actual.numBytes());
-    actual.at().family(fam).qualifier(qual).put("test2");
+    assertThrows(IllegalStateException.class,
+        () -> actual.at().family(fam).qualifier(qual).put("test2"));
   }
 
   @Test
@@ -498,6 +504,7 @@ public class MutationTest {
     verifyColumnUpdate(updates.get(7), "cf8", "cq8", "cv8", 8L, true, true, "");
   }
 
+  @Test
   public void testByteArrays() {
     Mutation m = new Mutation("r1".getBytes());
 
@@ -869,13 +876,13 @@ public class MutationTest {
     assertEquals(m1, m2);
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testThrift_Invalid() {
     Mutation m1 = new Mutation("r1");
     m1.put("cf1", "cq1", "v1");
     TMutation tm1 = m1.toThrift();
     tm1.setRow((byte[]) null);
-    new Mutation(tm1);
+    assertThrows(IllegalArgumentException.class, () -> new Mutation(tm1));
   }
 
   /*
@@ -908,11 +915,31 @@ public class MutationTest {
     }
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testSanityCheck() {
     Mutation m = new Mutation("too big mutation");
     m.put("cf", "cq1", "v");
     m.estRowAndLargeValSize += (Long.MAX_VALUE / 2);
-    m.put("cf", "cq2", "v");
+    assertThrows(IllegalArgumentException.class, () -> m.put("cf", "cq2", "v"));
+  }
+
+  @Test
+  public void testPrettyPrint() {
+    String row = "row";
+    String fam1 = "fam1";
+    String fam2 = "fam2";
+    String qual1 = "qual1";
+    String qual2 = "qual2";
+    String value1 = "value1";
+
+    Mutation m = new Mutation("row");
+    m.put(fam1, qual1, value1);
+    m.putDelete(fam2, qual2);
+    m.getUpdates(); // serialize
+
+    String expected = "mutation: " + row + "\n update: " + fam1 + ":" + qual1 + " value " + value1
+        + "\n update: " + fam2 + ":" + qual2 + " value [delete]\n";
+
+    assertEquals(expected, m.prettyPrint());
   }
 }

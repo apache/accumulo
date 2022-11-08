@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.replication;
 
@@ -20,9 +22,9 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -53,13 +55,11 @@ import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
-import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem.ReplicationStats;
-import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem.WalClientExecReturn;
-import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem.WalReplication;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
+@Deprecated
 public class AccumuloReplicaSystemTest {
 
   @Test
@@ -293,11 +293,11 @@ public class AccumuloReplicaSystemTest {
     value.mutations = new ArrayList<>();
 
     Mutation m = new Mutation("row");
-    m.put("", "", new Value(new byte[0]));
+    m.put("", "", new Value());
     value.mutations.add(m);
 
     m = new Mutation("row2");
-    m.put("", "", new Value(new byte[0]));
+    m.put("", "", new Value());
     m.addReplicationSource("peer");
     value.mutations.add(m);
 
@@ -321,8 +321,8 @@ public class AccumuloReplicaSystemTest {
 
     assertEquals("row", new String(m.getRow()));
     assertEquals(1, m.getReplicationSources().size());
-    assertTrue("Expected source cluster to be listed in mutation replication source",
-        m.getReplicationSources().contains("source"));
+    assertTrue(m.getReplicationSources().contains("source"),
+        "Expected source cluster to be listed in mutation replication source");
   }
 
   @Test
@@ -469,7 +469,7 @@ public class AccumuloReplicaSystemTest {
     TCredentials tcreds = null;
     Set<Integer> tids = new HashSet<>();
 
-    WalClientExecReturn walClientExec = ars.new WalClientExecReturn(target, input, p, status,
+    WalClientExecReturn walClientExec = new WalClientExecReturn(ars, target, input, p, status,
         sizeLimit, remoteTableId, tcreds, tids);
 
     expect(ars.getWalEdits(target, input, p, status, sizeLimit, tids)).andReturn(walReplication);
@@ -499,7 +499,7 @@ public class AccumuloReplicaSystemTest {
     TCredentials tcreds = null;
     Set<Integer> tids = new HashSet<>();
 
-    WalClientExecReturn walClientExec = ars.new WalClientExecReturn(target, input, p, status,
+    WalClientExecReturn walClientExec = new WalClientExecReturn(ars, target, input, p, status,
         sizeLimit, remoteTableId, tcreds, tids);
 
     expect(ars.getWalEdits(target, input, p, status, sizeLimit, tids)).andReturn(walReplication);

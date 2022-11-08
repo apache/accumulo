@@ -1,23 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -62,6 +65,8 @@ public class ScannerOptions implements ScannerBase {
 
   protected Map<String,String> executionHints = Collections.emptyMap();
 
+  private ConsistencyLevel consistencyLevel = ConsistencyLevel.IMMEDIATE;
+
   protected ScannerOptions() {}
 
   public ScannerOptions(ScannerOptions so) {
@@ -71,7 +76,7 @@ public class ScannerOptions implements ScannerBase {
   @Override
   public synchronized void addScanIterator(IteratorSetting si) {
     checkArgument(si != null, "si is null");
-    if (serverSideIteratorList.size() == 0) {
+    if (serverSideIteratorList.isEmpty()) {
       serverSideIteratorList = new ArrayList<>();
     }
 
@@ -87,24 +92,18 @@ public class ScannerOptions implements ScannerBase {
 
     serverSideIteratorList.add(new IterInfo(si.getPriority(), si.getIteratorClass(), si.getName()));
 
-    if (serverSideIteratorOptions.size() == 0) {
+    if (serverSideIteratorOptions.isEmpty()) {
       serverSideIteratorOptions = new HashMap<>();
     }
-
-    Map<String,String> opts = serverSideIteratorOptions.get(si.getName());
-
-    if (opts == null) {
-      opts = new HashMap<>();
-      serverSideIteratorOptions.put(si.getName(), opts);
-    }
-    opts.putAll(si.getOptions());
+    serverSideIteratorOptions.computeIfAbsent(si.getName(), k -> new HashMap<>())
+        .putAll(si.getOptions());
   }
 
   @Override
   public synchronized void removeScanIterator(String iteratorName) {
     checkArgument(iteratorName != null, "iteratorName is null");
     // if no iterators are set, we don't have it, so it is already removed
-    if (serverSideIteratorList.size() == 0) {
+    if (serverSideIteratorList.isEmpty()) {
       return;
     }
 
@@ -123,17 +122,10 @@ public class ScannerOptions implements ScannerBase {
     checkArgument(iteratorName != null, "iteratorName is null");
     checkArgument(key != null, "key is null");
     checkArgument(value != null, "value is null");
-    if (serverSideIteratorOptions.size() == 0) {
+    if (serverSideIteratorOptions.isEmpty()) {
       serverSideIteratorOptions = new HashMap<>();
     }
-
-    Map<String,String> opts = serverSideIteratorOptions.get(iteratorName);
-
-    if (opts == null) {
-      opts = new HashMap<>();
-      serverSideIteratorOptions.put(iteratorName, opts);
-    }
-    opts.put(key, value);
+    serverSideIteratorOptions.computeIfAbsent(iteratorName, k -> new HashMap<>()).put(key, value);
   }
 
   @Override
@@ -192,6 +184,8 @@ public class ScannerOptions implements ScannerBase {
 
         // its an immutable map, so can avoid copy here
         dst.executionHints = src.executionHints;
+
+        dst.consistencyLevel = src.consistencyLevel;
       }
     }
   }
@@ -216,7 +210,7 @@ public class ScannerOptions implements ScannerBase {
 
   @Override
   public synchronized long getTimeout(TimeUnit timeunit) {
-    return timeunit.convert(timeOut, TimeUnit.MILLISECONDS);
+    return timeunit.convert(timeOut, MILLISECONDS);
   }
 
   @Override
@@ -259,7 +253,7 @@ public class ScannerOptions implements ScannerBase {
 
   @Override
   public long getBatchTimeout(TimeUnit timeUnit) {
-    return timeUnit.convert(batchTimeOut, TimeUnit.MILLISECONDS);
+    return timeUnit.convert(batchTimeOut, MILLISECONDS);
   }
 
   @Override
@@ -281,6 +275,16 @@ public class ScannerOptions implements ScannerBase {
   @Override
   public synchronized void setExecutionHints(Map<String,String> hints) {
     this.executionHints = Map.copyOf(Objects.requireNonNull(hints));
+  }
+
+  @Override
+  public ConsistencyLevel getConsistencyLevel() {
+    return consistencyLevel;
+  }
+
+  @Override
+  public void setConsistencyLevel(ConsistencyLevel level) {
+    this.consistencyLevel = Objects.requireNonNull(level);
   }
 
 }

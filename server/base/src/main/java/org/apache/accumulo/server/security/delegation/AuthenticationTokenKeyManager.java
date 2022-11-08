@@ -1,24 +1,25 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.security.delegation;
 
 import java.util.List;
 
-import org.apache.accumulo.core.util.Daemon;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +29,7 @@ import com.google.common.annotations.VisibleForTesting;
 /**
  * Service that handles generation of the secret key used to create delegation tokens.
  */
-public class AuthenticationTokenKeyManager extends Daemon {
+public class AuthenticationTokenKeyManager implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(AuthenticationTokenKeyManager.class);
 
   private final AuthenticationTokenSecretManager secretManager;
@@ -56,7 +57,6 @@ public class AuthenticationTokenKeyManager extends Daemon {
    */
   public AuthenticationTokenKeyManager(AuthenticationTokenSecretManager mgr,
       ZooAuthenticationKeyDistributor dist, long keyUpdateInterval, long tokenMaxLifetime) {
-    super("Delegation Token Key Manager");
     this.secretManager = mgr;
     this.keyDistributor = dist;
     this.keyUpdateInterval = keyUpdateInterval;
@@ -113,7 +113,7 @@ public class AuthenticationTokenKeyManager extends Daemon {
 
         // Try to use the last key instead of creating a new one right away. This will present more
         // expected
-        // functionality if the active master happens to die for some reason
+        // functionality if the active manager happens to die for some reason
         AuthenticationKey currentKey = secretManager.getCurrentKey();
         if (currentKey != null) {
           log.info("Updating last key update to {} from current secret manager key",

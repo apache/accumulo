@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.clientImpl.bulk;
 
@@ -29,20 +31,22 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.bulk.BulkImport.KeyExtentCache;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 
 class ConcurrentKeyExtentCache implements KeyExtentCache {
+
+  private static Logger log = LoggerFactory.getLogger(ConcurrentKeyExtentCache.class);
 
   private static final Text MAX = new Text();
 
@@ -71,28 +75,28 @@ class ConcurrentKeyExtentCache implements KeyExtentCache {
   }
 
   private boolean inCache(KeyExtent e) {
-    return Objects.equals(e, extents.get(e.getEndRow() == null ? MAX : e.getEndRow()));
+    return Objects.equals(e, extents.get(e.endRow() == null ? MAX : e.endRow()));
   }
 
   @VisibleForTesting
   protected void updateCache(KeyExtent e) {
-    Text prevRow = e.getPrevEndRow() == null ? new Text() : e.getPrevEndRow();
-    Text endRow = e.getEndRow() == null ? MAX : e.getEndRow();
-    extents.subMap(prevRow, e.getPrevEndRow() == null, endRow, true).clear();
+    Text prevRow = e.prevEndRow() == null ? new Text() : e.prevEndRow();
+    Text endRow = e.endRow() == null ? MAX : e.endRow();
+    extents.subMap(prevRow, e.prevEndRow() == null, endRow, true).clear();
     extents.put(endRow, e);
   }
 
   @VisibleForTesting
-  protected Stream<KeyExtent> lookupExtents(Text row)
-      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-    return TabletsMetadata.builder().forTable(tableId).overlapping(row, null).checkConsistency()
-        .fetch(PREV_ROW).build(ctx).stream().limit(100).map(TabletMetadata::getExtent);
+  protected Stream<KeyExtent> lookupExtents(Text row) {
+    return TabletsMetadata.builder(ctx).forTable(tableId).overlapping(row, true, null)
+        .checkConsistency().fetch(PREV_ROW).build().stream().limit(100)
+        .map(TabletMetadata::getExtent);
   }
 
   @Override
-  public KeyExtent lookup(Text row)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public KeyExtent lookup(Text row) {
     while (true) {
+
       KeyExtent ke = getFromCache(row);
       if (ke != null)
         return ke;
@@ -123,12 +127,22 @@ class ConcurrentKeyExtentCache implements KeyExtentCache {
 
         for (Text lookupRow : lookupRows) {
           if (getFromCache(lookupRow) == null) {
-            Iterator<KeyExtent> iter = lookupExtents(lookupRow).iterator();
-            while (iter.hasNext()) {
-              KeyExtent ke2 = iter.next();
-              if (inCache(ke2))
+            while (true) {
+              try {
+                Iterator<KeyExtent> iter = lookupExtents(lookupRow).iterator();
+                while (iter.hasNext()) {
+                  KeyExtent ke2 = iter.next();
+                  if (inCache(ke2))
+                    break;
+                  updateCache(ke2);
+                }
                 break;
-              updateCache(ke2);
+              } catch (TabletDeletedException tde) {
+                // tablets were merged away in the table, start over and try again
+                log.debug("While trying to obtain a tablet location for bulk import, a tablet was "
+                    + "deleted. If this was caused by a concurrent merge tablet "
+                    + "operation, this is okay. Otherwise, it could be a problem.", tde);
+              }
             }
           }
         }

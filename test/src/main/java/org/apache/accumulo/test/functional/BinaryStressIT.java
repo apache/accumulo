@@ -1,23 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -38,27 +41,27 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class BinaryStressIT extends AccumuloClusterHarness {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
   }
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     cfg.setProperty(Property.TSERV_MAXMEM, "50K");
-    cfg.setProperty(Property.TSERV_MAJC_DELAY, "0");
+    cfg.setProperty(Property.TSERV_MAJC_DELAY, "50ms");
   }
 
   private String majcDelay, maxMem;
 
-  @Before
+  @BeforeEach
   public void alterConfig() throws Exception {
     if (getClusterType() == ClusterType.MINI) {
       return;
@@ -69,7 +72,7 @@ public class BinaryStressIT extends AccumuloClusterHarness {
       majcDelay = conf.get(Property.TSERV_MAJC_DELAY.getKey());
       maxMem = conf.get(Property.TSERV_MAXMEM.getKey());
 
-      iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), "0");
+      iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), "50ms");
       iops.setProperty(Property.TSERV_MAXMEM.getKey(), "50K");
 
       getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
@@ -77,7 +80,7 @@ public class BinaryStressIT extends AccumuloClusterHarness {
     }
   }
 
-  @After
+  @AfterEach
   public void resetConfig() throws Exception {
     if (majcDelay != null) {
       try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
@@ -105,7 +108,7 @@ public class BinaryStressIT extends AccumuloClusterHarness {
           tablets.add(entry.getKey().getRow());
         }
       }
-      assertTrue("Expected at least 8 tablets, saw " + tablets.size(), tablets.size() > 7);
+      assertTrue(tablets.size() > 7, "Expected at least 8 tablets, saw " + tablets.size());
     }
   }
 

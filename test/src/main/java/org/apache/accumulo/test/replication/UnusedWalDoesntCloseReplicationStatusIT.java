@@ -1,26 +1,28 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.replication;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.DataOutputStream;
 import java.io.File;
@@ -29,6 +31,7 @@ import java.util.Collections;
 import java.util.Map.Entry;
 import java.util.UUID;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -40,12 +43,13 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.replication.ReplicaSystemFactory;
 import org.apache.accumulo.server.replication.StatusUtil;
@@ -60,10 +64,13 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterables;
 
+@Disabled("Replication ITs are not stable and not currently maintained")
+@Deprecated
 public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase {
 
   @Override
@@ -85,7 +92,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
     final int numericTableId = Integer.parseInt(tableId.canonical());
     final int fakeTableId = numericTableId + 1;
 
-    assertNotNull("Did not find table ID", tableId);
+    assertNotNull(tableId, "Did not find table ID");
 
     client.tableOperations().setProperty(tableName, Property.TABLE_REPLICATION.getKey(), "true");
     client.tableOperations().setProperty(tableName,
@@ -96,7 +103,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
 
     FileSystem fs = FileSystem.getLocal(new Configuration());
     File tserverWalDir =
-        new File(accumuloDir, ServerConstants.WAL_DIR + Path.SEPARATOR + "faketserver+port");
+        new File(accumuloDir, Constants.WAL_DIR + Path.SEPARATOR + "faketserver+port");
     File tserverWal = new File(tserverWalDir, UUID.randomUUID().toString());
     fs.mkdirs(new Path(tserverWalDir.getAbsolutePath()));
 
@@ -160,14 +167,14 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
 
     try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
 
-      s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
+      s.setRange(TabletsSection.getRange(tableId));
       for (Entry<Key,Value> entry : s) {
         System.out.println(entry.getKey().toStringNoTruncate() + " " + entry.getValue());
       }
     }
 
     try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      s.setRange(MetadataSchema.ReplicationSection.getRange());
+      s.setRange(ReplicationSection.getRange());
       for (Entry<Key,Value> entry : s) {
         System.out.println(entry.getKey().toStringNoTruncate() + " "
             + ProtobufUtil.toString(Status.parseFrom(entry.getValue().get())));
@@ -181,14 +188,14 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
       String walUri = tserverWal.toURI().toString();
       KeyExtent extent = new KeyExtent(tableId, null, null);
       try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
-        Mutation m = new Mutation(extent.getMetadataEntry());
-        m.put(MetadataSchema.TabletsSection.LogColumnFamily.NAME,
-            new Text("localhost:12345/" + walUri), new Value((walUri + "|1").getBytes(UTF_8)));
+        Mutation m = new Mutation(extent.toMetaRow());
+        m.put(LogColumnFamily.NAME, new Text("localhost:12345/" + walUri),
+            new Value(walUri + "|1"));
         bw.addMutation(m);
 
         // Add a replication entry for our fake WAL
-        m = new Mutation(MetadataSchema.ReplicationSection.getRowPrefix() + new Path(walUri));
-        m.put(MetadataSchema.ReplicationSection.COLF, new Text(tableId.canonical()),
+        m = new Mutation(ReplicationSection.getRowPrefix() + new Path(walUri));
+        m.put(ReplicationSection.COLF, new Text(tableId.canonical()),
             new Value(StatusUtil.fileCreated(System.currentTimeMillis()).toByteArray()));
         bw.addMutation(m);
       }
@@ -197,14 +204,14 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
     }
 
     try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
+      s.setRange(TabletsSection.getRange(tableId));
       for (Entry<Key,Value> entry : s) {
         log.info("{} {}", entry.getKey().toStringNoTruncate(), entry.getValue());
       }
     }
 
     try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      s.setRange(MetadataSchema.ReplicationSection.getRange());
+      s.setRange(ReplicationSection.getRange());
       for (Entry<Key,Value> entry : s) {
         log.info("{} {}", entry.getKey().toStringNoTruncate(),
             ProtobufUtil.toString(Status.parseFrom(entry.getValue().get())));
@@ -219,18 +226,18 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
     }
 
     try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
+      s.setRange(TabletsSection.getRange(tableId));
       for (Entry<Key,Value> entry : s) {
         log.info("{} {}", entry.getKey().toStringNoTruncate(), entry.getValue());
       }
     }
 
     try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      s.setRange(MetadataSchema.ReplicationSection.getRange());
+      s.setRange(ReplicationSection.getRange());
       for (Entry<Key,Value> entry : s) {
         Status status = Status.parseFrom(entry.getValue().get());
         log.info("{} {}", entry.getKey().toStringNoTruncate(), ProtobufUtil.toString(status));
-        assertFalse("Status record was closed and it should not be", status.getClosed());
+        assertFalse(status.getClosed(), "Status record was closed and it should not be");
       }
     }
   }

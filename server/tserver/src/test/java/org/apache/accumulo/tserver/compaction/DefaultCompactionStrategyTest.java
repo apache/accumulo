@@ -1,29 +1,29 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.compaction;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.DataInputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -31,31 +31,24 @@ import java.util.LongSummaryStatistics;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
-import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.file.FileSKVIterator;
-import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
+@SuppressWarnings("removal")
 public class DefaultCompactionStrategyTest {
 
   private static Pair<Key,Key> keys(String firstString, String secondString) {
@@ -70,8 +63,6 @@ public class DefaultCompactionStrategyTest {
 
   public static ServerContext getServerContext() {
     ServerContext context = EasyMock.createMock(ServerContext.class);
-    EasyMock.expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())
-        .anyTimes();
     EasyMock.replay(context);
     return context;
   }
@@ -85,100 +76,20 @@ public class DefaultCompactionStrategyTest {
     fakeFiles.put("file4", keys(null, null));
   }
 
-  // Mock FileSKVIterator, which will provide first/last keys above
-  private static class TestFileSKVIterator implements FileSKVIterator {
-    private String filename;
-
-    TestFileSKVIterator(String filename) {
-      this.filename = filename;
-    }
-
-    @Override
-    public void setInterruptFlag(AtomicBoolean flag) {}
-
-    @Override
-    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
-        IteratorEnvironment env) {}
-
-    @Override
-    public boolean hasTop() {
-      return false;
-    }
-
-    @Override
-    public void next() {}
-
-    @Override
-    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) {}
-
-    @Override
-    public Key getTopKey() {
-      return null;
-    }
-
-    @Override
-    public Value getTopValue() {
-      return null;
-    }
-
-    @Override
-    public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-      return null;
-    }
-
-    @Override
-    public Key getFirstKey() {
-      Pair<Key,Key> pair = fakeFiles.get(filename);
-      if (pair == null)
-        return null;
-      return pair.getFirst();
-    }
-
-    @Override
-    public Key getLastKey() {
-      Pair<Key,Key> pair = fakeFiles.get(filename);
-      if (pair == null)
-        return null;
-      return pair.getSecond();
-    }
-
-    @Override
-    public DataInputStream getMetaStore(String name) {
-      return null;
-    }
-
-    @Override
-    public void closeDeepCopies() {}
-
-    @Override
-    public void close() {}
-
-    @Override
-    public FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig) {
-      return null;
-    }
-
-  }
-
   static final DefaultConfiguration dfault = DefaultConfiguration.getInstance();
 
   private static class TestCompactionRequest extends MajorCompactionRequest {
 
     Integer mfpt = null;
 
-    @Override
-    public FileSKVIterator openReader(FileRef ref) {
-      return new TestFileSKVIterator(ref.toString());
-    }
-
     TestCompactionRequest(KeyExtent extent, MajorCompactionReason reason,
-        Map<FileRef,DataFileValue> files) {
+        Map<StoredTabletFile,DataFileValue> files) {
       super(extent, reason, dfault, getServerContext());
       setFiles(files);
     }
 
     TestCompactionRequest(KeyExtent extent, MajorCompactionReason reason,
-        Map<FileRef,DataFileValue> files, AccumuloConfiguration config) {
+        Map<StoredTabletFile,DataFileValue> files, AccumuloConfiguration config) {
       super(extent, reason, config, getServerContext());
       setFiles(files);
     }
@@ -196,10 +107,10 @@ public class DefaultCompactionStrategyTest {
 
   }
 
-  static Map<FileRef,DataFileValue> createFileMap(Object... objs) {
-    Map<FileRef,DataFileValue> files = new HashMap<>();
+  static Map<StoredTabletFile,DataFileValue> createFileMap(Object... objs) {
+    Map<StoredTabletFile,DataFileValue> files = new HashMap<>();
     for (int i = 0; i < objs.length; i += 2) {
-      files.put(new FileRef("hdfs://nn1/accumulo/tables/5/t-0001/" + objs[i]),
+      files.put(new StoredTabletFile("hdfs://nn1/accumulo/tables/5/t-0001/" + objs[i]),
           new DataFileValue(((Number) objs[i + 1]).longValue(), 0));
     }
     return files;
@@ -218,10 +129,10 @@ public class DefaultCompactionStrategyTest {
     return asSet(Arrays.asList(strings));
   }
 
-  private static Set<String> asStringSet(Collection<FileRef> refs) {
+  private static Set<String> asStringSet(Collection<StoredTabletFile> refs) {
     HashSet<String> result = new HashSet<>();
-    for (FileRef ref : refs) {
-      result.add(ref.path().toString());
+    for (TabletFile ref : refs) {
+      result.add(ref.getPathStr());
     }
     return result;
   }
@@ -324,7 +235,7 @@ public class DefaultCompactionStrategyTest {
     private ConfigurationCopy config;
 
     int nextFile = 0;
-    Map<FileRef,DataFileValue> files = new HashMap<>();
+    Map<StoredTabletFile,DataFileValue> files = new HashMap<>();
 
     long totalRead = 0;
     long added = 0;
@@ -342,7 +253,7 @@ public class DefaultCompactionStrategyTest {
             "hdfs://nn1/accumulo/tables/5/t-0001/I" + String.format("%06d", nextFile) + ".rf";
         nextFile++;
 
-        files.put(new FileRef(name), new DataFileValue(size, entries));
+        files.put(new StoredTabletFile(name), new DataFileValue(size, entries));
         added += size;
       }
     }
@@ -360,7 +271,7 @@ public class DefaultCompactionStrategyTest {
         long totalSize = 0;
         long totalEntries = 0;
 
-        for (FileRef fr : plan.inputFiles) {
+        for (StoredTabletFile fr : plan.inputFiles) {
           DataFileValue dfv = files.remove(fr);
 
           totalSize += dfv.getSize();
@@ -373,7 +284,7 @@ public class DefaultCompactionStrategyTest {
             "hdfs://nn1/accumulo/tables/5/t-0001/C" + String.format("%06d", nextFile) + ".rf";
         nextFile++;
 
-        files.put(new FileRef(name), new DataFileValue(totalSize, totalEntries));
+        files.put(new StoredTabletFile(name), new DataFileValue(totalSize, totalEntries));
 
         return totalSize;
 
@@ -391,15 +302,14 @@ public class DefaultCompactionStrategyTest {
     }
 
     void print() {
-      List<Entry<FileRef,DataFileValue>> entries = new ArrayList<>(files.entrySet());
+      List<Entry<StoredTabletFile,DataFileValue>> entries = new ArrayList<>(files.entrySet());
 
-      Collections.sort(entries,
-          (e1, e2) -> Long.compare(e2.getValue().getSize(), e1.getValue().getSize()));
+      entries.sort((e1, e2) -> Long.compare(e2.getValue().getSize(), e1.getValue().getSize()));
 
-      for (Entry<FileRef,DataFileValue> entry : entries) {
+      for (Entry<StoredTabletFile,DataFileValue> entry : entries) {
 
-        System.out.printf("%s %,d %,d\n", entry.getKey().path().getName(),
-            entry.getValue().getSize(), entry.getValue().getNumEntries());
+        System.out.printf("%s %,d %,d\n", entry.getKey().getFileName(), entry.getValue().getSize(),
+            entry.getValue().getNumEntries());
       }
     }
 

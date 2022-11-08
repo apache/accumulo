@@ -1,23 +1,25 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test;
 
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -33,15 +35,16 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
+import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
@@ -50,7 +53,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.gson.Gson;
 
@@ -74,9 +77,8 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
     String uri = getCluster().getMiniDfs().getHttpUri(0);
     URL url = new URL(uri + "/jmx");
     log.debug("Fetching web page " + url);
-    String jsonString = FunctionalTestUtils.readAll(url.openStream());
-    Gson gson = new Gson();
-    Map<?,?> jsonObject = gson.fromJson(jsonString, Map.class);
+    String jsonString = FunctionalTestUtils.readWebPage(url).body();
+    Map<?,?> jsonObject = new Gson().fromJson(jsonString, Map.class);
     List<?> beans = (List<?>) jsonObject.get("beans");
     for (Object bean : beans) {
       Map<?,?> map = (Map<?,?>) bean;
@@ -95,19 +97,22 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
   public void compareOldNewBulkImportTest() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       getCluster().getClusterControl().kill(ServerType.GARBAGE_COLLECTOR, "localhost");
+
       final String tableName = getUniqueNames(1)[0];
-      c.tableOperations().create(tableName);
-      // turn off compactions
-      c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "2000");
-      c.tableOperations().setProperty(tableName, Property.TABLE_FILE_MAX.getKey(), "2000");
+      // disable compactions
+      Map<String,String> props = new HashMap<>();
+      props.put(Property.TABLE_MAJC_RATIO.getKey(), "2000");
+      props.put(Property.TABLE_FILE_MAX.getKey(), "2000");
       // splits to slow down bulk import
       SortedSet<Text> splits = new TreeSet<>();
       for (int i = 1; i < 0xf; i++) {
         splits.add(new Text(Integer.toHexString(i)));
       }
-      c.tableOperations().addSplits(tableName, splits);
 
-      MasterMonitorInfo stats = getCluster().getMasterMonitorInfo();
+      var ntc = new NewTableConfiguration().setProperties(props).withSplits(splits);
+      c.tableOperations().create(tableName, ntc);
+
+      ManagerMonitorInfo stats = getCluster().getManagerMonitorInfo();
       assertEquals(1, stats.tServerInfo.size());
 
       log.info("Creating lots of bulk import files");
@@ -128,11 +133,11 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
           for (int i1 = 0; i1 < 100; i1++) {
             FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
                 .forFile(files + "/bulk_" + i1 + "." + RFile.EXTENSION, fs, fs.getConf(),
-                    CryptoServiceFactory.newDefaultInstance())
+                    NoCryptoServiceFactory.NONE)
                 .withTableConfiguration(DefaultConfiguration.getInstance()).build();
             writer.startDefaultLocalityGroup();
             for (int j = 0x100; j < 0xfff; j += 3) {
-              writer.append(new Key(Integer.toHexString(j)), new Value(new byte[0]));
+              writer.append(new Key(Integer.toHexString(j)), new Value());
             }
             writer.close();
           }
@@ -175,7 +180,7 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
       // counts for old bulk import:
       // Expected number of FileInfoOps was between 1000 and 2100
       // new bulk import is way better :)
-      assertEquals("unexpected number of FileInfoOps", 20, getFileInfoOpts);
+      assertEquals(20, getFileInfoOpts, "unexpected number of FileInfoOps");
     }
   }
 }

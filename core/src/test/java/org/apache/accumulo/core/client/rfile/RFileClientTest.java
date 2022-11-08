@@ -1,26 +1,29 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.core.client.rfile;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static com.google.common.collect.MoreCollectors.onlyElement;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,7 +38,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -51,7 +53,6 @@ import org.apache.accumulo.core.client.summary.summarizers.FamilySummarizer;
 import org.apache.accumulo.core.client.summary.summarizers.VisibilitySummarizer;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -62,15 +63,18 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class RFileClientTest {
+
+  private static final SecureRandom random = new SecureRandom();
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path is set by test, not user")
   private String createTmpTestFile() throws IOException {
@@ -110,7 +114,7 @@ public class RFileClientTest {
           String qual = colStr(q);
           for (String v : vis) {
             Key k = new Key(row, fam, qual, v);
-            testData.put(k, new Value((k.hashCode() + "").getBytes()));
+            testData.put(k, new Value(k.hashCode() + ""));
           }
         }
       }
@@ -324,9 +328,9 @@ public class RFileClientTest {
     Key k2 = new Key("r1", "f1", "q2", "A");
     Key k3 = new Key("r1", "f1", "q3");
 
-    Value v1 = new Value("p".getBytes());
-    Value v2 = new Value("c".getBytes());
-    Value v3 = new Value("t".getBytes());
+    Value v1 = new Value("p");
+    Value v2 = new Value("c");
+    Value v3 = new Value("t");
 
     writer.append(k1, v1);
     writer.append(k2, v2);
@@ -365,8 +369,8 @@ public class RFileClientTest {
     k2.setTimestamp(6);
     k2.setDeleted(true);
 
-    Value v1 = new Value("p".getBytes());
-    Value v2 = new Value("".getBytes());
+    Value v1 = new Value("p");
+    Value v2 = new Value("");
 
     writer.append(k2, v2);
     writer.append(k1, v1);
@@ -430,8 +434,8 @@ public class RFileClientTest {
     Key k2 = new Key("r1", "f1", "q1");
     k2.setTimestamp(6);
 
-    Value v1 = new Value("p".getBytes());
-    Value v2 = new Value("q".getBytes());
+    Value v1 = new Value("p");
+    Value v2 = new Value("q");
 
     writer.append(k2, v2);
     writer.append(k1, v1);
@@ -516,16 +520,11 @@ public class RFileClientTest {
     Scanner scanner = RFile.newScanner().from(testFile).withFileSystem(localFs)
         .withIndexCache(1000000).withDataCache(10000000).build();
 
-    Random rand = new SecureRandom();
-
-    for (int i = 0; i < 100; i++) {
-      int r = rand.nextInt(10000);
+    random.ints(100, 0, 10_000).forEach(r -> {
       scanner.setRange(new Range(rowStr(r)));
-      Iterator<Entry<Key,Value>> iter = scanner.iterator();
-      assertTrue(iter.hasNext());
-      assertEquals(rowStr(r), iter.next().getKey().getRow().toString());
-      assertFalse(iter.hasNext());
-    }
+      String actual = scanner.stream().collect(onlyElement()).getKey().getRow().toString();
+      assertEquals(rowStr(r), actual);
+    });
 
     scanner.close();
   }
@@ -689,31 +688,31 @@ public class RFileClientTest {
     }
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testOutOfOrder() throws Exception {
     // test that exception declared in API is thrown
     Key k1 = new Key("r1", "f1", "q1");
-    Value v1 = new Value("1".getBytes());
+    Value v1 = new Value("1");
 
     Key k2 = new Key("r2", "f1", "q1");
-    Value v2 = new Value("2".getBytes());
+    Value v2 = new Value("2");
 
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
     String testFile = createTmpTestFile();
     try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
       writer.append(k2, v2);
-      writer.append(k1, v1);
+      assertThrows(IllegalArgumentException.class, () -> writer.append(k1, v1));
     }
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testOutOfOrderIterable() throws Exception {
     // test that exception declared in API is thrown
     Key k1 = new Key("r1", "f1", "q1");
-    Value v1 = new Value("1".getBytes());
+    Value v1 = new Value("1");
 
     Key k2 = new Key("r2", "f1", "q1");
-    Value v2 = new Value("2".getBytes());
+    Value v2 = new Value("2");
 
     ArrayList<Entry<Key,Value>> data = new ArrayList<>();
     data.add(new AbstractMap.SimpleEntry<>(k2, v2));
@@ -722,11 +721,11 @@ public class RFileClientTest {
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
     String testFile = createTmpTestFile();
     try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
-      writer.append(data);
+      assertThrows(IllegalArgumentException.class, () -> writer.append(data));
     }
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testBadVis() throws Exception {
     // this test has two purposes ensure an exception is thrown and ensure the exception document in
     // the javadoc is thrown
@@ -735,11 +734,11 @@ public class RFileClientTest {
     try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
       writer.startDefaultLocalityGroup();
       Key k1 = new Key("r1", "f1", "q1", "(A&(B");
-      writer.append(k1, new Value("".getBytes()));
+      assertThrows(IllegalArgumentException.class, () -> writer.append(k1, new Value("")));
     }
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testBadVisIterable() throws Exception {
     // test append(iterable) method
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
@@ -747,43 +746,44 @@ public class RFileClientTest {
     try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
       writer.startDefaultLocalityGroup();
       Key k1 = new Key("r1", "f1", "q1", "(A&(B");
-      Entry<Key,Value> entry = new AbstractMap.SimpleEntry<>(k1, new Value("".getBytes()));
-      writer.append(Collections.singletonList(entry));
+      Entry<Key,Value> entry = new AbstractMap.SimpleEntry<>(k1, new Value(""));
+      assertThrows(IllegalArgumentException.class,
+          () -> writer.append(Collections.singletonList(entry)));
     }
   }
 
-  @Test(expected = IllegalStateException.class)
+  @Test
   public void testDoubleStart() throws Exception {
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
     String testFile = createTmpTestFile();
     try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
       writer.startDefaultLocalityGroup();
-      writer.startDefaultLocalityGroup();
+      assertThrows(IllegalStateException.class, writer::startDefaultLocalityGroup);
     }
   }
 
-  @Test(expected = IllegalStateException.class)
+  @Test
   public void testAppendStartDefault() throws Exception {
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
     String testFile = createTmpTestFile();
     try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
-      writer.append(new Key("r1", "f1", "q1"), new Value("1".getBytes()));
-      writer.startDefaultLocalityGroup();
+      writer.append(new Key("r1", "f1", "q1"), new Value("1"));
+      assertThrows(IllegalStateException.class, writer::startDefaultLocalityGroup);
     }
   }
 
-  @Test(expected = IllegalStateException.class)
+  @Test
   public void testStartAfter() throws Exception {
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
     String testFile = createTmpTestFile();
     try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
       Key k1 = new Key("r1", "f1", "q1");
-      writer.append(k1, new Value("".getBytes()));
-      writer.startNewLocalityGroup("lg1", "fam1");
+      writer.append(k1, new Value(""));
+      assertThrows(IllegalStateException.class, () -> writer.startNewLocalityGroup("lg1", "fam1"));
     }
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testIllegalColumn() throws Exception {
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
     String testFile = createTmpTestFile();
@@ -791,28 +791,28 @@ public class RFileClientTest {
       writer.startNewLocalityGroup("lg1", "fam1");
       Key k1 = new Key("r1", "f1", "q1");
       // should not be able to append the column family f1
-      writer.append(k1, new Value("".getBytes()));
+      assertThrows(IllegalArgumentException.class, () -> writer.append(k1, new Value("")));
     }
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testWrongGroup() throws Exception {
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
     String testFile = createTmpTestFile();
     try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
       writer.startNewLocalityGroup("lg1", "fam1");
       Key k1 = new Key("r1", "fam1", "q1");
-      writer.append(k1, new Value("".getBytes()));
+      writer.append(k1, new Value(""));
       writer.startDefaultLocalityGroup();
       // should not be able to append the column family fam1 to default locality group
       Key k2 = new Key("r1", "fam1", "q2");
-      writer.append(k2, new Value("".getBytes()));
+      assertThrows(IllegalArgumentException.class, () -> writer.append(k2, new Value("")));
     }
   }
 
   private Reader getReader(LocalFileSystem localFs, String testFile) throws IOException {
     return (Reader) FileOperations.getInstance().newReaderBuilder()
-        .forFile(testFile, localFs, localFs.getConf(), CryptoServiceFactory.newDefaultInstance())
+        .forFile(testFile, localFs, localFs.getConf(), NoCryptoServiceFactory.NONE)
         .withTableConfiguration(DefaultConfiguration.getInstance()).build();
   }
 

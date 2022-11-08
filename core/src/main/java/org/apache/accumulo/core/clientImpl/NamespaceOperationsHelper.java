@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.clientImpl;
 
@@ -57,10 +59,12 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
     for (IteratorScope scope : scopes) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
           scope.name().toLowerCase(), setting.getName());
-      for (Entry<String,String> prop : setting.getOptions().entrySet()) {
-        this.setProperty(namespace, root + ".opt." + prop.getKey(), prop.getValue());
-      }
-      this.setProperty(namespace, root, setting.getPriority() + "," + setting.getIteratorClass());
+      this.modifyProperties(namespace, properties -> {
+        for (Entry<String,String> prop : setting.getOptions().entrySet()) {
+          properties.put(root + ".opt." + prop.getKey(), prop.getValue());
+        }
+        properties.put(root, setting.getPriority() + "," + setting.getIteratorClass());
+      });
     }
   }
 
@@ -69,17 +73,14 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
       throws AccumuloSecurityException, AccumuloException, NamespaceNotFoundException {
     if (!exists(namespace))
       throw new NamespaceNotFoundException(null, namespace, null);
-    Map<String,String> copy = new TreeMap<>();
-    for (Entry<String,String> property : this.getProperties(namespace)) {
-      copy.put(property.getKey(), property.getValue());
-    }
+    Map<String,String> copy = Map.copyOf(this.getConfiguration(namespace));
     for (IteratorScope scope : scopes) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
           scope.name().toLowerCase(), name);
-      for (Entry<String,String> property : copy.entrySet()) {
-        if (property.getKey().equals(root) || property.getKey().startsWith(root + ".opt."))
-          this.removeProperty(namespace, property.getKey());
-      }
+      this.modifyProperties(namespace,
+          properties -> copy.keySet().stream()
+              .filter(key -> key.equals(root) || key.startsWith(root + ".opt."))
+              .forEach(properties::remove));
     }
   }
 
@@ -169,7 +170,7 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
           }
         }
       }
-      if (optionConflicts.size() > 0)
+      if (!optionConflicts.isEmpty())
         throw new AccumuloException(new IllegalArgumentException(
             "iterator options conflict for " + setting.getName() + ": " + optionConflicts));
     }

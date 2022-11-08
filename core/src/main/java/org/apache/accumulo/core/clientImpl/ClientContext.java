@@ -1,32 +1,52 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Suppliers.memoizeWithExpiration;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 
+import java.lang.Thread.UncaughtExceptionHandler;
+import java.lang.reflect.InvocationTargetException;
+import java.net.URL;
 import java.nio.file.Path;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -38,22 +58,33 @@ import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NamespaceOperations;
-import org.apache.accumulo.core.client.admin.ReplicationOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.data.KeyValue;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
+import org.apache.accumulo.core.fate.zookeeper.ZooCacheFactory;
+import org.apache.accumulo.core.fate.zookeeper.ZooReader;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.ReadConsistency;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
@@ -63,10 +94,14 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonReservation;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
+import org.apache.accumulo.core.spi.scan.ScanServerInfo;
+import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.core.util.OpTimer;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.tables.TableZooHelper;
+import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,30 +121,38 @@ public class ClientContext implements AccumuloClient {
 
   private static final Logger log = LoggerFactory.getLogger(ClientContext.class);
 
-  private ClientInfo info;
-  private String instanceId;
+  private final ClientInfo info;
+  private InstanceId instanceId;
+  private final ZooReader zooReader;
   private final ZooCache zooCache;
 
   private Credentials creds;
   private BatchWriterConfig batchWriterConfig;
-  private AccumuloConfiguration serverConf;
-  private Configuration hadoopConf;
+  private ConditionalWriterConfig conditionalWriterConfig;
+  private final AccumuloConfiguration serverConf;
+  private final Configuration hadoopConf;
 
   // These fields are very frequently accessed (each time a connection is created) and expensive to
   // compute, so cache them.
-  private Supplier<Long> timeoutSupplier;
-  private Supplier<SaslConnectionParams> saslSupplier;
-  private Supplier<SslConnectionParams> sslSupplier;
+  private final Supplier<Long> timeoutSupplier;
+  private final Supplier<SaslConnectionParams> saslSupplier;
+  private final Supplier<SslConnectionParams> sslSupplier;
+  private final Supplier<ScanServerSelector> scanServerSelectorSupplier;
   private TCredentials rpcCreds;
+  private ThriftTransportPool thriftTransportPool;
 
   private volatile boolean closed = false;
 
   private SecurityOperations secops = null;
-  private TableOperationsImpl tableops = null;
-  private NamespaceOperations namespaceops = null;
+  private final TableOperationsImpl tableops;
+  private final NamespaceOperations namespaceops;
   private InstanceOperations instanceops = null;
-  private ReplicationOperations replicationops = null;
-  private SingletonReservation singletonReservation;
+  @SuppressWarnings("deprecation")
+  private org.apache.accumulo.core.client.admin.ReplicationOperations replicationops = null;
+  private final SingletonReservation singletonReservation;
+  private final ThreadPools clientThreadPools;
+  private ThreadPoolExecutor cleanupThreadPool;
+  private ThreadPoolExecutor scannerReadaheadPool;
 
   private void ensureOpen() {
     if (closed) {
@@ -117,94 +160,127 @@ public class ClientContext implements AccumuloClient {
     }
   }
 
-  private static <T> Supplier<T> memoizeWithExpiration(Supplier<T> s) {
-    // This insanity exists to make modernizer plugin happy. We are living in the future now.
-    return () -> Suppliers.memoizeWithExpiration(s::get, 100, TimeUnit.MILLISECONDS).get();
+  private ScanServerSelector createScanServerSelector() {
+    String clazz = ClientProperty.SCAN_SERVER_SELECTOR.getValue(info.getProperties());
+    try {
+      Class<? extends ScanServerSelector> impl =
+          Class.forName(clazz).asSubclass(ScanServerSelector.class);
+      ScanServerSelector scanServerSelector = impl.getDeclaredConstructor().newInstance();
+
+      Map<String,String> sserverProps = new HashMap<>();
+      ClientProperty
+          .getPrefix(info.getProperties(), ClientProperty.SCAN_SERVER_SELECTOR_OPTS_PREFIX.getKey())
+          .forEach((k, v) -> {
+            sserverProps.put(
+                k.toString()
+                    .substring(ClientProperty.SCAN_SERVER_SELECTOR_OPTS_PREFIX.getKey().length()),
+                v.toString());
+          });
+
+      scanServerSelector.init(new ScanServerSelector.InitParameters() {
+        @Override
+        public Map<String,String> getOptions() {
+          return Collections.unmodifiableMap(sserverProps);
+        }
+
+        @Override
+        public ServiceEnvironment getServiceEnv() {
+          return new ClientServiceEnvironmentImpl(ClientContext.this);
+        }
+
+        @Override
+        public Supplier<Collection<ScanServerInfo>> getScanServers() {
+          return () -> ClientContext.this.getScanServers().entrySet().stream()
+              .map(entry -> new ScanServerInfo() {
+                @Override
+                public String getAddress() {
+                  return entry.getKey();
+                }
+
+                @Override
+                public String getGroup() {
+                  return entry.getValue().getSecond();
+                }
+              }).collect(Collectors.toSet());
+        }
+      });
+      return scanServerSelector;
+    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+        | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
+        | SecurityException e) {
+      throw new RuntimeException("Error creating ScanServerSelector implementation: " + clazz, e);
+    }
   }
 
-  public ClientContext(Properties clientProperties) {
-    this(ClientInfo.from(clientProperties));
-  }
-
-  public ClientContext(SingletonReservation reservation, ClientInfo info) {
-    this(reservation, info, ClientConfConverter.toAccumuloConf(info.getProperties()));
-  }
-
-  public ClientContext(ClientInfo info) {
-    this(info, ClientConfConverter.toAccumuloConf(info.getProperties()));
-  }
-
-  public ClientContext(ClientInfo info, AccumuloConfiguration serverConf) {
-    this(SingletonReservation.noop(), info, serverConf);
-  }
-
+  /**
+   * Create a client context with the provided configuration. Legacy client code must provide a
+   * no-op SingletonReservation to preserve behavior prior to 2.x. Clients since 2.x should call
+   * Accumulo.newClient() builder, which will create a client reservation in
+   * {@link ClientBuilderImpl#buildClient}
+   */
   public ClientContext(SingletonReservation reservation, ClientInfo info,
-      AccumuloConfiguration serverConf) {
+      AccumuloConfiguration serverConf, UncaughtExceptionHandler ueh) {
     this.info = info;
     this.hadoopConf = info.getHadoopConf();
+    zooReader = new ZooReader(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
     zooCache =
         new ZooCacheFactory().getZooCache(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
     this.serverConf = serverConf;
     timeoutSupplier = memoizeWithExpiration(
-        () -> getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
-    sslSupplier = memoizeWithExpiration(() -> SslConnectionParams.forClient(getConfiguration()));
+        () -> getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT), 100, MILLISECONDS);
+    sslSupplier = Suppliers.memoize(() -> SslConnectionParams.forClient(getConfiguration()));
     saslSupplier = memoizeWithExpiration(
-        () -> SaslConnectionParams.from(getConfiguration(), getCredentials().getToken()));
+        () -> SaslConnectionParams.from(getConfiguration(), getCredentials().getToken()), 100,
+        MILLISECONDS);
+    scanServerSelectorSupplier =
+        memoizeWithExpiration(this::createScanServerSelector, 100, MILLISECONDS);
     this.singletonReservation = Objects.requireNonNull(reservation);
     this.tableops = new TableOperationsImpl(this);
     this.namespaceops = new NamespaceOperationsImpl(this, tableops);
-  }
-
-  /**
-   * Retrieve the instance used to construct this context
-   *
-   * @deprecated since 2.0.0
-   */
-  @Deprecated
-  public org.apache.accumulo.core.client.Instance getDeprecatedInstance() {
-    final ClientContext context = this;
-    return new org.apache.accumulo.core.client.Instance() {
-      @Override
-      public String getRootTabletLocation() {
-        return context.getRootTabletLocation();
+    if (ueh == Threads.UEH) {
+      clientThreadPools = ThreadPools.getServerThreadPools();
+    } else {
+      // Provide a default UEH that just logs the error
+      if (ueh == null) {
+        clientThreadPools = ThreadPools.getClientThreadPools((t, e) -> {
+          log.error("Caught an Exception in client background thread: {}. Thread is dead.", t, e);
+        });
+      } else {
+        clientThreadPools = ThreadPools.getClientThreadPools(ueh);
       }
-
-      @Override
-      public List<String> getMasterLocations() {
-        return context.getMasterLocations();
-      }
-
-      @Override
-      public String getInstanceID() {
-        return context.getInstanceID();
-      }
-
-      @Override
-      public String getInstanceName() {
-        return context.getInstanceName();
-      }
-
-      @Override
-      public String getZooKeepers() {
-        return context.getZooKeepers();
-      }
-
-      @Override
-      public int getZooKeepersSessionTimeOut() {
-        return context.getZooKeepersSessionTimeOut();
-      }
-
-      @Override
-      public org.apache.accumulo.core.client.Connector getConnector(String principal,
-          AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
-        return org.apache.accumulo.core.client.Connector.from(context);
-      }
-    };
+    }
   }
 
   public Ample getAmple() {
     ensureOpen();
     return new AmpleImpl(this);
+  }
+
+  public synchronized Future<List<KeyValue>>
+      submitScannerReadAheadTask(Callable<List<KeyValue>> c) {
+    ensureOpen();
+    if (scannerReadaheadPool == null) {
+      scannerReadaheadPool = clientThreadPools.createThreadPool(0, Integer.MAX_VALUE, 3L, SECONDS,
+          "Accumulo scanner read ahead thread", new SynchronousQueue<>(), true);
+    }
+    return scannerReadaheadPool.submit(c);
+  }
+
+  public synchronized void executeCleanupTask(Runnable r) {
+    ensureOpen();
+    if (cleanupThreadPool == null) {
+      cleanupThreadPool = clientThreadPools.createFixedThreadPool(1, 3, SECONDS,
+          "Conditional Writer Cleanup Thread", true);
+    }
+    this.cleanupThreadPool.execute(r);
+  }
+
+  /**
+   * @return ThreadPools instance optionally configured with client UncaughtExceptionHandler
+   */
+  public ThreadPools threadPools() {
+    ensureOpen();
+    return clientThreadPools;
   }
 
   /**
@@ -238,8 +314,8 @@ public class ClientContext implements AccumuloClient {
    * other auth token
    */
   public synchronized void setCredentials(Credentials newCredentials) {
-    checkArgument(newCredentials != null, "newCredentials is null");
     ensureOpen();
+    checkArgument(newCredentials != null, "newCredentials is null");
     creds = newCredentials;
     rpcCreds = null;
   }
@@ -284,29 +360,98 @@ public class ClientContext implements AccumuloClient {
     return saslSupplier.get();
   }
 
-  public BatchWriterConfig getBatchWriterConfig() {
-    ensureOpen();
-    if (batchWriterConfig == null) {
-      Properties props = info.getProperties();
-      batchWriterConfig = new BatchWriterConfig();
-      Long maxMemory = ClientProperty.BATCH_WRITER_MEMORY_MAX.getBytes(props);
-      if (maxMemory != null) {
-        batchWriterConfig.setMaxMemory(maxMemory);
-      }
-      Long maxLatency = ClientProperty.BATCH_WRITER_LATENCY_MAX.getTimeInMillis(props);
-      if (maxLatency != null) {
-        batchWriterConfig.setMaxLatency(maxLatency, TimeUnit.SECONDS);
-      }
-      Long timeout = ClientProperty.BATCH_WRITER_TIMEOUT_MAX.getTimeInMillis(props);
-      if (timeout != null) {
-        batchWriterConfig.setTimeout(timeout, TimeUnit.SECONDS);
-      }
-      String durability = ClientProperty.BATCH_WRITER_DURABILITY.getValue(props);
-      if (!durability.isEmpty()) {
-        batchWriterConfig.setDurability(Durability.valueOf(durability.toUpperCase()));
-      }
+  static BatchWriterConfig getBatchWriterConfig(Properties props) {
+    BatchWriterConfig batchWriterConfig = new BatchWriterConfig();
+
+    Long maxMemory = ClientProperty.BATCH_WRITER_MEMORY_MAX.getBytes(props);
+    if (maxMemory != null) {
+      batchWriterConfig.setMaxMemory(maxMemory);
+    }
+    Long maxLatency = ClientProperty.BATCH_WRITER_LATENCY_MAX.getTimeInMillis(props);
+    if (maxLatency != null) {
+      batchWriterConfig.setMaxLatency(maxLatency, SECONDS);
+    }
+    Long timeout = ClientProperty.BATCH_WRITER_TIMEOUT_MAX.getTimeInMillis(props);
+    if (timeout != null) {
+      batchWriterConfig.setTimeout(timeout, SECONDS);
+    }
+    Integer maxThreads = ClientProperty.BATCH_WRITER_THREADS_MAX.getInteger(props);
+    if (maxThreads != null) {
+      batchWriterConfig.setMaxWriteThreads(maxThreads);
+    }
+    String durability = ClientProperty.BATCH_WRITER_DURABILITY.getValue(props);
+    if (!durability.isEmpty()) {
+      batchWriterConfig.setDurability(Durability.valueOf(durability.toUpperCase()));
     }
     return batchWriterConfig;
+  }
+
+  public synchronized BatchWriterConfig getBatchWriterConfig() {
+    ensureOpen();
+    if (batchWriterConfig == null) {
+      batchWriterConfig = getBatchWriterConfig(info.getProperties());
+    }
+    return batchWriterConfig;
+  }
+
+  /**
+   * @return map of live scan server addresses to lock uuids.
+   */
+  public Map<String,Pair<UUID,String>> getScanServers() {
+    Map<String,Pair<UUID,String>> liveScanServers = new HashMap<>();
+    String root = this.getZooKeeperRoot() + Constants.ZSSERVERS;
+    var addrs = this.getZooCache().getChildren(root);
+    for (String addr : addrs) {
+      try {
+        final var zLockPath = ServiceLock.path(root + "/" + addr);
+        ZcStat stat = new ZcStat();
+        byte[] lockData = ServiceLock.getLockData(getZooCache(), zLockPath, stat);
+        if (lockData != null) {
+          String[] fields = new String(lockData, UTF_8).split(",", 2);
+          UUID uuid = UUID.fromString(fields[0]);
+          String group = fields[1];
+          liveScanServers.put(addr, new Pair<>(uuid, group));
+        }
+      } catch (IllegalArgumentException e) {
+        log.error("Error validating zookeeper scan server node: " + addr, e);
+      }
+    }
+    return liveScanServers;
+  }
+
+  /**
+   * @return the scan server selector implementation used for determining which scan servers will be
+   *         used when performing an eventually consistent scan
+   */
+  public ScanServerSelector getScanServerSelector() {
+    ensureOpen();
+    return scanServerSelectorSupplier.get();
+  }
+
+  static ConditionalWriterConfig getConditionalWriterConfig(Properties props) {
+    ConditionalWriterConfig conditionalWriterConfig = new ConditionalWriterConfig();
+
+    Long timeout = ClientProperty.CONDITIONAL_WRITER_TIMEOUT_MAX.getTimeInMillis(props);
+    if (timeout != null) {
+      conditionalWriterConfig.setTimeout(timeout, SECONDS);
+    }
+    String durability = ClientProperty.CONDITIONAL_WRITER_DURABILITY.getValue(props);
+    if (!durability.isEmpty()) {
+      conditionalWriterConfig.setDurability(Durability.valueOf(durability.toUpperCase()));
+    }
+    Integer maxThreads = ClientProperty.CONDITIONAL_WRITER_THREADS_MAX.getInteger(props);
+    if (maxThreads != null) {
+      conditionalWriterConfig.setMaxWriteThreads(maxThreads);
+    }
+    return conditionalWriterConfig;
+  }
+
+  public synchronized ConditionalWriterConfig getConditionalWriterConfig() {
+    ensureOpen();
+    if (conditionalWriterConfig == null) {
+      conditionalWriterConfig = getConditionalWriterConfig(info.getProperties());
+    }
+    return conditionalWriterConfig;
   }
 
   /**
@@ -341,29 +486,58 @@ public class ClientContext implements AccumuloClient {
       timer = new OpTimer().start();
     }
 
-    Location loc = getAmple().readTablet(RootTable.EXTENT, LOCATION).getLocation();
+    Location loc =
+        getAmple().readTablet(RootTable.EXTENT, ReadConsistency.EVENTUAL, LOCATION).getLocation();
 
     if (timer != null) {
       timer.stop();
       log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(), loc,
-          String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+          String.format("%.3f secs", timer.scale(SECONDS)));
     }
 
     if (loc == null || loc.getType() != LocationType.CURRENT) {
       return null;
     }
 
-    return loc.getHostAndPort().toString();
+    return loc.getHostPort();
   }
 
   /**
-   * Returns the location(s) of the accumulo master and any redundant servers.
+   * Returns the location(s) of the accumulo manager and any redundant servers.
    *
    * @return a list of locations in "hostname:port" form
    */
-  public List<String> getMasterLocations() {
+  public List<String> getManagerLocations() {
     ensureOpen();
-    return ZooUtil.getMasterLocations(zooCache, getInstanceID());
+    return getManagerLocations(zooCache, getInstanceID().canonical());
+  }
+
+  // available only for sharing code with old ZooKeeperInstance
+  public static List<String> getManagerLocations(ZooCache zooCache, String instanceId) {
+    var zLockManagerPath =
+        ServiceLock.path(Constants.ZROOT + "/" + instanceId + Constants.ZMANAGER_LOCK);
+
+    OpTimer timer = null;
+
+    if (log.isTraceEnabled()) {
+      log.trace("tid={} Looking up manager location in zookeeper.", Thread.currentThread().getId());
+      timer = new OpTimer().start();
+    }
+
+    byte[] loc = zooCache.getLockData(zLockManagerPath);
+
+    if (timer != null) {
+      timer.stop();
+      log.trace("tid={} Found manager at {} in {}", Thread.currentThread().getId(),
+          (loc == null ? "null" : new String(loc, UTF_8)),
+          String.format("%.3f secs", timer.scale(SECONDS)));
+    }
+
+    if (loc == null) {
+      return Collections.emptyList();
+    }
+
+    return Collections.singletonList(new String(loc, UTF_8));
   }
 
   /**
@@ -371,14 +545,38 @@ public class ClientContext implements AccumuloClient {
    *
    * @return a UUID
    */
-  public String getInstanceID() {
+  public InstanceId getInstanceID() {
     ensureOpen();
-    final String instanceName = info.getInstanceName();
     if (instanceId == null) {
-      instanceId = ZooUtil.getInstanceID(zooCache, instanceName);
+      final String instanceName = info.getInstanceName();
+      instanceId = getInstanceID(zooCache, instanceName);
+      verifyInstanceId(zooCache, instanceId.canonical(), instanceName);
     }
-    ZooUtil.verifyInstanceId(zooCache, instanceId, instanceName);
     return instanceId;
+  }
+
+  // available only for sharing code with old ZooKeeperInstance
+  public static InstanceId getInstanceID(ZooCache zooCache, String instanceName) {
+    requireNonNull(zooCache, "zooCache cannot be null");
+    requireNonNull(instanceName, "instanceName cannot be null");
+    String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
+    byte[] data = zooCache.get(instanceNamePath);
+    if (data == null) {
+      throw new RuntimeException("Instance name " + instanceName + " does not exist in zookeeper. "
+          + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
+    }
+    return InstanceId.of(new String(data, UTF_8));
+  }
+
+  // available only for sharing code with old ZooKeeperInstance
+  public static void verifyInstanceId(ZooCache zooCache, String instanceId, String instanceName) {
+    requireNonNull(zooCache, "zooCache cannot be null");
+    requireNonNull(instanceId, "instanceId cannot be null");
+    if (zooCache.get(Constants.ZROOT + "/" + instanceId) == null) {
+      throw new RuntimeException("Instance id " + instanceId
+          + (instanceName == null ? "" : " pointed to by the name " + instanceName)
+          + " does not exist in zookeeper");
+    }
   }
 
   public String getZooKeeperRoot() {
@@ -421,30 +619,102 @@ public class ClientContext implements AccumuloClient {
     return zooCache;
   }
 
-  TableId getTableId(String tableName) throws TableNotFoundException {
-    TableId tableId = Tables.getTableId(this, tableName);
-    if (Tables.getTableState(this, tableId) == TableState.OFFLINE)
-      throw new TableOfflineException(Tables.getTableOfflineMsg(this, tableId));
+  private TableZooHelper tableZooHelper;
+
+  private synchronized TableZooHelper tableZooHelper() {
+    ensureOpen();
+    if (tableZooHelper == null) {
+      tableZooHelper = new TableZooHelper(this);
+    }
+    return tableZooHelper;
+  }
+
+  public TableId getTableId(String tableName) throws TableNotFoundException {
+    return tableZooHelper().getTableId(tableName);
+  }
+
+  public TableId _getTableIdDetectNamespaceNotFound(String tableName)
+      throws NamespaceNotFoundException, TableNotFoundException {
+    return tableZooHelper()._getTableIdDetectNamespaceNotFound(tableName);
+  }
+
+  public String getTableName(TableId tableId) throws TableNotFoundException {
+    return tableZooHelper().getTableName(tableId);
+  }
+
+  public Map<String,TableId> getTableNameToIdMap() {
+    return tableZooHelper().getTableMap().getNameToIdMap();
+  }
+
+  public Map<TableId,String> getTableIdToNameMap() {
+    return tableZooHelper().getTableMap().getIdtoNameMap();
+  }
+
+  public boolean tableNodeExists(TableId tableId) {
+    return tableZooHelper().tableNodeExists(tableId);
+  }
+
+  public void clearTableListCache() {
+    tableZooHelper().clearTableListCache();
+  }
+
+  public String getPrintableTableInfoFromId(TableId tableId) {
+    return tableZooHelper().getPrintableTableInfoFromId(tableId);
+  }
+
+  public String getPrintableTableInfoFromName(String tableName) {
+    return tableZooHelper().getPrintableTableInfoFromName(tableName);
+  }
+
+  public TableState getTableState(TableId tableId) {
+    return tableZooHelper().getTableState(tableId, false);
+  }
+
+  public TableState getTableState(TableId tableId, boolean clearCachedState) {
+    return tableZooHelper().getTableState(tableId, clearCachedState);
+  }
+
+  public NamespaceId getNamespaceId(TableId tableId) throws TableNotFoundException {
+    return tableZooHelper().getNamespaceId(tableId);
+  }
+
+  // use cases overlap with requireNotDeleted, but this throws a checked exception
+  public TableId requireTableExists(TableId tableId, String tableName)
+      throws TableNotFoundException {
+    if (!tableNodeExists(tableId))
+      throw new TableNotFoundException(tableId.canonical(), tableName, "Table no longer exists");
+    return tableId;
+  }
+
+  // use cases overlap with requireTableExists, but this throws a runtime exception
+  public TableId requireNotDeleted(TableId tableId) {
+    if (!tableNodeExists(tableId))
+      throw new TableDeletedException(tableId.canonical());
+    return tableId;
+  }
+
+  public TableId requireNotOffline(TableId tableId, String tableName) {
+    if (getTableState(tableId) == TableState.OFFLINE)
+      throw new TableOfflineException(tableId, tableName);
     return tableId;
   }
 
   @Override
   public BatchScanner createBatchScanner(String tableName, Authorizations authorizations,
       int numQueryThreads) throws TableNotFoundException {
-    checkArgument(tableName != null, "tableName is null");
-    checkArgument(authorizations != null, "authorizations is null");
     ensureOpen();
-    return new TabletServerBatchReader(this, getTableId(tableName), authorizations,
-        numQueryThreads);
+    checkArgument(authorizations != null, "authorizations is null");
+    return new TabletServerBatchReader(this, requireNotOffline(getTableId(tableName), tableName),
+        tableName, authorizations, numQueryThreads);
   }
 
   @Override
   public BatchScanner createBatchScanner(String tableName, Authorizations authorizations)
       throws TableNotFoundException {
+    ensureOpen();
     Integer numQueryThreads =
         ClientProperty.BATCH_SCANNER_NUM_QUERY_THREADS.getInteger(getProperties());
     Objects.requireNonNull(numQueryThreads);
-    ensureOpen();
     return createBatchScanner(tableName, authorizations, numQueryThreads);
   }
 
@@ -458,11 +728,10 @@ public class ClientContext implements AccumuloClient {
   @Override
   public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations,
       int numQueryThreads, BatchWriterConfig config) throws TableNotFoundException {
-    checkArgument(tableName != null, "tableName is null");
-    checkArgument(authorizations != null, "authorizations is null");
     ensureOpen();
-    return new TabletServerBatchDeleter(this, getTableId(tableName), authorizations,
-        numQueryThreads, config.merge(getBatchWriterConfig()));
+    checkArgument(authorizations != null, "authorizations is null");
+    return new TabletServerBatchDeleter(this, requireNotOffline(getTableId(tableName), tableName),
+        tableName, authorizations, numQueryThreads, config.merge(getBatchWriterConfig()));
   }
 
   @Override
@@ -475,13 +744,13 @@ public class ClientContext implements AccumuloClient {
   @Override
   public BatchWriter createBatchWriter(String tableName, BatchWriterConfig config)
       throws TableNotFoundException {
-    checkArgument(tableName != null, "tableName is null");
     ensureOpen();
     // we used to allow null inputs for bw config
     if (config == null) {
       config = new BatchWriterConfig();
     }
-    return new BatchWriterImpl(this, getTableId(tableName), config.merge(getBatchWriterConfig()));
+    return new BatchWriterImpl(this, requireNotOffline(getTableId(tableName), tableName),
+        config.merge(getBatchWriterConfig()));
   }
 
   @Override
@@ -504,16 +773,27 @@ public class ClientContext implements AccumuloClient {
   public ConditionalWriter createConditionalWriter(String tableName, ConditionalWriterConfig config)
       throws TableNotFoundException {
     ensureOpen();
-    return new ConditionalWriterImpl(this, getTableId(tableName), config);
+    if (config == null) {
+      config = new ConditionalWriterConfig();
+    }
+    return new ConditionalWriterImpl(this, requireNotOffline(getTableId(tableName), tableName),
+        tableName, config.merge(getConditionalWriterConfig()));
+  }
+
+  @Override
+  public ConditionalWriter createConditionalWriter(String tableName) throws TableNotFoundException {
+    ensureOpen();
+    return new ConditionalWriterImpl(this, requireNotOffline(getTableId(tableName), tableName),
+        tableName, new ConditionalWriterConfig());
   }
 
   @Override
   public Scanner createScanner(String tableName, Authorizations authorizations)
       throws TableNotFoundException {
-    checkArgument(tableName != null, "tableName is null");
-    checkArgument(authorizations != null, "authorizations is null");
     ensureOpen();
-    Scanner scanner = new ScannerImpl(this, getTableId(tableName), authorizations);
+    checkArgument(authorizations != null, "authorizations is null");
+    Scanner scanner =
+        new ScannerImpl(this, requireNotOffline(getTableId(tableName), tableName), authorizations);
     Integer batchSize = ClientProperty.SCANNER_BATCH_SIZE.getInteger(getProperties());
     if (batchSize != null) {
       scanner.setBatchSize(batchSize);
@@ -565,7 +845,9 @@ public class ClientContext implements AccumuloClient {
   }
 
   @Override
-  public synchronized ReplicationOperations replicationOperations() {
+  @Deprecated
+  public synchronized org.apache.accumulo.core.client.admin.ReplicationOperations
+      replicationOperations() {
     ensureOpen();
     if (replicationops == null) {
       replicationops = new ReplicationOperationsImpl(this);
@@ -592,8 +874,20 @@ public class ClientContext implements AccumuloClient {
   }
 
   @Override
-  public void close() {
+  public synchronized void close() {
     closed = true;
+    if (thriftTransportPool != null) {
+      thriftTransportPool.shutdown();
+    }
+    if (tableZooHelper != null) {
+      tableZooHelper.close();
+    }
+    if (scannerReadaheadPool != null) {
+      scannerReadaheadPool.shutdownNow(); // abort all tasks, client is shutting down
+    }
+    if (cleanupThreadPool != null) {
+      cleanupThreadPool.shutdown(); // wait for shutdown tasks to execute
+    }
     singletonReservation.close();
   }
 
@@ -603,7 +897,8 @@ public class ClientContext implements AccumuloClient {
 
     private Properties properties = new Properties();
     private AuthenticationToken token = null;
-    private Function<ClientBuilderImpl<T>,T> builderFunction;
+    private final Function<ClientBuilderImpl<T>,T> builderFunction;
+    private UncaughtExceptionHandler ueh = null;
 
     public ClientBuilderImpl(Function<ClientBuilderImpl<T>,T> builderFunction) {
       this.builderFunction = builderFunction;
@@ -618,6 +913,10 @@ public class ClientContext implements AccumuloClient {
       return new ClientInfoImpl(properties);
     }
 
+    private UncaughtExceptionHandler getUncaughtExceptionHandler() {
+      return ueh;
+    }
+
     @Override
     public T build() {
       return builderFunction.apply(this);
@@ -627,7 +926,9 @@ public class ClientContext implements AccumuloClient {
       SingletonReservation reservation = SingletonManager.getClientReservation();
       try {
         // ClientContext closes reservation unless a RuntimeException is thrown
-        return new ClientContext(reservation, cbi.getClientInfo());
+        ClientInfo info = cbi.getClientInfo();
+        AccumuloConfiguration config = ClientConfConverter.toAccumuloConf(info.getProperties());
+        return new ClientContext(reservation, info, config, cbi.getUncaughtExceptionHandler());
       } catch (RuntimeException e) {
         reservation.close();
         throw e;
@@ -702,9 +1003,9 @@ public class ClientContext implements AccumuloClient {
     public ConnectionOptions<T> batchWriterConfig(BatchWriterConfig batchWriterConfig) {
       ClientProperty.BATCH_WRITER_MEMORY_MAX.setBytes(properties, batchWriterConfig.getMaxMemory());
       ClientProperty.BATCH_WRITER_LATENCY_MAX.setTimeInMillis(properties,
-          batchWriterConfig.getMaxLatency(TimeUnit.MILLISECONDS));
+          batchWriterConfig.getMaxLatency(MILLISECONDS));
       ClientProperty.BATCH_WRITER_TIMEOUT_MAX.setTimeInMillis(properties,
-          batchWriterConfig.getTimeout(TimeUnit.MILLISECONDS));
+          batchWriterConfig.getTimeout(MILLISECONDS));
       setProperty(ClientProperty.BATCH_WRITER_THREADS_MAX, batchWriterConfig.getMaxWriteThreads());
       setProperty(ClientProperty.BATCH_WRITER_DURABILITY,
           batchWriterConfig.getDurability().toString());
@@ -746,8 +1047,16 @@ public class ClientContext implements AccumuloClient {
     }
 
     @Override
+    public FromOptions<T> from(URL propertiesURL) {
+      return from(ClientInfoImpl.toProperties(propertiesURL));
+    }
+
+    @Override
     public FromOptions<T> from(Properties properties) {
-      this.properties = properties;
+      // Make a copy, so that this builder's subsequent methods don't mutate the
+      // properties object provided by the caller
+      this.properties = new Properties();
+      this.properties.putAll(properties);
       return this;
     }
 
@@ -787,5 +1096,31 @@ public class ClientContext implements AccumuloClient {
     public void setProperty(ClientProperty property, Integer value) {
       setProperty(property, Integer.toString(value));
     }
+
+    @Override
+    public ClientFactory<T> withUncaughtExceptionHandler(UncaughtExceptionHandler ueh) {
+      this.ueh = ueh;
+      return this;
+    }
+
   }
+
+  public ZooReader getZooReader() {
+    ensureOpen();
+    return zooReader;
+  }
+
+  protected long getTransportPoolMaxAgeMillis() {
+    ensureOpen();
+    return ClientProperty.RPC_TRANSPORT_IDLE_TIMEOUT.getTimeInMillis(getProperties());
+  }
+
+  public synchronized ThriftTransportPool getTransportPool() {
+    ensureOpen();
+    if (thriftTransportPool == null) {
+      thriftTransportPool = ThriftTransportPool.startNew(this::getTransportPoolMaxAgeMillis);
+    }
+    return thriftTransportPool;
+  }
+
 }

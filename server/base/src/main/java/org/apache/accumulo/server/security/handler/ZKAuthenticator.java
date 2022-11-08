@@ -1,24 +1,28 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.security.handler;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -28,10 +32,10 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -48,15 +52,42 @@ public final class ZKAuthenticator implements Authenticator {
   @Override
   public void initialize(ServerContext context) {
     this.context = context;
-    zooCache = new ZooCache(context.getZooReaderWriter(), null);
+    zooCache = new ZooCache(context.getZooReader(), null);
     ZKUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
+  }
+
+  /**
+   * Checks stored users and logs a warning containing the ones with outdated hashes.
+   */
+  public boolean hasOutdatedHashes() {
+    List<String> outdatedUsers = new LinkedList<>();
+    try {
+      listUsers().forEach(user -> {
+        String zpath = ZKUserPath + "/" + user;
+        byte[] zkData = zooCache.get(zpath);
+        if (ZKSecurityTool.isOutdatedPass(zkData)) {
+          outdatedUsers.add(user);
+        }
+      });
+    } catch (NullPointerException e) {
+      log.debug(
+          "initializeSecurity was not called yet, there could be no outdated passwords stored");
+    }
+    if (!outdatedUsers.isEmpty()) {
+      log.warn(
+          "Found {} user(s) with outdated password hash. These will be re-hashed"
+              + " on successful authentication. The user(s) : {}",
+          outdatedUsers.size(), String.join(", ", outdatedUsers));
+      return true;
+    }
+    return false;
   }
 
   @Override
   public void initializeSecurity(String principal, byte[] token) {
     try {
       // remove old settings from zookeeper first, if any
-      IZooReaderWriter zoo = context.getZooReaderWriter();
+      ZooReaderWriter zoo = context.getZooReaderWriter();
       synchronized (zooCache) {
         zooCache.clear();
         if (zoo.exists(ZKUserPath)) {
@@ -83,7 +114,7 @@ public final class ZKAuthenticator implements Authenticator {
       throws KeeperException, InterruptedException {
     synchronized (zooCache) {
       zooCache.clear();
-      IZooReaderWriter zoo = context.getZooReaderWriter();
+      ZooReaderWriter zoo = context.getZooReaderWriter();
       zoo.putPrivatePersistentData(ZKUserPath + "/" + user, pass, NodeExistsPolicy.FAIL);
     }
   }
@@ -178,16 +209,44 @@ public final class ZKAuthenticator implements Authenticator {
     if (!(token instanceof PasswordToken))
       throw new AccumuloSecurityException(principal, SecurityErrorCode.INVALID_TOKEN);
     PasswordToken pt = (PasswordToken) token;
-    byte[] pass;
+    byte[] zkData;
     String zpath = ZKUserPath + "/" + principal;
-    pass = zooCache.get(zpath);
-    boolean result = ZKSecurityTool.checkPass(pt.getPassword(), pass);
+    zkData = zooCache.get(zpath);
+    boolean result = authenticateUser(principal, pt, zkData);
     if (!result) {
       zooCache.clear(zpath);
-      pass = zooCache.get(zpath);
-      result = ZKSecurityTool.checkPass(pt.getPassword(), pass);
+      zkData = zooCache.get(zpath);
+      result = authenticateUser(principal, pt, zkData);
     }
     return result;
+  }
+
+  private boolean authenticateUser(String principal, PasswordToken pt, byte[] zkData) {
+    if (zkData == null) {
+      return false;
+    }
+
+    // if the hash does not match the outdated format use Crypt to verify it
+    if (!ZKSecurityTool.isOutdatedPass(zkData)) {
+      return ZKSecurityTool.checkCryptPass(pt.getPassword(), zkData);
+    }
+
+    @SuppressWarnings("deprecation")
+    boolean oldFormatValidates = ZKSecurityTool.checkPass(pt.getPassword(), zkData);
+    if (!oldFormatValidates) {
+      // if password does not match we are done
+      return false;
+    }
+
+    // if the password is correct we have to update the stored hash with new algorithm
+    try {
+      log.debug("Upgrading hashed password for {} to new format", principal);
+      changePassword(principal, pt);
+      return true;
+    } catch (AccumuloSecurityException e) {
+      log.error("Failed to upgrade hashed password for {} to new format", principal, e);
+    }
+    return false;
   }
 
   @Override

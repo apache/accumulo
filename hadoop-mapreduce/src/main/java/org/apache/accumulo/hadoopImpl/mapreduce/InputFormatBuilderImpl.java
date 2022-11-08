@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.hadoopImpl.mapreduce;
 
@@ -29,6 +31,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.data.Range;
@@ -94,7 +97,7 @@ public class InputFormatBuilderImpl<T>
   public InputFormatBuilder.InputFormatOptions<T> ranges(Collection<Range> ranges) {
     List<Range> newRanges =
         List.copyOf(Objects.requireNonNull(ranges, "Collection of ranges is null"));
-    if (newRanges.size() == 0) {
+    if (newRanges.isEmpty()) {
       throw new IllegalArgumentException("Specified collection of ranges is empty.");
     }
     tableConfigMap.get(currentTable).setRanges(newRanges);
@@ -106,7 +109,7 @@ public class InputFormatBuilderImpl<T>
       fetchColumns(Collection<IteratorSetting.Column> fetchColumns) {
     Collection<IteratorSetting.Column> newFetchColumns =
         List.copyOf(Objects.requireNonNull(fetchColumns, "Collection of fetch columns is null"));
-    if (newFetchColumns.size() == 0) {
+    if (newFetchColumns.isEmpty()) {
       throw new IllegalArgumentException("Specified collection of fetch columns is empty.");
     }
     tableConfigMap.get(currentTable).fetchColumns(newFetchColumns);
@@ -125,7 +128,7 @@ public class InputFormatBuilderImpl<T>
   public InputFormatBuilder.InputFormatOptions<T> executionHints(Map<String,String> hints) {
     Map<String,String> newHints =
         Map.copyOf(Objects.requireNonNull(hints, "Map of execution hints must not be null."));
-    if (newHints.size() == 0) {
+    if (newHints.isEmpty()) {
       throw new IllegalArgumentException("Specified map of execution hints is empty.");
     }
     tableConfigMap.get(currentTable).setExecutionHints(newHints);
@@ -173,6 +176,12 @@ public class InputFormatBuilderImpl<T>
   }
 
   @Override
+  public InputFormatOptions<T> consistencyLevel(ConsistencyLevel level) {
+    tableConfigMap.get(currentTable).setConsistencyLevel(level);
+    return this;
+  }
+
+  @Override
   public void store(T j) throws AccumuloException, AccumuloSecurityException {
     if (j instanceof Job) {
       store((Job) j);
@@ -192,7 +201,7 @@ public class InputFormatBuilderImpl<T>
 
   private void _store(Configuration conf) throws AccumuloException, AccumuloSecurityException {
     InputConfigurator.setClientProperties(callingClass, conf, clientProps, clientPropsPath);
-    if (tableConfigMap.size() == 0) {
+    if (tableConfigMap.isEmpty()) {
       throw new IllegalArgumentException("At least one Table must be configured for job.");
     }
     // if only one table use the single table configuration method
@@ -212,20 +221,20 @@ public class InputFormatBuilderImpl<T>
       if (config.getContext().isPresent()) {
         InputConfigurator.setClassLoaderContext(callingClass, conf, config.getContext().get());
       }
-      if (config.getRanges().size() > 0) {
+      if (!config.getRanges().isEmpty()) {
         InputConfigurator.setRanges(callingClass, conf, config.getRanges());
       }
-      if (config.getIterators().size() > 0) {
+      if (!config.getIterators().isEmpty()) {
         InputConfigurator.writeIteratorsToConf(callingClass, conf, config.getIterators());
       }
-      if (config.getFetchedColumns().size() > 0) {
+      if (!config.getFetchedColumns().isEmpty()) {
         InputConfigurator.fetchColumns(callingClass, conf, config.getFetchedColumns());
       }
       if (config.getSamplerConfiguration() != null) {
         InputConfigurator.setSamplerConfiguration(callingClass, conf,
             config.getSamplerConfiguration());
       }
-      if (config.getExecutionHints().size() > 0) {
+      if (!config.getExecutionHints().isEmpty()) {
         InputConfigurator.setExecutionHints(callingClass, conf, config.getExecutionHints());
       }
       InputConfigurator.setAutoAdjustRanges(callingClass, conf, config.shouldAutoAdjustRanges());
@@ -233,6 +242,9 @@ public class InputFormatBuilderImpl<T>
       InputConfigurator.setLocalIterators(callingClass, conf, config.shouldUseLocalIterators());
       InputConfigurator.setOfflineTableScan(callingClass, conf, config.isOfflineScan());
       InputConfigurator.setBatchScan(callingClass, conf, config.shouldBatchScan());
+      if (config.getConsistencyLevel() != null) {
+        InputConfigurator.setConsistencyLevel(callingClass, conf, config.getConsistencyLevel());
+      }
     } else {
       InputConfigurator.setInputTableConfigs(callingClass, conf, tableConfigMap);
     }
@@ -245,4 +257,5 @@ public class InputFormatBuilderImpl<T>
   private void store(JobConf jobConf) throws AccumuloException, AccumuloSecurityException {
     _store(jobConf);
   }
+
 }

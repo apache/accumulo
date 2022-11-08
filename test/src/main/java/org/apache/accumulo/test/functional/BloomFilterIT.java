@@ -1,29 +1,30 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
-import java.security.SecureRandom;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -41,18 +42,23 @@ import org.apache.accumulo.core.file.keyfunctor.ColumnFamilyFunctor;
 import org.apache.accumulo.core.file.keyfunctor.ColumnQualifierFunctor;
 import org.apache.accumulo.core.file.keyfunctor.RowFunctor;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.fate.util.UtilWaitThread;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class BloomFilterIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(BloomFilterIT.class);
+
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(6);
+  }
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -61,11 +67,6 @@ public class BloomFilterIT extends AccumuloClusterHarness {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(), "10M");
     cfg.setSiteConfig(siteConfig);
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 6 * 60;
   }
 
   @Test
@@ -97,7 +98,7 @@ public class BloomFilterIT extends AccumuloClusterHarness {
         // test inserting an empty key
         try (BatchWriter bw = c.createBatchWriter(tables[3])) {
           Mutation m = new Mutation(new Text(""));
-          m.put(new Text(""), new Text(""), new Value("foo1".getBytes()));
+          m.put("", "", "foo1");
           bw.addMutation(m);
         }
         c.tableOperations().flush(tables[3], null, null, true);
@@ -179,7 +180,6 @@ public class BloomFilterIT extends AccumuloClusterHarness {
 
   private long query(AccumuloClient c, String table, int depth, long start, long end, int num,
       int step) throws Exception {
-    Random r = new SecureRandom();
 
     HashSet<Long> expected = new HashSet<>();
     List<Range> ranges = new ArrayList<>(num);
@@ -187,7 +187,7 @@ public class BloomFilterIT extends AccumuloClusterHarness {
     Text row = new Text("row"), cq = new Text("cq"), cf = new Text("cf");
 
     for (int i = 0; i < num; ++i) {
-      Long k = ((r.nextLong() & 0x7fffffffffffffffL) % (end - start)) + start;
+      Long k = ((random.nextLong() & 0x7fffffffffffffffL) % (end - start)) + start;
       key.set(String.format("k_%010d", k));
       Range range = null;
       Key acuKey;
@@ -226,7 +226,7 @@ public class BloomFilterIT extends AccumuloClusterHarness {
       }
       long t2 = System.currentTimeMillis();
 
-      if (expected.size() > 0) {
+      if (!expected.isEmpty()) {
         throw new Exception("Did not get all expected values " + expected.size());
       }
 
@@ -244,15 +244,15 @@ public class BloomFilterIT extends AccumuloClusterHarness {
         switch (depth) {
           case 1:
             m = new Mutation(new Text(key));
-            m.put(new Text("cf"), new Text("cq"), new Value(("" + i).getBytes()));
+            m.put("cf", "cq", "" + i);
             break;
           case 2:
             m = new Mutation(new Text("row"));
-            m.put(new Text(key), new Text("cq"), new Value(("" + i).getBytes()));
+            m.put(key, "cq", "" + i);
             break;
           case 3:
             m = new Mutation(new Text("row"));
-            m.put(new Text("cf"), new Text(key), new Value(("" + i).getBytes()));
+            m.put("cf", key, "" + i);
             break;
         }
         bw.addMutation(m);

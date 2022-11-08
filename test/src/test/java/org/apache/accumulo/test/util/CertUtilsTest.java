@@ -1,56 +1,60 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.util;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.security.PublicKey;
 import java.security.SignatureException;
 import java.security.cert.Certificate;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.apache.accumulo.harness.WithTestNames;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class CertUtilsTest {
+public class CertUtilsTest extends WithTestNames {
   private static final String KEYSTORE_TYPE = "JKS";
   private static final String PASSWORD = "CertUtilsTestPassword";
   private static final char[] PASSWORD_CHARS = PASSWORD.toCharArray();
   private static final String RDN_STRING = "o=Apache Accumulo,cn=CertUtilsTest";
 
-  @Rule
-  public TemporaryFolder folder =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File tempDir;
 
   private CertUtils getUtils() {
-    return new CertUtils(KEYSTORE_TYPE, RDN_STRING, "RSA", 2048, "sha1WithRSAEncryption");
+    return new CertUtils(KEYSTORE_TYPE, RDN_STRING, "RSA", 4096, "SHA512WITHRSA");
   }
 
   @SuppressFBWarnings(value = "HARD_CODE_PASSWORD", justification = "test password is okay")
   @Test
   public void createSelfSigned() throws Exception {
     CertUtils certUtils = getUtils();
-    File keyStoreFile = new File(folder.getRoot(), "selfsigned.jks");
+    File tempSubDir = new File(tempDir, testName());
+    assertTrue(tempSubDir.isDirectory() || tempSubDir.mkdir());
+    File keyStoreFile = new File(tempSubDir, "selfsigned.jks");
     certUtils.createSelfSignedCert(keyStoreFile, "test", PASSWORD);
 
     KeyStore keyStore = KeyStore.getInstance(KEYSTORE_TYPE);
@@ -65,9 +69,11 @@ public class CertUtilsTest {
   @Test
   public void createPublicSelfSigned() throws Exception {
     CertUtils certUtils = getUtils();
-    File rootKeyStoreFile = new File(folder.getRoot(), "root.jks");
+    File tempSubDir = new File(tempDir, testName());
+    assertTrue(tempSubDir.isDirectory() || tempSubDir.mkdir());
+    File rootKeyStoreFile = new File(tempSubDir, "root.jks");
     certUtils.createSelfSignedCert(rootKeyStoreFile, "test", PASSWORD);
-    File publicKeyStoreFile = new File(folder.getRoot(), "public.jks");
+    File publicKeyStoreFile = new File(tempSubDir, "public.jks");
     certUtils.createPublicCert(publicKeyStoreFile, "test", rootKeyStoreFile.getAbsolutePath(),
         PASSWORD, "");
 
@@ -75,12 +81,10 @@ public class CertUtilsTest {
     try (FileInputStream fis = new FileInputStream(publicKeyStoreFile)) {
       keyStore.load(fis, new char[0]);
     }
-    try {
-      CertUtils.findPrivateKey(keyStore, PASSWORD_CHARS);
-      fail("expected not to find private key in keystore");
-    } catch (KeyStoreException e) {
-      assertTrue(e.getMessage().contains("private key"));
-    }
+    var e = assertThrows(KeyStoreException.class,
+        () -> CertUtils.findPrivateKey(keyStore, PASSWORD_CHARS),
+        "expected not to find private key in keystore");
+    assertTrue(e.getMessage().contains("private key"));
     Certificate cert = CertUtils.findCert(keyStore);
     cert.verify(cert.getPublicKey()); // throws exception if it can't be verified
   }
@@ -89,9 +93,11 @@ public class CertUtilsTest {
   @Test
   public void createSigned() throws Exception {
     CertUtils certUtils = getUtils();
-    File rootKeyStoreFile = new File(folder.getRoot(), "root.jks");
+    File tempSubDir = new File(tempDir, testName());
+    assertTrue(tempSubDir.isDirectory() || tempSubDir.mkdir());
+    File rootKeyStoreFile = new File(tempSubDir, "root.jks");
     certUtils.createSelfSignedCert(rootKeyStoreFile, "test", PASSWORD);
-    File signedKeyStoreFile = new File(folder.getRoot(), "signed.jks");
+    File signedKeyStoreFile = new File(tempSubDir, "signed.jks");
     certUtils.createSignedCert(signedKeyStoreFile, "test", PASSWORD,
         rootKeyStoreFile.getAbsolutePath(), PASSWORD);
 
@@ -105,14 +111,11 @@ public class CertUtilsTest {
     try (FileInputStream fis = new FileInputStream(signedKeyStoreFile)) {
       signedKeyStore.load(fis, PASSWORD_CHARS);
     }
-    Certificate signedCert = CertUtils.findCert(signedKeyStore);
 
-    try {
-      signedCert.verify(signedCert.getPublicKey());
-      fail("signed cert should not be able to verify itself");
-    } catch (SignatureException e) {
-      // expected
-    }
+    Certificate signedCert = CertUtils.findCert(signedKeyStore);
+    PublicKey pubKey = signedCert.getPublicKey();
+    assertThrows(SignatureException.class, () -> signedCert.verify(pubKey),
+        "signed cert should not be able to verify itself");
 
     signedCert.verify(rootCert.getPublicKey()); // throws exception if it can't be verified
   }
@@ -122,15 +125,17 @@ public class CertUtilsTest {
     // this approximates the real life scenario. the client will only have the public key of each
     // cert (the root made by us as below, but the signed cert extracted by the SSL transport)
     CertUtils certUtils = getUtils();
-    File rootKeyStoreFile = new File(folder.getRoot(), "root.jks");
+    File tempSubDir = new File(tempDir, testName());
+    assertTrue(tempSubDir.isDirectory() || tempSubDir.mkdir());
+    File rootKeyStoreFile = new File(tempSubDir, "root.jks");
     certUtils.createSelfSignedCert(rootKeyStoreFile, "test", PASSWORD);
-    File publicRootKeyStoreFile = new File(folder.getRoot(), "publicroot.jks");
+    File publicRootKeyStoreFile = new File(tempSubDir, "publicroot.jks");
     certUtils.createPublicCert(publicRootKeyStoreFile, "test", rootKeyStoreFile.getAbsolutePath(),
         PASSWORD, "");
-    File signedKeyStoreFile = new File(folder.getRoot(), "signed.jks");
+    File signedKeyStoreFile = new File(tempSubDir, "signed.jks");
     certUtils.createSignedCert(signedKeyStoreFile, "test", PASSWORD,
         rootKeyStoreFile.getAbsolutePath(), PASSWORD);
-    File publicSignedKeyStoreFile = new File(folder.getRoot(), "publicsigned.jks");
+    File publicSignedKeyStoreFile = new File(tempSubDir, "publicsigned.jks");
     certUtils.createPublicCert(publicSignedKeyStoreFile, "test",
         signedKeyStoreFile.getAbsolutePath(), PASSWORD, "");
 
@@ -144,13 +149,10 @@ public class CertUtilsTest {
     }
     Certificate rootCert = CertUtils.findCert(rootKeyStore);
     Certificate signedCert = CertUtils.findCert(signedKeyStore);
+    PublicKey pubKey = signedCert.getPublicKey();
 
-    try {
-      signedCert.verify(signedCert.getPublicKey());
-      fail("signed cert should not be able to verify itself");
-    } catch (SignatureException e) {
-      // expected
-    }
+    assertThrows(SignatureException.class, () -> signedCert.verify(pubKey),
+        "signed cert should not be able to verify itself");
 
     signedCert.verify(rootCert.getPublicKey()); // throws exception if it can't be verified
   }
@@ -161,12 +163,14 @@ public class CertUtilsTest {
     // no reason the keypair we generate for the tservers need to be able to sign anything,
     // but this is a way to make sure the private and public keys created actually correspond.
     CertUtils certUtils = getUtils();
-    File rootKeyStoreFile = new File(folder.getRoot(), "root.jks");
+    File tempSubDir = new File(tempDir, testName());
+    assertTrue(tempSubDir.isDirectory() || tempSubDir.mkdir());
+    File rootKeyStoreFile = new File(tempSubDir, "root.jks");
     certUtils.createSelfSignedCert(rootKeyStoreFile, "test", PASSWORD);
-    File signedCaKeyStoreFile = new File(folder.getRoot(), "signedca.jks");
+    File signedCaKeyStoreFile = new File(tempSubDir, "signedca.jks");
     certUtils.createSignedCert(signedCaKeyStoreFile, "test", PASSWORD,
         rootKeyStoreFile.getAbsolutePath(), PASSWORD);
-    File signedLeafKeyStoreFile = new File(folder.getRoot(), "signedleaf.jks");
+    File signedLeafKeyStoreFile = new File(tempSubDir, "signedleaf.jks");
     certUtils.createSignedCert(signedLeafKeyStoreFile, "test", PASSWORD,
         signedCaKeyStoreFile.getAbsolutePath(), PASSWORD);
 

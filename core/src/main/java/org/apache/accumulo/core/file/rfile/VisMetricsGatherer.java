@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.file.rfile;
 
@@ -26,7 +28,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -45,6 +46,7 @@ import com.google.common.util.concurrent.AtomicLongMap;
  */
 public class VisMetricsGatherer
     implements MetricsGatherer<Map<String,ArrayList<VisibilityMetric>>> {
+  private static final String KEY_HASH_ALGORITHM = "SHA-256";
 
   protected Map<String,AtomicLongMap<String>> metric;
   protected Map<String,AtomicLongMap<String>> blocks;
@@ -76,9 +78,7 @@ public class VisMetricsGatherer
     ByteSequence cf = new ArrayByteSequence(oneCF.toString());
     for (Entry<String,ArrayList<ByteSequence>> entry : localityGroupCF.entrySet()) {
       if (entry.getValue().contains(cf)) {
-        if (entry.getKey() == null)
-          name = null;
-        else
+        if (entry.getKey() != null)
           name = entry.getKey().toString();
         break;
       }
@@ -128,18 +128,17 @@ public class VisMetricsGatherer
       else
         out.println(localityGroups.get(i));
       out.printf("%-27s", metricWord);
-      out.println("Number of keys" + "\t   " + "Percent of keys" + "\t" + "Number of blocks" + "\t"
-          + "Percent of blocks");
+      out.println("Number of keys\t   Percent of keys\tNumber of blocks\tPercent of blocks");
       for (Entry<String,Long> entry : metric.get(lGName).asMap().entrySet()) {
         if (hash) {
           String encodedKey = "";
           try {
-            byte[] encodedBytes = MessageDigest.getInstance(Constants.PW_HASH_ALGORITHM)
+            byte[] encodedBytes = MessageDigest.getInstance(KEY_HASH_ALGORITHM)
                 .digest(entry.getKey().getBytes(UTF_8));
             encodedKey = new String(encodedBytes, UTF_8);
           } catch (NoSuchAlgorithmException e) {
-            out.println("Failed to convert key to " + Constants.PW_HASH_ALGORITHM + " hash: "
-                + e.getMessage());
+            out.println(
+                "Failed to convert key to " + KEY_HASH_ALGORITHM + " hash: " + e.getMessage());
           }
           out.printf("%-20s", encodedKey.substring(0, 8));
         } else

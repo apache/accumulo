@@ -1,24 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -29,6 +31,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -44,8 +47,6 @@ import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.rfile.RFileWriter;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
-import org.apache.accumulo.core.clientImpl.Translator;
-import org.apache.accumulo.core.clientImpl.Translators;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
@@ -56,13 +57,14 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.master.tableOps.bulkVer1.BulkImport;
+import org.apache.accumulo.manager.tableOps.bulkVer1.BulkImport;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
@@ -74,7 +76,7 @@ import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class BulkFailureIT extends AccumuloClusterHarness {
 
@@ -172,7 +174,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
           TablePermission.WRITE);
 
       BatchDeleter bd = c.createBatchDeleter(MetadataTable.NAME, Authorizations.EMPTY, 1);
-      bd.setRanges(Collections.singleton(extent.toMetadataRange()));
+      bd.setRanges(Collections.singleton(extent.toMetaRange()));
       bd.fetchColumnFamily(BulkFileColumnFamily.NAME);
       bd.delete();
 
@@ -238,7 +240,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
     HashSet<Path> files = new HashSet<>();
 
     Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    scanner.setRange(extent.toMetadataRange());
+    scanner.setRange(extent.toMetaRange());
     scanner.fetchColumnFamily(fam);
 
     for (Entry<Key,Value> entry : scanner) {
@@ -257,8 +259,8 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       Map<String,MapFileInfo> val = Map.of(path.toString(), new MapFileInfo(size));
       Map<KeyExtent,Map<String,MapFileInfo>> files = Map.of(extent, val);
 
-      client.bulkImport(TraceUtil.traceInfo(), context.rpcCreds(), txid,
-          Translator.translate(files, Translators.KET), false);
+      client.bulkImport(TraceUtil.traceInfo(), context.rpcCreds(), txid, files.entrySet().stream()
+          .collect(Collectors.toMap(entry -> entry.getKey().toThrift(), Entry::getValue)), false);
       if (expectFailure) {
         fail("Expected RPC to fail");
       }
@@ -267,7 +269,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
         throw tae;
       }
     } finally {
-      ThriftUtil.returnClient((TServiceClient) client);
+      ThriftUtil.returnClient((TServiceClient) client, context);
     }
   }
 
@@ -281,7 +283,9 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       Map<KeyExtent,Map<String,MapFileInfo>> files = Map.of(extent, val);
 
       client.loadFiles(TraceUtil.traceInfo(), context.rpcCreds(), txid, path.getParent().toString(),
-          Translator.translate(files, Translators.KET), false);
+          files.entrySet().stream().collect(
+              Collectors.toMap(entry -> entry.getKey().toThrift(), Entry::getValue)),
+          false);
 
       if (!expectFailure) {
         while (!getLoaded(context, extent).contains(path)) {
@@ -290,14 +294,14 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       }
 
     } finally {
-      ThriftUtil.returnClient((TServiceClient) client);
+      ThriftUtil.returnClient((TServiceClient) client, context);
     }
   }
 
   protected static TabletClientService.Iface getClient(ClientContext context, KeyExtent extent)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       TTransportException {
-    TabletLocator locator = TabletLocator.getLocator(context, extent.getTableId());
+    TabletLocator locator = TabletLocator.getLocator(context, extent.tableId());
 
     locator.invalidateCache(extent);
 
@@ -305,7 +309,8 @@ public class BulkFailureIT extends AccumuloClusterHarness {
         .fromString(locator.locateTablet(context, new Text(""), false, true).tablet_location);
 
     long timeInMillis = context.getConfiguration().getTimeInMillis(Property.TSERV_BULK_TIMEOUT);
-    TabletClientService.Iface client = ThriftUtil.getTServerClient(location, context, timeInMillis);
+    TabletClientService.Iface client =
+        ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, location, context, timeInMillis);
     return client;
   }
 }

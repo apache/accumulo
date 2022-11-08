@@ -1,30 +1,42 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FLUSH_ID;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.http.HttpResponse.BodyHandlers;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map.Entry;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -38,20 +50,24 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.fate.AdminUtil;
+import org.apache.accumulo.core.fate.AdminUtil.FateStatus;
+import org.apache.accumulo.core.fate.ZooStore;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.fate.AdminUtil;
-import org.apache.accumulo.fate.AdminUtil.FateStatus;
-import org.apache.accumulo.fate.ZooStore;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriterFactory;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.FileSystem;
@@ -66,10 +82,23 @@ public class FunctionalTestUtils {
   public static int countRFiles(AccumuloClient c, String tableName) throws Exception {
     try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
-      scanner.setRange(MetadataSchema.TabletsSection.getRange(tableId));
-      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+      scanner.setRange(TabletsSection.getRange(tableId));
+      scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       return Iterators.size(scanner.iterator());
     }
+  }
+
+  public static List<String> getRFilePaths(AccumuloClient c, String tableName) throws Exception {
+    List<String> files = new ArrayList<>();
+    try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
+      scanner.setRange(TabletsSection.getRange(tableId));
+      scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
+      scanner.forEach(entry -> {
+        files.add(entry.getKey().getColumnQualifier().toString());
+      });
+    }
+    return files;
   }
 
   static void checkRFiles(AccumuloClient c, String tableName, int minTablets, int maxTablets,
@@ -77,8 +106,8 @@ public class FunctionalTestUtils {
     try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       String tableId = c.tableOperations().tableIdMap().get(tableName);
       scanner.setRange(new Range(new Text(tableId + ";"), true, new Text(tableId + "<"), true));
-      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-      MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
+      scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
+      TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
 
       HashMap<Text,Integer> tabletFileCounts = new HashMap<>();
 
@@ -89,8 +118,7 @@ public class FunctionalTestUtils {
         Integer count = tabletFileCounts.get(row);
         if (count == null)
           count = 0;
-        if (entry.getKey().getColumnFamily()
-            .equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME)) {
+        if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
           count = count + 1;
         }
 
@@ -147,6 +175,12 @@ public class FunctionalTestUtils {
     assertFalse(fail.get());
   }
 
+  public static HttpResponse<String> readWebPage(URL url)
+      throws IOException, InterruptedException, URISyntaxException {
+    return HttpClient.newHttpClient().send(HttpRequest.newBuilder(url.toURI()).build(),
+        BodyHandlers.ofString());
+  }
+
   public static String readAll(InputStream is) throws IOException {
     return IOUtils.toString(is, UTF_8);
   }
@@ -158,7 +192,7 @@ public class FunctionalTestUtils {
   }
 
   static Mutation nm(String row, String cf, String cq, String value) {
-    return nm(row, cf, cq, new Value(value.getBytes()));
+    return nm(row, cf, cq, new Value(value));
   }
 
   public static SortedSet<Text> splits(String[] splits) {
@@ -168,25 +202,55 @@ public class FunctionalTestUtils {
     return result;
   }
 
-  public static void assertNoDanglingFateLocks(ClientContext context, AccumuloCluster cluster) {
-    FateStatus fateStatus = getFateStatus(context, cluster);
-    assertEquals("Dangling FATE locks : " + fateStatus.getDanglingHeldLocks(), 0,
-        fateStatus.getDanglingHeldLocks().size());
-    assertEquals("Dangling FATE locks : " + fateStatus.getDanglingWaitingLocks(), 0,
-        fateStatus.getDanglingWaitingLocks().size());
+  public static void assertNoDanglingFateLocks(AccumuloCluster cluster) {
+    FateStatus fateStatus = getFateStatus(cluster);
+    assertEquals(0, fateStatus.getDanglingHeldLocks().size(),
+        "Dangling FATE locks : " + fateStatus.getDanglingHeldLocks());
+    assertEquals(0, fateStatus.getDanglingWaitingLocks().size(),
+        "Dangling FATE locks : " + fateStatus.getDanglingWaitingLocks());
   }
 
-  private static FateStatus getFateStatus(ClientContext context, AccumuloCluster cluster) {
+  private static FateStatus getFateStatus(AccumuloCluster cluster) {
     try {
       AdminUtil<String> admin = new AdminUtil<>(false);
-      String secret = cluster.getSiteConfiguration().get(Property.INSTANCE_SECRET);
-      IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(context.getZooKeepers(),
-          context.getZooKeepersSessionTimeOut(), secret);
+      ServerContext context = cluster.getServerContext();
+      ZooReaderWriter zk = context.getZooReaderWriter();
       ZooStore<String> zs = new ZooStore<>(context.getZooKeeperRoot() + Constants.ZFATE, zk);
-      return admin.getStatus(zs, zk, context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS, null,
-          null);
+      var lockPath = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS);
+      return admin.getStatus(zs, zk, lockPath, null, null);
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * Verify that flush ID gets updated properly and is the same for all tablets.
+   */
+  static long checkFlushId(ClientContext c, TableId tableId, long prevFlushID) throws Exception {
+    try (TabletsMetadata metaScan =
+        c.getAmple().readTablets().forTable(tableId).fetch(FLUSH_ID).checkConsistency().build()) {
+
+      long flushId = 0, prevTabletFlushId = 0;
+      for (TabletMetadata tabletMetadata : metaScan) {
+        OptionalLong optFlushId = tabletMetadata.getFlushId();
+        if (optFlushId.isPresent()) {
+          flushId = optFlushId.getAsLong();
+          if (prevTabletFlushId > 0 && prevTabletFlushId != flushId) {
+            throw new Exception("Flush ID different between tablets");
+          } else {
+            prevTabletFlushId = flushId;
+          }
+        } else {
+          throw new Exception("Missing flush ID");
+        }
+      }
+
+      if (prevFlushID >= flushId) {
+        throw new Exception(
+            "Flush ID did not increase. prevFlushID: " + prevFlushID + " current: " + flushId);
+      }
+
+      return flushId;
     }
   }
 }

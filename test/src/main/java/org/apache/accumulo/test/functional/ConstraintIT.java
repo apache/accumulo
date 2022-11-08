@@ -1,24 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -42,7 +44,7 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.constraints.AlphaNumKeyConstraint;
 import org.apache.accumulo.test.constraints.NumericValueConstraint;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,8 +52,8 @@ public class ConstraintIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(ConstraintIT.class);
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
   }
 
   @Test
@@ -65,7 +67,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
       }
 
       // A static sleep to just let ZK do its thing
-      Thread.sleep(10 * 1000);
+      Thread.sleep(10_000);
 
       // Then check that the client has at least gotten the updates
       for (String table : tableNames) {
@@ -93,7 +95,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
     BatchWriter bw = client.createBatchWriter(tableName);
 
     Mutation mut1 = new Mutation(new Text("r1"));
-    mut1.put(new Text("cf1"), new Text("cq1"), new Value("123".getBytes(UTF_8)));
+    mut1.put("cf1", "cq1", "123");
 
     bw.addMutation(mut1);
 
@@ -104,7 +106,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
 
     // create a mutation with a non numeric value
     Mutation mut2 = new Mutation(new Text("r1"));
-    mut2.put(new Text("cf1"), new Text("cq1"), new Value("123a".getBytes(UTF_8)));
+    mut2.put("cf1", "cq1", "123a");
 
     bw.addMutation(mut2);
 
@@ -149,7 +151,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
       if (!entry.getKey().getRow().equals(new Text("r1"))
           || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
           || !entry.getKey().getColumnQualifier().equals(new Text("cq1"))
-          || !entry.getValue().equals(new Value("123".getBytes(UTF_8)))) {
+          || !entry.getValue().equals(new Value("123"))) {
         throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
       }
 
@@ -175,7 +177,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
       if (!entry.getKey().getRow().equals(new Text("r1"))
           || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
           || !entry.getKey().getColumnQualifier().equals(new Text("cq1"))
-          || !entry.getValue().equals(new Value("123a".getBytes(UTF_8)))) {
+          || !entry.getValue().equals(new Value("123a"))) {
         throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
       }
 
@@ -187,14 +189,14 @@ public class ConstraintIT extends AccumuloClusterHarness {
 
       // add a constraint that references a non-existent class
       client.tableOperations().setProperty(tableName, Property.TABLE_CONSTRAINT_PREFIX + "1",
-          "com.foobar.nonExistantClass");
+          "com.foobar.nonExistentClass");
       sleepUninterruptibly(1, TimeUnit.SECONDS);
 
       // add a mutation
       bw = client.createBatchWriter(tableName);
 
       Mutation mut3 = new Mutation(new Text("r1"));
-      mut3.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes(UTF_8)));
+      mut3.put("cf1", "cq1", "foo");
 
       bw.addMutation(mut3);
 
@@ -219,7 +221,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
       if (!entry.getKey().getRow().equals(new Text("r1"))
           || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
           || !entry.getKey().getColumnQualifier().equals(new Text("cq1"))
-          || !entry.getValue().equals(new Value("123a".getBytes(UTF_8)))) {
+          || !entry.getValue().equals(new Value("123a"))) {
         throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
       }
 
@@ -245,7 +247,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
       if (!entry.getKey().getRow().equals(new Text("r1"))
           || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
           || !entry.getKey().getColumnQualifier().equals(new Text("cq1"))
-          || !entry.getValue().equals(new Value("foo".getBytes(UTF_8)))) {
+          || !entry.getValue().equals(new Value("foo"))) {
         throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
       }
 
@@ -259,7 +261,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
 
   private Mutation newMut(String row, String cf, String cq, String val) {
     Mutation mut1 = new Mutation(new Text(row));
-    mut1.put(new Text(cf), new Text(cq), new Value(val.getBytes(UTF_8)));
+    mut1.put(cf, cq, val);
     return mut1;
   }
 
@@ -335,7 +337,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
       if (!entry.getKey().getRow().equals(new Text("r1"))
           || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
           || !entry.getKey().getColumnQualifier().equals(new Text("cq1"))
-          || !entry.getValue().equals(new Value("123".getBytes(UTF_8)))) {
+          || !entry.getValue().equals(new Value("123"))) {
         throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
       }
 
@@ -344,7 +346,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
       if (!entry.getKey().getRow().equals(new Text("r1"))
           || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
           || !entry.getKey().getColumnQualifier().equals(new Text("cq4"))
-          || !entry.getValue().equals(new Value("789".getBytes(UTF_8)))) {
+          || !entry.getValue().equals(new Value("789"))) {
         throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
       }
 

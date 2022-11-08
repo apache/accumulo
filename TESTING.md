@@ -1,18 +1,22 @@
 <!--
-Licensed to the Apache Software Foundation (ASF) under one or more
-contributor license agreements.  See the NOTICE file distributed with
-this work for additional information regarding copyright ownership.
-The ASF licenses this file to You under the Apache License, Version 2.0
-(the "License"); you may not use this file except in compliance with
-the License.  You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+      https://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
 -->
 
 # Testing Apache Accumulo
@@ -21,11 +25,16 @@ This document is meant to serve as a quick reference to the automated test suite
 
 # Unit tests
 
-Unit tests can be run by invoking `mvn test` at the root of the Apache Accumulo source tree.  For more information see
-the [maven-surefire-plugin docs][surefire].  This command  will run just the unit tests:
+Unit tests can be run by invoking `mvn package` at the root of the Apache Accumulo source tree, which includes the
+`test` phase of the [Maven lifecycle][lifecycle]. The `test` phase cannot be run directly, because not all of Accumulo's
+modules are Java artifacts, and therefore will not be resolvable by their sibling modules until they are created in
+their `package` phase. To avoid building against stale artifacts from previous builds that may have been published to a
+remote server or installed to your local Maven repository, always build with the `package` phase to run the unit
+tests. The [maven-surefire-plugin][surefire] is bound to the `test` phase of the Maven lifecycle by default and will run
+the JUnit tests. To execute the unit tests, simply build the project by running:
 
 ```bash
-mvn clean test -Dspotbugs.skip -DskipITs
+mvn clean package
 ```
 
 # SpotBugs (formerly findbugs)
@@ -51,7 +60,7 @@ the WriteAheadLogIT:
 mvn clean verify -Dit.test=WriteAheadLogIT -Dtest=foo -Dspotbugs.skip
 ```
 
-## SunnyDay (`SunnyDayTests`)
+## SunnyDay (`SunnyDay`)
 
 This test category represents a minimal set of tests chosen to verify the basic
 functionality of Accumulo. These would typically be run prior to submitting a
@@ -65,7 +74,7 @@ To run all the Sunny day tests, run:
 mvn clean verify -Psunny
 ```
 
-## MiniAccumuloCluster (`MiniClusterOnlyTests`)
+## MiniAccumuloCluster (`MiniClusterOnly`)
 
 These tests use MiniAccumuloCluster (MAC) which is a multi-process "implementation" of Accumulo, managed
 through Java APIs. This MiniAccumuloCluster has the ability to use the local filesystem or Apache Hadoop's
@@ -83,15 +92,17 @@ To run all the Mini tests, run:
 mvn clean verify -Dspotbugs.skip
 ```
 
-## Standalone Cluster (`StandaloneCapableClusterTests`)
+## Standalone Cluster (`StandaloneCapableCluster`)
 
-A standalone Accumulo cluster can also be configured for use by most tests. Not all of the integration tests are good
-candidates to run against a standalone Accumulo cluster, these tests will still launch a MiniAccumuloCluster for their use.
+A standalone Accumulo cluster can also be configured for use by most tests. Not all the integration tests are good
+candidates to run against a standalone cluster, and some of them require classes in the test jar.  Copy the
+accumulo-test jar found in `$ACCUMULO_HOME/test/target` into the lib folder of your accumulo instance before running all
+the tests.
 
-These tests can be run by providing a system property.  This command will run all tests against a standalone cluster:
+These tests can be run by providing a system property.  Specific ITs can be run using "-Dit.test" or run all tests using:
 
 ```bash
-mvn clean verify -Dtest=foo -Daccumulo.it.properties=/home/user/my_cluster.properties -Dfailsafe.groups=org.apache.accumulo.test.categories.StandaloneCapableClusterTests -Dspotbugs.skip
+mvn clean verify -Dtest=foo -Daccumulo.it.properties=/home/user/my_cluster.properties -Dfailsafe.groups=StandaloneCapableCluster -Dspotbugs.skip
 ```
 
 ### Configuration for Standalone clusters
@@ -129,33 +140,12 @@ Each of the above properties can be set on the commandline (-Daccumulo.it.cluste
 collection can be placed into a properties file and referenced using "accumulo.it.cluster.properties". Properties
 specified on the command line override properties set in a file.
 
-## MapReduce job for Integration tests
-
-[ACCUMULO-3871][issue] (re)introduced the ability to parallelize the execution of the Integration Test suite by the use
-of MapReduce/YARN. When a YARN cluster is available, this can drastically reduce the amount of time to run all tests.
-
-To run the tests, you first need a list of the tests. A simple way to get a list, is to scan the accumulo-test jar file for them.
-
-`jar -tf lib/accumulo-test.jar | grep IT.class | tr / . | sed -e 's/.class$//' >accumulo-integration-tests.txt`
-
-Then, put the list of files into HDFS:
-
-`hdfs dfs -mkdir /tmp`
-`hdfs dfs -put accumulo-integration-tests.txt /tmp/tests`
-
-Finally, launch the job, providing the list of tests to run and a location to store the test results. Optionally, a built
-native library shared object can be provided to the Mapper's classpath to enable MiniAccumuloCluster to use the native maps
-instead of the Java-based implementation. (Note that the below paths are the JAR and shared object are based on an installation.
-These files do exist in the build tree, but at different locations)
-
-`yarn jar lib/accumulo-test.jar org.apache.accumulo.test.mrit.IntegrationtestMapReduce -libjars lib/native/libaccumulo.so /tmp/accumulo-integration-tests.txt /tmp/accumulo-integration-test-results`
-
 # Manual Distributed Testing
 
 Apache Accumulo has a number of tests which are suitable for running against large clusters for hours to days at a time.
 These test suites exist in the [accumulo-testing repo][testing].
 
 [testing]: https://github.com/apache/accumulo-testing
-[surefire]: http://maven.apache.org/surefire/maven-surefire-plugin/
-[issue]: https://issues.apache.org/jira/browse/ACCUMULO-3871
-[SpotBugs]: https://spotbugs.github.io/
+[surefire]: https://maven.apache.org/surefire/maven-surefire-plugin
+[SpotBugs]: https://spotbugs.github.io
+[lifecycle]: https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle

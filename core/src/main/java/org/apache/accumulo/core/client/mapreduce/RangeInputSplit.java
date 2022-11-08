@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client.mapreduce;
 
@@ -51,7 +53,7 @@ import org.apache.log4j.Level;
  * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapreduce instead from the
  *             accumulo-hadoop-mapreduce.jar
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class RangeInputSplit extends InputSplit implements Writable {
   private Range range;
   private String[] locations;
@@ -320,7 +322,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
    *
    * @deprecated since 1.6.1, use getTableName() instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.6.1")
   public String getTable() {
     return getTableName();
   }
@@ -334,7 +336,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
    *
    * @deprecated since 1.6.1, use setTableName() instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.6.1")
   public void setTable(String table) {
     setTableName(table);
   }
@@ -355,7 +357,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
    * @see #getInstance(org.apache.accumulo.core.client.ClientConfiguration)
    * @deprecated since 1.7.0, use getInstance(ClientConfiguration) instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.7.0")
   public org.apache.accumulo.core.client.Instance getInstance() {
     return getInstance(org.apache.accumulo.core.client.ClientConfiguration.loadDefault());
   }

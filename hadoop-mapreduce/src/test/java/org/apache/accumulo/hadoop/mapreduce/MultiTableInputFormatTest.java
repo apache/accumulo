@@ -1,24 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.hadoop.mapreduce;
 
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,28 +32,25 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.hadoop.its.WithTestNames;
 import org.apache.accumulo.hadoopImpl.mapreduce.InputTableConfig;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.Test;
 
-public class MultiTableInputFormatTest {
+public class MultiTableInputFormatTest extends WithTestNames {
   public static final Class<AccumuloInputFormat> CLASS = AccumuloInputFormat.class;
-
-  @Rule
-  public TestName testName = new TestName();
 
   /**
    * Verify {@link InputTableConfig} objects get correctly serialized in the JobContext.
    */
   @Test
   public void testStoreTables() throws Exception {
-    String table1Name = testName.getMethodName() + "1";
-    String table2Name = testName.getMethodName() + "2";
+    String table1Name = testName() + "1";
+    String table2Name = testName() + "2";
+
     Job job = Job.getInstance();
     Properties clientProps =
         org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormatTest.setupClientProperties();
@@ -78,7 +77,7 @@ public class MultiTableInputFormatTest {
     InputTableConfig table1 = new InputTableConfig();
     table1.setScanAuths(auths).setRanges(ranges).fetchColumns(cols).setUseLocalIterators(true)
         .setOfflineScan(true);
-    allIters.forEach(itr -> table1.addIterator(itr));
+    allIters.forEach(table1::addIterator);
     InputTableConfig table2 = new InputTableConfig();
     table2.setScanAuths(auths).setRanges(ranges).fetchColumns(cols).addIterator(iter2);
 

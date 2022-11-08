@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.conf;
 
@@ -33,14 +35,15 @@ import org.apache.accumulo.core.client.security.tokens.CredentialProviderToken;
 import org.apache.accumulo.core.client.security.tokens.DelegationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.spi.scan.ConfigurableScanServerSelector;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public enum ClientProperty {
 
   // Instance
-  INSTANCE_NAME("instance.name", "", PropertyType.STRING,
-      "Name of Accumulo instance to " + "connect to", "2.0.0", true),
+  INSTANCE_NAME("instance.name", "", PropertyType.STRING, "Name of Accumulo instance to connect to",
+      "2.0.0", true),
   INSTANCE_ZOOKEEPERS("instance.zookeepers", "localhost:2181", PropertyType.HOSTLIST,
       "Zookeeper connection information for Accumulo instance", "2.0.0", true),
   INSTANCE_ZOOKEEPERS_TIMEOUT("instance.zookeepers.timeout", "30s", PropertyType.TIMEDURATION,
@@ -72,9 +75,29 @@ public enum ClientProperty {
           + " use the table's durability setting. ",
       "2.0.0", false),
 
+  // ConditionalWriter
+  CONDITIONAL_WRITER_TIMEOUT_MAX("conditional.writer.timeout.max", "0", PropertyType.TIMEDURATION,
+      "Maximum amount of time an unresponsive server will be re-tried. A value of 0 will use "
+          + "Long.MAX_VALUE.",
+      "2.1.0", false),
+  CONDITIONAL_WRITER_THREADS_MAX("conditional.writer.threads.max", "3", PropertyType.COUNT,
+      "Maximum number of threads to use for writing data to tablet servers.", "2.1.0", false),
+  CONDITIONAL_WRITER_DURABILITY("conditional.writer.durability", "default", PropertyType.DURABILITY,
+      Property.TABLE_DURABILITY.getDescription() + " Setting this property will change the "
+          + "durability for the ConditionalWriter session. A value of \"default\" will use the"
+          + " table's durability setting. ",
+      "2.1.0", false),
+
   // Scanner
   SCANNER_BATCH_SIZE("scanner.batch.size", "1000", PropertyType.COUNT,
       "Number of key/value pairs that will be fetched at time from tablet server", "2.0.0", false),
+
+  SCAN_SERVER_SELECTOR("scan.server.selector.impl", ConfigurableScanServerSelector.class.getName(),
+      PropertyType.CLASSNAME, "Class used by client to find Scan Servers", "2.1.0", false),
+
+  SCAN_SERVER_SELECTOR_OPTS_PREFIX("scan.server.selector.opts.", "", PropertyType.PREFIX,
+      "Properties in this category are related to the configuration of the scan.server.selector.impl class",
+      "2.1.0", false),
 
   // BatchScanner
   BATCH_SCANNER_NUM_QUERY_THREADS("batch.scanner.num.query.threads", "3", PropertyType.COUNT,
@@ -107,20 +130,28 @@ public enum ClientProperty {
   SASL_KERBEROS_SERVER_PRIMARY("sasl.kerberos.server.primary", "accumulo",
       "Kerberos principal/primary that Accumulo servers use to login"),
 
+  // RPC
+  RPC_TRANSPORT_IDLE_TIMEOUT("rpc.transport.idle.timeout", "3s", PropertyType.TIMEDURATION,
+      "The maximum duration to leave idle transports open in the client's transport pool", "2.1.0",
+      false),
+
   // Trace
+  @Deprecated(since = "2.1.0", forRemoval = true)
   TRACE_SPAN_RECEIVERS("trace.span.receivers", "org.apache.accumulo.tracer.ZooTraceClient",
       "A list of span receiver classes to send trace spans"),
+  @Deprecated(since = "2.1.0", forRemoval = true)
   TRACE_ZOOKEEPER_PATH("trace.zookeeper.path", Constants.ZTRACERS, PropertyType.PATH,
       "The zookeeper node where tracers are registered", "2.0.0", false);
 
+  @Deprecated(since = "2.1.0", forRemoval = true)
   public static final String TRACE_SPAN_RECEIVER_PREFIX = "trace.span.receiver";
 
-  private String key;
-  private String defaultValue;
-  private PropertyType type;
-  private String description;
-  private String since;
-  private boolean required;
+  private final String key;
+  private final String defaultValue;
+  private final PropertyType type;
+  private final String description;
+  private final String since;
+  private final boolean required;
 
   ClientProperty(String key, String defaultValue, PropertyType type, String description,
       String since, boolean required) {
@@ -216,12 +247,12 @@ public enum ClientProperty {
     if (value.isEmpty()) {
       return false;
     }
-    return Boolean.valueOf(value);
+    return Boolean.parseBoolean(value);
   }
 
   public void setBytes(Properties properties, Long bytes) {
-    checkState(getType() == PropertyType.BYTES, "Invalid type setting " + "bytes. Type must be "
-        + PropertyType.BYTES + ", not " + getType());
+    checkState(getType() == PropertyType.BYTES,
+        "Invalid type setting bytes. Type must be " + PropertyType.BYTES + ", not " + getType());
     properties.setProperty(getKey(), bytes.toString());
   }
 
@@ -322,6 +353,8 @@ public enum ClientProperty {
   /**
    * @throws IllegalArgumentException
    *           if Properties does not contain all required
+   * @throws NullPointerException
+   *           if {@code properties == null}
    */
   public static void validate(Properties properties) {
     validate(properties, true);

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.monitor.rest.replication;
 
@@ -25,11 +27,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import javax.inject.Inject;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -38,7 +40,6 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -64,6 +65,7 @@ import org.slf4j.LoggerFactory;
  */
 @Path("/replication")
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+@Deprecated
 public class ReplicationResource {
   private static final Logger log = LoggerFactory.getLogger(ReplicationResource.class);
 
@@ -116,7 +118,7 @@ public class ReplicationResource {
     // Number of files per target we have to replicate
     Map<ReplicationTarget,Long> targetCounts = new HashMap<>();
 
-    Map<String,TableId> tableNameToId = Tables.getNameToIdMap(monitor.getContext());
+    Map<String,TableId> tableNameToId = monitor.getContext().getTableNameToIdMap();
     Map<TableId,String> tableIdToName = invert(tableNameToId);
 
     for (String table : tops.list()) {
@@ -129,23 +131,28 @@ public class ReplicationResource {
         continue;
       }
 
-      Iterable<Entry<String,String>> propertiesForTable;
+      Map<String,String> propertiesForTable;
       try {
-        propertiesForTable = tops.getProperties(table);
+        propertiesForTable = tops.getConfiguration(table);
       } catch (TableNotFoundException e) {
         log.warn("Could not fetch properties for {}", table, e);
         continue;
       }
-
-      for (Entry<String,String> prop : propertiesForTable) {
-        if (prop.getKey().startsWith(targetPrefix)) {
-          String peerName = prop.getKey().substring(targetPrefix.length());
-          String remoteIdentifier = prop.getValue();
+      propertiesForTable.forEach((key, value) -> {
+        if (key.startsWith(targetPrefix)) {
+          String peerName = key.substring(targetPrefix.length());
+          String remoteIdentifier = value;
           ReplicationTarget target = new ReplicationTarget(peerName, remoteIdentifier, localId);
 
           allConfiguredTargets.add(target);
         }
-      }
+      });
+    }
+
+    // Ensure replication table is online before attempting to create BatchScanner
+    if (!ReplicationTable.isOnline(client)) {
+      log.debug("Replication page requested, but replication table is offline");
+      return Collections.emptyList();
     }
 
     // Read over the queued work

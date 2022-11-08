@@ -1,34 +1,30 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
-
-/**
- * Creates replication initial table
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-$(document).ready(function() {
-  refreshReplication();
-});
+"use strict";
+
+var replicationStatsTable;
 
 /**
- * Makes the REST calls, generates the tables with the new information
+ * Populates the table with the new information
  */
 function refreshReplication() {
-  getReplication().then(function() {
-    refreshReplicationsTable();
-  });
+  ajaxReloadTable(replicationStatsTable);
 }
 
 /**
@@ -39,38 +35,45 @@ function refresh() {
 }
 
 /**
- * Generates the replication table
+ * Creates replication initial table
  */
-function refreshReplicationsTable() {
-  clearTableBody('replicationStats');
+$(document).ready(function () {
 
-  var data = sessionStorage.replication === undefined ?
-      [] : JSON.parse(sessionStorage.replication);
+  replicationStatsTable = $('#replicationStats').DataTable({
+    "ajax": {
+      "url": "/rest/replication",
+      "dataSrc": ""
+    },
+    "stateSave": true,
+    "columns": [{
+        "data": "tableName",
+        "width": "25%"
+      },
+      {
+        "data": "peerName",
+        "width": "20%"
+      },
+      {
+        "data": "remoteIdentifier",
+        "width": "25%"
+      },
+      {
+        "data": "replicaSystemType",
+        "width": "15%"
+      },
+      {
+        "data": "filesNeedingReplication",
+        "width": "15%",
+        "render": function (data, type) {
+          if (type === 'display') {
+            data = bigNumberForQuantity(data);
+          }
+          return data;
+        }
+      }
+    ]
+  });
 
-  if (data.length === 0) {
-    var items = [];
-    items.push(createEmptyRow(5, 'Replication table is offline'));
-    $('<tr/>', {
-      html: items.join('')
-    }).appendTo('#replicationStats tbody');
-  } else {
-    $.each(data, function(key, val) {
-      var items = [];
-      items.push(createFirstCell(val.tableName, val.tableName));
+  refreshReplication();
 
-      items.push(createRightCell(val.peerName, val.peerName));
-
-      items.push(createRightCell(val.remoteIdentifier, val.remoteIdentifier));
-
-      items.push(createRightCell(val.replicaSystemType, val.replicaSystemType));
-
-      items.push(createRightCell(val.filesNeedingReplication,
-          bigNumberForQuantity(val.filesNeedingReplication)));
-
-      $('<tr/>', {
-        html: items.join('')
-      }).appendTo('#replicationStats tbody');
-
-    });
-  }
-}
+});

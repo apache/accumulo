@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.log;
 
@@ -37,15 +39,13 @@ import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
-import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
-import org.apache.accumulo.core.util.SimpleThreadPool;
-import org.apache.accumulo.fate.util.LoggingRunnable;
-import org.apache.accumulo.fate.util.Retry;
-import org.apache.accumulo.fate.util.Retry.RetryFactory;
+import org.apache.accumulo.core.util.Halt;
+import org.apache.accumulo.core.util.Retry;
+import org.apache.accumulo.core.util.Retry.RetryFactory;
+import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
-import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.tserver.TabletMutations;
 import org.apache.accumulo.tserver.TabletServer;
@@ -242,7 +242,7 @@ public class TabletServerLogger {
 
         try {
           // Backoff
-          createRetry.waitForNextAttempt();
+          createRetry.waitForNextAttempt(log, "create new WAL ");
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           throw new RuntimeException(e);
@@ -262,12 +262,13 @@ public class TabletServerLogger {
     if (nextLogMaker != null) {
       return;
     }
-    nextLogMaker = new SimpleThreadPool(1, "WALog creator");
-    nextLogMaker.submit(new LoggingRunnable(log, new Runnable() {
+    nextLogMaker =
+        ThreadPools.getServerThreadPools().createFixedThreadPool(1, "WALog creator", true);
+    nextLogMaker.execute(new Runnable() {
       @Override
       public void run() {
         final ServerResources conf = tserver.getServerConfig();
-        final VolumeManager fs = conf.getFileSystem();
+        final VolumeManager fs = conf.getVolumeManager();
         while (!nextLogMaker.isShutdown()) {
           log.debug("Creating next WAL");
           DfsLogger alog = null;
@@ -349,7 +350,7 @@ public class TabletServerLogger {
           }
         }
       }
-    }));
+    });
   }
 
   private synchronized void close() throws IOException {
@@ -362,15 +363,15 @@ public class TabletServerLogger {
           currentLog.close();
         } catch (DfsLogger.LogClosedException ex) {
           // ignore
-        } catch (Throwable ex) {
+        } catch (Exception ex) {
           log.error("Unable to cleanly close log " + currentLog.getFileName() + ": " + ex, ex);
         } finally {
           this.tserver.walogClosed(currentLog);
+          currentLog = null;
+          logSizeEstimate.set(0);
         }
-        currentLog = null;
-        logSizeEstimate.set(0);
       }
-    } catch (Throwable t) {
+    } catch (Exception t) {
       throw new IOException(t);
     }
   }
@@ -408,9 +409,14 @@ public class TabletServerLogger {
 
               // Need to release
               KeyExtent extent = commitSession.getExtent();
-              if (ReplicationConfigurationUtil.isEnabled(extent,
-                  tserver.getTableConfiguration(extent))) {
-                Status status = StatusUtil.openWithUnknownLength(System.currentTimeMillis());
+              @SuppressWarnings("deprecation")
+              boolean replicationEnabled =
+                  org.apache.accumulo.core.replication.ReplicationConfigurationUtil
+                      .isEnabled(extent, tserver.getTableConfiguration(extent));
+              if (replicationEnabled) {
+                @SuppressWarnings("deprecation")
+                Status status = org.apache.accumulo.server.replication.StatusUtil
+                    .openWithUnknownLength(System.currentTimeMillis());
                 log.debug("Writing " + ProtobufUtil.toString(status) + " to metadata table for "
                     + copy.getFileName());
                 // Got some new WALs, note this in the metadata table
@@ -438,7 +444,7 @@ public class TabletServerLogger {
 
         try {
           // Backoff
-          writeRetry.waitForNextAttempt();
+          writeRetry.waitForNextAttempt(log, "write to WAL");
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           throw new RuntimeException(e);
@@ -498,7 +504,7 @@ public class TabletServerLogger {
    * Log mutations. This method expects mutations that have a durability other than NONE.
    */
   public void logManyTablets(Map<CommitSession,TabletMutations> loggables) throws IOException {
-    if (loggables.size() == 0)
+    if (loggables.isEmpty())
       return;
 
     write(loggables.keySet(), false, logger -> logger.logManyTablets(loggables.values()),
@@ -529,11 +535,11 @@ public class TabletServerLogger {
     return seq;
   }
 
-  public void recover(VolumeManager fs, KeyExtent extent, List<Path> logs, Set<String> tabletFiles,
-      MutationReceiver mr) throws IOException {
+  public void recover(ServerContext context, KeyExtent extent, List<Path> recoveryDirs,
+      Set<String> tabletFiles, MutationReceiver mr) throws IOException {
     try {
-      SortedLogRecovery recovery = new SortedLogRecovery(fs);
-      recovery.recover(extent, logs, tabletFiles, mr);
+      SortedLogRecovery recovery = new SortedLogRecovery(context);
+      recovery.recover(extent, recoveryDirs, tabletFiles, mr);
     } catch (Exception e) {
       throw new IOException(e);
     }

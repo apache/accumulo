@@ -1,24 +1,27 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -39,14 +42,9 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Merge;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class MergeIT extends AccumuloClusterHarness {
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 8 * 60;
-  }
 
   SortedSet<Text> splits(String[] points) {
     SortedSet<Text> result = new TreeSet<>();
@@ -55,12 +53,17 @@ public class MergeIT extends AccumuloClusterHarness {
     return result;
   }
 
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(8);
+  }
+
   @Test
   public void merge() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
-      c.tableOperations().create(tableName);
-      c.tableOperations().addSplits(tableName, splits("a b c d e f g h i j k".split(" ")));
+      var ntc = new NewTableConfiguration().withSplits(splits("a b c d e f g h i j k".split(" ")));
+      c.tableOperations().create(tableName, ntc);
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
         for (String row : "a b c d e f g h i j k".split(" ")) {
           Mutation m = new Mutation(row);
@@ -78,9 +81,9 @@ public class MergeIT extends AccumuloClusterHarness {
   public void mergeSize() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
-      c.tableOperations().create(tableName);
-      c.tableOperations().addSplits(tableName,
-          splits("a b c d e f g h i j k l m n o p q r s t u v w x y z".split(" ")));
+      NewTableConfiguration ntc = new NewTableConfiguration()
+          .withSplits(splits("a b c d e f g h i j k l m n o p q r s t u v w x y z".split(" ")));
+      c.tableOperations().create(tableName, ntc);
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
         for (String row : "c e f y".split(" ")) {
           Mutation m = new Mutation(row);
@@ -165,13 +168,13 @@ public class MergeIT extends AccumuloClusterHarness {
     System.out.println(
         "Running merge test " + table + " " + Arrays.asList(splits) + " " + start + " " + end);
 
-    client.tableOperations().create(table,
-        new NewTableConfiguration().setTimeType(TimeType.LOGICAL));
-    TreeSet<Text> splitSet = new TreeSet<>();
-    for (String split : splits) {
-      splitSet.add(new Text(split));
+    SortedSet<Text> splitSet = splits(splits);
+
+    NewTableConfiguration ntc = new NewTableConfiguration().setTimeType(TimeType.LOGICAL);
+    if (!splitSet.isEmpty()) {
+      ntc = ntc.withSplits(splitSet);
     }
-    client.tableOperations().addSplits(table, splitSet);
+    client.tableOperations().create(table, ntc);
 
     HashSet<String> expected = new HashSet<>();
     try (BatchWriter bw = client.createBatchWriter(table)) {

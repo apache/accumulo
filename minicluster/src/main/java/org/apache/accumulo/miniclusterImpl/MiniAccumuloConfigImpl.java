@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.miniclusterImpl;
 
@@ -54,6 +56,8 @@ public class MiniAccumuloConfigImpl {
   private Map<String,String> configuredSiteConig = new HashMap<>();
   private Map<String,String> clientProps = new HashMap<>();
   private int numTservers = 2;
+  private int numScanServers = 0;
+  private int numCompactors = 1;
   private Map<ServerType,Long> memoryConfig = new HashMap<>();
   private boolean jdwpEnabled = false;
   private Map<String,String> systemProperties = new HashMap<>();
@@ -71,10 +75,10 @@ public class MiniAccumuloConfigImpl {
 
   private int zooKeeperPort = 0;
   private int configuredZooKeeperPort = 0;
-  private long zooKeeperStartupTime = 20 * 1000;
+  private long zooKeeperStartupTime = 20_000;
   private String existingZooKeepers;
 
-  private long defaultMemorySize = 128 * 1024 * 1024;
+  private long defaultMemorySize = 256 * 1024 * 1024;
 
   private boolean initialized = false;
 
@@ -108,6 +112,8 @@ public class MiniAccumuloConfigImpl {
 
   /**
    * Set directories and fully populate site config
+   *
+   * @return this
    */
   MiniAccumuloConfigImpl initialize() {
 
@@ -134,10 +140,8 @@ public class MiniAccumuloConfigImpl {
       // Never want to override these if an existing instance, which may be using the defaults
       if (existingInstance == null || !existingInstance) {
         existingInstance = false;
-        // TODO ACCUMULO-XXXX replace usage of instance.dfs.{dir,uri} with instance.volumes
-        setInstanceLocation();
+        mergeProp(Property.INSTANCE_VOLUMES.getKey(), "file://" + accumuloDir.getAbsolutePath());
         mergeProp(Property.INSTANCE_SECRET.getKey(), DEFAULT_INSTANCE_SECRET);
-        mergeProp(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + "password", getRootPassword());
       }
 
       mergeProp(Property.TSERV_PORTSEARCH.getKey(), "true");
@@ -145,7 +149,7 @@ public class MiniAccumuloConfigImpl {
       mergeProp(Property.TSERV_INDEXCACHE_SIZE.getKey(), "10M");
       mergeProp(Property.TSERV_SUMMARYCACHE_SIZE.getKey(), "10M");
       mergeProp(Property.TSERV_MAXMEM.getKey(), "40M");
-      mergeProp(Property.TSERV_WALOG_MAX_SIZE.getKey(), "100M");
+      mergeProp(Property.TSERV_WAL_MAX_SIZE.getKey(), "100M");
       mergeProp(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "false");
       // since there is a small amount of memory, check more frequently for majc... setting may not
       // be needed in 1.5
@@ -158,14 +162,16 @@ public class MiniAccumuloConfigImpl {
       mergeProp(generalDynamicClasspaths.getKey(), libExtDir.getAbsolutePath() + "/[^.].*[.]jar");
       mergeProp(Property.GC_CYCLE_DELAY.getKey(), "4s");
       mergeProp(Property.GC_CYCLE_START.getKey(), "0s");
-      mergePropWithRandomPort(Property.MASTER_CLIENTPORT.getKey());
-      mergePropWithRandomPort(Property.TRACE_PORT.getKey());
+      mergePropWithRandomPort(Property.MANAGER_CLIENTPORT.getKey());
       mergePropWithRandomPort(Property.TSERV_CLIENTPORT.getKey());
       mergePropWithRandomPort(Property.MONITOR_PORT.getKey());
       mergePropWithRandomPort(Property.GC_PORT.getKey());
-      mergePropWithRandomPort(Property.MONITOR_LOG4J_PORT.getKey());
-      mergePropWithRandomPort(Property.REPLICATION_RECEIPT_SERVICE_PORT.getKey());
-      mergePropWithRandomPort(Property.MASTER_REPLICATION_COORDINATOR_PORT.getKey());
+      @SuppressWarnings("deprecation")
+      Property p = Property.REPLICATION_RECEIPT_SERVICE_PORT;
+      mergePropWithRandomPort(p.getKey());
+      @SuppressWarnings("deprecation")
+      Property p2 = Property.MANAGER_REPLICATION_COORDINATOR_PORT;
+      mergePropWithRandomPort(p2.getKey());
 
       if (isUseCredentialProvider()) {
         updateConfigForCredentialProvider();
@@ -229,12 +235,6 @@ public class MiniAccumuloConfigImpl {
     }
   }
 
-  @SuppressWarnings("deprecation")
-  private void setInstanceLocation() {
-    mergeProp(Property.INSTANCE_DFS_URI.getKey(), "file:///");
-    mergeProp(Property.INSTANCE_DFS_DIR.getKey(), accumuloDir.getAbsolutePath());
-  }
-
   /**
    * Set a given key/value on the site config if it doesn't already exist
    */
@@ -265,6 +265,20 @@ public class MiniAccumuloConfigImpl {
       throw new IllegalArgumentException("Must have at least one tablet server");
     }
     this.numTservers = numTservers;
+    return this;
+  }
+
+  /**
+   * Calling this method is optional. If not set, it defaults to two.
+   *
+   * @param numScanServers
+   *          the number of tablet servers that mini accumulo cluster should start
+   */
+  public MiniAccumuloConfigImpl setNumScanServers(int numScanServers) {
+    if (numScanServers < 0) {
+      throw new IllegalArgumentException("Must have zero or more scan servers");
+    }
+    this.numScanServers = numScanServers;
     return this;
   }
 
@@ -369,8 +383,8 @@ public class MiniAccumuloConfigImpl {
   }
 
   /**
-   * Sets the amount of memory to use in the master process. Calling this method is optional.
-   * Default memory is 128M
+   * Sets the amount of memory to use in the specified process. Calling this method is optional.
+   * Default memory is 256M
    *
    * @param serverType
    *          the type of server to apply the memory settings
@@ -390,7 +404,7 @@ public class MiniAccumuloConfigImpl {
 
   /**
    * Sets the default memory size to use. This value is also used when a ServerType has not been
-   * configured explicitly. Calling this method is optional. Default memory is 128M
+   * configured explicitly. Calling this method is optional. Default memory is 256M
    *
    * @param memory
    *          amount of memory to set
@@ -530,6 +544,13 @@ public class MiniAccumuloConfigImpl {
    */
   public int getNumTservers() {
     return numTservers;
+  }
+
+  /**
+   * @return the number of scan servers configured for this cluster
+   */
+  public int getNumScanServers() {
+    return numScanServers;
   }
 
   /**
@@ -792,5 +813,24 @@ public class MiniAccumuloConfigImpl {
    */
   public void setRootUserName(String rootUserName) {
     this.rootUserName = rootUserName;
+  }
+
+  /**
+   * @return number of Compactors
+   * @since 2.1.0
+   */
+  public int getNumCompactors() {
+    return numCompactors;
+  }
+
+  /**
+   * Set number of Compactors
+   *
+   * @param numCompactors
+   *          number of compactors
+   * @since 2.1.0
+   */
+  public void setNumCompactors(int numCompactors) {
+    this.numCompactors = numCompactors;
   }
 }

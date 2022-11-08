@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.log;
 
@@ -26,12 +28,12 @@ import java.util.Map.Entry;
 import java.util.UUID;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -42,9 +44,9 @@ import org.slf4j.LoggerFactory;
  * by tablet servers and the replication machinery.
  *
  * <p>
- * The Master needs to know the state of the WALs to mark tablets during recovery. The GC needs to
- * know when a log is no longer needed so it can be removed. The replication mechanism needs to know
- * when a log is closed and can be forwarded to the destination table.
+ * The Accumulo Manager needs to know the state of the WALs to mark tablets during recovery. The GC
+ * needs to know when a log is no longer needed so it can be removed. The replication mechanism
+ * needs to know when a log is closed and can be forwarded to the destination table.
  *
  * <p>
  * The state of the WALs is kept in Zookeeper under /accumulo/&lt;instanceid&gt;/wals. For each
@@ -57,7 +59,7 @@ import org.slf4j.LoggerFactory;
  * file.
  *
  * <p>
- * In the event of a recovery, the log is identified as belonging to a dead server. The master will
+ * In the event of a recovery, the log is identified as belonging to a dead server. The manager will
  * update the tablets assigned to that server with log references. Once all tablets have been
  * reassigned and the log references are removed, the log will be eligible for deletion.
  *
@@ -67,7 +69,7 @@ import org.slf4j.LoggerFactory;
  */
 public class WalStateManager {
 
-  public class WalMarkerException extends Exception {
+  public static class WalMarkerException extends Exception {
     private static final long serialVersionUID = 1L;
 
     public WalMarkerException(Exception ex) {
@@ -79,7 +81,7 @@ public class WalStateManager {
 
   public static final String ZWALS = "/wals";
 
-  public static enum WalState {
+  public enum WalState {
     /* log is open, and may be written to */
     OPEN,
     /* log is closed, and will not be written to again */
@@ -155,7 +157,7 @@ public class WalStateManager {
     return new Pair<>(WalState.valueOf(parts[0]), new Path(parts[1]));
   }
 
-  // Master needs to know the logs for the given instance
+  // Manager needs to know the logs for the given instance
   public List<Path> getWalsInUse(TServerInstance tsi) throws WalMarkerException {
     List<Path> result = new ArrayList<>();
     try {
@@ -164,13 +166,13 @@ public class WalStateManager {
       for (String child : zoo.getChildren(zpath)) {
         byte[] zdata = null;
         try {
-          // This function is called by the Master. Its possible that Accumulo GC deletes an
+          // This function is called by the Manager. Its possible that Accumulo GC deletes an
           // unreferenced WAL in ZK after the call to getChildren above. Catch this exception inside
           // the loop so that not all children are ignored.
-          zdata = zoo.getData(zpath + "/" + child, null);
+          zdata = zoo.getData(zpath + "/" + child);
         } catch (KeeperException.NoNodeException e) {
           log.debug("WAL state removed {} {} during getWalsInUse.  Likely a race condition between "
-              + "master and GC.", tsi, child);
+              + "manager and GC.", tsi, child);
         }
 
         if (zdata != null) {
@@ -195,10 +197,7 @@ public class WalStateManager {
       String path = root();
       for (String child : zoo.getChildren(path)) {
         TServerInstance inst = new TServerInstance(child);
-        List<UUID> logs = result.get(inst);
-        if (logs == null) {
-          result.put(inst, logs = new ArrayList<>());
-        }
+        List<UUID> logs = result.computeIfAbsent(inst, k -> new ArrayList<>());
 
         // This function is called by the Accumulo GC which deletes WAL markers. Therefore we do not
         // expect the following call to fail because the WAL info in ZK was deleted.
@@ -216,7 +215,7 @@ public class WalStateManager {
   public Pair<WalState,Path> state(TServerInstance instance, UUID uuid) throws WalMarkerException {
     try {
       String path = root() + "/" + instance + "/" + uuid;
-      return parse(zoo.getData(path, null));
+      return parse(zoo.getData(path));
     } catch (KeeperException | InterruptedException e) {
       throw new WalMarkerException(e);
     }
@@ -241,7 +240,7 @@ public class WalStateManager {
     try {
       log.debug("Removing {}", uuid);
       String path = root() + "/" + instance + "/" + uuid;
-      zoo.delete(path, -1);
+      zoo.delete(path);
     } catch (InterruptedException | KeeperException e) {
       throw new WalMarkerException(e);
     }
@@ -258,7 +257,7 @@ public class WalStateManager {
   }
 
   // tablet server can mark the log as closed (but still needed), for replication to begin
-  // master can mark a log as unreferenced after it has made log recovery markers on the tablets
+  // manager can mark a log as unreferenced after it has made log recovery markers on the tablets
   // that need to be recovered
   public void closeWal(TServerInstance instance, Path path) throws WalMarkerException {
     updateState(instance, path, WalState.CLOSED);

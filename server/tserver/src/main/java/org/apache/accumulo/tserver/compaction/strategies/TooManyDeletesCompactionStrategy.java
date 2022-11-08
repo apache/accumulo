@@ -1,20 +1,21 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.tserver.compaction.strategies;
 
 import static org.apache.accumulo.core.client.summary.summarizers.DeletesSummarizer.DELETES_STAT;
@@ -27,12 +28,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Predicate;
 
+import org.apache.accumulo.core.client.admin.compaction.TooManyDeletesSelector;
 import org.apache.accumulo.core.client.rfile.RFile.WriterOptions;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.Summary;
 import org.apache.accumulo.core.client.summary.summarizers.DeletesSummarizer;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.tserver.compaction.CompactionPlan;
 import org.apache.accumulo.tserver.compaction.DefaultCompactionStrategy;
 import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
@@ -77,7 +79,12 @@ import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
  * href=https://issues.apache.org/jira/browse/ACCUMULO-4573>ACCUMULO-4573</a>
  *
  * @since 2.0.0
+ * @deprecated since 2.1.0 use {@link TooManyDeletesSelector} instead
  */
+// Eclipse might show @SuppressWarnings("removal") as unnecessary.
+// Eclipse is wrong. See https://bugs.eclipse.org/bugs/show_bug.cgi?id=565271
+@SuppressWarnings("removal")
+@Deprecated(since = "2.1.0", forRemoval = true)
 public class TooManyDeletesCompactionStrategy extends DefaultCompactionStrategy {
 
   private boolean shouldCompact = false;
@@ -118,7 +125,7 @@ public class TooManyDeletesCompactionStrategy extends DefaultCompactionStrategy 
         SummarizerConfiguration.fromTableProperties(request.getTableProperties());
 
     // check if delete summarizer is configured for table
-    if (configuredSummarizers.stream().map(sc -> sc.getClassName())
+    if (configuredSummarizers.stream().map(SummarizerConfiguration::getClassName)
         .anyMatch(cn -> cn.equals(DeletesSummarizer.class.getName()))) {
       // This is called before gatherInformation, so need to always queue for compaction until
       // context
@@ -142,7 +149,7 @@ public class TooManyDeletesCompactionStrategy extends DefaultCompactionStrategy 
     long total = 0;
     long deletes = 0;
 
-    for (Entry<FileRef,DataFileValue> entry : request.getFiles().entrySet()) {
+    for (Entry<StoredTabletFile,DataFileValue> entry : request.getFiles().entrySet()) {
       Collection<Summary> summaries =
           request.getSummaries(Collections.singleton(entry.getKey()), summarizerPredicate);
       if (summaries.size() == 1) {

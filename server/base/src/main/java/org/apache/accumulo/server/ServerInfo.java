@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server;
 
@@ -20,7 +22,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
 import java.util.Properties;
-import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -31,11 +32,11 @@ import org.apache.accumulo.core.clientImpl.InstanceOperationsImpl;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.security.SystemCredentials;
@@ -44,14 +45,16 @@ import org.apache.hadoop.fs.Path;
 
 public class ServerInfo implements ClientInfo {
 
-  private SiteConfiguration siteConfig;
-  private Configuration hadoopConf;
-  private String instanceID;
-  private String instanceName;
-  private String zooKeepers;
-  private int zooKeepersSessionTimeOut;
-  private VolumeManager volumeManager;
-  private ZooCache zooCache;
+  private final SiteConfiguration siteConfig;
+  private final Configuration hadoopConf;
+  private final InstanceId instanceID;
+  private final String instanceName;
+  private final String zooKeepers;
+  private final int zooKeepersSessionTimeOut;
+  private final VolumeManager volumeManager;
+  private final ZooCache zooCache;
+  private final ServerDirs serverDirs;
+  private final Credentials credentials;
 
   ServerInfo(SiteConfiguration siteConfig, String instanceName, String zooKeepers,
       int zooKeepersSessionTimeOut) {
@@ -73,7 +76,7 @@ public class ServerInfo implements ClientInfo {
       throw new RuntimeException("Instance name " + instanceName + " does not exist in zookeeper. "
           + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
     }
-    instanceID = new String(iidb, UTF_8);
+    instanceID = InstanceId.of(new String(iidb, UTF_8));
     if (zooCache.get(Constants.ZROOT + "/" + instanceID) == null) {
       if (instanceName == null) {
         throw new RuntimeException("Instance id " + instanceID + " does not exist in zookeeper");
@@ -81,6 +84,8 @@ public class ServerInfo implements ClientInfo {
       throw new RuntimeException("Instance id " + instanceID + " pointed to by the name "
           + instanceName + " does not exist in zookeeper");
     }
+    serverDirs = new ServerDirs(siteConfig, hadoopConf);
+    credentials = SystemCredentials.get(instanceID, siteConfig);
   }
 
   ServerInfo(SiteConfiguration config) {
@@ -92,12 +97,32 @@ public class ServerInfo implements ClientInfo {
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
-    Path instanceIdPath = ServerUtil.getAccumuloInstanceIdPath(volumeManager);
-    instanceID = ZooUtil.getInstanceIDFromHdfs(instanceIdPath, config, hadoopConf);
+    serverDirs = new ServerDirs(siteConfig, hadoopConf);
+    Path instanceIdPath = serverDirs.getInstanceIdLocation(volumeManager.getFirst());
+    instanceID = VolumeManager.getInstanceIDFromHdfs(instanceIdPath, hadoopConf);
     zooKeepers = config.get(Property.INSTANCE_ZK_HOST);
     zooKeepersSessionTimeOut = (int) config.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
     zooCache = new ZooCacheFactory().getZooCache(zooKeepers, zooKeepersSessionTimeOut);
-    instanceName = InstanceOperationsImpl.lookupInstanceName(zooCache, UUID.fromString(instanceID));
+    instanceName = InstanceOperationsImpl.lookupInstanceName(zooCache, instanceID);
+    credentials = SystemCredentials.get(instanceID, siteConfig);
+  }
+
+  ServerInfo(SiteConfiguration config, String instanceName, InstanceId instanceID) {
+    SingletonManager.setMode(Mode.SERVER);
+    siteConfig = config;
+    hadoopConf = new Configuration();
+    try {
+      volumeManager = VolumeManagerImpl.get(siteConfig, hadoopConf);
+    } catch (IOException e) {
+      throw new IllegalStateException(e);
+    }
+    this.instanceID = instanceID;
+    zooKeepers = config.get(Property.INSTANCE_ZK_HOST);
+    zooKeepersSessionTimeOut = (int) config.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
+    zooCache = new ZooCacheFactory().getZooCache(zooKeepers, zooKeepersSessionTimeOut);
+    this.instanceName = instanceName;
+    serverDirs = new ServerDirs(siteConfig, hadoopConf);
+    credentials = SystemCredentials.get(instanceID, siteConfig);
   }
 
   public SiteConfiguration getSiteConfiguration() {
@@ -108,7 +133,7 @@ public class ServerInfo implements ClientInfo {
     return volumeManager;
   }
 
-  public String getInstanceID() {
+  public InstanceId getInstanceID() {
     return instanceID;
   }
 
@@ -155,11 +180,15 @@ public class ServerInfo implements ClientInfo {
   }
 
   public Credentials getCredentials() {
-    return SystemCredentials.get(getInstanceID(), getSiteConfiguration());
+    return credentials;
   }
 
   @Override
   public Configuration getHadoopConf() {
     return this.hadoopConf;
+  }
+
+  public ServerDirs getServerDirs() {
+    return serverDirs;
   }
 }

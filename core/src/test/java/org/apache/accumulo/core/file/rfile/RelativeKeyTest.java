@@ -1,22 +1,25 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.file.rfile;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -32,35 +35,11 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.rfile.RelativeKey.SkippR;
 import org.apache.accumulo.core.util.MutableByteSequence;
-import org.apache.accumulo.core.util.UnsynchronizedBuffer;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class RelativeKeyTest {
-
-  @Test
-  public void testBasicRelativeKey() {
-    assertEquals(1, UnsynchronizedBuffer.nextArraySize(0));
-    assertEquals(1, UnsynchronizedBuffer.nextArraySize(1));
-    assertEquals(2, UnsynchronizedBuffer.nextArraySize(2));
-    assertEquals(4, UnsynchronizedBuffer.nextArraySize(3));
-    assertEquals(4, UnsynchronizedBuffer.nextArraySize(4));
-    assertEquals(8, UnsynchronizedBuffer.nextArraySize(5));
-    assertEquals(8, UnsynchronizedBuffer.nextArraySize(8));
-    assertEquals(16, UnsynchronizedBuffer.nextArraySize(9));
-
-    assertEquals(1 << 16, UnsynchronizedBuffer.nextArraySize((1 << 16) - 1));
-    assertEquals(1 << 16, UnsynchronizedBuffer.nextArraySize(1 << 16));
-    assertEquals(1 << 17, UnsynchronizedBuffer.nextArraySize((1 << 16) + 1));
-
-    assertEquals(1 << 30, UnsynchronizedBuffer.nextArraySize((1 << 30) - 1));
-
-    assertEquals(1 << 30, UnsynchronizedBuffer.nextArraySize(1 << 30));
-
-    assertEquals(Integer.MAX_VALUE, UnsynchronizedBuffer.nextArraySize(Integer.MAX_VALUE - 1));
-    assertEquals(Integer.MAX_VALUE, UnsynchronizedBuffer.nextArraySize(Integer.MAX_VALUE));
-  }
 
   @Test
   public void testCommonPrefix() {
@@ -117,7 +96,7 @@ public class RelativeKeyTest {
   private static ArrayList<Integer> expectedPositions;
   private static ByteArrayOutputStream baos;
 
-  @BeforeClass
+  @BeforeAll
   public static void initSource() throws IOException {
     int initialListSize = 10000;
 
@@ -168,7 +147,7 @@ public class RelativeKeyTest {
 
   private DataInputStream in;
 
-  @Before
+  @BeforeEach
   public void setupDataInputStream() {
     in = new DataInputStream(new ByteArrayInputStream(baos.toByteArray()));
     in.mark(0);
@@ -206,16 +185,18 @@ public class RelativeKeyTest {
     assertEquals(expectedKeys.get(1), skippr.rk.getKey());
   }
 
-  @Test(expected = EOFException.class)
-  public void testSeekAfterEverythingWrongCount() throws IOException {
+  @Test
+  public void testSeekAfterEverythingWrongCount() {
     Key seekKey = new Key("s", "t", "u", "v", 1);
     Key prevKey = new Key();
     Key currKey = null;
     MutableByteSequence value = new MutableByteSequence(new byte[64], 0, 0);
 
-    RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey, expectedKeys.size() + 1);
+    assertThrows(EOFException.class,
+        () -> RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey, expectedKeys.size() + 1));
   }
 
+  @Test
   public void testSeekAfterEverything() throws IOException {
     Key seekKey = new Key("s", "t", "u", "v", 1);
     Key prevKey = new Key();

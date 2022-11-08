@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.util;
 
@@ -21,34 +23,31 @@ import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.file.rfile.RFileOperations;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.system.MultiIterator;
-import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.volume.Volume;
+import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.FileRef;
+import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -56,9 +55,9 @@ import org.apache.hadoop.io.WritableComparable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableSortedMap;
-
 public class FileUtil {
+
+  private static final SecureRandom random = new SecureRandom();
 
   public static class FileInfo {
     Key firstKey = new Key();
@@ -88,7 +87,7 @@ public class FileUtil {
     Path result = null;
     while (result == null) {
       result = new Path(tabletDirectory + Path.SEPARATOR + "tmp/idxReduce_"
-          + String.format("%09d", new SecureRandom().nextInt(Integer.MAX_VALUE)));
+          + String.format("%09d", random.nextInt(Integer.MAX_VALUE)));
       try {
         fs.getFileStatus(result);
         result = null;
@@ -110,11 +109,9 @@ public class FileUtil {
     return result;
   }
 
-  public static Collection<String> reduceFiles(ServerContext context, Configuration conf,
+  public static Collection<String> reduceFiles(ServerContext context, TableConfiguration tableConf,
       Text prevEndRow, Text endRow, Collection<String> mapFiles, int maxFiles, Path tmpDir,
       int pass) throws IOException {
-
-    AccumuloConfiguration acuConf = context.getConfiguration();
 
     ArrayList<String> paths = new ArrayList<>(mapFiles);
 
@@ -135,24 +132,24 @@ public class FileUtil {
 
       start = end;
 
+      // temporary tablet file does not conform to typical path verified in TabletFile
       String newMapFile = String.format("%s/%04d.%s", newDir, count++, RFile.EXTENSION);
 
       outFiles.add(newMapFile);
-      FileSystem ns =
-          context.getVolumeManager().getVolumeByPath(new Path(newMapFile)).getFileSystem();
+      FileSystem ns = context.getVolumeManager().getFileSystemByPath(new Path(newMapFile));
       FileSKVWriter writer = new RFileOperations().newWriterBuilder()
-          .forFile(newMapFile.toString(), ns, ns.getConf(), context.getCryptoService())
-          .withTableConfiguration(acuConf).build();
+          .forFile(newMapFile, ns, ns.getConf(), tableConf.getCryptoService())
+          .withTableConfiguration(tableConf).build();
       writer.startDefaultLocalityGroup();
       List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(inFiles.size());
 
       FileSKVIterator reader = null;
       try {
-        for (String s : inFiles) {
-          ns = context.getVolumeManager().getVolumeByPath(new Path(s)).getFileSystem();
+        for (String file : inFiles) {
+          ns = context.getVolumeManager().getFileSystemByPath(new Path(file));
           reader = FileOperations.getInstance().newIndexReaderBuilder()
-              .forFile(s, ns, ns.getConf(), context.getCryptoService())
-              .withTableConfiguration(acuConf).build();
+              .forFile(file, ns, ns.getConf(), tableConf.getCryptoService())
+              .withTableConfiguration(tableConf).build();
           iters.add(reader);
         }
 
@@ -165,7 +162,7 @@ public class FileUtil {
           boolean lteEndRow = endRow == null || key.compareRow(endRow) <= 0;
 
           if (gtPrevEndRow && lteEndRow)
-            writer.append(key, new Value(new byte[0]));
+            writer.append(key, new Value());
 
           if (!lteEndRow)
             break;
@@ -198,17 +195,13 @@ public class FileUtil {
       }
     }
 
-    return reduceFiles(context, conf, prevEndRow, endRow, outFiles, maxFiles, tmpDir, pass + 1);
+    return reduceFiles(context, tableConf, prevEndRow, endRow, outFiles, maxFiles, tmpDir,
+        pass + 1);
   }
 
-  public static SortedMap<Double,Key> findMidPoint(ServerContext context, String tabletDir,
-      Text prevEndRow, Text endRow, Collection<String> mapFiles, double minSplit)
+  public static double estimatePercentageLTE(ServerContext context, TableConfiguration tableConf,
+      String tabletDir, Text prevEndRow, Text endRow, Collection<String> mapFiles, Text splitRow)
       throws IOException {
-    return findMidPoint(context, tabletDir, prevEndRow, endRow, mapFiles, minSplit, true);
-  }
-
-  public static double estimatePercentageLTE(ServerContext context, String tabletDir,
-      Text prevEndRow, Text endRow, Collection<String> mapFiles, Text splitRow) throws IOException {
 
     Path tmpDir = null;
 
@@ -224,8 +217,8 @@ public class FileUtil {
             mapFiles.size(), endRow, prevEndRow, tmpDir);
 
         long t1 = System.currentTimeMillis();
-        mapFiles = reduceFiles(context, context.getHadoopConf(), prevEndRow, endRow, mapFiles,
-            maxToOpen, tmpDir, 0);
+        mapFiles =
+            reduceFiles(context, tableConf, prevEndRow, endRow, mapFiles, maxToOpen, tmpDir, 0);
         long t2 = System.currentTimeMillis();
 
         log.debug("Finished reducing indexes for {} {} in {}", endRow, prevEndRow,
@@ -235,9 +228,8 @@ public class FileUtil {
       if (prevEndRow == null)
         prevEndRow = new Text();
 
-      long numKeys = 0;
-
-      numKeys = countIndexEntries(context, prevEndRow, endRow, mapFiles, true, readers);
+      long numKeys =
+          countIndexEntries(context, tableConf, prevEndRow, endRow, mapFiles, true, readers);
 
       if (numKeys == 0) {
         // not enough info in the index to answer the question, so instead of going to
@@ -284,9 +276,9 @@ public class FileUtil {
    *          would be tricky to use this method in conjunction with an in memory map because the
    *          indexing interval is unknown.
    */
-  public static SortedMap<Double,Key> findMidPoint(ServerContext context, String tabletDirectory,
-      Text prevEndRow, Text endRow, Collection<String> mapFiles, double minSplit, boolean useIndex)
-      throws IOException {
+  public static SortedMap<Double,Key> findMidPoint(ServerContext context,
+      TableConfiguration tableConf, String tabletDirectory, Text prevEndRow, Text endRow,
+      Collection<String> mapFiles, double minSplit, boolean useIndex) throws IOException {
 
     Collection<String> origMapFiles = mapFiles;
 
@@ -307,8 +299,8 @@ public class FileUtil {
             mapFiles.size(), endRow, prevEndRow, tmpDir);
 
         long t1 = System.currentTimeMillis();
-        mapFiles = reduceFiles(context, context.getHadoopConf(), prevEndRow, endRow, mapFiles,
-            maxToOpen, tmpDir, 0);
+        mapFiles =
+            reduceFiles(context, tableConf, prevEndRow, endRow, mapFiles, maxToOpen, tmpDir, 0);
         long t2 = System.currentTimeMillis();
 
         log.debug("Finished reducing indexes for {} {} in {}", endRow, prevEndRow,
@@ -320,9 +312,7 @@ public class FileUtil {
 
       long t1 = System.currentTimeMillis();
 
-      long numKeys = 0;
-
-      numKeys = countIndexEntries(context, prevEndRow, endRow, mapFiles,
+      long numKeys = countIndexEntries(context, tableConf, prevEndRow, endRow, mapFiles,
           tmpDir == null ? useIndex : false, readers);
 
       if (numKeys == 0) {
@@ -332,10 +322,10 @@ public class FileUtil {
                   + " data files which is slower. No entries between {} and {} for {}",
               prevEndRow, endRow, mapFiles);
           // need to pass original map files, not possibly reduced indexes
-          return findMidPoint(context, tabletDirectory, prevEndRow, endRow, origMapFiles, minSplit,
-              false);
+          return findMidPoint(context, tableConf, tabletDirectory, prevEndRow, endRow, origMapFiles,
+              minSplit, false);
         }
-        return ImmutableSortedMap.of();
+        return Collections.emptySortedMap();
       }
 
       List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(readers);
@@ -411,8 +401,8 @@ public class FileUtil {
     }
 
     if (tmpDir != null) {
-      Volume v = fs.getVolumeByPath(tmpDir);
-      if (v.getFileSystem().exists(tmpDir)) {
+      FileSystem actualFs = fs.getFileSystemByPath(tmpDir);
+      if (actualFs.exists(tmpDir)) {
         fs.deleteRecursively(tmpDir);
         return;
       }
@@ -421,30 +411,26 @@ public class FileUtil {
     }
   }
 
-  private static long countIndexEntries(ServerContext context, Text prevEndRow, Text endRow,
-      Collection<String> mapFiles, boolean useIndex, ArrayList<FileSKVIterator> readers)
-      throws IOException {
-
-    AccumuloConfiguration acuConf = context.getConfiguration();
-
+  private static long countIndexEntries(ServerContext context, TableConfiguration tableConf,
+      Text prevEndRow, Text endRow, Collection<String> mapFiles, boolean useIndex,
+      ArrayList<FileSKVIterator> readers) throws IOException {
     long numKeys = 0;
 
     // count the total number of index entries
-    for (String ref : mapFiles) {
+    for (String file : mapFiles) {
       FileSKVIterator reader = null;
-      Path path = new Path(ref);
-      FileSystem ns = context.getVolumeManager().getVolumeByPath(path).getFileSystem();
+      Path path = new Path(file);
+      FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
       try {
         if (useIndex)
           reader = FileOperations.getInstance().newIndexReaderBuilder()
-              .forFile(path.toString(), ns, ns.getConf(), context.getCryptoService())
-              .withTableConfiguration(acuConf).build();
+              .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
+              .withTableConfiguration(tableConf).build();
         else
           reader = FileOperations.getInstance().newScanReaderBuilder()
-              .forFile(path.toString(), ns, ns.getConf(), context.getCryptoService())
-              .withTableConfiguration(acuConf).overRange(new Range(prevEndRow, false, null, true),
-                  LocalityGroupUtil.EMPTY_CF_SET, false)
-              .build();
+              .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
+              .withTableConfiguration(tableConf)
+              .overRange(new Range(prevEndRow, false, null, true), Set.of(), false).build();
 
         while (reader.hasTop()) {
           Key key = reader.getTopKey();
@@ -466,34 +452,33 @@ public class FileUtil {
 
       if (useIndex)
         readers.add(FileOperations.getInstance().newIndexReaderBuilder()
-            .forFile(path.toString(), ns, ns.getConf(), context.getCryptoService())
-            .withTableConfiguration(acuConf).build());
+            .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
+            .withTableConfiguration(tableConf).build());
       else
         readers.add(FileOperations.getInstance().newScanReaderBuilder()
-            .forFile(path.toString(), ns, ns.getConf(), context.getCryptoService())
-            .withTableConfiguration(acuConf).overRange(new Range(prevEndRow, false, null, true),
-                LocalityGroupUtil.EMPTY_CF_SET, false)
-            .build());
+            .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
+            .withTableConfiguration(tableConf)
+            .overRange(new Range(prevEndRow, false, null, true), Set.of(), false).build());
 
     }
     return numKeys;
   }
 
-  public static Map<FileRef,FileInfo> tryToGetFirstAndLastRows(ServerContext context,
-      Set<FileRef> mapfiles) {
+  public static Map<TabletFile,FileInfo> tryToGetFirstAndLastRows(ServerContext context,
+      TableConfiguration tableConf, Set<TabletFile> mapfiles) {
 
-    HashMap<FileRef,FileInfo> mapFilesInfo = new HashMap<>();
+    HashMap<TabletFile,FileInfo> mapFilesInfo = new HashMap<>();
 
     long t1 = System.currentTimeMillis();
 
-    for (FileRef mapfile : mapfiles) {
+    for (TabletFile mapfile : mapfiles) {
 
       FileSKVIterator reader = null;
-      FileSystem ns = context.getVolumeManager().getVolumeByPath(mapfile.path()).getFileSystem();
+      FileSystem ns = context.getVolumeManager().getFileSystemByPath(mapfile.getPath());
       try {
         reader = FileOperations.getInstance().newReaderBuilder()
-            .forFile(mapfile.toString(), ns, ns.getConf(), context.getCryptoService())
-            .withTableConfiguration(context.getConfiguration()).build();
+            .forFile(mapfile.getPathStr(), ns, ns.getConf(), tableConf.getCryptoService())
+            .withTableConfiguration(tableConf).build();
 
         Key firstKey = reader.getFirstKey();
         if (firstKey != null) {
@@ -523,16 +508,15 @@ public class FileUtil {
   }
 
   public static WritableComparable<Key> findLastKey(ServerContext context,
-      Collection<FileRef> mapFiles) throws IOException {
+      TableConfiguration tableConf, Collection<TabletFile> mapFiles) throws IOException {
 
     Key lastKey = null;
 
-    for (FileRef ref : mapFiles) {
-      Path path = ref.path();
-      FileSystem ns = context.getVolumeManager().getVolumeByPath(path).getFileSystem();
+    for (TabletFile file : mapFiles) {
+      FileSystem ns = context.getVolumeManager().getFileSystemByPath(file.getPath());
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-          .forFile(path.toString(), ns, ns.getConf(), context.getCryptoService())
-          .withTableConfiguration(context.getConfiguration()).seekToBeginning().build();
+          .forFile(file.getPathStr(), ns, ns.getConf(), tableConf.getCryptoService())
+          .withTableConfiguration(tableConf).seekToBeginning().build();
 
       try {
         if (!reader.hasTop())
@@ -557,21 +541,11 @@ public class FileUtil {
 
   }
 
-  public static Map<KeyExtent,Long> estimateSizes(ServerContext context, Path mapFile,
-      long fileSize, List<KeyExtent> extents) throws IOException {
-
-    FileSystem ns = context.getVolumeManager().getVolumeByPath(mapFile).getFileSystem();
-    return BulkImport.estimateSizes(context.getConfiguration(), mapFile, fileSize, extents, ns,
-        null, context.getCryptoService());
+  /**
+   * Convert TabletFiles to Strings in case we need to reduce number of files. The temporary files
+   * used will have irregular paths that don't conform to TabletFile verification.
+   */
+  public static Collection<String> toPathStrings(Collection<TabletFile> files) {
+    return files.stream().map(TabletFile::getPathStr).collect(Collectors.toList());
   }
-
-  public static Collection<String> toPathStrings(Collection<FileRef> refs) {
-    ArrayList<String> ret = new ArrayList<>();
-    for (FileRef fileRef : refs) {
-      ret.add(fileRef.path().toString());
-    }
-
-    return ret;
-  }
-
 }

@@ -1,24 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.miniclusterImpl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.util.Arrays;
@@ -30,17 +32,18 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.master.thrift.MasterGoalState;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
-import org.apache.accumulo.core.master.thrift.MasterState;
+import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
+import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
+import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.commons.io.FileUtils;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.google.common.collect.Iterators;
 
@@ -57,7 +60,7 @@ public class MiniAccumuloClusterImplTest {
   private static String TEST_TABLE = "test";
   private static String testTableID;
 
-  @BeforeClass
+  @BeforeAll
   public static void setupMiniCluster() throws Exception {
     File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
     assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
@@ -81,13 +84,14 @@ public class MiniAccumuloClusterImplTest {
     Iterators.size(s.iterator());
   }
 
-  @Test(timeout = 10000)
+  @Test
+  @Timeout(10)
   public void testAccurateProcessListReturned() throws Exception {
     Map<ServerType,Collection<ProcessReference>> procs = accumulo.getProcesses();
 
     assertTrue(procs.containsKey(ServerType.GARBAGE_COLLECTOR));
 
-    for (ServerType t : new ServerType[] {ServerType.MASTER, ServerType.TABLET_SERVER,
+    for (ServerType t : new ServerType[] {ServerType.MANAGER, ServerType.TABLET_SERVER,
         ServerType.ZOOKEEPER}) {
       assertTrue(procs.containsKey(t));
       Collection<ProcessReference> procRefs = procs.get(t);
@@ -99,11 +103,12 @@ public class MiniAccumuloClusterImplTest {
     }
   }
 
-  @Test(timeout = 60000)
+  @Test
+  @Timeout(60)
   public void saneMonitorInfo() throws Exception {
-    MasterMonitorInfo stats;
+    ManagerMonitorInfo stats;
     while (true) {
-      stats = accumulo.getMasterMonitorInfo();
+      stats = accumulo.getManagerMonitorInfo();
       if (stats.tableMap.size() <= 2) {
         continue;
       }
@@ -112,23 +117,23 @@ public class MiniAccumuloClusterImplTest {
         break;
       }
     }
-    List<MasterState> validStates = Arrays.asList(MasterState.values());
-    List<MasterGoalState> validGoals = Arrays.asList(MasterGoalState.values());
-    assertTrue("master state should be valid.", validStates.contains(stats.state));
-    assertTrue("master goal state should be in " + validGoals + ". is " + stats.goalState,
-        validGoals.contains(stats.goalState));
-    assertNotNull("should have a table map.", stats.tableMap);
-    assertTrue("root table should exist in " + stats.tableMap.keySet(),
-        stats.tableMap.keySet().contains(RootTable.ID.canonical()));
-    assertTrue("meta table should exist in " + stats.tableMap.keySet(),
-        stats.tableMap.keySet().contains(MetadataTable.ID.canonical()));
-    assertTrue("our test table should exist in " + stats.tableMap.keySet(),
-        stats.tableMap.keySet().contains(testTableID));
-    assertNotNull("there should be tservers.", stats.tServerInfo);
+    List<ManagerState> validStates = Arrays.asList(ManagerState.values());
+    List<ManagerGoalState> validGoals = Arrays.asList(ManagerGoalState.values());
+    assertTrue(validStates.contains(stats.state), "manager state should be valid.");
+    assertTrue(validGoals.contains(stats.goalState),
+        "manager goal state should be in " + validGoals + ". is " + stats.goalState);
+    assertNotNull(stats.tableMap, "should have a table map.");
+    assertTrue(stats.tableMap.containsKey(RootTable.ID.canonical()),
+        "root table should exist in " + stats.tableMap.keySet());
+    assertTrue(stats.tableMap.containsKey(MetadataTable.ID.canonical()),
+        "meta table should exist in " + stats.tableMap.keySet());
+    assertTrue(stats.tableMap.containsKey(testTableID),
+        "our test table should exist in " + stats.tableMap.keySet());
+    assertNotNull(stats.tServerInfo, "there should be tservers.");
     assertEquals(NUM_TSERVERS, stats.tServerInfo.size());
   }
 
-  @AfterClass
+  @AfterAll
   public static void tearDownMiniCluster() throws Exception {
     accumulo.stop();
   }

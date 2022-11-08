@@ -1,28 +1,29 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
-import java.security.SecureRandom;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -30,9 +31,9 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -46,10 +47,10 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.SimpleThreadPool;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterators;
 
@@ -59,8 +60,8 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
   private static final int NUM_THREADS = 3;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 90;
+  protected Duration defaultTimeout() {
+    return Duration.ofSeconds(90);
   }
 
   @Test
@@ -84,7 +85,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
         Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
 
       Mutation m = new Mutation(new Text(String.format("r_%10d", 1)));
-      m.put(new Text("cf"), new Text("cq"), new Value("1".getBytes(UTF_8)));
+      m.put("cf", "cq", "1");
       bw.addMutation(m);
 
       sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
@@ -108,14 +109,13 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
   private void runFlushTest(AccumuloClient client, String tableName) throws Exception {
     BatchWriter bw = client.createBatchWriter(tableName);
     try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-      Random r = new SecureRandom();
 
       for (int i = 0; i < 4; i++) {
         for (int j = 0; j < NUM_TO_FLUSH; j++) {
           int row = i * NUM_TO_FLUSH + j;
 
           Mutation m = new Mutation(new Text(String.format("r_%10d", row)));
-          m.put(new Text("cf"), new Text("cq"), new Value(("" + row).getBytes()));
+          m.put("cf", "cq", "" + row);
           bw.addMutation(m);
         }
 
@@ -124,7 +124,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
         // do a few random lookups into the data just flushed
 
         for (int k = 0; k < 10; k++) {
-          int rowToLookup = r.nextInt(NUM_TO_FLUSH) + i * NUM_TO_FLUSH;
+          int rowToLookup = random.nextInt(NUM_TO_FLUSH) + i * NUM_TO_FLUSH;
 
           scanner.setRange(new Range(new Text(String.format("r_%10d", rowToLookup))));
 
@@ -150,7 +150,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
           int row = i * NUM_TO_FLUSH + j;
 
           if (!iter.hasNext())
-            throw new Exception("Scan stopped permaturely at " + row);
+            throw new Exception("Scan stopped prematurely at " + row);
 
           Entry<Key,Value> entry = iter.next();
 
@@ -197,7 +197,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
         for (int j = 0; j < NUM_TO_FLUSH; j++) {
           int row = i * NUM_TO_FLUSH + j;
           Mutation m = new Mutation(new Text(String.format("%10d", row)));
-          m.put(new Text("cf" + i), new Text("cq"), new Value(("" + row).getBytes()));
+          m.put("cf" + i, "cq", "" + row);
           data.add(m);
         }
       }
@@ -208,7 +208,8 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
         allMuts.add(muts);
       }
 
-      SimpleThreadPool threads = new SimpleThreadPool(NUM_THREADS, "ClientThreads");
+      ThreadPoolExecutor threads = ThreadPools.getServerThreadPools()
+          .createFixedThreadPool(NUM_THREADS, "ClientThreads", false);
       threads.allowCoreThreadTimeOut(false);
       threads.prestartAllCoreThreads();
 
@@ -247,7 +248,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
               break;
             }
           }
-          assertTrue("Mutation not found: " + m, found);
+          assertTrue(found, "Mutation not found: " + m);
         }
 
         for (int m = 0; m < NUM_THREADS; m++) {

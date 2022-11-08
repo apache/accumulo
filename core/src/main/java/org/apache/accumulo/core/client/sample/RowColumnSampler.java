@@ -1,24 +1,28 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.core.client.sample;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.data.ByteSequence;
@@ -49,7 +53,7 @@ import org.apache.accumulo.core.data.Key;
  * <pre>
  * <code>
  * new SamplerConfiguration(RowColumnSampler.class.getName()).setOptions(
- *   ImmutableMap.of("hasher","murmur3_32","modulus","1009","qualifier","true"));
+ *   Map.of("hasher","murmur3_32","modulus","1009","qualifier","true"));
  * </code>
  * </pre>
  *
@@ -79,8 +83,11 @@ public class RowColumnSampler extends AbstractHashSampler {
   }
 
   @Override
-  protected boolean isValidOption(String option) {
-    return super.isValidOption(option) || VALID_OPTIONS.contains(option);
+  public void validateOptions(Map<String,String> config) {
+    super.validateOptions(config);
+    for (String option : config.keySet()) {
+      checkArgument(VALID_OPTIONS.contains(option), "Unknown option : %s", option);
+    }
   }
 
   @Override
@@ -97,26 +104,26 @@ public class RowColumnSampler extends AbstractHashSampler {
     }
   }
 
-  private void putByteSquence(ByteSequence data, DataOutput hasher) throws IOException {
+  private void putByteSequence(ByteSequence data, DataOutput hasher) throws IOException {
     hasher.write(data.getBackingArray(), data.offset(), data.length());
   }
 
   @Override
   protected void hash(DataOutput hasher, Key k) throws IOException {
     if (row) {
-      putByteSquence(k.getRowData(), hasher);
+      putByteSequence(k.getRowData(), hasher);
     }
 
     if (family) {
-      putByteSquence(k.getColumnFamilyData(), hasher);
+      putByteSequence(k.getColumnFamilyData(), hasher);
     }
 
     if (qualifier) {
-      putByteSquence(k.getColumnQualifierData(), hasher);
+      putByteSequence(k.getColumnQualifierData(), hasher);
     }
 
     if (visibility) {
-      putByteSquence(k.getColumnVisibilityData(), hasher);
+      putByteSequence(k.getColumnVisibilityData(), hasher);
     }
   }
 }

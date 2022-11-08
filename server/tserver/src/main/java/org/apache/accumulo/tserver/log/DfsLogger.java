@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.log;
 
@@ -30,39 +32,34 @@ import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.lang.reflect.Method;
 import java.nio.channels.ClosedChannelException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
+import org.apache.accumulo.core.crypto.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.crypto.CryptoUtils;
 import org.apache.accumulo.core.crypto.streams.NoFlushOutputStream;
-import org.apache.accumulo.core.cryptoImpl.CryptoEnvironmentImpl;
-import org.apache.accumulo.core.cryptoImpl.NoCryptoService;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.FileDecrypter;
 import org.apache.accumulo.core.spi.crypto.FileEncrypter;
-import org.apache.accumulo.core.util.Daemon;
+import org.apache.accumulo.core.spi.crypto.NoCryptoService;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.fate.util.LoggingRunnable;
-import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
-import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.tserver.TabletMutations;
@@ -111,38 +108,18 @@ public class DfsLogger implements Comparable<DfsLogger> {
    * log. This exception is thrown when the header cannot be read from a WAL which should only
    * happen when the tserver dies as described.
    */
-  public static class LogHeaderIncompleteException extends IOException {
+  public static class LogHeaderIncompleteException extends Exception {
     private static final long serialVersionUID = 1L;
 
-    public LogHeaderIncompleteException(Throwable cause) {
+    public LogHeaderIncompleteException(EOFException cause) {
       super(cause);
-    }
-  }
-
-  public static class DFSLoggerInputStreams {
-
-    private FSDataInputStream originalInput;
-    private DataInputStream decryptingInputStream;
-
-    public DFSLoggerInputStreams(FSDataInputStream originalInput,
-        DataInputStream decryptingInputStream) {
-      this.originalInput = originalInput;
-      this.decryptingInputStream = decryptingInputStream;
-    }
-
-    public FSDataInputStream getOriginalInput() {
-      return originalInput;
-    }
-
-    public DataInputStream getDecryptingInputStream() {
-      return decryptingInputStream;
     }
   }
 
   public interface ServerResources {
     AccumuloConfiguration getConfiguration();
 
-    VolumeManager getFileSystem();
+    VolumeManager getVolumeManager();
   }
 
   private final LinkedBlockingQueue<DfsLogger.LogWork> workQueue = new LinkedBlockingQueue<>();
@@ -173,7 +150,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
         }
         workQueue.drainTo(work);
 
-        Method durabilityMethod = null;
+        Optional<Boolean> shouldHSync = Optional.empty();
         loop: for (LogWork logWork : work) {
           switch (logWork.durability) {
             case DEFAULT:
@@ -182,11 +159,11 @@ public class DfsLogger implements Comparable<DfsLogger> {
               // shouldn't make it to the work queue
               throw new IllegalArgumentException("unexpected durability " + logWork.durability);
             case SYNC:
-              durabilityMethod = sync;
+              shouldHSync = Optional.of(Boolean.TRUE);
               break loop;
             case FLUSH:
-              if (durabilityMethod == null) {
-                durabilityMethod = flush;
+              if (shouldHSync.isEmpty()) {
+                shouldHSync = Optional.of(Boolean.FALSE);
               }
               break;
           }
@@ -194,15 +171,16 @@ public class DfsLogger implements Comparable<DfsLogger> {
 
         long start = System.currentTimeMillis();
         try {
-          if (durabilityMethod != null) {
-            durabilityMethod.invoke(logFile);
-            if (durabilityMethod == sync) {
+          if (shouldHSync.isPresent()) {
+            if (shouldHSync.get()) {
+              logFile.hsync();
               syncCounter.incrementAndGet();
             } else {
+              logFile.hflush();
               flushCounter.incrementAndGet();
             }
           }
-        } catch (Exception ex) {
+        } catch (IOException | RuntimeException ex) {
           fail(work, ex, "synching");
         }
         long duration = System.currentTimeMillis() - start;
@@ -243,7 +221,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     }
 
     private void fail(ArrayList<DfsLogger.LogWork> work, Exception ex, String why) {
-      log.warn("Exception " + why + " " + ex);
+      log.warn("Exception {} {}", why, ex, ex);
       for (DfsLogger.LogWork logWork : work) {
         logWork.exception = ex;
       }
@@ -293,9 +271,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     }
 
     @Override
-    public void await() {
-      return;
-    }
+    public void await() {}
   }
 
   static final LoggerOperation NO_WAIT_LOGGER_OP = new NoWaitLoggerOperation();
@@ -320,10 +296,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
   private final ServerResources conf;
   private FSDataOutputStream logFile;
   private DataOutputStream encryptingLogFile = null;
-  private Method sync;
-  private Method flush;
   private String logPath;
-  private Daemon syncThread;
+  private Thread syncThread;
 
   /* Track what's actually in +r/!0 for this logger ref */
   private String metaReference;
@@ -358,8 +332,15 @@ public class DfsLogger implements Comparable<DfsLogger> {
     metaReference = meta;
   }
 
-  public static DFSLoggerInputStreams readHeaderAndReturnStream(FSDataInputStream input,
-      AccumuloConfiguration conf) throws IOException {
+  /**
+   * Reads the WAL file header, and returns a decrypting stream which wraps the original stream. If
+   * the file is not encrypted, the original stream is returned.
+   *
+   * @throws LogHeaderIncompleteException
+   *           if the header cannot be fully read (can happen if the tserver died before finishing)
+   */
+  public static DataInputStream getDecryptingStream(FSDataInputStream input,
+      CryptoService cryptoService) throws LogHeaderIncompleteException, IOException {
     DataInputStream decryptingInput;
 
     byte[] magic4 = DfsLogger.LOG_FILE_HEADER_V4.getBytes(UTF_8);
@@ -373,17 +354,13 @@ public class DfsLogger implements Comparable<DfsLogger> {
     try {
       input.readFully(magicBuffer);
       if (Arrays.equals(magicBuffer, magic4)) {
-        byte[] params = CryptoUtils.readParams(input);
-        CryptoService cryptoService =
-            CryptoServiceFactory.newInstance(conf, ClassloaderType.ACCUMULO);
-        CryptoEnvironment env = new CryptoEnvironmentImpl(Scope.WAL, params);
-
-        FileDecrypter decrypter = cryptoService.getFileDecrypter(env);
+        FileDecrypter decrypter =
+            CryptoUtils.getFileDecrypter(cryptoService, Scope.WAL, null, input);
         log.debug("Using {} for decrypting WAL", cryptoService.getClass().getSimpleName());
         decryptingInput = cryptoService instanceof NoCryptoService ? input
             : new DataInputStream(decrypter.decryptStream(input));
       } else if (Arrays.equals(magicBuffer, magic3)) {
-        // Read logs files from Accumulo 1.9
+        // Read logs files from Accumulo 1.9 and throw an error if they are encrypted
         String cryptoModuleClassname = input.readUTF();
         if (!cryptoModuleClassname.equals("NullCryptoModule")) {
           throw new IllegalArgumentException(
@@ -398,12 +375,11 @@ public class DfsLogger implements Comparable<DfsLogger> {
       }
     } catch (EOFException e) {
       // Explicitly catch any exceptions that should be converted to LogHeaderIncompleteException
-
       // A TabletServer might have died before the (complete) header was written
       throw new LogHeaderIncompleteException(e);
     }
 
-    return new DFSLoggerInputStreams(input, decryptingInput);
+    return decryptingInput;
   }
 
   /**
@@ -421,34 +397,39 @@ public class DfsLogger implements Comparable<DfsLogger> {
     String logger = Joiner.on("+").join(address.split(":"));
 
     log.debug("DfsLogger.open() begin");
-    VolumeManager fs = conf.getFileSystem();
+    VolumeManager fs = conf.getVolumeManager();
 
-    VolumeChooserEnvironment chooserEnv =
-        new VolumeChooserEnvironmentImpl(ChooserScope.LOGGER, context);
-    logPath = fs.choose(chooserEnv, ServerConstants.getBaseUris(context)) + Path.SEPARATOR
-        + ServerConstants.WAL_DIR + Path.SEPARATOR + logger + Path.SEPARATOR + filename;
+    var chooserEnv = new VolumeChooserEnvironmentImpl(
+        org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope.LOGGER, context);
+    logPath = fs.choose(chooserEnv, context.getBaseUris()) + Path.SEPARATOR + Constants.WAL_DIR
+        + Path.SEPARATOR + logger + Path.SEPARATOR + filename;
 
     metaReference = toString();
     LoggerOperation op = null;
     try {
+      Path logfilePath = new Path(logPath);
       short replication = (short) conf.getConfiguration().getCount(Property.TSERV_WAL_REPLICATION);
       if (replication == 0)
-        replication = fs.getDefaultReplication(new Path(logPath));
+        replication = fs.getDefaultReplication(logfilePath);
       long blockSize = getWalBlockSize(conf.getConfiguration());
       if (conf.getConfiguration().getBoolean(Property.TSERV_WAL_SYNC))
-        logFile = fs.createSyncable(new Path(logPath), 0, replication, blockSize);
+        logFile = fs.createSyncable(logfilePath, 0, replication, blockSize);
       else
-        logFile = fs.create(new Path(logPath), true, 0, replication, blockSize);
-      sync = logFile.getClass().getMethod("hsync");
-      flush = logFile.getClass().getMethod("hflush");
+        logFile = fs.create(logfilePath, true, 0, replication, blockSize);
+
+      // check again that logfile can be sync'd
+      if (!fs.canSyncAndFlush(logfilePath)) {
+        log.warn("sync not supported for log file {}. Data loss may occur.", logPath);
+      }
 
       // Initialize the log file with a header and its encryption
-      CryptoService cryptoService = context.getCryptoService();
+      CryptoEnvironment env = new CryptoEnvironmentImpl(Scope.WAL);
+      CryptoService cryptoService = context.getCryptoFactory().getService(env,
+          conf.getConfiguration().getAllCryptoProperties());
       logFile.write(LOG_FILE_HEADER_V4.getBytes(UTF_8));
 
       log.debug("Using {} for encrypting WAL {}", cryptoService.getClass().getSimpleName(),
           filename);
-      CryptoEnvironment env = new CryptoEnvironmentImpl(Scope.WAL, null);
       FileEncrypter encrypter = cryptoService.getFileEncrypter(env);
       byte[] cryptoParams = encrypter.getDecryptionParameters();
       CryptoUtils.writeParams(cryptoParams, logFile);
@@ -478,8 +459,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
       throw new IOException(ex);
     }
 
-    syncThread = new Daemon(new LoggingRunnable(log, new LogSyncingTask()));
-    syncThread.setName("Accumulo WALog thread " + this);
+    syncThread = Threads.createThread("Accumulo WALog thread " + this, new LogSyncingTask());
     syncThread.start();
     op.await();
     log.debug("Got new write-ahead log: {}", this);
@@ -487,8 +467,11 @@ public class DfsLogger implements Comparable<DfsLogger> {
 
   static long getWalBlockSize(AccumuloConfiguration conf) {
     long blockSize = conf.getAsBytes(Property.TSERV_WAL_BLOCKSIZE);
-    if (blockSize == 0)
-      blockSize = (long) (conf.getAsBytes(Property.TSERV_WALOG_MAX_SIZE) * 1.1);
+    if (blockSize == 0) {
+      @SuppressWarnings("deprecation")
+      Property prop = conf.resolve(Property.TSERV_WAL_MAX_SIZE, Property.TSERV_WALOG_MAX_SIZE);
+      blockSize = (long) (conf.getAsBytes(prop) * 1.1);
+    }
     return blockSize;
   }
 
@@ -542,7 +525,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     }
 
     // expect workq should be empty at this point
-    if (workQueue.size() != 0) {
+    if (!workQueue.isEmpty()) {
       log.error("WAL work queue not empty after sync thread exited");
       throw new IllegalStateException("WAL work queue not empty after sync thread exited");
     }
@@ -668,7 +651,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     return logKeyData(key, durability);
   }
 
-  public String getLogger() {
+  private String getLogger() {
     String[] parts = logPath.split("/");
     return Joiner.on(":").join(parts[parts.length - 2].split("[+]"));
   }

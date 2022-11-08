@@ -1,22 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.test.functional;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -35,14 +37,15 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.balancer.RegexGroupBalancer;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.server.master.balancer.RegexGroupBalancer;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
@@ -50,11 +53,16 @@ import com.google.common.collect.Table;
 public class RegexGroupBalanceIT extends ConfigurableMacBase {
 
   @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
+  }
+
+  @Override
   public void beforeClusterStart(MiniAccumuloConfigImpl cfg) {
     cfg.setNumTservers(4);
   }
 
-  @Test(timeout = 120000)
+  @Test
   public void testBalancing() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String tablename = getUniqueNames(1)[0];
@@ -163,7 +171,7 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
   private boolean checkGroup(Table<String,String,MutableInt> groupLocationCounts, String group,
       int min, int max, int tsevers) {
     Collection<MutableInt> counts = groupLocationCounts.row(group).values();
-    if (counts.size() == 0) {
+    if (counts.isEmpty()) {
       return min == 0 && max == 0 && tsevers == 0;
     }
     return min == Collections.min(counts).intValue() && max == Collections.max(counts).intValue()
@@ -173,9 +181,9 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
   private Table<String,String,MutableInt> getCounts(AccumuloClient client, String tablename)
       throws TableNotFoundException {
     try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      s.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
+      s.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tablename));
-      s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
+      s.setRange(TabletsSection.getRange(tableId));
 
       Table<String,String,MutableInt> groupLocationCounts = HashBasedTable.create();
 
@@ -186,8 +194,8 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
         } else {
           group = group.substring(tableId.canonical().length() + 1).substring(0, 2);
         }
-        String loc =
-            new TServerInstance(entry.getValue(), entry.getKey().getColumnQualifier()).toString();
+        String loc = new TServerInstance(entry.getValue(), entry.getKey().getColumnQualifier())
+            .getHostPortSession();
 
         MutableInt count = groupLocationCounts.get(group, loc);
         if (count == null) {

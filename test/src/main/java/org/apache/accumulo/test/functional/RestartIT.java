@@ -1,24 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.IOException;
 import java.util.Map.Entry;
@@ -31,14 +33,12 @@ import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -48,19 +48,14 @@ import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RestartIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(RestartIT.class);
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 10 * 60;
-  }
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -73,12 +68,12 @@ public class RestartIT extends AccumuloClusterHarness {
 
   private ExecutorService svc;
 
-  @Before
+  @BeforeEach
   public void setup() {
     svc = Executors.newFixedThreadPool(1);
   }
 
-  @After
+  @AfterEach
   public void teardown() throws Exception {
     if (svc == null) {
       return;
@@ -94,7 +89,7 @@ public class RestartIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void restartMaster() throws Exception {
+  public void restartManager() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
@@ -112,15 +107,15 @@ public class RestartIT extends AccumuloClusterHarness {
         }
       });
 
-      control.stopAllServers(ServerType.MASTER);
-      control.startAllServers(ServerType.MASTER);
+      control.stopAllServers(ServerType.MANAGER);
+      control.startAllServers(ServerType.MANAGER);
       assertEquals(0, ret.get().intValue());
       VerifyIngest.verifyIngest(c, params);
     }
   }
 
   @Test
-  public void restartMasterRecovery() throws Exception {
+  public void restartManagerRecovery() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
@@ -130,45 +125,42 @@ public class RestartIT extends AccumuloClusterHarness {
 
       // TODO implement a kill all too?
       // cluster.stop() would also stop ZooKeeper
-      control.stopAllServers(ServerType.MASTER);
-      control.stopAllServers(ServerType.TRACER);
+      control.stopAllServers(ServerType.MANAGER);
       control.stopAllServers(ServerType.TABLET_SERVER);
       control.stopAllServers(ServerType.GARBAGE_COLLECTOR);
       control.stopAllServers(ServerType.MONITOR);
 
-      ClientInfo info = ClientInfo.from(c.properties());
-      ZooReader zreader = new ZooReader(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
-      ZooCache zcache = new ZooCache(zreader, null);
-      byte[] masterLockData;
+      ZooCache zcache = cluster.getServerContext().getZooCache();
+      var zLockPath = ServiceLock
+          .path(ZooUtil.getRoot(c.instanceOperations().getInstanceId()) + Constants.ZMANAGER_LOCK);
+      byte[] managerLockData;
       do {
-        masterLockData = ZooLock.getLockData(zcache,
-            ZooUtil.getRoot(c.instanceOperations().getInstanceID()) + Constants.ZMASTER_LOCK, null);
-        if (masterLockData != null) {
-          log.info("Master lock is still held");
+        managerLockData = ServiceLock.getLockData(zcache, zLockPath, null);
+        if (managerLockData != null) {
+          log.info("Manager lock is still held");
           Thread.sleep(1000);
         }
-      } while (masterLockData != null);
+      } while (managerLockData != null);
 
       cluster.start();
       sleepUninterruptibly(5, TimeUnit.MILLISECONDS);
-      control.stopAllServers(ServerType.MASTER);
+      control.stopAllServers(ServerType.MANAGER);
 
-      masterLockData = new byte[0];
+      managerLockData = new byte[0];
       do {
-        masterLockData = ZooLock.getLockData(zcache,
-            ZooUtil.getRoot(c.instanceOperations().getInstanceID()) + Constants.ZMASTER_LOCK, null);
-        if (masterLockData != null) {
-          log.info("Master lock is still held");
+        managerLockData = ServiceLock.getLockData(zcache, zLockPath, null);
+        if (managerLockData != null) {
+          log.info("Manager lock is still held");
           Thread.sleep(1000);
         }
-      } while (masterLockData != null);
+      } while (managerLockData != null);
       cluster.start();
       VerifyIngest.verifyIngest(c, params);
     }
   }
 
   @Test
-  public void restartMasterSplit() throws Exception {
+  public void restartManagerSplit() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
       final ClusterControl control = getCluster().getClusterControl();
@@ -187,20 +179,19 @@ public class RestartIT extends AccumuloClusterHarness {
         }
       });
 
-      control.stopAllServers(ServerType.MASTER);
+      control.stopAllServers(ServerType.MANAGER);
 
-      ClientInfo info = ClientInfo.from(c.properties());
-      ZooReader zreader = new ZooReader(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
-      ZooCache zcache = new ZooCache(zreader, null);
-      byte[] masterLockData;
+      ZooCache zcache = cluster.getServerContext().getZooCache();
+      var zLockPath = ServiceLock
+          .path(ZooUtil.getRoot(c.instanceOperations().getInstanceId()) + Constants.ZMANAGER_LOCK);
+      byte[] managerLockData;
       do {
-        masterLockData = ZooLock.getLockData(zcache,
-            ZooUtil.getRoot(c.instanceOperations().getInstanceID()) + Constants.ZMASTER_LOCK, null);
-        if (masterLockData != null) {
-          log.info("Master lock is still held");
+        managerLockData = ServiceLock.getLockData(zcache, zLockPath, null);
+        if (managerLockData != null) {
+          log.info("Manager lock is still held");
           Thread.sleep(1000);
         }
-      } while (masterLockData != null);
+      } while (managerLockData != null);
 
       cluster.start();
       assertEquals(0, ret.get().intValue());
@@ -249,6 +240,8 @@ public class RestartIT extends AccumuloClusterHarness {
         getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
         getCluster().getClusterControl().adminStopAll();
       } finally {
+        // make sure processes are cleaned up before we restart clean for other tests
+        getCluster().stop();
         getCluster().start();
       }
     }

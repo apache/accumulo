@@ -1,25 +1,30 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.monitor.it;
 
+import static org.apache.accumulo.monitor.it.TagNameConstants.MONITOR;
+import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -28,43 +33,34 @@ import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Application;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.MessageBodyWriter;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Application;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.ext.MessageBodyWriter;
 
-import org.apache.accumulo.core.clientImpl.Tables;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.Monitor.MonitorFactory;
 import org.apache.accumulo.monitor.view.WebViews;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.categories.MonitorTests;
-import org.easymock.EasyMock;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
 import org.glassfish.jersey.test.TestProperties;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
-import org.powermock.api.easymock.PowerMock;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 /**
  * Basic tests for parameter validation constraints
  */
-@Category(MonitorTests.class)
-@RunWith(PowerMockRunner.class)
-@PrepareForTest({Monitor.class, Tables.class})
-@PowerMockIgnore({"javax.xml.*"})
+@Tag(MONITOR)
 public class WebViewsIT extends JerseyTest {
 
   @Override
@@ -85,21 +81,23 @@ public class WebViewsIT extends JerseyTest {
 
   private static AtomicReference<Monitor> monitor = new AtomicReference<>(null);
 
-  @BeforeClass
-  public static void createMocks() {
-    ServerContext contextMock = EasyMock.createMock(ServerContext.class);
+  @BeforeAll
+  public static void createMocks() throws TableNotFoundException {
+    ServerContext contextMock = createMock(ServerContext.class);
     expect(contextMock.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
-    expect(contextMock.getInstanceID()).andReturn("foo").atLeastOnce();
+    expect(contextMock.getInstanceID()).andReturn(InstanceId.of("foo")).atLeastOnce();
     expect(contextMock.getInstanceName()).andReturn("foo").anyTimes();
+    expect(contextMock.getZooKeepers()).andReturn("foo:2181").anyTimes();
+    expect(contextMock.getTableName(TableId.of("foo"))).andReturn("bar").anyTimes();
 
-    Monitor monitorMock = EasyMock.createMock(Monitor.class);
+    Monitor monitorMock = createMock(Monitor.class);
     expect(monitorMock.getContext()).andReturn(contextMock).anyTimes();
 
-    EasyMock.replay(contextMock, monitorMock);
+    replay(contextMock, monitorMock);
     monitor.set(monitorMock);
   }
 
-  @AfterClass
+  @AfterAll
   public static void finishMocks() {
     Monitor m = monitor.get();
     verify(m.getContext(), m);
@@ -113,7 +111,7 @@ public class WebViewsIT extends JerseyTest {
   @Test
   public void testGetTablesConstraintViolations() {
     Response output = target("tables/f+o*o").request().get();
-    assertEquals("should return status 400", 400, output.getStatus());
+    assertEquals(400, output.getStatus(), "should return status 400");
   }
 
   /**
@@ -129,32 +127,14 @@ public class WebViewsIT extends JerseyTest {
    */
   @Test
   public void testGetTablesConstraintPassing() throws Exception {
-    PowerMock.mockStatic(Tables.class);
-    expect(Tables.getTableName(monitor.get().getContext(), TableId.of("foo"))).andReturn("bar");
-    PowerMock.replayAll();
-
     // Using the mocks we can verify that the getModel method gets called via debugger
     // however it's difficult to continue to mock through the jersey MVC code for the properly built
     // response.
     // Our silly HashMapWriter registered in the configure method gets wired in and used here.
     Response output = target("tables/foo").request().get();
-    assertEquals("should return status 200", 200, output.getStatus());
+    assertEquals(200, output.getStatus(), "should return status 200");
     String responseBody = output.readEntity(String.class);
     assertTrue(responseBody.contains("tableID=foo") && responseBody.contains("table=bar"));
-  }
-
-  /**
-   * Test minutes parameter constraints. When outside range we should get a 400 response.
-   */
-  @Test
-  public void testGetTracesSummaryValidationConstraint() {
-    // Test upper bounds of constraint
-    Response output = target("trace/summary").queryParam("minutes", 5000000).request().get();
-    assertEquals("should return status 400", 400, output.getStatus());
-
-    // Test lower bounds of constraint
-    output = target("trace/summary").queryParam("minutes", -27).request().get();
-    assertEquals("should return status 400", 400, output.getStatus());
   }
 
   /**

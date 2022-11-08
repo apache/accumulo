@@ -1,58 +1,63 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.start.classloader.vfs;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
+import java.util.Objects;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileSystemManager;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@Deprecated
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
-public class AccumuloReloadingVFSClassLoaderTest {
+public class AccumuloReloadingVFSClassLoaderTest extends WithTestNames {
 
-  private TemporaryFolder folder1 =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File folder1;
+
+  private File tmpDir;
+
   String folderPath;
   private FileSystemManager vfs;
 
-  @Before
+  @BeforeEach
   public void setup() throws Exception {
+    tmpDir = new File(folder1, testName());
+
     vfs = ContextManagerTest.getVFS();
-
-    folder1.create();
-    folderPath = folder1.getRoot().toURI() + ".*";
-
-    FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"),
-        folder1.newFile("HelloWorld.jar"));
+    folderPath = tmpDir.toURI() + "/.*";
+    FileUtils.copyURLToFile(Objects.requireNonNull(this.getClass().getResource("/HelloWorld.jar")),
+        new File(tmpDir, "HelloWorld.jar"));
   }
 
   FileObject[] createFileSystems(FileObject[] fos) throws FileSystemException {
@@ -70,7 +75,7 @@ public class AccumuloReloadingVFSClassLoaderTest {
 
   @Test
   public void testConstructor() throws Exception {
-    FileObject testDir = vfs.resolveFile(folder1.getRoot().toURI().toString());
+    FileObject testDir = vfs.resolveFile(tmpDir.toURI().toString());
     FileObject[] dirContents = testDir.getChildren();
 
     AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folderPath, vfs,
@@ -86,7 +91,7 @@ public class AccumuloReloadingVFSClassLoaderTest {
 
   @Test
   public void testReloading() throws Exception {
-    FileObject testDir = vfs.resolveFile(folder1.getRoot().toURI().toString());
+    FileObject testDir = vfs.resolveFile(tmpDir.toURI().toString());
     FileObject[] dirContents = testDir.getChildren();
 
     AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folderPath, vfs,
@@ -106,14 +111,14 @@ public class AccumuloReloadingVFSClassLoaderTest {
     Class<?> clazz1_5 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     assertEquals(clazz1, clazz1_5);
 
-    assertTrue(new File(folder1.getRoot(), "HelloWorld.jar").delete());
+    assertTrue(new File(tmpDir, "HelloWorld.jar").delete());
 
     // VFS-487 significantly wait to avoid failure
     Thread.sleep(7000);
 
     // Update the class
-    FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"),
-        folder1.newFile("HelloWorld2.jar"));
+    FileUtils.copyURLToFile(Objects.requireNonNull(this.getClass().getResource("/HelloWorld.jar")),
+        new File(tmpDir, "HelloWorld2.jar"));
 
     // Wait for the monitor to notice
     // VFS-487 significantly wait to avoid failure
@@ -132,7 +137,7 @@ public class AccumuloReloadingVFSClassLoaderTest {
 
   @Test
   public void testReloadingWithLongerTimeout() throws Exception {
-    FileObject testDir = vfs.resolveFile(folder1.getRoot().toURI().toString());
+    FileObject testDir = vfs.resolveFile(tmpDir.toURI().toString());
     FileObject[] dirContents = testDir.getChildren();
 
     AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folderPath, vfs,
@@ -152,14 +157,14 @@ public class AccumuloReloadingVFSClassLoaderTest {
     Class<?> clazz1_5 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     assertEquals(clazz1, clazz1_5);
 
-    assertTrue(new File(folder1.getRoot(), "HelloWorld.jar").delete());
+    assertTrue(new File(tmpDir, "HelloWorld.jar").delete());
 
     // VFS-487 significantly wait to avoid failure
     Thread.sleep(7000);
 
     // Update the class
-    FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"),
-        folder1.newFile("HelloWorld2.jar"));
+    FileUtils.copyURLToFile(Objects.requireNonNull(this.getClass().getResource("/HelloWorld.jar")),
+        new File(tmpDir, "HelloWorld2.jar"));
 
     // Wait for the monitor to notice
     // VFS-487 significantly wait to avoid failure
@@ -169,16 +174,15 @@ public class AccumuloReloadingVFSClassLoaderTest {
     Object o2 = clazz2.getDeclaredConstructor().newInstance();
     assertEquals("Hello World!", o2.toString());
 
-    // This is true because they are loaded by the same classloader due to the new retry
-    assertTrue(clazz1.equals(clazz2));
-    assertFalse(o1.equals(o2));
+    // This is false because even though it's the same class, it's loaded from a different jar
+    // this is a change in behavior from previous versions of vfs2 where it would load the same
+    // class from different jars as though it was from the first jar
+    assertNotEquals(clazz1, clazz2);
+    assertNotSame(o1, o2);
+    assertEquals(clazz1.getName(), clazz2.getName());
+    assertEquals(o1.toString(), o2.toString());
 
     arvcl.close();
-  }
-
-  @After
-  public void tearDown() throws Exception {
-    folder1.delete();
   }
 
 }

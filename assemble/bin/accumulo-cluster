@@ -1,19 +1,22 @@
 #! /usr/bin/env bash
-
-# Licensed to the Apache Software Foundation (ASF) under one or more
-# contributor license agreements.  See the NOTICE file distributed with
-# this work for additional information regarding copyright ownership.
-# The ASF licenses this file to You under the Apache License, Version 2.0
-# (the "License"); you may not use this file except in compliance with
-# the License.  You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+#   https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
 
 function print_usage {
   cat <<EOF
@@ -40,82 +43,133 @@ function invalid_args {
   exit 1
 }
 
-function verify_config {
-  if [[ -f ${conf}/slaves ]]; then
-    echo "ERROR: A 'slaves' file was found in ${conf}/"
-    echo "Accumulo now reads tablet server hosts from 'tservers' and requires that the 'slaves' file not be present to reduce confusion."
-    echo "Please rename the 'slaves' file to 'tservers' or remove it if both exist."
+function parse_fail {
+  echo "Failed to parse ${conf}/cluster.yaml"
+  exit 1
+}
+
+function parse_config {
+
+  for file in slaves tservers monitor tracers gc managers masters; do
+    if [[ -f ${conf}/${file} ]]; then
+      echo "ERROR: A '${file}' file was found in ${conf}/"
+      echo "Accumulo now uses cluster host configuration information from 'cluster.yaml' and requires that the '${file}' file not be present to reduce confusion."
+      exit 1
+    fi
+  done
+
+  if [[ ! -f ${conf}/cluster.yaml ]]; then
+    echo "ERROR: A 'cluster.yaml' file was not found at ${conf}/cluster.yaml"
+    echo "Please make sure it exists and is configured with the host information. Run 'accumulo-cluster create-config' to create an example configuration."
     exit 1
   fi
 
-  if [[ ! -f ${conf}/tservers ]]; then
-    echo "ERROR: A 'tservers' file was not found at ${conf}/tservers"
-    echo "Please make sure it exists and is configured with tablet server hosts."
+  trap 'rm -f "$CONFIG_FILE"' EXIT
+  CONFIG_FILE=$(mktemp) || exit 1
+  ${accumulo_cmd} org.apache.accumulo.core.conf.cluster.ClusterConfigParser "${conf}"/cluster.yaml >"$CONFIG_FILE" || parse_fail
+  #shellcheck source=/dev/null
+  . "$CONFIG_FILE"
+  rm -f "$CONFIG_FILE"
+
+  if [[ -z $MANAGER_HOSTS ]]; then
+    echo "ERROR: managers not found in ${conf}/cluster.yaml"
     exit 1
   fi
 
-  unset master1
-  if [[ -f "${conf}/masters" ]]; then
-    master1=$(egrep -v '(^#|^\s*$)' "${conf}/masters" | head -1)
+  if [[ -z $TSERVER_HOSTS ]]; then
+    echo "ERROR: tservers not found in ${conf}/cluster.yaml"
+    exit 1
   fi
 
-  if [[ -z "${monitor}" ]] ; then
-    monitor=$master1
-    if [[ -f "${conf}/monitor" ]]; then
-      monitor=$(egrep -v '(^#|^\s*$)' "${conf}/monitor" | head -1)
-    fi
-    if [[ -z "${monitor}" ]] ; then
-      echo "Could not infer a Monitor role. You need to either define \"${conf}/monitor\"," 
-      echo "or make sure \"${conf}/masters\" is non-empty."
-      exit 1
-    fi
+  if [[ -n $COMPACTION_QUEUES && -z $COORDINATOR_HOSTS ]]; then
+    echo "WARN: External compaction queues configured, but no coordinator configured"
   fi
-  if [[ ! -f "${conf}/tracers" ]]; then
-    if [[ -z "${master1}" ]] ; then
-      echo "Could not find a master node to use as a default for the tracer role."
-      echo "Either set up \"${conf}/tracers\" or make sure \"${conf}/masters\" is non-empty."
-      exit 1
-    else
-      echo "$master1" > "${conf}/tracers"
+
+  for queue in $COMPACTION_QUEUES; do
+    Q="COMPACTOR_HOSTS_${queue}"
+    if [[ -z ${!Q} ]]; then
+      echo "WARN: External compaction queue $queue configured, but no compactors configured for it"
     fi
+  done
+
+  for group in $SSERVER_GROUPS; do
+    G="SSERVER_HOSTS_${group}"
+    if [[ -z ${!G} ]]; then
+      echo "WARN: ScanServer group $group configured, but no hosts configured for it"
+    fi
+  done
+
+  unset manager1
+  manager1=$(echo "${MANAGER_HOSTS}" | cut -d" " -f1)
+
+  if [[ -z $MONITOR_HOSTS ]]; then
+    echo "WARN: monitors not found in ${conf}/cluster.yaml, using first manager host $manager1"
+    MONITOR_HOSTS=$manager1
   fi
-  if [[ ! -f "${conf}/gc" ]]; then
-    if [[ -z "${master1}" ]] ; then
-      echo "Could not infer a GC role. You need to either set up \"${conf}/gc\" or make sure \"${conf}/masters\" is non-empty."
-      exit 1
-    else
-      echo "$master1" > "${conf}/gc"
-    fi
+
+  if [[ -z $GC_HOSTS ]]; then
+    echo "WARN: gc not found in ${conf}/cluster.yaml, using first manager host $manager1"
+    GC_HOSTS=$manager1
+  fi
+
+  if [[ -z $NUM_TSERVERS ]]; then
+    echo "INFO: ${NUM_TSERVERS} tservers will be started per host"
+  fi
+
+  # shellcheck disable=SC2153
+  if [[ -z $NUM_SSERVERS ]]; then
+    echo "INFO: ${NUM_SSERVERS} sservers will be started per host"
   fi
 }
 
-function get_ip() {
-  ip_addr=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
-  if [[ $? != 0 ]]; then
-    ip_addr=$(getent ahosts "$(hostname -f)" | grep DGRAM | cut -f 1 -d ' ')
-  fi
-  echo "$ip_addr"
+function control_service() {
+  control_cmd="$1"
+  host="$2"
+  service="$3"
+
+  local last_instance_id
+  last_instance_id=1
+  [[ $service == "tserver" ]] && last_instance_id=${NUM_TSERVERS:-1}
+  [[ $service == "sserver" ]] && last_instance_id=${NUM_SSERVERS:-1}
+
+  for ((inst_id = 1; inst_id <= last_instance_id; inst_id++)); do
+    ACCUMULO_SERVICE_INSTANCE=""
+    [[ $service == "tserver" && ${NUM_TSERVERS:-1} -gt 1 ]] && ACCUMULO_SERVICE_INSTANCE=${inst_id}
+    [[ $service == "compactor" ]] && ACCUMULO_SERVICE_INSTANCE="${inst_id}_${5}"
+    [[ $service == "sserver" && ${NUM_SSERVERS:-1} -gt 1 ]] && ACCUMULO_SERVICE_INSTANCE=${inst_id}
+
+    if [[ $host == localhost || $host == "$(hostname -s)" || $host == "$(hostname -f)" || "$(hostname -I)" =~ $host ]]; then
+      #
+      # The server processes take arguments (e.g. -p, -o, -q [in the case of the Compactor]). Always add the -a argument
+      # using the value of $host
+      #
+      if [[ $# -gt 3 ]]; then
+        ACCUMULO_SERVICE_INSTANCE="${ACCUMULO_SERVICE_INSTANCE}" "${bin}/accumulo-service" "$service" "$control_cmd" "-a" "$host" "${@:4}"
+      else
+        ACCUMULO_SERVICE_INSTANCE="${ACCUMULO_SERVICE_INSTANCE}" "${bin}/accumulo-service" "$service" "$control_cmd" "-a" "$host"
+      fi
+    else
+      if [[ $# -gt 3 ]]; then
+        EXTRA_ARGS="${*:4}"
+        $SSH "$host" "bash -c 'ACCUMULO_SERVICE_INSTANCE=${ACCUMULO_SERVICE_INSTANCE} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-a\" \"$host\" $EXTRA_ARGS '"
+      else
+        $SSH "$host" "bash -c 'ACCUMULO_SERVICE_INSTANCE=${ACCUMULO_SERVICE_INSTANCE} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-a\" \"$host\"'"
+      fi
+    fi
+  done
 }
 
 function start_service() {
-  host="$1"
-  service="$2"
-
-  if [[ $host == "localhost" || $host == $(hostname -f) || $host == $(hostname -s) || $host == $(get_ip) ]]; then
-    "${bin}/accumulo-service" "$service" start
-  else
-    $SSH "$host" "bash -c '${bin}/accumulo-service \"$service\" start'"
-  fi
+  control_service start "$@"
 }
 
 function start_tservers() {
   echo -n "Starting tablet servers ..."
   count=1
-  for server in $(egrep -v '(^#|^\s*$)' "${conf}/tservers"); do
+  for server in $TSERVER_HOSTS; do
     echo -n "."
     start_service "$server" tserver &
-    if (( ++count % 72 == 0 )) ;
-    then
+    if ((++count % 72 == 0)); then
       echo
       wait
     fi
@@ -126,96 +180,138 @@ function start_tservers() {
 function start_all() {
   unset DISPLAY
 
-  start_service "$monitor" monitor 
-
-  if [[ "$1" != "--no-tservers" ]]; then
+  if [[ $1 != "--no-tservers" ]]; then
     start_tservers
   fi
 
-  for host in $(egrep -v '(^#|^\s*$)' "${conf}/masters"); do
-    start_service "$host" master
+  for manager in $MANAGER_HOSTS; do
+    start_service "$manager" manager
   done
 
-  for host in $(egrep -v '(^#|^\s*$)' "${conf}/gc"); do
-    start_service "$host" gc
+  for gc in $GC_HOSTS; do
+    start_service "$gc" gc
   done
 
-  for host in $(egrep -v '(^#|^\s*$)' "${conf}/tracers"); do
-    start_service "$host" tracer
+  for monitor in $MONITOR_HOSTS; do
+    start_service "$monitor" monitor
   done
+
+  for group in $SSERVER_GROUPS; do
+    G="SSERVER_HOSTS_${group}"
+    for sserver in ${!G}; do
+      start_service "$sserver" sserver "-g" "$group"
+    done
+  done
+
+  for coordinator in $COORDINATOR_HOSTS; do
+    start_service "$coordinator" compaction-coordinator
+  done
+
+  for queue in $COMPACTION_QUEUES; do
+    Q="COMPACTOR_HOSTS_${queue}"
+    for compactor in ${!Q}; do
+      start_service "$compactor" compactor "-q" "$queue"
+    done
+  done
+
 }
 
 function start_here() {
 
-  local_hosts="$(hostname -a 2> /dev/null) $(hostname) localhost 127.0.0.1 $(get_ip)"
+  local_hosts="$(hostname -a 2>/dev/null) $(hostname) localhost 127.0.0.1 $(hostname -I)"
+
   for host in $local_hosts; do
-    if grep -q "^${host}\$" "${conf}/tservers"; then
-      start_service "$host" tserver
-      break
-    fi
+    for tserver in $TSERVER_HOSTS; do
+      if echo "$tserver" | grep -q "^${host}\$"; then
+        start_service "$host" tserver
+        break
+      fi
+    done
   done
 
   for host in $local_hosts; do
-    if grep -q "^${host}\$" "${conf}/masters"; then
-      start_service "$host" master
-      break
-    fi
+    for manager in $MANAGER_HOSTS; do
+      if echo "$manager" | grep -q "^${host}\$"; then
+        start_service "$host" manager
+        break
+      fi
+    done
   done
 
   for host in $local_hosts; do
-    if grep -q "^${host}\$" "${conf}/gc"; then
-      start_service "$host" gc
-      break
-    fi
+    for gc in $GC_HOSTS; do
+      if echo "$gc" | grep -q "^${host}\$"; then
+        start_service "$host" gc
+        break
+      fi
+    done
   done
 
   for host in $local_hosts; do
-    if [[ "$host" == "$monitor" ]]; then
-      start_service "$host" monitor 
-      break
-    fi
+    for monitor in $MONITOR_HOSTS; do
+      if echo "$monitor" | grep -q "^${host}\$"; then
+        start_service "$host" monitor
+        break
+      fi
+    done
+  done
+
+  for group in $SSERVER_GROUPS; do
+    for host in $local_hosts; do
+      G="SSERVER_HOSTS_${group}"
+      for sserver in ${!G}; do
+        if echo "$sserver" | grep -q "^${host}\$"; then
+          start_service "$sserver" sserver "-g" "$group"
+        fi
+      done
+    done
   done
 
   for host in $local_hosts; do
-    if grep -q "^${host}\$" "${conf}/tracers"; then
-      start_service "$host" tracer 
-      break
-    fi
+    for coordinator in $COORDINATOR_HOSTS; do
+      if echo "$coordinator" | grep -q "^${host}\$"; then
+        start_service "$coordinator" compaction-coordinator
+      fi
+    done
   done
+
+  for queue in $COMPACTION_QUEUES; do
+    for host in $local_hosts; do
+      Q="COMPACTOR_HOSTS_${queue}"
+      for compactor in ${!Q}; do
+        if echo "$compactor" | grep -q "^${host}\$"; then
+          start_service "$compactor" compactor "-q" "$queue"
+        fi
+      done
+    done
+  done
+
 }
 
 function end_service() {
-  host="$1"
-  service="$2"
-  end_cmd="$3"
-  if [[ $host == localhost || $host = "$(hostname -s)" || $host = "$(hostname -f)" || $host = $(get_ip) ]] ; then
-    "${bin}/accumulo-service" "$service" "$end_cmd"
-  else
-    $SSH "$host" "bash -c '${bin}/accumulo-service \"$service\" \"$end_cmd\"'"
-  fi
+  control_service "$@"
 }
 
 function stop_service() {
-  end_service "$1" "$2" "stop"
+  end_service "stop" "$@"
 }
 
 function kill_service() {
-  end_service "$1" "$2" "kill"
+  end_service "kill" "$@"
 }
 
 function stop_tservers() {
-  tserver_hosts=$(egrep -v '(^#|^\s*$)' "${conf}/tservers")
 
   echo "Stopping unresponsive tablet servers (if any)..."
-  for host in ${tserver_hosts}; do
-    stop_service "$host" tserver & 
+  for host in $TSERVER_HOSTS; do
+    stop_service "$host" tserver &
   done
 
   sleep 10
 
   echo "Stopping unresponsive tablet servers hard (if any)..."
-  for host in ${tserver_hosts}; do
-    kill_service "$host" tserver & 
+  for host in $TSERVER_HOSTS; do
+    kill_service "$host" tserver &
   done
 
   echo "Cleaning tablet server entries from zookeeper"
@@ -225,34 +321,48 @@ function stop_tservers() {
 function kill_all() {
   echo "Killing Accumulo cluster..."
 
-  for master in $(grep -v '^#' "${conf}/masters"); do
-    kill_service "$master" master
+  for manager in $MANAGER_HOSTS; do
+    kill_service "$manager" manager
   done
 
-  for gc in $(grep -v '^#' "${conf}/gc"); do
+  for gc in $GC_HOSTS; do
     kill_service "$gc" gc
   done
 
-  kill_service "$monitor" monitor
-
-  for tracer in $(egrep -v '(^#|^\s*$)' "${conf}/tracers"); do
-    kill_service "$tracer" tracer
+  for monitor in $MONITOR_HOSTS; do
+    kill_service "$monitor" monitor
   done
 
-  for host in $(egrep -v '(^#|^\s*$)' "${conf}/tservers"); do
+  for group in $SSERVER_GROUPS; do
+    G="SSERVER_HOSTS_${group}"
+    for sserver in ${!G}; do
+      kill_service "$sserver" sserver "-g" "$group"
+    done
+  done
+
+  for host in $TSERVER_HOSTS; do
     kill_service "$host" tserver
   done
 
-  echo "Cleaning all server entries in ZooKeeper"
-  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -master -tservers -tracers
-}
+  for coordinator in $COORDINATOR_HOSTS; do
+    kill_service "$coordinator" compaction-coordinator
+  done
 
+  for queue in $COMPACTION_QUEUES; do
+    Q="COMPACTOR_HOSTS_${queue}"
+    for compactor in ${!Q}; do
+      kill_service "$compactor" compactor "-q" "$queue"
+    done
+  done
+
+  echo "Cleaning all server entries in ZooKeeper"
+  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -compaction-coordinators -compactors -sservers
+}
 
 function stop_all() {
   echo "Stopping Accumulo cluster..."
-  if ! ${accumulo_cmd} admin stopAll
-  then
-    echo "Invalid password or unable to connect to the master"
+  if ! ${accumulo_cmd} admin stopAll; then
+    echo "Invalid password or unable to connect to the manager"
     echo "Initiating forced shutdown in 15 seconds (Ctrl-C to abort)"
     sleep 10
     echo "Initiating forced shutdown in  5 seconds (Ctrl-C to abort)"
@@ -264,47 +374,80 @@ function stop_all() {
   sleep 5
 
   # Look for processes not killed by 'admin stopAll'
-  for end_cmd in "stop" "kill" ; do
-    for master in $(grep -v '^#' "${conf}/masters"); do
-      end_service "$master" master $end_cmd
+
+  for end_cmd in "stop" "kill"; do
+
+    for manager in $MANAGER_HOSTS; do
+      end_service $end_cmd "$manager" manager
     done
 
-    for gc in $(grep -v '^#' "${conf}/gc"); do
-      end_service "$gc" gc $end_cmd
+    for gc in $GC_HOSTS; do
+      end_service $end_cmd "$gc" gc
     done
 
-    end_service "$monitor" monitor $end_cmd
-
-    for tracer in $(egrep -v '(^#|^\s*$)' "${conf}/tracers"); do
-      end_service "$tracer" tracer $end_cmd
+    for monitor in $MONITOR_HOSTS; do
+      end_service $end_cmd "$monitor" monitor
     done
+
+    for group in $SSERVER_GROUPS; do
+      G="SSERVER_HOSTS_${group}"
+      for sserver in ${!G}; do
+        end_service $end_cmd "$sserver" sserver "-g" "$group"
+      done
+    done
+
+    for coordinator in $COORDINATOR_HOSTS; do
+      end_service $end_cmd "$coordinator" compaction-coordinator
+    done
+
+    for queue in $COMPACTION_QUEUES; do
+      Q="COMPACTOR_HOSTS_${queue}"
+      for compactor in ${!Q}; do
+        end_service $end_cmd "$compactor" compactor "-q" "$queue"
+      done
+    done
+
   done
 
   # stop tserver still running
   stop_tservers
 
   echo "Cleaning all server entries in ZooKeeper"
-  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -master -tservers -tracers
+  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -compaction-coordinators -compactors -sservers
 }
 
 function stop_here() {
   # Determine hostname without errors to user
-  hosts_to_check=($(hostname -a 2> /dev/null | head -1) $(hostname -f))
+  hosts_to_check=("$(hostname -a 2>/dev/null | head -1)" "$(hostname -f)")
 
-  if egrep -q localhost\|127.0.0.1 "${conf}/tservers"; then
+  if echo "${TSERVER_HOSTS}" | grep -Eq 'localhost|127[.]0[.]0[.]1'; then
     ${accumulo_cmd} admin stop localhost
   else
     for host in "${hosts_to_check[@]}"; do
-      if grep -q "$host" "${conf}/tservers"; then
-        ${accumulo_cmd} admin stop "$host"
-      fi
+      for tserver in $TSERVER_HOSTS; do
+        if echo "$tserver" | grep -q "$host"; then
+          ${accumulo_cmd} admin stop "$host"
+        fi
+      done
     done
   fi
 
   for host in "${hosts_to_check[@]}"; do
     for end_cmd in "stop" "kill"; do
-      for svc in tserver gc master monitor tracer; do
-        end_service "$host" $svc $end_cmd
+      for svc in tserver gc manager monitor compaction-coordinator; do
+        end_service $end_cmd "$host" $svc
+      done
+      for group in $SSERVER_GROUPS; do
+        G="SSERVER_HOSTS_${group}"
+        for sserver in ${!G}; do
+          end_service $end_cmd "$sserver" sserver "-g" "$group"
+        done
+      done
+      for queue in $COMPACTION_QUEUES; do
+        Q="COMPACTOR_HOSTS_${queue}"
+        for compactor in ${!Q}; do
+          end_service $end_cmd "$host" compactor "-q" "$queue"
+        done
       done
     done
   done
@@ -319,12 +462,12 @@ function main() {
   # Resolve base directory
   SOURCE="${BASH_SOURCE[0]}"
   while [ -h "${SOURCE}" ]; do
-     bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
-     SOURCE="$(readlink "${SOURCE}")"
-     [[ "${SOURCE}" != /* ]] && SOURCE="${bin}/${SOURCE}"
+    bin="$(cd -P "$(dirname "${SOURCE}")" && pwd)"
+    SOURCE="$(readlink "${SOURCE}")"
+    [[ ${SOURCE} != /* ]] && SOURCE="${bin}/${SOURCE}"
   done
-  bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
-  basedir=$( cd -P "${bin}"/.. && pwd )
+  bin="$(cd -P "$(dirname "${SOURCE}")" && pwd)"
+  basedir=$(cd -P "${bin}"/.. && pwd)
   conf="${ACCUMULO_CONF_DIR:-${basedir}/conf}"
 
   accumulo_cmd="${bin}/accumulo"
@@ -332,49 +475,86 @@ function main() {
 
   case "$1" in
     create-config)
-      echo "localhost" > "$conf/gc"
-      echo "localhost" > "$conf/masters"
-      echo "localhost" > "$conf/monitor"
-      echo "localhost" > "$conf/tracers"
-      echo "localhost" > "$conf/tservers"
+      if [[ -f "$conf"/cluster.yaml ]]; then
+        echo "ERROR : $conf/cluster.yaml already exists, not overwriting"
+        exit 1
+      fi
+      cat <<EOF >"$conf"/cluster.yaml
+manager:
+  - localhost
+
+monitor:
+  - localhost
+
+gc:
+  - localhost
+
+tserver:
+  - localhost
+
+#sserver:
+#  - default:
+#    - localhost
+#
+#compaction:
+#  coordinator:
+#    - localhost
+#  compactor:
+#    - q1:
+#        - localhost
+#    - q2:
+#        - localhost
+#
+
+#
+# The following are used by the accumulo-cluster script to determine how many servers
+# to start on each host. If the following variables are not set, then they default to 1.
+# If the environment variable NUM_TSERVERS is set when running accumulo_cluster
+# then its value will override what is set in this file for tservers_per_host. Likewise if
+# NUM_SSERVERS is set then it will override sservers_per_host.
+#
+tservers_per_host: 1
+sservers_per_host: 1
+
+EOF
       ;;
     restart)
-      verify_config
+      parse_config
       stop_all
       # Make sure the JVM has a chance to fully exit
       sleep 1
       start_all
       ;;
     start)
-      verify_config
+      parse_config
       start_all
       ;;
     stop)
-      verify_config
+      parse_config
       stop_all
       ;;
     kill)
-      verify_config
+      parse_config
       kill_all
       ;;
     start-non-tservers)
-      verify_config
+      parse_config
       start_all --no-tservers
       ;;
     start-tservers)
-      verify_config
+      parse_config
       start_tservers
       ;;
     start-here)
-      verify_config
+      parse_config
       start_here
       ;;
     stop-tservers)
-      verify_config
+      parse_config
       stop_tservers
       ;;
     stop-here)
-      verify_config
+      parse_config
       stop_here
       ;;
     *)

@@ -1,27 +1,30 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client;
 
+import java.lang.Thread.UncaughtExceptionHandler;
+import java.net.URL;
 import java.nio.file.Path;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NamespaceOperations;
-import org.apache.accumulo.core.client.admin.ReplicationOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -172,8 +175,9 @@ public interface AccumuloClient extends AutoCloseable {
    *          the name of the table to insert data into
    * @param config
    *          configuration used to create batch writer. This config will take precedence. Any unset
-   *          values will merged with config set when the AccumuloClient was created. If no config
-   *          was set during AccumuloClient creation, BatchWriterConfig defaults will be used.
+   *          values will be merged with the config set when the AccumuloClient was created. If no
+   *          config was set during AccumuloClient creation, BatchWriterConfig defaults will be
+   *          used.
    * @return BatchWriter object for configuring and writing data to
    */
   BatchWriter createBatchWriter(String tableName, BatchWriterConfig config)
@@ -194,14 +198,14 @@ public interface AccumuloClient extends AutoCloseable {
   /**
    * Factory method to create a Multi-Table BatchWriter connected to Accumulo. Multi-table batch
    * writers can queue data for multiple tables. Also data for multiple tables can be sent to a
-   * server in a single batch. Its an efficient way to ingest data into multiple tables from a
+   * server in a single batch. It's an efficient way to ingest data into multiple tables from a
    * single process.
    *
    * @param config
    *          configuration used to create multi-table batch writer. This config will take
-   *          precedence. Any unset values will merged with config set when the AccumuloClient was
-   *          created. If no config was set during AccumuloClient creation, BatchWriterConfig
-   *          defaults will be used.
+   *          precedence. Any unset values will be merged with the config set when the
+   *          AccumuloClient was created. If no config was set during AccumuloClient creation,
+   *          BatchWriterConfig defaults will be used.
    * @return MultiTableBatchWriter object for configuring and writing data to
    */
   MultiTableBatchWriter createMultiTableBatchWriter(BatchWriterConfig config);
@@ -265,6 +269,20 @@ public interface AccumuloClient extends AutoCloseable {
       throws TableNotFoundException;
 
   /**
+   * Factory method to create a ConditionalWriter connected to Accumulo.
+   *
+   * @param tableName
+   *          the name of the table to query data from
+   *
+   * @return ConditionalWriter object for writing ConditionalMutations
+   * @throws TableNotFoundException
+   *           when the specified table doesn't exist
+   *
+   * @since 2.1.0
+   */
+  ConditionalWriter createConditionalWriter(String tableName) throws TableNotFoundException;
+
+  /**
    * Get the current user for this AccumuloClient
    *
    * @return the user name
@@ -306,7 +324,8 @@ public interface AccumuloClient extends AutoCloseable {
    *
    * @return an object to modify replication configuration
    */
-  ReplicationOperations replicationOperations();
+  @Deprecated(since = "2.1.0")
+  org.apache.accumulo.core.client.admin.ReplicationOperations replicationOperations();
 
   /**
    * @return All {@link Properties} used to create client except 'auth.token'
@@ -327,6 +346,16 @@ public interface AccumuloClient extends AutoCloseable {
    * @since 2.0.0
    */
   interface ClientFactory<T> {
+
+    /**
+     * Override default handling of uncaught exceptions in client threads
+     *
+     * @param ueh
+     *          UncaughtExceptionHandler implementation
+     * @return AccumuloClient or Properties
+     * @since 2.1.0
+     */
+    ClientFactory<T> withUncaughtExceptionHandler(UncaughtExceptionHandler ueh);
 
     /**
      * Builds AccumuloClient or client Properties
@@ -375,6 +404,18 @@ public interface AccumuloClient extends AutoCloseable {
      *      properties documentation</a>
      */
     FromOptions<T> from(Path propertiesFile);
+
+    /**
+     * Build using Java properties object. An example properties file can be found at
+     * conf/accumulo-client.properties in the Accumulo tarball distribution.
+     *
+     * @param propertiesURL
+     *          URL path to properties file
+     * @return this builder
+     * @see <a href="https://accumulo.apache.org/docs/2.x/configuration/client-properties">Client
+     *      properties documentation</a>
+     */
+    FromOptions<T> from(URL propertiesURL);
 
     /**
      * Build using Java properties object. An example properties file can be found at

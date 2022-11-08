@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client.lexicoder;
 
@@ -24,8 +26,6 @@ import static org.apache.accumulo.core.clientImpl.lexicoder.ByteUtils.unescape;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoder;
 
 /**
  * A Lexicoder to encode/decode a Java List to/from a byte array where the concatenation of each
@@ -77,8 +77,8 @@ public class SequenceLexicoder<E> extends AbstractLexicoder<List<E>> {
   @Override
   protected List<E> decodeUnchecked(final byte[] b, final int offset, final int len) {
     final byte[][] escapedElements = split(b, offset, len);
-    assert escapedElements.length
-        > 0 : "ByteUtils.split always returns a minimum of 1 element, even for empty input";
+    assert escapedElements.length > 0
+        : "ByteUtils.split always returns a minimum of 1 element, even for empty input";
     // There should be no bytes after the final delimiter. Lack of delimiter indicates empty list.
     final byte[] lastElement = escapedElements[escapedElements.length - 1];
     if (lastElement.length > 0) {

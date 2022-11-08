@@ -1,25 +1,27 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -35,9 +37,9 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.LongCombiner;
-import org.apache.accumulo.core.iterators.SortedMapIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +57,7 @@ public class VersioningIteratorTest {
       }
     }
 
-    assertEquals("Initial size was " + tm.size(), 40, tm.size());
+    assertEquals(40, tm.size(), "Initial size was " + tm.size());
   }
 
   TreeMap<Key,Value> iteratorOverTestData(VersioningIterator it) throws IOException {
@@ -90,7 +92,7 @@ public class VersioningIteratorTest {
         assertEquals(8, e.getValue().get().length);
         assertTrue(16 < encoder.decode(e.getValue().get()));
       }
-      assertEquals("size after keeping 3 versions was " + tmOut.size(), 6, tmOut.size());
+      assertEquals(6, tmOut.size(), "size after keeping 3 versions was " + tmOut.size());
     } catch (IOException e) {
       fail();
     } catch (Exception e) {
@@ -126,7 +128,7 @@ public class VersioningIteratorTest {
         assertEquals(8, e.getValue().get().length);
         assertTrue(16 < encoder.decode(e.getValue().get()));
       }
-      assertEquals("size after keeping 2 versions was " + tmOut.size(), 2, tmOut.size());
+      assertEquals(2, tmOut.size(), "size after keeping 2 versions was " + tmOut.size());
     } catch (IOException e) {
       fail();
     } catch (Exception e) {
@@ -161,7 +163,7 @@ public class VersioningIteratorTest {
         assertTrue(16 < encoder.decode(e.getValue().get()));
       }
 
-      assertEquals("size after seeking past versions was " + tmOut.size(), 0, tmOut.size());
+      assertEquals(0, tmOut.size(), "size after seeking past versions was " + tmOut.size());
 
       // after doing this seek, should get zero keys for row 0 and 3 keys for row 1
       seekKey = new Key(new Text(String.format("%03d", 0)), colf, colq, 15);
@@ -174,7 +176,7 @@ public class VersioningIteratorTest {
         assertTrue(16 < encoder.decode(e.getValue().get()));
       }
 
-      assertEquals("size after seeking past versions was " + tmOut.size(), 3, tmOut.size());
+      assertEquals(3, tmOut.size(), "size after seeking past versions was " + tmOut.size());
 
     } catch (IOException e) {
       fail();
@@ -203,8 +205,8 @@ public class VersioningIteratorTest {
 
         TreeMap<Key,Value> tmOut = iteratorOverTestData(it);
 
-        assertEquals("size after keeping " + i + " versions was " + tmOut.size(), tmOut.size(),
-            Math.min(40, 2 * i));
+        assertEquals(tmOut.size(), Math.min(40, 2 * i),
+            "size after keeping " + i + " versions was " + tmOut.size());
       } catch (IOException e) {
         fail();
       } catch (Exception e) {
@@ -270,8 +272,8 @@ public class VersioningIteratorTest {
     Text cv = new Text();
 
     TreeMap<Key,Value> tm = new TreeMap<>();
-    tm.put(new Key(row, colf, colq, cv, Long.MAX_VALUE), new Value("00".getBytes()));
-    tm.put(new Key(row, colf, colq, cv, Long.MAX_VALUE - 1), new Value("11".getBytes()));
+    tm.put(new Key(row, colf, colq, cv, Long.MAX_VALUE), new Value("00"));
+    tm.put(new Key(row, colf, colq, cv, Long.MAX_VALUE - 1), new Value("11"));
 
     VersioningIterator it = new VersioningIterator();
     IteratorSetting is = new IteratorSetting(1, VersioningIterator.class);
@@ -293,8 +295,8 @@ public class VersioningIteratorTest {
     Text cv = new Text();
 
     TreeMap<Key,Value> tm = new TreeMap<>();
-    tm.put(new Key(row, colf, colq, cv, Long.MAX_VALUE), new Value("00".getBytes()));
-    tm.put(new Key(row, colf, colq, cv, Long.MAX_VALUE - 1), new Value("11".getBytes()));
+    tm.put(new Key(row, colf, colq, cv, Long.MAX_VALUE), new Value("00"));
+    tm.put(new Key(row, colf, colq, cv, Long.MAX_VALUE - 1), new Value("11"));
 
     VersioningIterator it = new VersioningIterator();
     IteratorSetting is = new IteratorSetting(1, VersioningIterator.class);

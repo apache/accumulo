@@ -1,25 +1,27 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -45,11 +47,9 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Iterables;
 
 /**
  * Verify that we have resolved blocking issue by ensuring that we have not lost scan sessions which
@@ -59,17 +59,22 @@ public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
   private static final Logger log = LoggerFactory.getLogger(SessionBlockVerifyIT.class);
 
   @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
+  }
+
+  @Override
+  public boolean canRunTest(ClusterType type) {
+    return type == ClusterType.MINI;
+  }
+
+  @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     cfg.setNumTservers(1);
     siteConfig.put(Property.TSERV_SESSION_MAXIDLE.getKey(), getMaxIdleTimeString());
     siteConfig.put(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getKey(), "11");
     cfg.setSiteConfig(siteConfig);
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
   }
 
   @Override
@@ -90,7 +95,7 @@ public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
         for (int i = 0; i < 1000; i++) {
           Mutation m = new Mutation(new Text(String.format("%08d", i)));
           for (int j = 0; j < 3; j++)
-            m.put(new Text("cf1"), new Text("cq" + j), new Value((i + "_" + j).getBytes(UTF_8)));
+            m.put("cf1", "cq" + j, i + "_" + j);
 
           bw.addMutation(m);
         }
@@ -139,17 +144,17 @@ public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
 
         int sessionsFound = 0;
         // we have configured 1 tserver, so we can grab the one and only
-        String tserver = Iterables.getOnlyElement(c.instanceOperations().getTabletServers());
+        String tserver = getOnlyElement(c.instanceOperations().getTabletServers());
 
         final List<ActiveScan> scans = c.instanceOperations().getActiveScans(tserver);
 
         for (ActiveScan scan : scans) {
           // only here to minimize chance of seeing meta extent scans
 
-          if (tableName.equals(scan.getTable()) && scan.getSsiList().size() > 0) {
-            assertEquals("Not the expected iterator", 1, scan.getSsiList().size());
-            assertTrue("Not the expected iterator",
-                scan.getSsiList().iterator().next().contains("SlowIterator"));
+          if (tableName.equals(scan.getTable()) && !scan.getSsiList().isEmpty()) {
+            assertEquals(1, scan.getSsiList().size(), "Not the expected iterator");
+            assertTrue(scan.getSsiList().iterator().next().contains("SlowIterator"),
+                "Not the expected iterator");
             sessionsFound++;
           }
 
@@ -163,8 +168,8 @@ public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
          * sessions AND we will orphan the sessionsToCleanup in the sweep, leading to an inaccurate
          * count within sessionsFound.
          */
-        assertEquals("Must have ten sessions. Failure indicates a synchronization"
-            + " block within the sweep mechanism", 10, sessionsFound);
+        assertEquals(10, sessionsFound,
+            "Must have ten sessions. Failure indicates a synchronization block within the sweep mechanism");
         for (Future<Boolean> callable : callables) {
           callable.cancel(true);
         }

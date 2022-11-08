@@ -1,24 +1,27 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -39,23 +42,23 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.hadoop.io.Text;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class NewTableConfigurationIT extends SharedMiniClusterBase {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 30;
+  protected Duration defaultTimeout() {
+    return Duration.ofSeconds(30);
   }
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() throws Exception {
     SharedMiniClusterBase.startMiniCluster();
   }
 
-  @AfterClass
+  @AfterAll
   public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
   }
@@ -85,24 +88,9 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
           "newerval1");
       assertEquals(props.get(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "newerprop2"),
           "newerval2");
-      assertFalse(props.keySet().contains(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop1"));
-      assertFalse(props.keySet().contains(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop2"));
+      assertFalse(props.containsKey(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop1"));
+      assertFalse(props.containsKey(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop2"));
     }
-  }
-
-  /**
-   * Verify that you cannot have overlapping locality groups.
-   *
-   * Attempt to set a locality group with overlapping groups. This test should throw an
-   * IllegalArgumentException indicating that groups overlap.
-   */
-  @Test(expected = IllegalArgumentException.class)
-  public void testOverlappingGroupsFail() {
-    NewTableConfiguration ntc = new NewTableConfiguration();
-    Map<String,Set<Text>> lgroups = new HashMap<>();
-    lgroups.put("lg1", Set.of(new Text("colFamA"), new Text("colFamB")));
-    lgroups.put("lg2", Set.of(new Text("colFamC"), new Text("colFamB")));
-    ntc.setLocalityGroups(lgroups);
   }
 
   /**
@@ -204,25 +192,6 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   }
 
   /**
-   * Verify that properties set using NewTableConfiguration must be table properties.
-   */
-  @Test(expected = IllegalArgumentException.class)
-  public void testInvalidTablePropertiesSet() {
-    NewTableConfiguration ntc = new NewTableConfiguration();
-    Map<String,String> props = new HashMap<>();
-
-    // These properties should work just with no issue
-    props.put(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop1", "val1");
-    props.put(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop2", "val2");
-    ntc.setProperties(props);
-
-    // These properties should result in an illegalArgumentException
-    props.put("invalidProp1", "value1");
-    props.put("invalidProp2", "value2");
-    ntc.setProperties(props);
-  }
-
-  /**
    * Create table with initial locality groups but no default iterators
    */
   @Test
@@ -298,7 +267,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
       verifyIterators(client, tableName, new String[] {"table.iterator.scan.someName=10,foo.bar"},
           true);
       client.tableOperations().removeIterator(tableName, "someName",
-          EnumSet.allOf((IteratorScope.class)));
+          EnumSet.allOf(IteratorScope.class));
       verifyIterators(client, tableName, new String[] {}, true);
       Map<String,EnumSet<IteratorScope>> iteratorList2 =
           client.tableOperations().listIterators(tableName);
@@ -427,54 +396,6 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   }
 
   /**
-   * Verify iterator conflicts are discovered
-   */
-  @Test(expected = IllegalArgumentException.class)
-  public void testIteratorConflictFound1()
-      throws AccumuloException, AccumuloSecurityException, TableExistsException {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = getUniqueNames(2)[0];
-
-      NewTableConfiguration ntc = new NewTableConfiguration();
-      IteratorSetting setting = new IteratorSetting(10, "someName", "foo.bar");
-      ntc.attachIterator(setting, EnumSet.of(IteratorScope.scan));
-      setting = new IteratorSetting(12, "someName", "foo2.bar");
-      ntc.attachIterator(setting, EnumSet.of(IteratorScope.scan));
-      client.tableOperations().create(tableName, ntc);
-    }
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testIteratorConflictFound2()
-      throws AccumuloException, AccumuloSecurityException, TableExistsException {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = getUniqueNames(2)[0];
-
-      NewTableConfiguration ntc = new NewTableConfiguration();
-      IteratorSetting setting = new IteratorSetting(10, "someName", "foo.bar");
-      ntc.attachIterator(setting, EnumSet.of(IteratorScope.scan));
-      setting = new IteratorSetting(10, "anotherName", "foo2.bar");
-      ntc.attachIterator(setting, EnumSet.of(IteratorScope.scan));
-      client.tableOperations().create(tableName, ntc);
-    }
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testIteratorConflictFound3()
-      throws AccumuloException, AccumuloSecurityException, TableExistsException {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = getUniqueNames(2)[0];
-
-      NewTableConfiguration ntc = new NewTableConfiguration();
-      IteratorSetting setting = new IteratorSetting(10, "someName", "foo.bar");
-      ntc.attachIterator(setting, EnumSet.of(IteratorScope.scan));
-      setting = new IteratorSetting(12, "someName", "foo.bar");
-      ntc.attachIterator(setting, EnumSet.of(IteratorScope.scan));
-      client.tableOperations().create(tableName, ntc);
-    }
-  }
-
-  /**
    * Verify that multiple calls to attachIterator keep adding to iterators, i.e., do not overwrite
    * existing iterators.
    */
@@ -597,58 +518,11 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   }
 
   /**
-   * Verify that disjoint check works as expected with setProperties
-   */
-  @Test(expected = IllegalArgumentException.class)
-  public void testSetPropertiesDisjointCheck() {
-    NewTableConfiguration ntc = new NewTableConfiguration();
-
-    Map<String,Set<Text>> lgroups = new HashMap<>();
-    lgroups.put("lg1", Set.of(new Text("dog")));
-    ntc.setLocalityGroups(lgroups);
-
-    Map<String,String> props = new HashMap<>();
-    props.put("table.key1", "val1");
-    props.put("table.group.lg1", "cat");
-    ntc.setProperties(props);
-  }
-
-  /**
-   * Verify checkDisjoint works with locality groups.
-   */
-  @Test(expected = IllegalArgumentException.class)
-  public void testSetLocalityGroupsDisjointCheck() {
-    NewTableConfiguration ntc = new NewTableConfiguration();
-
-    Map<String,String> props = new HashMap<>();
-    props.put("table.group.lg1", "cat");
-    ntc.setProperties(props);
-
-    Map<String,Set<Text>> lgroups = new HashMap<>();
-    lgroups.put("lg1", Set.of(new Text("dog")));
-    ntc.setLocalityGroups(lgroups);
-  }
-
-  /**
-   * Verify checkDisjoint works with iterators groups.
-   */
-  @Test(expected = IllegalArgumentException.class)
-  public void testAttachIteratorDisjointCheck() {
-    NewTableConfiguration ntc = new NewTableConfiguration();
-
-    Map<String,String> props = new HashMap<>();
-    props.put("table.iterator.scan.someName", "10");
-    ntc.setProperties(props);
-
-    IteratorSetting setting = new IteratorSetting(10, "someName", "foo.bar");
-    ntc.attachIterator(setting, EnumSet.of(IteratorScope.scan));
-  }
-
-  /**
    * Verify the expected iterator properties exist.
    */
   private void verifyIterators(AccumuloClient client, String tablename, String[] values,
-      boolean withDefaultIts) throws AccumuloException, TableNotFoundException {
+      boolean withDefaultIts)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     Map<String,String> expected = new TreeMap<>();
     if (withDefaultIts) {
       expected.put("table.iterator.scan.vers",
@@ -671,13 +545,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
 
   private Map<String,String> getProperties(AccumuloClient accumuloClient, String tableName)
       throws AccumuloException, TableNotFoundException {
-    Iterable<Entry<String,String>> properties =
-        accumuloClient.tableOperations().getProperties(tableName);
-    Map<String,String> propertyMap = new HashMap<>();
-    for (Entry<String,String> entry : properties) {
-      propertyMap.put(entry.getKey(), entry.getValue());
-    }
-    return propertyMap;
+    Map<String,String> properties = accumuloClient.tableOperations().getConfiguration(tableName);
+    return Map.copyOf(properties);
   }
 
 }

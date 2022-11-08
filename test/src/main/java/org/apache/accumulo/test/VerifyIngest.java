@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test;
 
@@ -20,7 +22,6 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Properties;
-import java.util.Random;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -36,16 +37,13 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.Sampler;
-import org.apache.htrace.Span;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 public class VerifyIngest {
 
@@ -90,26 +88,23 @@ public class VerifyIngest {
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(VerifyIngest.class.getName(), args);
-    if (opts.trace) {
-      TraceUtil.enableClientTraces(null, null, new Properties());
-    }
-    try (TraceScope clientSpan =
-        Trace.startSpan(VerifyIngest.class.getSimpleName(), Sampler.ALWAYS)) {
-      Span span = clientSpan.getSpan();
-      if (span != null)
-        span.addKVAnnotation("cmdLine", Arrays.asList(args).toString());
+    Span span = TraceUtil.startSpan(VerifyIngest.class, "main");
+    try (Scope scope = span.makeCurrent()) {
+
+      span.setAttribute("cmdLine", Arrays.asList(args).toString());
 
       try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
         verifyIngest(client, opts.getVerifyParams());
       }
 
+    } catch (Exception e) {
+      TraceUtil.setException(span, e, true);
+      throw e;
     } finally {
-      TraceUtil.disable();
+      span.end();
     }
   }
 
-  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
-      justification = "predictable random is okay for testing")
   public static void verifyIngest(AccumuloClient accumuloClient, VerifyParams params)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     byte[][] bytevals = TestIngest.generateValues(params.dataSize);
@@ -126,7 +121,6 @@ public class VerifyIngest {
     long t1 = System.currentTimeMillis();
 
     byte[] randomValue = new byte[params.dataSize];
-    Random random = new Random();
 
     Key endKey = new Key(new Text("row_" + String.format("%010d", params.rows + params.startRow)));
 
@@ -155,8 +149,7 @@ public class VerifyIngest {
 
           byte[] ev;
           if (params.random != null) {
-            ev = TestIngest.genRandomValue(random, randomValue, params.random, expectedRow,
-                expectedCol);
+            ev = TestIngest.genRandomValue(randomValue, params.random, expectedRow, expectedCol);
           } else {
             ev = bytevals[expectedCol % bytevals.length];
           }
@@ -227,8 +220,7 @@ public class VerifyIngest {
 
             byte[] value;
             if (params.random != null) {
-              value = TestIngest.genRandomValue(random, randomValue, params.random, expectedRow,
-                  colNum);
+              value = TestIngest.genRandomValue(randomValue, params.random, expectedRow, colNum);
             } else {
               value = bytevals[colNum % bytevals.length];
             }
@@ -268,15 +260,15 @@ public class VerifyIngest {
       throw new AccumuloException("saw " + errors + " errors ");
     }
 
-    if (expectedRow != (params.rows + params.startRow)) {
-      throw new AccumuloException("Did not read expected number of rows. Saw "
-          + (expectedRow - params.startRow) + " expected " + params.rows);
-    } else {
+    if (expectedRow == (params.rows + params.startRow)) {
       System.out.printf(
           "%,12d records read | %,8d records/sec | %,12d bytes read |"
               + " %,8d bytes/sec | %6.3f secs   %n",
-          recsRead, (int) ((recsRead) / ((t2 - t1) / 1000.0)), bytesRead,
+          recsRead, (int) (recsRead / ((t2 - t1) / 1000.0)), bytesRead,
           (int) (bytesRead / ((t2 - t1) / 1000.0)), (t2 - t1) / 1000.0);
+    } else {
+      throw new AccumuloException("Did not read expected number of rows. Saw "
+          + (expectedRow - params.startRow) + " expected " + params.rows);
     }
   }
 

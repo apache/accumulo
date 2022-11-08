@@ -1,26 +1,29 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.conf;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
 import java.util.Map.Entry;
@@ -30,7 +33,7 @@ import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Test the Property class
@@ -49,18 +52,17 @@ public class PropertyTest {
     for (Property prop : Property.values()) {
       // make sure properties default values match their type
       if (prop.getType() == PropertyType.PREFIX) {
-        assertNull("PREFIX property " + prop.name() + " has unexpected non-null default value.",
-            prop.getDefaultValue());
+        assertNull(prop.getDefaultValue(),
+            "PREFIX property " + prop.name() + " has unexpected non-null default value.");
       } else {
-        assertTrue(
+        assertTrue(prop.getType().isValidFormat(prop.getDefaultValue()),
             "Property " + prop + " has invalid default value " + prop.getDefaultValue()
-                + " for type " + prop.getType(),
-            prop.getType().isValidFormat(prop.getDefaultValue()));
+                + " for type " + prop.getType());
       }
 
       // make sure property has a description
-      assertFalse("Description not set for " + prop,
-          prop.getDescription() == null || prop.getDescription().isEmpty());
+      assertFalse(prop.getDescription() == null || prop.getDescription().isEmpty(),
+          "Description not set for " + prop);
 
       // make sure property starts with valid prefix
       boolean containsValidPrefix = false;
@@ -70,11 +72,11 @@ public class PropertyTest {
           break;
         }
       }
-      assertTrue("Invalid prefix on prop " + prop, containsValidPrefix);
+      assertTrue(containsValidPrefix, "Invalid prefix on prop " + prop);
 
       // make sure properties aren't duplicate
-      assertFalse("Duplicate property name " + prop.getKey(),
-          propertyNames.contains(prop.getKey()));
+      assertFalse(propertyNames.contains(prop.getKey()),
+          "Duplicate property name " + prop.getKey());
       propertyNames.add(prop.getKey());
 
     }
@@ -86,9 +88,9 @@ public class PropertyTest {
     for (Property prop : Property.values()) {
       if (prop.getType().equals(PropertyType.PORT)) {
         int port = Integer.parseInt(prop.getDefaultValue());
-        assertFalse("Port already in use: " + port, usedPorts.contains(port));
+        assertFalse(usedPorts.contains(port), "Port already in use: " + port);
         usedPorts.add(port);
-        assertTrue("Port out of range of valid ports: " + port, port > 1023 && port < 65536);
+        assertTrue(port > 1023 && port < 65536, "Port out of range of valid ports: " + port);
       }
     }
   }
@@ -104,6 +106,7 @@ public class PropertyTest {
     Collector<Entry<String,String>,?,TreeMap<String,String>> treeMapCollector =
         Collectors.toMap(Entry::getKey, Entry::getValue, (a, b) -> a, TreeMap::new);
 
+    @SuppressWarnings("deprecation")
     Predicate<Entry<String,String>> sensitiveNames =
         e -> e.getKey().equals(Property.INSTANCE_SECRET.getKey())
             || e.getKey().toLowerCase().contains("password")
@@ -132,11 +135,6 @@ public class PropertyTest {
     }
   }
 
-  @SuppressWarnings("deprecation")
-  private Property getDeprecatedProperty() {
-    return Property.INSTANCE_DFS_DIR;
-  }
-
   @Test
   public void testAnnotations() {
     assertTrue(Property.GENERAL_VOLUME_CHOOSER.isExperimental());
@@ -145,9 +143,10 @@ public class PropertyTest {
     assertTrue(Property.INSTANCE_SECRET.isSensitive());
     assertFalse(Property.INSTANCE_VOLUMES.isSensitive());
 
-    assertTrue(getDeprecatedProperty().isDeprecated());
+    @SuppressWarnings("deprecation")
+    Property deprecatedProp = Property.GENERAL_CLASSPATHS;
+    assertTrue(deprecatedProp.isDeprecated());
     assertFalse(Property.INSTANCE_VOLUMES_REPLACEMENTS.isDeprecated());
-
   }
 
   @Test
@@ -173,7 +172,7 @@ public class PropertyTest {
   public void testIsValidTablePropertyKey() {
     for (Property prop : Property.values()) {
       if (prop.getKey().startsWith("table.") && !prop.getKey().equals("table.")) {
-        assertTrue(Property.isValidTablePropertyKey(prop.getKey()));
+        assertTrue(Property.isValidTablePropertyKey(prop.getKey()), prop.getKey());
 
         if (prop.getType().equals(PropertyType.PREFIX)) {
           assertTrue(Property.isValidTablePropertyKey(prop.getKey() + "foo9"));
@@ -187,5 +186,13 @@ public class PropertyTest {
     }
 
     assertFalse(Property.isValidTablePropertyKey("abc.def"));
+  }
+
+  @Test
+  public void testFixedPropertiesNonNull() {
+    Property.fixedProperties.forEach(p -> {
+      assertNotNull(p.getDefaultValue());
+      assertFalse(p.getDefaultValue().isBlank());
+    });
   }
 }

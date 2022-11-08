@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.util;
 
@@ -131,7 +133,7 @@ public class UnsynchronizedBuffer {
      * Adds a long value to this writer's buffer. The long is encoded as a variable-length list of
      * bytes. For a description of the encoding scheme, see <code>WritableUtils.writeVLong()</code>
      * in the Hadoop API. [<a href=
-     * "http://hadoop.apache.org/docs/stable/api/org/apache/hadoop/io/WritableUtils.html#writeVLong%28java.io.DataOutput,%20long%29">link</a>]
+     * "https://hadoop.apache.org/docs/stable/api/org/apache/hadoop/io/WritableUtils.html#writeVLong%28java.io.DataOutput,%20long%29">link</a>]
      *
      * @param i
      *          long value
@@ -266,8 +268,11 @@ public class UnsynchronizedBuffer {
     if (i < 0)
       throw new IllegalArgumentException();
 
-    if (i > (1 << 30))
-      return Integer.MAX_VALUE; // this is the next power of 2 minus one... a special case
+    if (i > (1 << 30)) {
+      // this is the next power of 2 minus 8... a special case taken from ArrayList limits
+      // because some JVMs can't allocate an array that large
+      return Integer.MAX_VALUE - 8;
+    }
 
     if (i == 0) {
       return 1;

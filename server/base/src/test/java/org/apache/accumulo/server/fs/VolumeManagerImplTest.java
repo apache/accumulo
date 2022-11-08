@@ -1,144 +1,107 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.fs;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.server.fs.VolumeManager.FileType;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
+import org.apache.accumulo.core.spi.fs.VolumeChooser;
+import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.Test;
 
 public class VolumeManagerImplTest {
 
-  protected VolumeManager fs;
   private Configuration hadoopConf = new Configuration();
-
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
-
-  @Before
-  public void setup() throws Exception {
-    fs = VolumeManagerImpl.getLocal(System.getProperty("user.dir"));
-  }
-
-  @Test
-  public void defaultTabletDirWithoutTableId() {
-    thrown.expect(IllegalArgumentException.class);
-    fs.getFullPath(FileType.TABLE, "/default_tablet/");
-  }
-
-  @Test
-  public void tabletDirWithoutTableId() {
-    thrown.expect(IllegalArgumentException.class);
-    fs.getFullPath(FileType.TABLE, "/t-0000001/");
-  }
-
-  @Test
-  public void defaultTabletFileWithoutTableId() {
-    thrown.expect(IllegalArgumentException.class);
-    fs.getFullPath(FileType.TABLE, "/default_tablet/C0000001.rf");
-  }
-
-  @Test
-  public void tabletFileWithoutTableId() {
-    thrown.expect(IllegalArgumentException.class);
-    fs.getFullPath(FileType.TABLE, "/t-0000001/C0000001.rf");
-  }
 
   @Test
   public void invalidChooserConfigured() throws Exception {
     List<String> volumes = Arrays.asList("file://one/", "file://two/", "file://three/");
     ConfigurationCopy conf = new ConfigurationCopy();
-    conf.set(INSTANCE_DFS_URI, volumes.get(0));
     conf.set(Property.INSTANCE_VOLUMES, String.join(",", volumes));
     conf.set(Property.GENERAL_VOLUME_CHOOSER,
         "org.apache.accumulo.server.fs.ChooserThatDoesntExist");
-    thrown.expect(RuntimeException.class);
-    VolumeManagerImpl.get(conf, hadoopConf);
-  }
-
-  @Test
-  public void tabletDirWithTableId() throws Exception {
-    String basePath = fs.getDefaultVolume().getBasePath();
-    String scheme = fs.getDefaultVolume().getFileSystem().getUri().toURL().getProtocol();
-    Path expectedBase = new Path(scheme + ":" + basePath, FileType.TABLE.getDirectory());
-    List<String> pathsToTest =
-        Arrays.asList("1/default_tablet", "1/default_tablet/", "1/t-0000001");
-    for (String pathToTest : pathsToTest) {
-      Path fullPath = fs.getFullPath(FileType.TABLE, pathToTest);
-      assertEquals(new Path(expectedBase, pathToTest), fullPath);
-    }
-  }
-
-  @Test
-  public void tabletFileWithTableId() throws Exception {
-    String basePath = fs.getDefaultVolume().getBasePath();
-    String scheme = fs.getDefaultVolume().getFileSystem().getUri().toURL().getProtocol();
-    Path expectedBase = new Path(scheme + ":" + basePath, FileType.TABLE.getDirectory());
-    List<String> pathsToTest =
-        Arrays.asList("1/default_tablet/C0000001.rf", "1/t-0000001/C0000001.rf");
-    for (String pathToTest : pathsToTest) {
-      Path fullPath = fs.getFullPath(FileType.TABLE, pathToTest);
-      assertEquals(new Path(expectedBase, pathToTest), fullPath);
-    }
+    assertThrows(RuntimeException.class, () -> VolumeManagerImpl.get(conf, hadoopConf));
   }
 
   @Test
   public void noViewFS() throws Exception {
     ConfigurationCopy conf = new ConfigurationCopy();
     conf.set(Property.INSTANCE_VOLUMES, "viewfs://dummy");
-    thrown.expect(IllegalArgumentException.class);
-    VolumeManagerImpl.get(conf, hadoopConf);
+    assertThrows(IllegalArgumentException.class, () -> VolumeManagerImpl.get(conf, hadoopConf));
   }
 
   public static class WrongVolumeChooser implements VolumeChooser {
     @Override
-    public String choose(VolumeChooserEnvironment env, String[] options) {
+    public String choose(org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment env,
+        Set<String> options) {
       return "file://totally-not-given/";
     }
-  }
 
-  @SuppressWarnings("deprecation")
-  private static final Property INSTANCE_DFS_URI = Property.INSTANCE_DFS_URI;
+    @Override
+    public Set<String> choosable(org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment env,
+        Set<String> options) {
+      return Set.of("file://totally-not-given");
+    }
+  }
 
   // Expected to throw a runtime exception when the WrongVolumeChooser picks an invalid volume.
   @Test
   public void chooseFromOptions() throws Exception {
-    List<String> volumes = Arrays.asList("file://one/", "file://two/", "file://three/");
+    Set<String> volumes = Set.of("file://one/", "file://two/", "file://three/");
     ConfigurationCopy conf = new ConfigurationCopy();
-    conf.set(INSTANCE_DFS_URI, volumes.get(0));
     conf.set(Property.INSTANCE_VOLUMES, String.join(",", volumes));
     conf.set(Property.GENERAL_VOLUME_CHOOSER, WrongVolumeChooser.class.getName());
-    thrown.expect(RuntimeException.class);
-    VolumeManager vm = VolumeManagerImpl.get(conf, hadoopConf);
-    VolumeChooserEnvironment chooserEnv =
-        new VolumeChooserEnvironmentImpl(TableId.of("sometable"), null, null);
-    String choice = vm.choose(chooserEnv, volumes.toArray(new String[0]));
-    assertTrue("shouldn't see invalid options from misbehaving chooser.", volumes.contains(choice));
+    try (var vm = VolumeManagerImpl.get(conf, hadoopConf)) {
+      org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment chooserEnv =
+          new VolumeChooserEnvironment() {
+
+            @Override
+            public Optional<TableId> getTable() {
+              throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public ServiceEnvironment getServiceEnv() {
+              throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public Text getEndRow() {
+              throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public Scope getChooserScope() {
+              throw new UnsupportedOperationException();
+            }
+          };
+      assertThrows(RuntimeException.class, () -> vm.choose(chooserEnv, volumes));
+    }
   }
 }

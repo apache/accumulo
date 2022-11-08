@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test;
 
@@ -34,11 +36,11 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -49,6 +51,7 @@ import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
@@ -113,7 +116,7 @@ public class TestIngest {
     int cols = 1;
 
     @Parameter(names = "--random", description = "insert random rows and use"
-        + " the given number to seed the psuedo-random number generator")
+        + " the given number to seed the pseudo-random number generator")
     Integer random = null;
 
     @Parameter(names = "--size", description = "the size of the value to ingest")
@@ -167,15 +170,20 @@ public class TestIngest {
     if (params.createTable) {
       TreeSet<Text> splits =
           getSplitPoints(params.startRow, params.startRow + params.rows, params.numsplits);
-
+      // if the table does not exist, create it (with splits)
       if (!client.tableOperations().exists(params.tableName)) {
-        client.tableOperations().create(params.tableName);
-      }
-      try {
-        client.tableOperations().addSplits(params.tableName, splits);
-      } catch (TableNotFoundException ex) {
-        // unlikely
-        throw new RuntimeException(ex);
+        NewTableConfiguration ntc = new NewTableConfiguration();
+        if (!splits.isEmpty()) {
+          ntc = ntc.withSplits(splits);
+        }
+        client.tableOperations().create(params.tableName, ntc);
+      } else { // if the table already exists, add splits to it
+        try {
+          client.tableOperations().addSplits(params.tableName, splits);
+        } catch (TableNotFoundException ex) {
+          // unlikely
+          throw new RuntimeException(ex);
+        }
       }
     }
   }
@@ -216,8 +224,10 @@ public class TestIngest {
     return new Text(FastFormat.toZeroPaddedString(rowid + startRow, 10, 10, ROW_PREFIX));
   }
 
-  public static byte[] genRandomValue(Random random, byte[] dest, int seed, int row, int col) {
-    random.setSeed((row ^ seed) ^ col);
+  @SuppressFBWarnings(value = {"PREDICTABLE_RANDOM", "DMI_RANDOM_USED_ONLY_ONCE"},
+      justification = "predictable random with specific seed is intended for this test")
+  public static byte[] genRandomValue(byte[] dest, int seed, int row, int col) {
+    var random = new Random((row ^ seed) ^ col);
     random.nextBytes(dest);
     toPrintableChars(dest);
     return dest;
@@ -240,8 +250,6 @@ public class TestIngest {
     }
   }
 
-  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
-      justification = "predictable random is okay for testing")
   public static void ingest(AccumuloClient accumuloClient, FileSystem fs, IngestParams params)
       throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException,
       MutationsRejectedException, TableExistsException {
@@ -250,7 +258,6 @@ public class TestIngest {
     byte[][] bytevals = generateValues(params.dataSize);
 
     byte[] randomValue = new byte[params.dataSize];
-    Random random = new Random();
 
     long bytesWritten = 0;
 
@@ -263,7 +270,7 @@ public class TestIngest {
       ClientContext cc = (ClientContext) accumuloClient;
       writer = FileOperations.getInstance().newWriterBuilder()
           .forFile(params.outputFile + "." + RFile.EXTENSION, fs, cc.getHadoopConf(),
-              CryptoServiceFactory.newDefaultInstance())
+              NoCryptoServiceFactory.NONE)
           .withTableConfiguration(DefaultConfiguration.getInstance()).build();
       writer.startDefaultLocalityGroup();
     } else {
@@ -305,12 +312,11 @@ public class TestIngest {
           bytesWritten += key.getSize();
 
           if (params.delete) {
-            writer.append(key, new Value(new byte[0]));
+            writer.append(key, new Value());
           } else {
             byte[] value;
             if (params.random != null) {
-              value =
-                  genRandomValue(random, randomValue, params.random, rowid + params.startRow, j);
+              value = genRandomValue(randomValue, params.random, rowid + params.startRow, j);
             } else {
               value = bytevals[j % bytevals.length];
             }
@@ -333,8 +339,7 @@ public class TestIngest {
           } else {
             byte[] value;
             if (params.random != null) {
-              value =
-                  genRandomValue(random, randomValue, params.random, rowid + params.startRow, j);
+              value = genRandomValue(randomValue, params.random, rowid + params.startRow, j);
             } else {
               value = bytevals[j % bytevals.length];
             }
@@ -361,7 +366,7 @@ public class TestIngest {
       try {
         bw.close();
       } catch (MutationsRejectedException e) {
-        if (e.getSecurityErrorCodes().size() > 0) {
+        if (!e.getSecurityErrorCodes().isEmpty()) {
           for (Entry<TabletId,Set<SecurityErrorCode>> entry : e.getSecurityErrorCodes()
               .entrySet()) {
             System.err.println("ERROR : Not authorized to write to : " + entry.getKey() + " due to "
@@ -369,7 +374,7 @@ public class TestIngest {
           }
         }
 
-        if (e.getConstraintViolationSummaries().size() > 0) {
+        if (!e.getConstraintViolationSummaries().isEmpty()) {
           for (ConstraintViolationSummary cvs : e.getConstraintViolationSummaries()) {
             System.err.println("ERROR : Constraint violates : " + cvs);
           }

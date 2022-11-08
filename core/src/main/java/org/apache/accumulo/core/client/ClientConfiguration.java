@@ -1,24 +1,29 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.Arrays;
@@ -36,8 +41,6 @@ import org.apache.commons.configuration2.CompositeConfiguration;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
-import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
-import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +54,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * @since 1.6.0
  * @deprecated since 2.0.0, replaced by {@link Accumulo#newClient()}
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class ClientConfiguration {
   private static final Logger log = LoggerFactory.getLogger(ClientConfiguration.class);
 
@@ -85,8 +88,11 @@ public class ClientConfiguration {
         "UUID of Accumulo instance to connect to"),
 
     // Tracing
+    @Deprecated(since = "2.1.0")
     TRACE_SPAN_RECEIVERS(Property.TRACE_SPAN_RECEIVERS),
+    @Deprecated(since = "2.1.0")
     TRACE_SPAN_RECEIVER_PREFIX(Property.TRACE_SPAN_RECEIVER_PREFIX),
+    @Deprecated(since = "2.1.0")
     TRACE_ZK_PATH(Property.TRACE_ZK_PATH),
 
     // SASL / GSSAPI(Kerberos)
@@ -193,14 +199,13 @@ public class ClientConfiguration {
    * @since 1.9.0
    */
   public static ClientConfiguration fromFile(File file) {
-    FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
-        new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class)
-            .configure(new Parameters().properties().setFile(file));
-    try {
-      return new ClientConfiguration(Collections.singletonList(propsBuilder.getConfiguration()));
-    } catch (ConfigurationException e) {
+    var config = new PropertiesConfiguration();
+    try (var reader = new FileReader(file, UTF_8)) {
+      config.read(reader);
+    } catch (ConfigurationException | IOException e) {
       throw new IllegalArgumentException("Bad configuration file: " + file, e);
     }
+    return new ClientConfiguration(Collections.singletonList(config));
   }
 
   /**
@@ -223,15 +228,14 @@ public class ClientConfiguration {
     for (String path : paths) {
       File conf = new File(path);
       if (conf.isFile() && conf.canRead()) {
-        FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
-            new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class)
-                .configure(new Parameters().properties().setFile(conf));
-        try {
-          configs.add(propsBuilder.getConfiguration());
-          log.info("Loaded client configuration file {}", conf);
-        } catch (ConfigurationException e) {
+        var config = new PropertiesConfiguration();
+        try (var reader = new FileReader(conf, UTF_8)) {
+          config.read(reader);
+        } catch (ConfigurationException | IOException e) {
           throw new IllegalStateException("Error loading client configuration file " + conf, e);
         }
+        configs.add(config);
+        log.info("Loaded client configuration file {}", conf);
       }
     }
     // We couldn't find the client configuration anywhere
@@ -243,10 +247,10 @@ public class ClientConfiguration {
   }
 
   public static ClientConfiguration deserialize(String serializedConfig) {
-    PropertiesConfiguration propConfig = new PropertiesConfiguration();
+    var propConfig = new PropertiesConfiguration();
     try {
-      propConfig.getLayout().load(propConfig, new StringReader(serializedConfig));
-    } catch (ConfigurationException e) {
+      propConfig.read(new StringReader(serializedConfig));
+    } catch (ConfigurationException | IOException e) {
       throw new IllegalArgumentException(
           "Error deserializing client configuration: " + serializedConfig, e);
     }
@@ -300,12 +304,12 @@ public class ClientConfiguration {
   }
 
   public String serialize() {
-    PropertiesConfiguration propConfig = new PropertiesConfiguration();
+    var propConfig = new PropertiesConfiguration();
     propConfig.copy(compositeConfig);
     StringWriter writer = new StringWriter();
     try {
-      propConfig.getLayout().save(propConfig, writer);
-    } catch (ConfigurationException e) {
+      propConfig.write(writer);
+    } catch (ConfigurationException | IOException e) {
       // this should never happen
       throw new IllegalStateException(e);
     }

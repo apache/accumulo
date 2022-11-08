@@ -1,21 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -26,9 +29,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 
 /**
@@ -37,10 +38,10 @@ import org.apache.accumulo.core.data.TabletId;
 public class MutationsRejectedException extends AccumuloException {
   private static final long serialVersionUID = 1L;
 
-  private List<ConstraintViolationSummary> cvsl;
-  private Map<TabletId,Set<SecurityErrorCode>> af;
-  private Collection<String> es;
-  private int unknownErrors;
+  private final ArrayList<ConstraintViolationSummary> cvsl = new ArrayList<>();
+  private final HashMap<TabletId,Set<SecurityErrorCode>> af = new HashMap<>();
+  private final HashSet<String> es = new HashSet<>();
+  private final int unknownErrors;
 
   /**
    *
@@ -57,7 +58,7 @@ public class MutationsRejectedException extends AccumuloException {
    * @deprecated since 2.0.0, replaced by
    *             {@link #MutationsRejectedException(AccumuloClient, List, Map, Collection, int, Throwable)}
    */
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   public MutationsRejectedException(Instance instance, List<ConstraintViolationSummary> cvsList,
       Map<TabletId,Set<SecurityErrorCode>> hashMap, Collection<String> serverSideErrors,
       int unknownErrors, Throwable cause) {
@@ -65,9 +66,9 @@ public class MutationsRejectedException extends AccumuloException {
         "# constraint violations : " + cvsList.size() + "  security codes: " + hashMap.toString()
             + "  # server errors " + serverSideErrors.size() + " # exceptions " + unknownErrors,
         cause);
-    this.cvsl = cvsList;
-    this.af = hashMap;
-    this.es = serverSideErrors;
+    this.cvsl.addAll(cvsList);
+    this.af.putAll(hashMap);
+    this.es.addAll(serverSideErrors);
     this.unknownErrors = unknownErrors;
   }
 
@@ -93,9 +94,9 @@ public class MutationsRejectedException extends AccumuloException {
     super("# constraint violations : " + cvsList.size() + "  security codes: "
         + format(hashMap, (ClientContext) client) + "  # server errors " + serverSideErrors.size()
         + " # exceptions " + unknownErrors, cause);
-    this.cvsl = cvsList;
-    this.af = hashMap;
-    this.es = serverSideErrors;
+    this.cvsl.addAll(cvsList);
+    this.af.putAll(hashMap);
+    this.es.addAll(serverSideErrors);
     this.unknownErrors = unknownErrors;
   }
 
@@ -105,8 +106,7 @@ public class MutationsRejectedException extends AccumuloException {
 
     for (Entry<TabletId,Set<SecurityErrorCode>> entry : hashMap.entrySet()) {
       TabletId tabletId = entry.getKey();
-      String tableInfo =
-          Tables.getPrintableTableInfoFromId(context, TableId.of(tabletId.getTableId().toString()));
+      String tableInfo = context.getPrintableTableInfoFromId(tabletId.getTable());
 
       if (!result.containsKey(tableInfo)) {
         result.put(tableInfo, new HashSet<>());

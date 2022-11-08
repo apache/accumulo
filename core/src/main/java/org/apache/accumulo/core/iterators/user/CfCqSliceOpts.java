@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
 
@@ -31,24 +33,24 @@ public class CfCqSliceOpts {
       + " representing minimum column family. Optional parameter. If minCf and minCq"
       + " are undefined, the column slice will start at the first column of each row."
       + " If you want to do an exact match on column families, it's more efficient to"
-      + " leave minCf and maxCf undefined and use the scanner's fetchColumnFamily" + " method.";
+      + " leave minCf and maxCf undefined and use the scanner's fetchColumnFamily method.";
 
   public static final String OPT_MIN_CQ = "minCq";
   public static final String OPT_MIN_CQ_DESC = "UTF-8 encoded string"
       + " representing minimum column qualifier. Optional parameter. If minCf and"
-      + " minCq are undefined, the column slice will start at the first column of" + " each row.";
+      + " minCq are undefined, the column slice will start at the first column of each row.";
 
   public static final String OPT_MAX_CF = "maxCf";
   public static final String OPT_MAX_CF_DESC = "UTF-8 encoded string"
       + " representing maximum column family. Optional parameter. If minCf and minCq"
       + " are undefined, the column slice will start at the first column of each row."
       + " If you want to do an exact match on column families, it's more efficient to"
-      + " leave minCf and maxCf undefined and use the scanner's fetchColumnFamily" + " method.";
+      + " leave minCf and maxCf undefined and use the scanner's fetchColumnFamily method.";
 
   public static final String OPT_MAX_CQ = "maxCq";
   public static final String OPT_MAX_CQ_DESC = "UTF-8 encoded string"
       + " representing maximum column qualifier. Optional parameter. If maxCf and"
-      + " MaxCq are undefined, the column slice will end at the last column of each" + " row.";
+      + " MaxCq are undefined, the column slice will end at the last column of each row.";
 
   public static final String OPT_MIN_INCLUSIVE = "minInclusive";
   public static final String OPT_MIN_INCLUSIVE_DESC = "UTF-8 encoded string"

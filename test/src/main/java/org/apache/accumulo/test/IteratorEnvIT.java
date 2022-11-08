@@ -1,24 +1,27 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Iterator;
@@ -28,6 +31,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
@@ -39,12 +43,13 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * Test that objects in IteratorEnvironment returned from the server are as expected.
@@ -52,13 +57,13 @@ import org.junit.Test;
 public class IteratorEnvIT extends AccumuloClusterHarness {
 
   @Override
-  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setNumTservers(1);
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
   }
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    cfg.setNumTservers(1);
   }
 
   private AccumuloClient client;
@@ -140,30 +145,51 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
   /**
    * Test the environment methods return what is expected.
    */
-  @SuppressWarnings("deprecation")
   private static void testEnv(IteratorScope scope, Map<String,String> opts,
       IteratorEnvironment env) {
     TableId expectedTableId = TableId.of(opts.get("expected.table.id"));
-    if (!"value1".equals(env.getConfig().get("table.custom.iterator.env.test")) && !"value1".equals(
-        env.getServiceEnv().getConfiguration(env.getTableId()).getTableCustom("iterator.env.test")))
-      throw new RuntimeException("Test failed - Expected table property not found.");
+
+    // verify getServiceEnv() and getPluginEnv() are the same objects,
+    // so further checks only need to use getPluginEnv()
+    @SuppressWarnings("deprecation")
+    ServiceEnvironment serviceEnv = env.getServiceEnv();
+    PluginEnvironment pluginEnv = env.getPluginEnv();
+    if (serviceEnv != pluginEnv)
+      throw new RuntimeException("Test failed - assertSame(getServiceEnv(),getPluginEnv())");
+
+    // verify property exists on the table config (deprecated and new),
+    // with and without custom prefix, but not in the system config
+    @SuppressWarnings("deprecation")
+    String accTableConf = env.getConfig().get("table.custom.iterator.env.test");
+    if (!"value1".equals(accTableConf))
+      throw new RuntimeException("Test failed - Expected table property not found in getConfig().");
+    var tableConf = pluginEnv.getConfiguration(env.getTableId());
+    if (!"value1".equals(tableConf.get("table.custom.iterator.env.test")))
+      throw new RuntimeException("Test failed - Expected table property not found in table conf.");
+    if (!"value1".equals(tableConf.getTableCustom("iterator.env.test")))
+      throw new RuntimeException("Test failed - Expected table property not found in table conf.");
+    var systemConf = pluginEnv.getConfiguration();
+    if (systemConf.get("table.custom.iterator.env.test") != null)
+      throw new RuntimeException("Test failed - Unexpected table property found in system conf.");
+
+    // check other environment settings
     if (!scope.equals(env.getIteratorScope()))
       throw new RuntimeException("Test failed - Error getting iterator scope");
     if (env.isSamplingEnabled())
       throw new RuntimeException("Test failed - isSamplingEnabled returned true, expected false");
     if (!expectedTableId.equals(env.getTableId()))
       throw new RuntimeException("Test failed - Error getting Table ID");
-
   }
 
-  @Before
+  @BeforeEach
   public void setup() {
     client = Accumulo.newClient().from(getClientProps()).build();
   }
 
-  @After
+  @AfterEach
   public void finish() {
-    client.close();
+    if (client != null)
+      client.close();
   }
 
   @Test

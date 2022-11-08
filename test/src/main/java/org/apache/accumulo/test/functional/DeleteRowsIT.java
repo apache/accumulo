@@ -1,31 +1,33 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -37,38 +39,33 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterators;
-
 public class DeleteRowsIT extends AccumuloClusterHarness {
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 10 * 60;
-  }
 
   private static final Logger log = LoggerFactory.getLogger(DeleteRowsIT.class);
 
   private static final int ROWS_PER_TABLET = 10;
-  private static final String[] LETTERS = {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k",
-      "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"};
-  static final SortedSet<Text> SPLITS = new TreeSet<>();
+  private static final List<String> LETTERS = List.of("a", "b", "c", "d", "e", "f", "g", "h", "i",
+      "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z");
+  static final TreeSet<Text> SPLITS =
+      LETTERS.stream().map(Text::new).collect(Collectors.toCollection(TreeSet::new));
+
+  static final List<String> ROWS = new ArrayList<>(LETTERS);
+  // put data on first and last tablet
   static {
-    for (String alpha : LETTERS) {
-      SPLITS.add(new Text(alpha));
-    }
-  }
-  static final List<String> ROWS = new ArrayList<>(Arrays.asList(LETTERS));
-  static {
-    // put data on first and last tablet
     ROWS.add("A");
     ROWS.add("{");
   }
 
-  @Test(timeout = 5 * 60 * 1000)
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(5);
+  }
+
+  @Test
   public void testDeleteAllRows() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String[] tableNames = this.getUniqueNames(20);
@@ -76,7 +73,7 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
         c.tableOperations().create(tableName);
         c.tableOperations().deleteRows(tableName, null, null);
         try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
-          assertEquals(0, Iterators.size(scanner.iterator()));
+          assertTrue(scanner.stream().findAny().isEmpty());
         }
       }
     }

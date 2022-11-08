@@ -1,35 +1,39 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to you under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.rpc;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.createMockBuilder;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
 import java.net.SocketAddress;
 
-import org.junit.Test;
+import org.apache.thrift.transport.TTransportException;
+import org.junit.jupiter.api.Test;
 
 /**
  * Tests for {@link TTimeoutTransport}.
@@ -57,7 +61,7 @@ public class TTimeoutTransportTest {
     expectedSocketSetup(s);
 
     // Connect to the addr
-    s.connect(addr);
+    s.connect(addr, 1);
     expectLastCall().andThrow(new IOException());
 
     // The socket should be closed after the above IOException
@@ -65,19 +69,14 @@ public class TTimeoutTransportTest {
 
     replay(addr, s, timeoutTransport);
 
-    try {
-      timeoutTransport.openSocket(addr);
-      fail("Expected to catch IOException but got none");
-    } catch (IOException e) {
-      // Expected
-    }
+    assertThrows(IOException.class, () -> timeoutTransport.openSocket(addr, 1));
 
     verify(addr, s, timeoutTransport);
   }
 
   @Test
   public void testFailedInputStreamClosesSocket() throws IOException {
-    long timeout = 2 * 60 * 1000; // 2 mins
+    long timeout = MINUTES.toMillis(2);
     SocketAddress addr = createMock(SocketAddress.class);
     Socket s = createMock(Socket.class);
     TTimeoutTransport timeoutTransport = createMockBuilder(TTimeoutTransport.class)
@@ -90,7 +89,7 @@ public class TTimeoutTransportTest {
     expectedSocketSetup(s);
 
     // Connect to the addr
-    s.connect(addr);
+    s.connect(addr, (int) timeout);
     expectLastCall().once();
 
     expect(timeoutTransport.wrapInputStream(s, timeout)).andThrow(new IOException());
@@ -100,19 +99,14 @@ public class TTimeoutTransportTest {
 
     replay(addr, s, timeoutTransport);
 
-    try {
-      timeoutTransport.createInternal(addr, timeout);
-      fail("Expected to catch IOException but got none");
-    } catch (IOException e) {
-      // Expected
-    }
+    assertThrows(TTransportException.class, () -> timeoutTransport.createInternal(addr, timeout));
 
     verify(addr, s, timeoutTransport);
   }
 
   @Test
   public void testFailedOutputStreamClosesSocket() throws IOException {
-    long timeout = 2 * 60 * 1000; // 2 mins
+    long timeout = MINUTES.toMillis(2);
     SocketAddress addr = createMock(SocketAddress.class);
     Socket s = createMock(Socket.class);
     InputStream is = createMock(InputStream.class);
@@ -127,7 +121,7 @@ public class TTimeoutTransportTest {
     expectedSocketSetup(s);
 
     // Connect to the addr
-    s.connect(addr);
+    s.connect(addr, (int) timeout);
     expectLastCall().once();
 
     // Input stream is set up
@@ -140,12 +134,7 @@ public class TTimeoutTransportTest {
 
     replay(addr, s, timeoutTransport);
 
-    try {
-      timeoutTransport.createInternal(addr, timeout);
-      fail("Expected to catch IOException but got none");
-    } catch (IOException e) {
-      // Expected
-    }
+    assertThrows(TTransportException.class, () -> timeoutTransport.createInternal(addr, timeout));
 
     verify(addr, s, timeoutTransport);
   }

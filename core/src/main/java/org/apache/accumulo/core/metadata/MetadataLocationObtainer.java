@@ -1,20 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.metadata;
+
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -27,7 +31,6 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -51,7 +54,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.TextUtil;
@@ -68,9 +73,8 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
   public MetadataLocationObtainer() {
 
     locCols = new TreeSet<>();
-    locCols.add(
-        new Column(TextUtil.getBytes(TabletsSection.CurrentLocationColumnFamily.NAME), null, null));
-    locCols.add(TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.toColumn());
+    locCols.add(new Column(TextUtil.getBytes(CurrentLocationColumnFamily.NAME), null, null));
+    locCols.add(TabletColumnFamily.PREV_ROW_COLUMN.toColumn());
     columns = new ArrayList<>(locCols);
   }
 
@@ -84,7 +88,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
 
       if (log.isTraceEnabled()) {
         log.trace("tid={} Looking up in {} row={} extent={} tserver={}",
-            Thread.currentThread().getId(), src.tablet_extent.getTableId(), TextUtil.truncate(row),
+            Thread.currentThread().getId(), src.tablet_extent.tableId(), TextUtil.truncate(row),
             src.tablet_extent, src.tablet_location);
         timer = new OpTimer().start();
       }
@@ -111,9 +115,9 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
         range = new Range(results.lastKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME),
             true, new Key(stopRow).followingKey(PartialKey.ROW), false);
         encodedResults.clear();
-        more = ThriftScanner.getBatchFromServer(context, range, src.tablet_extent,
-            src.tablet_location, encodedResults, locCols, serverSideIteratorList,
-            serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, 0L, null);
+        ThriftScanner.getBatchFromServer(context, range, src.tablet_extent, src.tablet_location,
+            encodedResults, locCols, serverSideIteratorList, serverSideIteratorOptions,
+            Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, 0L, null);
 
         decodeRows(encodedResults, results);
       }
@@ -121,8 +125,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       if (timer != null) {
         timer.stop();
         log.trace("tid={} Got {} results from {} in {}", Thread.currentThread().getId(),
-            results.size(), src.tablet_extent,
-            String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+            results.size(), src.tablet_extent, String.format("%.3f secs", timer.scale(SECONDS)));
       }
 
       // if (log.isTraceEnabled()) log.trace("results "+results);
@@ -131,12 +134,12 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
 
     } catch (AccumuloServerException ase) {
       if (log.isTraceEnabled())
-        log.trace("{} lookup failed, {} server side exception", src.tablet_extent.getTableId(),
+        log.trace("{} lookup failed, {} server side exception", src.tablet_extent.tableId(),
             src.tablet_location);
       throw ase;
     } catch (AccumuloException e) {
       if (log.isTraceEnabled())
-        log.trace("{} lookup failed", src.tablet_extent.getTableId(), e);
+        log.trace("{} lookup failed", src.tablet_extent.tableId(), e);
       parent.invalidateCache(context, src.tablet_location);
     }
 
@@ -190,7 +193,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
     try {
       TabletServerBatchReaderIterator.doLookup(context, tserver, tabletsRanges, failures, unscanned,
           rr, columns, opts, Authorizations.EMPTY);
-      if (failures.size() > 0) {
+      if (!failures.isEmpty()) {
         // invalidate extents in parents cache
         if (log.isTraceEnabled())
           log.trace("lookupTablets failed for {} extents", failures.size());
@@ -208,12 +211,8 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
   }
 
   public static TabletLocations getMetadataLocationEntries(SortedMap<Key,Value> entries) {
-    Key key;
-    Value val;
     Text location = null;
     Text session = null;
-    Value prevRow = null;
-    KeyExtent ke;
 
     List<TabletLocation> results = new ArrayList<>();
     ArrayList<KeyExtent> locationless = new ArrayList<>();
@@ -225,11 +224,10 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
     Text colq = new Text();
 
     for (Entry<Key,Value> entry : entries.entrySet()) {
-      key = entry.getKey();
-      val = entry.getValue();
+      Key key = entry.getKey();
+      Value val = entry.getValue();
 
       if (key.compareRow(lastRowFromKey) != 0) {
-        prevRow = null;
         location = null;
         session = null;
         key.getRow(lastRowFromKey);
@@ -239,26 +237,20 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       colq = key.getColumnQualifier(colq);
 
       // interpret the row id as a key extent
-      if (colf.equals(TabletsSection.CurrentLocationColumnFamily.NAME)
-          || colf.equals(TabletsSection.FutureLocationColumnFamily.NAME)) {
+      if (colf.equals(CurrentLocationColumnFamily.NAME)
+          || colf.equals(FutureLocationColumnFamily.NAME)) {
         if (location != null) {
           throw new IllegalStateException("Tablet has multiple locations : " + lastRowFromKey);
         }
         location = new Text(val.toString());
         session = new Text(colq);
-      } else if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
-        prevRow = new Value(val);
-      }
-
-      if (prevRow != null) {
-        ke = new KeyExtent(key.getRow(), prevRow);
+      } else if (TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
+        KeyExtent ke = KeyExtent.fromMetaPrevRow(entry);
         if (location != null)
           results.add(new TabletLocation(ke, location.toString(), session.toString()));
         else
           locationless.add(ke);
-
         location = null;
-        prevRow = null;
       }
     }
 

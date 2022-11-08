@@ -1,26 +1,28 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.data;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -34,7 +36,7 @@ import java.util.List;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class RangeTest {
   private Range newRange(String k1, String k2) {
@@ -57,7 +59,7 @@ public class RangeTest {
     HashSet<Range> s1 = new HashSet<>(rl);
     HashSet<Range> s2 = new HashSet<>(expected);
 
-    assertEquals("got : " + rl + " expected : " + expected, s1, s2);
+    assertEquals(s1, s2, "got : " + rl + " expected : " + expected);
   }
 
   @Test
@@ -227,39 +229,37 @@ public class RangeTest {
   @Test
   public void testMergeOverlapping22() {
 
-    Range ke1 = new KeyExtent(TableId.of("tab1"), new Text("Bank"), null).toMetadataRange();
+    Range ke1 = new KeyExtent(TableId.of("tab1"), new Text("Bank"), null).toMetaRange();
     Range ke2 =
-        new KeyExtent(TableId.of("tab1"), new Text("Fails"), new Text("Bank")).toMetadataRange();
-    Range ke3 =
-        new KeyExtent(TableId.of("tab1"), new Text("Sam"), new Text("Fails")).toMetadataRange();
-    Range ke4 =
-        new KeyExtent(TableId.of("tab1"), new Text("bails"), new Text("Sam")).toMetadataRange();
-    Range ke5 = new KeyExtent(TableId.of("tab1"), null, new Text("bails")).toMetadataRange();
+        new KeyExtent(TableId.of("tab1"), new Text("Fails"), new Text("Bank")).toMetaRange();
+    Range ke3 = new KeyExtent(TableId.of("tab1"), new Text("Sam"), new Text("Fails")).toMetaRange();
+    Range ke4 = new KeyExtent(TableId.of("tab1"), new Text("bails"), new Text("Sam")).toMetaRange();
+    Range ke5 = new KeyExtent(TableId.of("tab1"), null, new Text("bails")).toMetaRange();
 
     List<Range> rl = newRangeList(ke1, ke2, ke3, ke4, ke5);
     List<Range> expected =
-        newRangeList(new KeyExtent(TableId.of("tab1"), null, null).toMetadataRange());
+        newRangeList(new KeyExtent(TableId.of("tab1"), null, null).toMetaRange());
     check(Range.mergeOverlapping(rl), expected);
 
     rl = newRangeList(ke1, ke2, ke4, ke5);
     expected =
-        newRangeList(new KeyExtent(TableId.of("tab1"), new Text("Fails"), null).toMetadataRange(),
-            new KeyExtent(TableId.of("tab1"), null, new Text("Sam")).toMetadataRange());
+        newRangeList(new KeyExtent(TableId.of("tab1"), new Text("Fails"), null).toMetaRange(),
+            new KeyExtent(TableId.of("tab1"), null, new Text("Sam")).toMetaRange());
     check(Range.mergeOverlapping(rl), expected);
 
     rl = newRangeList(ke2, ke3, ke4, ke5);
     expected =
-        newRangeList(new KeyExtent(TableId.of("tab1"), null, new Text("Bank")).toMetadataRange());
+        newRangeList(new KeyExtent(TableId.of("tab1"), null, new Text("Bank")).toMetaRange());
     check(Range.mergeOverlapping(rl), expected);
 
     rl = newRangeList(ke1, ke2, ke3, ke4);
     expected =
-        newRangeList(new KeyExtent(TableId.of("tab1"), new Text("bails"), null).toMetadataRange());
+        newRangeList(new KeyExtent(TableId.of("tab1"), new Text("bails"), null).toMetaRange());
     check(Range.mergeOverlapping(rl), expected);
 
     rl = newRangeList(ke2, ke3, ke4);
     expected = newRangeList(
-        new KeyExtent(TableId.of("tab1"), new Text("bails"), new Text("Bank")).toMetadataRange());
+        new KeyExtent(TableId.of("tab1"), new Text("bails"), new Text("Bank")).toMetaRange());
 
     check(Range.mergeOverlapping(rl), expected);
   }
@@ -620,13 +620,7 @@ public class RangeTest {
   }
 
   private void runClipTest(Range fence, Range range) {
-    try {
-      fence.clip(range);
-      fail();
-    } catch (IllegalArgumentException e) {
-
-    }
-
+    assertThrows(IllegalArgumentException.class, () -> fence.clip(range));
   }
 
   private void runClipTest(Range fence, Range range, Range expected) {
@@ -883,10 +877,8 @@ public class RangeTest {
     ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
     Range r2 = new Range();
     try (DataInputStream dis = new DataInputStream(bais)) {
-      r2.readFields(dis);
-      fail("readFields allowed invalid range");
-    } catch (InvalidObjectException exc) {
-      /* good! */
+      assertThrows(InvalidObjectException.class, () -> r2.readFields(dis),
+          "readFields allowed invalid range");
     }
   }
 
@@ -903,12 +895,7 @@ public class RangeTest {
     Range r =
         new Range(new Key(new Text("soup")), true, false, new Key(new Text("nuts")), true, false);
     TRange tr = r.toThrift();
-    try {
-      @SuppressWarnings("unused")
-      Range r2 = new Range(tr);
-      fail("Thrift constructor allowed invalid range");
-    } catch (IllegalArgumentException exc) {
-      /* good! */
-    }
+    assertThrows(IllegalArgumentException.class, () -> new Range(tr),
+        "Thrift constructor allowed invalid range");
   }
 }

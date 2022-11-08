@@ -1,30 +1,34 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 
-import java.util.Iterator;
+import java.time.Duration;
 import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -32,11 +36,13 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Iterables;
 
 /**
  * Ensures that all threads spawned for ZooKeeper and Thrift connectivity are reaped after calling
@@ -50,16 +56,16 @@ public class CleanUpIT extends SharedMiniClusterBase {
   private static final Logger log = LoggerFactory.getLogger(CleanUpIT.class);
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 30;
+  protected Duration defaultTimeout() {
+    return Duration.ofSeconds(30);
   }
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() throws Exception {
     SharedMiniClusterBase.startMiniCluster();
   }
 
-  @AfterClass
+  @AfterAll
   public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
   }
@@ -99,7 +105,7 @@ public class CleanUpIT extends SharedMiniClusterBase {
         }
       }
 
-      assertEquals("Unexpected count", 1, count);
+      assertEquals(1, count, "Unexpected count");
 
       int threadCount = countThreads();
       if (threadCount < 2) {
@@ -107,44 +113,28 @@ public class CleanUpIT extends SharedMiniClusterBase {
         fail("Not seeing expected threads. Saw " + threadCount);
       }
 
-      org.apache.accumulo.core.util.CleanUp.shutdownNow();
+      // explicitly close the scanner to verify that the scanner throws after close when iterated
+      scanner.close();
+      assertThrows(IllegalStateException.class, () -> Iterables.size(scanner));
+    }
 
-      Mutation m2 = new Mutation("r2");
-      m2.put("cf1", "cq1", 1, "6");
+    // close the scanners before closing the client, because the scanners need the client's cleanup
+    // thread pool to execute their cleanup tasks when they are closed, so they don't block
+    org.apache.accumulo.core.util.CleanUp.shutdownNow(conn);
 
-      try {
-        bw.addMutation(m1);
-        bw.flush();
-        fail("batch writer did not fail");
-      } catch (Exception e) {
+    Mutation m2 = new Mutation("r2");
+    m2.put("cf1", "cq1", 1, "6");
 
-      }
+    bw.addMutation(m1);
+    assertThrows(MutationsRejectedException.class, bw::flush);
 
-      try {
-        // expect this to fail also, want to clean up batch writer threads
-        bw.close();
-        fail("batch writer close not fail");
-      } catch (Exception e) {
+    // expect this to fail also, want to clean up batch writer threads
+    assertThrows(MutationsRejectedException.class, bw::close);
 
-      }
-
-      try {
-        count = 0;
-        Iterator<Entry<Key,Value>> iter = scanner.iterator();
-        while (iter.hasNext()) {
-          iter.next();
-          count++;
-        }
-        fail("scanner did not fail");
-      } catch (Exception e) {
-
-      }
-
-      threadCount = countThreads();
-      if (threadCount > 0) {
-        printThreadNames();
-        fail("Threads did not go away. Saw " + threadCount);
-      }
+    var threadCount = countThreads();
+    if (threadCount > 0) {
+      printThreadNames();
+      fail("Threads did not go away. Saw " + threadCount);
     }
   }
 

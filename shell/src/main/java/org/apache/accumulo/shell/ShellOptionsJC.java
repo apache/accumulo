@@ -1,39 +1,38 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Scanner;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.clientImpl.ClientInfoImpl;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.hadoop.security.UserGroupInformation;
 
 import com.beust.jcommander.DynamicParameter;
-import com.beust.jcommander.IStringConverter;
+import com.beust.jcommander.IParameterValidator;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.converters.FileConverter;
@@ -45,84 +44,12 @@ public class ShellOptionsJC {
   @Parameter(names = {"-u", "--user"}, description = "username")
   private String username = null;
 
-  public static class PasswordConverter implements IStringConverter<String> {
-    public static final String STDIN = "stdin";
-
-    private enum KeyType {
-      PASS("pass:"), ENV("env:") {
-        @Override
-        String process(String value) {
-          return System.getenv(value);
-        }
-      },
-      FILE("file:") {
-        @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
-            justification = "app is run in same security context as user providing the filename")
-        @Override
-        String process(String value) {
-          Scanner scanner = null;
-          try {
-            scanner = new Scanner(new File(value), UTF_8);
-            return scanner.nextLine();
-          } catch (IOException e) {
-            throw new ParameterException(e);
-          } finally {
-            if (scanner != null) {
-              scanner.close();
-            }
-          }
-        }
-      },
-      STDIN(PasswordConverter.STDIN) {
-        @Override
-        public boolean matches(String value) {
-          return prefix.equals(value);
-        }
-
-        @Override
-        public String convert(String value) {
-          // Will check for this later
-          return prefix;
-        }
-      };
-
-      String prefix;
-
-      private KeyType(String prefix) {
-        this.prefix = prefix;
-      }
-
-      public boolean matches(String value) {
-        return value.startsWith(prefix);
-      }
-
-      public String convert(String value) {
-        return process(value.substring(prefix.length()));
-      }
-
-      String process(String value) {
-        return value;
-      }
-    }
-
-    @Override
-    public String convert(String value) {
-      for (KeyType keyType : KeyType.values()) {
-        if (keyType.matches(value)) {
-          return keyType.convert(value);
-        }
-      }
-
-      return value;
-    }
-  }
-
   // Note: Don't use "password = true" because then it will prompt even if we have a token
   @Parameter(names = {"-p", "--password"},
-      description = "password (can be specified as 'pass:<password>',"
+      description = "password (can be specified as '<password>', 'pass:<password>',"
           + " 'file:<local file containing the password>', 'env:<variable containing"
           + " the pass>', or stdin)",
-      converter = PasswordConverter.class)
+      converter = ClientOpts.PasswordConverter.class)
   private String password;
 
   @DynamicParameter(names = {"-l"},
@@ -185,8 +112,9 @@ public class ShellOptionsJC {
   private String zooKeeperHosts;
 
   @Parameter(names = "--auth-timeout",
-      description = "minutes the shell can be idle without re-entering a password")
-  private int authTimeout = 60; // TODO Add validator for positive number
+      description = "minutes the shell can be idle without re-entering a password",
+      validateWith = PositiveInteger.class)
+  private int authTimeout = 60;
 
   @Parameter(names = "--disable-auth-timeout",
       description = "disables requiring the user to re-type a password after being idle")
@@ -202,7 +130,7 @@ public class ShellOptionsJC {
         if (ClientProperty.SASL_ENABLED.getBoolean(getClientProperties())) {
           if (!UserGroupInformation.isSecurityEnabled()) {
             throw new IllegalArgumentException(
-                "Kerberos security is not" + " enabled. Run with --sasl or set 'sasl.enabled' in"
+                "Kerberos security is not enabled. Run with --sasl or set 'sasl.enabled' in"
                     + " accumulo-client.properties");
           }
           UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
@@ -309,6 +237,22 @@ public class ShellOptionsJC {
       props.setProperty(ClientProperty.INSTANCE_NAME.getKey(), zooKeeperInstanceName);
     }
     return props;
+  }
+
+  static class PositiveInteger implements IParameterValidator {
+    @Override
+    public void validate(String name, String value) throws ParameterException {
+      int n = -1;
+      try {
+        n = Integer.parseInt(value);
+      } catch (NumberFormatException e) {
+        // ignore, will be handled below
+      }
+      if (n < 0) {
+        throw new ParameterException(
+            "Parameter " + name + " should be a positive integer (was " + value + ")");
+      }
+    }
   }
 
 }

@@ -1,51 +1,42 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.rpc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.concurrent.TimeUnit;
-
-import org.apache.accumulo.test.categories.SunnyDayTests;
+import org.apache.accumulo.harness.WithTestNames;
 import org.apache.accumulo.test.rpc.thrift.SimpleThriftService;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
-import org.hamcrest.core.IsInstanceOf;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.rules.ExpectedException;
-import org.junit.rules.TestName;
-import org.junit.rules.Timeout;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
-@Category(SunnyDayTests.class)
-public class ThriftBehaviorIT {
-
-  @Rule
-  public Timeout timeout = new Timeout(5, TimeUnit.SECONDS);
-
-  @Rule
-  public TestName testName = new TestName();
-
-  @Rule
-  public ExpectedException exception = ExpectedException.none();
+@Tag(SUNNY_DAY)
+@Timeout(value = 5, unit = SECONDS)
+public class ThriftBehaviorIT extends WithTestNames {
 
   private SimpleThriftService.Client client;
   private SimpleThriftServiceHandler handler;
@@ -54,15 +45,15 @@ public class ThriftBehaviorIT {
 
   private static final String KITTY_MSG = "🐈 Kitty! 🐈";
 
-  @Before
+  @BeforeEach
   public void createClientAndServer() {
-    String threadName = ThriftBehaviorIT.class.getSimpleName() + "." + testName.getMethodName();
+    String threadName = ThriftBehaviorIT.class.getSimpleName() + "." + testName();
     serviceRunner = new SimpleThriftServiceRunner(threadName);
     serviceRunner.startService();
     client = serviceRunner.client();
     handler = serviceRunner.handler();
 
-    propName = testName.getMethodName();
+    propName = testName();
     if (propName.endsWith("Handler")) {
       propName = propName.substring(0, propName.length() - 7);
     }
@@ -73,7 +64,7 @@ public class ThriftBehaviorIT {
     assertEquals("-", System.getProperty(propName));
   }
 
-  @After
+  @AfterEach
   public void shutdownServer() {
     serviceRunner.stopService();
 
@@ -83,37 +74,25 @@ public class ThriftBehaviorIT {
 
   @Test
   public void echoFailHandler() throws TException {
-    exception.expect(TException.class);
-    exception.expectCause(IsInstanceOf.instanceOf(UnsupportedOperationException.class));
-    handler.echoFail(KITTY_MSG);
+    var e = assertThrows(TException.class, () -> handler.echoFail(KITTY_MSG));
+    assertTrue(e.getCause() instanceof UnsupportedOperationException);
   }
 
   @Test
   public void echoFail() throws TException {
-    try {
-      client.echoFail(KITTY_MSG);
-      fail("Thrift client did not throw an expected exception");
-    } catch (Exception e) {
-      assertEquals(TApplicationException.class.getName(), e.getClass().getName());
-    }
+    assertThrows(TApplicationException.class, () -> client.echoFail(KITTY_MSG));
     // verify normal two-way method still passes using same client
     echoPass();
   }
 
   @Test
   public void echoRuntimeFailHandler() {
-    exception.expect(UnsupportedOperationException.class);
-    handler.echoRuntimeFail(KITTY_MSG);
+    assertThrows(UnsupportedOperationException.class, () -> handler.echoRuntimeFail(KITTY_MSG));
   }
 
   @Test
   public void echoRuntimeFail() throws TException {
-    try {
-      client.echoRuntimeFail(KITTY_MSG);
-      fail("Thrift client did not throw an expected exception");
-    } catch (Exception e) {
-      assertEquals(TApplicationException.class.getName(), e.getClass().getName());
-    }
+    assertThrows(TApplicationException.class, () -> client.echoRuntimeFail(KITTY_MSG));
     // verify normal two-way method still passes using same client
     echoPass();
   }
@@ -130,9 +109,8 @@ public class ThriftBehaviorIT {
 
   @Test
   public void onewayFailHandler() throws TException {
-    exception.expect(TException.class);
-    exception.expectCause(IsInstanceOf.instanceOf(UnsupportedOperationException.class));
-    handler.onewayFail(KITTY_MSG);
+    var e = assertThrows(TException.class, () -> handler.onewayFail(KITTY_MSG));
+    assertTrue(e.getCause() instanceof UnsupportedOperationException);
   }
 
   @Test
@@ -144,8 +122,7 @@ public class ThriftBehaviorIT {
 
   @Test
   public void onewayRuntimeFailHandler() {
-    exception.expect(UnsupportedOperationException.class);
-    handler.onewayRuntimeFail(KITTY_MSG);
+    assertThrows(UnsupportedOperationException.class, () -> handler.onewayRuntimeFail(KITTY_MSG));
   }
 
   @Test

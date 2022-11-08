@@ -1,27 +1,31 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -44,40 +48,40 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.fs.DelegatingChooser;
+import org.apache.accumulo.core.spi.fs.PreferredVolumeChooser;
+import org.apache.accumulo.core.spi.fs.RandomVolumeChooser;
+import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.server.fs.PerTableVolumeChooser;
-import org.apache.accumulo.server.fs.PreferredVolumeChooser;
-import org.apache.accumulo.server.fs.RandomVolumeChooser;
-import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class VolumeChooserIT extends ConfigurableMacBase {
 
   private static final String TP = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey();
   static final String PREFERRED_CHOOSER_PROP = TP + "volume.preferred";
-  static final String PERTABLE_CHOOSER_PROP = TP + "volume.chooser";
+  public static final String PERTABLE_CHOOSER_PROP = TP + "volume.chooser";
 
   private static final String GP = Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey();
 
-  static final String getPreferredProp(ChooserScope scope) {
+  static final String getPreferredProp(Scope scope) {
     return GP + "volume.preferred." + scope.name().toLowerCase();
   }
 
-  static final String getPerTableProp(ChooserScope scope) {
+  static final String getPerTableProp(Scope scope) {
     return GP + "volume.chooser." + scope.name().toLowerCase();
   }
 
   private static final Text EMPTY = new Text();
-  private static final Value EMPTY_VALUE = new Value(new byte[] {});
+  private static final Value EMPTY_VALUE = new Value();
   private File volDirBase;
-  @SuppressWarnings("unused")
-  private Path v1, v2, v3, v4;
+  private Path v1, v2, v3;
   public static String[] alpha_rows =
       "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z".split(",");
   private String namespace1;
@@ -85,8 +89,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
   private String systemPreferredVolumes;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
   }
 
   @Override
@@ -96,10 +100,10 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     namespace1 = "ns_" + getUniqueNames(2)[0];
     namespace2 = "ns_" + getUniqueNames(2)[1];
 
-    // Set the general volume chooser to the PerTableVolumeChooser so that different choosers can be
+    // Set the general volume chooser to the DelegatingChooser so that different choosers can be
     // specified
     Map<String,String> siteConfig = new HashMap<>();
-    siteConfig.put(Property.GENERAL_VOLUME_CHOOSER.getKey(), PerTableVolumeChooser.class.getName());
+    siteConfig.put(Property.GENERAL_VOLUME_CHOOSER.getKey(), DelegatingChooser.class.getName());
     // if a table doesn't have a volume chooser, use the preferred volume chooser
     siteConfig.put(PERTABLE_CHOOSER_PROP, PreferredVolumeChooser.class.getName());
 
@@ -109,24 +113,24 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     File v1f = new File(volDirBase, "v1");
     File v2f = new File(volDirBase, "v2");
     File v3f = new File(volDirBase, "v3");
-    File v4f = new File(volDirBase, "v4");
     v1 = new Path("file://" + v1f.getAbsolutePath());
     v2 = new Path("file://" + v2f.getAbsolutePath());
     v3 = new Path("file://" + v3f.getAbsolutePath());
-    v4 = new Path("file://" + v4f.getAbsolutePath());
 
     systemPreferredVolumes = v1 + "," + v2;
-    // exclude v4
+    // exclude v3
     siteConfig.put(PREFERRED_CHOOSER_PROP, systemPreferredVolumes);
     cfg.setSiteConfig(siteConfig);
 
-    siteConfig.put(getPerTableProp(ChooserScope.LOGGER), PreferredVolumeChooser.class.getName());
-    siteConfig.put(getPreferredProp(ChooserScope.LOGGER), v2.toString());
+    siteConfig.put(getPerTableProp(Scope.LOGGER), PreferredVolumeChooser.class.getName());
+    siteConfig.put(getPreferredProp(Scope.LOGGER), v2.toString());
+    siteConfig.put(getPerTableProp(Scope.INIT), PreferredVolumeChooser.class.getName());
+    siteConfig.put(getPreferredProp(Scope.INIT), systemPreferredVolumes);
     cfg.setSiteConfig(siteConfig);
 
     // Only add volumes 1, 2, and 4 to the list of instance volumes to have one volume that isn't in
     // the options list when they are choosing
-    cfg.setProperty(Property.INSTANCE_VOLUMES, v1 + "," + v2 + "," + v4);
+    cfg.setProperty(Property.INSTANCE_VOLUMES, v1 + "," + v2 + "," + v3);
 
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
@@ -153,8 +157,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
       int i = 0;
       for (Entry<Key,Value> entry : scanner) {
-        assertEquals("Data read is not data written", alpha_rows[i++],
-            entry.getKey().getRow().toString());
+        assertEquals(alpha_rows[i++], entry.getKey().getRow().toString(),
+            "Data read is not data written");
       }
     }
   }
@@ -175,8 +179,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
       throws Exception {
     // Verify the new files are written to the Volumes specified
     ArrayList<String> volumes = new ArrayList<>();
-    for (String s : vol.split(","))
-      volumes.add(s);
+    Collections.addAll(volumes, vol.split(","));
 
     TreeSet<String> volumesSeen = new TreeSet<>();
     int fileCount = 0;
@@ -191,16 +194,14 @@ public class VolumeChooserIT extends ConfigurableMacBase {
             inVolume = true;
           }
         }
-        assertTrue(
-            "Data not written to the correct volumes.  " + entry.getKey().getColumnQualifier(),
-            inVolume);
+        assertTrue(inVolume,
+            "Data not written to the correct volumes.  " + entry.getKey().getColumnQualifier());
         fileCount++;
       }
     }
-    assertEquals(
-        "Did not see all the volumes. volumes: " + volumes + " volumes seen: " + volumesSeen,
-        volumes.size(), volumesSeen.size());
-    assertEquals("Wrong number of files", 26, fileCount);
+    assertEquals(volumes.size(), volumesSeen.size(),
+        "Did not see all the volumes. volumes: " + volumes + " volumes seen: " + volumesSeen);
+    assertEquals(26, fileCount, "Wrong number of files");
   }
 
   public static void verifyNoVolumes(AccumuloClient accumuloClient, Range tableRange)
@@ -243,13 +244,12 @@ public class VolumeChooserIT extends ConfigurableMacBase {
       throws TableNotFoundException {
     // Verify the new files are written to the Volumes specified
     ArrayList<String> volumes = new ArrayList<>();
-    for (String s : vol.split(","))
-      volumes.add(s);
+    Collections.addAll(volumes, vol.split(","));
 
     TreeSet<String> volumesSeen = new TreeSet<>();
     try (Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       scanner.setRange(tableRange);
-      scanner.fetchColumnFamily(TabletsSection.LogColumnFamily.NAME);
+      scanner.fetchColumnFamily(LogColumnFamily.NAME);
       for (Entry<Key,Value> entry : scanner) {
         boolean inVolume = false;
         for (String volume : volumes) {
@@ -257,9 +257,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
             volumesSeen.add(volume);
           inVolume = true;
         }
-        assertTrue(
-            "Data not written to the correct volumes.  " + entry.getKey().getColumnQualifier(),
-            inVolume);
+        assertTrue(inVolume,
+            "Data not written to the correct volumes.  " + entry.getKey().getColumnQualifier());
       }
     }
   }
@@ -294,8 +293,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
     // Create namespace
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      createAndVerify(client, namespace1, v1 + "," + v2 + "," + v4);
-      createAndVerify(client, namespace2, v1 + "," + v2 + "," + v4);
+      createAndVerify(client, namespace1, v1 + "," + v2 + "," + v3);
+      createAndVerify(client, namespace2, v1 + "," + v2 + "," + v3);
     }
   }
 
@@ -318,7 +317,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
     // Create namespace
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
-      createAndVerify(c, namespace1, v1 + "," + v2 + "," + v4);
+      createAndVerify(c, namespace1, v1 + "," + v2 + "," + v3);
       configureNamespace(c, PreferredVolumeChooser.class.getName(), v1.toString(), namespace2);
       // Create table2 on namespace2
       verifyVolumesForWritesToNewTable(c, namespace2, v1.toString());
@@ -331,7 +330,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
 
       // the following table will be configured to go to the excluded volume
-      String configuredVolumes = v4.toString();
+      String configuredVolumes = v3.toString();
       configureNamespace(client, PreferredVolumeChooser.class.getName(), configuredVolumes,
           namespace2);
       verifyVolumesForWritesToNewTable(client, namespace2, configuredVolumes);

@@ -1,29 +1,32 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.system;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.data.ByteSequence;
@@ -33,10 +36,10 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.SortedMapIterator;
-import org.apache.accumulo.core.util.LocalityGroupUtil;
+import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class MultiIteratorTest {
 
@@ -54,7 +57,7 @@ public class MultiIteratorTest {
       String val) {
     Key k = newKey(row, ts);
     k.setDeleted(deleted);
-    tm.put(k, new Value(val.getBytes()));
+    tm.put(k, new Value(val));
   }
 
   public static Text newRow(int row) {
@@ -76,11 +79,11 @@ public class MultiIteratorTest {
       Range range = new Range(prevEndRow, false, endRow, true);
       if (init)
         for (SortedKeyValueIterator<Key,Value> iter : iters)
-          iter.seek(range, LocalityGroupUtil.EMPTY_CF_SET, false);
+          iter.seek(range, Set.of(), false);
       mi = new MultiIterator(iters, range);
 
       if (init)
-        mi.seek(range, LocalityGroupUtil.EMPTY_CF_SET, false);
+        mi.seek(range, Set.of(), false);
     }
 
     if (seekKey != null)
@@ -104,9 +107,10 @@ public class MultiIteratorTest {
         i--;
     }
 
-    assertEquals("start=" + start + " end=" + end + " seekKey=" + seekKey + " endRow=" + endRow
-        + " prevEndRow=" + prevEndRow + " init=" + init + " incrRow=" + incrRow + " maps=" + maps,
-        end, i);
+    assertEquals(end, i,
+        "start=" + start + " end=" + end + " seekKey=" + seekKey + " endRow=" + endRow
+            + " prevEndRow=" + prevEndRow + " init=" + init + " incrRow=" + incrRow + " maps="
+            + maps);
   }
 
   void verify(int start, Key seekKey, List<TreeMap<Key,Value>> maps) throws IOException {
@@ -115,15 +119,6 @@ public class MultiIteratorTest {
     }
 
     verify(start, -1, seekKey, null, null, true, false, maps);
-  }
-
-  void verify(int start, int end, Key seekKey, Text endRow, Text prevEndRow,
-      List<TreeMap<Key,Value>> maps) throws IOException {
-    if (seekKey != null) {
-      verify(start, end, seekKey, endRow, prevEndRow, false, false, maps);
-    }
-
-    verify(start, end, seekKey, endRow, prevEndRow, true, false, maps);
   }
 
   @Test

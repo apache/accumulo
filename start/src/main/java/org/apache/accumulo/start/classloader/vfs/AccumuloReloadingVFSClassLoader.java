@@ -1,21 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.start.classloader.vfs;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.ArrayList;
@@ -43,13 +46,14 @@ import org.slf4j.LoggerFactory;
  * changes in any of the files/directories that are in the classpath and will recreate the delegate
  * object if there is any change in the classpath.
  */
+@Deprecated
 public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingClassLoader {
 
   private static final Logger log = LoggerFactory.getLogger(AccumuloReloadingVFSClassLoader.class);
 
   // set to 5 mins. The rationale behind this large time is to avoid a gazillion tservers all asking
   // the name node for info too frequently.
-  private static final int DEFAULT_TIMEOUT = 5 * 60 * 1000;
+  private static final long DEFAULT_TIMEOUT = MINUTES.toMillis(5);
 
   private volatile long maxWaitInterval = 60000;
 
@@ -98,7 +102,7 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
                 currentSleepMillis = Math.min(maxWaitInterval, currentSleepMillis + sleepInterval);
 
               } catch (InterruptedException e) {
-                log.error("VFS Retry Interruped", e);
+                log.error("VFS Retry Interrupted", e);
                 throw new RuntimeException(e);
               }
 
@@ -183,9 +187,19 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
     files = AccumuloVFSClassLoader.resolve(vfs, uris, pathsToMonitor);
 
     if (preDelegate)
-      cl = new VFSClassLoader(files, vfs, parent.getClassLoader());
+      cl = new VFSClassLoader(files, vfs, parent.getClassLoader()) {
+        @Override
+        public String getName() {
+          return "AccumuloReloadingVFSClassLoader (loads everything defined by general.dynamic.classpaths)";
+        }
+      };
     else
-      cl = new PostDelegatingVFSClassLoader(files, vfs, parent.getClassLoader());
+      cl = new PostDelegatingVFSClassLoader(files, vfs, parent.getClassLoader()) {
+        @Override
+        public String getName() {
+          return "AccumuloReloadingVFSClassLoader (loads everything defined by general.dynamic.classpaths)";
+        }
+      };
 
     monitor = new DefaultFileMonitor(this);
     monitor.setDelay(monitorDelay);
@@ -263,21 +277,21 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
   @Override
   public void fileCreated(FileChangeEvent event) throws Exception {
     if (log.isDebugEnabled())
-      log.debug("{} created, recreating classloader", event.getFile().getURL());
+      log.debug("{} created, recreating classloader", event.getFileObject().getURL());
     scheduleRefresh();
   }
 
   @Override
   public void fileDeleted(FileChangeEvent event) throws Exception {
     if (log.isDebugEnabled())
-      log.debug("{} deleted, recreating classloader", event.getFile().getURL());
+      log.debug("{} deleted, recreating classloader", event.getFileObject().getURL());
     scheduleRefresh();
   }
 
   @Override
   public void fileChanged(FileChangeEvent event) throws Exception {
     if (log.isDebugEnabled())
-      log.debug("{} changed, recreating classloader", event.getFile().getURL());
+      log.debug("{} changed, recreating classloader", event.getFileObject().getURL());
     scheduleRefresh();
   }
 

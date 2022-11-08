@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.start;
 
@@ -27,7 +29,6 @@ import java.util.ServiceLoader;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.accumulo.start.spi.KeywordExecutable.UsageGroup;
 import org.slf4j.Logger;
@@ -40,62 +41,54 @@ public class Main {
   private static Class<?> vfsClassLoader;
   private static Map<String,KeywordExecutable> servicesMap;
 
-  public static void main(final String[] args) {
+  public static void main(final String[] args) throws Exception {
+    // Preload classes that cause a deadlock between the ServiceLoader and the DFSClient when
+    // using the VFSClassLoader with jars in HDFS.
+    ClassLoader loader = getClassLoader();
+    Class<?> confClass = null;
     try {
-      // Preload classes that cause a deadlock between the ServiceLoader and the DFSClient when
-      // using
-      // the VFSClassLoader with jars in HDFS.
-      ClassLoader loader = getClassLoader();
-      Class<?> confClass = null;
-      try {
-        confClass =
-            AccumuloClassLoader.getClassLoader().loadClass("org.apache.hadoop.conf.Configuration");
-      } catch (ClassNotFoundException e) {
-        log.error("Unable to find Hadoop Configuration class on classpath, check configuration.",
-            e);
-        System.exit(1);
-      }
+      @SuppressWarnings("deprecation")
+      var deprecatedConfClass = org.apache.accumulo.start.classloader.AccumuloClassLoader
+          .getClassLoader().loadClass("org.apache.hadoop.conf.Configuration");
+      confClass = deprecatedConfClass;
       Object conf = null;
       try {
         conf = confClass.getDeclaredConstructor().newInstance();
+        try {
+          Method getClassByNameOrNullMethod =
+              conf.getClass().getMethod("getClassByNameOrNull", String.class);
+          getClassByNameOrNullMethod.invoke(conf, "org.apache.hadoop.mapred.JobConf");
+          getClassByNameOrNullMethod.invoke(conf, "org.apache.hadoop.mapred.JobConfigurable");
+        } catch (Exception e) {
+          die(e, "Error pre-loading JobConf and JobConfigurable classes, VFS classloader with "
+              + "system classes in HDFS may not work correctly");
+        }
       } catch (Exception e) {
-        log.error("Error creating new instance of Hadoop Configuration", e);
-        System.exit(1);
+        die(e, "Error creating new instance of Hadoop Configuration");
       }
-      try {
-        Method getClassByNameOrNullMethod =
-            conf.getClass().getMethod("getClassByNameOrNull", String.class);
-        getClassByNameOrNullMethod.invoke(conf, "org.apache.hadoop.mapred.JobConf");
-        getClassByNameOrNullMethod.invoke(conf, "org.apache.hadoop.mapred.JobConfigurable");
-      } catch (Exception e) {
-        log.error("Error pre-loading JobConf and JobConfigurable classes, VFS classloader with "
-            + "system classes in HDFS may not work correctly", e);
-        System.exit(1);
-      }
+    } catch (ClassNotFoundException e) {
+      die(e, "Unable to find Hadoop Configuration class on classpath, check configuration.");
+    }
 
-      if (args.length == 0) {
-        printUsage();
-        System.exit(1);
-      }
-      if (args[0].equals("-h") || args[0].equals("-help") || args[0].equals("--help")) {
-        printUsage();
-        System.exit(1);
-      }
-
-      // determine whether a keyword was used or a class name, and execute it with the remaining
-      // args
-      String keywordOrClassName = args[0];
-      KeywordExecutable keywordExec = getExecutables(loader).get(keywordOrClassName);
-      if (keywordExec != null) {
-        execKeyword(keywordExec, stripArgs(args, 1));
-      } else {
-        execMainClassName(keywordOrClassName, stripArgs(args, 1));
-      }
-
-    } catch (Throwable t) {
-      log.error("Uncaught exception", t);
+    if (args.length == 0) {
+      printUsage();
       System.exit(1);
     }
+    if (args[0].equals("-h") || args[0].equals("-help") || args[0].equals("--help")) {
+      printUsage();
+      return;
+    }
+
+    // determine whether a keyword was used or a class name, and execute it with the remaining
+    // args
+    String keywordOrClassName = args[0];
+    KeywordExecutable keywordExec = getExecutables(loader).get(keywordOrClassName);
+    if (keywordExec != null) {
+      execKeyword(keywordExec, stripArgs(args, 1));
+    } else {
+      execMainClassName(keywordOrClassName, stripArgs(args, 1));
+    }
+
   }
 
   public static synchronized ClassLoader getClassLoader() {
@@ -105,18 +98,19 @@ public class Main {
         Thread.currentThread().setContextClassLoader(classLoader);
       } catch (IOException | IllegalArgumentException | ReflectiveOperationException
           | SecurityException e) {
-        log.error("Problem initializing the class loader", e);
-        System.exit(1);
+        die(e, "Problem initializing the class loader");
       }
     }
     return classLoader;
   }
 
-  public static synchronized Class<?> getVFSClassLoader()
+  @Deprecated
+  private static synchronized Class<?> getVFSClassLoader()
       throws IOException, ClassNotFoundException {
     if (vfsClassLoader == null) {
-      Thread.currentThread().setContextClassLoader(AccumuloClassLoader.getClassLoader());
-      vfsClassLoader = AccumuloClassLoader.getClassLoader()
+      Thread.currentThread().setContextClassLoader(
+          org.apache.accumulo.start.classloader.AccumuloClassLoader.getClassLoader());
+      vfsClassLoader = org.apache.accumulo.start.classloader.AccumuloClassLoader.getClassLoader()
           .loadClass("org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader");
     }
     return vfsClassLoader;
@@ -127,7 +121,7 @@ public class Main {
       try {
         keywordExec.execute(args);
       } catch (Exception e) {
-        die(e);
+        die(e, null);
       }
     };
     startThread(r, keywordExec.keyword());
@@ -150,8 +144,8 @@ public class Main {
     Method main = null;
     try {
       main = classWithMain.getMethod("main", args.getClass());
-    } catch (Throwable t) {
-      log.error("Could not run main method on '" + classWithMain.getName() + "'.", t);
+    } catch (Exception t) {
+      die(t, "Could not run main method on '" + classWithMain.getName() + "'.");
     }
     if (main == null || !Modifier.isPublic(main.getModifiers())
         || !Modifier.isStatic(main.getModifiers())) {
@@ -165,13 +159,13 @@ public class Main {
         finalMain.invoke(null, (Object) args);
       } catch (InvocationTargetException e) {
         if (e.getCause() != null) {
-          die(e.getCause());
+          die(e.getCause(), null);
         } else {
           // Should never happen, but check anyway.
-          die(e);
+          die(e, null);
         }
       } catch (Exception e) {
-        die(e);
+        die(e, null);
       }
     };
     startThread(r, classWithMain.getName());
@@ -196,8 +190,12 @@ public class Main {
    * @param t
    *          The {@link Throwable} containing a stack trace to print.
    */
-  private static void die(final Throwable t) {
-    log.error("Thread '" + Thread.currentThread().getName() + "' died.", t);
+  private static void die(final Throwable t, String msg) {
+    String message =
+        (msg == null) ? "Thread '" + Thread.currentThread().getName() + "' died." : msg;
+    System.err.println(message);
+    t.printStackTrace();
+    log.error(message, t);
     System.exit(1);
   }
 
@@ -237,16 +235,16 @@ public class Main {
 
   public static Map<String,KeywordExecutable>
       checkDuplicates(final Iterable<? extends KeywordExecutable> services) {
-    TreeSet<String> blacklist = new TreeSet<>();
+    TreeSet<String> banList = new TreeSet<>();
     TreeMap<String,KeywordExecutable> results = new TreeMap<>();
     for (KeywordExecutable service : services) {
       String keyword = service.keyword();
-      if (blacklist.contains(keyword)) {
+      if (banList.contains(keyword)) {
         // subsequent times a duplicate is found, just warn and exclude it
         warnDuplicate(service);
       } else if (results.containsKey(keyword)) {
-        // the first time a duplicate is found, blacklist it and warn
-        blacklist.add(keyword);
+        // the first time a duplicate is found, banList it and warn
+        banList.add(keyword);
         warnDuplicate(results.remove(keyword));
         warnDuplicate(service);
       } else {

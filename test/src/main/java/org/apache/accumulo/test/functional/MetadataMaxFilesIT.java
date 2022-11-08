@@ -1,24 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
+import java.time.Duration;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -26,25 +28,28 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.MasterClient;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.server.util.Admin;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class MetadataMaxFilesIT extends ConfigurableMacBase {
+
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(5);
+  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -52,11 +57,6 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
     cfg.setProperty(Property.TSERV_SCAN_MAX_OPENFILES, "10");
     cfg.setProperty(Property.TSERV_ASSIGNMENT_MAXCONCURRENT, "100");
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
   }
 
   @Test
@@ -70,38 +70,20 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
           "10000");
       // propagation time
       sleepUninterruptibly(5, TimeUnit.SECONDS);
-      for (int i = 0; i < 5; i++) {
+      for (int i = 0; i < 2; i++) {
         String tableName = "table" + i;
-        log.info("Creating {}", tableName);
-        c.tableOperations().create(tableName);
-        log.info("adding splits");
-        c.tableOperations().addSplits(tableName, splits);
+        log.info("Creating {} with splits", tableName);
+        NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
+        c.tableOperations().create(tableName, ntc);
         log.info("flushing");
         c.tableOperations().flush(MetadataTable.NAME, null, null, true);
         c.tableOperations().flush(RootTable.NAME, null, null, true);
       }
-      log.info("shutting down");
-      assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
-      cluster.stop();
-      log.info("starting up");
-      cluster.start();
 
       while (true) {
-        MasterMonitorInfo stats;
-        Client client = null;
-        try {
-          ClientContext context = (ClientContext) c;
-          client = MasterClient.getConnectionWithRetry(context);
-          log.info("Fetching stats");
-          stats = client.getMasterStats(TraceUtil.traceInfo(), context.rpcCreds());
-        } catch (ThriftNotActiveServiceException e) {
-          // Let it loop, fetching a new location
-          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-          continue;
-        } finally {
-          if (client != null)
-            MasterClient.close(client);
-        }
+        ClientContext context = (ClientContext) c;
+        ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.execute(context,
+            client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()));
         int tablets = 0;
         for (TabletServerStatus tserver : stats.tServerInfo) {
           for (Entry<String,TableInfo> entry : tserver.tableMap.entrySet()) {
@@ -111,7 +93,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
           }
         }
         log.info("Online tablets " + tablets);
-        if (tablets == 5005)
+        if (tablets == 2002)
           break;
         sleepUninterruptibly(1, TimeUnit.SECONDS);
       }

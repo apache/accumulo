@@ -1,20 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
+
+import static org.apache.accumulo.core.util.Validators.NEW_TABLE_NAME;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -23,7 +27,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -34,11 +37,10 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TimeType;
-import org.apache.accumulo.core.clientImpl.Tables;
-import org.apache.accumulo.core.conf.IterConfigUtil;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.constraints.VisibilityConstraint;
+import org.apache.accumulo.core.data.constraints.VisibilityConstraint;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.ShellUtil;
@@ -69,16 +71,11 @@ public class CreateTableCommand extends Command {
       throws AccumuloException, AccumuloSecurityException, TableExistsException,
       TableNotFoundException, IOException {
 
-    final String testTableName = cl.getArgs()[0];
+    final String tableName = cl.getArgs()[0];
     NewTableConfiguration ntc = new NewTableConfiguration();
 
-    if (!testTableName.matches(Tables.VALID_NAME_REGEX)) {
-      shellState.getReader()
-          .println("Only letters, numbers and underscores are allowed for use in table names.");
-      throw new IllegalArgumentException();
-    }
+    NEW_TABLE_NAME.validate(tableName);
 
-    final String tableName = cl.getArgs()[0];
     if (shellState.getAccumuloClient().tableOperations().exists(tableName)) {
       throw new TableExistsException(null, tableName, null);
     }
@@ -136,22 +133,21 @@ public class CreateTableCommand extends Command {
     shellState.setTableName(tableName); // switch shell to new table context
 
     if (cl.hasOption(createTableNoDefaultIters.getOpt())) {
-      for (String key : IterConfigUtil.generateInitialTableProperties(true).keySet()) {
-        shellState.getAccumuloClient().tableOperations().removeProperty(tableName, key);
-      }
+      Set<String> initialProps = IteratorConfigUtil.generateInitialTableProperties(true).keySet();
+      shellState.getAccumuloClient().tableOperations().modifyProperties(tableName,
+          properties -> initialProps.forEach(properties::remove));
     }
 
     // Copy options if flag was set
     if (cl.hasOption(createTableOptCopyConfig.getOpt())) {
       if (shellState.getAccumuloClient().tableOperations().exists(tableName)) {
-        final Iterable<Entry<String,String>> configuration = shellState.getAccumuloClient()
-            .tableOperations().getProperties(cl.getOptionValue(createTableOptCopyConfig.getOpt()));
-        for (Entry<String,String> entry : configuration) {
-          if (Property.isValidTablePropertyKey(entry.getKey())) {
-            shellState.getAccumuloClient().tableOperations().setProperty(tableName, entry.getKey(),
-                entry.getValue());
-          }
-        }
+        final Map<String,String> configuration = shellState.getAccumuloClient().tableOperations()
+            .getConfiguration(cl.getOptionValue(createTableOptCopyConfig.getOpt()));
+
+        shellState.getAccumuloClient().tableOperations().modifyProperties(tableName,
+            properties -> configuration.entrySet().stream()
+                .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
+                .forEach(entry -> properties.put(entry.getKey(), entry.getValue())));
       }
     }
 
@@ -211,7 +207,7 @@ public class CreateTableCommand extends Command {
       final Shell shellState, NewTableConfiguration ntc) {
     EnumSet<IteratorScope> scopeEnumSet;
     IteratorSetting iteratorSetting;
-    if (shellState.iteratorProfiles.size() == 0)
+    if (shellState.iteratorProfiles.isEmpty())
       throw new IllegalArgumentException("No shell iterator profiles have been created.");
     String[] options = cl.getOptionValues(createTableOptIteratorProps.getOpt());
     for (String profileInfo : options) {
@@ -318,7 +314,7 @@ public class CreateTableCommand extends Command {
     createTableOptLocalityProps.setArgs(Option.UNLIMITED_VALUES);
 
     createTableOptIteratorProps = new Option("i", "iter", true,
-        "initialize" + " iterator at table creation using profile. If no scope supplied, all"
+        "initialize iterator at table creation using profile. If no scope supplied, all"
             + " scopes are activated.");
     createTableOptIteratorProps.setArgName("profile[:[all]|[scan[,]][minc[,]][majc]]");
     createTableOptIteratorProps.setArgs(Option.UNLIMITED_VALUES);

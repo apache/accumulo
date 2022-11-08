@@ -1,26 +1,36 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class Constants {
-
+  // defines Accumulo data version constants
   public static final String VERSION = FilteredConstants.VERSION;
+  public static final String VERSION_DIR = "version";
+  public static final String APPNAME = "org.apache.accumulo";
+
+  // important directories
+  public static final String INSTANCE_ID_DIR = "instance_id";
+  public static final String TABLE_DIR = "tables";
+  public static final String RECOVERY_DIR = "recovery";
+  public static final String WAL_DIR = "wal";
 
   // Zookeeper locations
   public static final String ZROOT = "/accumulo";
@@ -29,7 +39,7 @@ public class Constants {
   public static final String ZTABLES = "/tables";
   public static final byte[] ZTABLES_INITIAL_ID = {'0'};
   public static final String ZTABLE_NAME = "/name";
-  public static final String ZTABLE_CONF = "/conf";
+  public static final String ZTABLE_DELETE_MARKER = "/deleting";
   public static final String ZTABLE_STATE = "/state";
   public static final String ZTABLE_FLUSH_ID = "/flush-id";
   public static final String ZTABLE_COMPACT_ID = "/compact-id";
@@ -38,13 +48,12 @@ public class Constants {
 
   public static final String ZNAMESPACES = "/namespaces";
   public static final String ZNAMESPACE_NAME = "/name";
-  public static final String ZNAMESPACE_CONF = "/conf";
 
-  public static final String ZMASTERS = "/masters";
-  public static final String ZMASTER_LOCK = ZMASTERS + "/lock";
-  public static final String ZMASTER_GOAL_STATE = ZMASTERS + "/goal_state";
-  public static final String ZMASTER_REPLICATION_COORDINATOR_ADDR = ZMASTERS + "/repl_coord_addr";
-  public static final String ZMASTER_TICK = ZMASTERS + "/tick";
+  public static final String ZMANAGERS = "/managers";
+  public static final String ZMANAGER_LOCK = ZMANAGERS + "/lock";
+  public static final String ZMANAGER_GOAL_STATE = ZMANAGERS + "/goal_state";
+  public static final String ZMANAGER_REPLICATION_COORDINATOR_ADDR = ZMANAGERS + "/repl_coord_addr";
+  public static final String ZMANAGER_TICK = ZMANAGERS + "/tick";
 
   public static final String ZGC = "/gc";
   public static final String ZGC_LOCK = ZGC + "/lock";
@@ -52,11 +61,19 @@ public class Constants {
   public static final String ZMONITOR = "/monitor";
   public static final String ZMONITOR_LOCK = ZMONITOR + "/lock";
   public static final String ZMONITOR_HTTP_ADDR = ZMONITOR + "/http_addr";
-  public static final String ZMONITOR_LOG4J_ADDR = ZMONITOR + "/log4j_addr";
 
+  // used by < 2.1 table and namespace configurations
+  public static final String ZCONF_LEGACY = "/conf";
   public static final String ZCONFIG = "/config";
 
   public static final String ZTSERVERS = "/tservers";
+
+  public static final String ZSSERVERS = "/sservers";
+
+  public static final String ZCOMPACTORS = "/compactors";
+
+  public static final String ZCOORDINATOR = "/coordinators";
+  public static final String ZCOORDINATOR_LOCK = ZCOORDINATOR + "/lock";
 
   public static final String ZDEAD = "/dead";
   public static final String ZDEADTSERVERS = ZDEAD + "/tservers";
@@ -81,11 +98,6 @@ public class Constants {
    */
   public static final String ZDELEGATION_TOKEN_KEYS = "/delegation_token_keys";
 
-  /**
-   * Initial tablet directory name for the default tablet in all tables
-   */
-  public static final String DEFAULT_TABLET_LOCATION = "/default_tablet";
-
   public static final String ZTABLE_LOCKS = "/table_locks";
 
   public static final String BULK_PREFIX = "b-";
@@ -102,9 +114,6 @@ public class Constants {
   // fetching the next batch.
   public static final long SCANNER_DEFAULT_READAHEAD_THRESHOLD = 3L;
 
-  // Security configuration
-  public static final String PW_HASH_ALGORITHM = "SHA-256";
-
   public static final int MAX_DATA_TO_PRINT = 64;
   public static final String CORE_PACKAGE_NAME = "org.apache.accumulo.core";
   public static final String MAPFILE_EXTENSION = "map";
@@ -114,6 +123,7 @@ public class Constants {
   public static final String EXPORT_TABLE_CONFIG_FILE = "table_config.txt";
   public static final String EXPORT_FILE = "exportMetadata.zip";
   public static final String EXPORT_INFO_FILE = "accumulo_export_info.txt";
+  public static final String IMPORT_MAPPINGS_FILE = "mappings.txt";
 
   public static final String HDFS_TABLES_DIR = "/tables";
 

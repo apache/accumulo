@@ -1,24 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.core.metadata.schema;
 
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.create;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,7 +35,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Lists;
 
@@ -53,8 +55,7 @@ public class LinkingIteratorTest {
     @Override
     public Iterator<TabletMetadata> apply(Range range) {
       Stream<TabletMetadata> stream = count++ == 0 ? initial.stream() : subsequent.stream();
-      return stream.filter(tm -> range.contains(new Key(tm.getExtent().getMetadataEntry())))
-          .iterator();
+      return stream.filter(tm -> range.contains(new Key(tm.getExtent().toMetaRow()))).iterator();
     }
   }
 
@@ -84,7 +85,7 @@ public class LinkingIteratorTest {
     check(tablets2, new IterFactory(tablets1, tablets2));
   }
 
-  @Test(expected = TabletDeletedException.class)
+  @Test
   public void testMerge() {
     // test for case when a tablet is merged away
     List<TabletMetadata> tablets1 = Arrays.asList(create("4", null, "f"), create("4", "f", "m"),
@@ -93,10 +94,11 @@ public class LinkingIteratorTest {
         create("4", "r", "x"), create("4", "x", null));
 
     LinkingIterator li = new LinkingIterator(new IterFactory(tablets1, tablets2), new Range());
-
-    while (li.hasNext()) {
-      li.next();
-    }
+    assertThrows(TabletDeletedException.class, () -> {
+      while (li.hasNext()) {
+        li.next();
+      }
+    });
   }
 
   @Test
@@ -131,16 +133,16 @@ public class LinkingIteratorTest {
 
     check(tablets2, new IterFactory(tablets1, tablets2), TableId.of("4"));
     check(tablets2, new IterFactory(tablets1, tablets2),
-        new KeyExtent(TableId.of("4"), null, new Text("e")).toMetadataRange());
+        new KeyExtent(TableId.of("4"), null, new Text("e")).toMetaRange());
 
     // following should not care about missing tablet
     check(tablets1, new IterFactory(tablets1, tablets2),
-        new KeyExtent(TableId.of("4"), null, new Text("g")).toMetadataRange());
+        new KeyExtent(TableId.of("4"), null, new Text("g")).toMetaRange());
     check(tablets1, new IterFactory(tablets1, tablets2),
-        new KeyExtent(TableId.of("4"), null, new Text("f")).toMetadataRange());
+        new KeyExtent(TableId.of("4"), null, new Text("f")).toMetaRange());
   }
 
-  @Test(expected = IllegalStateException.class)
+  @Test
   public void testIncompleteTable() {
     // the last tablet in a table should have a null end row. Ensure the code detects when this does
     // not happen.
@@ -149,9 +151,11 @@ public class LinkingIteratorTest {
     LinkingIterator li = new LinkingIterator(new IterFactory(tablets1, tablets1),
         TabletsSection.getRange(TableId.of("4")));
 
-    while (li.hasNext()) {
-      li.next();
-    }
+    assertThrows(IllegalStateException.class, () -> {
+      while (li.hasNext()) {
+        li.next();
+      }
+    });
   }
 
   @Test
@@ -160,6 +164,6 @@ public class LinkingIteratorTest {
     // tablets at end of table.
     List<TabletMetadata> tablets1 = Arrays.asList(create("4", null, "f"), create("4", "f", "m"));
     check(tablets1, new IterFactory(tablets1, tablets1),
-        new KeyExtent(TableId.of("4"), new Text("r"), new Text("e")).toMetadataRange());
+        new KeyExtent(TableId.of("4"), new Text("r"), new Text("e")).toMetaRange());
   }
 }

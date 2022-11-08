@@ -1,81 +1,84 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.metrics;
 
-import org.apache.hadoop.metrics2.lib.MetricsRegistry;
-import org.apache.hadoop.metrics2.lib.MutableCounterLong;
-import org.apache.hadoop.metrics2.lib.MutableStat;
+import java.time.Duration;
 
-public class TabletServerUpdateMetrics extends TServerMetrics {
+import org.apache.accumulo.core.metrics.MetricsProducer;
 
-  private final MutableCounterLong permissionErrorsCounter;
-  private final MutableCounterLong unknownTabletErrorsCounter;
-  private final MutableCounterLong constraintViolationsCounter;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 
-  private final MutableStat commitPrepStat;
-  private final MutableStat walogWriteTimeStat;
-  private final MutableStat commitTimeStat;
-  private final MutableStat mutationArraySizeStat;
+public class TabletServerUpdateMetrics implements MetricsProducer {
 
-  public TabletServerUpdateMetrics() {
-    super("Updates");
-
-    MetricsRegistry registry = super.getRegistry();
-    permissionErrorsCounter = registry.newCounter("permissionErrors", "Permission Errors", 0L);
-    unknownTabletErrorsCounter =
-        registry.newCounter("unknownTabletErrors", "Unknown Tablet Errors", 0L);
-    constraintViolationsCounter =
-        registry.newCounter("constraintViolations", "Table Constraint Violations", 0L);
-
-    commitPrepStat =
-        registry.newStat("commitPrep", "preparing to commit mutations", "Ops", "Time", true);
-    walogWriteTimeStat =
-        registry.newStat("waLogWriteTime", "writing mutations to WAL", "Ops", "Time", true);
-    commitTimeStat = registry.newStat("commitTime", "committing mutations", "Ops", "Time", true);
-    mutationArraySizeStat =
-        registry.newStat("mutationArraysSize", "mutation array", "ops", "Size", true);
-  }
+  private Counter permissionErrorsCounter;
+  private Counter unknownTabletErrorsCounter;
+  private Counter constraintViolationsCounter;
+  private Timer commitPrepStat;
+  private Timer walogWriteTimeStat;
+  private Timer commitTimeStat;
+  private DistributionSummary mutationArraySizeStat;
 
   public void addPermissionErrors(long value) {
-    permissionErrorsCounter.incr(value);
+    permissionErrorsCounter.increment(value);
   }
 
   public void addUnknownTabletErrors(long value) {
-    unknownTabletErrorsCounter.incr(value);
-  }
-
-  public void addMutationArraySize(long value) {
-    mutationArraySizeStat.add(value);
-  }
-
-  public void addCommitPrep(long value) {
-    commitPrepStat.add(value);
+    unknownTabletErrorsCounter.increment(value);
   }
 
   public void addConstraintViolations(long value) {
-    constraintViolationsCounter.incr(value);
+    constraintViolationsCounter.increment(value);
+  }
+
+  public void addCommitPrep(long value) {
+    commitPrepStat.record(Duration.ofMillis(value));
   }
 
   public void addWalogWriteTime(long value) {
-    walogWriteTimeStat.add(value);
+    walogWriteTimeStat.record(Duration.ofMillis(value));
   }
 
   public void addCommitTime(long value) {
-    commitTimeStat.add(value);
+    commitTimeStat.record(Duration.ofMillis(value));
+  }
+
+  public void addMutationArraySize(long value) {
+    mutationArraySizeStat.record(value);
+  }
+
+  @Override
+  public void registerMetrics(MeterRegistry registry) {
+    permissionErrorsCounter = registry.counter(METRICS_UPDATE_ERRORS, "type", "permission");
+    unknownTabletErrorsCounter = registry.counter(METRICS_UPDATE_ERRORS, "type", "unknown.tablet");
+    constraintViolationsCounter =
+        registry.counter(METRICS_UPDATE_ERRORS, "type", "constraint.violation");
+    commitPrepStat = Timer.builder(METRICS_UPDATE_COMMIT_PREP)
+        .description("preparing to commit mutations").register(registry);
+    walogWriteTimeStat = Timer.builder(METRICS_UPDATE_WALOG_WRITE)
+        .description("writing mutations to WAL").register(registry);
+    commitTimeStat =
+        Timer.builder(METRICS_UPDATE_COMMIT).description("committing mutations").register(registry);
+    mutationArraySizeStat = DistributionSummary.builder(METRICS_UPDATE_MUTATION_ARRAY_SIZE)
+        .description("mutation array").register(registry);
   }
 
 }

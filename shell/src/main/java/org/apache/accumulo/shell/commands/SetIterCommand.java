@@ -1,22 +1,25 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -37,6 +40,7 @@ import org.apache.accumulo.core.iterators.user.AgeOffFilter;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iterators.user.ReqVisFilter;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
+import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.ShellCommandException;
@@ -45,8 +49,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
-
-import jline.console.ConsoleReader;
+import org.jline.reader.LineReader;
 
 public class SetIterCommand extends Command {
 
@@ -89,14 +92,15 @@ public class SetIterCommand extends Command {
     String configuredName;
     try {
       if (profileOpt != null && (currentTableName == null || currentTableName.isBlank())) {
-        tmpTable = "accumulo.metadata";
+        tmpTable = MetadataTable.NAME;
         shellState.setTableName(tmpTable);
         tables = cl.hasOption(OptUtil.tableOpt().getOpt()) || !currentTableName.isEmpty();
       }
       ClassLoader classloader = shellState.getClassLoader(cl, shellState);
       // Get the iterator options, with potentially a name provided by the OptionDescriber impl or
       // through user input
-      configuredName = setUpOptions(classloader, shellState.getReader(), classname, options);
+      configuredName = setUpOptions(classloader, shellState.getReader(), shellState.getWriter(),
+          classname, options);
     } finally {
       // ACCUMULO-4792: reset table name and continue
       if (tmpTable != null) {
@@ -193,17 +197,18 @@ public class SetIterCommand extends Command {
     shellState.getAccumuloClient().namespaceOperations().attachIterator(namespace, setting, scopes);
   }
 
-  private static String setUpOptions(ClassLoader classloader, final ConsoleReader reader,
-      final String className, final Map<String,String> options)
+  private static String setUpOptions(ClassLoader classloader, final LineReader reader,
+      final PrintWriter writer, final String className, final Map<String,String> options)
       throws IOException, ShellCommandException {
     String input;
-    @SuppressWarnings("rawtypes")
-    SortedKeyValueIterator untypedInstance;
-    @SuppressWarnings("rawtypes")
-    Class<? extends SortedKeyValueIterator> clazz;
+    SortedKeyValueIterator<Key,Value> skvi;
+    String clazzName;
     try {
-      clazz = classloader.loadClass(className).asSubclass(SortedKeyValueIterator.class);
-      untypedInstance = clazz.getDeclaredConstructor().newInstance();
+      @SuppressWarnings("unchecked")
+      var clazz = (Class<? extends SortedKeyValueIterator<Key,Value>>) classloader
+          .loadClass(className).asSubclass(SortedKeyValueIterator.class);
+      clazzName = clazz.getName();
+      skvi = clazz.getDeclaredConstructor().newInstance();
     } catch (ReflectiveOperationException e) {
       StringBuilder msg = new StringBuilder("Unable to load ").append(className);
       if (className.indexOf('.') < 0) {
@@ -218,8 +223,6 @@ public class SetIterCommand extends Command {
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, msg);
     }
 
-    @SuppressWarnings("unchecked")
-    SortedKeyValueIterator<Key,Value> skvi = untypedInstance;
     OptionDescriber iterOptions = null;
     if (OptionDescriber.class.isAssignableFrom(skvi.getClass())) {
       iterOptions = (OptionDescriber) skvi;
@@ -246,17 +249,18 @@ public class SetIterCommand extends Command {
         }
         localOptions.clear();
 
-        reader.println(itopts.getDescription());
+        writer.println(itopts.getDescription());
 
         String prompt;
         if (itopts.getNamedOptions() != null) {
           for (Entry<String,String> e : itopts.getNamedOptions().entrySet()) {
             prompt = Shell.repeat("-", 10) + "> set " + shortClassName + " parameter " + e.getKey()
                 + ", " + e.getValue() + ": ";
-            reader.flush();
+            writer.flush();
             input = reader.readLine(prompt);
+
             if (input == null) {
-              reader.println();
+              writer.println();
               throw new IOException("Input stream closed");
             }
             // Places all Parameters and Values into the LocalOptions, even if the value is "".
@@ -269,21 +273,21 @@ public class SetIterCommand extends Command {
 
         if (itopts.getUnnamedOptionDescriptions() != null) {
           for (String desc : itopts.getUnnamedOptionDescriptions()) {
-            reader.println(Shell.repeat("-", 10) + "> entering options: " + desc);
+            writer.println(Shell.repeat("-", 10) + "> entering options: " + desc);
             input = "start";
             prompt = Shell.repeat("-", 10) + "> set " + shortClassName
                 + " option (<name> <value>, hit enter to skip): ";
             while (true) {
-              reader.flush();
+              writer.flush();
               input = reader.readLine(prompt);
               if (input == null) {
-                reader.println();
+                writer.println();
                 throw new IOException("Input stream closed");
               } else {
                 input = new String(input);
               }
 
-              if (input.length() == 0)
+              if (input.isEmpty())
                 break;
 
               String[] sa = input.split(" ", 2);
@@ -294,32 +298,32 @@ public class SetIterCommand extends Command {
 
         options.putAll(localOptions);
         if (!iterOptions.validateOptions(options))
-          reader.println("invalid options for " + clazz.getName());
+          writer.println("invalid options for " + clazzName);
 
       } while (!iterOptions.validateOptions(options));
     } else {
-      reader.flush();
-      reader.println("The iterator class does not implement OptionDescriber."
-          + " Consider this for better iterator configuration using this setiter" + " command.");
+      writer.flush();
+      writer.println("The iterator class does not implement OptionDescriber."
+          + " Consider this for better iterator configuration using this setiter command.");
       iteratorName = reader.readLine("Name for iterator (enter to skip): ");
       if (iteratorName == null) {
-        reader.println();
+        writer.println();
         throw new IOException("Input stream closed");
       } else if (iteratorName.isBlank()) {
         // Treat whitespace or empty string as no name provided
         iteratorName = null;
       }
 
-      reader.flush();
-      reader.println("Optional, configure name-value options for iterator:");
+      writer.flush();
+      writer.println("Optional, configure name-value options for iterator:");
       String prompt = Shell.repeat("-", 10) + "> set option (<name> <value>, hit enter to skip): ";
       final HashMap<String,String> localOptions = new HashMap<>();
 
       while (true) {
-        reader.flush();
+        writer.flush();
         input = reader.readLine(prompt);
         if (input == null) {
-          reader.println();
+          writer.println();
           throw new IOException("Input stream closed");
         } else if (input.isBlank()) {
           break;

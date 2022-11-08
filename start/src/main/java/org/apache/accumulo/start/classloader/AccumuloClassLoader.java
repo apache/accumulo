@@ -1,23 +1,28 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.start.classloader;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -29,13 +34,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.configuration2.PropertiesConfiguration;
-import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
-import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@Deprecated
 public class AccumuloClassLoader {
 
   public static final String GENERAL_CLASSPATHS = "general.classpaths";
@@ -75,6 +79,8 @@ public class AccumuloClassLoader {
    *          Value to default to if not found.
    * @return value of property or default
    */
+  @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD",
+      justification = "url is specified by an admin, not unchecked user input")
   public static String getAccumuloProperty(String propertyName, String defaultValue) {
     if (accumuloConfigUrl == null) {
       log.warn(
@@ -83,10 +89,10 @@ public class AccumuloClassLoader {
       return defaultValue;
     }
     try {
-      FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
-          new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class)
-              .configure(new Parameters().properties().setURL(accumuloConfigUrl));
-      PropertiesConfiguration config = propsBuilder.getConfiguration();
+      var config = new PropertiesConfiguration();
+      try (var reader = new InputStreamReader(accumuloConfigUrl.openStream(), UTF_8)) {
+        config.read(reader);
+      }
       String value = config.getString(propertyName);
       if (value != null)
         return value;
@@ -124,7 +130,7 @@ public class AccumuloClassLoader {
       justification = "class path configuration is controlled by admin, not unchecked user input")
   private static void addUrl(String classpath, ArrayList<URL> urls) throws MalformedURLException {
     classpath = classpath.trim();
-    if (classpath.length() == 0)
+    if (classpath.isEmpty())
       return;
 
     classpath = replaceEnvVars(classpath, System.getenv());
@@ -147,8 +153,9 @@ public class AccumuloClassLoader {
         urls.add(extDir.toURI().toURL());
       else {
         if (extDir.getParentFile() != null) {
+          var pattern = Pattern.compile(extDir.getName());
           File[] extJars =
-              extDir.getParentFile().listFiles((dir, name) -> name.matches("^" + extDir.getName()));
+              extDir.getParentFile().listFiles((dir, name) -> pattern.matcher(name).matches());
           if (extJars != null && extJars.length > 0) {
             for (File jar : extJars)
               urls.add(jar.toURI().toURL());
@@ -184,26 +191,28 @@ public class AccumuloClassLoader {
     if (classloader == null) {
       ArrayList<URL> urls = findAccumuloURLs();
 
-      ClassLoader parentClassLoader = AccumuloClassLoader.class.getClassLoader();
+      ClassLoader parentClassLoader = ClassLoader.getSystemClassLoader();
 
       log.debug("Create 2nd tier ClassLoader using URLs: {}", urls);
-      classloader = new URLClassLoader(urls.toArray(new URL[urls.size()]), parentClassLoader) {
-        @Override
-        protected synchronized Class<?> loadClass(String name, boolean resolve)
-            throws ClassNotFoundException {
+      classloader =
+          new URLClassLoader("AccumuloClassLoader (loads everything defined by general.classpaths)",
+              urls.toArray(new URL[urls.size()]), parentClassLoader) {
+            @Override
+            protected synchronized Class<?> loadClass(String name, boolean resolve)
+                throws ClassNotFoundException {
 
-          if (name.startsWith("org.apache.accumulo.start.classloader.vfs")) {
-            Class<?> c = findLoadedClass(name);
-            if (c == null) {
-              try {
-                // try finding this class here instead of parent
-                findClass(name);
-              } catch (ClassNotFoundException e) {}
+              if (name.startsWith("org.apache.accumulo.start.classloader.vfs")) {
+                Class<?> c = findLoadedClass(name);
+                if (c == null) {
+                  try {
+                    // try finding this class here instead of parent
+                    findClass(name);
+                  } catch (ClassNotFoundException e) {}
+                }
+              }
+              return super.loadClass(name, resolve);
             }
-          }
-          return super.loadClass(name, resolve);
-        }
-      };
+          };
     }
 
     return classloader;

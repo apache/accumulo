@@ -1,29 +1,32 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.rpc;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.InetAddress;
+import java.nio.channels.ClosedByInterruptException;
 import java.security.KeyStore;
 import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -32,23 +35,21 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ThriftTransportPool;
 import org.apache.accumulo.core.rpc.SaslConnectionParams.SaslMechanism;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.UserGroupInformation.AuthenticationMethod;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
-import org.apache.thrift.TServiceClientFactory;
 import org.apache.thrift.protocol.TProtocolFactory;
-import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TSSLTransportFactory;
 import org.apache.thrift.transport.TSaslClientTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.TTransportFactory;
+import org.apache.thrift.transport.layered.TFramedTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,6 +59,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * Factory methods for creating Thrift client objects
  */
 public class ThriftUtil {
+
   private static final Logger log = LoggerFactory.getLogger(ThriftUtil.class);
 
   private static final TraceProtocolFactory protocolFactory = new TraceProtocolFactory();
@@ -67,7 +69,7 @@ public class ThriftUtil {
 
   public static final String GSSAPI = "GSSAPI", DIGEST_MD5 = "DIGEST-MD5";
 
-  private static final Random SASL_BACKOFF_RAND = new SecureRandom();
+  private static final SecureRandom random = new SecureRandom();
   private static final int RELOGIN_MAX_BACKOFF = 5000;
 
   /**
@@ -80,7 +82,7 @@ public class ThriftUtil {
   }
 
   /**
-   * An instance of {@link org.apache.thrift.transport.TFramedTransport.Factory}
+   * An instance of {@link org.apache.thrift.transport.layered.TFramedTransport.Factory}
    *
    * @return The default Thrift TTransportFactory for RPC
    */
@@ -91,52 +93,51 @@ public class ThriftUtil {
   /**
    * Create a Thrift client using the given factory and transport
    */
-  public static <T extends TServiceClient> T createClient(TServiceClientFactory<T> factory,
+  public static <T extends TServiceClient> T createClient(ThriftClientTypes<T> type,
       TTransport transport) {
-    return factory.getClient(protocolFactory.getProtocol(transport),
-        protocolFactory.getProtocol(transport));
+    return type.getClient(protocolFactory.getProtocol(transport));
   }
 
   /**
    * Create a Thrift client using the given factory with a pooled transport (if available), the
    * address, and client context with no timeout.
    *
-   * @param factory
-   *          Thrift client factory
+   * @param type
+   *          Thrift client type
    * @param address
    *          Server address for client to connect to
    * @param context
    *          RPC options
    */
-  public static <T extends TServiceClient> T getClientNoTimeout(TServiceClientFactory<T> factory,
+  public static <T extends TServiceClient> T getClientNoTimeout(ThriftClientTypes<T> type,
       HostAndPort address, ClientContext context) throws TTransportException {
-    return getClient(factory, address, context, 0);
+    return getClient(type, address, context, 0);
   }
 
   /**
    * Create a Thrift client using the given factory with a pooled transport (if available), the
    * address and client context. Client timeout is extracted from the ClientContext
    *
-   * @param factory
-   *          Thrift client factory
+   * @param type
+   *          Thrift client type
    * @param address
    *          Server address for client to connect to
    * @param context
    *          RPC options
    */
-  public static <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory,
+  public static <T extends TServiceClient> T getClient(ThriftClientTypes<T> type,
       HostAndPort address, ClientContext context) throws TTransportException {
-    TTransport transport = ThriftTransportPool.getInstance().getTransport(address,
+    TTransport transport = context.getTransportPool().getTransport(address,
         context.getClientTimeoutInMillis(), context);
-    return createClient(factory, transport);
+    return createClient(type, transport);
   }
 
   /**
    * Create a Thrift client using the given factory with a pooled transport (if available) using the
    * address, client context and timeout
    *
-   * @param factory
-   *          Thrift client factory
+   * @param type
+   *          Thrift client type
    * @param address
    *          Server address for client to connect to
    * @param context
@@ -144,11 +145,19 @@ public class ThriftUtil {
    * @param timeout
    *          Socket timeout which overrides the ClientContext timeout
    */
-  public static <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory,
+  public static <T extends TServiceClient> T getClient(ThriftClientTypes<T> type,
       HostAndPort address, ClientContext context, long timeout) throws TTransportException {
-    TTransport transport =
-        ThriftTransportPool.getInstance().getTransport(address, timeout, context);
-    return createClient(factory, transport);
+    TTransport transport = context.getTransportPool().getTransport(address, timeout, context);
+    return createClient(type, transport);
+  }
+
+  public static void close(TServiceClient client, ClientContext context) {
+    if (client != null && client.getInputProtocol() != null
+        && client.getInputProtocol().getTransport() != null) {
+      context.getTransportPool().returnTransport(client.getInputProtocol().getTransport());
+    } else {
+      log.debug("Attempt to close null connection to a server", new Exception());
+    }
   }
 
   /**
@@ -157,38 +166,10 @@ public class ThriftUtil {
    * @param iface
    *          The Client being returned or null.
    */
-  public static void returnClient(TServiceClient iface) { // Eew... the typing here is horrible
+  public static void returnClient(TServiceClient iface, ClientContext context) {
     if (iface != null) {
-      ThriftTransportPool.getInstance().returnTransport(iface.getInputProtocol().getTransport());
+      context.getTransportPool().returnTransport(iface.getInputProtocol().getTransport());
     }
-  }
-
-  /**
-   * Create a TabletServer Thrift client
-   *
-   * @param address
-   *          Server address for client to connect to
-   * @param context
-   *          RPC options
-   */
-  public static TabletClientService.Client getTServerClient(HostAndPort address,
-      ClientContext context) throws TTransportException {
-    return getClient(new TabletClientService.Client.Factory(), address, context);
-  }
-
-  /**
-   * Create a TabletServer Thrift client
-   *
-   * @param address
-   *          Server address for client to connect to
-   * @param context
-   *          Options for connecting to the server
-   * @param timeout
-   *          Socket timeout which overrides the ClientContext timeout
-   */
-  public static TabletClientService.Client getTServerClient(HostAndPort address,
-      ClientContext context, long timeout) throws TTransportException {
-    return getClient(new TabletClientService.Client.Factory(), address, context, timeout);
   }
 
   /**
@@ -212,22 +193,16 @@ public class ThriftUtil {
    *          Maximum Thrift message frame size
    * @return A, possibly cached, TTransportFactory with the requested maximum frame size
    */
-  public static synchronized TTransportFactory transportFactory(int maxFrameSize) {
-    TTransportFactory factory = factoryCache.get(maxFrameSize);
-    if (factory == null) {
-      factory = new TFramedTransport.Factory(maxFrameSize);
-      factoryCache.put(maxFrameSize, factory);
-    }
-    return factory;
-  }
-
-  /**
-   * @see #transportFactory(int)
-   */
   public static synchronized TTransportFactory transportFactory(long maxFrameSize) {
     if (maxFrameSize > Integer.MAX_VALUE || maxFrameSize < 1)
       throw new RuntimeException("Thrift transport frames are limited to " + Integer.MAX_VALUE);
-    return transportFactory((int) maxFrameSize);
+    int maxFrameSize1 = (int) maxFrameSize;
+    TTransportFactory factory = factoryCache.get(maxFrameSize1);
+    if (factory == null) {
+      factory = new TFramedTransport.Factory(maxFrameSize1);
+      factoryCache.put(maxFrameSize1, factory);
+    }
+    return factory;
   }
 
   /**
@@ -296,9 +271,9 @@ public class ThriftUtil {
         // Make sure a timeout is set
         try {
           transport = TTimeoutTransport.create(address, timeout);
-        } catch (IOException e) {
+        } catch (TTransportException e) {
           log.warn("Failed to open transport to {}", address);
-          throw new TTransportException(e);
+          throw e;
         }
 
         try {
@@ -353,12 +328,13 @@ public class ThriftUtil {
           // Sadly, we have no way to determine the actual reason we got this TTransportException
           // other than inspecting the exception msg.
           log.debug("Caught TTransportException opening SASL transport,"
-              + " checking if re-login is necessary before propagating the" + " exception.");
+              + " checking if re-login is necessary before propagating the exception.");
           attemptClientReLogin();
 
           throw e;
         } catch (IOException e) {
           log.warn("Failed to open SASL transport", e);
+          ThriftUtil.checkIOExceptionCause(e);
           throw new TTransportException(e);
         }
       } else {
@@ -369,9 +345,9 @@ public class ThriftUtil {
         } else {
           try {
             transport = TTimeoutTransport.create(address, timeout);
-          } catch (IOException ex) {
+          } catch (TTransportException ex) {
             log.warn("Failed to open transport to {}", address);
-            throw new TTransportException(ex);
+            throw ex;
           }
 
           // Open the transport
@@ -391,7 +367,7 @@ public class ThriftUtil {
   /**
    * Some wonderful snippets of documentation from HBase on performing the re-login client-side (as
    * well as server-side) in the following paragraph. We want to attempt a re-login to automatically
-   * refresh the client's Krb "credentials" (remember, a server might also be a client, master
+   * refresh the client's Krb "credentials" (remember, a server might also be a client, manager
    * sending RPC to tserver), but we have to take care to avoid Kerberos' replay attack protection.
    * <p>
    * If multiple clients with the same principal try to connect to the same server at the same time,
@@ -400,7 +376,7 @@ public class ThriftUtil {
    * connection again. The other problem is to do with ticket expiry. To handle that, a relogin is
    * attempted.
    */
-  static void attemptClientReLogin() {
+  private static void attemptClientReLogin() {
     try {
       UserGroupInformation loginUser = UserGroupInformation.getLoginUser();
       if (loginUser == null || !loginUser.hasKerberosCredentials()) {
@@ -425,7 +401,7 @@ public class ThriftUtil {
 
         // Avoid the replay attack protection, sleep 1 to 5000ms
         try {
-          Thread.sleep((SASL_BACKOFF_RAND.nextInt(RELOGIN_MAX_BACKOFF) + 1));
+          Thread.sleep(random.nextInt(RELOGIN_MAX_BACKOFF) + 1);
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           return;
@@ -454,9 +430,8 @@ public class ThriftUtil {
       justification = "code runs in same security context as user who providing the keystore files")
   private static SSLContext createSSLContext(SslConnectionParams params)
       throws TTransportException {
-    SSLContext ctx;
     try {
-      ctx = SSLContext.getInstance(params.getClientProtocol());
+      SSLContext ctx = SSLContext.getInstance(params.getClientProtocol());
       TrustManagerFactory tmf = null;
       KeyManagerFactory kmf = null;
 
@@ -485,11 +460,10 @@ public class ThriftUtil {
       } else {
         ctx.init(null, tmf.getTrustManagers(), null);
       }
-
+      return ctx;
     } catch (Exception e) {
       throw new TTransportException("Error creating the transport", e);
     }
-    return ctx;
   }
 
   /**
@@ -519,6 +493,13 @@ public class ThriftUtil {
       } catch (IOException ioe) {}
 
       throw new TTransportException("Could not connect to " + host + " on port " + port, e);
+    }
+  }
+
+  public static void checkIOExceptionCause(IOException e) {
+    if (e instanceof ClosedByInterruptException) {
+      Thread.currentThread().interrupt();
+      throw new UncheckedIOException(e);
     }
   }
 }

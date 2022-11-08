@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
@@ -25,7 +27,6 @@ import org.apache.accumulo.core.iterators.user.GrepIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterConfig;
-import org.apache.accumulo.core.util.interpret.ScanInterpreter;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.PrintFile;
 import org.apache.commons.cli.CommandLine;
@@ -49,7 +50,9 @@ public class GrepCommand extends ScanCommand {
         throw new MissingArgumentException("No terms specified");
       }
       final Class<? extends Formatter> formatter = getFormatter(cl, tableName, shellState);
-      final ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
+      @SuppressWarnings("deprecation")
+      final org.apache.accumulo.core.util.interpret.ScanInterpreter interpeter =
+          getInterpreter(cl, tableName, shellState);
 
       // handle first argument, if present, the authorizations list to
       // scan with
@@ -69,6 +72,8 @@ public class GrepCommand extends ScanCommand {
       scanner.setRanges(Collections.singletonList(getRange(cl, interpeter)));
 
       scanner.setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
+
+      scanner.setConsistencyLevel(getConsistency(cl));
 
       setupSampling(tableName, cl, shellState, scanner);
       addScanIterators(shellState, cl, scanner, "");
@@ -108,7 +113,7 @@ public class GrepCommand extends ScanCommand {
   @Override
   public String description() {
     return "searches each row, column family, column qualifier and value in a"
-        + " table for a substring (not a regular expression), in parallel, on the" + " server side";
+        + " table for a substring (not a regular expression), in parallel, on the server side";
   }
 
   @Override

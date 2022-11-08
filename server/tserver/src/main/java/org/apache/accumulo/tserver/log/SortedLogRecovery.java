@@ -1,22 +1,25 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.log;
 
 import static com.google.common.base.Preconditions.checkState;
+import static java.util.Collections.max;
 import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_FINISH;
 import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_START;
 import static org.apache.accumulo.tserver.logger.LogEvents.DEFINE_TABLET;
@@ -28,6 +31,7 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -39,7 +43,7 @@ import java.util.Set;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
@@ -59,10 +63,10 @@ public class SortedLogRecovery {
 
   private static final Logger log = LoggerFactory.getLogger(SortedLogRecovery.class);
 
-  private VolumeManager fs;
+  private final ServerContext context;
 
-  public SortedLogRecovery(VolumeManager fs) {
-    this.fs = fs;
+  public SortedLogRecovery(ServerContext context) {
+    this.context = context;
   }
 
   static LogFileKey maxKey(LogEvents event) {
@@ -96,11 +100,11 @@ public class SortedLogRecovery {
     return key;
   }
 
-  private int findMaxTabletId(KeyExtent extent, List<Path> recoveryLogs) throws IOException {
+  private int findMaxTabletId(KeyExtent extent, List<Path> recoveryLogDirs) throws IOException {
     int tabletId = -1;
 
-    try (RecoveryLogsIterator rli =
-        new RecoveryLogsIterator(fs, recoveryLogs, minKey(DEFINE_TABLET), maxKey(DEFINE_TABLET))) {
+    try (var rli = new RecoveryLogsIterator(context, recoveryLogDirs, minKey(DEFINE_TABLET),
+        maxKey(DEFINE_TABLET), true)) {
 
       KeyExtent alternative = extent;
       if (extent.isRootTablet()) {
@@ -136,30 +140,24 @@ public class SortedLogRecovery {
    *         ID.
    */
   private Entry<Integer,List<Path>> findLogsThatDefineTablet(KeyExtent extent,
-      List<Path> recoveryLogs) throws IOException {
+      List<Path> recoveryDirs) throws IOException {
     Map<Integer,List<Path>> logsThatDefineTablet = new HashMap<>();
 
-    for (Path wal : recoveryLogs) {
-      int tabletId = findMaxTabletId(extent, Collections.singletonList(wal));
-      if (tabletId != -1) {
-        List<Path> perIdList = logsThatDefineTablet.get(tabletId);
-        if (perIdList == null) {
-          perIdList = new ArrayList<>();
-          logsThatDefineTablet.put(tabletId, perIdList);
-
-        }
-        perIdList.add(wal);
-        log.debug("Found tablet {} with id {} in recovery log {}", extent, tabletId, wal.getName());
+    for (Path walDir : recoveryDirs) {
+      int tabletId = findMaxTabletId(extent, Collections.singletonList(walDir));
+      if (tabletId == -1) {
+        log.debug("Did not find tablet {} in recovery log {}", extent, walDir.getName());
       } else {
-        log.debug("Did not find tablet {} in recovery log {}", extent, wal.getName());
+        logsThatDefineTablet.computeIfAbsent(tabletId, k -> new ArrayList<>()).add(walDir);
+        log.debug("Found tablet {} with id {} in recovery log {}", extent, tabletId,
+            walDir.getName());
       }
     }
 
     if (logsThatDefineTablet.isEmpty()) {
-      return new AbstractMap.SimpleEntry<>(-1, Collections.<Path>emptyList());
+      return new AbstractMap.SimpleEntry<>(-1, Collections.emptyList());
     } else {
-      return Collections.max(logsThatDefineTablet.entrySet(),
-          (o1, o2) -> Integer.compare(o1.getKey(), o2.getKey()));
+      return max(logsThatDefineTablet.entrySet(), Comparator.comparingInt(Entry::getKey));
     }
   }
 
@@ -206,8 +204,8 @@ public class SortedLogRecovery {
     long lastFinish = 0;
     long recoverySeq = 0;
 
-    try (RecoveryLogsIterator rli = new RecoveryLogsIterator(fs, recoveryLogs,
-        minKey(COMPACTION_START, tabletId), maxKey(COMPACTION_START, tabletId))) {
+    try (RecoveryLogsIterator rli = new RecoveryLogsIterator(context, recoveryLogs,
+        minKey(COMPACTION_START, tabletId), maxKey(COMPACTION_START, tabletId), false)) {
 
       DeduplicatingIterator ddi = new DeduplicatingIterator(rli);
 
@@ -262,21 +260,22 @@ public class SortedLogRecovery {
 
     LogFileKey end = maxKey(MUTATION, tabletId);
 
-    try (RecoveryLogsIterator rli = new RecoveryLogsIterator(fs, recoveryLogs, start, end)) {
+    try (var rli = new RecoveryLogsIterator(context, recoveryLogs, start, end, false)) {
       while (rli.hasNext()) {
         Entry<LogFileKey,LogFileValue> entry = rli.next();
+        LogFileKey logFileKey = entry.getKey();
 
-        checkState(entry.getKey().tabletId == tabletId); // should only fail if bug elsewhere
-        checkState(entry.getKey().seq >= recoverySeq); // should only fail if bug elsewhere
+        checkState(logFileKey.tabletId == tabletId); // should only fail if bug elsewhere
+        checkState(logFileKey.seq >= recoverySeq); // should only fail if bug elsewhere
 
-        if (entry.getKey().event == MUTATION) {
-          mr.receive(entry.getValue().mutations.get(0));
-        } else if (entry.getKey().event == MANY_MUTATIONS) {
-          for (Mutation m : entry.getValue().mutations) {
+        LogFileValue val = entry.getValue();
+        if (logFileKey.event == MUTATION || logFileKey.event == MANY_MUTATIONS) {
+          log.debug("Recover {} mutation(s) for {}", val.mutations.size(), entry.getKey());
+          for (Mutation m : val.mutations) {
             mr.receive(m);
           }
         } else {
-          throw new IllegalStateException("Non mutation event seen " + entry.getKey().event);
+          throw new IllegalStateException("Non mutation event seen " + logFileKey.event);
         }
       }
     }
@@ -286,10 +285,10 @@ public class SortedLogRecovery {
     return Collections2.transform(recoveryLogs, Path::getName);
   }
 
-  public void recover(KeyExtent extent, List<Path> recoveryLogs, Set<String> tabletFiles,
+  public void recover(KeyExtent extent, List<Path> recoveryDirs, Set<String> tabletFiles,
       MutationReceiver mr) throws IOException {
 
-    Entry<Integer,List<Path>> maxEntry = findLogsThatDefineTablet(extent, recoveryLogs);
+    Entry<Integer,List<Path>> maxEntry = findLogsThatDefineTablet(extent, recoveryDirs);
 
     // A tablet may leave a tserver and then come back, in which case it would have a different and
     // higher tablet id. Only want to consider events in the log related to the last time the tablet
@@ -298,11 +297,11 @@ public class SortedLogRecovery {
     List<Path> logsThatDefineTablet = maxEntry.getValue();
 
     if (tabletId == -1) {
-      log.info("Tablet {} is not defined in recovery logs {} ", extent, asNames(recoveryLogs));
+      log.info("Tablet {} is not defined in recovery logs {} ", extent, asNames(recoveryDirs));
       return;
     } else {
       log.info("Found {} of {} logs with max id {} for tablet {}", logsThatDefineTablet.size(),
-          recoveryLogs.size(), tabletId, extent);
+          recoveryDirs.size(), tabletId, extent);
     }
 
     // Find the seq # for the last compaction that started and finished

@@ -1,65 +1,64 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Field;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.MasterClient;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.master.thrift.MasterClientService;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.fate.util.UtilWaitThread;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterables;
 
 public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
 
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setProperty(Property.GENERAL_RPC_TIMEOUT, "2s");
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
   }
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 2 * 60;
+  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    cfg.setProperty(Property.GENERAL_RPC_TIMEOUT, "2s");
   }
 
   @Test
@@ -85,7 +84,7 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
         assertEquals(0, Runtime.getRuntime()
             .exec(new String[] {"kill", "-SIGSTOP", Integer.toString(pid)}).waitFor());
       }
-      UtilWaitThread.sleep(20 * 1000);
+      UtilWaitThread.sleep(20_000);
       for (int pid : tserverPids) {
         assertEquals(0, Runtime.getRuntime()
             .exec(new String[] {"kill", "-SIGCONT", Integer.toString(pid)}).waitFor());
@@ -97,7 +96,7 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
       c.tableOperations().addSplits("test", splits);
       // Ensure all of the tablets are actually assigned
       assertEquals(0, Iterables.size(c.createScanner("test", Authorizations.EMPTY)));
-      UtilWaitThread.sleep(30 * 1000);
+      UtilWaitThread.sleep(30_000);
       checkBalance(c);
     }
   }
@@ -105,24 +104,11 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
   private void checkBalance(AccumuloClient c) throws Exception {
     ClientContext context = (ClientContext) c;
 
-    MasterMonitorInfo stats = null;
+    ManagerMonitorInfo stats = null;
     int unassignedTablets = 1;
     for (int i = 0; unassignedTablets > 0 && i < 10; i++) {
-      MasterClientService.Iface client = null;
-      while (true) {
-        try {
-          client = MasterClient.getConnectionWithRetry(context);
-          stats = client.getMasterStats(TraceUtil.traceInfo(), context.rpcCreds());
-          break;
-        } catch (ThriftNotActiveServiceException e) {
-          // Let it loop, fetching a new location
-          log.debug("Contacted a Master which is no longer active, retrying");
-          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-        } finally {
-          if (client != null)
-            MasterClient.close(client);
-        }
-      }
+      stats = ThriftClientTypes.MANAGER.execute(context,
+          client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()));
       unassignedTablets = stats.getUnassignedTablets();
       if (unassignedTablets > 0) {
         log.info("Found {} unassigned tablets, sleeping 3 seconds for tablet assignment",
@@ -131,7 +117,7 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
       }
     }
 
-    assertEquals("Unassigned tablets were not assigned within 30 seconds", 0, unassignedTablets);
+    assertEquals(0, unassignedTablets, "Unassigned tablets were not assigned within 30 seconds");
 
     List<Integer> counts = new ArrayList<>();
     for (TabletServerStatus server : stats.tServerInfo) {
@@ -141,11 +127,12 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
       }
       counts.add(count);
     }
-    assertTrue("Expected to have at least two TabletServers", counts.size() > 1);
+    assertTrue(counts.size() > 1, "Expected to have at least two TabletServers");
     for (int i = 1; i < counts.size(); i++) {
       int diff = Math.abs(counts.get(0) - counts.get(i));
-      assertTrue("Expected difference in tablets to be less than or equal to " + counts.size()
-          + " but was " + diff + ". Counts " + counts, diff <= counts.size());
+      assertTrue(diff <= counts.size(),
+          "Expected difference in tablets to be less than or equal to " + counts.size()
+              + " but was " + diff + ". Counts " + counts);
     }
   }
 }

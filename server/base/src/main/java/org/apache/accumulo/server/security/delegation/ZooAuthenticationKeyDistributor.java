@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.security.delegation;
 
@@ -29,13 +31,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Id;
-import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,12 +67,8 @@ public class ZooAuthenticationKeyDistributor {
       return;
     }
 
-    if (!zk.exists(baseNode)) {
-      if (!zk.putPrivatePersistentData(baseNode, new byte[0], NodeExistsPolicy.FAIL)) {
-        throw new AssertionError("Got false from putPrivatePersistentData method");
-      }
-    } else {
-      List<ACL> acls = zk.getACL(baseNode, new Stat());
+    if (zk.exists(baseNode)) {
+      List<ACL> acls = zk.getACL(baseNode);
       if (acls.size() == 1) {
         ACL actualAcl = acls.get(0), expectedAcl = ZooUtil.PRIVATE.get(0);
         Id actualId = actualAcl.getId();
@@ -88,6 +85,8 @@ public class ZooAuthenticationKeyDistributor {
       log.error("Expected {} to have ACLs {} but was {}", baseNode, ZooUtil.PRIVATE, acls);
       throw new IllegalStateException(
           "Delegation token secret key node in ZooKeeper is not protected.");
+    } else {
+      zk.putPrivatePersistentData(baseNode, new byte[0], NodeExistsPolicy.FAIL);
     }
 
     initialized.set(true);
@@ -111,7 +110,7 @@ public class ZooAuthenticationKeyDistributor {
     // Deserialize each byte[] into an AuthenticationKey
     List<AuthenticationKey> keys = new ArrayList<>(children.size());
     for (String child : children) {
-      byte[] data = zk.getData(qualifyPath(child), null);
+      byte[] data = zk.getData(qualifyPath(child));
       if (data != null) {
         AuthenticationKey key = new AuthenticationKey();
         try {
@@ -185,8 +184,7 @@ public class ZooAuthenticationKeyDistributor {
     log.debug("Removing AuthenticationKey with keyId {} from ZooKeeper at {}", key.getKeyId(),
         path);
 
-    // Delete the node, any version
-    zk.delete(path, -1);
+    zk.delete(path);
   }
 
   String qualifyPath(String keyId) {

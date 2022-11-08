@@ -1,50 +1,49 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.monitor.rest.tservers;
 
 import static org.apache.accumulo.monitor.util.ParameterValidator.HOSTNAME_PORT_REGEX;
 
 import java.lang.management.ManagementFactory;
-import java.security.MessageDigest;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 
-import javax.inject.Inject;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Pattern;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
+import jakarta.inject.Inject;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.MediaType;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.ActionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
@@ -52,8 +51,8 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.monitor.Monitor;
-import org.apache.accumulo.monitor.rest.master.MasterResource;
-import org.apache.accumulo.server.master.state.DeadServerList;
+import org.apache.accumulo.monitor.rest.manager.ManagerResource;
+import org.apache.accumulo.server.manager.state.DeadServerList;
 import org.apache.accumulo.server.util.ActionStatsUpdator;
 
 /**
@@ -79,7 +78,7 @@ public class TabletServerResource {
    */
   @GET
   public TabletServers getTserverSummary() {
-    MasterMonitorInfo mmi = monitor.getMmi();
+    ManagerMonitorInfo mmi = monitor.getMmi();
     if (mmi == null) {
       return new TabletServers();
     }
@@ -89,7 +88,7 @@ public class TabletServerResource {
       tserverInfo.addTablet(new TabletServer(monitor, status));
     }
 
-    tserverInfo.addBadTabletServer(MasterResource.getTables(monitor));
+    tserverInfo.addBadTabletServer(ManagerResource.getTables(monitor));
 
     return tserverInfo;
   }
@@ -104,8 +103,7 @@ public class TabletServerResource {
   @Consumes(MediaType.TEXT_PLAIN)
   public void clearDeadServer(
       @QueryParam("server") @NotNull @Pattern(regexp = HOSTNAME_PORT_REGEX) String server) {
-    DeadServerList obit = new DeadServerList(monitor.getContext(),
-        monitor.getContext().getZooKeeperRoot() + Constants.ZDEADTSERVERS);
+    DeadServerList obit = new DeadServerList(monitor.getContext());
     obit.delete(server);
   }
 
@@ -119,7 +117,7 @@ public class TabletServerResource {
   public TabletServersRecovery getTserverRecovery() {
     TabletServersRecovery recoveryList = new TabletServersRecovery();
 
-    MasterMonitorInfo mmi = monitor.getMmi();
+    ManagerMonitorInfo mmi = monitor.getMmi();
     if (mmi == null) {
       return new TabletServersRecovery();
     }
@@ -152,7 +150,7 @@ public class TabletServerResource {
   public TabletServerSummary getTserverDetails(
       @PathParam("address") @NotNull @Pattern(regexp = HOSTNAME_PORT_REGEX) String tserverAddress)
       throws Exception {
-    MasterMonitorInfo mmi = monitor.getMmi();
+    ManagerMonitorInfo mmi = monitor.getMmi();
     if (mmi == null)
       return new TabletServerSummary();
 
@@ -187,14 +185,14 @@ public class TabletServerResource {
     try {
       ClientContext context = monitor.getContext();
       TabletClientService.Client client =
-          ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
+          ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, address, context);
       try {
         for (String tableId : mmi.tableMap.keySet()) {
           tsStats.addAll(client.getTabletStats(TraceUtil.traceInfo(), context.rpcCreds(), tableId));
         }
         historical = client.getHistoricalStats(TraceUtil.traceInfo(), context.rpcCreds());
       } finally {
-        ThriftUtil.returnClient(client);
+        ThriftUtil.returnClient(client, context);
       }
     } catch (Exception e) {
       return null;
@@ -224,7 +222,7 @@ public class TabletServerResource {
     majorStdDev = stddev(total.majors.elapsed, total.majors.num, total.majors.sumDev);
     majorQueueStdDev = stddev(total.majors.queueTime, total.majors.num, total.majors.queueSumDev);
     splitStdDev =
-        stddev(historical.splits.num, historical.splits.elapsed, historical.splits.sumDev);
+        stddev(historical.splits.elapsed, historical.splits.num, historical.splits.sumDev);
 
     TabletServerDetailInformation details = doDetails(tsStats.size());
 
@@ -246,8 +244,8 @@ public class TabletServerResource {
   @GET
   public ServerStats getServerStats() {
 
-    final int concurrentScans = monitor.getContext().getConfiguration().getScanExecutors().stream()
-        .mapToInt(sec -> sec.maxThreads).sum();
+    final int concurrentScans = monitor.getContext().getConfiguration().getScanExecutors(false)
+        .stream().mapToInt(sec -> sec.maxThreads).sum();
 
     ServerStats stats = new ServerStats();
 
@@ -320,16 +318,11 @@ public class TabletServerResource {
       ActionStatsUpdator.update(total.minors, info.minors);
       ActionStatsUpdator.update(total.majors, info.majors);
 
-      KeyExtent extent = new KeyExtent(info.extent);
-      TableId tableId = extent.getTableId();
-      MessageDigest digester = MessageDigest.getInstance(Constants.PW_HASH_ALGORITHM);
-      if (extent.getEndRow() != null && extent.getEndRow().getLength() > 0) {
-        digester.update(extent.getEndRow().getBytes(), 0, extent.getEndRow().getLength());
-      }
-      String obscuredExtent = Base64.getEncoder().encodeToString(digester.digest());
-      String displayExtent = String.format("[%s]", obscuredExtent);
+      KeyExtent extent = KeyExtent.fromThrift(info.extent);
+      TableId tableId = extent.tableId();
+      String displayExtent = String.format("[%s]", extent.obscured());
 
-      String tableName = Tables.getPrintableTableInfoFromId(monitor.getContext(), tableId);
+      String tableName = monitor.getContext().getPrintableTableInfoFromId(tableId);
 
       currentOperations.add(
           new CurrentOperations(tableName, tableId, displayExtent, info.numEntries, info.ingestRate,

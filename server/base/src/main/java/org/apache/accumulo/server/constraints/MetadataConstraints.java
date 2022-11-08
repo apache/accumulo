@@ -1,49 +1,58 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.constraints;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.constraints.Constraint;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.util.ColumnFQ;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.Arbitrator;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
@@ -53,36 +62,43 @@ import org.slf4j.LoggerFactory;
 
 public class MetadataConstraints implements Constraint {
 
+  private static final Logger log = LoggerFactory.getLogger(MetadataConstraints.class);
+
   private ZooCache zooCache = null;
   private String zooRoot = null;
 
-  private static final Logger log = LoggerFactory.getLogger(MetadataConstraints.class);
-
-  private static boolean[] validTableNameChars = new boolean[256];
-
-  {
+  private static final boolean[] validTableNameChars = new boolean[256];
+  static {
     for (int i = 0; i < 256; i++) {
       validTableNameChars[i] =
           ((i >= 'a' && i <= 'z') || (i >= '0' && i <= '9')) || i == '!' || i == '+';
     }
   }
 
-  private static final HashSet<ColumnFQ> validColumnQuals =
-      new HashSet<>(Arrays.asList(TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN,
-          TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN,
-          TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN,
-          TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN,
-          TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN,
-          TabletsSection.ServerColumnFamily.TIME_COLUMN,
-          TabletsSection.ServerColumnFamily.LOCK_COLUMN,
-          TabletsSection.ServerColumnFamily.FLUSH_COLUMN,
-          TabletsSection.ServerColumnFamily.COMPACT_COLUMN));
+  // @formatter:off
+  private static final Set<ColumnFQ> validColumnQuals =
+      Set.of(TabletColumnFamily.PREV_ROW_COLUMN,
+          TabletColumnFamily.OLD_PREV_ROW_COLUMN,
+          SuspendLocationColumn.SUSPEND_COLUMN,
+          ServerColumnFamily.DIRECTORY_COLUMN,
+          TabletColumnFamily.SPLIT_RATIO_COLUMN,
+          ServerColumnFamily.TIME_COLUMN,
+          ServerColumnFamily.LOCK_COLUMN,
+          ServerColumnFamily.FLUSH_COLUMN,
+          ServerColumnFamily.COMPACT_COLUMN);
 
-  private static final HashSet<Text> validColumnFams = new HashSet<>(Arrays.asList(
-      TabletsSection.BulkFileColumnFamily.NAME, LogColumnFamily.NAME, ScanFileColumnFamily.NAME,
-      DataFileColumnFamily.NAME, TabletsSection.CurrentLocationColumnFamily.NAME,
-      TabletsSection.LastLocationColumnFamily.NAME, TabletsSection.FutureLocationColumnFamily.NAME,
-      ChoppedColumnFamily.NAME, ClonedColumnFamily.NAME));
+  private static final Set<Text> validColumnFams =
+      Set.of(BulkFileColumnFamily.NAME,
+          LogColumnFamily.NAME,
+          ScanFileColumnFamily.NAME,
+          DataFileColumnFamily.NAME,
+          CurrentLocationColumnFamily.NAME,
+          LastLocationColumnFamily.NAME,
+          FutureLocationColumnFamily.NAME,
+          ChoppedColumnFamily.NAME,
+          ClonedColumnFamily.NAME,
+          ExternalCompactionColumnFamily.NAME);
+  // @formatter:on
 
   private static boolean isValidColumn(ColumnUpdate cu) {
 
@@ -140,13 +156,13 @@ public class MetadataConstraints implements Constraint {
       }
     }
 
-    if (!containsSemiC) {
-      // see if last row char is <
-      if (row.length == 0 || row[row.length - 1] != '<') {
+    if (containsSemiC) {
+      if (row.length == 0) {
         violations = addIfNotPresent(violations, 4);
       }
     } else {
-      if (row.length == 0) {
+      // see if last row char is <
+      if (row.length == 0 || row[row.length - 1] != '<') {
         violations = addIfNotPresent(violations, 4);
       }
     }
@@ -190,7 +206,7 @@ public class MetadataConstraints implements Constraint {
         }
       } else if (columnFamily.equals(ScanFileColumnFamily.NAME)) {
 
-      } else if (columnFamily.equals(TabletsSection.BulkFileColumnFamily.NAME)) {
+      } else if (columnFamily.equals(BulkFileColumnFamily.NAME)) {
         if (!columnUpdate.isDeleted() && !checkedBulk) {
           // splits, which also write the time reference, are allowed to write this reference even
           // when
@@ -212,15 +228,14 @@ public class MetadataConstraints implements Constraint {
           int otherTidCount = 0;
 
           for (ColumnUpdate update : mutation.getUpdates()) {
-            if (new ColumnFQ(update).equals(TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN)) {
+            if (new ColumnFQ(update).equals(ServerColumnFamily.DIRECTORY_COLUMN)) {
               isSplitMutation = true;
             } else if (new Text(update.getColumnFamily())
-                .equals(TabletsSection.CurrentLocationColumnFamily.NAME)) {
+                .equals(CurrentLocationColumnFamily.NAME)) {
               isLocationMutation = true;
             } else if (new Text(update.getColumnFamily()).equals(DataFileColumnFamily.NAME)) {
               dataFiles.add(new Text(update.getColumnQualifier()));
-            } else if (new Text(update.getColumnFamily())
-                .equals(TabletsSection.BulkFileColumnFamily.NAME)) {
+            } else if (new Text(update.getColumnFamily()).equals(BulkFileColumnFamily.NAME)) {
               loadedFiles.add(new Text(update.getColumnQualifier()));
 
               if (!new String(update.getValue(), UTF_8).equals(tidString)) {
@@ -247,24 +262,23 @@ public class MetadataConstraints implements Constraint {
       } else {
         if (!isValidColumn(columnUpdate)) {
           violations = addViolation(violations, 2);
-        } else if (new ColumnFQ(columnUpdate)
-            .equals(TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN)
+        } else if (new ColumnFQ(columnUpdate).equals(TabletColumnFamily.PREV_ROW_COLUMN)
             && columnUpdate.getValue().length > 0
             && (violations == null || !violations.contains((short) 4))) {
-          KeyExtent ke = new KeyExtent(new Text(mutation.getRow()), (Text) null);
+          KeyExtent ke = KeyExtent.fromMetaRow(new Text(mutation.getRow()));
 
-          Text per = KeyExtent.decodePrevEndRow(new Value(columnUpdate.getValue()));
+          Text per = TabletColumnFamily.decodePrevEndRow(new Value(columnUpdate.getValue()));
 
           boolean prevEndRowLessThanEndRow =
-              per == null || ke.getEndRow() == null || per.compareTo(ke.getEndRow()) < 0;
+              per == null || ke.endRow() == null || per.compareTo(ke.endRow()) < 0;
 
           if (!prevEndRowLessThanEndRow) {
             violations = addViolation(violations, 3);
           }
-        } else if (new ColumnFQ(columnUpdate)
-            .equals(TabletsSection.ServerColumnFamily.LOCK_COLUMN)) {
+        } else if (new ColumnFQ(columnUpdate).equals(ServerColumnFamily.LOCK_COLUMN)) {
           if (zooCache == null) {
-            zooCache = new ZooCache(context.getZooReaderWriter(), null);
+            zooCache = new ZooCache(context.getZooReader(), null);
+            CleanerUtil.zooCacheClearer(this, zooCache);
           }
 
           if (zooRoot == null) {
@@ -275,7 +289,7 @@ public class MetadataConstraints implements Constraint {
           String lockId = new String(columnUpdate.getValue(), UTF_8);
 
           try {
-            lockHeld = ZooLock.isLockHeld(zooCache, new ZooUtil.LockID(zooRoot, lockId));
+            lockHeld = ServiceLock.isLockHeld(zooCache, new ZooUtil.LockID(zooRoot, lockId));
           } catch (Exception e) {
             log.debug("Failed to verify lock was held {} {}", lockId, e.getMessage());
           }
@@ -327,9 +341,4 @@ public class MetadataConstraints implements Constraint {
     return null;
   }
 
-  @Override
-  protected void finalize() {
-    if (zooCache != null)
-      zooCache.clear();
-  }
 }

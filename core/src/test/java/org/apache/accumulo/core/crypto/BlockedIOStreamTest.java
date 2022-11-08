@@ -1,24 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.crypto;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -26,13 +28,15 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Arrays;
-import java.util.Random;
 
 import org.apache.accumulo.core.crypto.streams.BlockedInputStream;
 import org.apache.accumulo.core.crypto.streams.BlockedOutputStream;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class BlockedIOStreamTest {
+
+  private static final SecureRandom random = new SecureRandom();
+
   @Test
   public void testLargeBlockIO() throws IOException {
     writeRead(1024, 2048);
@@ -83,18 +87,17 @@ public class BlockedIOStreamTest {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     // buffer will be size 12
     BlockedOutputStream blockOut = new BlockedOutputStream(baos, 16, 16);
-    Random r = new SecureRandom();
 
     byte[] undersized = new byte[11];
     byte[] perfectSized = new byte[12];
     byte[] overSized = new byte[13];
     byte[] perfectlyOversized = new byte[13];
-    byte filler = (byte) r.nextInt();
+    byte filler = (byte) random.nextInt();
 
-    r.nextBytes(undersized);
-    r.nextBytes(perfectSized);
-    r.nextBytes(overSized);
-    r.nextBytes(perfectlyOversized);
+    random.nextBytes(undersized);
+    random.nextBytes(perfectSized);
+    random.nextBytes(overSized);
+    random.nextBytes(perfectlyOversized);
 
     // 1 block
     blockOut.write(undersized);
@@ -127,13 +130,12 @@ public class BlockedIOStreamTest {
     int blockSize = 16;
     // buffer will be size 12
     BlockedOutputStream blockOut = new BlockedOutputStream(baos, blockSize, blockSize);
-    Random r = new SecureRandom();
 
     int size = 1024 * 1024 * 128;
     byte[] giant = new byte[size];
     byte[] pattern = new byte[1024];
 
-    r.nextBytes(pattern);
+    random.nextBytes(pattern);
 
     for (int i = 0; i < size / 1024; i++) {
       System.arraycopy(pattern, 0, giant, i * 1024, 1024);

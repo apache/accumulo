@@ -1,18 +1,22 @@
 <!--
-Licensed to the Apache Software Foundation (ASF) under one or more
-contributor license agreements.  See the NOTICE file distributed with
-this work for additional information regarding copyright ownership.
-The ASF licenses this file to You under the Apache License, Version 2.0
-(the "License"); you may not use this file except in compliance with
-the License.  You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+      https://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
 -->
 
 [![Apache Accumulo][logo]][accumulo]
@@ -22,8 +26,9 @@ limitations under the License.
 [Apache Accumulo][accumulo] is a sorted, distributed key/value store that provides robust,
 scalable data storage and retrieval. With Apache Accumulo, users can store and manage large
 data sets across a cluster. Accumulo uses [Apache Hadoop]'s HDFS to store its data and
-[Apache Zookeeper] for consensus. Check out the [Accumulo project website][accumulo] for
-news and general information.
+[Apache Zookeeper] for consensus.
+
+Download the latest version of Apache Accumulo on the [project website][dl].
 
 ## Getting Started
 
@@ -44,14 +49,25 @@ waiting for the tests to run.
 
 This command produces `assemble/target/accumulo-<version>-bin.tar.gz`
 
+## Contributing
+
+Contributions are welcome to all Apache Accumulo repositories.
+
+If you want to contribute, read [our guide on our website][contribute].
+
 ## Export Control
+
+<details>
+<summary>Click here to show/hide details</summary>
+
+---
 
 This distribution includes cryptographic software. The country in which you
 currently reside may have restrictions on the import, possession, use, and/or
 re-export to another country, of encryption software. BEFORE using any
 encryption software, please check your country's laws, regulations and
 policies concerning the import, possession, or use, and re-export of encryption
-software, to see if this is permitted. See <http://www.wassenaar.org/> for more
+software, to see if this is permitted. See <https://www.wassenaar.org/> for more
 information.
 
 The U.S. Government Department of Commerce, Bureau of Industry and Security
@@ -68,9 +84,11 @@ The following provides more details on the included cryptographic software:
 Apache Accumulo uses the built-in java cryptography libraries in its RFile
 encryption implementation. See [oracle's export-regulations doc][java-export]
 for more details for on Java's cryptography features. Apache Accumulo also uses
-the bouncycastle library for some crypographic technology as well. See
-[the BouncyCastle FAQ][bouncy-faq] for
+the bouncycastle library for some cryptographic technology as well. See
+[the BouncyCastle site][bouncy-site] for
 more details on bouncycastle's cryptography features.
+
+</details>
 
 [api]: https://accumulo.apache.org/api
 [accumulo]: https://accumulo.apache.org
@@ -89,7 +107,9 @@ more details on bouncycastle's cryptography features.
 [ml]: https://maven-badges.herokuapp.com/maven-central/org.apache.accumulo/accumulo-core/
 [ji]: https://www.javadoc.io/badge/org.apache.accumulo/accumulo-core.svg
 [jl]: https://www.javadoc.io/doc/org.apache.accumulo/accumulo-core
-[ti]: https://travis-ci.org/apache/accumulo.svg?branch=master
-[tl]: https://travis-ci.org/apache/accumulo
-[java-export]: http://www.oracle.com/us/products/export/export-regulations-345813.html
-[bouncy-faq]: http://www.bouncycastle.org/wiki/display/JA1/Frequently+Asked+Questions
+[ti]: https://github.com/apache/accumulo/workflows/QA/badge.svg
+[tl]: https://github.com/apache/accumulo/actions
+[java-export]: https://www.oracle.com/us/products/export/export-regulations-345813.html
+[bouncy-site]: https://bouncycastle.org
+[dl]: https://accumulo.apache.org/downloads
+[contribute]: https://accumulo.apache.org/how-to-contribute

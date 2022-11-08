@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.rpc;
 
@@ -26,6 +28,9 @@ import org.apache.thrift.server.TNonblockingServer;
 import org.apache.thrift.transport.TNonblockingServerTransport;
 import org.apache.thrift.transport.TNonblockingSocket;
 import org.apache.thrift.transport.TNonblockingTransport;
+import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class implements a custom non-blocking thrift server that stores the client address in
@@ -33,6 +38,7 @@ import org.apache.thrift.transport.TNonblockingTransport;
  */
 public class CustomNonBlockingServer extends THsHaServer {
 
+  private static final Logger log = LoggerFactory.getLogger(CustomNonBlockingServer.class);
   private final Field selectAcceptThreadField;
 
   public CustomNonBlockingServer(Args args) {
@@ -43,6 +49,16 @@ public class CustomNonBlockingServer extends THsHaServer {
       selectAcceptThreadField.setAccessible(true);
     } catch (Exception e) {
       throw new RuntimeException("Failed to access required field in Thrift code.", e);
+    }
+  }
+
+  @Override
+  public void stop() {
+    super.stop();
+    try {
+      getInvoker().shutdownNow();
+    } catch (Exception e) {
+      log.error("Unable to call shutdownNow", e);
     }
   }
 
@@ -81,7 +97,8 @@ public class CustomNonBlockingServer extends THsHaServer {
 
     @Override
     protected FrameBuffer createFrameBuffer(final TNonblockingTransport trans,
-        final SelectionKey selectionKey, final AbstractSelectThread selectThread) {
+        final SelectionKey selectionKey, final AbstractSelectThread selectThread)
+        throws TTransportException {
       if (processorFactory_.isAsyncProcessor()) {
         throw new IllegalStateException("This implementation does not support AsyncProcessors");
       }
@@ -97,7 +114,7 @@ public class CustomNonBlockingServer extends THsHaServer {
   private class CustomFrameBuffer extends FrameBuffer {
 
     public CustomFrameBuffer(TNonblockingTransport trans, SelectionKey selectionKey,
-        AbstractSelectThread selectThread) {
+        AbstractSelectThread selectThread) throws TTransportException {
       super(trans, selectionKey, selectThread);
     }
 
@@ -111,6 +128,27 @@ public class CustomNonBlockingServer extends THsHaServer {
       }
       super.invoke();
     }
+
+    @Override
+    public boolean read() {
+      boolean result = super.read();
+      if (!result) {
+        log.trace("CustomFrameBuffer.read returned false when reading data from client: {}",
+            TServerUtils.clientAddress.get());
+      }
+      return result;
+    }
+
+    @Override
+    public boolean write() {
+      boolean result = super.write();
+      if (!result) {
+        log.trace("CustomFrameBuffer.write returned false when writing data to client: {}",
+            TServerUtils.clientAddress.get());
+      }
+      return result;
+    }
+
   }
 
 }

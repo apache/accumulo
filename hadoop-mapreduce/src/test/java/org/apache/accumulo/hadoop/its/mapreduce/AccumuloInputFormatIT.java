@@ -1,29 +1,33 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.hadoop.its.mapreduce;
 
 import static java.lang.System.currentTimeMillis;
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -35,7 +39,6 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
@@ -64,15 +67,15 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 
 /**
- * Tests the new MR API in the hadoop-mareduce package.
+ * Tests the new MR API in the hadoop-mapreduce package.
  *
  * @since 2.0
  */
@@ -82,8 +85,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
   AccumuloClient client;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
   }
 
   @Override
@@ -91,13 +94,13 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     cfg.setNumTservers(1);
   }
 
-  @Before
+  @BeforeEach
   public void before() {
     inputFormat = new AccumuloInputFormat();
     client = Accumulo.newClient().from(getClientProps()).build();
   }
 
-  @After
+  @AfterEach
   public void closeClient() {
     client.close();
   }
@@ -113,7 +116,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     insertData(table, currentTimeMillis());
 
     Job job = Job.getInstance();
-    AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties()).table(table)
+    AccumuloInputFormat.configure().clientProperties(getClientProps()).table(table)
         .auths(Authorizations.EMPTY).scanIsolation(true).store(job);
 
     // split table
@@ -133,18 +136,15 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     List<Range> ranges = new ArrayList<>();
     for (Text text : actualSplits)
       ranges.add(new Range(text));
-    AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties()).table(table)
+    AccumuloInputFormat.configure().clientProperties(getClientProps()).table(table)
         .auths(Authorizations.EMPTY).ranges(ranges).store(job);
     splits = inputFormat.getSplits(job);
     assertEquals(actualSplits.size(), splits.size());
 
     // offline mode
-    AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties()).table(table)
+    AccumuloInputFormat.configure().clientProperties(getClientProps()).table(table)
         .auths(Authorizations.EMPTY).offlineScan(true).store(job);
-    try {
-      inputFormat.getSplits(job);
-      fail("An IOException should have been thrown");
-    } catch (IOException e) {}
+    assertThrows(IOException.class, () -> inputFormat.getSplits(job));
 
     client.tableOperations().offline(table, true);
     splits = inputFormat.getSplits(job);
@@ -156,53 +156,47 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       // overlapping ranges
       ranges.add(new Range(String.format("%09d", i), String.format("%09d", i + 2)));
 
-    AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties()).table(table)
+    AccumuloInputFormat.configure().clientProperties(getClientProps()).table(table)
         .auths(Authorizations.EMPTY).ranges(ranges).offlineScan(true).store(job);
     splits = inputFormat.getSplits(job);
     assertEquals(2, splits.size());
 
-    AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties()).table(table)
+    AccumuloInputFormat.configure().clientProperties(getClientProps()).table(table)
         .auths(Authorizations.EMPTY).ranges(ranges).autoAdjustRanges(false).offlineScan(true)
         .store(job);
     splits = inputFormat.getSplits(job);
     assertEquals(ranges.size(), splits.size());
 
     // BatchScan not available for offline scans
-    AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties()).table(table)
+    AccumuloInputFormat.configure().clientProperties(getClientProps()).table(table)
         .auths(Authorizations.EMPTY).batchScan(true).offlineScan(true).store(job);
 
-    try {
-      inputFormat.getSplits(job);
-      fail("IllegalArgumentException should have been thrown trying to batch scan offline");
-    } catch (IllegalArgumentException e) {}
+    assertThrows(IllegalArgumentException.class, () -> inputFormat.getSplits(job),
+        "IllegalArgumentException should have been thrown trying to batch scan offline");
 
     // table online tests
     client.tableOperations().online(table, true);
-    AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties()).table(table)
+    AccumuloInputFormat.configure().clientProperties(getClientProps()).table(table)
         .auths(Authorizations.EMPTY).store(job);
     // test for resumption of success
     splits = inputFormat.getSplits(job);
     assertEquals(2, splits.size());
 
     // BatchScan not available with isolated iterators
-    AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties()).table(table)
+    AccumuloInputFormat.configure().clientProperties(getClientProps()).table(table)
         .auths(Authorizations.EMPTY).batchScan(true).scanIsolation(true).store(job);
 
-    try {
-      inputFormat.getSplits(job);
-      fail("IllegalArgumentException should have been thrown trying to batch scan with isolation");
-    } catch (IllegalArgumentException e) {}
+    assertThrows(IllegalArgumentException.class, () -> inputFormat.getSplits(job),
+        "IllegalArgumentException should have been thrown trying to batch scan with isolation");
 
     // BatchScan not available with local iterators
-    AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties()).table(table)
+    AccumuloInputFormat.configure().clientProperties(getClientProps()).table(table)
         .auths(Authorizations.EMPTY).batchScan(true).localIterators(true).store(job);
 
-    try {
-      inputFormat.getSplits(job);
-      fail("IllegalArgumentException should have been thrown trying to batch scan locally");
-    } catch (IllegalArgumentException e) {}
+    assertThrows(IllegalArgumentException.class, () -> inputFormat.getSplits(job),
+        "IllegalArgumentException should have been thrown trying to batch scan locally");
 
-    AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties()).table(table)
+    AccumuloInputFormat.configure().clientProperties(getClientProps()).table(table)
         .auths(Authorizations.EMPTY).batchScan(true).store(job);
 
     // Check we are getting back correct type pf split
@@ -216,13 +210,13 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
   private void insertData(String tableName, long ts)
       throws AccumuloException, TableNotFoundException {
-    BatchWriter bw = client.createBatchWriter(tableName, null);
+    BatchWriter bw = client.createBatchWriter(tableName);
 
     for (int i = 0; i < 10000; i++) {
       String row = String.format("%09d", i);
 
       Mutation m = new Mutation(new Text(row));
-      m.put(new Text("cf1"), new Text("cq1"), ts, new Value(("" + i).getBytes()));
+      m.put(new Text("cf1"), new Text("cq1"), ts, new Value("" + i));
       bw.addMutation(m);
     }
     bw.close();
@@ -298,9 +292,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
       job.setInputFormatClass(inputFormatClass);
 
-      InputFormatOptions<Job> opts =
-          AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties())
-              .table(table).auths(Authorizations.EMPTY);
+      InputFormatOptions<Job> opts = AccumuloInputFormat.configure()
+          .clientProperties(getClientProps()).table(table).auths(Authorizations.EMPTY);
       if (sample)
         opts = opts.samplerConfiguration(SAMPLER_CONFIG);
 
@@ -332,10 +325,10 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     final String TEST_TABLE_1 = getUniqueNames(1)[0];
 
     client.tableOperations().create(TEST_TABLE_1);
-    BatchWriter bw = client.createBatchWriter(TEST_TABLE_1, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(TEST_TABLE_1);
     for (int i = 0; i < 100; i++) {
       Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+      m.put("", "", String.format("%09x", i));
       bw.addMutation(m);
     }
     bw.close();
@@ -356,10 +349,10 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     client.tableOperations().create(TEST_TABLE_3,
         new NewTableConfiguration().enableSampling(SAMPLER_CONFIG));
-    BatchWriter bw = client.createBatchWriter(TEST_TABLE_3, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(TEST_TABLE_3);
     for (int i = 0; i < 100; i++) {
       Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+      m.put("", "", String.format("%09x", i));
       bw.addMutation(m);
     }
     bw.close();
@@ -387,10 +380,10 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     final String TEST_TABLE_2 = getUniqueNames(1)[0];
 
     client.tableOperations().create(TEST_TABLE_2);
-    BatchWriter bw = client.createBatchWriter(TEST_TABLE_2, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(TEST_TABLE_2);
     for (int i = 0; i < 100; i++) {
       Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+      m.put("", "", String.format("%09x", i));
       bw.addMutation(m);
     }
     bw.close();
@@ -415,7 +408,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     client.tableOperations().create(table);
 
     InputFormatOptions<Job> opts = AccumuloInputFormat.configure()
-        .clientProperties(getClientInfo().getProperties()).table(table).auths(auths);
+        .clientProperties(getClientProps()).table(table).auths(auths);
     opts.fetchColumns(fetchColumns).scanIsolation(true).localIterators(true).store(job);
 
     AccumuloInputFormat aif = new AccumuloInputFormat();
@@ -431,8 +424,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     RangeInputSplit risplit = (RangeInputSplit) split;
 
     assertEquals(table, risplit.getTableName());
-    assertEquals(true, risplit.isIsolatedScan());
-    assertEquals(true, risplit.usesLocalIterators());
+    assertTrue(risplit.isIsolatedScan());
+    assertTrue(risplit.usesLocalIterators());
     assertEquals(fetchColumnsText, risplit.getFetchedColumns());
   }
 
@@ -440,10 +433,10 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
   public void testPartialInputSplitDelegationToConfiguration() throws Exception {
     String table = getUniqueNames(1)[0];
     client.tableOperations().create(table);
-    BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(table);
     for (int i = 0; i < 100; i++) {
       Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+      m.put("", "", String.format("%09x", i));
       bw.addMutation(m);
     }
     bw.close();

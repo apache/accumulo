@@ -1,21 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.gc.replication;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map.Entry;
@@ -24,7 +27,6 @@ import java.util.Set;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
@@ -33,10 +35,10 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
@@ -45,13 +47,13 @@ import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Stopwatch;
 import com.google.protobuf.InvalidProtocolBufferException;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 /**
  * It's impossible to know when all references to a WAL have been removed from the metadata table as
@@ -61,6 +63,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
  * {@link Status} record from the metadata and replication tables that point to that WAL can be
  * "closed", by writing a new Status to the same key with the closed member true.
  */
+@Deprecated
 public class CloseWriteAheadLogReferences implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(CloseWriteAheadLogReferences.class);
 
@@ -74,10 +77,11 @@ public class CloseWriteAheadLogReferences implements Runnable {
 
   @Override
   public void run() {
-    // As long as we depend on a newer Guava than Hadoop uses, we have to make sure we're compatible
-    // with
-    // what the version they bundle uses.
-    Stopwatch sw = Stopwatch.createUnstarted();
+    // Guava Stopwatch is useful here, for a friendlier toString, but the versions of Guava
+    // are different in incompatible ways, so we avoid it here and use Duration instead, so
+    // there won't be conflicts.
+    long startTime;
+    Duration duration;
 
     if (!ReplicationTable.isOnline(context)) {
       log.debug("Replication table isn't online, not attempting to clean up wals");
@@ -85,25 +89,29 @@ public class CloseWriteAheadLogReferences implements Runnable {
     }
 
     HashSet<String> closed = null;
-    try (TraceScope findWalsSpan = Trace.startSpan("findReferencedWals")) {
-      sw.start();
+    Span span = TraceUtil.startSpan(this.getClass(), "findReferencedWals");
+    try (Scope findWalsSpan = span.makeCurrent()) {
+      startTime = System.nanoTime();
       closed = getClosedLogs();
+      duration = Duration.ofNanos(System.nanoTime() - startTime);
     } finally {
-      sw.stop();
+      span.end();
     }
 
-    log.info("Found {} WALs referenced in metadata in {}", closed.size(), sw);
-    sw.reset();
+    log.info("Found {} WALs referenced in metadata in {}", closed.size(), duration);
 
     long recordsClosed = 0;
-    try (TraceScope updateReplicationSpan = Trace.startSpan("updateReplicationTable")) {
-      sw.start();
+    Span updateReplicationSpan = TraceUtil.startSpan(this.getClass(), "updateReplicationTable");
+    try (Scope updateReplicationScope = updateReplicationSpan.makeCurrent()) {
+      startTime = System.nanoTime();
       recordsClosed = updateReplicationEntries(context, closed);
+      duration = Duration.ofNanos(System.nanoTime() - startTime);
     } finally {
-      sw.stop();
+      updateReplicationSpan.end();
     }
 
-    log.info("Closed {} WAL replication references in replication table in {}", recordsClosed, sw);
+    log.info("Closed {} WAL replication references in replication table in {}", recordsClosed,
+        duration);
   }
 
   /**
@@ -139,12 +147,10 @@ public class CloseWriteAheadLogReferences implements Runnable {
    *          {@link Set} of paths to WALs that marked as closed or unreferenced in zookeeper
    */
   protected long updateReplicationEntries(AccumuloClient client, Set<String> closedWals) {
-    BatchScanner bs = null;
-    BatchWriter bw = null;
     long recordsClosed = 0;
-    try {
-      bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-      bs = client.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
+    try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME);
+        BatchScanner bs = client.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4)) {
+
       bs.setRanges(Collections.singleton(Range.prefix(ReplicationSection.getRowPrefix())));
       bs.fetchColumnFamily(ReplicationSection.COLF);
 
@@ -159,7 +165,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
         }
 
         // Ignore things that aren't completely replicated as we can't delete those anyways
-        MetadataSchema.ReplicationSection.getFile(entry.getKey(), replFileText);
+        ReplicationSection.getFile(entry.getKey(), replFileText);
         String replFile = replFileText.toString();
         boolean isClosed = closedWals.contains(replFile);
 
@@ -177,18 +183,8 @@ public class CloseWriteAheadLogReferences implements Runnable {
       }
     } catch (TableNotFoundException e) {
       log.error("Replication table was deleted", e);
-    } finally {
-      if (bs != null) {
-        bs.close();
-      }
-
-      if (bw != null) {
-        try {
-          bw.close();
-        } catch (MutationsRejectedException e) {
-          log.error("Failed to write delete mutations for replication table", e);
-        }
-      }
+    } catch (MutationsRejectedException e) {
+      log.error("Failed to write delete mutations for replication table", e);
     }
 
     return recordsClosed;

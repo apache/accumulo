@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.util;
 
@@ -25,8 +27,9 @@ import org.apache.thrift.TBase;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TProtocol;
-import org.apache.thrift.transport.AutoExpandingBufferWriteTransport;
+import org.apache.thrift.transport.TMemoryBuffer;
 import org.apache.thrift.transport.TMemoryInputTransport;
+import org.apache.thrift.transport.TTransportException;
 
 /**
  * Serializes and deserializes Thrift messages to and from byte arrays. This class is not
@@ -34,18 +37,21 @@ import org.apache.thrift.transport.TMemoryInputTransport;
  */
 public class ThriftMessageUtil {
 
-  private final AutoExpandingBufferWriteTransport transport;
-  private final TProtocol protocol;
+  private final int initialCapacity;
 
-  public ThriftMessageUtil() {
-    this(64, 1.5);
-  }
+  private final TMemoryInputTransport inputTransport;
+  private final TCompactProtocol inputProtocol;
 
-  public ThriftMessageUtil(int initialCapacity, double growthCoefficient) {
+  public ThriftMessageUtil() throws IOException {
     // TODO does this make sense? better to push this down to the serialize method (accept the
     // transport as an argument)?
-    this.transport = new AutoExpandingBufferWriteTransport(initialCapacity, growthCoefficient);
-    this.protocol = new TCompactProtocol(transport);
+    this.initialCapacity = 64;
+    try {
+      this.inputTransport = new TMemoryInputTransport();
+    } catch (TTransportException e) {
+      throw new IOException(e);
+    }
+    this.inputProtocol = new TCompactProtocol(inputTransport);
   }
 
   /**
@@ -59,14 +65,14 @@ public class ThriftMessageUtil {
    */
   public ByteBuffer serialize(TBase<?,?> msg) throws IOException {
     requireNonNull(msg);
-    transport.reset();
     try {
+      TMemoryBuffer transport = new TMemoryBuffer(initialCapacity);
+      TProtocol protocol = new TCompactProtocol(transport);
       msg.write(protocol);
-      // We should flush(), but we know its a noop
+      return ByteBuffer.wrap(transport.getArray(), 0, transport.length());
     } catch (TException e) {
       throw new IOException(e);
     }
-    return ByteBuffer.wrap(transport.getBuf().array(), 0, transport.getPos());
   }
 
   /**
@@ -92,10 +98,9 @@ public class ThriftMessageUtil {
   public <T extends TBase<?,?>> T deserialize(byte[] serialized, int offset, int length, T instance)
       throws IOException {
     requireNonNull(instance);
-    TCompactProtocol proto =
-        new TCompactProtocol(new TMemoryInputTransport(serialized, offset, length));
+    inputTransport.reset(serialized, offset, length);
     try {
-      instance.read(proto);
+      instance.read(inputProtocol);
     } catch (TException e) {
       throw new IOException(e);
     }

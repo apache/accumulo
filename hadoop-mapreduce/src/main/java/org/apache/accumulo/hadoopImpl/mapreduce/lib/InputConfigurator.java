@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.hadoopImpl.mapreduce.lib;
 
@@ -47,10 +49,10 @@ import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.data.Key;
@@ -60,11 +62,15 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
@@ -87,7 +93,7 @@ public class InputConfigurator extends ConfiguratorBase {
    *
    * @since 1.6.0
    */
-  public static enum ScanOpts {
+  public enum ScanOpts {
     TABLE_NAME,
     AUTHORIZATIONS,
     RANGES,
@@ -104,13 +110,14 @@ public class InputConfigurator extends ConfiguratorBase {
    *
    * @since 1.6.0
    */
-  public static enum Features {
+  public enum Features {
     AUTO_ADJUST_RANGES,
     SCAN_ISOLATION,
     USE_LOCAL_ITERATORS,
     SCAN_OFFLINE,
     BATCH_SCANNER,
-    BATCH_SCANNER_THREADS
+    BATCH_SCANNER_THREADS,
+    CONSISTENCY_LEVEL
   }
 
   /**
@@ -341,9 +348,7 @@ public class InputConfigurator extends ConfiguratorBase {
     List<String> serialized = new ArrayList<>();
     if (confValue != null) {
       // Split and include any trailing empty strings to allow empty column families
-      for (String val : confValue.split(",", -1)) {
-        serialized.add(val);
-      }
+      Collections.addAll(serialized, confValue.split(",", -1));
     }
     return deserializeFetchedColumns(serialized);
   }
@@ -598,6 +603,39 @@ public class InputConfigurator extends ConfiguratorBase {
   }
 
   /**
+   * Set the ConsistencyLevel for the Accumulo scans that create the input data
+   *
+   * @param implementingClass
+   *          the class whose name will be used as a prefix for the property configuration key
+   * @param conf
+   *          the Hadoop configuration object to configure
+   * @param level
+   *          the consistency level
+   * @since 2.1.0
+   */
+  public static void setConsistencyLevel(Class<?> implementingClass, Configuration conf,
+      ConsistencyLevel level) {
+    conf.set(enumToConfKey(implementingClass, Features.CONSISTENCY_LEVEL), level.name());
+  }
+
+  /**
+   * Get the ConsistencyLevel for the Accumulo scans that create the input data
+   *
+   * @param implementingClass
+   *          the class whose name will be used as a prefix for the property configuration key
+   * @param conf
+   *          the Hadoop configuration object to configure
+   * @return the consistency level
+   * @since 2.1.0
+   */
+  public static ConsistencyLevel getConsistencyLevel(Class<?> implementingClass,
+      Configuration conf) {
+    return ConsistencyLevel
+        .valueOf(conf.get(enumToConfKey(implementingClass, Features.CONSISTENCY_LEVEL),
+            ConsistencyLevel.IMMEDIATE.name()));
+  }
+
+  /**
    * Sets configurations for multiple tables at a time.
    *
    * @param implementingClass
@@ -717,6 +755,15 @@ public class InputConfigurator extends ConfiguratorBase {
     }
   }
 
+  private static String extractNamespace(final String tableName) {
+    final int delimiterPos = tableName.indexOf('.');
+    if (delimiterPos < 1) {
+      return ""; // default namespace
+    } else {
+      return tableName.substring(0, delimiterPos);
+    }
+  }
+
   /**
    * Validates that the user has permissions on the requested tables
    *
@@ -731,18 +778,28 @@ public class InputConfigurator extends ConfiguratorBase {
   public static void validatePermissions(Class<?> implementingClass, Configuration conf,
       AccumuloClient client) throws IOException {
     Map<String,InputTableConfig> inputTableConfigs = getInputTableConfigs(implementingClass, conf);
+
     try {
-      if (getInputTableConfigs(implementingClass, conf).size() == 0)
+      if (getInputTableConfigs(implementingClass, conf).isEmpty())
         throw new IOException("No table set.");
 
       Properties props = getClientProperties(implementingClass, conf);
       String principal = ClientProperty.AUTH_PRINCIPAL.getValue(props);
 
       for (Map.Entry<String,InputTableConfig> tableConfig : inputTableConfigs.entrySet()) {
-        if (!client.securityOperations().hasTablePermission(principal, tableConfig.getKey(),
-            TablePermission.READ))
+
+        final String tableName = tableConfig.getKey();
+        final String namespace = extractNamespace(tableName);
+        final boolean hasTableRead = client.securityOperations().hasTablePermission(principal,
+            tableName, TablePermission.READ);
+        final boolean hasNamespaceRead = client.securityOperations()
+            .hasNamespacePermission(principal, namespace, NamespacePermission.READ);
+
+        if (!hasTableRead && !hasNamespaceRead) {
           throw new IOException("Unable to access table");
+        }
       }
+
       for (Map.Entry<String,InputTableConfig> tableConfigEntry : inputTableConfigs.entrySet()) {
         InputTableConfig tableConfig = tableConfigEntry.getValue();
         if (!tableConfig.shouldUseLocalIterators()) {
@@ -780,7 +837,7 @@ public class InputConfigurator extends ConfiguratorBase {
       InputTableConfig queryConfig = new InputTableConfig();
       List<IteratorSetting> itrs = getIterators(implementingClass, conf);
       if (itrs != null)
-        itrs.forEach(itr -> queryConfig.addIterator(itr));
+        itrs.forEach(queryConfig::addIterator);
       Set<IteratorSetting.Column> columns = getFetchedColumns(implementingClass, conf);
       if (columns != null)
         queryConfig.fetchColumns(columns);
@@ -812,9 +869,9 @@ public class InputConfigurator extends ConfiguratorBase {
       List<Range> ranges, ClientContext context) throws AccumuloException, TableNotFoundException {
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
 
-    if (Tables.getTableState(context, tableId) != TableState.OFFLINE) {
-      Tables.clearCache(context);
-      if (Tables.getTableState(context, tableId) != TableState.OFFLINE) {
+    if (context.getTableState(tableId) != TableState.OFFLINE) {
+      context.clearTableListCache();
+      if (context.getTableState(tableId) != TableState.OFFLINE) {
         throw new AccumuloException(
             "Table is online tableId:" + tableId + " cannot scan table in offline mode ");
       }
@@ -829,12 +886,12 @@ public class InputConfigurator extends ConfiguratorBase {
         startRow = new Text();
 
       Range metadataRange =
-          new Range(new KeyExtent(tableId, startRow, null).getMetadataEntry(), true, null, false);
+          new Range(new KeyExtent(tableId, startRow, null).toMetaRow(), true, null, false);
       Scanner scanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-      MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
-      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.LastLocationColumnFamily.NAME);
-      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
-      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.FutureLocationColumnFamily.NAME);
+      TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
+      scanner.fetchColumnFamily(LastLocationColumnFamily.NAME);
+      scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
+      scanner.fetchColumnFamily(FutureLocationColumnFamily.NAME);
       scanner.setRange(metadataRange);
 
       RowIterator rowIter = new RowIterator(scanner);
@@ -849,20 +906,17 @@ public class InputConfigurator extends ConfiguratorBase {
           Map.Entry<Key,Value> entry = row.next();
           Key key = entry.getKey();
 
-          if (key.getColumnFamily()
-              .equals(MetadataSchema.TabletsSection.LastLocationColumnFamily.NAME)) {
+          if (key.getColumnFamily().equals(LastLocationColumnFamily.NAME)) {
             last = entry.getValue().toString();
           }
 
-          if (key.getColumnFamily()
-              .equals(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME)
-              || key.getColumnFamily()
-                  .equals(MetadataSchema.TabletsSection.FutureLocationColumnFamily.NAME)) {
+          if (key.getColumnFamily().equals(CurrentLocationColumnFamily.NAME)
+              || key.getColumnFamily().equals(FutureLocationColumnFamily.NAME)) {
             location = entry.getValue().toString();
           }
 
-          if (MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
-            extent = new KeyExtent(key.getRow(), entry.getValue());
+          if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
+            extent = KeyExtent.fromMetaPrevRow(entry);
           }
 
         }
@@ -870,7 +924,7 @@ public class InputConfigurator extends ConfiguratorBase {
         if (location != null)
           return null;
 
-        if (!extent.getTableId().equals(tableId)) {
+        if (!extent.tableId().equals(tableId)) {
           throw new AccumuloException("Saw unexpected table Id " + tableId + " " + extent);
         }
 
@@ -878,22 +932,11 @@ public class InputConfigurator extends ConfiguratorBase {
           throw new AccumuloException(" " + lastExtent + " is not previous extent " + extent);
         }
 
-        Map<KeyExtent,List<Range>> tabletRanges = binnedRanges.get(last);
-        if (tabletRanges == null) {
-          tabletRanges = new HashMap<>();
-          binnedRanges.put(last, tabletRanges);
-        }
+        binnedRanges.computeIfAbsent(last, k -> new HashMap<>())
+            .computeIfAbsent(extent, k -> new ArrayList<>()).add(range);
 
-        List<Range> rangeList = tabletRanges.get(extent);
-        if (rangeList == null) {
-          rangeList = new ArrayList<>();
-          tabletRanges.put(extent, rangeList);
-        }
-
-        rangeList.add(range);
-
-        if (extent.getEndRow() == null
-            || range.afterEndKey(new Key(extent.getEndRow()).followingKey(PartialKey.ROW))) {
+        if (extent.endRow() == null
+            || range.afterEndKey(new Key(extent.endRow()).followingKey(PartialKey.ROW))) {
           break;
         }
 

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.util;
 
@@ -111,18 +113,18 @@ public class CertUtils {
     String issuerDirString = "o=Apache Accumulo";
 
     @Parameter(names = "--accumulo-props",
-        description = "Path to accumulo.properties to load " + "Accumulo configuration from")
+        description = "Path to accumulo.properties to load Accumulo configuration from")
     public String accumuloPropsFile = null;
 
     @Parameter(names = "--signing-algorithm", description = "Algorithm used to sign certificates")
-    public String signingAlg = "SHA256WITHRSA";
+    public String signingAlg = "SHA512WITHRSA";
 
     @Parameter(names = "--encryption-algorithm",
         description = "Algorithm used to encrypt private keys")
     public String encryptionAlg = "RSA";
 
     @Parameter(names = "--keysize", description = "Key size used by encryption algorithm")
-    public int keysize = 2048;
+    public int keysize = 4096;
 
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
     public SiteConfiguration getSiteConfiguration() {
@@ -179,7 +181,6 @@ public class CertUtils {
 
   public CertUtils(String keystoreType, String issuerDirString, String encryptionAlgorithm,
       int keysize, String signingAlgorithm) {
-    super();
     this.keystoreType = keystoreType;
     this.issuerDirString = issuerDirString;
     this.encryptionAlgorithm = encryptionAlgorithm;
@@ -279,7 +280,7 @@ public class CertUtils {
     Calendar endDate = Calendar.getInstance();
     endDate.add(Calendar.YEAR, 100);
 
-    BigInteger serialNumber = BigInteger.valueOf((startDate.getTimeInMillis()));
+    BigInteger serialNumber = BigInteger.valueOf(startDate.getTimeInMillis());
     X500Name issuer =
         new X500Name(IETFUtils.rDNsFromString(issuerDirString, RFC4519Style.INSTANCE));
     JcaX509v3CertificateBuilder certGen = new JcaX509v3CertificateBuilder(issuer, serialNumber,

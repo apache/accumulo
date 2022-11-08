@@ -1,25 +1,32 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.replication;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.createMockBuilder;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -27,52 +34,49 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
 import org.apache.accumulo.server.replication.ReplicaSystem;
 import org.apache.accumulo.server.replication.ReplicaSystemHelper;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.hadoop.fs.Path;
-import org.easymock.EasyMock;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
+@Deprecated
 public class ReplicationProcessorTest {
 
   @Test
   public void peerTypeExtractionFromConfiguration() {
-    VolumeManager fs = EasyMock.createMock(VolumeManager.class);
-    ServerContext context = EasyMock.createMock(ServerContext.class);
-
-    Map<String,String> data = new HashMap<>();
+    ServerContext context = createMock(ServerContext.class);
 
     String peerName = "peer";
     String configuration = "java.lang.String,foo";
-    data.put(Property.REPLICATION_PEERS + peerName, configuration);
-    ConfigurationCopy conf = new ConfigurationCopy(data);
+    var conf = new ConfigurationCopy(Map.of(Property.REPLICATION_PEERS + peerName, configuration));
+    expect(context.getConfiguration()).andReturn(conf);
+    replay(context);
 
-    ReplicationProcessor proc = new ReplicationProcessor(context, conf, fs);
-
+    ReplicationProcessor proc = new ReplicationProcessor(context);
     assertEquals(configuration, proc.getPeerType(peerName));
+    verify(context);
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void noPeerConfigurationThrowsAnException() {
-    VolumeManager fs = EasyMock.createMock(VolumeManager.class);
-    ServerContext context = EasyMock.createMock(ServerContext.class);
+    ServerContext context = createMock(ServerContext.class);
 
-    Map<String,String> data = new HashMap<>();
-    ConfigurationCopy conf = new ConfigurationCopy(data);
+    var conf = new ConfigurationCopy(Map.of());
+    expect(context.getConfiguration()).andReturn(conf);
+    replay(context);
 
-    ReplicationProcessor proc = new ReplicationProcessor(context, conf, fs);
-
-    proc.getPeerType("foo");
+    ReplicationProcessor proc = new ReplicationProcessor(context);
+    assertThrows(IllegalArgumentException.class, () -> proc.getPeerType("foo"));
+    verify(context);
   }
 
   @Test
   public void filesWhichMakeNoProgressArentReplicatedAgain() throws Exception {
-    ReplicaSystem replica = EasyMock.createMock(ReplicaSystem.class);
-    ReplicaSystemHelper helper = EasyMock.createMock(ReplicaSystemHelper.class);
-    ReplicationProcessor proc = EasyMock.createMockBuilder(ReplicationProcessor.class)
+    ReplicaSystem replica = createMock(ReplicaSystem.class);
+    ReplicaSystemHelper helper = createMock(ReplicaSystemHelper.class);
+    ReplicationProcessor proc = createMockBuilder(ReplicationProcessor.class)
         .addMockedMethods("getReplicaSystem", "doesFileExist", "getStatus", "getHelper")
         .createMock();
 
@@ -83,16 +87,16 @@ public class ReplicationProcessorTest {
 
     String queueKey = DistributedWorkQueueWorkAssignerHelper.getQueueKey(path.toString(), target);
 
-    EasyMock.expect(proc.getReplicaSystem(target)).andReturn(replica);
-    EasyMock.expect(proc.getStatus(path.toString(), target)).andReturn(status);
-    EasyMock.expect(proc.doesFileExist(path, target)).andReturn(true);
-    EasyMock.expect(proc.getHelper()).andReturn(helper);
-    EasyMock.expect(replica.replicate(path, status, target, helper)).andReturn(status);
+    expect(proc.getReplicaSystem(target)).andReturn(replica);
+    expect(proc.getStatus(path.toString(), target)).andReturn(status);
+    expect(proc.doesFileExist(path, target)).andReturn(true);
+    expect(proc.getHelper()).andReturn(helper);
+    expect(replica.replicate(path, status, target, helper)).andReturn(status);
 
-    EasyMock.replay(replica, proc);
+    replay(replica, proc);
 
     proc.process(queueKey, path.toString().getBytes(UTF_8));
 
-    EasyMock.verify(replica, proc);
+    verify(replica, proc);
   }
 }

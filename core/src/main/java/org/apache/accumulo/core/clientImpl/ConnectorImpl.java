@@ -1,24 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.clientImpl;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
-import java.util.concurrent.TimeUnit;
+import java.util.List;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -36,7 +38,9 @@ import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.client.admin.ReplicationOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
@@ -46,11 +50,11 @@ import org.apache.accumulo.core.trace.TraceUtil;
  * This class now delegates to {@link ClientContext}, except for the methods which were not copied
  * over to that.
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
 
   private static final String SYSTEM_TOKEN_NAME =
-      "org.apache.accumulo.server.security." + "SystemCredentials$SystemToken";
+      "org.apache.accumulo.server.security.SystemCredentials$SystemToken";
   private final ClientContext context;
 
   public ConnectorImpl(ClientContext context) throws AccumuloSecurityException, AccumuloException {
@@ -63,11 +67,11 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
     // server jar
     final String tokenClassName = context.getCredentials().getToken().getClass().getName();
     if (!SYSTEM_TOKEN_NAME.equals(tokenClassName)) {
-      ServerClient.executeVoid(context, iface -> {
-        if (!iface.authenticate(TraceUtil.traceInfo(), context.rpcCreds()))
-          throw new AccumuloSecurityException("Authentication failed, access denied",
-              SecurityErrorCode.BAD_CREDENTIALS);
-      });
+      if (!ThriftClientTypes.CLIENT.execute(context,
+          client -> client.authenticate(TraceUtil.traceInfo(), context.rpcCreds()))) {
+        throw new AccumuloSecurityException("Authentication failed, access denied",
+            SecurityErrorCode.BAD_CREDENTIALS);
+      }
     }
   }
 
@@ -76,9 +80,44 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
   }
 
   @Override
-  @Deprecated
   public org.apache.accumulo.core.client.Instance getInstance() {
-    return context.getDeprecatedInstance();
+    return new org.apache.accumulo.core.client.Instance() {
+      @Override
+      public String getRootTabletLocation() {
+        return context.getRootTabletLocation();
+      }
+
+      @Override
+      public List<String> getMasterLocations() {
+        return context.getManagerLocations();
+      }
+
+      @Override
+      public String getInstanceID() {
+        return context.getInstanceID().canonical();
+      }
+
+      @Override
+      public String getInstanceName() {
+        return context.getInstanceName();
+      }
+
+      @Override
+      public String getZooKeepers() {
+        return context.getZooKeepers();
+      }
+
+      @Override
+      public int getZooKeepersSessionTimeOut() {
+        return context.getZooKeepersSessionTimeOut();
+      }
+
+      @Override
+      public org.apache.accumulo.core.client.Connector getConnector(String principal,
+          AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
+        return org.apache.accumulo.core.client.Connector.from(context);
+      }
+    };
   }
 
   @Override
@@ -91,11 +130,9 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
   public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations,
       int numQueryThreads, long maxMemory, long maxLatency, int maxWriteThreads)
       throws TableNotFoundException {
-    checkArgument(tableName != null, "tableName is null");
-    checkArgument(authorizations != null, "authorizations is null");
-    return new TabletServerBatchDeleter(context, context.getTableId(tableName), authorizations,
-        numQueryThreads, new BatchWriterConfig().setMaxMemory(maxMemory)
-            .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
+    return context.createBatchDeleter(tableName, authorizations, numQueryThreads,
+        new BatchWriterConfig().setMaxMemory(maxMemory).setMaxLatency(maxLatency, MILLISECONDS)
+            .setMaxWriteThreads(maxWriteThreads));
   }
 
   @Override
@@ -107,10 +144,8 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
   @Override
   public BatchWriter createBatchWriter(String tableName, long maxMemory, long maxLatency,
       int maxWriteThreads) throws TableNotFoundException {
-    checkArgument(tableName != null, "tableName is null");
-    return new BatchWriterImpl(context, context.getTableId(tableName),
-        new BatchWriterConfig().setMaxMemory(maxMemory)
-            .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
+    return context.createBatchWriter(tableName, new BatchWriterConfig().setMaxMemory(maxMemory)
+        .setMaxLatency(maxLatency, MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
   }
 
   @Override
@@ -122,8 +157,8 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
   @Override
   public MultiTableBatchWriter createMultiTableBatchWriter(long maxMemory, long maxLatency,
       int maxWriteThreads) {
-    return new MultiTableBatchWriterImpl(context, new BatchWriterConfig().setMaxMemory(maxMemory)
-        .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
+    return context.createMultiTableBatchWriter(new BatchWriterConfig().setMaxMemory(maxMemory)
+        .setMaxLatency(maxLatency, MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
   }
 
   @Override

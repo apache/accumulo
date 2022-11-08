@@ -1,28 +1,30 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.monitor.rest;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import org.apache.accumulo.monitor.rest.logs.DeadLoggerList;
-import org.apache.accumulo.monitor.rest.master.MasterInformation;
+import org.apache.accumulo.monitor.rest.manager.ManagerInformation;
 import org.apache.accumulo.monitor.rest.tables.TableInformationList;
 import org.apache.accumulo.monitor.rest.tservers.BadTabletServers;
 import org.apache.accumulo.monitor.rest.tservers.DeadServerList;
@@ -40,7 +42,7 @@ public class SummaryInformation {
   // Variable names become JSON keys
   public List<TabletServer> servers = new ArrayList<>();
 
-  public String masterGoalState, masterState;
+  public String managerGoalState, managerState;
 
   public BadTabletServers badTabletServers;
   public ServersShuttingDown tabletServersShuttingDown;
@@ -61,15 +63,15 @@ public class SummaryInformation {
    * @param size
    *          Number of tservers
    * @param info
-   *          Master information
+   *          Manager information
    * @param tablesList
    *          Table list
    */
-  public SummaryInformation(int size, MasterInformation info, TableInformationList tablesList) {
+  public SummaryInformation(int size, ManagerInformation info, TableInformationList tablesList) {
     this.servers = new ArrayList<>(size);
 
-    this.masterGoalState = info.masterGoalState;
-    this.masterState = info.masterState;
+    this.managerGoalState = info.managerGoalState;
+    this.managerState = info.managerState;
 
     this.badTabletServers = info.badTabletServers;
     this.tabletServersShuttingDown = info.tabletServersShuttingDown;

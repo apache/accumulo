@@ -1,32 +1,33 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+"use strict";
 
-var serv;
-var tabletResults;
+var detailTable, historyTable, currentTable, resultsTable;
+
 /**
  * Makes the REST calls, generates the tables with the new information
  */
 function refreshServer() {
-  getTServer(serv).then(function() {
-    refreshDetailTable();
-    refreshHistoryTable();
-    refreshCurrentTable();
-    refreshResultsTable();
-  });
+  ajaxReloadTable(detailTable);
+  ajaxReloadTable(historyTable);
+  ajaxReloadTable(currentTable);
+  ajaxReloadTable(resultsTable);
 }
 
 /**
@@ -37,156 +38,265 @@ function refresh() {
 }
 
 /**
- * Generates the server details table
+ * Initializes all of the DataTables for the given hostname
+ * 
+ * @param {String} serv the tserver hostname
  */
-function refreshDetailTable() {
+function initServerTables(serv) {
 
-  clearTableBody('tServerDetail');
+  const url = '/rest/tservers/' + serv;
+  console.debug('REST url used to fetch data for server.js DataTables: ' + url);
 
-  var data = sessionStorage.server === undefined ?
-      [] : JSON.parse(sessionStorage.server);
+  // Create a table for details on the current server
+  detailTable = $('#tServerDetail').DataTable({
+    "ajax": {
+      "url": url,
+      "dataSrc": function (data) {
+        // the data needs to be in an array to work with DataTables
+        var arr = [];
+        if (data.details === undefined) {
+          console.warn('the value of "details" is undefined');
+        } else {
+          arr = [data.details];
+        }
 
-  var items = [];
+        return arr;
+      }
+    },
+    "stateSave": true,
+    "searching": false,
+    "paging": false,
+    "info": false,
+    "columnDefs": [{
+      "targets": "big-num",
+      "render": function (data, type) {
+        if (type === 'display') {
+          data = bigNumberForQuantity(data);
+        }
+        return data;
+      }
+    }],
+    "columns": [{
+        "data": "hostedTablets"
+      },
+      {
+        "data": "entries"
+      },
+      {
+        "data": "minors"
+      },
+      {
+        "data": "majors"
+      },
+      {
+        "data": "splits"
+      }
+    ]
+  });
 
-  if (data.length === 0 || data.details === undefined) {
-    items.push(createEmptyRow(5, 'Empty'));
-  } else {
-    items.push(createFirstCell(data.details.hostedTablets,
-        bigNumberForQuantity(data.details.hostedTablets)));
+  // Create a table for all time tablet operations
+  historyTable = $('#opHistoryDetails').DataTable({
+    "ajax": {
+      "url": url,
+      "dataSrc": "allTimeTabletResults"
+    },
+    "stateSave": true,
+    "searching": false,
+    "paging": false,
+    "info": false,
+    "columnDefs": [{
+        "targets": "big-num",
+        "render": function (data, type) {
+          if (type === 'display') {
+            data = bigNumberForQuantity(data);
+          }
+          return data;
+        }
+      },
+      {
+        "targets": "duration",
+        "render": function (data, type) {
+          if (type === 'display') {
+            if (data === null) {
+              data = '-';
+            } else {
+              data = timeDuration(data * 1000.0);
+            }
+          }
+          return data;
+        }
+      }
+    ],
+    "columns": [{
+        "data": "operation"
+      },
+      {
+        "data": "success"
+      },
+      {
+        "data": "failure"
+      },
+      {
+        "data": "avgQueueTime"
+      },
+      {
+        "data": "queueStdDev"
+      },
+      {
+        "data": "avgTime"
+      },
+      {
+        "data": "stdDev"
+      },
+      {
+        "data": "timeSpent" // placeholder for percent column, replaced below
+      }
+    ],
+    // calculate and fill percent column each time table is drawn
+    "drawCallback": function () {
+      var totalTime = 0;
+      var api = this.api();
 
-    items.push(createRightCell(data.details.entries,
-        bigNumberForQuantity(data.details.entries)));
+      // calculate total duration of all tablet operations
+      api.rows().every(function () {
+        totalTime += this.data().timeSpent;
+      });
 
-    items.push(createRightCell(data.details.minors,
-        bigNumberForQuantity(data.details.minors)));
+      const percentColumnIndex = 7;
+      api.rows().every(function (rowIdx) {
+        // calculate the percentage of time taken for each row (each tablet op)
+        var currentPercent = (this.data().timeSpent / totalTime) * 100;
+        currentPercent = Math.round(currentPercent);
+        if (isNaN(currentPercent)) {
+          currentPercent = 0;
+        }
+        // insert the percentage bar into the current row and percent column
+        var newData = `<div class="progress"><div class="progress-bar" role="progressbar" style="min-width: 2em; width:${currentPercent}%;">${currentPercent}%</div></div>`
+        api.cell(rowIdx, percentColumnIndex).data(newData);
+      });
+    }
+  });
 
-    items.push(createRightCell(data.details.majors,
-        bigNumberForQuantity(data.details.majors)));
+  // Create a table for tablet operations on the current server
+  currentTable = $('#currentTabletOps').DataTable({
+    "ajax": {
+      "url": url,
+      "dataSrc": function (data) {
+        // the data needs to be in an array to work with DataTables
+        var arr = [];
+        if (data.currentTabletOperationResults === undefined) {
+          console.warn('the value of "currentTabletOperationResults" is undefined');
+        } else {
+          arr = [data.currentTabletOperationResults];
+        }
 
-    items.push(createRightCell(data.details.splits,
-        bigNumberForQuantity(data.details.splits)));
-  }
+        return arr;
+      }
+    },
+    "stateSave": true,
+    "searching": false,
+    "paging": false,
+    "info": false,
+    "columnDefs": [{
+      "targets": "duration",
+      "render": function (data, type) {
+        if (type === 'display') {
+          data = timeDuration(data * 1000.0);
+        }
+        return data;
+      }
+    }],
+    "columns": [{
+        "data": "currentMinorAvg"
+      },
+      {
+        "data": "currentMinorStdDev"
+      },
+      {
+        "data": "currentMajorAvg"
+      },
+      {
+        "data": "currentMajorStdDev"
+      }
+    ]
+  });
 
-  $('<tr/>', {
-    html: items.join('')
-  }).appendTo('#tServerDetail tbody');
-}
+  // Create a table for detailed tablet operations
+  resultsTable = $('#perTabletResults').DataTable({
+    "ajax": {
+      "url": url,
+      "dataSrc": "currentOperations"
+    },
+    "stateSave": true,
+    "dom": 't<"align-left"l>p',
+    "columnDefs": [{
+        "targets": "big-num",
+        "render": function (data, type) {
+          if (type === 'display') {
+            data = bigNumberForQuantity(data);
+          }
+          return data;
+        }
+      },
+      {
+        "targets": "duration",
+        "render": function (data, type) {
+          if (type === 'display') {
+            data = timeDuration(data);
+          }
+          return data;
+        }
+      }
+    ],
+    "columns": [{
+        "data": "name",
+        "type": "html",
+        "render": function (data, type, row) {
+          if (type === 'display') {
+            data = `<a href="/tables/${row.tableID}">${data}</a>`;
+          }
+          return data;
+        }
+      },
+      {
+        "data": "tablet",
+        "type": "html",
+        "render": function (data, type) {
+          if (type === 'display') {
+            data = `<code>${data}</code>`;
+          }
+          return data;
+        }
+      },
+      {
+        "data": "entries"
+      },
+      {
+        "data": "ingest"
+      },
+      {
+        "data": "query"
+      },
+      {
+        "data": "minorAvg"
+      },
+      {
+        "data": "minorStdDev"
+      },
+      {
+        "data": "minorAvgES"
+      },
+      {
+        "data": "majorAvg"
+      },
+      {
+        "data": "majorStdDev"
+      },
+      {
+        "data": "majorAvgES"
+      }
+    ]
+  });
 
-/**
- * Generates the server history table
- */
-function refreshHistoryTable() {
-
-  clearTableBody('opHistoryDetails');
-
-  var data = sessionStorage.server === undefined ?
-      [] : JSON.parse(sessionStorage.server);
-
-  if (data.length === 0 || data.allTimeTabletResults === undefined) {
-    var row = [];
-
-    row.push(createEmptyRow(8, 'Empty'));
-
-    $('<tr/>', {
-      html: row.join('')
-    }).appendTo('#opHistoryDetails tbody');
-  } else {
-    var totalTimeSpent = 0;
-    $.each(data.allTimeTabletResults, function(key, val) {
-      totalTimeSpent += val.timeSpent;
-    });
-
-    $.each(data.allTimeTabletResults, function(key, val) {
-      var row = [];
-
-      row.push(createFirstCell(val.operation, val.operation));
-
-      row.push(createRightCell(val.success, bigNumberForQuantity(val.success)));
-
-      row.push(createRightCell(val.failure,
-          bigNumberForQuantity(val.failure)));
-
-      row.push(createRightCell((val.avgQueueTime == null ?
-          '-' : val.avgQueueTime * 1000.0),
-          (val.avgQueueTime == null ?
-          '&mdash;' : timeDuration(val.avgQueueTime * 1000.0))));
-
-      row.push(createRightCell((val.queueStdDev == null ?
-          '-' : val.queueStdDev * 1000.0),
-          (val.queueStdDev == null ?
-          '&mdash;' : timeDuration(val.queueStdDev * 1000.0))));
-
-      row.push(createRightCell((val.avgTime == null ?
-          '-' : val.avgTime * 1000.0),
-          (val.avgTime == null ?
-          '&mdash;' : timeDuration(val.avgTime * 1000.0))));
-
-      row.push(createRightCell((val.stdDev == null ?
-          '-' : val.stdDev * 1000.0),
-          (val.stdDev == null ?
-          '&mdash;' : timeDuration(val.stdDev * 1000.0))));
-
-      row.push(createRightCell(((val.timeSpent / totalTimeSpent) * 100),
-          '<div class="progress"><div class="progress-bar"' +
-          ' role="progressbar" style="min-width: 2em; width:' +
-          Math.floor((val.timeSpent / totalTimeSpent) * 100) +
-          '%;">' + Math.floor((val.timeSpent / totalTimeSpent) * 100) +
-          '%</div></div>'));
-
-      $('<tr/>', {
-        html: row.join('')
-      }).appendTo('#opHistoryDetails tbody');
-
-    });
-  }
-}
-
-/**
- * Generates the current server table
- */
-function refreshCurrentTable() {
-
-  clearTableBody('currentTabletOps');
-
-  var data = sessionStorage.server === undefined ?
-      [] : JSON.parse(sessionStorage.server);
-
-  var items = [];
-  if (data.length === 0 || data.currentTabletOperationResults === undefined) {
-    items.push(createEmptyRow(4, 'Empty'));
-  } else {
-    var current = data.currentTabletOperationResults;
-
-    items.push(createFirstCell((current.currentMinorAvg == null ?
-        '-' : current.currentMinorAvg * 1000.0),
-        (current.currentMinorAvg == null ?
-        '&mdash;' : timeDuration(current.currentMinorAvg * 1000.0))));
-
-    items.push(createRightCell((current.currentMinorStdDev == null ?
-        '-' : current.currentMinorStdDev * 1000.0),
-        (current.currentMinorStdDev == null ?
-        '&mdash;' : timeDuration(current.currentMinorStdDev * 1000.0))));
-
-    items.push(createRightCell((current.currentMajorAvg == null ?
-        '-' : current.currentMajorAvg * 1000.0),
-        (current.currentMajorAvg == null ?
-        '&mdash;' : timeDuration(current.currentMajorAvg * 1000.0))));
-
-    items.push(createRightCell((current.currentMajorStdDev == null ?
-        '-' : current.currentMajorStdDev * 1000.0),
-        (current.currentMajorStdDev == null ?
-        '&mdash;' : timeDuration(current.currentMajorStdDev * 1000.0))));
-  }
-
-  $('<tr/>', {
-      html: items.join('')
-  }).appendTo('#currentTabletOps tbody');
-
-}
-
-/**
- * Generates the server results table
- */
-function refreshResultsTable() {
-  tabletResults.ajax.reload(null, false ); // user paging is not reset on reload
+  refreshServer();
 }

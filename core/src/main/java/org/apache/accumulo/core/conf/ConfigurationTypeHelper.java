@@ -1,20 +1,28 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.conf;
+
+import static java.util.concurrent.TimeUnit.DAYS;
+import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -22,7 +30,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -112,23 +120,23 @@ public class ConfigurationTypeHelper {
     int unitsLen = 1;
     switch (str.charAt(str.length() - 1)) {
       case 'd':
-        timeUnit = TimeUnit.DAYS;
+        timeUnit = DAYS;
         break;
       case 'h':
-        timeUnit = TimeUnit.HOURS;
+        timeUnit = HOURS;
         break;
       case 'm':
-        timeUnit = TimeUnit.MINUTES;
+        timeUnit = MINUTES;
         break;
       case 's':
-        timeUnit = TimeUnit.SECONDS;
+        timeUnit = SECONDS;
         if (str.endsWith("ms")) {
-          timeUnit = TimeUnit.MILLISECONDS;
+          timeUnit = MILLISECONDS;
           unitsLen = 2;
         }
         break;
       default:
-        timeUnit = TimeUnit.SECONDS;
+        timeUnit = SECONDS;
         unitsLen = 0;
         break;
     }
@@ -144,7 +152,7 @@ public class ConfigurationTypeHelper {
    * @return interpreted fraction as a decimal value
    */
   public static double getFraction(String str) {
-    if (str.length() > 0 && str.charAt(str.length() - 1) == '%')
+    if (!str.isEmpty() && str.charAt(str.length() - 1) == '%')
       return Double.parseDouble(str.substring(0, str.length() - 1)) / 100.0;
     return Double.parseDouble(str);
   }
@@ -173,7 +181,7 @@ public class ConfigurationTypeHelper {
     try {
       instance = getClassInstance(context, clazzName, base);
     } catch (RuntimeException | IOException | ReflectiveOperationException e) {
-      log.warn("Failed to load class {}", clazzName, e);
+      log.warn("Failed to load class {} in classloader context {}", clazzName, context, e);
     }
 
     if (instance == null && defaultInstance != null) {
@@ -198,13 +206,7 @@ public class ConfigurationTypeHelper {
       throws IOException, ReflectiveOperationException {
     T instance;
 
-    Class<? extends T> clazz;
-    if (context != null && !context.isEmpty()) {
-      clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, clazzName, base);
-    } else {
-      clazz = AccumuloVFSClassLoader.loadClass(clazzName, base);
-    }
-
+    Class<? extends T> clazz = ClassLoaderUtil.loadClass(context, clazzName, base);
     instance = clazz.getDeclaredConstructor().newInstance();
     if (loaded.put(clazzName, clazz) != clazz)
       log.debug("Loaded class : {}", clazzName);

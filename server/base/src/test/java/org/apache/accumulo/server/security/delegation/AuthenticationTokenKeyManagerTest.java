@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.security.delegation;
 
@@ -21,7 +23,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
@@ -30,9 +32,10 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 
 import org.easymock.EasyMock;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +48,7 @@ public class AuthenticationTokenKeyManagerTest {
   private static final int KEY_LENGTH = 64;
   private static KeyGenerator keyGen;
 
-  @BeforeClass
+  @BeforeAll
   public static void setupKeyGenerator() throws Exception {
     // From org.apache.hadoop.security.token.SecretManager
     keyGen = KeyGenerator.getInstance(DEFAULT_HMAC_ALGORITHM);
@@ -55,7 +58,7 @@ public class AuthenticationTokenKeyManagerTest {
   private AuthenticationTokenSecretManager secretManager;
   private ZooAuthenticationKeyDistributor zooDistributor;
 
-  @Before
+  @BeforeEach
   public void setupMocks() {
     secretManager = createMock(AuthenticationTokenSecretManager.class);
     zooDistributor = createMock(ZooAuthenticationKeyDistributor.class);
@@ -63,8 +66,8 @@ public class AuthenticationTokenKeyManagerTest {
 
   @Test
   public void testIntervalNotPassed() {
-    long updateInterval = 5 * 1000L;
-    long tokenLifetime = 100 * 1000L;
+    long updateInterval = 5_000L;
+    long tokenLifetime = 100_000L;
     AuthenticationTokenKeyManager keyManager = new AuthenticationTokenKeyManager(secretManager,
         zooDistributor, updateInterval, tokenLifetime);
 
@@ -84,8 +87,8 @@ public class AuthenticationTokenKeyManagerTest {
 
   @Test
   public void testIntervalHasPassed() throws Exception {
-    long updateInterval = 0 * 1000L;
-    long tokenLifetime = 100 * 1000L;
+    long updateInterval = 0;
+    long tokenLifetime = 100_000L;
     long runTime = 10L;
     SecretKey secretKey = keyGen.generateKey();
 
@@ -136,7 +139,8 @@ public class AuthenticationTokenKeyManagerTest {
 
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test
+  @Timeout(30)
   public void testStopLoop() throws InterruptedException {
     final MockManager keyManager = EasyMock.createMockBuilder(MockManager.class)
         .addMockedMethod("_run").addMockedMethod("updateStateFromCurrentKeys").createMock();
@@ -181,8 +185,8 @@ public class AuthenticationTokenKeyManagerTest {
 
   @Test
   public void testExistingKeysAreAddedAtStartup() throws Exception {
-    long updateInterval = 0 * 1000L;
-    long tokenLifetime = 100 * 1000L;
+    long updateInterval = 0;
+    long tokenLifetime = 100_000L;
     SecretKey secretKey1 = keyGen.generateKey(), secretKey2 = keyGen.generateKey();
 
     AuthenticationKey authKey1 = new AuthenticationKey(1, 0, tokenLifetime, secretKey1),

@@ -1,36 +1,39 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.constraints;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.constraints.Constraint;
-import org.apache.accumulo.core.constraints.Constraint.Environment;
 import org.apache.accumulo.core.constraints.Violations;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.data.constraints.Constraint;
+import org.apache.accumulo.core.data.constraints.Constraint.Environment;
 import org.apache.accumulo.core.dataImpl.ComparableBytes;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
+import org.apache.hadoop.io.BinaryComparable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,39 +41,31 @@ import com.google.common.annotations.VisibleForTesting;
 
 public class ConstraintChecker {
 
-  private ArrayList<Constraint> constrains;
+  private ArrayList<Constraint> constraints;
   private static final Logger log = LoggerFactory.getLogger(ConstraintChecker.class);
 
   public ConstraintChecker(AccumuloConfiguration conf) {
-    constrains = new ArrayList<>();
+    constraints = new ArrayList<>();
 
     try {
-      String context = conf.get(Property.TABLE_CLASSPATH);
-
-      ClassLoader loader;
-
-      if (context != null && !context.equals("")) {
-        loader = AccumuloVFSClassLoader.getContextManager().getClassLoader(context);
-      } else {
-        loader = AccumuloVFSClassLoader.getClassLoader();
-      }
+      String context = ClassLoaderUtil.tableContext(conf);
 
       for (Entry<String,String> entry : conf
           .getAllPropertiesWithPrefix(Property.TABLE_CONSTRAINT_PREFIX).entrySet()) {
         if (entry.getKey().startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())) {
           String className = entry.getValue();
           Class<? extends Constraint> clazz =
-              loader.loadClass(className).asSubclass(Constraint.class);
+              ClassLoaderUtil.loadClass(context, className, Constraint.class);
 
           log.debug("Loaded constraint {} for {}", clazz.getName(),
               ((TableConfiguration) conf).getTableId());
-          constrains.add(clazz.getDeclaredConstructor().newInstance());
+          constraints.add(clazz.getDeclaredConstructor().newInstance());
         }
       }
 
-    } catch (Throwable e) {
-      constrains.clear();
-      constrains.add(new UnsatisfiableConstraint((short) -1,
+    } catch (Exception e) {
+      constraints.clear();
+      constraints.add(new UnsatisfiableConstraint((short) -1,
           "Failed to load constraints, not accepting mutations."));
       log.error("Failed to load constraints " + ((TableConfiguration) conf).getTableId() + " " + e,
           e);
@@ -79,7 +74,7 @@ public class ConstraintChecker {
 
   @VisibleForTesting
   ArrayList<Constraint> getConstraints() {
-    return constrains;
+    return constraints;
   }
 
   private static Violations addViolation(Violations violations, ConstraintViolationSummary cvs) {
@@ -91,7 +86,7 @@ public class ConstraintChecker {
   }
 
   public Violations check(Environment env, Mutation m) {
-    if (!env.getExtent().contains(new ComparableBytes(m.getRow()))) {
+    if (!tabletContains(env.getTablet(), new ComparableBytes(m.getRow()))) {
       Violations violations = new Violations();
 
       ConstraintViolationSummary cvs = new ConstraintViolationSummary(
@@ -114,25 +109,22 @@ public class ConstraintChecker {
                 constraint.getViolationDescription(vcode), 1));
           }
         }
-      } catch (Throwable throwable) {
-        log.warn("CONSTRAINT FAILED : {}", throwable.getMessage(), throwable);
+      } catch (Exception e) {
+        log.warn("CONSTRAINT FAILED : {}", e.getMessage(), e);
 
         // constraint failed in some way, do not allow mutation to pass
         short vcode;
         String msg;
 
-        if (throwable instanceof NullPointerException) {
+        if (e instanceof NullPointerException) {
           vcode = -1;
           msg = "threw NullPointerException";
-        } else if (throwable instanceof ArrayIndexOutOfBoundsException) {
+        } else if (e instanceof ArrayIndexOutOfBoundsException) {
           vcode = -2;
           msg = "threw ArrayIndexOutOfBoundsException";
-        } else if (throwable instanceof NumberFormatException) {
+        } else if (e instanceof NumberFormatException) {
           vcode = -3;
           msg = "threw NumberFormatException";
-        } else if (throwable instanceof IOException) {
-          vcode = -4;
-          msg = "threw IOException (or subclass of)";
         } else {
           vcode = -100;
           msg = "threw some Exception";
@@ -145,5 +137,17 @@ public class ConstraintChecker {
     }
 
     return violations;
+  }
+
+  /**
+   * Return true if the tablet contains the row. This is similar to the contains in KeyExtent
+   */
+  public boolean tabletContains(TabletId tablet, BinaryComparable row) {
+    if (row == null) {
+      throw new IllegalArgumentException(
+          "Passing null to contains is ambiguous, could be in first or last extent of table");
+    }
+    return (tablet.getPrevEndRow() == null || tablet.getPrevEndRow().compareTo(row) < 0)
+        && (tablet.getEndRow() == null || tablet.getEndRow().compareTo(row) >= 0);
   }
 }

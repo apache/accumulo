@@ -1,49 +1,46 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.monitor.view;
 
-import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX;
 import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX_BLANK_OK;
 import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX_TABLE_ID;
 import static org.apache.accumulo.monitor.util.ParameterValidator.HOSTNAME_PORT_REGEX;
-import static org.apache.accumulo.monitor.util.ParameterValidator.RESOURCE_REGEX;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.inject.Inject;
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Pattern;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
+import jakarta.inject.Inject;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
@@ -84,9 +81,8 @@ public class WebViews {
     List<String> monitorResources = new ArrayList<>();
     ObjectMapper objectMapper = new ObjectMapper();
     try {
-      for (String monitorResource : objectMapper.readValue(resourcesProperty, String[].class)) {
-        monitorResources.add(monitorResource);
-      }
+      Collections.addAll(monitorResources,
+          objectMapper.readValue(resourcesProperty, String[].class));
     } catch (IOException e) {
       log.error("Error Monitor Resources config property {}: {}",
           Property.MONITOR_RESOURCES_EXTERNAL, e);
@@ -103,6 +99,7 @@ public class WebViews {
     model.put("version", Constants.VERSION);
     model.put("instance_name", monitor.getContext().getInstanceName());
     model.put("instance_id", monitor.getContext().getInstanceID());
+    model.put("zk_hosts", monitor.getContext().getZooKeepers());
     addExternalResources(model);
     return model;
   }
@@ -125,19 +122,19 @@ public class WebViews {
   }
 
   /**
-   * Returns the master template
+   * Returns the manager template
    *
-   * @return Master model
+   * @return Manager model
    */
   @GET
-  @Path("{parameter: master|monitor}")
+  @Path("{parameter: manager|monitor}")
   @Template(name = "/default.ftl")
-  public Map<String,Object> getMaster() {
+  public Map<String,Object> getManager() {
 
     Map<String,Object> model = getModel();
-    model.put("title", "Master Server");
-    model.put("template", "master.ftl");
-    model.put("js", "master.js");
+    model.put("title", "Manager Server");
+    model.put("template", "manager.ftl");
+    model.put("js", "manager.js");
 
     model.put("tablesTitle", "Table Status");
     model.put("tablesTemplate", "tables.ftl");
@@ -181,9 +178,52 @@ public class WebViews {
   public Map<String,Object> getScans() {
 
     Map<String,Object> model = getModel();
-    model.put("title", "Scans");
+    model.put("title", "Active scans");
     model.put("template", "scans.ftl");
     model.put("js", "scans.js");
+
+    return model;
+  }
+
+  /**
+   * Returns the compactions template
+   *
+   * @return Scans model
+   */
+  @GET
+  @Path("compactions")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getCompactions() {
+
+    Map<String,Object> model = getModel();
+    model.put("title", "Active Compactions");
+    model.put("template", "compactions.ftl");
+    model.put("js", "compactions.js");
+
+    return model;
+  }
+
+  /**
+   * Returns the compactions template
+   *
+   * @return Scans model
+   */
+  @GET
+  @Path("ec")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getExternalCompactions() {
+    var ccHost = monitor.getCoordinatorHost();
+
+    Map<String,Object> model = getModel();
+    model.put("title", "External Compactions");
+    model.put("template", "ec.ftl");
+
+    if (ccHost.isPresent()) {
+      model.put("coordinatorRunning", true);
+      model.put("js", "ec.js");
+    } else {
+      model.put("coordinatorRunning", false);
+    }
 
     return model;
   }
@@ -256,7 +296,7 @@ public class WebViews {
       @PathParam("tableID") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableID)
       throws TableNotFoundException {
 
-    String tableName = Tables.getTableName(monitor.getContext(), TableId.of(tableID));
+    String tableName = monitor.getContext().getTableName(TableId.of(tableID));
 
     Map<String,Object> model = getModel();
     model.put("title", "Table Status");
@@ -265,78 +305,6 @@ public class WebViews {
     model.put("js", "table.js");
     model.put("tableID", tableID);
     model.put("table", tableName);
-
-    return model;
-  }
-
-  /**
-   * Returns trace summary template
-   *
-   * @param minutes
-   *          Range of minutes, default 10 minutes Min of 0 Max of 30 days in minutes
-   * @return Trace summary model
-   */
-  @GET
-  @Path("trace/summary")
-  @Template(name = "/default.ftl")
-  public Map<String,Object> getTracesSummary(
-      @QueryParam("minutes") @DefaultValue("10") @Min(0) @Max(2592000) int minutes) {
-    Map<String,Object> model = getModel();
-    model.put("title", "Traces for the last&nbsp;" + String.valueOf(minutes) + "&nbsp;minute(s)");
-
-    model.put("template", "summary.ftl");
-    model.put("js", "summary.js");
-    model.put("minutes", String.valueOf(minutes));
-
-    return model;
-  }
-
-  /**
-   * Returns traces by type template
-   *
-   * @param type
-   *          Type of trace
-   * @param minutes
-   *          Range of minutes, default 10 minutes Min of 0 Max of 30 days in minutes
-   * @return Traces by type model
-   */
-  @GET
-  @Path("trace/listType")
-  @Template(name = "/default.ftl")
-  public Map<String,Object> getTracesForType(
-      @QueryParam("type") @NotNull @Pattern(regexp = RESOURCE_REGEX) String type,
-      @QueryParam("minutes") @DefaultValue("10") @Min(0) @Max(2592000) int minutes) {
-    Map<String,Object> model = getModel();
-    model.put("title",
-        "Traces for " + type + " for the last " + String.valueOf(minutes) + " minute(s)");
-
-    model.put("template", "listType.ftl");
-    model.put("js", "listType.js");
-    model.put("type", type);
-    model.put("minutes", String.valueOf(minutes));
-
-    return model;
-  }
-
-  /**
-   * Returns traces by ID template
-   *
-   * @param id
-   *          ID of the traces
-   * @return Traces by ID model
-   */
-  @GET
-  @Path("trace/show")
-  @Template(name = "/default.ftl")
-  public Map<String,Object>
-      getTraceShow(@QueryParam("id") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String id) {
-
-    Map<String,Object> model = getModel();
-    model.put("title", "Trace ID " + id);
-
-    model.put("template", "show.ftl");
-    model.put("js", "show.js");
-    model.put("id", id);
 
     return model;
   }
@@ -402,4 +370,5 @@ public class WebViews {
 
     return model;
   }
+
 }

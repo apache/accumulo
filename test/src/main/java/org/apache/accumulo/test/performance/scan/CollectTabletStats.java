@@ -1,24 +1,27 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.performance.scan;
 
+import static org.apache.accumulo.harness.AccumuloITBase.random;
+
 import java.io.IOException;
 import java.net.InetAddress;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -27,7 +30,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.CountDownLatch;
@@ -38,11 +40,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.IterConfigUtil;
-import org.apache.accumulo.core.conf.IterLoad;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Column;
@@ -54,24 +52,26 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.SortedMapIterator;
-import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
-import org.apache.accumulo.core.iterators.system.ColumnQualifierFilter;
-import org.apache.accumulo.core.iterators.system.DeletingIterator;
-import org.apache.accumulo.core.iterators.system.DeletingIterator.Behavior;
-import org.apache.accumulo.core.iterators.system.MultiIterator;
-import org.apache.accumulo.core.iterators.system.VisibilityFilter;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
+import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.ColumnQualifierFilter;
+import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator.Behavior;
+import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.VisibilityFilter;
 import org.apache.accumulo.core.metadata.MetadataServicer;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.BlockLocation;
@@ -87,6 +87,7 @@ import com.beust.jcommander.Parameter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class CollectTabletStats {
+
   private static final Logger log = LoggerFactory.getLogger(CollectTabletStats.class);
 
   static class CollectOptions extends ServerUtilOpts {
@@ -102,6 +103,8 @@ public class CollectTabletStats {
     String columns;
   }
 
+  static class TestEnvironment implements IteratorEnvironment {}
+
   public static void main(String[] args) throws Exception {
 
     final CollectOptions opts = new CollectOptions();
@@ -114,9 +117,8 @@ public class CollectTabletStats {
 
     ServerContext context = opts.getServerContext();
     final VolumeManager fs = context.getVolumeManager();
-    ServerConfigurationFactory sconf = context.getServerConfFactory();
 
-    TableId tableId = Tables.getTableId(context, opts.tableName);
+    TableId tableId = context.getTableId(opts.tableName);
     if (tableId == null) {
       log.error("Unable to find table named {}", opts.tableName);
       System.exit(-1);
@@ -134,10 +136,10 @@ public class CollectTabletStats {
 
     List<KeyExtent> tabletsToTest = selectRandomTablets(opts.numThreads, candidates);
 
-    Map<KeyExtent,List<FileRef>> tabletFiles = new HashMap<>();
+    Map<KeyExtent,List<TabletFile>> tabletFiles = new HashMap<>();
 
     for (KeyExtent ke : tabletsToTest) {
-      List<FileRef> files = getTabletFiles(context, ke);
+      List<TabletFile> files = getTabletFiles(context, ke);
       tabletFiles.put(ke, files);
     }
 
@@ -164,11 +166,11 @@ public class CollectTabletStats {
       ArrayList<Test> tests = new ArrayList<>();
 
       for (final KeyExtent ke : tabletsToTest) {
-        final List<FileRef> files = tabletFiles.get(ke);
+        final List<TabletFile> files = tabletFiles.get(ke);
         Test test = new Test(ke) {
           @Override
           public int runTest() throws Exception {
-            return readFiles(fs, sconf.getSystemConfiguration(), files, ke, columns);
+            return readFiles(fs, context.getConfiguration(), files, ke, columns);
           }
 
         };
@@ -184,11 +186,11 @@ public class CollectTabletStats {
       ArrayList<Test> tests = new ArrayList<>();
 
       for (final KeyExtent ke : tabletsToTest) {
-        final List<FileRef> files = tabletFiles.get(ke);
+        final List<TabletFile> files = tabletFiles.get(ke);
         Test test = new Test(ke) {
           @Override
           public int runTest() throws Exception {
-            return readFilesUsingIterStack(fs, sconf, files, opts.auths, ke, columns, false);
+            return readFilesUsingIterStack(fs, context, files, opts.auths, ke, columns, false);
           }
         };
 
@@ -202,11 +204,11 @@ public class CollectTabletStats {
       ArrayList<Test> tests = new ArrayList<>();
 
       for (final KeyExtent ke : tabletsToTest) {
-        final List<FileRef> files = tabletFiles.get(ke);
+        final List<TabletFile> files = tabletFiles.get(ke);
         Test test = new Test(ke) {
           @Override
           public int runTest() throws Exception {
-            return readFilesUsingIterStack(fs, sconf, files, opts.auths, ke, columns, true);
+            return readFilesUsingIterStack(fs, context, files, opts.auths, ke, columns, true);
           }
         };
 
@@ -223,8 +225,8 @@ public class CollectTabletStats {
           Test test = new Test(ke) {
             @Override
             public int runTest() throws Exception {
-              return scanTablet(client, opts.tableName, opts.auths, ke.getPrevEndRow(),
-                  ke.getEndRow(), columns);
+              return scanTablet(client, opts.tableName, opts.auths, ke.prevEndRow(), ke.endRow(),
+                  columns);
             }
           };
           tests.add(test);
@@ -233,7 +235,7 @@ public class CollectTabletStats {
       }
 
       for (final KeyExtent ke : tabletsToTest) {
-        threadPool.submit(() -> {
+        threadPool.execute(() -> {
           try {
             calcTabletStats(client, opts.tableName, opts.auths, ke, columns);
           } catch (Exception e) {
@@ -318,7 +320,7 @@ public class CollectTabletStats {
     CountDownLatch finishedSignal = new CountDownLatch(numThreads);
 
     for (Test test : tests) {
-      threadPool.submit(test);
+      threadPool.execute(test);
       test.setSignals(startSignal, finishedSignal);
     }
 
@@ -352,7 +354,7 @@ public class CollectTabletStats {
   private static List<KeyExtent> findTablets(ClientContext context, boolean selectLocalTablets,
       String tableName, SortedMap<KeyExtent,String> tabletLocations) throws Exception {
 
-    TableId tableId = Tables.getTableId(context, tableName);
+    TableId tableId = context.getTableId(tableName);
     MetadataServicer.forTableId(context, tableId).getTabletLocations(tabletLocations);
 
     InetAddress localaddress = InetAddress.getLocalHost();
@@ -378,9 +380,8 @@ public class CollectTabletStats {
   private static List<KeyExtent> selectRandomTablets(int numThreads, List<KeyExtent> candidates) {
     List<KeyExtent> tabletsToTest = new ArrayList<>();
 
-    Random rand = new SecureRandom();
     for (int i = 0; i < numThreads; i++) {
-      int rindex = rand.nextInt(candidates.size());
+      int rindex = random.nextInt(candidates.size());
       tabletsToTest.add(candidates.get(rindex));
       Collections.swap(candidates, rindex, candidates.size() - 1);
       candidates = candidates.subList(0, candidates.size() - 1);
@@ -388,25 +389,25 @@ public class CollectTabletStats {
     return tabletsToTest;
   }
 
-  private static List<FileRef> getTabletFiles(ServerContext context, KeyExtent ke)
+  private static List<TabletFile> getTabletFiles(ServerContext context, KeyExtent ke)
       throws IOException {
     return new ArrayList<>(
         MetadataTableUtil.getFileAndLogEntries(context, ke).getSecond().keySet());
   }
 
-  private static void reportHdfsBlockLocations(ServerContext context, List<FileRef> files)
+  private static void reportHdfsBlockLocations(ServerContext context, List<TabletFile> files)
       throws Exception {
     VolumeManager fs = context.getVolumeManager();
 
     System.out.println("\t\tFile block report : ");
-    for (FileRef file : files) {
-      FileStatus status = fs.getFileStatus(file.path());
+    for (TabletFile file : files) {
+      FileStatus status = fs.getFileStatus(file.getPath());
 
       if (status.isDirectory()) {
         // assume it is a map file
         status = fs.getFileStatus(new Path(file + "/data"));
       }
-      FileSystem ns = fs.getVolumeByPath(file.path()).getFileSystem();
+      FileSystem ns = fs.getFileSystemByPath(file.getPath());
       BlockLocation[] locs = ns.getFileBlockLocations(status, 0, status.getLen());
 
       System.out.println("\t\t\tBlocks for : " + file);
@@ -446,27 +447,27 @@ public class CollectTabletStats {
         VisibilityFilter.wrap(colFilter, authorizations, defaultLabels);
 
     if (useTableIterators) {
-      IterLoad il = IterConfigUtil.loadIterConf(IteratorScope.scan, ssiList, ssio, conf);
-      return IterConfigUtil.loadIterators(visFilter, il.useAccumuloClassLoader(true));
+      var ibEnv = IteratorConfigUtil.loadIterConf(IteratorScope.scan, ssiList, ssio, conf);
+      var iteratorBuilder = ibEnv.env(new TestEnvironment()).useClassLoader("test").build();
+      return IteratorConfigUtil.loadIterators(visFilter, iteratorBuilder);
     }
     return visFilter;
   }
 
-  private static int readFiles(VolumeManager fs, AccumuloConfiguration aconf, List<FileRef> files,
-      KeyExtent ke, String[] columns) throws Exception {
+  private static int readFiles(VolumeManager fs, AccumuloConfiguration aconf,
+      List<TabletFile> files, KeyExtent ke, String[] columns) throws Exception {
 
     int count = 0;
 
     HashSet<ByteSequence> columnSet = createColumnBSS(columns);
 
-    for (FileRef file : files) {
-      FileSystem ns = fs.getVolumeByPath(file.path()).getFileSystem();
+    for (TabletFile file : files) {
+      FileSystem ns = fs.getFileSystemByPath(file.getPath());
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-          .forFile(file.path().toString(), ns, ns.getConf(),
-              CryptoServiceFactory.newDefaultInstance())
+          .forFile(file.getPathStr(), ns, ns.getConf(), NoCryptoServiceFactory.NONE)
           .withTableConfiguration(aconf).build();
-      Range range = new Range(ke.getPrevEndRow(), false, ke.getEndRow(), true);
-      reader.seek(range, columnSet, columnSet.size() != 0);
+      Range range = new Range(ke.prevEndRow(), false, ke.endRow(), true);
+      reader.seek(range, columnSet, !columnSet.isEmpty());
       while (reader.hasTop() && !range.afterEndKey(reader.getTopKey())) {
         count++;
         reader.next();
@@ -485,32 +486,31 @@ public class CollectTabletStats {
     return columnSet;
   }
 
-  private static int readFilesUsingIterStack(VolumeManager fs, ServerConfigurationFactory aconf,
-      List<FileRef> files, Authorizations auths, KeyExtent ke, String[] columns,
+  private static int readFilesUsingIterStack(VolumeManager fs, ServerContext context,
+      List<TabletFile> files, Authorizations auths, KeyExtent ke, String[] columns,
       boolean useTableIterators) throws Exception {
 
     SortedKeyValueIterator<Key,Value> reader;
 
     List<SortedKeyValueIterator<Key,Value>> readers = new ArrayList<>(files.size());
 
-    for (FileRef file : files) {
-      FileSystem ns = fs.getVolumeByPath(file.path()).getFileSystem();
+    for (TabletFile file : files) {
+      FileSystem ns = fs.getFileSystemByPath(file.getPath());
       readers.add(FileOperations.getInstance().newReaderBuilder()
-          .forFile(file.path().toString(), ns, ns.getConf(),
-              CryptoServiceFactory.newDefaultInstance())
-          .withTableConfiguration(aconf.getSystemConfiguration()).build());
+          .forFile(file.getPathStr(), ns, ns.getConf(), NoCryptoServiceFactory.NONE)
+          .withTableConfiguration(context.getConfiguration()).build());
     }
 
     List<IterInfo> emptyIterinfo = Collections.emptyList();
     Map<String,Map<String,String>> emptySsio = Collections.emptyMap();
-    TableConfiguration tconf = aconf.getTableConfiguration(ke.getTableId());
+    TableConfiguration tconf = context.getTableConfiguration(ke.tableId());
     reader = createScanIterator(ke, readers, auths, new byte[] {}, new HashSet<>(), emptyIterinfo,
         emptySsio, useTableIterators, tconf);
 
     HashSet<ByteSequence> columnSet = createColumnBSS(columns);
 
-    reader.seek(new Range(ke.getPrevEndRow(), false, ke.getEndRow(), true), columnSet,
-        columnSet.size() != 0);
+    reader.seek(new Range(ke.prevEndRow(), false, ke.endRow(), true), columnSet,
+        !columnSet.isEmpty());
 
     int count = 0;
 
@@ -549,7 +549,7 @@ public class CollectTabletStats {
     // long t1 = System.currentTimeMillis();
 
     try (Scanner scanner = client.createScanner(table, auths)) {
-      scanner.setRange(new Range(ke.getPrevEndRow(), false, ke.getEndRow(), true));
+      scanner.setRange(new Range(ke.prevEndRow(), false, ke.endRow(), true));
 
       for (String c : columns) {
         scanner.fetchColumnFamily(new Text(c));

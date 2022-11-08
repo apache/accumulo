@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client;
 
@@ -27,21 +29,20 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
  * accessible indirectly via methods in this class. Below are a list of APIs entry points that are
  * not accessible from here.
  *
- * <UL>
- * <LI>Hadoop input, output formats and partitioners in {@code org.apache.accumulo.hadoop.mapred}
+ * <ul>
+ * <li>Hadoop input, output formats and partitioners in {@code org.apache.accumulo.hadoop.mapred}
  * and {@code org.apache.accumulo.hadoop.mapreduce} packages.
- * <LI>{@code org.apache.accumulo.minicluster.MiniAccumuloCluster} Not linkable by javadoc, because
+ * <li>{@code org.apache.accumulo.minicluster.MiniAccumuloCluster} Not linkable by javadoc, because
  * in a separate module.
- * <LI>{@link Lexicoder} and all of its implementations in the same package.
- * <LI>{@link RFile}
- * </UL>
+ * <li>{@link Lexicoder} and all of its implementations in the same package.
+ * <li>{@link RFile}
+ * </ul>
  *
- * @see <a href="http://accumulo.apache.org/">Accumulo Website</a>
- * @see <a href="http://accumulo.apache.org/api">Accumulo Public API</a>
- * @see <a href="http://semver.org/spec/v2.0.0">Semver 2.0</a>
+ * @see <a href="https://accumulo.apache.org/">Accumulo Website</a>
+ * @see <a href="https://accumulo.apache.org/api">Accumulo Public API</a>
+ * @see <a href="https://semver.org/spec/v2.0.0">Semver 2.0</a>
  * @since 2.0.0
  */
-// CHECKSTYLE:ON
 public final class Accumulo {
 
   private Accumulo() {}
@@ -51,14 +52,26 @@ public final class Accumulo {
    *
    * <pre>
    * <code>
+   * // Create client directly from connection information
    * try (AccumuloClient client = Accumulo.newClient()
    *        .to(instanceName, zookeepers)
    *        .as(user, password).build())
    * {
-   *   // use the client
+   *    // use the client
+   * }
+   *
+   * // Create client using the instance name, zookeeper, and credentials from java properties or properties file
+   * try (AccumuloClient client = Accumulo.newClient()
+   *        .from(properties).build())
+   * {
+   *    // use the client
    * }
    * </code>
    * </pre>
+   *
+   * For a list of all client properties, see the documentation on the
+   * <a href="https://accumulo.apache.org/docs/2.x/configuration/client-properties">Accumulo
+   * website</a>
    *
    * @return a builder object for Accumulo clients
    */
@@ -76,6 +89,10 @@ public final class Accumulo {
    *              .as(user, password).build())
    * </code>
    * </pre>
+   *
+   * For a list of all client properties, see the documentation on the
+   * <a href="https://accumulo.apache.org/docs/2.x/configuration/client-properties">Accumulo
+   * website</a>
    *
    * @return a builder object for client Properties
    */

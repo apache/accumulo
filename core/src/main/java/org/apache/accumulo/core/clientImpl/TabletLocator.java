@@ -1,34 +1,35 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.WeakHashMap;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -38,6 +39,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonService;
+import org.apache.accumulo.core.util.Interner;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
@@ -80,10 +82,10 @@ public abstract class TabletLocator {
   public abstract void invalidateCache(ClientContext context, String server);
 
   private static class LocatorKey {
-    String instanceId;
+    InstanceId instanceId;
     TableId tableId;
 
-    LocatorKey(String instanceId, TableId table) {
+    LocatorKey(InstanceId instanceId, TableId table) {
       this.instanceId = instanceId;
       this.tableId = table;
     }
@@ -106,7 +108,7 @@ public abstract class TabletLocator {
 
   }
 
-  private static HashMap<LocatorKey,TabletLocator> locators = new HashMap<>();
+  private static final HashMap<LocatorKey,TabletLocator> locators = new HashMap<>();
   private static boolean enabled = true;
 
   public static synchronized void clearLocators() {
@@ -131,8 +133,7 @@ public abstract class TabletLocator {
 
   public static synchronized TabletLocator getLocator(ClientContext context, TableId tableId) {
     Preconditions.checkState(enabled, "The Accumulo singleton that that tracks tablet locations is "
-        + "disabled. This is likely caused by all AccumuloClients being closed or garbage collected"
-        + ".");
+        + "disabled. This is likely caused by all AccumuloClients being closed or garbage collected");
     LocatorKey key = new LocatorKey(context.getInstanceID(), tableId);
     TabletLocator tl = locators.get(key);
     if (tl == null) {
@@ -193,22 +194,7 @@ public abstract class TabletLocator {
   }
 
   public static class TabletLocation implements Comparable<TabletLocation> {
-    private static final WeakHashMap<String,WeakReference<String>> tabletLocs = new WeakHashMap<>();
-
-    private static String dedupeLocation(String tabletLoc) {
-      synchronized (tabletLocs) {
-        WeakReference<String> lref = tabletLocs.get(tabletLoc);
-        if (lref != null) {
-          String loc = lref.get();
-          if (loc != null) {
-            return loc;
-          }
-        }
-
-        tabletLocs.put(tabletLoc, new WeakReference<>(tabletLoc));
-        return tabletLoc;
-      }
-    }
+    private static final Interner<String> interner = new Interner<>();
 
     public final KeyExtent tablet_extent;
     public final String tablet_location;
@@ -219,8 +205,8 @@ public abstract class TabletLocator {
       checkArgument(tablet_location != null, "tablet_location is null");
       checkArgument(session != null, "session is null");
       this.tablet_extent = tablet_extent;
-      this.tablet_location = dedupeLocation(tablet_location);
-      this.tablet_session = dedupeLocation(session);
+      this.tablet_location = interner.intern(tablet_location);
+      this.tablet_session = interner.intern(session);
     }
 
     @Override

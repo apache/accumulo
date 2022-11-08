@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.replication;
 
@@ -25,13 +27,12 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
@@ -46,6 +47,7 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Deprecated
 public class ReplicationUtil {
   private static final Logger log = LoggerFactory.getLogger(ReplicationUtil.class);
   public static final String STATUS_FORMATTER_CLASS_NAME = StatusFormatter.class.getName();
@@ -62,12 +64,12 @@ public class ReplicationUtil {
     this.factory = factory;
   }
 
-  public int getMaxReplicationThreads(MasterMonitorInfo mmi) {
+  public int getMaxReplicationThreads(ManagerMonitorInfo mmi) {
     int activeTservers = mmi.getTServerInfoSize();
 
     // The number of threads each tserver will use at most to replicate data
     int replicationThreadsPerServer =
-        Integer.parseInt(context.getConfiguration().get(Property.REPLICATION_WORKER_THREADS));
+        context.getConfiguration().getCount(Property.REPLICATION_WORKER_THREADS);
 
     // The total number of "slots" we have to replicate data
     return activeTservers * replicationThreadsPerServer;
@@ -109,7 +111,7 @@ public class ReplicationUtil {
   public Set<ReplicationTarget> getReplicationTargets() {
     // The total set of configured targets
     final Set<ReplicationTarget> allConfiguredTargets = new HashSet<>();
-    final Map<String,TableId> tableNameToId = Tables.getNameToIdMap(context);
+    final Map<String,TableId> tableNameToId = context.getTableNameToIdMap();
 
     for (String table : tableNameToId.keySet()) {
       if (MetadataTable.NAME.equals(table) || RootTable.NAME.equals(table)) {
@@ -122,7 +124,7 @@ public class ReplicationUtil {
         continue;
       }
 
-      TableConfiguration tableConf = context.getServerConfFactory().getTableConfiguration(localId);
+      TableConfiguration tableConf = context.getTableConfiguration(localId);
       if (tableConf == null) {
         log.trace("Could not get configuration for table {} (it no longer exists)", table);
         continue;

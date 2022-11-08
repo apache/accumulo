@@ -1,23 +1,31 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.tserver.log;
 
-import static org.junit.Assert.assertTrue;
+import static org.apache.accumulo.server.log.SortedLogState.getFinishedMarkerPath;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -27,119 +35,129 @@ import java.io.OutputStream;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.spi.crypto.GenericCryptoServiceFactory;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
-import org.apache.accumulo.server.log.SortedLogState;
-import org.apache.commons.io.FileUtils;
+import org.apache.accumulo.tserver.WithTestNames;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.Path;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
-public class TestUpgradePathForWALogs {
+@SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "PATH_TRAVERSAL_OUT"},
+    justification = "paths not set by user input")
+public class TestUpgradePathForWALogs extends WithTestNames {
 
+  // older logs no longer compatible
   private static final String WALOG_FROM_15 = "/walog-from-15.walog";
+  // logs from versions 1.6 through 1.10 should be the same
   private static final String WALOG_FROM_16 = "/walog-from-16.walog";
-  private static File testDir;
+  // logs from 2.0 were changed for improved crypto
+  private static final String WALOG_FROM_20 = "/walog-from-20.walog";
 
-  AccumuloConfiguration config = DefaultConfiguration.getInstance();
-  VolumeManager fs;
+  private static final AccumuloConfiguration config = DefaultConfiguration.getInstance();
+  private ServerContext context;
 
-  @BeforeClass
-  public static void createTestDirectory() {
-    File baseDir = new File(System.getProperty("user.dir") + "/target/upgrade-tests");
-    assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
-    testDir = new File(baseDir, TestUpgradePathForWALogs.class.getName());
-    FileUtils.deleteQuietly(testDir);
-    assertTrue(testDir.mkdir() || testDir.isDirectory());
-  }
+  @TempDir
+  private static File tempDir;
 
-  @Rule
-  public TemporaryFolder root = new TemporaryFolder(testDir);
+  private static File perTestTempSubDir;
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
-    root.create();
-    String path = root.getRoot().getAbsolutePath() + "/manyMaps";
-    fs = VolumeManagerImpl.getLocal(path);
-    Path manyMapsPath = new Path("file://" + path);
-    fs.mkdirs(manyMapsPath);
-    fs.create(SortedLogState.getFinishedMarkerPath(manyMapsPath)).close();
+    context = createMock(ServerContext.class);
+
+    // Create a new subdirectory for each test
+    perTestTempSubDir = new File(tempDir, testName());
+    assertTrue(perTestTempSubDir.isDirectory() || perTestTempSubDir.mkdir(),
+        "Failed to create folder: " + perTestTempSubDir);
+
+    String path = perTestTempSubDir.getAbsolutePath();
+
+    VolumeManager fs = VolumeManagerImpl.getLocalForTesting(path);
+
+    expect(context.getCryptoFactory()).andReturn(new GenericCryptoServiceFactory()).anyTimes();
+    expect(context.getVolumeManager()).andReturn(fs).anyTimes();
+    replay(context);
   }
 
+  @AfterEach
+  public void tearDown() {
+    verify(context);
+  }
+
+  /**
+   * Since 2.0 this version of WAL is no longer compatible.
+   */
   @Test
   public void testUpgradeOf15WALog() throws IOException {
-    InputStream walogStream = null;
-    OutputStream walogInHDFStream = null;
+    String walogToTest = WALOG_FROM_15;
+    String testPath = perTestTempSubDir.getAbsolutePath();
 
-    try {
-
-      walogStream = getClass().getResourceAsStream(WALOG_FROM_15);
-      walogInHDFStream =
-          new FileOutputStream(new File(root.getRoot().getAbsolutePath() + WALOG_FROM_15));
-
+    try (InputStream walogStream = getClass().getResourceAsStream(walogToTest);
+        OutputStream walogInHDFStream = new FileOutputStream(testPath + walogToTest)) {
       IOUtils.copyLarge(walogStream, walogInHDFStream);
       walogInHDFStream.flush();
       walogInHDFStream.close();
-      walogInHDFStream = null;
 
-      LogSorter logSorter = new LogSorter(null, fs, config);
+      LogSorter logSorter = new LogSorter(context, config);
       LogSorter.LogProcessor logProcessor = logSorter.new LogProcessor();
 
-      logProcessor.sort(WALOG_FROM_15,
-          new Path("file://" + root.getRoot().getAbsolutePath() + WALOG_FROM_15),
-          "file://" + root.getRoot().getAbsolutePath() + "/manyMaps");
-
-    } finally {
-      if (walogStream != null) {
-        walogStream.close();
-      }
-
-      if (walogInHDFStream != null) {
-        walogInHDFStream.close();
-      }
+      assertThrows(IllegalArgumentException.class,
+          () -> logProcessor.sort(context.getVolumeManager(), WALOG_FROM_15,
+              new Path("file://" + testPath + WALOG_FROM_15), "file://" + testPath + "/manyMaps"));
     }
   }
 
   @Test
   public void testBasic16WALogRead() throws IOException {
     String walogToTest = WALOG_FROM_16;
+    String testPath = perTestTempSubDir.getAbsolutePath();
+    String destPath = "file://" + testPath + "/manyMaps";
 
-    InputStream walogStream = null;
-    OutputStream walogInHDFStream = null;
-
-    try {
-
-      walogStream = getClass().getResourceAsStream(walogToTest);
-      walogInHDFStream =
-          new FileOutputStream(new File(root.getRoot().getAbsolutePath() + walogToTest));
-
+    try (InputStream walogStream = getClass().getResourceAsStream(walogToTest);
+        OutputStream walogInHDFStream = new FileOutputStream(testPath + walogToTest)) {
       IOUtils.copyLarge(walogStream, walogInHDFStream);
       walogInHDFStream.flush();
       walogInHDFStream.close();
-      walogInHDFStream = null;
 
-      LogSorter logSorter = new LogSorter(null, fs, config);
+      assertFalse(context.getVolumeManager().exists(getFinishedMarkerPath(destPath)));
+
+      LogSorter logSorter = new LogSorter(context, config);
       LogSorter.LogProcessor logProcessor = logSorter.new LogProcessor();
 
-      logProcessor.sort(walogToTest,
-          new Path("file://" + root.getRoot().getAbsolutePath() + walogToTest),
-          "file://" + root.getRoot().getAbsolutePath() + "/manyMaps");
+      logProcessor.sort(context.getVolumeManager(), walogToTest,
+          new Path("file://" + testPath + walogToTest), destPath);
 
-    } finally {
-      if (walogStream != null) {
-        walogStream.close();
-      }
+      assertTrue(context.getVolumeManager().exists(getFinishedMarkerPath(destPath)));
+    }
+  }
 
-      if (walogInHDFStream != null) {
-        walogInHDFStream.close();
-      }
+  @Test
+  public void testBasic20WALogRead() throws IOException {
+    String walogToTest = WALOG_FROM_20;
+    String testPath = perTestTempSubDir.getAbsolutePath();
+    String destPath = "file://" + testPath + "/manyMaps";
+
+    try (InputStream walogStream = getClass().getResourceAsStream(walogToTest);
+        OutputStream walogInHDFStream = new FileOutputStream(testPath + walogToTest)) {
+      IOUtils.copyLarge(walogStream, walogInHDFStream);
+      walogInHDFStream.flush();
+      walogInHDFStream.close();
+
+      assertFalse(context.getVolumeManager().exists(getFinishedMarkerPath(destPath)));
+
+      LogSorter logSorter = new LogSorter(context, config);
+      LogSorter.LogProcessor logProcessor = logSorter.new LogProcessor();
+      logProcessor.sort(context.getVolumeManager(), walogToTest,
+          new Path("file://" + testPath + walogToTest), destPath);
+
+      assertTrue(context.getVolumeManager().exists(getFinishedMarkerPath(destPath)));
     }
   }
 

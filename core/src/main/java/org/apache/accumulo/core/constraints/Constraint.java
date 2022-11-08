@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.constraints;
 
@@ -22,30 +24,22 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.security.AuthorizationContainer;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
- * Constraint objects are used to determine if mutations will be applied to a table.
+ * This class is replaced by {@link org.apache.accumulo.core.data.constraints.Constraint}
  *
- * <p>
- * This interface expects implementers to return violation codes. The reason codes are returned
- * instead of arbitrary strings to encourage conciseness. Conciseness is needed because violations
- * are aggregated. If a user sends a batch of 10,000 mutations to Accumulo, only aggregated counts
- * about which violations occurred are returned. If the constraint implementer were allowed to
- * return arbitrary violation strings like the following:
- *
- * <p>
- * Value "abc" is not a number<br>
- * Value "vbg" is not a number
- *
- * <p>
- * This would not aggregate very well, because the same violation is represented with two different
- * strings.
+ * @deprecated since 2.1.0 Use {@link org.apache.accumulo.core.data.constraints.Constraint}
  */
-public interface Constraint {
+@Deprecated(since = "2.1.0")
+@SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_INTERFACE",
+    justification = "Same name used for compatibility during deprecation cycle")
+public interface Constraint extends org.apache.accumulo.core.data.constraints.Constraint {
 
   /**
    * The environment within which a constraint exists.
    */
-  interface Environment {
+  interface Environment extends org.apache.accumulo.core.data.constraints.Constraint.Environment {
     /**
      * Gets the key extent of the environment.
      *
@@ -58,6 +52,7 @@ public interface Constraint {
      *
      * @return user
      */
+    @Override
     String getUser();
 
     /**
@@ -65,6 +60,7 @@ public interface Constraint {
      *
      * @return authorizations
      */
+    @Override
     AuthorizationContainer getAuthorizationsContainer();
   }
 
@@ -75,6 +71,7 @@ public interface Constraint {
    *          numeric violation code
    * @return matching violation description
    */
+  @Override
   String getViolationDescription(short violationCode);
 
   /**
@@ -90,4 +87,15 @@ public interface Constraint {
    * @return list of violation codes, or null if none
    */
   List<Short> check(Environment env, Mutation mutation);
+
+  /**
+   * Implemented for backwards compatibility.
+   *
+   * @since 2.1.0
+   */
+  @Override
+  default List<Short> check(org.apache.accumulo.core.data.constraints.Constraint.Environment env,
+      Mutation mutation) {
+    return check((Environment) env, mutation);
+  }
 }

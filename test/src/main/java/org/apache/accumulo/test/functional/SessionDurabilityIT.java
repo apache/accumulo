@@ -1,24 +1,28 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
 import static java.util.Collections.singletonMap;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.time.Duration;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -39,11 +43,16 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterators;
 
 public class SessionDurabilityIT extends ConfigurableMacBase {
+
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(3);
+  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -52,7 +61,7 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
   }
 
-  @Test(timeout = 3 * 60 * 1000)
+  @Test
   public void nondurableTableHasDurableWrites() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
@@ -70,7 +79,7 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
     }
   }
 
-  @Test(timeout = 3 * 60 * 1000)
+  @Test
   public void durableTableLosesNonDurableWrites() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
@@ -102,7 +111,7 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
     }
   }
 
-  @Test(timeout = 3 * 60 * 1000)
+  @Test
   public void testConditionDurability() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
@@ -121,7 +130,7 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
     }
   }
 
-  @Test(timeout = 3 * 60 * 1000)
+  @Test
   public void testConditionDurability2() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
@@ -142,11 +151,12 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
 
   private void conditionWriteSome(AccumuloClient c, String tableName, int n,
       ConditionalWriterConfig cfg) throws Exception {
-    ConditionalWriter cw = c.createConditionalWriter(tableName, cfg);
-    for (int i = 0; i < n; i++) {
-      ConditionalMutation m = new ConditionalMutation(i + "", new Condition("", ""));
-      m.put("", "", "X");
-      assertEquals(Status.ACCEPTED, cw.write(m).getStatus());
+    try (ConditionalWriter cw = c.createConditionalWriter(tableName, cfg)) {
+      for (int i = 0; i < n; i++) {
+        ConditionalMutation m = new ConditionalMutation(i + "", new Condition("", ""));
+        m.put("", "", "X");
+        assertEquals(Status.ACCEPTED, cw.write(m).getStatus());
+      }
     }
   }
 

@@ -1,24 +1,25 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver;
 
-import java.io.File;
+import java.lang.ref.Cleaner.Cleanable;
 import java.util.AbstractMap.SimpleImmutableEntry;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.ConcurrentModificationException;
 import java.util.HashSet;
@@ -28,29 +29,27 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.util.PreAllocatedArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * This class stores data in a C++ map. Doing this allows us to store more in memory and avoid
@@ -66,120 +65,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
   private static final Logger log = LoggerFactory.getLogger(NativeMap.class);
-  private static AtomicBoolean loadedNativeLibraries = new AtomicBoolean(false);
 
-  // Load native library
-  static {
-    // Check in directories set by JVM system property
-    List<File> directories = new ArrayList<>();
-    String accumuloNativeLibDirs = System.getProperty("accumulo.native.lib.path");
-    if (accumuloNativeLibDirs != null) {
-      for (String libDir : accumuloNativeLibDirs.split(":")) {
-        directories.add(new File(libDir));
-      }
-    }
-    // Attempt to load from these directories, using standard names
-    loadNativeLib(directories);
-
-    // Check LD_LIBRARY_PATH (DYLD_LIBRARY_PATH on Mac)
-    if (!isLoaded()) {
-      log.error("Tried and failed to load Accumulo native library from {}", accumuloNativeLibDirs);
-      String ldLibraryPath = System.getProperty("java.library.path");
-      try {
-        System.loadLibrary("accumulo");
-        loadedNativeLibraries.set(true);
-        log.info("Loaded native map shared library from {}", ldLibraryPath);
-      } catch (Exception | UnsatisfiedLinkError e) {
-        log.error("Tried and failed to load Accumulo native library from {}", ldLibraryPath, e);
-      }
-    }
-
-    // Exit if native libraries could not be loaded
-    if (!isLoaded()) {
-      log.error(
-          "FATAL! Accumulo native libraries were requested but could not"
-              + " be be loaded. Either set '{}' to false in accumulo.properties or make"
-              + " sure native libraries are created in directories set by the JVM"
-              + " system property 'accumulo.native.lib.path' in accumulo-env.sh!",
-          Property.TSERV_NATIVEMAP_ENABLED);
-      System.exit(1);
-    }
-  }
-
-  /**
-   * If native libraries are not loaded, the specified search path will be used to attempt to load
-   * them. Directories will be searched by using the system-specific library naming conventions. A
-   * path directly to a file can also be provided. Loading will continue until the search path is
-   * exhausted, or until the native libraries are found and successfully loaded, whichever occurs
-   * first.
-   *
-   * @param searchPath
-   *          a list of files and directories to search
-   */
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "search paths provided by admin")
-  public static void loadNativeLib(List<File> searchPath) {
-    if (!isLoaded()) {
-      List<String> names = getValidLibraryNames();
-      List<File> tryList = new ArrayList<>(searchPath.size() * names.size());
-
-      for (File p : searchPath)
-        if (p.exists() && p.isDirectory())
-          for (String name : names)
-            tryList.add(new File(p, name));
-        else
-          tryList.add(p);
-
-      for (File f : tryList)
-        if (loadNativeLib(f))
-          break;
-    }
-  }
-
-  /**
-   * Check if native libraries are loaded.
-   *
-   * @return true if they are loaded; false otherwise
-   */
-  public static boolean isLoaded() {
-    return loadedNativeLibraries.get();
-  }
-
-  private static List<String> getValidLibraryNames() {
-    ArrayList<String> names = new ArrayList<>(3);
-
-    String libname = System.mapLibraryName("accumulo");
-    names.add(libname);
-
-    int dot = libname.lastIndexOf(".");
-    String prefix = dot < 0 ? libname : libname.substring(0, dot);
-
-    // additional supported Mac extensions
-    if ("Mac OS X".equals(System.getProperty("os.name")))
-      for (String ext : new String[] {".dylib", ".jnilib"})
-        if (!libname.endsWith(ext))
-          names.add(prefix + ext);
-
-    return names;
-  }
-
-  private static boolean loadNativeLib(File libFile) {
-    log.debug("Trying to load native map library {}", libFile);
-    if (libFile.exists() && libFile.isFile()) {
-      try {
-        System.load(libFile.getAbsolutePath());
-        loadedNativeLibraries.set(true);
-        log.info("Loaded native map shared library {}", libFile);
-        return true;
-      } catch (Exception | UnsatisfiedLinkError e) {
-        log.error("Tried and failed to load native map library " + libFile, e);
-      }
-    } else {
-      log.debug("Native map library {} not found or is not a file.", libFile);
-    }
-    return false;
-  }
-
-  private long nmPointer;
+  private final AtomicLong nmPtr = new AtomicLong(0);
 
   private final ReadWriteLock rwLock;
   private final Lock rlock;
@@ -216,7 +103,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
       allocatedNativeMaps = new HashSet<>();
 
       Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-        if (allocatedNativeMaps.size() > 0) {
+        if (!allocatedNativeMaps.isEmpty()) {
           log.info("There are {} allocated native maps", allocatedNativeMaps.size());
         }
         log.debug("{} native maps were allocated", totalAllocations);
@@ -248,6 +135,12 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     }
   }
 
+  // package private visibility for NativeMapCleanerUtil use,
+  // without affecting ABI of existing native interface
+  static void _deleteNativeMap(long nmPtr) {
+    deleteNativeMap(nmPtr);
+  }
+
   private static native long createNMI(long nmp, int[] fieldLens);
 
   private static native long createNMI(long nmp, byte[] row, byte[] cf, byte[] cq, byte[] cv,
@@ -261,6 +154,12 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
   private static native long nmiGetTS(long nmiPointer);
 
   private static native void deleteNMI(long nmiPointer);
+
+  // package private visibility for NativeMapCleanerUtil use,
+  // without affecting ABI of existing native interface
+  static void _deleteNMI(long nmiPointer) {
+    deleteNMI(nmiPointer);
+  }
 
   private class ConcurrentIterator implements Iterator<Map.Entry<Key,Value>> {
 
@@ -363,11 +262,6 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
       return ret;
     }
 
-    @Override
-    public void remove() {
-      throw new UnsupportedOperationException();
-    }
-
     public void delete() {
       source.delete();
     }
@@ -385,40 +279,42 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
      *
      */
 
-    private long nmiPointer;
+    private final AtomicLong nmiPtr = new AtomicLong(0);
     private boolean hasNext;
     private int expectedModCount;
     private int[] fieldsLens = new int[7];
     private byte[] lastRow;
+    private final Cleanable cleanableNMI;
 
     // it is assumed the read lock is held when this method is called
     NMIterator(Key key) {
 
-      if (nmPointer == 0) {
-        throw new IllegalStateException();
-      }
+      final long nmPointer = nmPtr.get();
+      checkDeletedNM(nmPointer);
 
       expectedModCount = modCount;
 
-      nmiPointer = createNMI(nmPointer, key.getRowData().toArray(),
+      final long nmiPointer = createNMI(nmPointer, key.getRowData().toArray(),
           key.getColumnFamilyData().toArray(), key.getColumnQualifierData().toArray(),
           key.getColumnVisibilityData().toArray(), key.getTimestamp(), key.isDeleted(), fieldsLens);
 
       hasNext = nmiPointer != 0;
+
+      nmiPtr.set(nmiPointer);
+      cleanableNMI = NativeMapCleanerUtil.deleteNMIterator(this, nmiPtr);
     }
 
     // delete is synchronized on a per iterator basis want to ensure only one
     // thread deletes an iterator w/o acquiring the global write lock...
     // there is no contention among concurrent readers for deleting their iterators
     public synchronized void delete() {
-      if (nmiPointer == 0) {
-        return;
+      final long nmiPointer = nmiPtr.getAndSet(0);
+      if (nmiPointer != 0) {
+        // deregister cleanable, but it won't run because it checks
+        // the value of nmiPtr first, which is now 0
+        cleanableNMI.clean();
+        deleteNMI(nmiPointer);
       }
-
-      // log.debug("Deleting native map iterator pointer");
-
-      deleteNMI(nmiPointer);
-      nmiPointer = 0;
     }
 
     @Override
@@ -429,10 +325,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     // it is assumed the read lock is held when this method is called
     // this method only needs to be called once per read lock acquisition
     private void doNextPreCheck() {
-      if (nmPointer == 0) {
-        throw new IllegalStateException();
-      }
-
+      checkDeletedNM(nmPtr.get());
       if (modCount != expectedModCount) {
         throw new ConcurrentModificationException();
       }
@@ -448,6 +341,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
         throw new NoSuchElementException();
       }
 
+      final long nmiPointer = nmiPtr.get();
       if (nmiPointer == 0) {
         throw new IllegalStateException("Native Map Iterator Deleted");
       }
@@ -475,41 +369,28 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
       return new SimpleImmutableEntry<>(k, v);
     }
 
-    @Override
-    public void remove() {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-      super.finalize();
-      if (nmiPointer != 0) {
-        // log.debug("Deleting native map iterator pointer in finalize");
-        deleteNMI(nmiPointer);
-      }
-    }
-
   }
 
+  private final Cleanable cleanableNM;
+
   public NativeMap() {
-    nmPointer = createNativeMap();
+    final long nmPointer = createNativeMap();
+    nmPtr.set(nmPointer);
+    cleanableNM = NativeMapCleanerUtil.deleteNM(this, log, nmPtr);
     rwLock = new ReentrantReadWriteLock();
     rlock = rwLock.readLock();
     wlock = rwLock.writeLock();
     log.debug(String.format("Allocated native map 0x%016x", nmPointer));
   }
 
-  @Override
-  protected void finalize() throws Throwable {
-    super.finalize();
-    if (nmPointer != 0) {
-      log.warn(String.format("Deallocating native map 0x%016x in finalize", nmPointer));
-      deleteNativeMap(nmPointer);
+  private static void checkDeletedNM(final long nmPointer) {
+    if (nmPointer == 0) {
+      throw new IllegalStateException("Native Map Deleted");
     }
   }
 
-  private int _mutate(Mutation mutation, int mutationCount) {
-
+  // assumes wlock
+  private int _mutate(final long nmPointer, Mutation mutation, int mutationCount) {
     List<ColumnUpdate> updates = mutation.getUpdates();
     if (updates.size() == 1) {
       ColumnUpdate update = updates.get(0);
@@ -534,16 +415,15 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
       wlock.lock();
       try {
-        if (nmPointer == 0) {
-          throw new IllegalStateException("Native Map Deleted");
-        }
+        final long nmPointer = nmPtr.get();
+        checkDeletedNM(nmPointer);
 
         modCount++;
 
         int count = 0;
         while (iter.hasNext() && count < 10) {
           Mutation mutation = iter.next();
-          mutationCount = _mutate(mutation, mutationCount);
+          mutationCount = _mutate(nmPointer, mutation, mutationCount);
           count += mutation.size();
         }
       } finally {
@@ -556,9 +436,8 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
   public void put(Key key, Value value) {
     wlock.lock();
     try {
-      if (nmPointer == 0) {
-        throw new IllegalStateException("Native Map Deleted");
-      }
+      final long nmPointer = nmPtr.get();
+      checkDeletedNM(nmPointer);
 
       modCount++;
 
@@ -593,10 +472,8 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
   public int size() {
     rlock.lock();
     try {
-      if (nmPointer == 0) {
-        throw new IllegalStateException("Native Map Deleted");
-      }
-
+      final long nmPointer = nmPtr.get();
+      checkDeletedNM(nmPointer);
       return sizeNM(nmPointer);
     } finally {
       rlock.unlock();
@@ -606,10 +483,8 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
   public long getMemoryUsed() {
     rlock.lock();
     try {
-      if (nmPointer == 0) {
-        throw new IllegalStateException("Native Map Deleted");
-      }
-
+      final long nmPointer = nmPtr.get();
+      checkDeletedNM(nmPointer);
       return memoryUsedNM(nmPointer);
     } finally {
       rlock.unlock();
@@ -620,10 +495,8 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
   public Iterator<Map.Entry<Key,Value>> iterator() {
     rlock.lock();
     try {
-      if (nmPointer == 0) {
-        throw new IllegalStateException("Native Map Deleted");
-      }
-
+      final long nmPointer = nmPtr.get();
+      checkDeletedNM(nmPointer);
       return new ConcurrentIterator();
     } finally {
       rlock.unlock();
@@ -633,11 +506,8 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
   public Iterator<Map.Entry<Key,Value>> iterator(Key startKey) {
     rlock.lock();
     try {
-
-      if (nmPointer == 0) {
-        throw new IllegalStateException("Native Map Deleted");
-      }
-
+      final long nmPointer = nmPtr.get();
+      checkDeletedNM(nmPointer);
       return new ConcurrentIterator(startKey);
     } finally {
       rlock.unlock();
@@ -647,13 +517,13 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
   public void delete() {
     wlock.lock();
     try {
-      if (nmPointer == 0) {
-        throw new IllegalStateException("Native Map Deleted");
-      }
-
+      final long nmPointer = nmPtr.getAndSet(0);
+      checkDeletedNM(nmPointer);
+      // deregister cleanable, but it won't run because it checks
+      // the value of nmPtr first, which is now 0
+      cleanableNM.clean();
       log.debug(String.format("Deallocating native map 0x%016x", nmPointer));
       deleteNativeMap(nmPointer);
-      nmPointer = 0;
     } finally {
       wlock.unlock();
     }
@@ -704,7 +574,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     public void next() {
 
       if (entry == null)
-        throw new IllegalStateException();
+        throw new NoSuchElementException();
 
       // checking the interrupt flag for every call to next had bad a bad performance impact
       // so check it every 100th time
@@ -753,7 +623,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
         IteratorEnvironment env) {
-      throw new UnsupportedOperationException();
+      throw new UnsupportedOperationException("init");
     }
 
     @Override

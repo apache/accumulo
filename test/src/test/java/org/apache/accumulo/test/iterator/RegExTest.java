@@ -1,24 +1,30 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.iterator;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -26,17 +32,17 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
+import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.hadoop.io.Text;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class RegExTest {
 
   private static TreeMap<Key,Value> data = new TreeMap<>();
 
-  @BeforeClass
+  @BeforeAll
   public static void setupTests() {
 
     ArrayList<Character> chars = new ArrayList<>();
@@ -53,25 +59,15 @@ public class RegExTest {
       String row = "r" + rc;
       for (Character cfc : chars) {
         for (Character cqc : chars) {
-          Value v = new Value(("v" + rc + cfc + cqc).getBytes());
+          Value v = new Value("v" + rc + cfc + cqc);
           data.put(new Key(row, "cf" + cfc, "cq" + cqc, "", 9), v);
         }
       }
     }
   }
 
-  private void check(String regex, String val) throws Exception {
-    if (regex != null && !val.matches(regex)) {
-      throw new Exception(" " + val + " does not match " + regex);
-    }
-  }
-
-  private void check(String regex, Text val) throws Exception {
-    check(regex, val.toString());
-  }
-
-  private void check(String regex, Value val) throws Exception {
-    check(regex, val.toString());
+  private void assertMatches(Pattern regex, Object val) throws Exception {
+    assertTrue(regex.matcher(val.toString()).matches(), " " + val + " does not match " + regex);
   }
 
   @Test
@@ -119,30 +115,27 @@ public class RegExTest {
     RegExFilter iter = new RegExFilter();
     iter.init(source, is.getOptions(), null);
     iter.seek(range, es, false);
-    runTest(iter, rowRegEx, cfRegEx, cqRegEx, valRegEx, expected);
-  }
-
-  private void runTest(RegExFilter scanner, String rowRegEx, String cfRegEx, String cqRegEx,
-      String valRegEx, int expected) throws Exception {
 
     int counter = 0;
 
-    while (scanner.hasTop()) {
-      Key k = scanner.getTopKey();
+    var rowPattern = Pattern.compile(rowRegEx == null ? ".*" : rowRegEx);
+    var cfPattern = Pattern.compile(cfRegEx == null ? ".*" : cfRegEx);
+    var cqPattern = Pattern.compile(cqRegEx == null ? ".*" : cqRegEx);
+    var valPattern = Pattern.compile(valRegEx == null ? ".*" : valRegEx);
 
-      check(rowRegEx, k.getRow());
-      check(cfRegEx, k.getColumnFamily());
-      check(cqRegEx, k.getColumnQualifier());
-      check(valRegEx, scanner.getTopValue());
+    while (iter.hasTop()) {
+      Key k = iter.getTopKey();
 
-      scanner.next();
+      assertMatches(rowPattern, k.getRow());
+      assertMatches(cfPattern, k.getColumnFamily());
+      assertMatches(cqPattern, k.getColumnQualifier());
+      assertMatches(valPattern, iter.getTopValue());
+
+      iter.next();
 
       counter++;
     }
 
-    if (counter != expected) {
-      throw new Exception(
-          "scan did not return the expected number of entries " + counter + " " + expected);
-    }
+    assertEquals(expected, counter, "scan did not return the expected number of entries");
   }
 }

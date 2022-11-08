@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.clientImpl;
 
@@ -30,53 +32,13 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.util.Validator;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Namespaces {
   private static final Logger log = LoggerFactory.getLogger(Namespaces.class);
-
-  public static final String VALID_NAME_REGEX = "^\\w*$";
-  public static final Validator<String> VALID_NAME = new Validator<String>() {
-    @Override
-    public boolean test(String namespace) {
-      return namespace != null && namespace.matches(VALID_NAME_REGEX);
-    }
-
-    @Override
-    public String invalidMessage(String namespace) {
-      if (namespace == null)
-        return "Namespace cannot be null";
-      return "Namespaces must only contain word characters (letters, digits, and underscores): "
-          + namespace;
-    }
-  };
-
-  public static final Validator<String> NOT_DEFAULT = new Validator<String>() {
-    @Override
-    public boolean test(String namespace) {
-      return !Namespace.DEFAULT.name().equals(namespace);
-    }
-
-    @Override
-    public String invalidMessage(String namespace) {
-      return "Namespace cannot be the reserved empty namespace";
-    }
-  };
-
-  public static final Validator<String> NOT_ACCUMULO = new Validator<String>() {
-    @Override
-    public boolean test(String namespace) {
-      return !Namespace.ACCUMULO.name().equals(namespace);
-    }
-
-    @Override
-    public String invalidMessage(String namespace) {
-      return "Namespace cannot be the reserved namespace, " + Namespace.ACCUMULO.name();
-    }
-  };
 
   public static boolean exists(ClientContext context, NamespaceId namespaceId) {
     ZooCache zc = context.getZooCache();
@@ -88,8 +50,8 @@ public class Namespaces {
       throws NamespaceNotFoundException {
     String namespace = getNamespaceName(context, namespaceId);
     List<TableId> tableIds = new LinkedList<>();
-    for (Entry<String,TableId> nameToId : Tables.getNameToIdMap(context).entrySet())
-      if (namespace.equals(Tables.qualify(nameToId.getKey()).getFirst()))
+    for (Entry<String,TableId> nameToId : context.getTableNameToIdMap().entrySet())
+      if (namespace.equals(TableNameUtil.qualify(nameToId.getKey()).getFirst()))
         tableIds.add(nameToId.getValue());
     return tableIds;
   }
@@ -98,8 +60,8 @@ public class Namespaces {
       throws NamespaceNotFoundException {
     String namespace = getNamespaceName(context, namespaceId);
     List<String> names = new LinkedList<>();
-    for (String name : Tables.getNameToIdMap(context).keySet())
-      if (namespace.equals(Tables.qualify(name).getFirst()))
+    for (String name : context.getTableNameToIdMap().keySet())
+      if (namespace.equals(TableNameUtil.qualify(name).getFirst()))
         names.add(name);
     return names;
   }

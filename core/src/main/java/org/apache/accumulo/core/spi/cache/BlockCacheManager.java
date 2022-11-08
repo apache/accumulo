@@ -7,13 +7,14 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.spi.cache;
 
@@ -21,24 +22,29 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 
 /**
  * @since 2.0.0
+ * @see org.apache.accumulo.core.spi
  */
 public abstract class BlockCacheManager {
 
   private final Map<CacheType,BlockCache> caches = new HashMap<>();
-
-  public static final String CACHE_PROPERTY_BASE = Property.TSERV_PREFIX + "cache.config.";
 
   public interface Configuration {
 
     /**
      * Before Accumulo's cache implementation was configurable, its built in caches had a
      * configurable size. These sizes were specified by the system properties
-     * {@code tserver.cache.config.data.size}, {@code tserver.cache.config.index.size}, and {code
+     * {@code tserver.cache.config.data.size}, {@code tserver.cache.config.index.size}, and {@code
      * tserver.cache.config.summary.size}. This method returns the values of those settings. The
      * settings are made available, but cache implementations are under no obligation to use them.
+     *
+     * <p>
+     * When this plugin is running in a scan server, the value associated with
+     * {@code sserver.cache.config.data.size}, {@code sserver.cache.config.index.size}, and
+     * {@code sserver.cache.config.summary.size} are returned instead of tserver values.
      *
      */
     long getMaxSize(CacheType type);
@@ -49,6 +55,10 @@ public abstract class BlockCacheManager {
      * {@code tserver.default.blocksize}. This method returns the value of that setting. The setting
      * is made available, but cache implementations are under no obligation to use it.
      *
+     * <p>
+     * When this plugin is running in scan server, the value associated with
+     * {@code sserver.default.blocksize} is returned instead.
+     *
      */
     long getBlockSize();
 
@@ -57,13 +67,20 @@ public abstract class BlockCacheManager {
      * by a user.
      *
      * <p>
-     * Returns all Accumulo properties that have a prefix of
+     * When running in a tserver, returns all Accumulo properties that have a prefix of
      * {@code tserver.cache.config.<prefix>.<type>.} or
      * {@code tserver.cache.config.<prefix>.default.} with values for specific cache types
      * overriding defaults.
      *
      * <p>
-     * For example assume the following data is in Accumulo's system config.
+     * When running in a scan server, returns all Accumulo properties that have a prefix of
+     * {@code sserver.cache.config.<prefix>.<type>.} or
+     * {@code sserver.cache.config.<prefix>.default.} with values for specific cache types
+     * overriding defaults.
+     *
+     * <p>
+     * For example assume the following data is in Accumulo's system config and the plugin is
+     * running in a tserver.
      *
      * <pre>
      * tserver.cache.config.lru.default.evictAfter=3600
@@ -137,9 +154,12 @@ public abstract class BlockCacheManager {
    * @param prefix
    *          A unique identifier that corresponds to a particular BlockCacheManager implementation.
    * @see Configuration#getProperties(String, CacheType)
+   * @deprecated since 2.1.0 because this method does not support scan servers, only tservers. Use
+   *             {@link Configuration#getProperties(String, CacheType)} instead.
    */
+  @Deprecated(since = "2.1.0")
   public static String getFullyQualifiedPropertyPrefix(String prefix) {
-    return CACHE_PROPERTY_BASE + prefix + ".default.";
+    return BlockCacheConfiguration.getFullyQualifiedPropertyPrefix(Property.TSERV_PREFIX, prefix);
   }
 
   /**
@@ -150,9 +170,14 @@ public abstract class BlockCacheManager {
    * @param prefix
    *          A unique identifier that corresponds to a particular BlockCacheManager implementation.
    * @see Configuration#getProperties(String, CacheType)
+   *
+   * @deprecated since 2.1.0 because this method does not support scan servers, only tservers. Use
+   *             {@link Configuration#getProperties(String, CacheType)} instead.
    */
+  @Deprecated(since = "2.1.0")
   public static String getFullyQualifiedPropertyPrefix(String prefix, CacheType type) {
-    return CACHE_PROPERTY_BASE + prefix + "." + type.name().toLowerCase() + ".";
+    return BlockCacheConfiguration.getFullyQualifiedPropertyPrefix(Property.TSERV_PREFIX, prefix,
+        type);
   }
 
 }

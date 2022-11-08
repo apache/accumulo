@@ -1,159 +1,104 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.gc;
 
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SCANS;
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.lang.reflect.InvocationTargetException;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
+import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.IsolatedScanner;
-import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Tables;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.PartialKey;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockLossReason;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockWatcher;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService.Iface;
-import org.apache.accumulo.core.gc.thrift.GCMonitorService.Processor;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
-import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
-import org.apache.accumulo.core.replication.ReplicationTable;
-import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
-import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
+import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.util.NamingThreadFactory;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
-import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
-import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
-import org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences;
+import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.gc.metrics.GcCycleMetrics;
+import org.apache.accumulo.gc.metrics.GcMetrics;
 import org.apache.accumulo.server.AbstractServer;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManager.FileType;
-import org.apache.accumulo.server.fs.VolumeUtil;
-import org.apache.accumulo.server.replication.proto.Replication.Status;
+import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.rpc.ServerAddress;
-import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
 import org.apache.accumulo.server.rpc.TServerUtils;
-import org.apache.accumulo.server.rpc.ThriftServerType;
-import org.apache.accumulo.server.util.Halt;
-import org.apache.hadoop.fs.FileStatus;
+import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
-import org.apache.htrace.impl.ProbabilitySampler;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.beust.jcommander.Parameter;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Maps;
-import com.google.protobuf.InvalidProtocolBufferException;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
-// Could/Should implement HighlyAvaialbleService but the Thrift server is already started before
+// Could/Should implement HighlyAvailableService but the Thrift server is already started before
 // the ZK lock is acquired. The server is only for metrics, there are no concerns about clients
 // using the service before the lock is acquired.
 public class SimpleGarbageCollector extends AbstractServer implements Iface {
-  private static final Text EMPTY_TEXT = new Text();
-
-  /**
-   * Options for the garbage collector.
-   */
-  static class GCOpts extends ServerOpts {
-    @Parameter(names = {"-v", "--verbose"},
-        description = "extra information will get printed to stdout also")
-    boolean verbose = false;
-    @Parameter(names = {"-s", "--safemode"}, description = "safe mode will not delete files")
-    boolean safeMode = false;
-  }
-
-  /**
-   * A fraction representing how much of the JVM's available memory should be used for gathering
-   * candidates.
-   */
-  static final float CANDIDATE_MEMORY_PERCENTAGE = 0.50f;
 
   private static final Logger log = LoggerFactory.getLogger(SimpleGarbageCollector.class);
 
-  private GCOpts opts;
-  private ZooLock lock;
-
-  private GCStatus status =
+  private final GCStatus status =
       new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
 
-  public static void main(String[] args) throws Exception {
-    try (SimpleGarbageCollector gc = new SimpleGarbageCollector(new GCOpts(), args)) {
-      gc.runServer();
-    }
-  }
+  private final GcCycleMetrics gcCycleMetrics = new GcCycleMetrics();
 
-  SimpleGarbageCollector(GCOpts opts, String[] args) {
+  SimpleGarbageCollector(ServerOpts opts, String[] args) {
     super("gc", opts, args);
-    this.opts = opts;
 
-    long gcDelay = getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
+    final AccumuloConfiguration conf = getConfiguration();
+
+    final long gcDelay = conf.getTimeInMillis(Property.GC_CYCLE_DELAY);
+    final String useFullCompaction = conf.get(Property.GC_USE_FULL_COMPACTION);
+
     log.info("start delay: {} milliseconds", getStartDelay());
     log.info("time delay: {} milliseconds", gcDelay);
-    log.info("safemode: {}", opts.safeMode);
-    log.info("verbose: {}", opts.verbose);
-    log.info("memory threshold: {} of {} bytes", CANDIDATE_MEMORY_PERCENTAGE,
-        Runtime.getRuntime().maxMemory());
+    log.info("safemode: {}", inSafeMode());
+    log.info("candidate batch size: {} bytes", getCandidateBatchSize());
     log.info("delete threads: {}", getNumDeleteThreads());
+    log.info("gc post metadata action: {}", useFullCompaction);
+  }
+
+  public static void main(String[] args) throws Exception {
+    try (SimpleGarbageCollector gc = new SimpleGarbageCollector(new ServerOpts(), args)) {
+      gc.runServer();
+    }
   }
 
   /**
@@ -183,301 +128,49 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     return getConfiguration().getCount(Property.GC_DELETE_THREADS);
   }
 
-  private class GCEnv implements GarbageCollectionEnvironment {
+  /**
+   * Gets the batch size for garbage collecting.
+   *
+   * @return candidate batch size.
+   */
+  long getCandidateBatchSize() {
+    return getConfiguration().getAsBytes(Property.GC_CANDIDATE_BATCH_SIZE);
+  }
 
-    private String tableName;
-
-    GCEnv(String tableName) {
-      this.tableName = tableName;
-    }
-
-    @Override
-    public boolean getCandidates(String continuePoint, List<String> result)
-        throws TableNotFoundException {
-      // want to ensure GC makes progress... if the 1st N deletes are stable and we keep processing
-      // them,
-      // then will never inspect deletes after N
-      Range range = MetadataSchema.DeletesSection.getRange();
-      if (continuePoint != null && !continuePoint.isEmpty()) {
-        String continueRow = MetadataSchema.DeletesSection.getRowPrefix() + continuePoint;
-        range = new Range(new Key(continueRow).followingKey(PartialKey.ROW), true,
-            range.getEndKey(), range.isEndKeyInclusive());
-      }
-
-      Scanner scanner = getContext().createScanner(tableName, Authorizations.EMPTY);
-      scanner.setRange(range);
-      result.clear();
-      // find candidates for deletion; chop off the prefix
-      for (Entry<Key,Value> entry : scanner) {
-        String cand = entry.getKey().getRow().toString()
-            .substring(MetadataSchema.DeletesSection.getRowPrefix().length());
-        result.add(cand);
-        if (almostOutOfMemory(Runtime.getRuntime())) {
-          log.info("List of delete candidates has exceeded the memory"
-              + " threshold. Attempting to delete what has been gathered so far.");
-          return true;
-        }
-      }
-
-      return false;
-    }
-
-    @Override
-    public Iterator<String> getBlipIterator() throws TableNotFoundException {
-      @SuppressWarnings("resource")
-      IsolatedScanner scanner =
-          new IsolatedScanner(getContext().createScanner(tableName, Authorizations.EMPTY));
-
-      scanner.setRange(MetadataSchema.BlipSection.getRange());
-
-      return Iterators.transform(scanner.iterator(), entry -> entry.getKey().getRow().toString()
-          .substring(MetadataSchema.BlipSection.getRowPrefix().length()));
-    }
-
-    @Override
-    public Stream<Reference> getReferences() {
-
-      Stream<TabletMetadata> tabletStream = TabletsMetadata.builder().scanTable(tableName)
-          .checkConsistency().fetch(DIR, FILES, SCANS).build(getContext()).stream();
-
-      Stream<Reference> refStream = tabletStream.flatMap(tm -> {
-        Stream<Reference> refs = Stream.concat(tm.getFiles().stream(), tm.getScans().stream())
-            .map(f -> new Reference(tm.getTableId(), f, false));
-        if (tm.getDir() != null) {
-          refs = Stream.concat(refs, Stream.of(new Reference(tm.getTableId(), tm.getDir(), true)));
-        }
-        return refs;
-      });
-
-      return refStream;
-    }
-
-    @Override
-    public Set<TableId> getTableIDs() {
-      return Tables.getIdToNameMap(getContext()).keySet();
-    }
-
-    @Override
-    public void delete(SortedMap<String,String> confirmedDeletes) throws TableNotFoundException {
-      final VolumeManager fs = getContext().getVolumeManager();
-
-      if (opts.safeMode) {
-        if (opts.verbose) {
-          System.out.println("SAFEMODE: There are " + confirmedDeletes.size()
-              + " data file candidates marked for deletion.%n"
-              + "          Examine the log files to identify them.%n");
-        }
-        log.info("SAFEMODE: Listing all data file candidates for deletion");
-        for (String s : confirmedDeletes.values()) {
-          log.info("SAFEMODE: {}", s);
-        }
-        log.info("SAFEMODE: End candidates for deletion");
-        return;
-      }
-
-      AccumuloClient c = getContext();
-      BatchWriter writer = c.createBatchWriter(tableName, new BatchWriterConfig());
-
-      // when deleting a dir and all files in that dir, only need to delete the dir
-      // the dir will sort right before the files... so remove the files in this case
-      // to minimize namenode ops
-      Iterator<Entry<String,String>> cdIter = confirmedDeletes.entrySet().iterator();
-
-      String lastDir = null;
-      while (cdIter.hasNext()) {
-        Entry<String,String> entry = cdIter.next();
-        String relPath = entry.getKey();
-        String absPath = fs.getFullPath(FileType.TABLE, entry.getValue()).toString();
-
-        if (isDir(relPath)) {
-          lastDir = absPath;
-        } else if (lastDir != null) {
-          if (absPath.startsWith(lastDir)) {
-            log.debug("Ignoring {} because {} exist", entry.getValue(), lastDir);
-            try {
-              putMarkerDeleteMutation(entry.getValue(), writer);
-            } catch (MutationsRejectedException e) {
-              throw new RuntimeException(e);
-            }
-            cdIter.remove();
-          } else {
-            lastDir = null;
-          }
-        }
-      }
-
-      final BatchWriter finalWriter = writer;
-
-      ExecutorService deleteThreadPool =
-          Executors.newFixedThreadPool(getNumDeleteThreads(), new NamingThreadFactory("deleting"));
-
-      final List<Pair<Path,Path>> replacements =
-          ServerConstants.getVolumeReplacements(getConfiguration(), getContext().getHadoopConf());
-
-      for (final String delete : confirmedDeletes.values()) {
-
-        Runnable deleteTask = () -> {
-          boolean removeFlag;
-
-          try {
-            Path fullPath;
-            String switchedDelete = VolumeUtil.switchVolume(delete, FileType.TABLE, replacements);
-            if (switchedDelete != null) {
-              // actually replacing the volumes in the metadata table would be tricky because the
-              // entries would be different rows. So it could not be
-              // atomically in one mutation and extreme care would need to be taken that delete
-              // entry was not lost. Instead of doing that, just deal with
-              // volume switching when something needs to be deleted. Since the rest of the code
-              // uses suffixes to compare delete entries, there is no danger
-              // of deleting something that should not be deleted. Must not change value of delete
-              // variable because thats whats stored in metadata table.
-              log.debug("Volume replaced {} -> {}", delete, switchedDelete);
-              fullPath = fs.getFullPath(FileType.TABLE, switchedDelete);
-            } else {
-              fullPath = fs.getFullPath(FileType.TABLE, delete);
-            }
-
-            log.debug("Deleting {}", fullPath);
-
-            if (moveToTrash(fullPath) || fs.deleteRecursively(fullPath)) {
-              // delete succeeded, still want to delete
-              removeFlag = true;
-              synchronized (SimpleGarbageCollector.this) {
-                ++status.current.deleted;
-              }
-            } else if (fs.exists(fullPath)) {
-              // leave the entry in the metadata; we'll try again later
-              removeFlag = false;
-              synchronized (SimpleGarbageCollector.this) {
-                ++status.current.errors;
-              }
-              log.warn("File exists, but was not deleted for an unknown reason: {}", fullPath);
-            } else {
-              // this failure, we still want to remove the metadata entry
-              removeFlag = true;
-              synchronized (SimpleGarbageCollector.this) {
-                ++status.current.errors;
-              }
-              String[] parts = fullPath.toString().split(Constants.ZTABLES)[1].split("/");
-              if (parts.length > 2) {
-                TableId tableId = TableId.of(parts[1]);
-                String tabletDir = parts[2];
-                getContext().getTableManager().updateTableStateCache(tableId);
-                TableState tableState = getContext().getTableManager().getTableState(tableId);
-                if (tableState != null && tableState != TableState.DELETING) {
-                  // clone directories don't always exist
-                  if (!tabletDir.startsWith(Constants.CLONE_PREFIX)) {
-                    log.debug("File doesn't exist: {}", fullPath);
-                  }
-                }
-              } else {
-                log.warn("Very strange path name: {}", delete);
-              }
-            }
-
-            // proceed to clearing out the flags for successful deletes and
-            // non-existent files
-            if (removeFlag && finalWriter != null) {
-              putMarkerDeleteMutation(delete, finalWriter);
-            }
-          } catch (Exception e) {
-            log.error("{}", e.getMessage(), e);
-          }
-
-        };
-
-        deleteThreadPool.execute(deleteTask);
-      }
-
-      deleteThreadPool.shutdown();
-
-      try {
-        while (!deleteThreadPool.awaitTermination(1000, TimeUnit.MILLISECONDS)) {}
-      } catch (InterruptedException e1) {
-        log.error("{}", e1.getMessage(), e1);
-      }
-
-      if (writer != null) {
-        try {
-          writer.close();
-        } catch (MutationsRejectedException e) {
-          log.error("Problem removing entries from the metadata table: ", e);
-        }
-      }
-    }
-
-    @Override
-    public void deleteTableDirIfEmpty(TableId tableID) throws IOException {
-      final VolumeManager fs = getContext().getVolumeManager();
-      // if dir exist and is empty, then empty list is returned...
-      // hadoop 2.0 will throw an exception if the file does not exist
-      for (String dir : ServerConstants.getTablesDirs(getContext())) {
-        FileStatus[] tabletDirs = null;
-        try {
-          tabletDirs = fs.listStatus(new Path(dir + "/" + tableID));
-        } catch (FileNotFoundException ex) {
-          continue;
-        }
-
-        if (tabletDirs.length == 0) {
-          Path p = new Path(dir + "/" + tableID);
-          log.debug("Removing table dir {}", p);
-          if (!moveToTrash(p)) {
-            fs.delete(p);
-          }
-        }
-      }
-    }
-
-    @Override
-    public void incrementCandidatesStat(long i) {
-      status.current.candidates += i;
-    }
-
-    @Override
-    public void incrementInUseStat(long i) {
-      status.current.inUse += i;
-    }
-
-    @Override
-    public Iterator<Entry<String,Status>> getReplicationNeededIterator() {
-      AccumuloClient client = getContext();
-      try {
-        Scanner s = ReplicationTable.getScanner(client);
-        StatusSection.limit(s);
-        return Iterators.transform(s.iterator(), input -> {
-          String file = input.getKey().getRow().toString();
-          Status stat;
-          try {
-            stat = Status.parseFrom(input.getValue().get());
-          } catch (InvalidProtocolBufferException e) {
-            log.warn("Could not deserialize protobuf for: {}", input.getKey());
-            stat = null;
-          }
-          return Maps.immutableEntry(file, stat);
-        });
-      } catch (ReplicationTableOfflineException e) {
-        // No elements that we need to preclude
-        return Collections.emptyIterator();
-      }
-    }
+  /**
+   * Checks if safemode is set - files will not be deleted.
+   *
+   * @return number of delete threads
+   */
+  boolean inSafeMode() {
+    return getConfiguration().getBoolean(Property.GC_SAFEMODE);
   }
 
   @Override
   @SuppressFBWarnings(value = "DM_EXIT", justification = "main class can call System.exit")
   public void run() {
     final VolumeManager fs = getContext().getVolumeManager();
-    long tStart, tStop;
 
-    // Sleep for an initial period, giving the master time to start up and
+    // Sleep for an initial period, giving the manager time to start up and
     // old data files to be unused
     log.info("Trying to acquire ZooKeeper lock for garbage collector");
 
+    HostAndPort address = startStatsService();
+
     try {
-      getZooLock(startStatsService());
+      getZooLock(address);
     } catch (Exception ex) {
       log.error("{}", ex.getMessage(), ex);
       System.exit(1);
+    }
+
+    try {
+      MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName, address);
+      MetricsUtil.initializeProducers(new GcMetrics(this));
+    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+        | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
+        | SecurityException e1) {
+      log.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
 
     try {
@@ -489,70 +182,142 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       return;
     }
 
-    ProbabilitySampler sampler =
-        TraceUtil.probabilitySampler(getConfiguration().getFraction(Property.GC_TRACE_PERCENT));
+    // This is created outside of the run loop and passed to the walogCollector so that
+    // only a single timed task is created (internal to LiveTServerSet) using SimpleTimer.
+    final LiveTServerSet liveTServerSet =
+        new LiveTServerSet(getContext(), (current, deleted, added) -> {
+          log.debug("Number of current servers {}, tservers added {}, removed {}",
+              current == null ? -1 : current.size(), added, deleted);
+
+          if (log.isTraceEnabled()) {
+            log.trace("Current servers: {}\nAdded: {}\n Removed: {}", current, added, deleted);
+          }
+        });
 
     while (true) {
-      try (TraceScope gcOuterSpan = Trace.startSpan("gc", sampler)) {
-        try (TraceScope gcSpan = Trace.startSpan("loop")) {
-          tStart = System.currentTimeMillis();
+      Span outerSpan = TraceUtil.startSpan(this.getClass(), "gc");
+      try (Scope outerScope = outerSpan.makeCurrent()) {
+        Span innerSpan = TraceUtil.startSpan(this.getClass(), "loop");
+        try (Scope innerScope = innerSpan.makeCurrent()) {
+          final long tStart = System.nanoTime();
           try {
             System.gc(); // make room
 
             status.current.started = System.currentTimeMillis();
+            var rootGC = new GCRun(DataLevel.ROOT, getContext());
+            var mdGC = new GCRun(DataLevel.METADATA, getContext());
+            var userGC = new GCRun(DataLevel.USER, getContext());
 
-            new GarbageCollectionAlgorithm().collect(new GCEnv(RootTable.NAME));
-            new GarbageCollectionAlgorithm().collect(new GCEnv(MetadataTable.NAME));
+            log.info("Starting Root table Garbage Collection.");
+            status.current.bulks += new GarbageCollectionAlgorithm().collect(rootGC);
+            incrementStatsForRun(rootGC);
+            logStats();
 
-            log.info("Number of data file candidates for deletion: {}", status.current.candidates);
-            log.info("Number of data file candidates still in use: {}", status.current.inUse);
-            log.info("Number of successfully deleted data files: {}", status.current.deleted);
-            log.info("Number of data files delete failures: {}", status.current.errors);
+            log.info("Starting Metadata table Garbage Collection.");
+            status.current.bulks += new GarbageCollectionAlgorithm().collect(mdGC);
+            incrementStatsForRun(mdGC);
+            logStats();
+
+            log.info("Starting User table Garbage Collection.");
+            status.current.bulks += new GarbageCollectionAlgorithm().collect(userGC);
+            incrementStatsForRun(userGC);
+            logStats();
 
             status.current.finished = System.currentTimeMillis();
             status.last = status.current;
+            gcCycleMetrics.setLastCollect(status.current);
             status.current = new GcCycleStats();
 
           } catch (Exception e) {
+            TraceUtil.setException(innerSpan, e, false);
             log.error("{}", e.getMessage(), e);
           }
 
-          tStop = System.currentTimeMillis();
-          log.info(String.format("Collect cycle took %.2f seconds", ((tStop - tStart) / 1000.0)));
+          final long tStop = System.nanoTime();
+          log.info(String.format("Collect cycle took %.2f seconds",
+              (TimeUnit.NANOSECONDS.toMillis(tStop - tStart) / 1000.0)));
 
           /*
            * We want to prune references to fully-replicated WALs from the replication table which
            * are no longer referenced in the metadata table before running
            * GarbageCollectWriteAheadLogs to ensure we delete as many files as possible.
            */
-          try (TraceScope replSpan = Trace.startSpan("replicationClose")) {
-            CloseWriteAheadLogReferences closeWals = new CloseWriteAheadLogReferences(getContext());
+          Span replSpan = TraceUtil.startSpan(this.getClass(), "replicationClose");
+          try (Scope replScope = replSpan.makeCurrent()) {
+            @SuppressWarnings("deprecation")
+            Runnable closeWals =
+                new org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences(getContext());
             closeWals.run();
           } catch (Exception e) {
+            TraceUtil.setException(replSpan, e, false);
             log.error("Error trying to close write-ahead logs for replication table", e);
+          } finally {
+            replSpan.end();
           }
 
           // Clean up any unused write-ahead logs
-          try (TraceScope waLogs = Trace.startSpan("walogs")) {
+          Span walSpan = TraceUtil.startSpan(this.getClass(), "walogs");
+          try (Scope walScope = walSpan.makeCurrent()) {
             GarbageCollectWriteAheadLogs walogCollector =
-                new GarbageCollectWriteAheadLogs(getContext(), fs, isUsingTrash());
+                new GarbageCollectWriteAheadLogs(getContext(), fs, liveTServerSet, isUsingTrash());
             log.info("Beginning garbage collection of write-ahead logs");
             walogCollector.collect(status);
+            gcCycleMetrics.setLastWalCollect(status.lastLog);
           } catch (Exception e) {
+            TraceUtil.setException(walSpan, e, false);
             log.error("{}", e.getMessage(), e);
+          } finally {
+            walSpan.end();
           }
+        } catch (Exception e) {
+          TraceUtil.setException(innerSpan, e, true);
+          throw e;
+        } finally {
+          innerSpan.end();
         }
 
         // we just made a lot of metadata changes: flush them out
         try {
           AccumuloClient accumuloClient = getContext();
-          accumuloClient.tableOperations().compact(MetadataTable.NAME, null, null, true, true);
-          accumuloClient.tableOperations().compact(RootTable.NAME, null, null, true, true);
+
+          final long actionStart = System.nanoTime();
+
+          String action = getConfiguration().get(Property.GC_USE_FULL_COMPACTION);
+          log.debug("gc post action {} started", action);
+
+          switch (action) {
+            case "compact":
+              accumuloClient.tableOperations().compact(MetadataTable.NAME, null, null, true, true);
+              accumuloClient.tableOperations().compact(RootTable.NAME, null, null, true, true);
+              break;
+            case "flush":
+              accumuloClient.tableOperations().flush(MetadataTable.NAME, null, null, true);
+              accumuloClient.tableOperations().flush(RootTable.NAME, null, null, true);
+              break;
+            default:
+              log.trace("'none - no action' or invalid value provided: {}", action);
+          }
+
+          final long actionComplete = System.nanoTime();
+
+          gcCycleMetrics.setPostOpDurationNanos(actionComplete - actionStart);
+
+          log.info("gc post action {} completed in {} seconds", action, String.format("%.2f",
+              (TimeUnit.NANOSECONDS.toMillis(actionComplete - actionStart) / 1000.0)));
+
         } catch (Exception e) {
+          TraceUtil.setException(outerSpan, e, false);
           log.warn("{}", e.getMessage(), e);
         }
+      } catch (Exception e) {
+        TraceUtil.setException(outerSpan, e, true);
+        throw e;
+      } finally {
+        outerSpan.end();
       }
       try {
+
+        gcCycleMetrics.incrementRunCycleCount();
         long gcDelay = getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
         log.debug("Sleeping for {} milliseconds", gcDelay);
         Thread.sleep(gcDelay);
@@ -561,6 +326,21 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         return;
       }
     }
+  }
+
+  private void incrementStatsForRun(GCRun gcRun) {
+    status.current.candidates += gcRun.getCandidatesStat();
+    status.current.inUse += gcRun.getInUseStat();
+    status.current.deleted += gcRun.getDeletedStat();
+    status.current.errors += gcRun.getErrorsStat();
+  }
+
+  private void logStats() {
+    log.info("Number of data file candidates for deletion: {}", status.current.candidates);
+    log.info("Number of data file candidates still in use: {}", status.current.inUse);
+    log.info("Number of successfully deleted data files: {}", status.current.deleted);
+    log.info("Number of data files delete failures: {}", status.current.errors);
+    log.info("Number of bulk imports in progress: {}", status.current.bulks);
   }
 
   /**
@@ -585,7 +365,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   }
 
   private void getZooLock(HostAndPort addr) throws KeeperException, InterruptedException {
-    String path = getContext().getZooKeeperRoot() + Constants.ZGC_LOCK;
+    var path = ServiceLock.path(getContext().getZooKeeperRoot() + Constants.ZGC_LOCK);
 
     LockWatcher lockWatcher = new LockWatcher() {
       @Override
@@ -594,15 +374,17 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       }
 
       @Override
-      public void unableToMonitorLockNode(final Throwable e) {
+      public void unableToMonitorLockNode(final Exception e) {
         // ACCUMULO-3651 Level changed to error and FATAL added to message for slf4j compatibility
         Halt.halt(-1, () -> log.error("FATAL: No longer able to monitor lock node ", e));
 
       }
     };
 
+    UUID zooLockUUID = UUID.randomUUID();
     while (true) {
-      lock = new ZooLock(getContext().getZooReaderWriter(), path);
+      ServiceLock lock =
+          new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(), path, zooLockUUID);
       if (lock.tryLock(lockWatcher,
           new ServerServices(addr.toString(), Service.GC_CLIENT).toString().getBytes())) {
         log.debug("Got GC ZooKeeper lock");
@@ -614,51 +396,16 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   }
 
   private HostAndPort startStatsService() {
-    Iface rpcProxy = TraceUtil.wrapService(this);
-    final Processor<Iface> processor;
-    if (getContext().getThriftServerType() == ThriftServerType.SASL) {
-      Iface tcProxy = TCredentialsUpdatingWrapper.service(rpcProxy, getClass(), getConfiguration());
-      processor = new Processor<>(tcProxy);
-    } else {
-      processor = new Processor<>(rpcProxy);
-    }
-    int[] port = getConfiguration().getPort(Property.GC_PORT);
-    HostAndPort[] addresses = TServerUtils.getHostAndPorts(this.opts.getAddress(), port);
+    var processor = ThriftProcessorTypes.getGcTProcessor(this, getContext());
+    IntStream port = getConfiguration().getPortStream(Property.GC_PORT);
+    HostAndPort[] addresses = TServerUtils.getHostAndPorts(getHostname(), port);
     long maxMessageSize = getConfiguration().getAsBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
-    try {
-      ServerAddress server = TServerUtils.startTServer(getMetricsSystem(), getConfiguration(),
-          getContext().getThriftServerType(), processor, this.getClass().getSimpleName(),
-          "GC Monitor Service", 2,
-          getConfiguration().getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), 1000,
-          maxMessageSize, getContext().getServerSslParams(), getContext().getSaslParams(), 0,
-          addresses);
-      log.debug("Starting garbage collector listening on " + server.address);
-      return server.address;
-    } catch (Exception ex) {
-      // ACCUMULO-3651 Level changed to error and FATAL added to message for slf4j compatibility
-      log.error("FATAL:", ex);
-      throw new RuntimeException(ex);
-    }
-  }
-
-  /**
-   * Checks if the system is almost out of memory.
-   *
-   * @param runtime
-   *          Java runtime
-   * @return true if system is almost out of memory
-   * @see #CANDIDATE_MEMORY_PERCENTAGE
-   */
-  static boolean almostOutOfMemory(Runtime runtime) {
-    return runtime.totalMemory() - runtime.freeMemory()
-        > CANDIDATE_MEMORY_PERCENTAGE * runtime.maxMemory();
-  }
-
-  private static void putMarkerDeleteMutation(final String delete, final BatchWriter writer)
-      throws MutationsRejectedException {
-    Mutation m = new Mutation(MetadataSchema.DeletesSection.getRowPrefix() + delete);
-    m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
-    writer.addMutation(m);
+    ServerAddress server = TServerUtils.startTServer(getConfiguration(),
+        getContext().getThriftServerType(), processor, this.getClass().getSimpleName(),
+        "GC Monitor Service", 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, maxMessageSize,
+        getContext().getServerSslParams(), getContext().getSaslParams(), 0, addresses);
+    log.debug("Starting garbage collector listening on " + server.address);
+    return server.address;
   }
 
   /**
@@ -672,6 +419,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     if (delete == null) {
       return false;
     }
+
     int slashCount = 0;
     for (int i = 0; i < delete.length(); i++) {
       if (delete.charAt(i) == '/') {
@@ -685,4 +433,9 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   public GCStatus getStatus(TInfo info, TCredentials credentials) {
     return status;
   }
+
+  public GcCycleMetrics getGcCycleMetrics() {
+    return gcCycleMetrics;
+  }
+
 }

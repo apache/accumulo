@@ -1,29 +1,32 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.mapreduce;
 
 import static java.lang.System.currentTimeMillis;
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -45,6 +48,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -60,8 +64,8 @@ import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Level;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
@@ -69,14 +73,14 @@ import com.google.common.collect.Multimap;
 /**
  * This tests deprecated mapreduce code in core jar
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
   org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat inputFormat;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
   }
 
   @Override
@@ -84,7 +88,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     cfg.setNumTservers(1);
   }
 
-  @Before
+  @BeforeEach
   public void before() {
     inputFormat = new org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat();
   }
@@ -131,10 +135,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
       // offline mode
       org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setOfflineTableScan(job, true);
-      try {
-        inputFormat.getSplits(job);
-        fail("An exception should have been thrown");
-      } catch (IOException e) {}
+      assertThrows(IOException.class, () -> inputFormat.getSplits(job));
 
       client.tableOperations().offline(table, true);
       splits = inputFormat.getSplits(job);
@@ -159,10 +160,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setAutoAdjustRanges(job, true);
 
       org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setOfflineTableScan(job, true);
-      try {
-        inputFormat.getSplits(job);
-        fail("An exception should have been thrown");
-      } catch (IllegalArgumentException e) {}
+      assertThrows(IllegalArgumentException.class, () -> inputFormat.getSplits(job));
 
       client.tableOperations().online(table, true);
       org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setOfflineTableScan(job, false);
@@ -173,10 +171,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
       // BatchScan not available with isolated iterators
       org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setScanIsolation(job, true);
-      try {
-        inputFormat.getSplits(job);
-        fail("An exception should have been thrown");
-      } catch (IllegalArgumentException e) {}
+      assertThrows(IllegalArgumentException.class, () -> inputFormat.getSplits(job));
       org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setScanIsolation(job, false);
 
       // test for resumption of success
@@ -185,10 +180,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
       // BatchScan not available with local iterators
       org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setLocalIterators(job, true);
-      try {
-        inputFormat.getSplits(job);
-        fail("An exception should have been thrown");
-      } catch (IllegalArgumentException e) {}
+      assertThrows(IllegalArgumentException.class, () -> inputFormat.getSplits(job));
       org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setLocalIterators(job, false);
 
       // Check we are getting back correct type pf split
@@ -209,7 +201,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       for (int i = 0; i < 10000; i++) {
         String row = String.format("%09d", i);
         Mutation m = new Mutation(new Text(row));
-        m.put(new Text("cf1"), new Text("cq1"), ts, new Value(("" + i).getBytes()));
+        m.put(new Text("cf1"), new Text("cq1"), ts, new Value("" + i));
         bw.addMutation(m);
       }
     }
@@ -433,6 +425,91 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       assertEquals(localIters, risplit.usesLocalIterators());
       assertEquals(fetchColumns, risplit.getFetchedColumns());
       assertEquals(level, risplit.getLogLevel());
+    }
+  }
+
+  @Test
+  public void testGetSplitsNoReadPermission() throws Exception {
+    Job job = Job.getInstance();
+
+    String table = getUniqueNames(1)[0];
+    Authorizations auths = new Authorizations("foo");
+    Collection<Pair<Text,Text>> fetchColumns =
+        Collections.singleton(new Pair<>(new Text("foo"), new Text("bar")));
+    boolean isolated = true, localIters = true;
+    Level level = Level.WARN;
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().create(table);
+      client.securityOperations().revokeTablePermission(client.whoami(), table,
+          TablePermission.READ);
+
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setZooKeeperInstance(job,
+          cluster.getClientConfig());
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setConnectorInfo(job,
+          getAdminPrincipal(), getAdminToken());
+
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setInputTableName(job, table);
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setScanAuthorizations(job,
+          auths);
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setScanIsolation(job, isolated);
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setLocalIterators(job,
+          localIters);
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.fetchColumns(job, fetchColumns);
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setLogLevel(job, level);
+
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat aif =
+          new org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat();
+
+      assertThrows(IOException.class, () -> aif.getSplits(job));
+    }
+  }
+
+  /*
+   * This tests the case where we do not have Table.READ permission, but we do have Namespace.READ.
+   * See issue #1370.
+   */
+  @Test
+  public void testGetSplitsWithNamespaceReadPermission() throws Exception {
+    Job job = Job.getInstance();
+
+    final String[] namespaceAndTable = getUniqueNames(2);
+    final String namespace = namespaceAndTable[0];
+    final String tableSimpleName = namespaceAndTable[1];
+    final String table = namespace + "." + tableSimpleName;
+    Authorizations auths = new Authorizations("foo");
+    Collection<Pair<Text,Text>> fetchColumns =
+        Collections.singleton(new Pair<>(new Text("foo"), new Text("bar")));
+    final boolean isolated = true;
+    final boolean localIters = true;
+    Level level = Level.WARN;
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.namespaceOperations().create(namespace); // creating namespace implies Namespace.READ
+      client.tableOperations().create(table);
+      client.securityOperations().revokeTablePermission(client.whoami(), table,
+          TablePermission.READ);
+
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setZooKeeperInstance(job,
+          cluster.getClientConfig());
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setConnectorInfo(job,
+          getAdminPrincipal(), getAdminToken());
+
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setInputTableName(job, table);
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setScanAuthorizations(job,
+          auths);
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setScanIsolation(job, isolated);
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setLocalIterators(job,
+          localIters);
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.fetchColumns(job, fetchColumns);
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setLogLevel(job, level);
+
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat aif =
+          new org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat();
+
+      List<InputSplit> splits = aif.getSplits(job);
+
+      assertEquals(1, splits.size());
     }
   }
 

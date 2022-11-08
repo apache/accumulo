@@ -1,23 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -45,29 +48,29 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.ByteArraySet;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterators;
 
 public class VisibilityIT extends AccumuloClusterHarness {
 
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 2 * 60;
-  }
-
   Authorizations origAuths = null;
 
-  @Before
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
+  }
+
+  @BeforeEach
   public void emptyAuths() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       origAuths = c.securityOperations().getUserAuthorizations(getAdminPrincipal());
     }
   }
 
-  @After
+  @AfterEach
   public void resetAuths() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       if (origAuths != null) {
@@ -98,17 +101,13 @@ public class VisibilityIT extends AccumuloClusterHarness {
 
   private static SortedSet<String> nss(String... labels) {
     TreeSet<String> ts = new TreeSet<>();
-
-    for (String s : labels) {
-      ts.add(s);
-    }
-
+    Collections.addAll(ts, labels);
     return ts;
   }
 
   private void mput(Mutation m, String cf, String cq, String cv, String val) {
     ColumnVisibility le = new ColumnVisibility(cv.getBytes(UTF_8));
-    m.put(new Text(cf), new Text(cq), le, new Value(val.getBytes(UTF_8)));
+    m.put(new Text(cf), new Text(cq), le, new Value(val));
   }
 
   private void mputDelete(Mutation m, String cf, String cq, String cv) {
@@ -323,7 +322,7 @@ public class VisibilityIT extends AccumuloClusterHarness {
       }
     }
 
-    if (valuesSeen.size() != 0) {
+    if (!valuesSeen.isEmpty()) {
       throw new Exception("Saw more values than expected " + valuesSeen);
     }
   }

@@ -1,22 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.hadoopImpl.mapred;
 
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -28,7 +30,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -40,21 +41,19 @@ import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
-import org.apache.accumulo.core.client.TableDeletedException;
+import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.OfflineScanner;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.hadoopImpl.mapreduce.InputTableConfig;
@@ -72,6 +71,8 @@ import org.slf4j.LoggerFactory;
  * @see org.apache.accumulo.hadoopImpl.mapreduce.AccumuloRecordReader
  */
 public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
+
+  private static final SecureRandom random = new SecureRandom();
   // class to serialize configuration under in the job
   private final Class<?> CLASS;
   private static final Logger log = LoggerFactory.getLogger(AccumuloRecordReader.class);
@@ -134,6 +135,7 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
     ClientContext context = (ClientContext) client;
     Authorizations authorizations = InputConfigurator.getScanAuthorizations(CLASS, job);
     String classLoaderContext = InputConfigurator.getClassLoaderContext(CLASS, job);
+    ConsistencyLevel cl = InputConfigurator.getConsistencyLevel(CLASS, job);
     String table = baseSplit.getTableName();
 
     // in case the table name changed, we can still use the previous name for terms of
@@ -161,7 +163,8 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
       } catch (TableNotFoundException e) {
         throw new IOException(e);
       }
-
+      scanner.setConsistencyLevel(cl == null ? ConsistencyLevel.IMMEDIATE : cl);
+      log.info("Using consistency level: {}", scanner.getConsistencyLevel());
       scanner.setRanges(multiRangeSplit.getRanges());
       scannerBase = scanner;
 
@@ -189,6 +192,8 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
           scanner = new OfflineScanner(context, TableId.of(baseSplit.getTableId()), authorizations);
         } else {
           scanner = new ScannerImpl(context, TableId.of(baseSplit.getTableId()), authorizations);
+          scanner.setConsistencyLevel(cl == null ? ConsistencyLevel.IMMEDIATE : cl);
+          log.info("Using consistency level: {}", scanner.getConsistencyLevel());
         }
         if (isIsolated) {
           log.info("Creating isolated scanner");
@@ -235,7 +240,7 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
     }
 
     Map<String,String> executionHints = baseSplit.getExecutionHints();
-    if (executionHints == null || executionHints.size() == 0) {
+    if (executionHints == null || executionHints.isEmpty()) {
       executionHints = tableConfig.getExecutionHints();
     }
 
@@ -286,20 +291,19 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
   public static InputSplit[] getSplits(JobConf job, Class<?> callingClass) throws IOException {
     validateOptions(job, callingClass);
 
-    Random random = new SecureRandom();
     LinkedList<InputSplit> splits = new LinkedList<>();
     Map<String,InputTableConfig> tableConfigs =
         InputConfigurator.getInputTableConfigs(callingClass, job);
-    try (AccumuloClient client = createClient(job, callingClass)) {
+    try (AccumuloClient client = createClient(job, callingClass);
+        var context = ((ClientContext) client)) {
       for (Map.Entry<String,InputTableConfig> tableConfigEntry : tableConfigs.entrySet()) {
         String tableName = tableConfigEntry.getKey();
         InputTableConfig tableConfig = tableConfigEntry.getValue();
 
-        ClientContext context = (ClientContext) client;
         TableId tableId;
         // resolve table name to id once, and use id from this point forward
         try {
-          tableId = Tables.getTableId(context, tableName);
+          tableId = context.getTableId(tableName);
         } catch (TableNotFoundException e) {
           throw new IOException(e);
         }
@@ -343,11 +347,8 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
             tl.invalidateCache();
 
             while (!tl.binRanges(context, ranges, binnedRanges).isEmpty()) {
-              String tableIdStr = tableId.canonical();
-              if (!Tables.exists(context, tableId))
-                throw new TableDeletedException(tableIdStr);
-              if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
-                throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
+              context.requireNotDeleted(tableId);
+              context.requireNotOffline(tableId, tableName);
               binnedRanges.clear();
               log.warn("Unable to locate bins for specified ranges. Retrying.");
               // sleep randomly between 100 and 200 ms

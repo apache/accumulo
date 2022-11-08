@@ -1,26 +1,27 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test;
 
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertTrue;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.security.SecureRandom;
-import java.util.Random;
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -31,22 +32,25 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-// see ACCUMULO-1950
 public class TotalQueuedIT extends ConfigurableMacBase {
+
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
+  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
-    cfg.setDefaultMemory(cfg.getDefaultMemory() * 2, MemoryUnit.BYTE);
     cfg.useMiniDFS();
   }
 
@@ -54,9 +58,8 @@ public class TotalQueuedIT extends ConfigurableMacBase {
   private int LARGE_QUEUE_SIZE = SMALL_QUEUE_SIZE * 10;
   private static final long N = 1000000;
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void test() throws Exception {
-    Random random = new SecureRandom();
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       c.instanceOperations().setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(),
           "" + SMALL_QUEUE_SIZE);
@@ -87,9 +90,8 @@ public class TotalQueuedIT extends ConfigurableMacBase {
       double secs = diff / 1000.;
       double syncs = bytesSent / SMALL_QUEUE_SIZE;
       double syncsPerSec = syncs / secs;
-      System.out.println(
-          String.format("Sent %d bytes in %f secs approximately %d syncs (%f syncs per sec)",
-              bytesSent, secs, ((long) syncs), syncsPerSec));
+      System.out.printf("Sent %d bytes in %f secs approximately %d syncs (%f syncs per sec)%n",
+          bytesSent, secs, ((long) syncs), syncsPerSec);
       long update = getSyncs(c);
       System.out.println("Syncs " + (update - realSyncs));
       realSyncs = update;
@@ -114,9 +116,8 @@ public class TotalQueuedIT extends ConfigurableMacBase {
       secs = diff / 1000.;
       syncs = bytesSent / LARGE_QUEUE_SIZE;
       syncsPerSec = syncs / secs;
-      System.out.println(
-          String.format("Sent %d bytes in %f secs approximately %d syncs (%f syncs per sec)",
-              bytesSent, secs, ((long) syncs), syncsPerSec));
+      System.out.printf("Sent %d bytes in %f secs approximately %d syncs (%f syncs per sec)%n",
+          bytesSent, secs, ((long) syncs), syncsPerSec);
       update = getSyncs(c);
       System.out.println("Syncs " + (update - realSyncs));
       assertTrue(update - realSyncs < realSyncs);
@@ -126,8 +127,8 @@ public class TotalQueuedIT extends ConfigurableMacBase {
   private long getSyncs(AccumuloClient c) throws Exception {
     ServerContext context = getServerContext();
     for (String address : c.instanceOperations().getTabletServers()) {
-      TabletClientService.Client client =
-          ThriftUtil.getTServerClient(HostAndPort.fromString(address), context);
+      TabletClientService.Client client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER,
+          HostAndPort.fromString(address), context);
       TabletServerStatus status = client.getTabletServerStatus(null, context.rpcCreds());
       return status.syncs;
     }

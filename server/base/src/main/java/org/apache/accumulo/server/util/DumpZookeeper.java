@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.util;
 
@@ -22,16 +24,28 @@ import java.io.PrintStream;
 import java.util.Base64;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 
-public class DumpZookeeper {
+@AutoService(KeywordExecutable.class)
+public class DumpZookeeper implements KeywordExecutable {
 
-  private static IZooReaderWriter zk = null;
+  private static ZooReaderWriter zk = null;
+
+  @Override
+  public String keyword() {
+    return "dump-zoo";
+  }
+
+  @Override
+  public String description() {
+    return "Writes Zookeeper data as human readable or XML to a file.";
+  }
 
   private static class Encoded {
     public String encoding;
@@ -52,7 +66,8 @@ public class DumpZookeeper {
     boolean xml = false;
   }
 
-  public static void main(String[] args) throws KeeperException, InterruptedException {
+  @Override
+  public void execute(String[] args) throws KeeperException, InterruptedException {
     Opts opts = new Opts();
     opts.parseArgs(DumpZookeeper.class.getName(), args);
 
@@ -65,10 +80,14 @@ public class DumpZookeeper {
     }
   }
 
+  public static void main(String[] args) throws KeeperException, InterruptedException {
+    new DumpZookeeper().execute(args);
+  }
+
   private static void writeXml(PrintStream out, String root)
       throws KeeperException, InterruptedException {
     write(out, 0, "<dump root='%s'>", root);
-    for (String child : zk.getChildren(root, null)) {
+    for (String child : zk.getChildren(root)) {
       if (!child.equals("zookeeper")) {
         childXml(out, root, child, 1);
       }
@@ -106,7 +125,7 @@ public class DumpZookeeper {
         write(out, indent, "<%s name='%s' encoding='%s' value='%s'>", type, child, value.encoding,
             value.value);
       }
-      for (String c : zk.getChildren(path, null)) {
+      for (String c : zk.getChildren(path)) {
         childXml(out, path, c, indent + 1);
       }
       write(out, indent, "</node>");
@@ -114,7 +133,7 @@ public class DumpZookeeper {
   }
 
   private static Encoded value(String path) throws KeeperException, InterruptedException {
-    byte[] data = zk.getData(path, null);
+    byte[] data = zk.getData(path);
     for (byte element : data) {
       // does this look like simple ascii?
       if (element < ' ' || element > '~') {
@@ -128,13 +147,13 @@ public class DumpZookeeper {
     for (int i = 0; i < indent; i++) {
       out.print("  ");
     }
-    out.println(String.format(fmt, args));
+    out.printf(fmt + "%n", args);
   }
 
   private static void writeHumanReadable(PrintStream out, String root)
       throws KeeperException, InterruptedException {
     write(out, 0, "%s:", root);
-    for (String child : zk.getChildren(root, null)) {
+    for (String child : zk.getChildren(root)) {
       if (!child.equals("zookeeper")) {
         childHumanReadable(out, root, child, 1);
       }
@@ -161,7 +180,7 @@ public class DumpZookeeper {
       write(out, indent, "%s:  %s", node, value(path).value);
     }
     if (stat.getNumChildren() > 0) {
-      for (String c : zk.getChildren(path, null)) {
+      for (String c : zk.getChildren(path)) {
         childHumanReadable(out, path, c, indent + 1);
       }
     }

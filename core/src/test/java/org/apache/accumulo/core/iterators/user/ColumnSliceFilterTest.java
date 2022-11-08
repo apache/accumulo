@@ -1,25 +1,27 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -34,10 +36,10 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.SortedMapIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.hadoop.io.Text;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ColumnSliceFilterTest {
 
@@ -59,7 +61,7 @@ public class ColumnSliceFilterTest {
   private static Key newKeyValue(SortedMap<Key,Value> tm, String row, String cf, String cq,
       String val) {
     Key k = newKey(row, cf, cq);
-    tm.put(k, new Value(val.getBytes()));
+    tm.put(k, new Value(val));
     return k;
   }
 
@@ -67,7 +69,7 @@ public class ColumnSliceFilterTest {
     return new Key(new Text(row), new Text(cf), new Text(cq));
   }
 
-  @Before
+  @BeforeEach
   public void setUp() {
     columnSliceFilter.describeOptions();
     iteratorEnvironment = new DefaultIteratorEnvironment();
@@ -234,32 +236,20 @@ public class ColumnSliceFilterTest {
 
   @Test
   public void testStartAfterEnd() {
-    try {
-      ColumnSliceFilter.setSlice(is, "20080204", "20080202");
-      fail("IllegalArgumentException expected but not thrown");
-    } catch (IllegalArgumentException expectedException) {
-      // Exception successfully thrown
-    }
+    assertThrows(IllegalArgumentException.class,
+        () -> ColumnSliceFilter.setSlice(is, "20080204", "20080202"));
   }
 
   @Test
   public void testStartEqualToEndStartInclusiveEndExclusive() {
-    try {
-      ColumnSliceFilter.setSlice(is, "20080202", "20080202");
-      fail("IllegalArgumentException expected but not thrown");
-    } catch (IllegalArgumentException expectedException) {
-      // Exception successfully thrown
-    }
+    assertThrows(IllegalArgumentException.class,
+        () -> ColumnSliceFilter.setSlice(is, "20080202", "20080202"));
   }
 
   @Test
   public void testStartEqualToEndStartExclusiveEndInclusive() {
-    try {
-      ColumnSliceFilter.setSlice(is, "20080202", false, "20080202", true);
-      fail("IllegalArgumentException expected but not thrown");
-    } catch (IllegalArgumentException expectedException) {
-      // Exception successfully thrown
-    }
+    assertThrows(IllegalArgumentException.class,
+        () -> ColumnSliceFilter.setSlice(is, "20080202", false, "20080202", true));
   }
 
   @Test
