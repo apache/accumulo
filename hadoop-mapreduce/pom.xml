@@ -101,7 +101,7 @@
             </goals>
             <configuration>
               <includes>
-                <include>org[.]apache[.]accumulo[.]core[.]client[.]mapred(?:uce)?[.].*</include>
+                <include>org[.]apache[.]accumulo[.]hadoop[.]mapred(?:uce)?[.].*</include>
               </includes>
               <excludes>
                 <exclude>.*[.]impl[.].*</exclude>

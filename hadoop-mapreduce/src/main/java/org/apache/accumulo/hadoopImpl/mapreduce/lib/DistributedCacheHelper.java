@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.clientImpl.mapreduce.lib;
+package org.apache.accumulo.hadoopImpl.mapreduce.lib;
 
 import static java.util.Objects.requireNonNull;
 
