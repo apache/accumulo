@@ -52,7 +52,7 @@ import org.apache.accumulo.core.security.Authorizations;
  *
  * <p>
  * If migrating code from Connector to AccumuloClient an important difference to consider is that
- * AccumuloClient is closable and Connector is not. Connector uses static resources and therefore
+ * AccumuloClient is closable and Connector was not. Connector uses static resources and therefore
  * creating them is cheap. AccumuloClient attempts to clean up resources on close, so constantly
  * creating them could perform worse than Connector. Therefore, it would be better to create an
  * AccumuloClient and pass it around.

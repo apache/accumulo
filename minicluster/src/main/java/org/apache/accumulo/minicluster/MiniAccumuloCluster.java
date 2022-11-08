@@ -24,10 +24,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientInfoImpl;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
@@ -127,19 +124,6 @@ public class MiniAccumuloCluster implements AutoCloseable {
    */
   public MiniAccumuloConfig getConfig() {
     return new MiniAccumuloConfig(impl.getConfig());
-  }
-
-  /**
-   * Utility method to get a connector to the MAC.
-   *
-   * @since 1.6.0
-   * @deprecated since 2.0.0, replaced by {@link #createAccumuloClient(String, AuthenticationToken)}
-   */
-  @Deprecated(since = "2.0.0")
-  public org.apache.accumulo.core.client.Connector getConnector(String user, String passwd)
-      throws AccumuloException, AccumuloSecurityException {
-    return org.apache.accumulo.core.client.Connector
-        .from(impl.createAccumuloClient(user, new PasswordToken(passwd)));
   }
 
   /**

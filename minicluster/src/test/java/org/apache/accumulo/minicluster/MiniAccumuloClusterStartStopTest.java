@@ -23,6 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.File;
 import java.io.IOException;
 
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -71,13 +73,14 @@ public class MiniAccumuloClusterStartStopTest extends WithTestNames {
     }
   }
 
-  @SuppressWarnings("deprecation")
   @Test
   public void multipleStopsIsAllowed() throws Exception {
     accumulo.start();
 
-    org.apache.accumulo.core.client.Connector conn = accumulo.getConnector("root", "superSecret");
-    conn.tableOperations().create("foo");
+    try (AccumuloClient client = Accumulo.newClient().from(accumulo.getClientProperties())
+        .as("root", "superSecret").build()) {
+      client.tableOperations().create("foo");
+    }
 
     accumulo.stop();
     accumulo.stop();

@@ -86,22 +86,6 @@ public class SystemCredentialsTest {
     assertTrue(hash.startsWith(SystemToken.SALT_PREFIX));
   }
 
-  /**
-   * This is a test to ensure the SYSTEM_TOKEN_NAME string literal in
-   * {@link org.apache.accumulo.core.clientImpl.ConnectorImpl} is kept up-to-date if we move the
-   * {@link SystemToken}<br>
-   *
-   * @deprecated This check will not be needed after Connector is removed
-   */
-  @Deprecated(since = "2.0.0")
-  @Test
-  public void testSystemToken() {
-    assertEquals("org.apache.accumulo.server.security.SystemCredentials$SystemToken",
-        SystemToken.class.getName());
-    assertEquals(SystemCredentials.get(instanceId, siteConfig).getToken().getClass(),
-        SystemToken.class);
-  }
-
   @Test
   public void testSystemCredentials() {
     Credentials a = SystemCredentials.get(instanceId, siteConfig);
