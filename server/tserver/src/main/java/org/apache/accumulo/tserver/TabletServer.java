@@ -127,7 +127,6 @@ import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.delegation.ZooAuthenticationKeyWatcher;
-import org.apache.accumulo.server.util.FileSystemMonitor;
 import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.time.RelativeTime;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
@@ -1045,15 +1044,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     Threads.createThread("Split/MajC initiator", new MajorCompactor(context)).start();
 
     clientAddress = HostAndPort.fromParts(getHostname(), 0);
-
-    final AccumuloConfiguration aconf = getConfiguration();
-
-    @SuppressWarnings("removal")
-    Property TSERV_MONITOR_FS = Property.TSERV_MONITOR_FS;
-    if (aconf.getBoolean(TSERV_MONITOR_FS)) {
-      log.warn("{} is deprecated and marked for removal.", TSERV_MONITOR_FS.getKey());
-      FileSystemMonitor.start(aconf);
-    }
 
     Runnable gcDebugTask = () -> gcLogger.logGCInfo(getConfiguration());
 
