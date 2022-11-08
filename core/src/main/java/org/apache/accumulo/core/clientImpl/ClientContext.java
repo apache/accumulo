@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Suppliers.memoizeWithExpiration;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -159,11 +160,6 @@ public class ClientContext implements AccumuloClient {
     }
   }
 
-  private static <T> Supplier<T> memoizeWithExpiration(Supplier<T> s) {
-    // This insanity exists to make modernizer plugin happy. We are living in the future now.
-    return () -> Suppliers.memoizeWithExpiration(s::get, 100, MILLISECONDS).get();
-  }
-
   private ScanServerSelector createScanServerSelector() {
     String clazz = ClientProperty.SCAN_SERVER_SELECTOR.getValue(info.getProperties());
     try {
@@ -231,11 +227,13 @@ public class ClientContext implements AccumuloClient {
         new ZooCacheFactory().getZooCache(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
     this.serverConf = serverConf;
     timeoutSupplier = memoizeWithExpiration(
-        () -> getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
+        () -> getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT), 100, MILLISECONDS);
     sslSupplier = Suppliers.memoize(() -> SslConnectionParams.forClient(getConfiguration()));
     saslSupplier = memoizeWithExpiration(
-        () -> SaslConnectionParams.from(getConfiguration(), getCredentials().getToken()));
-    scanServerSelectorSupplier = memoizeWithExpiration(() -> createScanServerSelector());
+        () -> SaslConnectionParams.from(getConfiguration(), getCredentials().getToken()), 100,
+        MILLISECONDS);
+    scanServerSelectorSupplier =
+        memoizeWithExpiration(this::createScanServerSelector, 100, MILLISECONDS);
     this.singletonReservation = Objects.requireNonNull(reservation);
     this.tableops = new TableOperationsImpl(this);
     this.namespaceops = new NamespaceOperationsImpl(this, tableops);
